@@ -2,18 +2,19 @@ import { type ReactNode, useState } from "react";
 import {
 	type Changes as ChangesData,
 	type ConflictFile,
+	canCommit,
 	type DiffSide,
 	type FileChange,
 	useChanges,
 	useCodeActions,
 	useConflicts,
 	useDiff,
-	usePulls,
 	useStashes,
 } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { copyText, type Handlers, useMenus } from "@/lib/menus";
+import { usePrefs } from "@/lib/prefs";
 import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
@@ -21,21 +22,18 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Textarea } from "@/ui/atoms/textarea";
-import { CodeBracketIcon } from "@/ui/icons";
 import { ConflictBlock, type ConflictChoice } from "@/ui/molecules/conflict-block";
 import type { MenuItem } from "@/ui/molecules/context-menu";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FileRow } from "@/ui/molecules/file-row";
-import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { SplitPane } from "@/ui/molecules/split-pane";
-import { StatStrip } from "@/ui/molecules/stat-strip";
 import { ConflictAgent } from "./conflict-agent";
 import { OpenInEditor } from "./open-in-editor";
 import { Preview } from "./preview";
-import { withProject } from "./project-gate";
 import { GateNotice } from "./push-target";
 import { treeRows } from "./tree";
 import { useRun } from "./use-run";
@@ -331,10 +329,77 @@ const inGroups = (c: ChangesData, path: string) => ({
 	conflict: c.conflicted.some((f) => f.path === path),
 });
 
-function ChangesView() {
+/**
+ * The commit box of Code / Now (`spec:app-redesign#REQ-022`): the message, the description and the one
+ * commit. "Write it for me" leaves the staged files in the draft of the assistant.
+ */
+function CommitBox({ changes }: { changes: ChangesData }) {
+	const { t } = useI18n();
+	const { commit } = useCodeActions();
+	const { ask } = useShell();
+	const { profile } = usePrefs();
+	const { failure, busy, run } = useRun();
+	const [summary, setSummary] = useState("");
+	const [description, setDescription] = useState("");
+	return (
+		<form
+			aria-label={t.shell.commit}
+			className="flex shrink-0 flex-col gap-2 rounded-lg border bg-surface-1 p-3 shadow-1"
+			onSubmit={(e) => {
+				e.preventDefault();
+				void run(async () => {
+					await commit(summary, description);
+					setSummary("");
+					setDescription("");
+				});
+			}}
+		>
+			<Input
+				label={t.code.summary}
+				className="min-h-control"
+				value={summary}
+				onChange={(e) => setSummary(e.target.value)}
+			/>
+			<Textarea
+				label={t.code.description}
+				value={description}
+				onChange={(e) => setDescription(e.target.value)}
+			/>
+			<ErrorNotice error={failure} />
+			<div className="flex flex-wrap gap-2">
+				<Button
+					className="min-h-control flex-1"
+					disabled={changes.staged.length === 0}
+					onClick={() =>
+						ask(
+							format(t.forge.now.writePrompt, {
+								files: changes.staged.map((f) => f.path).join(", "),
+							}),
+						)
+					}
+				>
+					{t.forge.now.write}
+				</Button>
+				<RightButton
+					type="submit"
+					right="code.write"
+					variant="primary"
+					className="min-h-control flex-1"
+					busy={busy}
+					// A read only profile makes no commit, and a conflict or an empty stage refuses it.
+					disabled={!canCommit(changes) || profile.readOnly}
+				>
+					{t.shell.commit}
+				</RightButton>
+			</div>
+		</form>
+	);
+}
+
+/** The files to commit of Code / Now: the groups, the commit box, the stashes and the diff of one file. */
+export function WorkingCopy() {
 	const { t } = useI18n();
 	const changes = useChanges(true).data;
-	const pulls = usePulls().data;
 	const conflicts = useConflicts().data ?? [];
 	const { stage, unstage, discard } = useCodeActions();
 	const menu = useMenus();
@@ -351,8 +416,7 @@ function ChangesView() {
 	const { setFilesOpen } = useShell();
 	const { gate } = useRights();
 	const run = (job: () => Promise<unknown>) => void runJob(job);
-	if (!changes)
-		return <PageHeader icon={<CodeBracketIcon size={16} />} title={t.tabs.code.changes} />;
+	if (!changes) return null;
 	const unstaged = [...changes.unstaged, ...changes.untracked];
 	const here = path ? inGroups(changes, path) : null;
 	const conflict = path ? conflicts.find((c) => c.path === path) : undefined;
@@ -372,35 +436,18 @@ function ChangesView() {
 			"copy-path": () => copyText(file.path),
 		}).map((item) => (item.id in own ? { ...item, ...gate("code.write") } : item));
 
-	const open = (pulls ?? []).filter((r) => r.state === "open");
+	const count = changes.staged.length + unstaged.length + changes.conflicted.length;
 	return (
-		<div className="flex min-h-0 flex-1 flex-col">
-			<PageHeader
-				icon={<CodeBracketIcon size={16} />}
-				title={t.tabs.code.changes}
-				count={changes.staged.length + unstaged.length + changes.conflicted.length}
-				chips={changes.branch ? <Badge className="font-mono">{changes.branch}</Badge> : undefined}
-			/>
-			<StatStrip
-				className="px-4"
-				items={[
-					{
-						label: t.ui.changes,
-						value: String(changes.staged.length + unstaged.length),
-						delta: format(t.count, { name: t.code.staged, count: changes.staged.length }),
-						tone: "accent",
-					},
-					{ label: t.ui.ahead, value: String(changes.ahead), tone: "success" },
-					{ label: t.ui.behind, value: String(changes.behind), tone: "warning" },
-					{
-						label: t.tabs.code["pull-requests"],
-						value: String(open.length),
-						delta: open.some((r) => r.ci === "failing") ? t.forge.ci.failing : undefined,
-						tone: open.some((r) => r.ci === "failing") ? "danger" : "info",
-					},
-				]}
-			/>
-			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-3 pb-4">
+		<section aria-labelledby="code-now-files" className="flex flex-col gap-3">
+			<h2 id="code-now-files" className="text-16 font-semibold text-n-12">
+				{count === 0
+					? t.forge.now.clean
+					: count === 1
+						? t.forge.now.file
+						: format(t.forge.now.files, { count })}
+			</h2>
+			{/* The list sets the height, so the commit box is never cut; the diff keeps a fixed height and stays in view. */}
+			<div className="flex items-start gap-3">
 				<SplitPane id="code-changes-width" label={t.forge.resize.changes} fallback={384}>
 					<div className="flex shrink-0 flex-col gap-3 overflow-y-auto">
 						<GateNotice push={false} />
@@ -460,6 +507,7 @@ function ChangesView() {
 								</>
 							)}
 						/>
+						<CommitBox changes={changes} />
 						<Stashes dirty={changes.staged.length + unstaged.length > 0} run={run} />
 						{error ? (
 							<p role="alert" className="px-3 py-2 text-ui text-danger-text">
@@ -468,7 +516,7 @@ function ChangesView() {
 						) : null}
 					</div>
 				</SplitPane>
-				<div className="min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
+				<div className="sticky top-0 h-[36rem] min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
 					{conflict ? <ConflictPane key={conflict.path} file={conflict} run={run} /> : null}
 					{path && here?.staged ? <DiffPane path={path} side="staged" /> : null}
 					{path && here?.unstaged ? <DiffPane path={path} side="unstaged" /> : null}
@@ -480,8 +528,6 @@ function ChangesView() {
 					)}
 				</div>
 			</div>
-		</div>
+		</section>
 	);
 }
-
-export const Changes = withProject(ChangesView, "changes");

@@ -31,7 +31,7 @@ test("replays the tour, skips it with Close and ends it on Done", async ({ page 
 	await expect(openDialogs(page)).toHaveCount(0);
 });
 
-test("asks for a permission from the tour and shows the list in Settings / Me", async ({
+test("asks for a permission from the tour and shows the list in Setup / This computer", async ({
 	page,
 }) => {
 	await page.goto("/");
@@ -46,14 +46,14 @@ test("asks for a permission from the tour and shows the list in Settings / Me", 
 	await page.keyboard.press("Escape");
 	await expect(openDialogs(page)).toHaveCount(0);
 
-	await page.goto("/settings/me");
+	await page.goto("/setup/computer");
 	const files = page.getByRole("group", { name: "Documents, Desktop and Downloads" });
 	await expect(files.getByRole("button", { name: "Allow" })).toBeVisible();
 	await page.getByRole("button", { name: "Replay the tour" }).click();
 	await expect(page.getByRole("dialog", { name: FIRST })).toBeVisible();
 });
 
-test("offers the settings on the steps and lists them in Settings / Me", async ({ page }) => {
+test("offers the settings on the steps and lists them in Setup / Start", async ({ page }) => {
 	await page.goto("/");
 	await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
 	await replay(page);
@@ -66,10 +66,18 @@ test("offers the settings on the steps and lists them in Settings / Me", async (
 		.getByRole("group", { name: "Issue tracker" })
 		.getByRole("button", { name: "Connect" })
 		.click();
-	await expect(page).toHaveURL(/\/setup\/connections/);
+	// The connection lives under This project only (`spec:app-redesign#REQ-024`).
+	await expect(page).toHaveURL(/\/setup\/project\?page=connections/);
 	await expect(openDialogs(page)).toHaveCount(0);
 
-	await page.goto("/settings/me");
-	const ai = page.getByRole("group", { name: "AI tool", exact: true });
-	await expect(ai.getByText("To do")).toBeVisible();
+	await page.goto("/setup/start");
+	const steps = page.getByRole("list", { name: "Get started" });
+	await expect(steps.getByRole("button")).toHaveCount(11);
+	await steps.getByRole("button", { name: /AI tool/ }).click();
+	await expect(page.getByRole("heading", { name: "Which AI tool does the work?" })).toBeVisible();
+	await expect(page.getByText("To do", { exact: true })).toBeVisible();
+	await expect(page.getByRole("link", { name: /^This project.+/ })).toHaveAttribute(
+		"href",
+		"/setup/project",
+	);
 });

@@ -8,7 +8,8 @@ describe("Settings / Health / tools and ledger", () => {
 	it("lists the tools by group, installs a missing one after a click, and records the change", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/settings/health");
+		// The tools are of this computer. The ledger of the project counts each finding.
+		const router = mountApp("/setup/computer?page=health");
 		const base = await screen.findByRole("region", { name: "Base" });
 		expect(within(base).getByText("git version 2.46.0")).toBeInTheDocument();
 		expect(within(base).getByText("pnpm")).toBeInTheDocument();
@@ -17,13 +18,14 @@ describe("Settings / Health / tools and ledger", () => {
 		// A tool with no package manager has no install button.
 		expect(screen.queryByRole("button", { name: "Install skillspector" })).not.toBeInTheDocument();
 
-		const ledger = await screen.findByRole("region", { name: "Findings over time" });
 		const before = mockState().doctor.ledger.length;
 		await user.click(within(base).getByRole("button", { name: "Install pnpm" }));
 		await waitFor(() =>
 			expect(mockState().doctor.tools.find((t) => t.id === "pnpm")?.installed).toBe(true),
 		);
 		expect(within(base).queryByRole("button", { name: "Install pnpm" })).not.toBeInTheDocument();
+		router.history.push("/setup/project?page=health");
+		const ledger = await screen.findByRole("region", { name: "Findings over time" });
 		await waitFor(() => expect(mockState().doctor.ledger.length).toBe(before + 1));
 		const newest = (await within(ledger).findAllByText("-1 fixed"))[0];
 		expect(newest).toBeInTheDocument();

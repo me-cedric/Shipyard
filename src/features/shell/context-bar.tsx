@@ -1,16 +1,15 @@
+import { useNavigate } from "@tanstack/react-router";
 import { useState, useSyncExternalStore } from "react";
-import { BranchSelector } from "@/features/code/branch-selector";
+import { SyncMark } from "@/features/code/sync-mark";
 import { CloneDialog } from "@/features/projects/clone-dialog";
 import { usePicture } from "@/features/settings/picture-field";
-import { format, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { errorDialog } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
 import { outcomeError, useActiveProject, useProjectActions, useProjects } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
-import { AnimatedIcon } from "@/ui/atoms/animated-icon";
 import { IconButton } from "@/ui/atoms/icon-button";
 import {
-	ArrowPathIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	CommandLineIcon,
@@ -19,10 +18,8 @@ import {
 } from "@/ui/icons";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { ProjectSwitcher } from "@/ui/molecules/project-switcher";
-import { SplitButton } from "@/ui/molecules/split-button";
 import { AccountMenu } from "./account-menu";
 import type { Action } from "./actions";
-import { useCounts } from "./counts";
 import { PaletteHost } from "./palette-host";
 
 const NARROW = "(max-width: 1099px)";
@@ -72,9 +69,9 @@ export function ContextBar({
 	const projects = useProjects().data ?? [];
 	const active = useActiveProject().data;
 	const { switchTo, openFolder, close, remove } = useProjectActions();
+	const navigate = useNavigate();
 	const [cloning, setCloning] = useState(false);
-	const { syncing, filesOpen, terminalOpen } = useShell();
-	const { changes } = useCounts();
+	const { filesOpen, terminalOpen } = useShell();
 	const narrow = useNarrow();
 	const logo = usePicture("logo").data;
 	return (
@@ -99,6 +96,7 @@ export function ContextBar({
 				projects={projects}
 				value={active?.id ?? null}
 				onChange={(id) => void switchTo(id)}
+				onAll={() => void navigate({ to: "/projects" })}
 				onOpen={() =>
 					void openFolder().then((o) => {
 						const error = o && outcomeError(t, o);
@@ -111,37 +109,7 @@ export function ContextBar({
 				className="max-w-56 border-transparent bg-transparent hover:bg-n-3"
 			/>
 			<CloneDialog open={cloning} onClose={() => setCloning(false)} />
-			<BranchSelector />
-			<SplitButton
-				label={sync.label}
-				icon={<AnimatedIcon icon={ArrowPathIcon} size={14} spin={syncing} />}
-				onClick={sync.run}
-				disabled={sync.disabled}
-				after={
-					changes && (changes.ahead || changes.behind) ? (
-						// The visible numbers sit inside the spoken name (WCAG 2.5.3): the marks are hidden.
-						<span className="flex gap-1 font-mono text-12">
-							{changes.ahead ? (
-								<span>
-									<span aria-hidden="true">↑{changes.ahead}</span>
-									<span className="sr-only">{format(t.code.ahead, { count: changes.ahead })}</span>
-								</span>
-							) : null}{" "}
-							{changes.behind ? (
-								<span className="text-info-text">
-									<span aria-hidden="true">↓{changes.behind}</span>
-									<span className="sr-only">
-										{format(t.code.behind, { count: changes.behind })}
-									</span>
-								</span>
-							) : null}
-						</span>
-					) : null
-				}
-				moreLabel={t.workspace.view.syncMore}
-				moreDisabled={fetch.disabled}
-				items={[fetch, push].map((a) => ({ id: a.id, label: a.label, onSelect: a.run }))}
-			/>
+			<SyncMark sync={sync} fetch={fetch} push={push} />
 			<span className="flex-1" />
 			<PaletteHost actions={actions} shortcut={palette.shortcut} />
 			{narrow ? null : (

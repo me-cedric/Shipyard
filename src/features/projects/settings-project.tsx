@@ -77,9 +77,11 @@ const draftOf = (f: ProjectFile_Deserialize | null): Draft => ({
 function Form({
 	file,
 	overrides,
+	scope,
 }: {
 	file: ProjectFile_Deserialize | null;
 	overrides: Overrides_Serialize;
+	scope?: boolean;
 }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
@@ -359,7 +361,8 @@ function Form({
 				<>
 					<ProjectDetails>{own}</ProjectDetails>
 					<RepoTools />
-					<TicketsConfigEditor />
+					{/* Under This project the tickets have their own page. */}
+					{scope ? null : <TicketsConfigEditor />}
 					<PersonasEditor />
 				</>
 			) : null}
@@ -383,7 +386,8 @@ function Form({
 }
 
 /** The sections of the page, in page order. A project without a file has no file sections. */
-function sectionItems(t: ReturnType<typeof useI18n>["t"], hasFile: boolean) {
+/** The section list of the page. `SectionNav` draws the ones that are on the page. */
+export function sectionItems(t: ReturnType<typeof useI18n>["t"], hasFile: boolean) {
 	const item = (id: string, label: string, icon: React.ReactNode) => ({
 		id: `section-${id}`,
 		label,
@@ -412,8 +416,11 @@ function sectionItems(t: ReturnType<typeof useI18n>["t"], hasFile: boolean) {
 	];
 }
 
-/** Settings / Project: paths and workflow go to `.shipyard/project.yaml`, overrides to the registry. */
-export function ProjectSettings() {
+/**
+ * Settings / Project: paths and workflow go to `.shipyard/project.yaml`, overrides to the registry.
+ * `scope`: the page is a part of Setup / This project, with no header of its own.
+ */
+export function ProjectSettings({ scope }: { scope?: boolean }) {
 	const { t } = useI18n();
 	const { openFolder } = useProjectActions();
 	const settings = useQuery({
@@ -421,16 +428,25 @@ export function ProjectSettings() {
 		queryFn: () => unwrap(commands.projectSettings()),
 	});
 	const data = settings.data;
-	if (data === undefined)
-		return <PageHeader icon={<Cog6ToothIcon size={16} />} title={t.tabs.settings.project} />;
+	const header = scope ? null : (
+		<PageHeader icon={<Cog6ToothIcon size={16} />} title={t.tabs.settings.project} />
+	);
+	if (data === undefined) return header;
 	return (
 		// A block as tall as its content, so the section list stays in view while the page scrolls.
 		<div className="flex flex-col">
-			<PageHeader icon={<Cog6ToothIcon size={16} />} title={t.tabs.settings.project} />
-			{data ? <SectionNav label={t.ui.sections} items={sectionItems(t, !!data.file)} /> : null}
+			{header}
+			{data && !scope ? (
+				<SectionNav label={t.ui.sections} items={sectionItems(t, !!data.file)} />
+			) : null}
 			{data ? (
 				// A saved file resets the draft.
-				<Form key={JSON.stringify(data.file)} file={data.file} overrides={data.overrides} />
+				<Form
+					key={JSON.stringify(data.file)}
+					file={data.file}
+					overrides={data.overrides}
+					scope={scope}
+				/>
 			) : (
 				<div className="p-4">
 					<EmptyState

@@ -11,7 +11,7 @@ export const onboardingEn = {
 	steps: {
 		loop: {
 			title: "One loop, from idea to merged code",
-			body: "Design, specs, work, agents, code and knowledge stay together, in the files of your project.",
+			body: "Today, Flow, Plan, Crew, Library and Code take a feature from the idea to the pull request. Setup holds the settings.",
 		},
 		project: {
 			title: "Open a project",
@@ -71,6 +71,31 @@ export const onboardingEn = {
 			assign: "Assign",
 			run: "Start",
 		},
+		question: {
+			project: "Which project do you work on?",
+			ai: "Which AI tool does the work?",
+			models: "Which models does the AI tool use?",
+			tracker: "Where are your tickets?",
+			forge: "Where is your code?",
+			team: "Who is on the team?",
+			permissions: "What can Shipyard do on this computer?",
+			decision: "What is your first decision?",
+			spec: "What do you build first?",
+			assign: "Who takes the first ticket?",
+			run: "Which ticket does an agent take first?",
+		},
+		skip: "Skip",
+		scope: {
+			project: "This project",
+			computer: "This computer",
+			me: "Me",
+		},
+		state: {
+			connections: "Connections to make: {count}",
+			connected: "Connected",
+			tools: "AI tools ready: {count}",
+			noProject: "No project is open",
+		},
 	},
 	picture: {
 		folder: "Open a folder",
@@ -92,6 +117,7 @@ export const onboardingEn = {
 			unknown: "Unknown",
 		},
 		allow: "Allow",
+		allowAll: "Allow all",
 		settings: "Open System Settings",
 		test: "Send a test",
 		testBody: "The notifications are on.",
@@ -110,7 +136,7 @@ export const onboardingFr: typeof onboardingEn = {
 	steps: {
 		loop: {
 			title: "Une boucle, de l'idée au code fusionné",
-			body: "Le design, les specs, le travail, les agents, le code et les connaissances restent ensemble, dans les fichiers du projet.",
+			body: "Aujourd'hui, Flux, Plan, Équipe, Bibliothèque et Code mènent une fonctionnalité de l'idée à la pull request. Configuration contient les réglages.",
 		},
 		project: {
 			title: "Ouvrir un projet",
@@ -170,6 +196,31 @@ export const onboardingFr: typeof onboardingEn = {
 			assign: "Attribuer",
 			run: "Lancer",
 		},
+		question: {
+			project: "Sur quel projet travaillez-vous ?",
+			ai: "Quel outil d'IA fait le travail ?",
+			models: "Quels modèles l'outil d'IA utilise-t-il ?",
+			tracker: "Où sont vos tickets ?",
+			forge: "Où est votre code ?",
+			team: "Qui fait partie de l'équipe ?",
+			permissions: "Que peut faire Shipyard sur cet ordinateur ?",
+			decision: "Quelle est votre première décision ?",
+			spec: "Que construisez-vous en premier ?",
+			assign: "Qui prend le premier ticket ?",
+			run: "Quel ticket un agent prend-il en premier ?",
+		},
+		skip: "Passer",
+		scope: {
+			project: "Ce projet",
+			computer: "Cet ordinateur",
+			me: "Moi",
+		},
+		state: {
+			connections: "Connexions à faire : {count}",
+			connected: "Connecté",
+			tools: "Outils d'IA prêts : {count}",
+			noProject: "Aucun projet n'est ouvert",
+		},
 	},
 	picture: {
 		folder: "Ouvrir un dossier",
@@ -191,6 +242,7 @@ export const onboardingFr: typeof onboardingEn = {
 			unknown: "Inconnu",
 		},
 		allow: "Autoriser",
+		allowAll: "Tout autoriser",
 		settings: "Ouvrir les Réglages Système",
 		test: "Envoyer un test",
 		testBody: "Les notifications sont activées.",

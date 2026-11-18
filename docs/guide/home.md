@@ -27,7 +27,7 @@ Activity lists the live runs and the open sessions, each with Stop. The old addr
 
 ## Projects
 
-Projects lists the projects on this computer.
+Projects lists the projects on this computer. Open it from the project name in the top bar, then Projects. It shows the open project, the projects opened before, and the ways to start one. The old address of Home / Projects opens it.
 
 1. Click a project to open it.
 2. Click Open a folder to add a project that is on your disk.

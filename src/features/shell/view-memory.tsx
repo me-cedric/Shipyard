@@ -30,7 +30,8 @@ export function ViewMemory() {
 			if (atStart && lastView && lastView !== pathname) router.history.push(lastView);
 			return;
 		}
-		unwrap(commands.projectsSetView(id, pathname)).catch(logError);
+		// The Projects page is not a view of the project: a start must not open on it.
+		if (pathname !== "/projects") unwrap(commands.projectsSetView(id, pathname)).catch(logError);
 	}, [id, lastView, pathname, router]);
 
 	return null;

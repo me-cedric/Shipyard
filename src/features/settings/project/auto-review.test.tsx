@@ -8,7 +8,7 @@ describe("Settings / Project: agent review of each pull request", () => {
 	it("is off by default and saves one of three choices", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		const choice = await screen.findByRole("combobox", {
 			name: "Agent review of each pull request",
 		});

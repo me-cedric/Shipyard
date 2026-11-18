@@ -92,6 +92,18 @@ export const workspaceEs: typeof workspaceEn = {
 		folder: "Carpeta",
 		remote: "Remoto",
 		empty: "Sin proyecto",
+		needYou: "Le esperan: {count}",
+		agents: "Agentes trabajando: {count}",
+		openNow: "Abierto",
+		before: "Abiertos antes",
+		drop: "Suelte una carpeta aquí",
+	},
+	moment: {
+		noProject: "No hay ningún proyecto abierto",
+		agents: "Agentes aún trabajando: {count}",
+		stop: "Detenerlos y cerrar",
+		keep: "Dejarlos trabajar",
+		allSteps: "Todos los pasos",
 	},
 	override: {
 		title: "Anulaciones del proyecto",

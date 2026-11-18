@@ -11,7 +11,7 @@ describe("Settings / Connections / MCP servers: allow list", () => {
 	it("limits the tools of one server with a preset or a pick", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.mcpEnable("context7", true));
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		const ctx = await screen.findByRole("group", { name: "Context7" });
 		const select = within(ctx).getByRole("combobox", { name: "Allow list: Context7" });
 		expect(tools()).toEqual({ kind: "all" });
@@ -35,7 +35,7 @@ describe("Settings / Connections / MCP servers: allow list", () => {
 		const user = userEvent.setup();
 		await unwrap(commands.mcpEnable("context7", true));
 		await unwrap(commands.mcpSetTools("context7", { kind: "only", tools: ["resolve-library-id"] }));
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		const ctx = await screen.findByRole("group", { name: "Context7" });
 		const off = await within(ctx).findByRole("checkbox", { name: "get-library-docs" });
 		expect(off).not.toBeChecked();
@@ -49,11 +49,12 @@ describe("Settings / Connections / MCP servers: allow list", () => {
 		await unwrap(commands.mcpEnable("context7", true));
 		await unwrap(commands.mcpSetTools("context7", { kind: "only", tools: ["resolve-library-id"] }));
 		const spy = vi.spyOn(commands, "mcpTest");
-		const router = mountApp("/settings/connections");
+		const router = mountApp("/setup/computer");
 		const ctx = await screen.findByRole("group", { name: "Context7" });
 		await within(ctx).findByRole("checkbox", { name: "get-library-docs" });
-		await router.navigate({ to: "/home/today" });
-		await router.navigate({ to: "/settings/connections" });
+		router.history.push("/setup/me");
+		await screen.findByRole("combobox", { name: "Theme" });
+		router.history.push("/setup/computer");
 		const again = await screen.findByRole("group", { name: "Context7" });
 		expect(
 			await within(again).findByRole("checkbox", { name: "get-library-docs" }),
@@ -66,7 +67,7 @@ describe("Settings / Connections / MCP servers: allow list", () => {
 		const user = userEvent.setup();
 		await unwrap(commands.mcpEnable("context7", true));
 		const spy = vi.spyOn(commands, "mcpTest").mockRejectedValue(new Error("no answer"));
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		const ctx = await screen.findByRole("group", { name: "Context7" });
 		await user.click(within(ctx).getByRole("combobox", { name: "Allow list: Context7" }));
 		await user.click(await screen.findByRole("option", { name: "Custom" }));

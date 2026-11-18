@@ -17,7 +17,7 @@ async function addOf(user: ReturnType<typeof userEvent.setup>, type: string) {
 
 describe("Settings / Connections / Runners", () => {
 	it("shows each runner as detected with its version, or missing", async () => {
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		const claude = await row("Claude Code");
 		expect(within(claude).getByRole("img", { name: "Detected" })).toBeInTheDocument();
 		expect(within(claude).getByTitle("2.1.0")).toBeInTheDocument();
@@ -28,7 +28,7 @@ describe("Settings / Connections / Runners", () => {
 
 	it("installs a missing runner on one click", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		const gemini = await row("Gemini CLI");
 		expect(within(await row("Claude Code")).queryByRole("button", { name: /Install/ })).toBeNull();
 		await user.click(within(gemini).getByRole("button", { name: "Install Gemini CLI" }));
@@ -47,7 +47,7 @@ describe("Settings / Connections / Runners", () => {
 describe("Settings / Connections / MCP servers", () => {
 	it("adds a catalogue server with a secret, starts it, stops it and never shows the secret", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		await addOf(user, "MCP server");
 		await user.click(screen.getByRole("combobox", { name: "Server" }));
 		await user.click(await screen.findByRole("option", { name: "Figma" }));
@@ -81,7 +81,7 @@ describe("Settings / Connections / MCP servers", () => {
 	it("names a missing dependency, keeps the server from starting and installs it", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.mcpEnable("sonarqube", true));
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		const sonar = await row("SonarQube");
 		expect(within(sonar).getByText("Missing: Docker")).toBeInTheDocument();
 		expect(within(sonar).getByRole("button", { name: "Start" })).toBeDisabled();
@@ -95,7 +95,7 @@ describe("Settings / Connections / MCP servers", () => {
 		await unwrap(commands.mcpSetField("figma", "token", KEY));
 		await unwrap(commands.mcpEnable("figma", true));
 		await unwrap(commands.mcpEnable("sonarqube", true));
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		await user.click(await screen.findByRole("button", { name: "Start all" }));
 		const figma = await row("Figma");
 		await waitFor(() =>
@@ -109,7 +109,7 @@ describe("Settings / Connections / MCP servers", () => {
 
 	it("adds a custom server and names the missing command", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		await addOf(user, "MCP server");
 		await user.click(screen.getByRole("combobox", { name: "Server" }));
 		await user.click(await screen.findByRole("option", { name: "Custom" }));
@@ -123,7 +123,7 @@ describe("Settings / Connections / MCP servers", () => {
 
 	it("adds servers by pasting their JSON, and shows a bad paste as an error", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		await addOf(user, "MCP server");
 		await user.click(screen.getByRole("combobox", { name: "Server" }));
 		await user.click(await screen.findByRole("option", { name: "Custom" }));
@@ -149,7 +149,7 @@ describe("Settings / Connections / MCP servers", () => {
 	it("removes a server with a confirm step", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.mcpEnable("figma", true));
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		const figma = await row("Figma");
 		await user.click(within(figma).getByRole("button", { name: "Remove" }));
 		await user.click(within(figma).getByRole("button", { name: "Cancel" }));
@@ -163,7 +163,7 @@ describe("Settings / Connections / MCP servers", () => {
 describe("Settings / Connections / Model providers", () => {
 	it("adds a provider with a key, tests it, lists its models and removes it", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		await addOf(user, "Model provider");
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Local LM");
 		await user.type(screen.getByRole("textbox", { name: "Address" }), "http://localhost:1234/v1");
@@ -194,7 +194,7 @@ describe("Settings / Connections / Model providers", () => {
 
 	it("names a bad address and keeps the form", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		await addOf(user, "Model provider");
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Remote");
 		await user.type(screen.getByRole("textbox", { name: "Address" }), "http://example.com/v1");
@@ -209,7 +209,7 @@ describe("Settings / Connections groups in French", () => {
 	it("reads French", async () => {
 		await unwrap(commands.prefsSet({ lang: "fr" }));
 		await unwrap(commands.mcpEnable("figma", true));
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		expect(await screen.findByRole("heading", { name: "Serveurs MCP (1)" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Outils d’IA (5)" })).toBeInTheDocument();
 		const figma = await row("Figma");

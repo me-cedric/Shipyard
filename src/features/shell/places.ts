@@ -27,8 +27,8 @@ import {
  * `library/<slug>`: pages of their own, with no old view.
  */
 export const PLACES = {
-	today: ["home/today", "home/news", "home/activity", "home/projects"],
-	flow: ["flow/flow", "flow/list", "flow/done", "flow/health", "code/impacts"],
+	today: ["home/today", "home/news", "home/activity"],
+	flow: ["flow/flow", "flow/list", "flow/done", "flow/health"],
 	plan: ["plan/timeline", "plan/people", "plan/estimates", "plan/time"],
 	crew: ["crew/crew", "crew/recipes", "crew/sessions", "crew/spend", "crew/rights"],
 	library: [
@@ -53,15 +53,8 @@ export const PLACES = {
 		"knowledge/dashboards",
 		"library/reports",
 	],
-	code: ["code/changes", "code/history", "code/branches", "code/pull-requests", "code/terminal"],
-	setup: [
-		"settings/project",
-		"settings/connections",
-		"settings/agents-rules",
-		"settings/extensions",
-		"settings/me",
-		"settings/health",
-	],
+	code: ["code/now", "code/history", "code/branches", "code/terminal"],
+	setup: ["setup/start", "setup/project", "setup/computer", "setup/me"],
 } as const;
 
 /** The pages that hold an export of today. Reports shows while a role sees one (`spec:app-redesign#REQ-006`). */
@@ -94,6 +87,12 @@ export const REPLACES: Record<string, readonly string[]> = {
 	"library/reports": REPORT_VIEWS,
 	// The home of Library stands for each chip of its doors: it hides only when each one is hidden.
 	"library/home": [...PLACES.library.filter((v) => !v.startsWith("library/")), ...REPORT_VIEWS],
+	// Wave 6: Now of Code (`spec:app-redesign#REQ-022`) and the scopes of Setup (`spec:app-redesign#REQ-024`).
+	"code/now": ["code/changes", "code/pull-requests"],
+	"setup/start": [],
+	"setup/project": ["settings/project", "settings/extensions", "settings/health"],
+	"setup/computer": ["settings/connections", "settings/agents-rules"],
+	"setup/me": ["settings/me"],
 };
 
 /** The old views that a section stands for: the ones that it replaces, else itself. */
@@ -141,14 +140,23 @@ export const placeOfView = (space: SpaceId, tab: string) =>
 	taker(`${space}/${tab}`)?.[0] ??
 	PLACE_IDS.find((p) => (PLACES[p] as readonly string[]).includes(`${space}/${tab}`));
 
-/** A section is hidden exactly when each old tab that it replaces is hidden (`hiddenTab`). */
-export const hiddenSection = (level: LevelOf, space: SectionSpace, tab: string) =>
-	viewsOf(space, tab).every((v) => hiddenTab(level, ...(v.split("/") as [SpaceId, string])));
+/**
+ * A section is hidden exactly when each old tab that it replaces is hidden (`hiddenTab`).
+ * Health shows for every role (`spec:app-redesign#REQ-023`), and the guided start replaces no old tab.
+ */
+export const hiddenSection = (level: LevelOf, space: SectionSpace, tab: string) => {
+	const views = viewsOf(space, tab);
+	return (
+		`${space}/${tab}` !== "flow/health" &&
+		views.length > 0 &&
+		views.every((v) => hiddenTab(level, ...(v.split("/") as [SpaceId, string])))
+	);
+};
 
 export const visibleSections = (place: PlaceId, level = open) =>
 	sections(place).filter(([space, tab]) => !hiddenSection(level, space, tab));
 
-/** The sections that the section switch draws: Terminal and Manual stay off it (ux-declutter REQ-014). */
+/** The sections that the section switch draws: Manual stays off it (ux-declutter REQ-014). */
 export const barSections = (place: PlaceId, level = open) =>
 	visibleSections(place, level).filter(([space, tab]) => !isOffBar(space, tab));
 
@@ -170,10 +178,18 @@ export function firstSection(place: PlaceId, role: TeamRole | null, level = open
 
 /** The old path `/<space>/<tab>` of a section path: the manual keeps its help by space. */
 export function viewPath(path: string) {
+	// The pages of wave 6 that no old view names keep the help of the tab that held them.
+	const held = {
+		"/projects": "/home/projects",
+		"/flow/impacts": "/code/impacts",
+		"/setup/start": "/settings/me",
+	}[path];
+	if (held) return held;
 	const [, place, slug] = path.split("/");
 	const view = place && slug && place in PLACES ? sectionView(place as PlaceId, slug) : undefined;
-	// A page of Library with no old view keeps its own path.
-	return view && view[0] !== "library" ? `/${viewsOf(...view)[0]}` : path;
+	// A page of Library with no old view keeps its own path, and so does a section that replaces none.
+	const old = view && view[0] !== "library" ? viewsOf(...view)[0] : undefined;
+	return old ? `/${old}` : path;
 }
 
 const TODAY_TABS = new Set(["inbox", "my-work"]);
@@ -185,9 +201,20 @@ export const OLD_SLUGS: Partial<Record<PlaceId, Record<string, string>>> = {
 	crew: { team: "crew", workflows: "recipes", "agents-map": "crew", usage: "spend" },
 };
 
+/** The pages that left the section switches in wave 6: Projects is a page of its own, Impacts opens from the Checks of a feature. */
+const MOVED: Record<string, string> = {
+	"/home/projects": "/projects",
+	"/today/projects": "/projects",
+	"/code/impacts": "/flow/impacts",
+};
+
 /** The new path of a path of before adr:0023, or undefined when it names no old page or no tab. */
 export function placePath(path: string): string | undefined {
-	const [, space, tab, ...rest] = path.replace(/\/$/, "").split("/");
+	const bare = path.replace(/\/$/, "");
+	if (bare in MOVED) return MOVED[bare];
+	const [, space, tab, ...rest] = bare.split("/");
+	// The sections of Setup before wave 6 had the names of the Settings tabs.
+	if (space === "setup" && tab && rest.length === 0) return placePath(`/settings/${tab}`);
 	// Settings / Team moved to Work / Team, and Inbox and My work became Today.
 	if (space === "settings" && tab === "team") return "/crew/crew";
 	if (space === "home" && tab && TODAY_TABS.has(tab)) return "/today/today";

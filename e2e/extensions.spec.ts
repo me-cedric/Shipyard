@@ -3,8 +3,11 @@ import { openFirstFolder } from "./first-run";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 
-/** Opens the mock project, then Settings on the given tab. */
-async function openSettings(page: Page, tab: string) {
+/** The scope of Setup that holds each page. */
+const SCOPE = { "Agents and rules": "This computer", Extensions: "This project" } as const;
+
+/** Opens the mock project, then the page of Setup behind its door. */
+async function openSettings(page: Page, tab: keyof typeof SCOPE) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
 	await expect(
@@ -14,7 +17,8 @@ async function openSettings(page: Page, tab: string) {
 		.getByRole("navigation", { name: "Sidebar" })
 		.getByRole("link", { name: "Setup" })
 		.click();
-	await tabs(page).getByRole("link", { name: tab }).click();
+	await tabs(page).getByRole("link", { name: SCOPE[tab] }).click();
+	await page.getByRole("navigation", { name: SCOPE[tab] }).getByRole("link", { name: tab }).click();
 }
 
 test("applies one compass entry and keeps the others", async ({ page }) => {

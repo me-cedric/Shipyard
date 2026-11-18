@@ -21,7 +21,7 @@ describe("the sync action and the connection state rows", () => {
 	it("runs one tick from the context bar and the row shows the state with the time", async () => {
 		const user = userEvent.setup();
 		const id = await withTracker();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const row = await screen.findByRole("group", { name: "Acme" });
 		// Nothing synced yet: the dash, no time.
 		expect(await within(row).findByRole("status")).toHaveTextContent("Idle");
@@ -37,7 +37,7 @@ describe("the sync action and the connection state rows", () => {
 		const user = userEvent.setup();
 		await withTracker(false);
 		await cleanCopy();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const row = await screen.findByRole("group", { name: "Acme" });
 		await user.click((await top()).getByRole("button", { name: "Sync" }));
 		await waitFor(() => expect(within(row).getByRole("status")).toHaveTextContent("Failed"));
@@ -77,7 +77,7 @@ describe("the sync action and the connection state rows", () => {
 			}),
 		);
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const row = await screen.findByRole("group", { name: "Acme" });
 		expect(within(row).queryByRole("status")).toBeNull();
 	});

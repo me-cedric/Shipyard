@@ -3,6 +3,11 @@ import type { flowEn } from "../flow";
 export const flowDe: typeof flowEn = {
 	newAction: "Neue Funktion",
 	views: { flow: "Ablauf", list: "Liste", done: "Erledigt", health: "Zustand" },
+	health: {
+		fixOne: "1 Prüfung braucht eine Korrektur",
+		fixMany: "{count} Prüfungen brauchen eine Korrektur",
+		clean: "Keine Prüfung braucht eine Korrektur",
+	},
 	stages: { idea: "Idee", spec: "Spezifikation", build: "Bau", review: "Prüfung", ready: "Fertig" },
 	filter: "Anzeigen",
 	filters: { all: "Alle", needs: "Betrifft mich", mine: "Meine" },
@@ -68,7 +73,7 @@ export const flowDe: typeof flowEn = {
 		noTicket: "Kein Ticket",
 		noChat: "Noch nichts zu sagen",
 		gates: "Prüfschritte",
-		impacts: "Auswirkungen",
+		impacts: "Auswirkungen auf anderen Code",
 		side: { brief: "Auftrag", changes: "Änderungen", people: "Personen", open: "Öffnen" },
 		files: "{count} Dateien",
 		lines: "+{added} -{removed}",

@@ -7,15 +7,17 @@ import {
 	ArrowPathIcon,
 	ArrowsRightLeftIcon,
 	BookOpenIcon,
+	CalendarDaysIcon,
 	CheckIcon,
 	CodeBracketIcon,
+	Cog6ToothIcon,
 	CpuChipIcon,
 	CurrencyIcon,
-	DocumentTextIcon,
 	FolderOpenIcon,
+	HomeIcon,
 	InboxIcon,
 	PlusIcon,
-	SwatchIcon,
+	UsersIcon,
 	ViewColumnsIcon,
 } from "@/ui/icons";
 import logo from "../../../docs/assets/logo.svg";
@@ -58,16 +60,17 @@ function Tile({ Icon, label, on }: { Icon: Icon; label: string; on?: boolean }) 
 	);
 }
 
-/** The six spaces of the loop, and the arrow back to the start. */
+/** The six places of the menu and Setup (adr:0023), and the arrow back to the start. */
 export function LoopPicture() {
 	const { t } = useI18n();
 	const spaces: [Icon, string][] = [
-		[SwatchIcon, t.space.design],
-		[DocumentTextIcon, t.space.specs],
-		[ViewColumnsIcon, t.space.work],
-		[CpuChipIcon, t.space.factory],
-		[CodeBracketIcon, t.space.code],
-		[BookOpenIcon, t.space.knowledge],
+		[HomeIcon, t.ui.place.today],
+		[ViewColumnsIcon, t.ui.place.flow],
+		[CalendarDaysIcon, t.ui.place.plan],
+		[UsersIcon, t.ui.place.crew],
+		[BookOpenIcon, t.ui.place.library],
+		[CodeBracketIcon, t.ui.place.code],
+		[Cog6ToothIcon, t.ui.place.setup],
 	];
 	return (
 		<Frame>
@@ -76,7 +79,7 @@ export function LoopPicture() {
 					<span className="absolute top-[22px] right-6 left-6 h-px bg-n-6" />
 					{spaces.map(([I, label], i) => (
 						<div key={label} className="relative">
-							<Tile Icon={I} label={label} on={i === 3} />
+							<Tile Icon={I} label={label} on={i === 1} />
 						</div>
 					))}
 				</div>
@@ -211,16 +214,16 @@ export function AiPicture() {
 	);
 }
 
-/** A ticket on its way through the run states, as in Factory / Runs. */
+/** A feature on its way through the five stages, as in Flow. */
 export function RunPicture() {
 	const { t } = useI18n();
-	const s = t.sync.runState;
+	const s = t.ui.flow;
 	const steps: [string, Status][] = [
-		[s.Planning, "success"],
-		[s.Working, "success"],
-		[s.SelfReview, "active"],
-		[s.PROpen, "idle"],
-		[s.Merged, "idle"],
+		[s.idea, "success"],
+		[s.spec, "success"],
+		[s.build, "active"],
+		[s.review, "idle"],
+		[s.ready, "idle"],
 	];
 	return (
 		<Frame>

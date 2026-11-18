@@ -19,7 +19,12 @@ async function openWithTracker(page: Page, secret: string | null = "tok-e2e-sync
 		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
 	).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Setup" }).click();
-	await tabs(page).getByRole("link", { name: "Connections" }).click();
+	await tabs(page).getByRole("link", { name: "This project" }).click();
+	// The connections of an issue tracker are behind the door Connections of This project.
+	await page
+		.getByRole("navigation", { name: "This project" })
+		.getByRole("link", { name: "Connections" })
+		.click();
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme");
 	await page.getByRole("combobox", { name: "Product" }).click();
@@ -29,7 +34,7 @@ async function openWithTracker(page: Page, secret: string | null = "tok-e2e-sync
 	await page.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByRole("group", { name: "Acme" })).toBeVisible();
 	// The only tracker links itself to the project.
-	await tabs(page).getByRole("link", { name: "Project" }).click();
+	await tabs(page).getByRole("link", { name: "This project" }).click();
 	await expect(page.getByRole("combobox", { name: "Issue tracker", exact: true })).toContainText(
 		"Acme",
 	);
@@ -64,7 +69,12 @@ test("the sync action in the status bar runs a tick and the connection shows its
 }) => {
 	await openWithTracker(page);
 	await sidebar(page).getByRole("link", { name: "Setup" }).click();
-	await tabs(page).getByRole("link", { name: "Connections" }).click();
+	await tabs(page).getByRole("link", { name: "This project" }).click();
+	// The connections of an issue tracker are behind the door Connections of This project.
+	await page
+		.getByRole("navigation", { name: "This project" })
+		.getByRole("link", { name: "Connections" })
+		.click();
 	const row = page.getByRole("group", { name: "Acme" });
 	await expect(row.getByRole("status")).toHaveText("Idle");
 
@@ -84,7 +94,12 @@ test("the sync action in the status bar runs a tick and the connection shows its
 test("a failed poll shows the failed state and keeps the mirror", async ({ page }) => {
 	await openWithTracker(page, null);
 	await sidebar(page).getByRole("link", { name: "Setup" }).click();
-	await tabs(page).getByRole("link", { name: "Connections" }).click();
+	await tabs(page).getByRole("link", { name: "This project" }).click();
+	// The connections of an issue tracker are behind the door Connections of This project.
+	await page
+		.getByRole("navigation", { name: "This project" })
+		.getByRole("link", { name: "Connections" })
+		.click();
 	await page.getByRole("banner").getByRole("button", { name: "Sync", exact: true }).click();
 	const row = page.getByRole("group", { name: "Acme" });
 	await expect(row.getByRole("status")).toContainText("Failed");

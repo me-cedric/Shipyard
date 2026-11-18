@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const TOKEN = "tok-e2e-secret-7"; // gitleaks:allow
 
 test("adds a tracker with a secret, tests it and removes it", async ({ page }) => {
-	await page.goto("/settings/connections");
+	await page.goto("/setup/project?page=connections");
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme");
 	await page.getByRole("combobox", { name: "Product" }).click();
@@ -33,7 +33,7 @@ test("adds a tracker with a secret, tests it and removes it", async ({ page }) =
 });
 
 test("names a missing secret and the missing scope of a forge", async ({ page }) => {
-	await page.goto("/settings/connections");
+	await page.goto("/setup/project?page=connections");
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Code");
 	await page.getByRole("combobox", { name: "Type" }).click();
@@ -67,7 +67,7 @@ test("names a missing secret and the missing scope of a forge", async ({ page })
 });
 
 test("adds a connection with the keyboard", async ({ page }) => {
-	await page.goto("/settings/connections");
+	await page.goto("/setup/project?page=connections");
 	await page.getByRole("button", { name: "Connection" }).focus();
 	await page.keyboard.press("Enter");
 	await page.getByRole("textbox", { name: "Name" }).focus();
@@ -84,7 +84,7 @@ test("adds a connection with the keyboard", async ({ page }) => {
 });
 
 test("adds an MCP server with a secret, starts it and stops it", async ({ page }) => {
-	await page.goto("/settings/connections");
+	await page.goto("/setup/computer");
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("combobox", { name: "Type" }).click();
 	await page.getByRole("option", { name: "MCP server" }).click();
@@ -115,8 +115,7 @@ test("adds an MCP server with a secret, starts it and stops it", async ({ page }
 test("turns on the server for outside agents and imports a server of another tool", async ({
 	page,
 }) => {
-	await page.goto("/settings/connections");
-	await page.getByText("Advanced", { exact: true }).click();
+	await page.goto("/setup/computer?page=share");
 	const box = page.getByRole("heading", { name: "Outside agents" }).locator("..");
 	await box.getByRole("switch", { name: "Server on" }).click();
 	await box.getByRole("switch", { name: "Read files" }).click();

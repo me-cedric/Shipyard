@@ -191,6 +191,7 @@ export const fr: Messages = {
 			usage: "Consommation",
 		},
 		code: {
+			now: "Maintenant",
 			changes: "Modifications locales",
 			history: "Historique",
 			branches: "Branches",
@@ -216,6 +217,7 @@ export const fr: Messages = {
 			me: "Moi",
 			health: "Santé",
 		},
+		setup: { start: "Démarrage", project: "Ce projet", computer: "Cet ordinateur", me: "Moi" },
 	},
 	noun: {
 		home: "Projet",

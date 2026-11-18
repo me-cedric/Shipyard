@@ -324,7 +324,7 @@ export function ReviewRow({ review: r }: { review: ReviewItem }) {
 				<Button
 					className="min-h-control"
 					onClick={() => {
-						void navigate(r.reference ? pullHref(r.reference) : { to: "/code/pull-requests" });
+						void navigate(r.reference ? pullHref(r.reference) : { to: "/code/now" });
 					}}
 				>
 					{t.home.reviewOpen}

@@ -127,15 +127,37 @@ describe("close guard", () => {
 			</Providers>,
 		);
 
-	it("names the work in flight and closes only after Close anyway", async () => {
+	it("names the agents at work and closes only after Stop them and close", async () => {
 		const user = userEvent.setup();
 		mockState().inFlight = { runs: 2, turns: 1, drafts: 0 };
 		mount();
 		await user.click(await screen.findByRole("button", { name: "ask" }));
 		const d = await dialog();
+		expect(await screen.findByRole("dialog", { name: "Agents still at work: 2" })).toBeVisible();
 		expect(await d.findByText("2 runs and 1 assistant turns are in progress.")).toBeVisible();
 		expect(mockState().closed).toBe(false);
-		await user.click(d.getByRole("button", { name: "Close anyway" }));
+		const stop = d.getByRole("button", { name: "Stop them and close" });
+		expect(stop).toHaveClass("min-h-control");
+		await user.click(stop);
+		await waitFor(() => expect(mockState().closed).toBe(true));
+	});
+
+	it("keeps the window and the agents on Keep them working", async () => {
+		const user = userEvent.setup();
+		mockState().inFlight = { runs: 1, turns: 0, drafts: 0 };
+		mount();
+		await user.click(await screen.findByRole("button", { name: "ask" }));
+		await user.click(await (await dialog()).findByRole("button", { name: "Keep them working" }));
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		expect(mockState().closed).toBe(false);
+	});
+
+	it("says Close anyway when only unsaved files hold the window", async () => {
+		const user = userEvent.setup();
+		mockState().inFlight = { runs: 0, turns: 0, drafts: 1 };
+		mount();
+		await user.click(await screen.findByRole("button", { name: "ask" }));
+		await user.click(await (await dialog()).findByRole("button", { name: "Close anyway" }));
 		await waitFor(() => expect(mockState().closed).toBe(true));
 	});
 

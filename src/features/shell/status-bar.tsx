@@ -42,12 +42,18 @@ export function StatusBar({ commit }: { commit: Action }) {
 		: health.data === undefined
 			? "idle"
 			: worstStatus(findings.map((f) => f.severity));
+	// The health of the project hides the tools: the link opens the page that shows the worst finding.
+	const ofProject = findings.filter((f) => f.group !== "tools");
+	const scope =
+		ofProject.length < findings.length && worstStatus(ofProject.map((f) => f.severity)) !== status
+			? "/setup/computer"
+			: "/setup/project";
 	return (
 		<>
 			<ActionButton action={commit} />
 			{changed ? (
 				// The count of changed files. A click opens the changes. The number is in the name (WCAG 2.5.3).
-				<Link to="/code/changes" className={button}>
+				<Link to="/code/now" className={button}>
 					<span className="sr-only">
 						{format(t.count, { name: t.shell.changedFiles, count: changed })}
 					</span>
@@ -59,7 +65,7 @@ export function StatusBar({ commit }: { commit: Action }) {
 			{changes && (changes.added > 0 || changes.removed > 0) ? (
 				// Lines added and removed since the last commit. A click opens the changes.
 				// The visible numbers sit inside the spoken sentence (WCAG 2.5.3, label in name).
-				<Link to="/code/changes" className={button}>
+				<Link to="/code/now" className={button}>
 					<span className="sr-only">{lines[0]?.trim()}</span>{" "}
 					<span className="font-mono text-success-text">+{n(changes.added)}</span>{" "}
 					<span className="sr-only">{lines[1]?.trim()}</span>{" "}
@@ -101,7 +107,12 @@ export function StatusBar({ commit }: { commit: Action }) {
 					<span aria-hidden="true">v{current}</span>
 				</span>
 			) : null}
-			<Link to="/settings/health" className="inline-flex items-center gap-1 rounded-sm px-1">
+			<Link
+				to={scope}
+				// shortcut: one cast. The section routes are built in a loop, so the link type does not know `page`.
+				search={{ page: "health" } as never}
+				className="inline-flex items-center gap-1 rounded-sm px-1"
+			>
 				<span className="sr-only">
 					{format(t.count, { name: t.shell.health, count: findings.length })}
 				</span>

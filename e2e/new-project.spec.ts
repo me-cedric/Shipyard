@@ -25,7 +25,7 @@ test("creates a local project from the first run", async ({ page }) => {
 
 test("creates a project with a new repository and starter issues", async ({ page }) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
-	await page.goto("/settings/connections");
+	await page.goto("/setup/project?page=connections");
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme tracker");
 	await page.getByRole("combobox", { name: "Product" }).click();
@@ -43,7 +43,7 @@ test("creates a project with a new repository and starter issues", async ({ page
 	await page.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByRole("heading", { name: "Code hosts (1)" })).toBeVisible();
 
-	await goTo(page, "/home/projects");
+	await goTo(page, "/projects");
 	await page.getByRole("button", { name: "New project" }).click();
 	const dialog = page.getByRole("dialog", { name: "New project" });
 	await dialog.getByRole("textbox", { name: "Name" }).fill("Acme Web");

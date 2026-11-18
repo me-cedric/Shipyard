@@ -236,6 +236,24 @@ export const forgeEn = {
 		showAll: "Show all {n} lines",
 		noMatch: "No file matches",
 	},
+	now: {
+		files: "{count} files to commit",
+		file: "1 file to commit",
+		clean: "Nothing to commit",
+		write: "Write it for me",
+		writePrompt:
+			"Write a commit message in the Conventional Commits form for the staged files: {files}",
+		pulls: "Pull requests",
+		past: "Merged and closed",
+		merge: "Merge pull request {number}",
+		health: "Product health",
+	},
+	mark: {
+		label: "Sync state",
+		inSync: "In sync",
+		noRemote: "Not shared yet",
+		error: "Sync failed",
+	},
 	pullPage: {
 		notFound: "No such pull request",
 		views: "Pull request views",
@@ -581,6 +599,24 @@ export const forgeFr: typeof forgeEn = {
 		viewedFile: "Vu {path}",
 		showAll: "Afficher les {n} lignes",
 		noMatch: "Aucun fichier ne correspond",
+	},
+	now: {
+		files: "{count} fichiers à valider",
+		file: "1 fichier à valider",
+		clean: "Rien à valider",
+		write: "Écris-le pour moi",
+		writePrompt:
+			"Écris un message de commit au format Conventional Commits pour les fichiers indexés : {files}",
+		pulls: "Pull requests",
+		past: "Fusionnées et fermées",
+		merge: "Fusionner la pull request {number}",
+		health: "Santé du produit",
+	},
+	mark: {
+		label: "État de la synchronisation",
+		inSync: "À jour",
+		noRemote: "Pas encore partagé",
+		error: "Échec de la synchronisation",
 	},
 	pullPage: {
 		notFound: "Cette pull request n'existe pas",

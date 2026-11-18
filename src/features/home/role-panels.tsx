@@ -30,12 +30,15 @@ const SHOWN = 5;
 function Card({
 	title,
 	to,
+	page,
 	items,
 	count = items.length,
 	children,
 }: {
 	title: string;
 	to: PlacePath;
+	/** The sub-page of a scope of Setup that holds the items. */
+	page?: string;
 	items: string[];
 	count?: number;
 	children?: ReactNode;
@@ -64,6 +67,8 @@ function Card({
 			<div className="p-3">
 				<Link
 					to={to}
+					// shortcut: one cast. The section routes are built in a loop, so the link type does not know `page`.
+					search={(page ? { page } : undefined) as never}
 					aria-label={`${t.rights.today.open} ${t.ui.place[place]} / ${view ? tabLabel(t, view[0], view[1]) : ""}`}
 					className={cn(buttonVariants(), "min-h-control")}
 				>
@@ -138,7 +143,14 @@ const PANELS: Record<string, () => ReactNode> = {
 	risks: function RisksPanel() {
 		const { t } = useI18n();
 		const x = (useHealth().data ?? []).filter((f) => f.severity !== "info");
-		return <Card title={t.rights.panel.risks} to="/setup/health" items={x.map((f) => f.id)} />;
+		return (
+			<Card
+				title={t.rights.panel.risks}
+				to="/setup/project"
+				page="health"
+				items={x.map((f) => f.id)}
+			/>
+		);
 	},
 	spend: function SpendPanel() {
 		const { t, lang } = useI18n();
@@ -214,7 +226,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.reviewLoad}
-				to="/code/pull-requests"
+				to="/code/now"
 				items={x.map((p) => `#${p.number} ${p.title}`)}
 			/>
 		);
@@ -257,7 +269,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.myPulls}
-				to="/code/pull-requests"
+				to="/code/now"
 				items={x.map((p) => `#${p.number} ${p.title}`)}
 			/>
 		);
@@ -271,7 +283,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.reviewRequests}
-				to="/code/pull-requests"
+				to="/code/now"
 				items={x.map((p) => `#${p.number} ${p.title}`)}
 			/>
 		);

@@ -1,5 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import { commands, unwrap } from "@/lib/ipc";
 import { mountApp } from "@/test/mount";
 
@@ -26,7 +27,7 @@ describe("status bar and context bar (shell REQ-007)", () => {
 			name: /lines added/,
 		});
 		expect(link).toHaveAccessibleName("Changes: +5 lines added, −2 removed");
-		expect(link).toHaveAttribute("href", "/code/changes");
+		expect(link).toHaveAttribute("href", "/code/now");
 		expect(link).toHaveTextContent("Changes: +5 lines added, −2 removed");
 	});
 
@@ -52,5 +53,28 @@ describe("status bar and context bar (shell REQ-007)", () => {
 		const b = await bar();
 		const link = await b.findByRole("link", { name: /Health \(2\)/ });
 		expect(within(link).getByRole("img", { name: "Warning" })).toBeInTheDocument();
+		expect(link).toHaveAttribute("href", "/setup/project?page=health");
+	});
+
+	it("opens the health of this computer when the only finding is a missing tool", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		vi.spyOn(commands, "healthRun").mockResolvedValue({
+			status: "ok",
+			data: [
+				{
+					id: "t",
+					group: "tools",
+					severity: "error",
+					code: "tool-missing",
+					detail: "pnpm",
+					source: null,
+					fix: { kind: "recheck" },
+				},
+			],
+		});
+		mountApp("/home");
+		const link = await (await bar()).findByRole("link", { name: /Health \(1\)/ });
+		expect(link).toHaveAttribute("href", "/setup/computer?page=health");
+		vi.restoreAllMocks();
 	});
 });

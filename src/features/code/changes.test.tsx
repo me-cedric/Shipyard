@@ -13,11 +13,11 @@ const unstaged = () => within(screen.getByRole("region", { name: "Unstaged" }));
 
 async function changes() {
 	await open();
-	mountApp("/code/changes");
+	mountApp("/code/now");
 	await group("Staged (1)");
 }
 
-describe("Code / Changes", () => {
+describe("Code / Now, the files to commit", () => {
 	it("offers the actions of a file in its context menu and stages it", async () => {
 		const user = userEvent.setup();
 		await changes();
@@ -56,12 +56,12 @@ describe("Code / Changes", () => {
 		expect(within(main()).getByRole("img", { name: "Untracked" })).toHaveTextContent("U");
 	});
 
-	it("has one primary action: Stage", async () => {
+	it("has two primary actions in the files to commit: Stage and Commit", async () => {
 		await changes();
-		const primary = within(main())
+		const primary = within(screen.getByRole("region", { name: "5 files to commit" }))
 			.getAllByRole("button")
 			.filter((b) => b.className.includes("bg-accent"));
-		expect(primary.map((b) => b.textContent)).toEqual(["Stage (4)"]);
+		expect(primary.map((b) => b.textContent)).toEqual(["Stage (4)", "Commit"]);
 	});
 
 	it("shows two separate diffs for a file with a staged and an unstaged change", async () => {
@@ -147,7 +147,7 @@ describe("Code / Changes", () => {
 			},
 		];
 		mockState().code = code;
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		await group("Conflicts (1)");
 		await user.click(within(main()).getByRole("button", { name: "app.ts" }));
 		const resolve = await screen.findByRole("button", { name: "Resolve" });
@@ -181,7 +181,7 @@ describe("Code / Changes", () => {
 			},
 		];
 		mockState().code = code;
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		await group("Conflicts (1)");
 		await user.click(within(main()).getByRole("button", { name: "app.ts" }));
 		expect(await screen.findByText("0 of 2 chosen")).toBeInTheDocument();
@@ -219,7 +219,7 @@ describe("Code / Changes", () => {
 		const code = seedCode();
 		code.conflicts = [{ path: "logo.png", text: false, segments: [] }];
 		mockState().code = code;
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		await group("Conflicts (1)");
 		await user.click(within(main()).getByRole("button", { name: "logo.png" }));
 		expect(screen.queryByRole("button", { name: "Resolve" })).toBeNull();
@@ -233,13 +233,13 @@ describe("Code / Changes", () => {
 		const code = seedCode();
 		code.conflicts = [{ path: "x.txt", text: false, segments: [] }];
 		mockState().code = code;
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		await user.click(await screen.findByRole("button", { name: "Hand to factory" }));
 		expect(await screen.findByText("Work item SHIP-200 created")).toBeInTheDocument();
 	});
 
 	it("shows the empty state with one action when no project is active", async () => {
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		const add = await screen.findByRole("button", { name: "Open a local folder" });
 		expect(add.className).toContain("bg-accent");
 	});
@@ -250,7 +250,7 @@ describe("the commit action of the status bar", () => {
 		const user = userEvent.setup();
 		await open();
 		await unwrap(commands.codeUnstage(["src/lib/util.ts"]));
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		await group("Staged (0)");
 		const commit = within(status()).getByRole("button", { name: "Commit" });
 		expect(commit).toBeDisabled();
@@ -264,7 +264,7 @@ describe("the commit action of the status bar", () => {
 		const code = seedCode();
 		code.conflicts = [{ path: "x.txt", text: false, segments: [] }];
 		mockState().code = code;
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		await group("Conflicts (1)");
 		expect(within(status()).getByRole("button", { name: "Commit" })).toBeDisabled();
 	});

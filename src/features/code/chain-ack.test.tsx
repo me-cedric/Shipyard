@@ -67,7 +67,7 @@ describe("Docs chain acknowledgement", () => {
 		expect(start).toHaveBeenCalledWith("test-plans", "branch", true);
 		expect(await screen.findByRole("link", { name: "Run of Test plans" })).toHaveAttribute(
 			"href",
-			"/factory/runs",
+			"/flow/flow",
 		);
 		// The acknowledge action stays.
 		expect(screen.getByRole("button", { name: "Acknowledge Test plans" })).toBeInTheDocument();

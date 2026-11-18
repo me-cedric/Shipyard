@@ -2,6 +2,20 @@
 
 Settings holds the settings of the project, your connections and your own choices.
 
+## Start
+
+Setup opens on Start: a guided start with each step of Get started, one question at a time. Skip goes to the next step that is to do. Three doors open the scopes of Setup: This project, This computer and Me. Each setting has one place. The old addresses of Settings open the scope that holds their page.
+
+## This project
+
+This project holds what the project stores and shares with the team: the project form, the automation and the import. Four doors open its pages: Connections (the issue trackers and the code hosts), Tickets, Extensions and Health of this project. A page that a door opens has a back link to the scope.
+
+Health of this project has "Fix all with an agent". It makes one feature in Flow with the findings in its Brief, and starts one run with the budget of the recipe. The ticket of the fix has the label `health-fix`. The run passes the same review and the same approvals as any other feature, and Stop ends it. The findings about the tools of this computer are not in the fix.
+
+## This computer
+
+This computer holds what this machine stores: the AI tools, the model providers, the MCP servers, the certificates and the permissions of the system. Four doors open its pages: Agents and rules, Outside agents, Health of this computer (the tools) and Logs and feedback.
+
 ## Project
 
 Project holds the folders of the project, the default workflow, the automation switches and the project import. Settings that are rarely changed sit under Advanced.
@@ -80,8 +94,8 @@ Me holds your own settings: theme, density, contrast, language, role and notific
 
 Each source of notifications has its own switch, on by default. The sources are: a question, an approval, a run that needs you, a failed sync, an update, a moved remote branch, a run that ends, the checks of your pull requests, a failed scan that you did not start, and an agent review draft that is ready to post. A switch that is off stops the entry in the centre and the system notice. Click an entry to open its run, pull request, Quality page or draft. The system shows a notice for a failed run, failed checks and a review draft, and for the older sources, while the window is in the background.
 
-Permissions shows the notifications and the Documents, Desktop and Downloads folders with their state and one action (see Getting started, Permissions), and Replay the tour. The Get started checklist shows at the top of Me.
+Permissions shows the notifications and the Documents, Desktop and Downloads folders with their state and one action (see Getting started, Permissions), and Replay the tour. The permissions and Replay the tour are in This computer. The Get started steps are in Start. The door Look and layout of Me holds the fonts and the look.
 
 ## Health
 
-Health lists the problems of the project. Each problem has one button that fixes it.
+Health lists the problems of the project. Each problem has one button that fixes it. The problems of the project are in This project, and the tools are in This computer.

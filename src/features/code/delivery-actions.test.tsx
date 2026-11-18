@@ -63,7 +63,7 @@ describe("Code: close, send back and archive", () => {
 	it("closes an open pull request with a reason", async () => {
 		const user = userEvent.setup();
 		await demo();
-		mountApp("/code/pull-requests");
+		mountApp("/code/now");
 		await user.click(await screen.findByRole("link", { name: /refuse an empty token/ }));
 		await toChat(user);
 		await user.type(await screen.findByRole("textbox", { name: "Comment" }), "Wrong approach");
@@ -78,7 +78,7 @@ describe("Code: close, send back and archive", () => {
 	it("sends a pull request of an agent run back with a text", async () => {
 		const user = userEvent.setup();
 		await demo();
-		mountApp("/code/pull-requests");
+		mountApp("/code/now");
 		await user.click(await screen.findByRole("link", { name: /show the pull requests/ }));
 		await toChat(user);
 		const back = await screen.findByRole("button", { name: "Send back to the agent" });
@@ -100,7 +100,7 @@ describe("Code: close, send back and archive", () => {
 	it("archives a spec change in the pull request", async () => {
 		const user = userEvent.setup();
 		await demo();
-		mountApp("/code/pull-requests");
+		mountApp("/code/now");
 		await user.click(await screen.findByRole("link", { name: /health route/ }));
 		await user.click(await screen.findByRole("button", { name: "Archive in this pull request" }));
 		expect(await screen.findByText(/^Archived in /)).toBeInTheDocument();

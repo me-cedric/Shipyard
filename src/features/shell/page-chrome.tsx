@@ -7,6 +7,9 @@ import { tabLabel } from "./spaces";
 /** The name of the page at a path: its section, else its place, else the app name. */
 export function pageTitle(t: Messages, path: string): string {
 	const [, place, slug] = path.split("/");
+	// Projects and Impacts are pages off the section switches.
+	if (place === "projects") return t.tabs.home.projects;
+	if (place === "flow" && slug === "impacts") return t.tabs.code.impacts;
 	if (!place || !(place in PLACES)) return "Shipyard";
 	const view = slug ? sectionView(place as PlaceId, slug) : undefined;
 	return (view && tabLabel(t, ...view)) || t.ui.place[place as PlaceId];

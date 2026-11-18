@@ -11,19 +11,16 @@ type Load = () => Promise<ComponentType>;
 const LOADERS: Partial<Record<string, Load>> = {
 	"home/today": () => import("./views").then((m) => m.HomeToday),
 	"home/projects": () => import("@/features/projects/projects-page").then((m) => m.ProjectsPage),
-	"code/changes": () => import("@/features/code/changes").then((m) => m.Changes),
+	"code/now": () => import("@/features/code/now").then((m) => m.CodeNow),
 	"code/history": () => import("@/features/code/history").then((m) => m.History),
 	"code/branches": () => import("@/features/code/branches").then((m) => m.Branches),
-	"code/pull-requests": () => import("@/features/code/pull-requests").then((m) => m.PullRequests),
 	"code/quality": () => import("@/features/code/quality").then((m) => m.Quality),
 	"code/impacts": () => import("@/features/code/impacts").then((m) => m.Impacts),
 	"code/terminal": () => import("@/features/code/terminal").then((m) => m.Terminal),
-	"settings/connections": () =>
-		import("@/features/settings/connections").then((m) => m.Connections),
-	"settings/me": () => import("@/features/settings/me").then((m) => m.Me),
-	"settings/agents-rules": () =>
-		import("@/features/settings/agents-rules").then((m) => m.AgentsRules),
-	"settings/extensions": () => import("@/features/settings/extensions").then((m) => m.Extensions),
+	"setup/start": () => import("@/features/onboarding/start").then((m) => m.SetupStart),
+	"setup/project": () => import("@/features/settings/setup-project").then((m) => m.SetupProject),
+	"setup/computer": () => import("@/features/settings/setup-computer").then((m) => m.SetupComputer),
+	"setup/me": () => import("@/features/settings/setup-me").then((m) => m.SetupMe),
 	// Wave 4: the sections of Plan and Crew (`spec:app-redesign#REQ-016`, `spec:app-redesign#REQ-018`).
 	"plan/timeline": () => import("@/features/plan/timeline").then((m) => m.Timeline),
 	"plan/people": () => import("@/features/plan/people").then((m) => m.People),
@@ -52,8 +49,6 @@ const LOADERS: Partial<Record<string, Load>> = {
 	"knowledge/slides": () => import("@/features/knowledge/slides").then((m) => m.Slides),
 	"knowledge/learn": () => import("@/features/knowledge/learn").then((m) => m.Learn),
 	"knowledge/dashboards": () => import("@/features/knowledge/dashboards").then((m) => m.Dashboards),
-	"settings/project": () => import("./views").then((m) => m.ProjectView),
-	"settings/health": () => import("@/features/projects/settings-health").then((m) => m.Health),
 };
 
 const loaded = new Map<string, ComponentType>();

@@ -299,7 +299,7 @@ describe("Flow / List, Done and Health", () => {
 			within(tabs)
 				.getAllByRole("link")
 				.map((l) => l.textContent),
-		).toEqual(["Flow", "List", "Done", "Health", "Impacts"]);
+		).toEqual(["Flow", "List", "Done", "Health"]);
 	});
 
 	it.each([

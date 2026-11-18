@@ -27,7 +27,7 @@ async function mine() {
 const live = (r: { lane: string }) => r.lane === "working" || r.lane === "needs_you";
 
 describe("Home / Today", () => {
-	it("opens Home on Today, with Today, News, Activity and Projects as its tabs", async () => {
+	it("opens Home on Today, with Today, News and Activity as its tabs", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/home");
 		await waitFor(() => expect(router.state.location.pathname).toBe("/today/today"));
@@ -36,7 +36,6 @@ describe("Home / Today", () => {
 			"Today",
 			"News",
 			"Activity",
-			"Projects",
 		]);
 		expect(await screen.findByRole("heading", { level: 1, name: /need you$/ })).toBeInTheDocument();
 	});
@@ -337,7 +336,7 @@ describe("Home / Today", () => {
 		mountApp("/home/today");
 		expect(await screen.findByRole("heading", { level: 1, name: /vous attend/ })).toBeVisible();
 		expect(await screen.findByRole("list", { name: "À traiter" })).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: "Projets" })).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "Nouvelles" })).toBeInTheDocument();
 		expect(screen.queryByText("Needs you")).toBeNull();
 	});
 });

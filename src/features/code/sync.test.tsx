@@ -31,7 +31,7 @@ async function withNotice() {
 describe("the remote watch notice and the sync action", () => {
 	it("shows the count, the branch, the author and the subject beside Sync", async () => {
 		await withNotice();
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		expect(await (await bar()).findByRole("status")).toHaveTextContent(
 			"2 new on origin/main, Ada: feat: x",
 		);
@@ -40,7 +40,7 @@ describe("the remote watch notice and the sync action", () => {
 	it("keeps a dirty working copy, names the files and keeps the notice", async () => {
 		const user = userEvent.setup();
 		await withNotice();
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		await (await bar()).findByRole("status");
 		await user.click((await top()).getByRole("button", { name: "Sync" }));
 		expect(await (await bar()).findByRole("alert")).toHaveTextContent("src/app.ts");
@@ -54,7 +54,7 @@ describe("the remote watch notice and the sync action", () => {
 		await unwrap(commands.codeDiscard(["README.md"], true));
 		await unwrap(commands.codeUnstage(["src"]));
 		await unwrap(commands.codeDiscard(["src"], false));
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		await (await bar()).findByRole("status");
 		await user.click((await top()).getByRole("button", { name: "Sync" }));
 		const footer = await bar();

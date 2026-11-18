@@ -190,6 +190,7 @@ export const en = {
 			usage: "Usage",
 		},
 		code: {
+			now: "Now",
 			changes: "Local changes",
 			history: "History",
 			branches: "Branches",
@@ -215,6 +216,7 @@ export const en = {
 			me: "Me",
 			health: "Health",
 		},
+		setup: { start: "Start", project: "This project", computer: "This computer", me: "Me" },
 	},
 	noun: {
 		home: "Project",

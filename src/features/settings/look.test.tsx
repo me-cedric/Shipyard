@@ -21,7 +21,7 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 
 	it("saves the accent, the sides, the narrow bar, all pages, the date format and the close push", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me?page=look");
 		await choose(user, "Accent colour", "Green");
 		await waitFor(() => expect(mockState().prefs.accent).toBe("green"));
 		expect(document.documentElement.dataset.accent).toBe("green");
@@ -52,7 +52,7 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 
 	it("saves the motion and the focus ring, shows a preview and writes root attributes", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me?page=look");
 		const root = document.documentElement.dataset;
 		await waitFor(() =>
 			expect([root.motion, root.focusRing, root.focusWidth]).toEqual(["system", "keyboard", "2"]),
@@ -73,7 +73,7 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 
 	it("saves the text size and writes it on the root element", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me?page=look");
 		await choose(user, "Text size", "18 px");
 		await waitFor(() => expect(mockState().prefs.uiScale).toBe(18));
 		expect(document.documentElement.style.fontSize).toBe("18px");
@@ -81,7 +81,7 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 
 	it("sets and removes the picture of the person and shows the data folder", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me?page=look");
 		mockState().nextFile = "/Users/ada/me.png";
 		await user.click(await screen.findByRole("button", { name: "Choose a picture" }));
 		expect(await screen.findAllByRole("img", { name: "Your picture" })).not.toHaveLength(0);

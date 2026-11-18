@@ -3,6 +3,11 @@ import type { flowEn } from "../flow";
 export const flowEs: typeof flowEn = {
 	newAction: "Nueva función",
 	views: { flow: "Flujo", list: "Lista", done: "Hecho", health: "Salud" },
+	health: {
+		fixOne: "1 control necesita una corrección",
+		fixMany: "{count} controles necesitan una corrección",
+		clean: "Ningún control necesita una corrección",
+	},
 	stages: { idea: "Idea", spec: "Spec", build: "Construcción", review: "Revisión", ready: "Listo" },
 	filter: "Mostrar",
 	filters: { all: "Todo", needs: "Me necesita", mine: "Mío" },
@@ -68,7 +73,7 @@ export const flowEs: typeof flowEn = {
 		noTicket: "Sin ticket",
 		noChat: "Nada que decir todavía",
 		gates: "Pasos de control",
-		impacts: "Impactos",
+		impacts: "Impactos en el resto del código",
 		side: { brief: "Encargo", changes: "Cambios", people: "Personas", open: "Abrir" },
 		files: "{count} archivos",
 		lines: "+{added} -{removed}",

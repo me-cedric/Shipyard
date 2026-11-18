@@ -83,8 +83,8 @@ test("developer", async ({ page }) => {
 		await w.until(() => effect.count(), 0, "the approval stays in the list after Approve");
 	});
 
-	await w.step("Stage and commit my changes", "Code, Local changes, Stage, Commit", async () => {
-		await w.go("Code", "Local changes");
+	await w.step("Stage and commit my changes", "Code, Now, Stage, Commit", async () => {
+		await w.go("Code", "Now");
 		await w.click(page.getByRole("button", { name: "Stage (4)" }));
 		await w.click(page.getByRole("button", { name: "Commit" }).last());
 		await w.fill(page.getByRole("dialog").getByRole("textbox"), "fix(auth): refuse an empty token");
@@ -93,7 +93,7 @@ test("developer", async ({ page }) => {
 	});
 
 	await w.step("Review a pull request", "the pull request row, Approve", async () => {
-		await w.go("Code", "Pull requests");
+		await w.go("Code", "Now");
 		await w.click(page.getByRole("link", { name: /#44 Rework the settings page/ }));
 		await w.click(
 			page

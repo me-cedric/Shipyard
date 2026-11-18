@@ -23,7 +23,8 @@ describe("Knowledge / Manual", () => {
 			"theming",
 		]);
 		for (const [space, tabs] of Object.entries(en.tabs)) {
-			const page = MANUAL.find((p) => p.id === space);
+			// The sections of Setup are in the Settings page of the manual.
+			const page = MANUAL.find((p) => p.id === (space === "setup" ? "settings" : space));
 			for (const label of Object.values(tabs))
 				expect(page?.text, `${space}: ${label}`).toMatch(new RegExp(`^## ${label}$`, "m"));
 		}
@@ -34,7 +35,7 @@ describe("Knowledge / Manual", () => {
 		expect(pages.map((p) => p.id)).toEqual(MANUAL.map((p) => p.id));
 		expect(pages.every((p, i) => p.text !== MANUAL[i]?.text)).toBe(true);
 		for (const [space, tabs] of Object.entries(fr.tabs)) {
-			const page = pages.find((p) => p.id === space);
+			const page = pages.find((p) => p.id === (space === "setup" ? "settings" : space));
 			for (const label of Object.values(tabs))
 				expect(page?.text, `${space}: ${label}`).toMatch(new RegExp(`^## ${label}$`, "m"));
 		}

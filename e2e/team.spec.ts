@@ -53,9 +53,9 @@ test("a solo project gets two members with an admin, then an unknown person read
 	// Crew / Rights says who the person is.
 	await tabs(page).getByRole("link", { name: "Rights" }).click();
 	await expect(page.getByText("You are not in the team file")).toBeVisible();
-	// Every view still reads: Setup / Project opens, and its save is off.
+	// Every view still reads: Setup / This project opens, and its save is off.
 	await sidebar(page).getByRole("link", { name: "Setup" }).click();
-	await tabs(page).getByRole("link", { name: "Project" }).click();
+	await tabs(page).getByRole("link", { name: "This project" }).click();
 	await page.getByRole("textbox", { name: "Name" }).first().fill("Renamed");
 	const save = page.getByRole("button", { name: "Save", exact: true });
 	await expect(save).toBeDisabled();

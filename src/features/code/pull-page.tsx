@@ -193,8 +193,8 @@ export function PullPart({ part }: { part: PullPartName }) {
 				title={t.forge.pullPage.notFound}
 				icon={<ArrowsRightLeftIcon size={28} />}
 				action={{
-					label: t.tabs.code["pull-requests"],
-					onClick: () => void navigate({ to: "/code/pull-requests" }),
+					label: t.forge.now.pulls,
+					onClick: () => void navigate({ to: "/code/now" }),
 				}}
 			/>
 		);

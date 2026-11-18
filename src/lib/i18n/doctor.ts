@@ -47,6 +47,18 @@ export const doctorEn = {
 		error: "Error",
 		copy: "Copy log",
 	},
+	fix: {
+		again: "Check again",
+		all: "Fix all with an agent",
+		title: "Fix the findings of the project health",
+		why: "The health of the project lists these findings.",
+		confirm: "Start one agent to fix {count} findings? Budget of the run: {budget}",
+		confirmOne: "Start one agent to fix 1 finding? Budget of the run: {budget}",
+		noBudget: "Set a budget in the recipe {recipe} first",
+		open: "Open the feature",
+		stop: "Stop",
+		confirmStop: "Stop the agent?",
+	},
 	attach: { add: "Attach file", remove: "Remove {name}" },
 };
 
@@ -97,6 +109,18 @@ export const doctorFr: typeof doctorEn = {
 		warn: "Avertissement",
 		error: "Erreur",
 		copy: "Copier le journal",
+	},
+	fix: {
+		again: "Vérifier à nouveau",
+		all: "Tout corriger avec un agent",
+		title: "Corriger les constats de la santé du projet",
+		why: "La santé du projet liste ces constats.",
+		confirm: "Lancer un agent pour corriger {count} constats ? Budget de l'exécution : {budget}",
+		confirmOne: "Lancer un agent pour corriger 1 constat ? Budget de l'exécution : {budget}",
+		noBudget: "Fixez d'abord un budget dans la recette {recipe}",
+		open: "Ouvrir la fonctionnalité",
+		stop: "Arrêter",
+		confirmStop: "Arrêter l'agent ?",
 	},
 	attach: { add: "Joindre un fichier", remove: "Retirer {name}" },
 };

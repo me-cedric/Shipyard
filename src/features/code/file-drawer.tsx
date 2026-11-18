@@ -166,7 +166,7 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 	};
 	const reveal = (path: string) => {
 		rememberSelection("code:changes", path);
-		void navigate({ to: "/code/changes" });
+		void navigate({ to: "/code/now" });
 	};
 	const parentOf = (p: string) => p.slice(0, Math.max(p.lastIndexOf("/"), 0));
 	/** The write items of a row. A folder makes new items inside, a file beside it. */

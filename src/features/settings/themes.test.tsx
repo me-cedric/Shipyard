@@ -19,7 +19,7 @@ async function importSample(user: ReturnType<typeof userEvent.setup>, path = THE
 describe("themes: OLED and the theme choice (REQ-001, REQ-002)", () => {
 	it("offers five themes and applies OLED", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		await user.click(await screen.findByRole("combobox", { name: "Theme" }));
 		for (const name of ["Light", "Dark", "OLED", "System", "System, OLED when dark"])
 			expect(await screen.findByRole("option", { name })).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("themes: the theme file (REQ-003)", () => {
 describe("themes: import, preview, export and remove (REQ-005 to REQ-008, REQ-010)", () => {
 	it("shows the preview, and Cancel saves nothing", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		const dialog = await importSample(user);
 		expect(within(dialog).getByText("Harbor night", { selector: "h2" })).toBeInTheDocument();
 		await user.click(within(dialog).getByRole("button", { name: "Close" }));
@@ -77,7 +77,7 @@ describe("themes: import, preview, export and remove (REQ-005 to REQ-008, REQ-01
 
 	it("lists each fault of a bad file and saves nothing", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		const dialog = await importSample(user, BAD_THEME_PATH);
 		expect(within(dialog).getByText("The theme file has faults")).toBeInTheDocument();
 		expect(within(dialog).getByText("radius: use 0 to 16")).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe("themes: import, preview, export and remove (REQ-005 to REQ-008, REQ-01
 
 	it("adds and selects the theme, exports it the same, and removes it to its base", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		const dialog = await importSample(user);
 		await user.click(within(dialog).getByRole("button", { name: "Add" }));
 		await waitFor(() => expect(mockState().prefs.customTheme).toBe("harbor-night"));
@@ -117,7 +117,7 @@ describe("themes: import, preview, export and remove (REQ-005 to REQ-008, REQ-01
 
 	it("keeps the high-contrast colours and takes only the radius of a theme", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		await user.click(await screen.findByRole("switch", { name: "High contrast" }));
 		await waitFor(() => expect(mockState().prefs.contrast).toBe("high"));
 		const dialog = await importSample(user);
@@ -130,7 +130,7 @@ describe("themes: import, preview, export and remove (REQ-005 to REQ-008, REQ-01
 
 	it("exports a built-in theme as a file of its base", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		await choose(user, "Theme", "OLED");
 		mockState().nextFile = "/mock/mine.json";
 		await user.click(await screen.findByRole("button", { name: "Export" }));

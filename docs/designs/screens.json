@@ -83,7 +83,7 @@
     {
       "id": "SCR-008",
       "slug": "code",
-      "title": "Code / Pull requests: a full-width list with a search, the filter All and Needs review, and the groups Open, Merged and Closed; each row shows the number, the title, the draft, checks and review state, and no author",
+      "title": "Code / Now: the files to commit with the commit box (Summary, Description, Write it for me, Commit), then the pull requests with a search, the filter All and Needs review, the open ones first and Merged and closed behind one button; two doors open the product health and the files",
       "artifacts": [
         "spec:code",
         "spec:ux-declutter"
@@ -104,7 +104,7 @@
     {
       "id": "SCR-010",
       "slug": "top-bar",
-      "title": "Top bar: sidebar toggle, Back and Forward, Sync with ahead and behind, Activity, search, Files and Terminal buttons, Ask split button, notifications, account menu",
+      "title": "Top bar: sidebar toggle, Back and Forward, the project name with the Projects page, the sync mark (branch, state of the repository, Sync with ahead and behind), Activity, search, Files and Terminal buttons, Ask split button, notifications, account menu",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter"
@@ -114,10 +114,11 @@
     {
       "id": "SCR-011",
       "slug": "projects",
-      "title": "Projects: Clone and Open",
+      "title": "Projects: the page behind the project name of the top bar, with the open project, the projects opened before, New project, Open a local folder, Clone a repository and Import a project",
       "artifacts": [
         "spec:projects"
-      ]
+      ],
+      "file": "docs/assets/screenshots/projects.png"
     },
     {
       "id": "SCR-012",
@@ -148,7 +149,7 @@
     {
       "id": "SCR-015",
       "slug": "settings-connections",
-      "title": "Settings / Connections: each MCP server has an allow list picker (All tools, Read only, Custom with one checkbox for each tool)",
+      "title": "Setup / This project, Connections: the issue trackers and the code hosts of the project, behind a door with a back link; the MCP servers with their allow list picker are in This computer",
       "artifacts": [
         "spec:extensions",
         "spec:visual-cues"
@@ -168,7 +169,7 @@
     {
       "id": "SCR-017",
       "slug": "settings-permissions",
-      "title": "Settings / Me, Permissions: each OS permission with its state and one action; the Get started checklist; the section list",
+      "title": "Setup / This computer, Permissions: each OS permission with its state and one action, Allow all, and Replay the tour; the Get started steps are in Setup / Start",
       "artifacts": [
         "spec:onboarding",
         "spec:ux-declutter"
@@ -177,7 +178,7 @@
     {
       "id": "SCR-018",
       "slug": "settings-project",
-      "title": "Settings / Project: a section list that stays in view, with an icon per section, above panels with an icon in each heading",
+      "title": "Setup / This project: the doors Connections, Tickets, Extensions and Health of this project, above the project form, the automation and the import; Health of this project has Check again and Fix all with an agent",
       "artifacts": [
         "spec:projects",
         "spec:visual-cues",
@@ -441,6 +442,66 @@
         "adr:0023"
       ],
       "file": "docs/assets/screenshots/tile-build.png"
+    },
+    {
+      "id": "SCR-061",
+      "slug": "setup-start",
+      "title": "Setup / Start: the guided start with each step of Get started, one question at a time with Skip, and three doors to This project, This computer and Me, each with one state line",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-start.png"
+    },
+    {
+      "id": "SCR-062",
+      "slug": "setup-computer",
+      "title": "Setup / This computer: the doors Agents and rules, Outside agents, Health of this computer and Logs and feedback, above the AI tools, the model providers, the MCP servers, the certificates and the permissions",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-computer.png"
+    },
+    {
+      "id": "SCR-063",
+      "slug": "setup-me",
+      "title": "Setup / Me: the theme, the language, the role, the terminal, the default agent and the notifications, with one door to Look and layout",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-me.png"
+    },
+    {
+      "id": "SCR-064",
+      "slug": "code-terminal",
+      "title": "Code / Terminal: the command line of the project as a section of Code; the Terminal button of the top bar opens the same in the drawer",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/code-terminal.png"
+    },
+    {
+      "id": "SCR-065",
+      "slug": "flow-health",
+      "title": "Flow / Health: the title counts the gates to fix, the gates and the scanners show for every role, and Run and Set up are off without the right",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/flow-health.png"
+    },
+    {
+      "id": "SCR-066",
+      "slug": "feature-impacts",
+      "title": "Flow / Feature, Checks: the row Impacts on other code opens the impacts of the change inside the section, with a back button",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/feature-impacts.png"
     }
   ]
 }

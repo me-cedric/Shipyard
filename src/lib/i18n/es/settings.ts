@@ -1,6 +1,13 @@
 import type { settingsEn } from "../settings";
 
 export const settingsEs: typeof settingsEn = {
+	scope: { project: "Este proyecto", computer: "Este ordenador", me: "Yo" },
+	pages: {
+		projectHealth: "Salud de este proyecto",
+		computerHealth: "Salud de este ordenador",
+		logs: "Registros y comentarios",
+		look: "Aspecto y disposición",
+	},
 	tiers: {
 		name: "Niveles de modelo",
 		top: "Superior",

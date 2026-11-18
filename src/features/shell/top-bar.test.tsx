@@ -115,7 +115,7 @@ describe("top bar (ux-declutter REQ-009 to REQ-013)", () => {
 		const bar = within((await screen.findByRole("contentinfo")) as HTMLElement);
 		expect(await bar.findByRole("link", { name: /^Changed files \(\d+\)$/ })).toHaveAttribute(
 			"href",
-			"/code/changes",
+			"/code/now",
 		);
 	});
 });

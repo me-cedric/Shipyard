@@ -33,12 +33,12 @@ The window opens at the size where you closed it. To keep the data of the app ne
 
 - The tour does not open at the first launch. It opens once, when you open your first project. It has six steps: the loop, open a project, connect the issue tracker and the code host, choose the AI tool, the permissions, and the first run on a ticket.
 - Click Next and Back, or press the Left and Right arrow keys. Close ends the tour at any step. It does not open again by itself.
-- To see it again, choose Replay the tour in the account menu or in the Help menu, or type Replay the tour in the Ask bar, or go to Settings, then Me, then Permissions.
+- To see it again, choose Replay the tour in the account menu or in the Help menu, or type Replay the tour in the Ask bar, or go to Setup, then This computer, then Permissions.
 - The last step opens this manual.
 
 ## Permissions
 
-Shipyard asks for a permission of the system only after you click Allow. The tour and Settings / Me show each one with its state: On, Off, Not asked, Not needed or Unknown.
+Shipyard asks for a permission of the system only after you click Allow. The tour and Setup / This computer show each one with its state: On, Off, Not asked, Not needed or Unknown.
 
 | Permission | macOS | Windows | Linux |
 |---|---|---|---|
@@ -51,17 +51,17 @@ Shipyard does not ask for Full Disk Access, the camera, the microphone or the lo
 
 The first-run page asks for your role. Pick it, then click Continue. Then open a folder, clone a repository or start a new project. With no project open, every space shows this same choice: Open a folder, Clone a repository and New project.
 
-On Home, then Today, one Get started checklist lists the next steps in order: project, AI tool, models, issue tracker, code host, team, permissions, first decision, first spec, first assigned ticket and first run. Each item has one action that names the real next step, such as Install, Sign in, Choose or Connect. Settings / Me shows the same card. On Today it hides when nothing is left to do.
+On Home, then Today, one Get started checklist lists the next steps in order: project, AI tool, models, issue tracker, code host, team, permissions, first decision, first spec, first assigned ticket and first run. Each item has one action that names the real next step, such as Install, Sign in, Choose or Connect. Setup / Start shows the same steps, one question at a time. On Today it hides when nothing is left to do.
 
 ## Open a project
 
-1. Go to Home, then Projects.
+1. Click the project name in the top bar, then Projects.
 2. Click Open a folder and choose the folder of your project. Or click New project (see New project below).
 3. When the folder is not a project yet, click Make it a project.
 
 ## New project
 
-Click New project in Home, then Projects, or on the first-run page or the no-project page. The creator has five steps: Project, Brief, Team, Remote and Start. Each step has defaults. Create is on from the first step when the name and the parent folder are set.
+Click New project on the Projects page, or on the first-run page or the no-project page. The creator has five steps: Project, Brief, Team, Remote and Start. Each step has defaults. Create is on from the first step when the name and the parent folder are set.
 
 1. Project: the name, the key (from the name, you can edit it), the parent folder and the stack: Node, Rust, Python, Java, Go or Other. The stack sets the gates of the project file and the ignore rules of `.gitignore`. The folder must be empty or new: Create refuses a folder that holds files.
 2. Brief: the vision, the users and the scope, as text that you edit. They go to `docs/brief.md`. Also choose the docs language and the pull request language. Both default to the language of the interface. The agents write specs, diagrams, documents and pull request text in these languages. Code, identifiers, code comments and commit messages stay in English.

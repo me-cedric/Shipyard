@@ -225,4 +225,55 @@ describe("Feature page events (REQ-015)", () => {
 		expect(await within(panel).findByText("CI failing")).toBeVisible();
 		await idle(router);
 	});
+
+	it("opens the impacts of the change from Checks, with the reports and Analyze, and goes back (REQ-023)", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const idea = feature({ title: "Refuse an empty token", stage: "idea", change: "change:x" });
+		vi.spyOn(commands, "featuresList").mockResolvedValue({ status: "ok", data: [idea] });
+		const router = mountApp("/flow/feature/change%3Ax?section=checks");
+		const panel = await screen.findByRole("tabpanel", { name: "Checks" });
+		await user.click(await within(panel).findByRole("button", { name: "Impacts on other code" }));
+		expect(await within(panel).findByRole("heading", { name: "Past reports (1)" })).toBeVisible();
+		expect(within(panel).getByRole("region", { name: "Assignments" })).toBeVisible();
+		await user.click(within(panel).getByRole("button", { name: "Analyze" }));
+		expect(await within(panel).findByRole("heading", { name: "Past reports (2)" })).toBeVisible();
+		await user.click(within(panel).getByRole("button", { name: "Checks" }));
+		expect(
+			await within(panel).findByRole("button", { name: "Impacts on other code" }),
+		).toBeVisible();
+		await idle(router);
+	});
+
+	it("keeps the impacts off, with the reason, for a role with no level on code", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mockState().person = {
+			member: "tess",
+			found: "email",
+			role: "qa",
+			admin: false,
+			readOnly: false,
+			rights: [],
+			access: {
+				work: "read",
+				specs: "read",
+				design: "read",
+				knowledge: "read",
+				code: "none",
+				runs: "read",
+				settings: "none",
+				costs: "none",
+				merge: false,
+				approve: false,
+			},
+		};
+		const idea = feature({ title: "Refuse an empty token", stage: "idea", change: "change:x" });
+		vi.spyOn(commands, "featuresList").mockResolvedValue({ status: "ok", data: [idea] });
+		const router = mountApp("/flow/feature/change%3Ax?section=checks");
+		const panel = await screen.findByRole("tabpanel", { name: "Checks" });
+		const open = await within(panel).findByRole("button", { name: "Impacts on other code" });
+		await waitFor(() => expect(open).toBeDisabled());
+		expect(open).toHaveAccessibleDescription("No access");
+		await idle(router);
+	});
 });

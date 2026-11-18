@@ -27,7 +27,7 @@ Activité liste les exécutions actives et les sessions ouvertes, chacune avec A
 
 ## Projets
 
-Projets liste les projets de cet ordinateur.
+Projets liste les projets de cet ordinateur. Ouvrez la page depuis le nom du projet dans la barre du haut, puis Projets. Elle montre le projet ouvert, les projets ouverts avant et les façons d'en démarrer un. L'ancienne adresse d'Accueil / Projets l'ouvre.
 
 1. Cliquez sur un projet pour l'ouvrir.
 2. Cliquez sur Ouvrir un dossier local pour ajouter un projet qui est sur votre disque.

@@ -42,7 +42,7 @@ const tier = async (name: string) => (await groups(name)).find(has) as HTMLEleme
 
 describe("Settings / Agents and rules: model tiers", () => {
 	it("shows the five runners: a picker for a detected tool, free text for the others", async () => {
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		expect(await screen.findByRole("heading", { name: "Model tiers (5)" })).toBeInTheDocument();
 		const claude = await tier("Claude Code");
 		expect(
@@ -61,7 +61,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 	});
 
 	it("shows an effort only for a model that accepts one", async () => {
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const claude = await tier("Claude Code");
 		expect(
 			await within(claude).findByRole("combobox", { name: "Claude Code Top Effort" }),
@@ -79,7 +79,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 
 	it("saves a model and an effort that a person picks, and drops an effort the new model refuses", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const claude = await tier("Claude Code");
 		await user.click(
 			await within(claude).findByRole("combobox", { name: "Claude Code Top Effort" }),
@@ -97,7 +97,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 
 	it("saves a typed tier when the field loses focus", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const field = within(await tier("GitHub Copilot")).getByRole("textbox", {
 			name: "GitHub Copilot Top",
 		});
@@ -112,7 +112,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 
 	it("shows the refusal of a bad model id", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const group = await tier("GitHub Copilot");
 		await user.type(
 			within(group).getByRole("textbox", { name: "GitHub Copilot Mid" }),
@@ -127,7 +127,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 		const user = userEvent.setup();
 		const saved = mockState().factory.tiers.find((r) => r.runner === "codex");
 		if (saved) saved.midEffort = "minimal";
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const codex = await tier("Codex");
 		const mid = await within(codex).findByRole("combobox", { name: "Codex Mid Effort" });
 		expect(mid).toHaveTextContent("minimal (not supported)");
@@ -146,7 +146,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 
 describe("Settings / Agents and rules: tool sign-in", () => {
 	it("shows one row for each tool with its state and one action", async () => {
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const claude = await row("Claude Code");
 		expect(within(claude).getAllByText("Signed in").length).toBeGreaterThan(0);
 		expect(within(claude).queryByRole("button")).toBeNull();
@@ -161,7 +161,7 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 
 	it("asks before it installs a missing tool, and names the tool", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const gemini = await row("Gemini CLI");
 		await user.click(within(gemini).getByRole("button", { name: "Install Gemini CLI" }));
 		await user.click(
@@ -174,7 +174,7 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 
 	it("signs in from the keyboard and shows the new state", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const codex = await row("Codex");
 		within(codex).getByRole("button", { name: "Sign in" }).focus();
 		await user.keyboard("{Enter}");
@@ -186,7 +186,7 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 
 	it("opens the terminal with no project open", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const codex = await row("Codex");
 		await user.click(within(codex).getByRole("button", { name: "Sign in" }));
 		const drawer = await screen.findByRole("region", { name: "Terminals" });
@@ -197,7 +197,7 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 	it("saves a Codex API key, then keeps no key in the view", async () => {
 		const user = userEvent.setup();
 		const save = vi.spyOn(commands, "runnerCodexApiKey");
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const codex = await row("Codex");
 		await user.click(within(codex).getByRole("button", { name: "Use an API key" }));
 		const field = within(codex).getByLabelText("Codex API key");
@@ -218,7 +218,7 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 		const save = vi
 			.spyOn(commands, "runnerCodexApiKey")
 			.mockResolvedValueOnce({ status: "error", error: "The key is not valid." } as never);
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const codex = await row("Codex");
 		await user.click(within(codex).getByRole("button", { name: "Use an API key" }));
 		await user.type(within(codex).getByLabelText("Codex API key"), "sk-bad-2");

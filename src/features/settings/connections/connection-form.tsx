@@ -100,9 +100,12 @@ export function DeviceCode({ code }: { code: string }) {
 export function ConnectionForm({
 	connection,
 	initialGroup,
+	types = ADD_TYPES,
 	onType,
 	onDone,
 }: {
+	/** The types that the add form offers. */
+	types?: readonly AddType[];
 	connection?: Connection_Serialize;
 	initialGroup?: ConnectionGroup;
 	/** The person picked a type that has another form: the parent swaps the form. */
@@ -265,7 +268,7 @@ export function ConnectionForm({
 									? onType?.(v)
 									: pickGroup(v === "forge" ? "forge" : "tracker")
 							}
-							items={ADD_TYPES.map((g) => ({ value: g, label: t.connections.type[g] }))}
+							items={types.map((g) => ({ value: g, label: t.connections.type[g] }))}
 						/>
 					</SettingsRow>
 					<SettingsRow label={f.kind}>

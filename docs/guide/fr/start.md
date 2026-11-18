@@ -29,12 +29,12 @@ La fenêtre s'ouvre à la taille où vous l'avez fermée. Pour garder les donné
 
 - La visite ne s'ouvre pas au premier lancement. Elle s'ouvre une fois, quand vous ouvrez votre premier projet. Elle a six étapes : la boucle, ouvrir un projet, connecter l'outil de suivi et l'hébergeur de code, choisir l'outil d'IA, les autorisations, et la première exécution sur un ticket.
 - Cliquez sur Suivant et Retour, ou appuyez sur les flèches gauche et droite. Fermer arrête la visite à chaque étape. Elle ne s'ouvre plus d'elle-même.
-- Pour la revoir, choisissez Revoir la visite dans le menu du compte ou dans le menu Aide, ou tapez Revoir la visite dans la barre Demander, ou allez dans Réglages, puis Moi, puis Autorisations.
+- Pour la revoir, choisissez Revoir la visite dans le menu du compte ou dans le menu Aide, ou tapez Revoir la visite dans la barre Demander, ou allez dans Configuration, puis Cet ordinateur, puis Autorisations.
 - La dernière étape ouvre ce manuel.
 
 ## Autorisations
 
-Shipyard demande une autorisation du système seulement après un clic sur Autoriser. La visite et Réglages / Moi montrent chacune avec son état : Activé, Désactivé, Pas demandé, Pas nécessaire ou Inconnu.
+Shipyard demande une autorisation du système seulement après un clic sur Autoriser. La visite et Configuration / Cet ordinateur montrent chacune avec son état : Activé, Désactivé, Pas demandé, Pas nécessaire ou Inconnu.
 
 | Autorisation | macOS | Windows | Linux |
 |---|---|---|---|
@@ -47,17 +47,17 @@ Shipyard ne demande pas l'accès complet au disque, la caméra, le micro ni la p
 
 La page du premier lancement demande votre rôle. Choisissez-le, puis cliquez sur Continuer. Ensuite, ouvrez un dossier, clonez un dépôt ou démarrez un nouveau projet. Quand aucun projet n'est ouvert, chaque espace montre ce même choix : Ouvrir un dossier, Cloner un dépôt et Nouveau projet.
 
-Dans Accueil, puis Aujourd'hui, une seule liste Pour commencer donne les prochaines étapes dans l'ordre : projet, outil d'IA, modèles, outil de suivi des tickets, hébergeur de code, équipe, autorisations, première décision, première spécification, premier ticket attribué et première exécution. Chaque élément a une action qui nomme la vraie étape suivante, comme Installer, Se connecter, Choisir ou Connecter. Réglages / Moi montre la même carte. Dans Aujourd'hui, elle se masque quand il ne reste rien à faire.
+Dans Accueil, puis Aujourd'hui, une seule liste Pour commencer donne les prochaines étapes dans l'ordre : projet, outil d'IA, modèles, outil de suivi des tickets, hébergeur de code, équipe, autorisations, première décision, première spécification, premier ticket attribué et première exécution. Chaque élément a une action qui nomme la vraie étape suivante, comme Installer, Se connecter, Choisir ou Connecter. Configuration / Démarrage montre les mêmes étapes, une question à la fois. Dans Aujourd'hui, elle se masque quand il ne reste rien à faire.
 
 ## Ouvrir un projet
 
-1. Allez dans Accueil, puis Projets.
+1. Cliquez sur le nom du projet dans la barre du haut, puis sur Projets.
 2. Cliquez sur Ouvrir un dossier local et choisissez le dossier de votre projet. Ou cliquez sur Nouveau projet (voir Nouveau projet ci-dessous).
 3. Quand le dossier n'est pas encore un projet, cliquez sur En faire un projet.
 
 ## Nouveau projet
 
-Cliquez sur Nouveau projet dans Accueil, puis Projets, ou sur la page du premier lancement ou la page sans projet. L'assistant a cinq étapes : Projet, Cahier, Équipe, Dépôt et Départ. Chaque étape a des valeurs par défaut. Créer est actif dès la première étape quand le nom et le dossier parent sont renseignés.
+Cliquez sur Nouveau projet sur la page Projets, ou sur la page du premier lancement ou la page sans projet. L'assistant a cinq étapes : Projet, Cahier, Équipe, Dépôt et Départ. Chaque étape a des valeurs par défaut. Créer est actif dès la première étape quand le nom et le dossier parent sont renseignés.
 
 1. Projet : le nom, la clé (tirée du nom, vous pouvez la modifier), le dossier parent et la pile : Node, Rust, Python, Java, Go ou Autre. La pile fixe les contrôles du fichier de projet et les règles d'exclusion de `.gitignore`. Le dossier doit être vide ou nouveau : Créer refuse un dossier qui contient des fichiers.
 2. Cahier : la vision, les utilisateurs et le périmètre, en texte que vous modifiez. Ils vont dans `docs/brief.md`. Choisissez aussi la langue des documents et la langue des pull requests. Les deux valent par défaut la langue de l'interface. Les agents écrivent les spécifications, les diagrammes, les documents et le texte des pull requests dans ces langues. Le code, les identifiants, les commentaires de code et les messages de commit restent en anglais.

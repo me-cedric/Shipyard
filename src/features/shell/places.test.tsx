@@ -6,10 +6,12 @@ import { fr } from "@/lib/i18n/fr";
 import { routers } from "@/test/routers";
 import {
 	firstSection,
+	hiddenSection,
 	PLACE_IDS,
 	PLACES,
 	placePath,
 	REPLACES,
+	viewPath,
 	visiblePlaces,
 	visibleSections,
 } from "./places";
@@ -34,7 +36,10 @@ describe("places (app-redesign REQ-001, adr:0023)", () => {
 		const placed: string[] = PLACE_IDS.flatMap((p) =>
 			PLACES[p].flatMap((v) => REPLACES[v] ?? [v]),
 		).filter((v) => v !== "library/reports");
-		expect([...new Set(placed)].sort()).toEqual([...views].sort());
+		// Projects and Impacts left the section switches in wave 6: each is a page of its own.
+		const off = ["home/projects", "code/impacts"];
+		expect([...new Set([...placed, ...off])].sort()).toEqual([...views].sort());
+		for (const v of off) expect(placed).not.toContain(v);
 		for (const p of PLACE_IDS) {
 			const slugs = PLACES[p].map((v) => v.split("/")[1]);
 			expect(new Set(slugs).size, p).toBe(slugs.length);
@@ -54,11 +59,20 @@ describe("places (app-redesign REQ-001, adr:0023)", () => {
 		]);
 	});
 
-	it("hides a section with its tab and a place with no visible section; Setup keeps Me", () => {
+	it("hides a section with its tab and a place with no visible section; Setup keeps Start and Me, Flow keeps Health", () => {
 		const level = (a: string) => (a === "code" || a === "settings" ? "none" : "write");
 		expect(visiblePlaces(level)).not.toContain("code");
-		expect(visibleSections("setup", level)).toEqual([["settings", "me"]]);
-		expect(visibleSections("flow", level).map(([, tab]) => tab)).toEqual(["flow", "list", "done"]);
+		expect(visibleSections("setup", level)).toEqual([
+			["setup", "start"],
+			["setup", "me"],
+		]);
+		// spec:app-redesign#REQ-023: Health shows for every role.
+		expect(visibleSections("flow", level).map(([, tab]) => tab)).toEqual([
+			"flow",
+			"list",
+			"done",
+			"health",
+		]);
 	});
 
 	it("hides a view of Flow only when each old tab that it replaces is hidden", () => {
@@ -67,7 +81,6 @@ describe("places (app-redesign REQ-001, adr:0023)", () => {
 		expect(visibleSections("flow", flow(["work", "runs"])).map(([, t]) => t)).toEqual([
 			"list",
 			"health",
-			"impacts",
 		]);
 		// Work hidden: Flow stays through Runs, List stays through Changes.
 		expect(visibleSections("flow", flow(["work"])).map(([, t]) => t)).toEqual([
@@ -75,18 +88,17 @@ describe("places (app-redesign REQ-001, adr:0023)", () => {
 			"list",
 			"done",
 			"health",
-			"impacts",
 		]);
 		expect(visibleSections("flow", flow(["work", "specs"])).map(([, t]) => t)).toEqual([
 			"flow",
 			"done",
 			"health",
-			"impacts",
 		]);
 		expect(visibleSections("flow", flow(["code"])).map(([, t]) => t)).toEqual([
 			"flow",
 			"list",
 			"done",
+			"health",
 		]);
 	});
 
@@ -140,7 +152,19 @@ describe("old addresses (app-redesign REQ-002, adr:0023 point 9)", () => {
 		["/flow/quality", "/flow/health"],
 		["/flow/runs/r1", undefined],
 		["/flow/list", undefined],
-		["/code/changes", "/code/changes"],
+		["/code/changes", "/code/now"],
+		["/code/pull-requests", "/code/now"],
+		["/code/pull-requests/pr-1", "/code/pull-requests/pr-1"],
+		["/code/terminal", "/code/terminal"],
+		["/home/projects", "/projects"],
+		["/today/projects", "/projects"],
+		["/settings/project", "/setup/project"],
+		["/settings/connections", "/setup/computer"],
+		["/settings/agents-rules", "/setup/computer"],
+		["/settings/extensions", "/setup/project"],
+		["/settings/health", "/setup/project"],
+		["/setup/connections", "/setup/computer"],
+		["/setup/start", undefined],
 		["/design/decisions", "/library/decisions"],
 		["/design/diagrams", "/library/diagrams"],
 		["/specs/questions", "/library/questions"],
@@ -190,6 +214,47 @@ describe("old addresses (app-redesign REQ-002, adr:0023 point 9)", () => {
 		["/flow/quality", "/flow/health"],
 	])("redirects %s to %s", async (from, to) => {
 		expect((await open(from)).pathname).toBe(to);
+	});
+
+	// Wave 6: each address that moved opens its new page, with search and hash (`spec:app-redesign#REQ-022`, `#REQ-024`).
+	it.each([
+		["/code/changes", "/code/now"],
+		["/code/pull-requests?q=fix&filter=needs#top", "/code/now?q=fix&filter=needs#top"],
+		["/today/projects", "/projects"],
+		["/home/projects#p", "/projects#p"],
+		["/code/impacts", "/flow/impacts"],
+		["/settings/project", "/setup/project"],
+		["/settings/project#section-tickets", "/setup/project?page=tickets#section-tickets"],
+		["/settings/connections", "/setup/computer"],
+		["/setup/connections#connections-forge", "/setup/project?page=connections#connections-forge"],
+		["/settings/agents-rules#tiers", "/setup/computer?page=models#tiers"],
+		["/setup/agents-rules", "/setup/computer?page=models"],
+		["/settings/extensions", "/setup/project?page=extensions"],
+		["/setup/extensions", "/setup/project?page=extensions"],
+		["/settings/health", "/setup/project?page=health"],
+		["/setup/health#tools", "/setup/computer?page=health#tools"],
+		["/settings/me", "/setup/me"],
+		["/setup/me#ui-font", "/setup/me?page=look#ui-font"],
+		["/settings/me#section-setup", "/setup/start#section-setup"],
+		["/setup/project#issue-tracker", "/setup/project#issue-tracker"],
+		["/setup/me?page=look#ui-font", "/setup/me?page=look#ui-font"],
+	])("redirects %s to %s", async (from, to) => {
+		expect((await open(from)).href).toBe(to);
+	});
+
+	it("keeps the help of the old tab for each page of wave 6", () => {
+		expect(viewPath("/code/now")).toBe("/code/changes");
+		expect(viewPath("/setup/computer")).toBe("/settings/connections");
+		expect(viewPath("/setup/start")).toBe("/settings/me");
+		expect(viewPath("/projects")).toBe("/home/projects");
+		expect(viewPath("/flow/impacts")).toBe("/code/impacts");
+	});
+
+	// spec:app-redesign#REQ-023: a person with no right on code opens Health.
+	it("shows Flow / Health to a person with no right on code, and not Code / Now", () => {
+		const level = (a: string) => (a === "code" ? "none" : "write");
+		expect(hiddenSection(level, "flow", "health")).toBe(false);
+		expect(hiddenSection(level, "code", "now")).toBe(true);
 	});
 
 	it("keeps the search and the hash of the run history, and drops its view choice", async () => {

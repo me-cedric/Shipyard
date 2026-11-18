@@ -1,11 +1,11 @@
 export { BranchSelector } from "./branch-selector";
 export { Branches } from "./branches";
-export { Changes } from "./changes";
 export { FileDrawer } from "./file-drawer";
 export { History } from "./history";
 export { Impacts } from "./impacts";
-export { PullRequests } from "./pull-requests";
+export { CodeNow } from "./now";
 export { Quality } from "./quality";
+export { SyncMark } from "./sync-mark";
 export { Terminal, TerminalPanel } from "./terminal";
 export { TerminalDrawer } from "./terminal-drawer";
 export { FileDialog } from "./viewer";

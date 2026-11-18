@@ -8,8 +8,8 @@ import { mountApp } from "@/test/mount";
 describe("Settings / Connections / Outside agents", () => {
 	it("turns the server on with one group, applies, and refuses a low port", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
-		const section = await screen.findByRole("heading", { name: "Outside agents" });
+		mountApp("/setup/computer?page=share");
+		const section = await screen.findByRole("heading", { level: 2, name: "Outside agents" });
 		const box = section.parentElement as HTMLElement;
 		expect(within(box).getByRole("img", { name: "Stopped" })).toBeInTheDocument();
 		// Each tool of a group is off until its switch is on.
@@ -33,8 +33,8 @@ describe("Settings / Connections / Outside agents", () => {
 	it("limits the tools with a preset or a pick, and imports a server of another tool", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
-		mountApp("/settings/connections");
-		const section = await screen.findByRole("heading", { name: "Outside agents" });
+		mountApp("/setup/computer?page=share");
+		const section = await screen.findByRole("heading", { level: 2, name: "Outside agents" });
 		const box = section.parentElement as HTMLElement;
 		await user.click(within(box).getByRole("switch", { name: "Server on" }));
 		await user.click(within(box).getByRole("switch", { name: "Git" }));
@@ -59,7 +59,7 @@ describe("Settings / Connections / Outside agents", () => {
 	it("lists the agent tools, reviews the file before it writes, and marks a wired one out of date after a new port", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
-		mountApp("/settings/connections");
+		mountApp("/setup/computer?page=share");
 		const section = await screen.findByRole("heading", { name: "Agent tools" });
 		const box = section.parentElement as HTMLElement;
 		// Gemini is not installed: it does not show.
@@ -76,7 +76,7 @@ describe("Settings / Connections / Outside agents", () => {
 		expect(within(box).getByText("Wired")).toBeInTheDocument();
 
 		// The server settings change: the wired file is out of date, and one click updates it.
-		const outside = (await screen.findByRole("heading", { name: "Outside agents" }))
+		const outside = (await screen.findByRole("heading", { level: 2, name: "Outside agents" }))
 			.parentElement as HTMLElement;
 		await user.clear(within(outside).getByRole("spinbutton", { name: "Port" }));
 		await user.type(within(outside).getByRole("spinbutton", { name: "Port" }), "50000");

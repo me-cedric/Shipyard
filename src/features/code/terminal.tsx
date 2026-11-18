@@ -1,7 +1,5 @@
-import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { CommandLineIcon } from "@/ui/icons";
@@ -56,13 +54,7 @@ export function TerminalPanel({ folder = null }: { folder?: string | null }) {
 	);
 }
 
-/** The address `/code/terminal` opens the drawer and leaves the person on the first Code tab (REQ-014). */
+/** Code / Terminal (`spec:app-redesign#REQ-022`): the shell as a page of the section switch. The drawer stays for the other places. */
 export function Terminal() {
-	const { setTerminalOpen } = useShell();
-	const navigate = useNavigate();
-	useEffect(() => {
-		setTerminalOpen(true);
-		void navigate({ to: "/code/changes", replace: true });
-	}, [setTerminalOpen, navigate]);
-	return null;
+	return <TerminalPanel />;
 }

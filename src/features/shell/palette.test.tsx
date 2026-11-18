@@ -30,6 +30,64 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 		expect(screen.getByRole("button", { name: "Open the full assistant" })).toBeVisible();
 	});
 
+	it("lists a destination for each page that left the section switch", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const router = mountApp("/home");
+		const bar = await openPalette(user);
+		const panel = within(await screen.findByRole("listbox"));
+		for (const name of [
+			"Projects",
+			"Flow / Impacts",
+			"Code / Pull requests",
+			"Setup / Connections",
+			"Setup / Tickets",
+			"Setup / Extensions",
+			"Setup / Health of this project",
+			"Setup / Agents and rules",
+			"Setup / Outside agents",
+			"Setup / Health of this computer",
+			"Setup / Logs and feedback",
+			"Setup / Look and layout",
+		])
+			expect(await panel.findByRole("option", { name })).toBeInTheDocument();
+		await user.type(bar, "Extensions{ArrowDown}{Enter}");
+		await waitFor(() => expect(router.state.location.href).toBe("/setup/project?page=extensions"));
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("hides the impacts and the doors of a scope that the role does not see", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mockState().person = {
+			member: "tess",
+			found: "email",
+			role: "qa",
+			admin: false,
+			readOnly: false,
+			rights: [],
+			access: {
+				work: "read",
+				specs: "read",
+				design: "read",
+				knowledge: "read",
+				code: "none",
+				runs: "none",
+				settings: "none",
+				costs: "none",
+				merge: false,
+				approve: false,
+			},
+		};
+		mountApp("/home");
+		await openPalette(user);
+		const panel = within(await screen.findByRole("listbox"));
+		expect(await panel.findByRole("option", { name: "Setup / Look and layout" })).toBeVisible();
+		await waitFor(() => expect(panel.queryByRole("option", { name: "Flow / Impacts" })).toBeNull());
+		expect(panel.queryByRole("option", { name: "Setup / Extensions" })).toBeNull();
+		expect(panel.queryByRole("option", { name: "Code / Pull requests" })).toBeNull();
+	});
+
 	it("runs an action by name with Enter and closes", async () => {
 		const user = userEvent.setup();
 		mountApp("/home");

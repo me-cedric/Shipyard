@@ -96,8 +96,12 @@ export function EditorFrame({
 					className="flex items-center gap-2 rounded-md bg-warning-subtle px-3 py-1 text-ui text-warning-text"
 				>
 					<span className="flex-1">{labels.conflict}</span>
-					<Button onClick={onReload}>{labels.reload}</Button>
-					<Button onClick={onKeepMine}>{labels.keepMine}</Button>
+					<Button className="min-h-control" onClick={onKeepMine}>
+						{labels.keepMine}
+					</Button>
+					<Button variant="primary" className="min-h-control" onClick={onReload}>
+						{labels.reload}
+					</Button>
 				</div>
 			) : null}
 			<div className="flex min-h-0 flex-1 flex-col">{children}</div>

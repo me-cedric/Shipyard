@@ -19,7 +19,7 @@ import { ScopePicker } from "../scope-picker";
 
 const NONE = "none";
 const CARD =
-	"flex h-12 cursor-pointer items-center gap-2.5 rounded-lg border bg-surface-2 px-3 text-ui text-n-12 shadow-1 transition-colors duration-(--duration-fast) hover:bg-n-3 has-checked:border-accent has-checked:bg-accent-soft has-checked:shadow-glow has-disabled:cursor-not-allowed has-disabled:opacity-50 has-focus-visible:outline-[length:var(--focus-width,2px)] has-focus-visible:outline-accent";
+	"flex min-h-control cursor-pointer items-center gap-2.5 rounded-lg border bg-surface-2 px-3 text-ui text-n-12 shadow-1 transition-colors duration-(--duration-fast) hover:bg-n-3 has-checked:border-accent has-checked:bg-accent-soft has-checked:shadow-glow has-disabled:cursor-not-allowed has-disabled:opacity-50 has-focus-visible:outline-[length:var(--focus-width,2px)] has-focus-visible:outline-accent";
 
 /** Radio cards: one choice, the arrow keys move it. A choice with a reason is off. */
 function Cards({
@@ -197,7 +197,10 @@ export function TeamStep({
 				</div>
 			))}
 			<div>
-				<Button onClick={() => setMembers([...members, { name: "", role: "developer" }])}>
+				<Button
+					className="min-h-control"
+					onClick={() => setMembers([...members, { name: "", role: "developer" }])}
+				>
 					<PlusIcon size={14} />
 					{t.creator.addMember}
 				</Button>
@@ -269,7 +272,7 @@ export function RemoteStep(p: {
 			) : null}
 			{p.forges.length === 0 ? (
 				<div>
-					<Button onClick={p.connect}>
+					<Button className="min-h-control" onClick={p.connect}>
 						<PlusIcon size={14} />
 						{t.creator.addCodeHost}
 					</Button>
@@ -327,7 +330,7 @@ export function StartStep({
 							<Button
 								variant="ghost"
 								aria-current={f === file ? "true" : undefined}
-								className="w-full justify-start font-mono aria-[current=true]:bg-n-4"
+								className="min-h-control w-full justify-start font-mono aria-[current=true]:bg-n-4"
 								onClick={() => setShown(f.path)}
 							>
 								{f.path}

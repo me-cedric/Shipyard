@@ -2,6 +2,12 @@
 
 Code works on the git repository of the project. You do not need to know git commands: each action has a button.
 
+## Now
+
+Code has four sections: Now, History, Branches and Terminal. Code opens on Now. Now shows the files to commit, then the pull requests. The old addresses of Local changes and Pull requests open Now.
+
+The commit box sits under the files: write a summary, add a description if you want one, then click Commit. "Write it for me" asks the assistant for a message from the staged files. Two doors at the bottom open the product health (Flow / Health) and the files of the project.
+
 ## Local changes
 
 Local changes lists the files that you changed, as a tree.
@@ -28,7 +34,7 @@ The branch selector in the top bar has a filter box. Type to narrow the list, mo
 
 ## Pull requests
 
-Pull requests lists the pull requests of the code host. The list has a search and two filters. All shows every pull request. Needs review shows the open pull requests that are not drafts, wait for a review and have no request for changes. The rows sit in three groups: Open, Merged and Closed, each with its count. A row shows the number, the title, the draft mark, the state of the checks and the state of the review. A row shows no author: the app does not keep it. Open pull request starts a new one.
+Pull requests lists the pull requests of the code host. The list has a search and two filters. All shows every pull request. Needs review shows the open pull requests that are not drafts, wait for a review and have no request for changes. The open pull requests show first. The button "Merged and closed" shows the other two groups, each with its count. A pull request that is ready shows Merge: it opens the pull request page, where you confirm the merge. A row shows the number, the title, the draft mark, the state of the checks and the state of the review. A row shows no author: the app does not keep it. Open pull request starts a new one.
 
 A pull request that a feature holds also opens on the feature page, in its section Changes: the old address of the pull request page opens it. Click a row to open the pull request as its own page. Back returns to the list with the same search and filter.
 
@@ -97,6 +103,8 @@ An agent review counts against the budget of the project. The Agents stopped swi
 
 ## Quality
 
+Quality is the view Health of Flow. Each role sees it: a person with no right on the code sees the gates with their state, and Run and Set up are off. The title says how many gates need a fix.
+
 Quality runs the checks of the project and the security scanners, after your click. Each finding shows its file and its line.
 
 The software parts list (SBOM, "software bill of materials") names every library the project uses, with its version. Export it when a client or a security team asks which software the project contains.
@@ -116,12 +124,14 @@ The scanners are:
 
 ## Impacts
 
-Impacts tells which items a change touches, and proposes an action plan.
+Impacts tells which items a change touches, and proposes an action plan. It opens from the Checks of a feature: click "Impacts on other code". The old address of Impacts opens it as a page of Flow.
 
 ## Terminal
 
-The Terminal button in the top bar opens a command line in the folder of the project, in the terminal drawer. Terminal is not a tab. The address `/code/terminal` opens the drawer too. When the shell ends, click Restart. A link in the output opens in your browser.
+Terminal is a section of Code: a command line in the folder of the project. The Terminal button in the top bar opens the same command line in the terminal drawer, from any page. When the shell ends, click Restart. A link in the output opens in your browser.
 
 ## Sync
 
 The Sync button in the top bar gets the changes of the team and brings your branch up to date, and shows how many commits you are ahead and behind. The arrow joined to it opens Fetch only and Push. Sending your commits to the server is a separate action. The app never forces a push.
+
+One mark beside the branch shows the state of the repository on each page: Sync failed, the count of changed files, Not shared yet, behind, ahead or In sync. Click it to open Code / Now.

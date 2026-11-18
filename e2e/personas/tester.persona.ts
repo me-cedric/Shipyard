@@ -66,9 +66,9 @@ test("tester", async ({ page }) => {
 
 	await w.step(
 		"Check the checks of a pull request",
-		"Pull requests, a row with CI failing",
+		"Code, Now, a row with CI failing",
 		async () => {
-			await w.go("Code", "Pull requests");
+			await w.go("Code", "Now");
 			await w.click(page.getByRole("link", { name: /#43 Audit the keychain use/ }));
 			const checks = page
 				.getByRole("navigation", { name: "Sections" })

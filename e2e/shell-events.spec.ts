@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("shows a notification for a newer version, in a toast and in the centre", async ({ page }) => {
-	await page.goto("/settings/me");
+	await page.goto("/setup/me");
 	// The mock release address with `newer` in it has a newer version.
 	const address = page.getByRole("textbox", { name: "Release address" });
 	await address.fill("https://example.com/newer/latest");
@@ -28,7 +28,7 @@ test("shows a notification for a newer version, in a toast and in the centre", a
 test("opens a context menu from the keyboard and Escape returns the focus to the row", async ({
 	page,
 }) => {
-	await page.goto("/settings/connections");
+	await page.goto("/setup/project?page=connections");
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme");
 	await page.getByRole("combobox", { name: "Product" }).click();

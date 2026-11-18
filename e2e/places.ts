@@ -27,3 +27,9 @@ export async function openLibrary(page: Page, name: string) {
 		.click();
 	await page.getByRole("main").getByRole("link", { name, exact: true }).click();
 }
+/** Opens an address with no reload: the mock project lives in the memory of the page. */
+export const visit = (page: Page, href: string) =>
+	page.evaluate((to) => {
+		window.history.pushState({}, "", to);
+		window.dispatchEvent(new PopStateEvent("popstate"));
+	}, href);

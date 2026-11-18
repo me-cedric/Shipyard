@@ -1,5 +1,12 @@
 /** The strings of the Settings space that no other file holds. */
 export const settingsEn = {
+	scope: { project: "This project", computer: "This computer", me: "Me" },
+	pages: {
+		projectHealth: "Health of this project",
+		computerHealth: "Health of this computer",
+		logs: "Logs and feedback",
+		look: "Look and layout",
+	},
 	tiers: {
 		name: "Model tiers",
 		top: "Top",
@@ -121,6 +128,13 @@ export const settingsEn = {
 };
 
 export const settingsFr: typeof settingsEn = {
+	scope: { project: "Ce projet", computer: "Cet ordinateur", me: "Moi" },
+	pages: {
+		projectHealth: "Santé de ce projet",
+		computerHealth: "Santé de cet ordinateur",
+		logs: "Journaux et retours",
+		look: "Apparence et disposition",
+	},
 	tiers: {
 		name: "Niveaux de modèle",
 		top: "Haut",

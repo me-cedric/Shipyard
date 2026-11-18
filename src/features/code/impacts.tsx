@@ -171,7 +171,13 @@ function ImpactsView() {
 						/>
 						{busy ? <Elapsed since={since} /> : null}
 						{entry ? (
-							<RightButton right="runs.start" variant="primary" busy={busy} onClick={analyzeNow}>
+							<RightButton
+								right="runs.start"
+								variant="primary"
+								className="min-h-control"
+								busy={busy}
+								onClick={analyzeNow}
+							>
 								{busy ? null : <CpuChipIcon size={14} />}
 								{busy ? i18n.analyzing : i18n.analyze}
 							</RightButton>
@@ -203,7 +209,7 @@ function ImpactsView() {
 										type="button"
 										aria-current={e.plan === entry?.plan || undefined}
 										onClick={() => setPath(e.plan)}
-										className="flex min-h-row w-full items-center gap-2 px-3 text-left text-ui hover:bg-n-3 aria-[current]:bg-accent-soft"
+										className="flex min-h-control w-full items-center gap-2 px-3 text-left text-ui hover:bg-n-3 aria-[current]:bg-accent-soft"
 									>
 										<span className="font-mono text-12 text-n-11">{e.date}</span>
 										{e.slug}

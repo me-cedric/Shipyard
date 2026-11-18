@@ -14,6 +14,7 @@ import {
 } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { SECTIONS, type Section } from "@/features/flow/sections";
+import { setupAddress } from "@/features/settings/setup-address";
 import {
 	AppShell,
 	firstPath,
@@ -90,8 +91,20 @@ function PlaceLayout({ place }: { place: PlaceId }) {
 	// The place index has no section: it redirects to the first visible section.
 	// A run has its own address under Flow, with the view Flow selected (ux-declutter REQ-027).
 	const part = path.split("/")[2];
-	const slug = place === "flow" && (part === "runs" || part === "feature") ? "flow" : part;
-	const view = slug ? sectionView(place, slug) : undefined;
+	// A pull request has its address under Code, with Now selected (`spec:app-redesign#REQ-022`).
+	const slug =
+		place === "flow" && (part === "runs" || part === "feature")
+			? "flow"
+			: place === "code" && part === "pull-requests"
+				? "now"
+				: part;
+	// Impacts left the switch of Flow: its page keeps the gate of the code area.
+	const view: [SectionSpace, string] | undefined =
+		place === "flow" && slug === "impacts"
+			? ["code", "impacts"]
+			: slug
+				? sectionView(place, slug)
+				: undefined;
 	return (
 		<div className="flex h-full flex-col">
 			<SectionBar place={place} slug={slug} />
@@ -181,6 +194,18 @@ const featureSearch = (s: Record<string, unknown>): { section?: Section; unit?: 
 
 /** An address of before adr:0023 opens the new place of its page, with its search and its hash (adr:0023 point 9). */
 const toPlace = ({ location }: { location: ParsedLocation }) => {
+	// A Settings tab of before wave 6 opens its scope of Setup, on the page that holds its anchor.
+	const tab = /^\/(?:settings|setup)\/([\w-]+)\/?$/.exec(location.pathname)?.[1];
+	const scope = tab && !("page" in location.search) ? setupAddress(tab, location.hash) : undefined;
+	if (scope) {
+		const [address = "", anchor] = scope.split("#");
+		const [path, page] = address.split("?");
+		const search = [page, location.searchStr.slice(1)].filter(Boolean).join("&");
+		const href = `${path}${search ? `?${search}` : ""}${anchor ? `#${anchor}` : ""}`;
+		const here = `${location.pathname}${location.searchStr}${location.hash ? `#${location.hash}` : ""}`;
+		if (href !== here) throw redirect({ href, replace: true });
+		return;
+	}
 	let to = placePath(location.pathname);
 	if (!to || to === location.pathname) return;
 	let search = location.searchStr;
@@ -253,7 +278,9 @@ function placeRoute<P extends PlaceId>(place: P) {
 				? { validateSearch: textSearch("sheet") }
 				: {}),
 			// The bar of Pull requests (ux-declutter REQ-042): search and filter, kept in the address.
-			...(view === "code/pull-requests" ? { validateSearch: pullsSearch } : {}),
+			...(view === "code/now" ? { validateSearch: pullsSearch } : {}),
+			// An anchor of This project or of Me that moved to a sub-page opens that page.
+			...(view === "setup/project" || view === "setup/me" ? { beforeLoad: toPlace } : {}),
 		});
 	});
 	// A run has its own address, with Runs selected (ux-declutter REQ-027).
@@ -283,6 +310,13 @@ function placeRoute<P extends PlaceId>(place: P) {
 					...(["backlog", "board", "runs", "changes", "quality"] as const).map((tab) =>
 						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),
 					),
+					// Impacts is off the section switch: it opens from the Checks of a feature (`spec:app-redesign#REQ-023`).
+					createRoute({
+						getParentRoute: () => route,
+						path: "impacts",
+						loader: () => preloadTab("code", "impacts"),
+						component: () => <TabView space="code" tab="impacts" />,
+					}),
 					// New feature (`spec:app-redesign#REQ-003`).
 					createRoute({
 						getParentRoute: () => route,
@@ -317,7 +351,8 @@ function placeRoute<P extends PlaceId>(place: P) {
 							"PullAddress",
 						),
 					}),
-					...(["quality", "impacts"] as const).map((tab) =>
+					// Changes and Pull requests are Now (`spec:app-redesign#REQ-022`): the search of the pull requests stays.
+					...(["quality", "impacts", "changes", "pull-requests"] as const).map((tab) =>
 						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),
 					),
 				]
@@ -331,7 +366,15 @@ function placeRoute<P extends PlaceId>(place: P) {
 						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),
 					)
 			: [];
-	return route.addChildren([index, ...sections, ...run, ...code, ...old]);
+	// The addresses of before wave 6 under Today and Setup redirect: Projects, and the six Settings tabs.
+	const moved = (
+		place === "today"
+			? (["projects"] as const)
+			: place === "setup"
+				? (["connections", "agents-rules", "extensions", "health"] as const)
+				: []
+	).map((tab) => createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }));
+	return route.addChildren([index, ...sections, ...run, ...code, ...old, ...moved]);
 }
 
 /** A bare old space opens the place of the first tab that the role sees, so `/factory` shows Runs. */
@@ -386,8 +429,22 @@ const movedRoutes = (["settings/team", "home/inbox", "home/my-work"] as const).m
 	createRoute({ getParentRoute: () => rootRoute, path, beforeLoad: toPlace }),
 );
 
+/** The Projects page: no place holds it, the project name of the top bar opens it (picture 060). */
+const projectsRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "projects",
+	loader: () => preloadTab("home", "projects"),
+	component: () => (
+		// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable)
+		<div tabIndex={0} className="flex h-full min-h-0 flex-col overflow-auto">
+			<TabView space="home" tab="projects" />
+		</div>
+	),
+});
+
 const routeTree = rootRoute.addChildren([
 	indexRoute,
+	projectsRoute,
 	placeRoute("today"),
 	placeRoute("flow"),
 	placeRoute("plan"),

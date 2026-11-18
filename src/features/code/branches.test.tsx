@@ -131,7 +131,7 @@ describe("Code / Branches", () => {
 		const user = userEvent.setup();
 		await open();
 		await unwrap(commands.codeDiscard(["src/app.ts"], false));
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		await user.click(await selector());
 		await user.click(await screen.findByRole("option", { name: "feat/auth/login" }));
 		await waitFor(() => expect(mockState().code?.branch).toBe("feat/auth/login"));

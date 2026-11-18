@@ -191,6 +191,7 @@ export const es: Messages = {
 			usage: "Uso",
 		},
 		code: {
+			now: "Ahora",
 			changes: "Cambios locales",
 			history: "Historial",
 			branches: "Ramas",
@@ -216,6 +217,7 @@ export const es: Messages = {
 			me: "Yo",
 			health: "Salud",
 		},
+		setup: { start: "Inicio", project: "Este proyecto", computer: "Este ordenador", me: "Yo" },
 	},
 	noun: {
 		home: "Proyecto",

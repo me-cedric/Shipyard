@@ -2,6 +2,12 @@
 
 Code travaille sur le dépôt git du projet. Vous n'avez pas besoin de connaître les commandes git : chaque action a un bouton.
 
+## Maintenant
+
+Code a quatre sections : Maintenant, Historique, Branches et Terminal. Code s'ouvre sur Maintenant. Maintenant montre les fichiers à valider, puis les pull requests. Les anciennes adresses de Modifications locales et de Pull requests ouvrent Maintenant.
+
+La zone de commit est sous les fichiers : écrivez un résumé, ajoutez une description si vous le voulez, puis cliquez sur Valider. « Écris-le pour moi » demande à l'assistant un message à partir des fichiers indexés. Deux portes en bas ouvrent la santé du produit (Flux / Santé) et les fichiers du projet.
+
 ## Modifications locales
 
 Modifications locales liste les fichiers que vous avez changés, sous forme d'arbre.
@@ -114,12 +120,14 @@ Les scanners sont :
 
 ## Impacts
 
-Impacts dit quels éléments un changement touche, et propose un plan d'action.
+Impacts dit quels éléments un changement touche, et propose un plan d'action. Il s'ouvre depuis les Contrôles d'une fonctionnalité : cliquez sur « Impacts sur le reste du code ». L'ancienne adresse d'Impacts l'ouvre comme une page de Flux.
 
 ## Terminal
 
-Le bouton Terminal de la barre du haut ouvre une ligne de commande dans le dossier du projet, dans le tiroir du terminal. Terminal n'est pas un onglet. L'adresse `/code/terminal` ouvre aussi le tiroir. Quand le shell se termine, cliquez sur Relancer. Un lien dans la sortie s'ouvre dans votre navigateur.
+Terminal est une section de Code : une ligne de commande dans le dossier du projet. Le bouton Terminal de la barre du haut ouvre la même ligne de commande dans le tiroir du terminal, depuis chaque page. Quand le shell se termine, cliquez sur Relancer. Un lien dans la sortie s'ouvre dans votre navigateur.
 
 ## Synchronisation
 
 L'action de synchronisation de la barre d'état récupère les changements de l'équipe et met votre branche à jour. Le bouton Synchroniser de la barre du haut montre de combien de commits vous êtes en avance et en retard. L'envoi de vos commits au serveur est un clic séparé. L'application ne force jamais un push.
+
+Une marque à côté de la branche montre l'état du dépôt sur chaque page : Synchronisation en échec, le nombre de fichiers modifiés, Pas encore partagé, en retard, en avance ou À jour. Cliquez dessus pour ouvrir Code / Maintenant.

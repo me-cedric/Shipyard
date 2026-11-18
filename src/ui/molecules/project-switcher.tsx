@@ -9,6 +9,7 @@ import {
 	CheckIcon,
 	ChevronRightIcon,
 	FolderOpenIcon,
+	Squares2X2Icon,
 	TrashIcon,
 	XMarkIcon,
 } from "../icons";
@@ -50,6 +51,7 @@ export function ProjectSwitcher({
 	value,
 	compact,
 	onChange,
+	onAll,
 	onOpen,
 	onClone,
 	onClose,
@@ -61,6 +63,8 @@ export function ProjectSwitcher({
 	value: string | null;
 	compact?: boolean;
 	onChange: (id: string) => void;
+	/** Opens the page of all the projects. With none, the menu has no such entry. */
+	onAll?: () => void;
 	onOpen: () => void;
 	onClone: () => void;
 	onClose: () => void;
@@ -111,6 +115,11 @@ export function ProjectSwitcher({
 							))}
 						</Menu.RadioGroup>
 						{projects.length ? <Menu.Separator className="my-1 h-px bg-n-6" /> : null}
+						{onAll ? (
+							<Menu.Item className={ITEM} onClick={onAll}>
+								<Entry icon={<Squares2X2Icon size={12} />}>{t.tabs.home.projects}</Entry>
+							</Menu.Item>
+						) : null}
 						<Menu.Item className={ITEM} onClick={onOpen}>
 							<Entry icon={<FolderOpenIcon size={12} />}>{t.projects.open}</Entry>
 						</Menu.Item>

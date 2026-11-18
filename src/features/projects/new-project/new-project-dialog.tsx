@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "@tanstack/react-router";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import {
 	type Brief,
@@ -13,6 +13,8 @@ import {
 } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
 import { outcomeError } from "@/lib/projects";
+import { askForm } from "@/lib/shell";
+import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
@@ -98,6 +100,7 @@ function Created({
 					<div>
 						<Button
 							variant="primary"
+							className="min-h-control"
 							disabled={busy || issues.length === 0}
 							onClick={() => void createIssues()}
 						>
@@ -115,8 +118,9 @@ function Body({ onClose }: { onClose: () => void }) {
 	const { role } = usePrefs();
 	const qc = useQueryClient();
 	const router = useRouter();
-	const navigate = useNavigate();
 	const [step, setStep] = useState(0);
+	// All steps on one page, for a person who knows the answers.
+	const [all, setAll] = useState(false);
 	const [parent, setParent] = useCloneFolder();
 	const [name, setName] = useState("");
 	const [keyText, setKeyText] = useState<string | null>(null);
@@ -231,6 +235,65 @@ function Body({ onClose }: { onClose: () => void }) {
 	};
 
 	const last = step === STEPS.length - 1;
+	// Each step by its id: the guided way shows one, All steps shows the five.
+	const part: Record<(typeof STEPS)[number], () => ReactNode> = {
+		project: () =>
+			options ? (
+				<ProjectStep
+					options={options}
+					name={name}
+					setName={setName}
+					keyText={keyText ?? keyOf(name)}
+					setKey={setKeyText}
+					parent={parent}
+					setParent={setParent}
+					stack={stack}
+					setStack={setStack}
+				/>
+			) : null,
+		brief: () =>
+			options ? (
+				<BriefStep
+					options={options}
+					docsLang={docsLang}
+					setDocsLang={setDocsLang}
+					pullsLang={pullsLang}
+					setPullsLang={setPullsLang}
+					brief={brief}
+					setField={(f, v) => {
+						edited.current.add(f);
+						setBrief({ ...brief, [f]: v });
+					}}
+				/>
+			) : null,
+		team: () =>
+			options ? <TeamStep options={options} members={members} setMembers={setTeam} /> : null,
+		remote: () => (
+			<RemoteStep
+				kind={kind}
+				setKind={setKind}
+				forges={forges}
+				trackers={trackers}
+				url={url}
+				setUrl={setUrl}
+				forge={kind === "create" ? (forge?.id ?? "") : forgeOfExisting}
+				setForge={setForgeId}
+				slug={slug}
+				setSlug={setSlugText}
+				tracker={tracker}
+				setTracker={setTracker}
+				scope={scope}
+				setScope={setScope}
+				connect={() => {
+					// The connections of This project, with the add form on the code host.
+					askForm("connection:forge");
+					router.history.push("/setup/project?page=connections");
+					onClose();
+				}}
+			/>
+		),
+		start: () => <StartStep preview={preview.data} start={start} setStart={setChosen} />,
+	};
 	return (
 		<Dialog
 			full
@@ -242,12 +305,13 @@ function Body({ onClose }: { onClose: () => void }) {
 			title={t.creator.title}
 			actions={
 				result ? (
-					<Button variant="primary" onClick={() => void finish()}>
+					<Button variant="primary" className="min-h-control" onClick={() => void finish()}>
 						{t.creator.open}
 					</Button>
 				) : (
 					<Button
 						variant="primary"
+						className="min-h-control"
 						// The files and the starts of Create are the ones of the current answers.
 						disabled={
 							busy || !ready || preview.isError || !preview.data || preview.isPlaceholderData
@@ -271,18 +335,28 @@ function Body({ onClose }: { onClose: () => void }) {
 					/>
 				) : (
 					<>
-						<nav aria-label={t.creator.steps} className="flex gap-1">
+						<nav aria-label={t.creator.steps} className="flex flex-wrap gap-1">
 							{STEPS.map((s, i) => (
 								<Button
 									key={s}
 									variant="ghost"
-									aria-current={i === step ? "step" : undefined}
-									className="aria-[current=step]:bg-n-4"
-									onClick={() => setStep(i)}
+									aria-current={!all && i === step ? "step" : undefined}
+									className="min-h-control aria-[current=step]:font-semibold"
+									onClick={() => {
+										setAll(false);
+										setStep(i);
+									}}
 								>
 									<span
 										aria-hidden="true"
-										className="flex size-5 items-center justify-center rounded-full bg-n-4 font-mono text-11"
+										className={cn(
+											"flex size-6 items-center justify-center rounded-full text-12",
+											!all && i === step
+												? "bg-accent text-accent-fg"
+												: i < step
+													? "bg-n-12 text-n-1"
+													: "border-2 border-n-8",
+										)}
 									>
 										{i + 1}
 									</span>
@@ -290,70 +364,38 @@ function Body({ onClose }: { onClose: () => void }) {
 								</Button>
 							))}
 						</nav>
-						<div className="min-h-0 flex-1 overflow-auto p-1">
-							{options && step === 0 ? (
-								<ProjectStep
-									options={options}
-									name={name}
-									setName={setName}
-									keyText={keyText ?? keyOf(name)}
-									setKey={setKeyText}
-									parent={parent}
-									setParent={setParent}
-									stack={stack}
-									setStack={setStack}
-								/>
-							) : null}
-							{options && step === 1 ? (
-								<BriefStep
-									options={options}
-									docsLang={docsLang}
-									setDocsLang={setDocsLang}
-									pullsLang={pullsLang}
-									setPullsLang={setPullsLang}
-									brief={brief}
-									setField={(f, v) => {
-										edited.current.add(f);
-										setBrief({ ...brief, [f]: v });
-									}}
-								/>
-							) : null}
-							{options && step === 2 ? (
-								<TeamStep options={options} members={members} setMembers={setTeam} />
-							) : null}
-							{step === 3 ? (
-								<RemoteStep
-									kind={kind}
-									setKind={setKind}
-									forges={forges}
-									trackers={trackers}
-									url={url}
-									setUrl={setUrl}
-									forge={kind === "create" ? (forge?.id ?? "") : forgeOfExisting}
-									setForge={setForgeId}
-									slug={slug}
-									setSlug={setSlugText}
-									tracker={tracker}
-									setTracker={setTracker}
-									scope={scope}
-									setScope={setScope}
-									connect={() => {
-										void navigate({ to: "/settings/connections" });
-										onClose();
-									}}
-								/>
-							) : null}
-							{step === 4 ? (
-								<StartStep preview={preview.data} start={start} setStart={setChosen} />
-							) : null}
+						<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-1">
+							{STEPS.map((s, i) => {
+								const body = all || i === step ? part[s]() : null;
+								return body ? (
+									<section key={s} aria-labelledby={`creator-${s}`} className="flex flex-col gap-3">
+										<h2 id={`creator-${s}`} className="text-20 font-semibold text-n-12">
+											{t.creator.step[s]}
+										</h2>
+										{body}
+									</section>
+								) : null;
+							})}
 						</div>
 						{preview.isError ? <ErrorNotice error={preview.error} /> : null}
 						{error ? <ErrorNotice error={error} /> : null}
-						<div className="flex justify-between">
-							<Button variant="ghost" disabled={step === 0} onClick={() => setStep(step - 1)}>
+						<div className="flex justify-between gap-2">
+							<Button
+								variant="ghost"
+								className="min-h-control"
+								disabled={all || step === 0}
+								onClick={() => setStep(step - 1)}
+							>
 								{t.projects.back}
 							</Button>
-							<Button disabled={last} onClick={() => setStep(step + 1)}>
+							<Button className="min-h-control" aria-pressed={all} onClick={() => setAll(!all)}>
+								{t.workspace.moment.allSteps}
+							</Button>
+							<Button
+								className="min-h-control"
+								disabled={all || last}
+								onClick={() => setStep(step + 1)}
+							>
 								{t.creator.next}
 							</Button>
 						</div>

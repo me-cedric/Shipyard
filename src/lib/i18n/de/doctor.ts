@@ -48,5 +48,17 @@ export const doctorDe: typeof doctorEn = {
 		error: "Fehler",
 		copy: "Protokoll kopieren",
 	},
+	fix: {
+		again: "Erneut prüfen",
+		all: "Alles mit einem Agenten beheben",
+		title: "Die Befunde des Projektzustands beheben",
+		why: "Der Projektzustand nennt diese Befunde.",
+		confirm: "Einen Agenten starten, der {count} Befunde behebt? Budget des Laufs: {budget}",
+		confirmOne: "Einen Agenten starten, der 1 Befund behebt? Budget des Laufs: {budget}",
+		noBudget: "Legen Sie zuerst ein Budget im Rezept {recipe} fest",
+		open: "Funktion öffnen",
+		stop: "Stoppen",
+		confirmStop: "Den Agenten stoppen?",
+	},
 	attach: { add: "Datei anhängen", remove: "{name} entfernen" },
 };

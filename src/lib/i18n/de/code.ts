@@ -251,6 +251,24 @@ export const forgeDe: typeof forgeEn = {
 		showAll: "Alle {n} Zeilen anzeigen",
 		noMatch: "Keine Datei passt",
 	},
+	now: {
+		files: "{count} Dateien zum Committen",
+		file: "1 Datei zum Committen",
+		clean: "Nichts zu committen",
+		write: "Schreib es für mich",
+		writePrompt:
+			"Schreibe eine Commit-Nachricht im Format Conventional Commits für die vorgemerkten Dateien: {files}",
+		pulls: "Pull Requests",
+		past: "Zusammengeführt und geschlossen",
+		merge: "Pull Request {number} zusammenführen",
+		health: "Produktzustand",
+	},
+	mark: {
+		label: "Sync-Zustand",
+		inSync: "Synchron",
+		noRemote: "Noch nicht geteilt",
+		error: "Sync fehlgeschlagen",
+	},
 	pullPage: {
 		notFound: "Diese Pull Request gibt es nicht",
 		views: "Ansichten der Pull Request",

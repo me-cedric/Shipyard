@@ -11,7 +11,6 @@ const tabs = (p: Page) => p.getByRole("navigation", { name: "Tabs" });
 const side = (p: Page) => p.getByRole("navigation", { name: "Sidebar" });
 // The place of each section that a scene opens (adr:0023).
 const PLACE: Record<string, string> = {
-	Projects: "Today",
 	Flow: "Flow",
 	List: "Flow",
 	Done: "Flow",
@@ -31,9 +30,12 @@ const PLACE: Record<string, string> = {
 	Workflows: "Crew",
 	"Agents map": "Crew",
 	Usage: "Crew",
-	"Pull requests": "Code",
-	Connections: "Setup",
-	Project: "Setup",
+	Now: "Code",
+	Terminal: "Code",
+	Health: "Flow",
+	Start: "Setup",
+	"This project": "Setup",
+	"This computer": "Setup",
 	Me: "Setup",
 };
 const open = async (p: Page, tab: string) => {
@@ -53,6 +55,17 @@ const openTimeline = async (p: Page) => {
 	await open(p, "Timeline");
 	await p.getByRole("heading", { level: 1, name: / ends / }).waitFor();
 };
+// The Projects page opens from the project name of the top bar (wave 6).
+const openProjects = async (p: Page) => {
+	await p.getByRole("button", { name: /^Project/ }).click();
+	await p.getByRole("menuitem", { name: "Projects" }).click();
+	await p.getByRole("heading", { level: 1, name: "Projects" }).waitFor();
+};
+// A page behind a door of a scope of Setup.
+const openDoor = async (p: Page, scope: string, door: string) => {
+	await open(p, scope);
+	await p.getByRole("navigation", { name: scope }).getByRole("link", { name: door }).click();
+};
 const openProject = async (p: Page) => {
 	await p.goto("/home/today");
 	await p.getByRole("button", { name: "Continue" }).click();
@@ -63,7 +76,7 @@ const openProject = async (p: Page) => {
 // Pull request 142 of the mock has comments, two threads and one file of three lines.
 // The page opens on Changes: the merge box, the commits and the files.
 const openPull = async (p: Page) => {
-	await open(p, "Pull requests");
+	await open(p, "Now");
 	await p.getByRole("link", { name: /refuse an empty token/ }).click();
 };
 // Adds a comment to the pending review: opens the file, the "+" of the line, the box.
@@ -215,7 +228,7 @@ const scenes: Scene[] = [
 	{
 		name: "pulls",
 		run: async (p) => {
-			await open(p, "Pull requests");
+			await open(p, "Now");
 			await p.getByRole("link", { name: /refuse an empty token/ }).waitFor();
 		},
 	},
@@ -245,8 +258,39 @@ const scenes: Scene[] = [
 		},
 	},
 	{ name: "knowledge", run: (p) => open(p, "Learn") },
-	{ name: "settings-connections", run: (p) => open(p, "Connections") },
-	{ name: "settings-project", run: (p) => open(p, "Project") },
+	{ name: "settings-connections", run: (p) => openDoor(p, "This project", "Connections") },
+	{ name: "settings-project", run: (p) => open(p, "This project") },
+	{ name: "setup-start", run: (p) => open(p, "Start") },
+	{ name: "setup-computer", run: (p) => open(p, "This computer") },
+	{ name: "setup-me", run: (p) => open(p, "Me") },
+	{
+		name: "code-terminal",
+		run: async (p) => {
+			await open(p, "Terminal");
+			await p
+				.getByRole("region", { name: "Terminal", exact: true })
+				.getByText("/project $")
+				.waitFor();
+		},
+	},
+	{ name: "flow-health", run: (p) => open(p, "Health") },
+	{
+		name: "feature-impacts",
+		run: async (p) => {
+			await open(p, "Flow");
+			await p
+				.getByRole("button", { name: /Add export endpoint/ })
+				.first()
+				.click();
+			await p
+				.getByRole("navigation", { name: "Sections" })
+				.getByRole("button", { name: "Checks" })
+				.click();
+			await p.getByRole("button", { name: "Impacts on other code" }).click();
+			await p.getByRole("button", { name: "Analyze" }).waitFor();
+		},
+	},
+	{ name: "projects", run: openProjects },
 	{
 		name: "themes",
 		run: async (p) => {
@@ -268,7 +312,7 @@ const scenes: Scene[] = [
 	{
 		name: "new-project",
 		run: async (p) => {
-			await open(p, "Projects");
+			await openProjects(p);
 			await p.getByRole("button", { name: "New project" }).click();
 			const d = p.getByRole("dialog", { name: "New project" });
 			await d.getByRole("textbox", { name: "Name" }).fill("Acme Web");

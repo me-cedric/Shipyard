@@ -12,7 +12,7 @@ export const onboardingEs: typeof onboardingEn = {
 	steps: {
 		loop: {
 			title: "Un solo ciclo, de la idea al código fusionado",
-			body: "Diseño, especificaciones, trabajo, agentes, código y conocimiento van juntos, en los archivos de tu proyecto.",
+			body: "Hoy, Flujo, Plan, Equipo, Biblioteca y Código llevan una funcionalidad de la idea a la pull request. Configuración contiene los ajustes.",
 		},
 		project: {
 			title: "Abrir un proyecto",
@@ -72,6 +72,31 @@ export const onboardingEs: typeof onboardingEn = {
 			assign: "Asignar",
 			run: "Iniciar",
 		},
+		question: {
+			project: "¿En qué proyecto trabaja?",
+			ai: "¿Qué herramienta de IA hace el trabajo?",
+			models: "¿Qué modelos usa la herramienta de IA?",
+			tracker: "¿Dónde están sus tickets?",
+			forge: "¿Dónde está su código?",
+			team: "¿Quién forma el equipo?",
+			permissions: "¿Qué puede hacer Shipyard en este ordenador?",
+			decision: "¿Cuál es su primera decisión?",
+			spec: "¿Qué construye primero?",
+			assign: "¿Quién toma el primer ticket?",
+			run: "¿Qué ticket toma primero un agente?",
+		},
+		skip: "Omitir",
+		scope: {
+			project: "Este proyecto",
+			computer: "Este ordenador",
+			me: "Yo",
+		},
+		state: {
+			connections: "Conexiones por hacer: {count}",
+			connected: "Conectado",
+			tools: "Herramientas de IA listas: {count}",
+			noProject: "No hay ningún proyecto abierto",
+		},
 	},
 	picture: {
 		folder: "Abrir una carpeta",
@@ -93,6 +118,7 @@ export const onboardingEs: typeof onboardingEn = {
 			unknown: "Desconocido",
 		},
 		allow: "Permitir",
+		allowAll: "Permitir todo",
 		settings: "Abrir Ajustes del Sistema",
 		test: "Enviar una prueba",
 		testBody: "Las notificaciones están activadas.",

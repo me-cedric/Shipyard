@@ -92,6 +92,18 @@ export const workspaceDe: typeof workspaceEn = {
 		folder: "Ordner",
 		remote: "Remote",
 		empty: "Kein Projekt",
+		needYou: "Warten auf Sie: {count}",
+		agents: "Agenten bei der Arbeit: {count}",
+		openNow: "Offen",
+		before: "Zuvor geöffnet",
+		drop: "Ordner hier ablegen",
+	},
+	moment: {
+		noProject: "Kein Projekt ist offen",
+		agents: "Agenten noch bei der Arbeit: {count}",
+		stop: "Stoppen und schließen",
+		keep: "Weiterarbeiten lassen",
+		allSteps: "Alle Schritte",
 	},
 	override: {
 		title: "Projekt-Überschreibungen",

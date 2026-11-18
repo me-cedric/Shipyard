@@ -7,8 +7,8 @@ const PLACES = [
 	["Crew", "Crew"],
 	// Library opens on its four doors: it has no section switch.
 	["Library", null],
-	["Code", "Local changes"],
-	["Setup", "Project"],
+	["Code", "Now"],
+	["Setup", "Start"],
 ] as const;
 
 test("opens each place from the sidebar on its first section", async ({ page }) => {
@@ -46,15 +46,15 @@ test("runs an action from the Ask bar with the keyboard", async ({ page }) => {
 	await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
 
-test("switches the theme in Settings / Me", async ({ page }) => {
-	await page.goto("/settings/me");
+test("switches the theme in Setup / Me", async ({ page }) => {
+	await page.goto("/setup/me");
 	await page.getByRole("combobox", { name: "Theme" }).click();
 	await page.getByRole("option", { name: "Dark", exact: true }).click();
 	await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
 
 test("switches the language to French", async ({ page }) => {
-	await page.goto("/settings/me");
+	await page.goto("/setup/me");
 	await page.getByRole("combobox", { name: "Language", exact: true }).click();
 	await page.getByRole("option", { name: "French" }).click();
 	await expect(
@@ -69,7 +69,7 @@ for (const [option, sidebar, home, lang] of [
 	["Spanish", "Barra lateral", "Hoy", "es"],
 ]) {
 	test(`switches the language to ${option}`, async ({ page }) => {
-		await page.goto("/settings/me");
+		await page.goto("/setup/me");
 		await page.getByRole("combobox", { name: "Language", exact: true }).click();
 		await page.getByRole("option", { name: option }).click();
 		await expect(

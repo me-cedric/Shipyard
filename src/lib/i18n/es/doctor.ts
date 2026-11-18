@@ -48,5 +48,19 @@ export const doctorEs: typeof doctorEn = {
 		error: "Error",
 		copy: "Copiar registro",
 	},
+	fix: {
+		again: "Comprobar de nuevo",
+		all: "Corregir todo con un agente",
+		title: "Corregir los hallazgos de la salud del proyecto",
+		why: "La salud del proyecto lista estos hallazgos.",
+		confirm:
+			"¿Iniciar un agente para corregir {count} hallazgos? Presupuesto de la ejecución: {budget}",
+		confirmOne:
+			"¿Iniciar un agente para corregir 1 hallazgo? Presupuesto de la ejecución: {budget}",
+		noBudget: "Defina primero un presupuesto en la receta {recipe}",
+		open: "Abrir la funcionalidad",
+		stop: "Detener",
+		confirmStop: "¿Detener el agente?",
+	},
 	attach: { add: "Adjuntar archivo", remove: "Quitar {name}" },
 };

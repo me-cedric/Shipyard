@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type Finding_Serialize, type Group, type Severity, unwrap } from "@/lib/ipc";
@@ -33,6 +34,8 @@ import { DoctorTools } from "./doctor-tools";
 import { HealthFeedback } from "./health-feedback";
 
 const GROUPS: Group[] = ["compliance", "tools", "refs", "generated"];
+/** The findings that this computer causes: a tool that is missing or old. The others are of the project. */
+const ofComputer = (g: Group) => g === "tools";
 
 type Preview = { path: string; content: string };
 
@@ -112,39 +115,92 @@ const TONE = { error: "danger", warning: "warning", info: "info" } as const;
 
 /**
  * Settings / Health: a score ring (the groups with no finding), the count of each severity, then
- * four groups with a count each, and one fix action for each finding.
+ * four groups with a count each, and one fix action for each finding. A scope of Setup shows its
+ * part (`spec:app-redesign#REQ-024`): the findings and the files of the project under This project,
+ * the tools under This computer.
  */
-export function Health() {
+export function Health({ scope }: { scope?: "project" | "computer" }) {
 	const { t } = useI18n();
 	const s = t.settings.health;
 	const health = useHealth();
-	const findings = health.data;
-	if (findings === undefined)
-		return <Loading title={t.tabs.settings.health} icon={<ShieldCheckIcon size={16} />} />;
+	const all = health.data;
+	const groups = scope ? GROUPS.filter((g) => ofComputer(g) === (scope === "computer")) : GROUPS;
+	const title =
+		scope === "project"
+			? t.settings.pages.projectHealth
+			: scope === "computer"
+				? t.settings.pages.computerHealth
+				: t.tabs.settings.health;
+	if (all === undefined) return <Loading title={title} icon={<ShieldCheckIcon size={16} />} />;
+	const findings = all.filter((f) => groups.includes(f.group));
+	// The status bar counts each finding: a scope links to the ones of the other scope.
+	const others = all.length - findings.length;
+	const other = scope === "project" ? "computer" : "project";
+	const project = scope !== "computer";
+	const computer = scope !== "project";
 	// The section list shows the sections that are on the page.
 	const sections = [
-		...GROUPS.map((g) => ({ id: `health-${g}`, label: t.health.group[g], icon: ICON[g] })),
-		{ id: "tools", label: t.settings.tools.title, icon: <CommandLineIcon size={14} /> },
-		{ id: "doctor-skills", label: t.doctor.skills.title, icon: <ShieldCheckIcon size={14} /> },
-		{ id: "doctor-bootstrap", label: t.doctor.bootstrap.title, icon: <SparklesIcon size={14} /> },
-		{ id: "doctor-ledger", label: t.settings.ledger.title, icon: <ClockIcon size={14} /> },
-		{ id: "doctor-console", label: t.doctor.console.title, icon: <CommandLineIcon size={14} /> },
-		{ id: "doctor-feedback", label: t.doctor.feedback.title, icon: <ChatBubbleIcon size={14} /> },
+		...groups.map((g) => ({ id: `health-${g}`, label: t.health.group[g], icon: ICON[g] })),
+		...(computer
+			? [{ id: "tools", label: t.settings.tools.title, icon: <CommandLineIcon size={14} /> }]
+			: []),
+		...(project
+			? [
+					{
+						id: "doctor-skills",
+						label: t.doctor.skills.title,
+						icon: <ShieldCheckIcon size={14} />,
+					},
+					{
+						id: "doctor-bootstrap",
+						label: t.doctor.bootstrap.title,
+						icon: <SparklesIcon size={14} />,
+					},
+					{ id: "doctor-ledger", label: t.settings.ledger.title, icon: <ClockIcon size={14} /> },
+				]
+			: []),
+		// Under a scope the logs and the feedback have their own page.
+		...(scope
+			? []
+			: [
+					{
+						id: "doctor-console",
+						label: t.doctor.console.title,
+						icon: <CommandLineIcon size={14} />,
+					},
+					{
+						id: "doctor-feedback",
+						label: t.doctor.feedback.title,
+						icon: <ChatBubbleIcon size={14} />,
+					},
+				]),
 	];
-	const clean = GROUPS.filter((g) => !findings.some((f) => f.group === g)).length;
+	const clean = groups.filter((g) => !findings.some((f) => f.group === g)).length;
 	return (
 		<div className="flex flex-col">
 			<PageHeader
 				icon={<ShieldCheckIcon size={16} />}
-				title={t.tabs.settings.health}
+				title={title}
 				count={findings.length}
+				action={
+					others ? (
+						<Link
+							to={`/setup/${other}`}
+							// shortcut: one cast, as the status bar. The section routes do not know `page`.
+							search={{ page: "health" } as never}
+							className="inline-flex min-h-control items-center rounded-md px-2 text-14 text-accent-text underline"
+						>
+							{format(t.count, { name: t.settings.pages[`${other}Health`], count: others })}
+						</Link>
+					) : null
+				}
 			/>
 			<SectionNav label={t.ui.sections} items={sections} />
 			<div className={SETTINGS_PAGE}>
 				<div className="flex flex-wrap items-stretch gap-3">
 					<div className="flex items-center gap-3 rounded-lg border bg-surface-2 px-4 py-3 shadow-1">
-						<Ring value={clean} max={GROUPS.length} label={s.score} className="size-14">
-							{clean}/{GROUPS.length}
+						<Ring value={clean} max={groups.length} label={s.score} className="size-14">
+							{clean}/{groups.length}
 						</Ring>
 						<span className="text-12 text-n-11">{s.score}</span>
 					</div>
@@ -164,7 +220,7 @@ export function Health() {
 						{s.clean}
 					</p>
 				) : null}
-				{GROUPS.map((g) => {
+				{groups.map((g) => {
 					const rows = findings.filter((f) => f.group === g);
 					const worst = worstStatus(rows.map((f) => f.severity));
 					return (
@@ -183,12 +239,21 @@ export function Health() {
 						</Panel>
 					);
 				})}
-				<DoctorTools />
-				<DoctorCompliance />
-				<DoctorBootstrap />
-				<DoctorLedger findings={findings} />
-				<DebugConsole />
-				<HealthFeedback />
+				{computer ? <DoctorTools /> : null}
+				{project ? (
+					<>
+						<DoctorCompliance />
+						<DoctorBootstrap />
+						{/* The ledger counts each finding, also the ones of this computer. */}
+						<DoctorLedger findings={all} />
+					</>
+				) : null}
+				{scope ? null : (
+					<>
+						<DebugConsole />
+						<HealthFeedback />
+					</>
+				)}
 			</div>
 		</div>
 	);

@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { openFirstFolder } from "./first-run";
-import { placeOf } from "./places";
+import { placeOf, visit } from "./places";
 
 /** Opens the mock project, then the Code space on the given tab. */
 async function openCode(page: Page, tab: string) {
@@ -23,7 +23,7 @@ const section = (page: Page, name: string) =>
 	page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name }).click();
 
 test("stages a file, commits it from the status bar and finds it in History", async ({ page }) => {
-	await openCode(page, "Local changes");
+	await openCode(page, "Now");
 	await expect(heading(page, "Staged (1)")).toBeVisible();
 	const commit = page.getByRole("contentinfo").getByRole("button", { name: "Commit" });
 	await expect(commit).toBeEnabled();
@@ -55,7 +55,7 @@ test("stages a file, commits it from the status bar and finds it in History", as
 test("refuses a switch that would overwrite a change, then switches after a discard", async ({
 	page,
 }) => {
-	await openCode(page, "Local changes");
+	await openCode(page, "Now");
 	const selector = page.getByRole("combobox", { name: "Working branch" });
 	await expect(selector).toHaveText("main");
 
@@ -92,10 +92,7 @@ test("merges a branch with one click in Code / Branches", async ({ page }) => {
 	await row.getByRole("button", { name: "Merge feat/auth/login" }).click();
 	await expect(page.getByRole("alert")).toContainText("uncommitted changes");
 
-	await page
-		.getByRole("navigation", { name: "Tabs" })
-		.getByRole("link", { name: "Local changes" })
-		.click();
+	await page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Now" }).click();
 	await page
 		.getByRole("region", { name: "Stashes" })
 		.getByRole("button", { name: "Stash" })
@@ -127,8 +124,9 @@ test("rebases a branch in Code / Branches and asks before a force publish", asyn
 const pull = (page: Page, n: number) => page.getByRole("link", { name: new RegExp(`^#${n} `) });
 
 test("lists the pull requests by state, opens one and comments", async ({ page }) => {
-	await openCode(page, "Pull requests");
+	await openCode(page, "Now");
 	await expect(heading(page, "Open (9)")).toBeVisible();
+	await page.getByRole("button", { name: "Merged and closed" }).click();
 	await expect(heading(page, "Merged (1)")).toBeVisible();
 	await expect(heading(page, "Closed (1)")).toBeVisible();
 	await expect(pull(page, 46)).toContainText("Draft");
@@ -165,7 +163,7 @@ test("lists the pull requests by state, opens one and comments", async ({ page }
 });
 
 test("approves a pull request from Submit review", async ({ page }) => {
-	await openCode(page, "Pull requests");
+	await openCode(page, "Now");
 	await pull(page, 141).click();
 	// The write box of Chat has Submit review (the review bar has it while a comment waits).
 	await section(page, "Chat");
@@ -182,7 +180,7 @@ test("approves a pull request from Submit review", async ({ page }) => {
 });
 
 test("goes Back from a pull request to the list with its search kept", async ({ page }) => {
-	await openCode(page, "Pull requests");
+	await openCode(page, "Now");
 	await page.getByRole("searchbox", { name: "Search pull requests" }).fill("token");
 	await pull(page, 142).click();
 	await page.getByRole("link", { name: "Back" }).click();
@@ -191,7 +189,7 @@ test("goes Back from a pull request to the list with its search kept", async ({ 
 });
 
 test("marks a draft ready", async ({ page }) => {
-	await openCode(page, "Pull requests");
+	await openCode(page, "Now");
 	await pull(page, 143).click();
 	const merge = page.getByRole("button", { name: "Merge", exact: true });
 	await expect(merge).toBeDisabled();
@@ -201,7 +199,7 @@ test("marks a draft ready", async ({ page }) => {
 });
 
 test("merges only after the confirm click", async ({ page }) => {
-	await openCode(page, "Pull requests");
+	await openCode(page, "Now");
 	await pull(page, 142).click();
 	const merge = page.getByRole("button", { name: "Merge", exact: true });
 	await merge.click();
@@ -217,7 +215,7 @@ test("merges only after the confirm click", async ({ page }) => {
 });
 
 test("opens a file of a pull request in the viewer", async ({ page }) => {
-	await openCode(page, "Pull requests");
+	await openCode(page, "Now");
 	await pull(page, 142).click();
 	await section(page, "Changes");
 	await page.getByRole("button", { name: "Expand all" }).click();
@@ -238,7 +236,7 @@ const plusOf = async (page: Page, line: number) => {
 };
 
 test("comments on a line of a pull request: pending first, then one at once", async ({ page }) => {
-	await openCode(page, "Pull requests");
+	await openCode(page, "Now");
 	await pull(page, 142).click();
 	await section(page, "Changes");
 	// The file has one thread, so its row says so while it is closed.
@@ -260,7 +258,10 @@ test("comments on a line of a pull request: pending first, then one at once", as
 });
 
 test("analyzes a branch in Impacts and shows the plan and the digest", async ({ page }) => {
-	await openCode(page, "Impacts");
+	// Impacts is off the section switch: its old address opens it as a page of Flow.
+	await openCode(page, "Now");
+	await visit(page, "/code/impacts");
+	await expect(page).toHaveURL(/\/flow\/impacts$/);
 	await page.getByRole("button", { name: "Analyze" }).click();
 	await expect(heading(page, "Axes (7)")).toBeVisible();
 	await expect(page.getByText("Update the contract.")).toBeVisible();
@@ -269,8 +270,19 @@ test("analyzes a branch in Impacts and shows the plan and the digest", async ({ 
 });
 
 test("echoes a line in the terminal", async ({ page }) => {
-	await openCode(page, "Local changes");
-	// The Terminal tab is gone: the top bar button opens the drawer.
+	// Terminal is a section of Code (spec:app-redesign#REQ-022).
+	await openCode(page, "Terminal");
+	const terminal = page.getByRole("region", { name: "Terminal", exact: true });
+	await expect(terminal).toContainText("/project $");
+	await terminal.locator(".xterm-helper-textarea").focus();
+	await page.keyboard.type("echo hello");
+	await page.keyboard.press("Enter");
+	await expect(terminal).toContainText("echo hello");
+});
+
+test("echoes a line in the terminal drawer of the top bar", async ({ page }) => {
+	// The drawer stays for the other sections: the button of the top bar opens it.
+	await openCode(page, "Now");
 	await page.getByRole("banner").getByRole("button", { name: "Terminal" }).click();
 	const terminal = page.getByRole("region", { name: "Terminal", exact: true });
 	await expect(terminal).toContainText("/project $");

@@ -28,7 +28,7 @@ export function NoPulls({ onNew }: { onNew: () => void }) {
 							label: t.forge.connect,
 							onClick: () => {
 								askForm("connection:forge");
-								void navigate({ to: "/settings/connections" });
+								void navigate({ href: "/setup/project?page=connections" });
 							},
 						}
 			}

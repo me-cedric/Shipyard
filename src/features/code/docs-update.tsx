@@ -46,7 +46,7 @@ export function DocsUpdate({
 	return (
 		<>
 			{run ? (
-				<Link to="/factory/runs" className="text-ui text-accent-text underline">
+				<Link to="/flow/flow" className="text-ui text-accent-text underline">
 					{format(w.runName, { name })}
 				</Link>
 			) : (

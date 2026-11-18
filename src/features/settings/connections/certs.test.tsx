@@ -7,7 +7,7 @@ import { mountApp } from "@/test/mount";
 describe("Settings / Connections / Certificates", () => {
 	it("adds a PEM bundle, shows the count, refuses a bad file and removes it", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		await screen.findByRole("heading", { name: "Certificates" });
 		expect(await screen.findByText("None added")).toBeInTheDocument();
 

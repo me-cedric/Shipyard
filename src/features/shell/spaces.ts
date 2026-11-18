@@ -59,8 +59,8 @@ export const SPACE_IDS = Object.keys(SPACES) as SpaceId[];
 // shortcut: one cast. A template over two unions makes invalid pairs, so the callers pass a valid pair.
 export const tabPath = (space: SpaceId, tab: TabId) => `/${space}/${tab}` as TabPath;
 
-/** A space of before adr:0023, or a place with sections of its own: Flow, Plan, Crew and Library. */
-export type SectionSpace = SpaceId | "flow" | "plan" | "crew" | "library";
+/** A space of before adr:0023, or a place with sections of its own: Flow, Plan, Crew, Library and Setup. */
+export type SectionSpace = SpaceId | "flow" | "plan" | "crew" | "library" | "setup";
 
 const OWN_VIEWS = (t: Messages) => ({
 	flow: t.flow.views,
@@ -96,6 +96,12 @@ const TAB_ICON: Record<string, TabIcon> = {
 	"crew/rights": LockClosedIcon,
 	"library/home": BookOpenIcon,
 	"library/reports": DocumentTextIcon,
+	"code/now": CodeBracketIcon,
+	"code/terminal": CommandLineIcon,
+	"setup/start": CheckIcon,
+	"setup/project": Cog6ToothIcon,
+	"setup/computer": ComputerDesktopIcon,
+	"setup/me": UserCircleIcon,
 	"home/today": ClockIcon,
 	"home/projects": FolderOpenIcon,
 	"home/news": BellIcon,
@@ -195,8 +201,8 @@ export const visibleTabs = <S extends SpaceId>(space: S, role: TeamRole | null, 
 				Number(firstPath(role) === `/${space}/${b}`) - Number(firstPath(role) === `/${space}/${a}`),
 		) as (typeof SPACES)[S][number][];
 
-/** Terminal and Manual keep their address, palette entry and menu entry, but no tab (REQ-014). */
-const OFF_BAR = new Set(["code/terminal", "knowledge/manual"]);
+/** Manual keeps its address, palette entry and menu entry, but no tab (REQ-014). Terminal is a section of Code (`spec:app-redesign#REQ-022`). */
+const OFF_BAR = new Set(["knowledge/manual"]);
 export const isOffBar = (space: SectionSpace, tab: string) => OFF_BAR.has(`${space}/${tab}`);
 
 /** The tabs that the tab bar draws. */

@@ -162,20 +162,25 @@ describe("tab names", () => {
 });
 
 describe("twin tabs (ux-declutter REQ-014, REQ-021)", () => {
-	it("keeps Terminal and Manual out of the section switch: Code shows 4 sections", async () => {
+	it("keeps Manual out of the section switch; Terminal is a section of Code: Code shows 4 sections", async () => {
 		mountApp("/code/changes");
 		const code = await screen.findByRole("navigation", { name: "Tabs" });
 		expect(within(code).getAllByRole("link")).toHaveLength(4);
-		expect(within(code).queryByRole("link", { name: "Terminal" })).toBeNull();
+		expect(within(code).getByRole("link", { name: "Terminal" })).toBeInTheDocument();
 		expect(barTabs("knowledge", null)).toHaveLength(6);
 		expect(barTabs("knowledge", null)).not.toContain("manual");
 		expect(barSections("library").map(([, tab]) => tab)).not.toContain("manual");
 	});
 
-	it("opens the terminal drawer from /code/terminal and lands on the first Code tab", async () => {
+	// spec:app-redesign#REQ-022: the terminal is a page of Code, not a redirect to the drawer.
+	it("shows the terminal as a page at /code/terminal, selected in the section switch", async () => {
 		const router = mountApp("/code/terminal");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/code/changes"));
-		expect(await screen.findByRole("tab", { name: "Terminal 1" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { level: 1, name: "Terminal" })).toBeInTheDocument();
+		expect(router.state.location.pathname).toBe("/code/terminal");
+		const code = await screen.findByRole("navigation", { name: "Tabs" });
+		expect(
+			within(code).getByRole("link", { name: "Terminal", current: "page" }),
+		).toBeInTheDocument();
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 

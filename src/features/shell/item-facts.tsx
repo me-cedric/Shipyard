@@ -135,6 +135,9 @@ export function OpenActions({ refId }: { refId: string }) {
 		const open = doc ? ([doc.scope, doc.id] as const) : refSelection(t, refId);
 		if (open) rememberSelection(...open);
 		if (edit && doc && editable) requestEdit(doc.id);
+		// A connection is behind the door Connections of This project.
+		if (refId.startsWith("conn:"))
+			return void router.navigate({ href: "/setup/project?page=connections" });
 		void router.navigate({ to: page });
 	};
 	return (

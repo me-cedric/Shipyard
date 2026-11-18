@@ -2,6 +2,20 @@
 
 Réglages contient les réglages du projet, vos connexions et vos propres choix.
 
+## Démarrage
+
+Configuration s'ouvre sur Démarrage : un démarrage guidé avec chaque étape de Pour commencer, une question à la fois. Passer va à la prochaine étape à faire. Trois portes ouvrent les portées de Configuration : Ce projet, Cet ordinateur et Moi. Chaque réglage a une seule place. Les anciennes adresses de Réglages ouvrent la portée qui contient leur page.
+
+## Ce projet
+
+Ce projet contient ce que le projet enregistre et partage avec l'équipe : le formulaire du projet, l'automatisation et l'import. Quatre portes ouvrent ses pages : Connexions (les gestionnaires de tickets et les hébergeurs de code), Tickets, Extensions et Santé de ce projet. Une page qu'une porte ouvre a un lien de retour vers la portée.
+
+Santé de ce projet propose « Tout corriger avec un agent ». L'action crée une fonctionnalité dans Flux avec les constats dans son Brief, et lance une exécution avec le budget de la recette. Le ticket du correctif porte l'étiquette `health-fix`. L'exécution passe la même revue et les mêmes approbations que toute autre fonctionnalité, et Arrêter y met fin. Les constats sur les outils de cet ordinateur ne sont pas dans le correctif.
+
+## Cet ordinateur
+
+Cet ordinateur contient ce que cette machine enregistre : les outils d'IA, les fournisseurs de modèles, les serveurs MCP, les certificats et les autorisations du système. Quatre portes ouvrent ses pages : Agents et règles, Agents extérieurs, Santé de cet ordinateur (les outils) et Journaux et retours.
+
 ## Projet
 
 Projet contient les dossiers du projet, le workflow par défaut, les interrupteurs d'automatisation et l'import de projet. Les réglages rarement changés sont sous Avancé.
@@ -80,8 +94,8 @@ Moi contient vos propres réglages : thème, densité, contraste, langue, rôle 
 
 Chaque source de notifications a son propre interrupteur, activé par défaut. Les sources sont : une question, une approbation, une exécution qui vous attend, une synchronisation en échec, une mise à jour, une branche distante déplacée, une exécution qui se termine, les vérifications de vos pull requests, une analyse en échec que vous n'avez pas lancée, et un brouillon de revue d'agent prêt à publier. Un interrupteur désactivé supprime l'entrée dans le centre et la notification du système. Cliquez sur une entrée pour ouvrir son exécution, sa pull request, la page Qualité ou son brouillon. Le système affiche une notification pour une exécution en échec, des vérifications en échec et un brouillon de revue, et pour les sources plus anciennes, quand la fenêtre est en arrière-plan.
 
-Autorisations montre les notifications et les dossiers Documents, Bureau et Téléchargements avec leur état et une action (voir Démarrer, Autorisations), et Revoir la visite. La liste Pour commencer s'affiche en haut de Moi.
+Autorisations montre les notifications et les dossiers Documents, Bureau et Téléchargements avec leur état et une action (voir Démarrer, Autorisations), et Revoir la visite. Les autorisations et Revoir la visite sont dans Cet ordinateur. Les étapes de Pour commencer sont dans Démarrage. La porte Apparence et disposition de Moi contient les polices et l'apparence.
 
 ## Santé
 
-Santé liste les problèmes du projet. Chaque problème a un bouton qui le corrige.
+Santé liste les problèmes du projet. Chaque problème a un bouton qui le corrige. Les problèmes du projet sont dans Ce projet, et les outils sont dans Cet ordinateur.

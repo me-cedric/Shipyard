@@ -18,7 +18,7 @@ async function importPack(user: ReturnType<typeof userEvent.setup>, path = PACK_
 describe("built-in languages (spec languages, REQ-001, REQ-002)", () => {
 	it("switches to German, then to Spanish, and keeps each choice", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		await choose(user, "Language", "German");
 		expect(await screen.findByRole("combobox", { name: "Sprache" })).toBeVisible();
 		expect(document.documentElement.lang).toBe("de");
@@ -33,7 +33,7 @@ describe("built-in languages (spec languages, REQ-001, REQ-002)", () => {
 describe("language packs (spec languages, REQ-005 to REQ-008)", () => {
 	it("imports a pack, adds and selects it, and shows each missing text in English", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		const dialog = await importPack(user);
 		expect(within(dialog).getByText(/^2 of \d+ texts translated$/)).toBeVisible();
 		await user.click(within(dialog).getByRole("button", { name: "Add language" }));
@@ -48,7 +48,7 @@ describe("language packs (spec languages, REQ-005 to REQ-008)", () => {
 
 	it("refuses an unknown key and a bad file, and saves nothing", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		let dialog = await importPack(user, UNKNOWN_KEY_PATH);
 		expect(within(dialog).getByText("common.gone: not a message key")).toBeVisible();
 		expect(within(dialog).queryByRole("button", { name: "Add language" })).toBeNull();
@@ -61,7 +61,7 @@ describe("language packs (spec languages, REQ-005 to REQ-008)", () => {
 
 	it("exports the English base, and remove of the current pack goes back to English", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		mockState().nextFile = "/mock/base.json";
 		await user.click(await screen.findByRole("button", { name: "Export English" }));
 		await waitFor(() => expect(mockState().exportedLanguages["/mock/base.json"]).toBeDefined());

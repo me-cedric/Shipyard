@@ -13,11 +13,11 @@ async function pick(name: string) {
 	code.files["old.png"] = { head: "a", index: "b", work: "b" };
 	code.files["a.bin"] = { head: null, index: null, work: "xyz" };
 	mockState().code = code;
-	mountApp("/code/changes");
+	mountApp("/code/now");
 	await user.click(await screen.findByRole("button", { name }));
 }
 
-describe("Code / Changes preview", () => {
+describe("Code / Now, the preview of a changed file", () => {
 	it("shows an untracked image from the working copy", async () => {
 		await pick("me.png");
 		const img = await screen.findByRole("img", { name: "me.png" });

@@ -1,64 +1,76 @@
+import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { ENDED, useRuns } from "@/lib/factory";
+import { useNeedsYou } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type ProjectCard, unwrap } from "@/lib/ipc";
 import { useActiveProject, useProjectActions, useProjectCards } from "@/lib/projects";
 import { useFormIntent } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { IconButton } from "@/ui/atoms/icon-button";
-import {
-	ArrowDownTrayIcon,
-	ClockIcon,
-	FolderOpenIcon,
-	LinkIcon,
-	PlusIcon,
-	TrashIcon,
-	XMarkIcon,
-} from "@/ui/icons";
-import { Card } from "@/ui/molecules/card";
-import { EmptyState } from "@/ui/molecules/empty-state";
+import { ArrowDownTrayIcon, FolderOpenIcon, LinkIcon, PlusIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { Panel } from "@/ui/molecules/panel";
 import { CloneDialog } from "./clone-dialog";
+import { StartError, useProjectStart } from "./first-run";
 import { NewProjectDialog } from "./new-project/new-project-dialog";
 
 const when = (seconds: number, lang: string) =>
 	new Date(seconds * 1000).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB");
 
-function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: unknown) => void }) {
+/** What the open project holds now: the things that need the person and the agents at work. */
+function OpenFacts() {
+	const { t } = useI18n();
+	const w = t.workspace.page;
+	const needs = useNeedsYou().items.length;
+	const agents = (useRuns().data ?? []).filter((r) => !ENDED.includes(r.state)).length;
+	return (
+		<>
+			<Badge>{format(w.needYou, { count: needs })}</Badge>
+			<Badge variant="info">{format(w.agents, { count: agents })}</Badge>
+			<Badge variant="success">{w.openNow}</Badge>
+		</>
+	);
+}
+
+function ProjectCardView({
+	p,
+	open,
+	onOpen,
+	onError,
+}: {
+	p: ProjectCard;
+	/** This is the open project. */
+	open: boolean;
+	onOpen: () => void;
+	onError: (e: unknown) => void;
+}) {
 	const { t, lang } = useI18n();
 	const w = t.workspace.page;
-	const { switchTo, remove, close } = useProjectActions();
-	const active = useActiveProject().data;
-	const [open, setOpen] = useState(false);
+	const { remove, close } = useProjectActions();
+	const [details, setDetails] = useState(false);
+	// The open project sits under the page title; the others sit under "Opened before" (axe heading-order).
+	const Name = open ? "h2" : "h3";
 	return (
-		<Card className="flex flex-col overflow-hidden">
-			<div className="flex items-start gap-3 p-3">
-				<span
-					aria-hidden="true"
-					className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent-gradient font-mono text-16 text-accent-fg shadow-glow"
-				>
-					{p.name.slice(0, 1).toUpperCase()}
-				</span>
-				<span className="flex min-w-0 flex-1 flex-col gap-0.5">
-					<span className="flex items-center gap-2">
-						<span title={p.path} className="truncate text-14 font-medium text-n-12">
-							{p.name}
-						</span>
-						{p.branch ? <Badge className="font-mono">{p.branch}</Badge> : null}
-					</span>
-				</span>
-			</div>
-			<p className="flex items-center gap-1.5 truncate px-3 text-ui text-n-11">
-				<ClockIcon size={12} />
-				<span className="truncate">
-					{p.lastCommit
-						? `${p.lastCommit}${p.lastCommitTime ? ` · ${when(p.lastCommitTime, lang)}` : ""}`
-						: w.noCommit}
-				</span>
-			</p>
-			<div className="flex min-h-7 flex-wrap items-center gap-1 px-3 pt-2">
+		<li
+			aria-label={p.name}
+			aria-current={open ? "true" : undefined}
+			className="flex flex-col gap-3 rounded-xl border-2 border-transparent bg-surface-2 p-4 shadow-1 aria-[current=true]:border-accent"
+		>
+			<span
+				aria-hidden="true"
+				className="flex size-12 items-center justify-center rounded-lg bg-accent-subtle text-20 font-semibold text-accent-text"
+			>
+				{p.name.slice(0, 1).toUpperCase()}
+			</span>
+			<Name title={p.path} className="truncate text-16 font-semibold text-n-12">
+				{p.name}
+			</Name>
+			<div className="flex flex-wrap items-center gap-1">
+				{open ? <OpenFacts /> : null}
+				{/* The code host of the remote, as the groups of the page of before showed it. */}
+				<Badge>{p.host ?? w.local}</Badge>
+				{p.branch ? <Badge className="font-mono">{p.branch}</Badge> : null}
 				{p.ahead > 0 ? <Badge variant="info">{format(w.ahead, { count: p.ahead })}</Badge> : null}
 				{p.behind > 0 ? (
 					<Badge variant="warning">{format(w.behind, { count: p.behind })}</Badge>
@@ -67,113 +79,174 @@ function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: unknown)
 					<Badge variant="accent">{format(w.changes, { count: p.changes })}</Badge>
 				) : null}
 			</div>
-			{open ? (
-				<dl className="mx-3 mt-2 grid grid-cols-[auto_1fr] gap-x-3 rounded-md bg-n-2 px-2 py-1.5 text-12 text-n-11">
+			<p className="truncate text-14 text-n-11">
+				{p.lastCommit
+					? `${p.lastCommit}${p.lastCommitTime ? ` · ${when(p.lastCommitTime, lang)}` : ""}`
+					: w.noCommit}
+			</p>
+			{details ? (
+				<dl className="grid grid-cols-[auto_1fr] gap-x-3 text-14 text-n-11">
+					<dt>{w.folder}</dt>
+					<dd className="truncate font-mono">{p.path}</dd>
 					<dt>{w.remote}</dt>
-					<dd className="truncate font-mono">{p.webUrl ?? "—"}</dd>
+					<dd className="truncate font-mono">{p.webUrl ?? p.host ?? w.local}</dd>
 				</dl>
 			) : null}
-			<div className="mt-3 flex items-center gap-1 border-t bg-surface-1 px-2 py-1.5">
+			<div className="flex flex-wrap gap-2">
 				<Button
+					variant={open ? "primary" : undefined}
+					className="min-h-control flex-1"
 					aria-label={format(w.openName, { name: p.name })}
-					onClick={() => void switchTo(p.id).catch((e: unknown) => onError(e))}
+					onClick={onOpen}
 				>
-					<FolderOpenIcon size={14} />
 					{w.open}
 				</Button>
+				{open ? (
+					<Button className="min-h-control flex-1" onClick={() => void close()}>
+						{t.projects.close}
+					</Button>
+				) : null}
+				<Button
+					className="min-h-control flex-1"
+					aria-label={`${t.projects.remove}: ${p.name}`}
+					onClick={() => void remove(p)}
+				>
+					{t.projects.remove}
+				</Button>
+			</div>
+			<div className="flex flex-wrap gap-2">
 				<Button
 					variant="ghost"
-					aria-expanded={open}
-					aria-label={`${open ? w.hideDetails : w.details} ${p.name}`}
-					onClick={() => setOpen(!open)}
+					className="min-h-control"
+					aria-expanded={details}
+					aria-label={`${details ? w.hideDetails : w.details} ${p.name}`}
+					onClick={() => setDetails(!details)}
 				>
-					{open ? w.hideDetails : w.details}
+					{details ? w.hideDetails : w.details}
 				</Button>
-				<span className="flex-1" />
 				{p.webUrl ? (
-					<IconButton
-						label={`${w.openRemote} ${p.name}`}
+					<Button
+						variant="ghost"
+						className="min-h-control"
+						aria-label={`${w.openRemote} ${p.name}`}
 						onClick={() =>
 							void unwrap(commands.projectOpenRemote(p.id)).catch((e: unknown) => onError(e))
 						}
 					>
 						<LinkIcon size={14} />
-					</IconButton>
+						{w.openRemote}
+					</Button>
 				) : null}
-				{active?.id === p.id ? (
-					<IconButton label={t.projects.close} onClick={() => void close()}>
-						<XMarkIcon size={14} />
-					</IconButton>
-				) : null}
-				<IconButton label={`${w.remove} ${p.name}`} onClick={() => void remove(p)}>
-					<TrashIcon size={14} />
-				</IconButton>
 			</div>
-		</Card>
+		</li>
 	);
 }
 
-/** Home / Projects: one card for each project, grouped by the host of its remote. */
+/**
+ * Projects (`spec:app-redesign#REQ-003`), behind the project name: the open project with what needs
+ * the person and its agents at work, the projects opened before, and the ways to start one (open a
+ * folder, clone, new project, drop a folder). Import a project opens its one place, This project.
+ */
 export function ProjectsPage() {
 	const { t } = useI18n();
+	const w = t.workspace.page;
 	const cards = useProjectCards().data;
-	const { openFolder } = useProjectActions();
+	const active = useActiveProject().data;
+	const router = useRouter();
+	const { openFolder, switchTo } = useProjectActions();
+	const start = useProjectStart();
 	const [error, setError] = useState<unknown>(null);
 	const [cloning, setCloning] = useState(false);
 	const [creating, setCreating] = useState(false);
-	// The Setup checklist opens the creator.
+	// The guided start opens the creator.
 	useFormIntent("project", () => setCreating(true));
+	const title = t.tabs.home.projects;
 	// The heading shows while the cards load: a page always has its level-one heading.
-	if (!cards)
-		return <PageHeader icon={<FolderOpenIcon size={16} />} title={t.tabs.home.projects} />;
-	const groups = new Map<string, ProjectCard[]>();
-	for (const c of cards) groups.set(c.host ?? "", [...(groups.get(c.host ?? "") ?? []), c]);
-	const open = {
-		label: t.projects.open,
-		icon: <FolderOpenIcon size={14} />,
-		onClick: () => void openFolder().catch((e: unknown) => setError(e)),
-	};
+	if (!cards) return <PageHeader icon={<FolderOpenIcon size={16} />} title={title} />;
+	const open = cards.find((c) => c.id === active?.id);
+	const before = cards.filter((c) => c !== open);
+	// The open project opens on the page before Projects. Projects as the first page has none:
+	// the last view opens, and it is never Projects itself.
+	const back = () =>
+		router.history.canGoBack()
+			? router.history.back()
+			: router.history.push(
+					active?.lastView && active.lastView !== "/projects" ? active.lastView : "/",
+				);
+	const card = (p: ProjectCard) => (
+		<ProjectCardView
+			key={p.id}
+			p={p}
+			open={p === open}
+			onError={setError}
+			onOpen={() =>
+				// Another project becomes the open project.
+				p === open ? back() : void switchTo(p.id).catch((e: unknown) => setError(e))
+			}
+		/>
+	);
+	const grid = "grid gap-4 md:grid-cols-2 xl:grid-cols-3";
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
 			<PageHeader
 				icon={<FolderOpenIcon size={16} />}
-				title={t.tabs.home.projects}
+				title={title}
 				count={cards.length}
 				action={
-					<span className="flex gap-2">
-						<Button onClick={() => setCreating(true)}>
-							<PlusIcon size={14} />
-							{t.creator.title}
+					<span className="flex flex-wrap gap-2">
+						{active ? (
+							<Button
+								className="min-h-control"
+								onClick={() => router.history.push("/setup/project#section-import")}
+							>
+								{t.projects.projectImport.import}
+							</Button>
+						) : null}
+						<Button
+							className="min-h-control"
+							disabled={start.busy}
+							onClick={() => void start.run(openFolder)}
+						>
+							<FolderOpenIcon size={14} />
+							{t.projects.open}
 						</Button>
-						<Button onClick={() => setCloning(true)}>
+						<Button className="min-h-control" onClick={() => setCloning(true)}>
 							<ArrowDownTrayIcon size={14} />
 							{t.projects.clone}
 						</Button>
-						<Button variant="primary" onClick={open.onClick}>
-							{open.icon}
-							{open.label}
+						<Button variant="primary" className="min-h-control" onClick={() => setCreating(true)}>
+							<PlusIcon size={14} />
+							{t.creator.title}
 						</Button>
 					</span>
 				}
 			/>
 			<CloneDialog open={cloning} onClose={() => setCloning(false)} />
 			<NewProjectDialog open={creating} onClose={() => setCreating(false)} />
-			{error ? <ErrorNotice error={error} className="px-4 text-ui text-danger-text" /> : null}
-			{cards.length === 0 ? (
-				<EmptyState title={t.empty.projects} action={open} />
-			) : (
-				<div className="flex flex-col gap-4 px-4">
-					{[...groups].map(([host, list]) => (
-						<Panel key={host} title={host || t.workspace.page.local} count={list.length}>
-							<div className="grid gap-3 p-1 md:grid-cols-2 xl:grid-cols-3">
-								{list.map((p) => (
-									<ProjectCardView key={p.id} p={p} onError={setError} />
-								))}
-							</div>
-						</Panel>
-					))}
-				</div>
-			)}
+			<div className="flex flex-col gap-4 px-4">
+				<StartError start={start} />
+				{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
+				{open ? (
+					<ul aria-label={w.openNow} className={grid}>
+						{card(open)}
+					</ul>
+				) : null}
+				{before.length ? (
+					<section aria-labelledby="projects-before" className="flex flex-col gap-2">
+						<h2 id="projects-before" className="text-16 font-semibold text-n-12">
+							{w.before}
+						</h2>
+						<ul aria-labelledby="projects-before" className={grid}>
+							{before.map(card)}
+						</ul>
+					</section>
+				) : null}
+				{cards.length === 0 ? <p className="text-14 text-n-11">{t.empty.projects}</p> : null}
+				{/* The shell opens a folder that the person drops on the window (`useDropFolder`). */}
+				<p className="flex min-h-24 items-center justify-center rounded-xl border-2 border-dashed border-n-7 text-14 text-n-11">
+					{w.drop}
+				</p>
+			</div>
 		</div>
 	);
 }

@@ -1,7 +1,18 @@
-import { cleanup, screen, waitFor, within } from "@testing-library/react";
+import {
+	createMemoryHistory,
+	createRootRoute,
+	createRouter,
+	RouterProvider,
+} from "@tanstack/react-router";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Providers } from "@/app/providers";
 import { commands, unwrap } from "@/lib/ipc";
+import { mockState } from "@/lib/ipc/mock";
+import { ShellProvider } from "@/lib/shell";
 import { mountApp } from "@/test/mount";
+import { routers } from "@/test/routers";
+import { Quality } from "./quality";
 
 vi.mock("./use-file", () => ({
 	useFile: () => ({
@@ -43,6 +54,110 @@ vi.mock("@xterm/addon-fit", () => ({
 
 const open = () => unwrap(commands.projectsOpen("/mock/alpha", false));
 const group = (name: string) => screen.findByRole("region", { name });
+
+describe("Flow / Health for every role (spec:app-redesign#REQ-023)", () => {
+	afterEach(() => vi.restoreAllMocks());
+
+	it("shows the gates with their state to a tester with no right on code, with each action off", async () => {
+		const user = userEvent.setup();
+		await open();
+		// A finding with a file, and a check that failed for a missing program.
+		await unwrap(commands.codeScanRun("secrets", true));
+		const view = await unwrap(commands.codeQuality());
+		const lint = view.checks[0];
+		if (!lint) throw new Error("the demo has a check");
+		vi.spyOn(commands, "codeQuality").mockResolvedValue({
+			status: "ok",
+			data: {
+				...view,
+				checks: [
+					{
+						...lint,
+						name: "pnpm",
+						label: null,
+						last: {
+							kind: "check",
+							name: "pnpm",
+							at: "2026-10-29T10:00:00Z",
+							passed: false,
+							durationMs: 60,
+							tail: "",
+							findings: [
+								{
+									severity: "high",
+									path: "",
+									line: null,
+									message: "pnpm is not installed or not found",
+								},
+							],
+						},
+					},
+					...view.checks,
+				],
+			} as never,
+		});
+		mockState().person = {
+			member: "tess",
+			found: "email",
+			role: "qa",
+			admin: false,
+			readOnly: false,
+			rights: [],
+			access: {
+				work: "read",
+				specs: "read",
+				design: "read",
+				knowledge: "read",
+				code: "none",
+				runs: "none",
+				settings: "none",
+				costs: "none",
+				merge: false,
+				approve: false,
+			},
+		};
+		// The view alone: the section gate of the shell is not the subject here.
+		const router = createRouter({
+			routeTree: createRootRoute({
+				component: () => (
+					<ShellProvider>
+						<Quality />
+					</ShellProvider>
+				),
+			}),
+			history: createMemoryHistory({ initialEntries: ["/"] }),
+		});
+		routers().push(router as never);
+		render(
+			<Providers>
+				<RouterProvider router={router as never} />
+			</Providers>,
+		);
+		const checks = await group("Checks");
+		expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/gates? needs? a fix/);
+		expect(within(checks).getByRole("heading", { name: "Lint" })).toBeInTheDocument();
+		expect(within(checks).getByRole("img", { name: "Passed" })).toBeInTheDocument();
+		expect(await group("Scanners")).toBeInTheDocument();
+		const reason = "Needs the right runs.start (your role: Tester)";
+		const run = within(checks).getByRole("button", { name: "Run Lint" });
+		expect(run).toBeDisabled();
+		expect(run).toHaveAccessibleDescription(reason);
+		expect(screen.getByRole("button", { name: "Set up checks" })).toBeDisabled();
+		// The terminal, the installs and the file of a finding need a right on code.
+		const write = "Needs the right code.write (your role: Tester)";
+		const off = (name: string, why: string) => {
+			const button = screen.getByRole("button", { name });
+			expect(button).toBeDisabled();
+			expect(button).toHaveAccessibleDescription(why);
+		};
+		off("Open Lint in terminal", write);
+		off("Install dependencies", write);
+		await user.click(within(checks).getAllByRole("button", { name: "Findings" })[0] as HTMLElement);
+		off("Install pnpm", write);
+		await user.click(within(await group("Scanners")).getByRole("button", { name: "Findings" }));
+		off("Open src/config.ts", "No access");
+	});
+});
 
 describe("Code / Quality", () => {
 	it("lists the declared checks and the scanners with counts and the last report", async () => {

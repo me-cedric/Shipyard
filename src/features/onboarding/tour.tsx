@@ -100,26 +100,32 @@ export function Tour() {
 			actions={
 				<>
 					{step > 0 ? (
-						<Button variant="ghost" onClick={() => go(step - 1)}>
+						<Button variant="ghost" className="min-h-control" onClick={() => go(step - 1)}>
 							{o.back}
 						</Button>
 					) : null}
 					{last ? (
 						<>
 							<Button
+								className="min-h-control"
 								onClick={() => {
 									close();
-									void navigate({ to: "/knowledge/manual" });
+									void navigate({ to: "/library/manual" });
 								}}
 							>
 								{o.manual}
 							</Button>
-							<Button ref={primary} variant="primary" onClick={close}>
+							<Button ref={primary} variant="primary" className="min-h-control" onClick={close}>
 								{o.done}
 							</Button>
 						</>
 					) : (
-						<Button ref={primary} variant="primary" onClick={() => go(step + 1)}>
+						<Button
+							ref={primary}
+							variant="primary"
+							className="min-h-control"
+							onClick={() => go(step + 1)}
+						>
 							{o.next}
 						</Button>
 					)}

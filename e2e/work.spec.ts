@@ -16,7 +16,12 @@ async function openWork(page: Page, tab: string) {
 		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
 	).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Setup" }).click();
-	await tabs(page).getByRole("link", { name: "Connections" }).click();
+	await tabs(page).getByRole("link", { name: "This project" }).click();
+	// The connections of an issue tracker are behind the door Connections of This project.
+	await page
+		.getByRole("navigation", { name: "This project" })
+		.getByRole("link", { name: "Connections" })
+		.click();
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme");
 	await page.getByRole("combobox", { name: "Product" }).click();
@@ -25,7 +30,7 @@ async function openWork(page: Page, tab: string) {
 	await page.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByRole("group", { name: "Acme" })).toBeVisible();
 	// The only tracker links itself to the project.
-	await tabs(page).getByRole("link", { name: "Project" }).click();
+	await tabs(page).getByRole("link", { name: "This project" }).click();
 	await expect(page.getByRole("combobox", { name: "Issue tracker", exact: true })).toContainText(
 		"Acme",
 	);

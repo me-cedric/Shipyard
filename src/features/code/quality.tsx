@@ -4,12 +4,11 @@ import { PageExport } from "@/features/reports/page-export";
 import { type QualityReport, useCoverageReport, useForgeActions, useQuality } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import type { SbomReport } from "@/lib/ipc";
-import { RightButton } from "@/lib/rights";
+import { RightButton, RightIconButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { cn, formatDuration } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import {
 	ArrowPathIcon,
@@ -102,6 +101,8 @@ function QualityView() {
 	const { check, scan, install, installTool, sbom } = useForgeActions();
 	const { error, run } = useRun();
 	const { runInTerminal } = useShell();
+	// Health shows for every role: a role with no level on code reads the gates, not the files.
+	const noCode = useRights().level("code") === "none";
 	const running = useLiveRuns();
 	const [confirming, setConfirming] = useState<string | null>(null);
 	const [installing, setInstalling] = useState<string | null>(null);
@@ -158,7 +159,7 @@ function QualityView() {
 					key={key}
 					id={`check-${r.name}`}
 					className={cn(
-						"relative flex flex-col gap-2 overflow-hidden p-3",
+						"relative flex flex-col gap-2 overflow-hidden rounded-xl p-3",
 						shown === key && "col-span-full",
 					)}
 				>
@@ -195,12 +196,13 @@ function QualityView() {
 							</Popover.Portal>
 						</Popover.Root>
 						{r.command ? (
-							<IconButton
+							<RightIconButton
+								right="code.write"
 								label={format(q18.terminal, { name: nameOf(r) })}
 								onClick={() => r.command && runInTerminal(r.command)}
 							>
 								<CommandLineIcon size={16} />
-							</IconButton>
+							</RightIconButton>
 						) : null}
 						<Badge variant={status === "idle" ? "neutral" : status === "active" ? "info" : status}>
 							<StatusDot status={status} label={label} className="size-2" />
@@ -222,7 +224,11 @@ function QualityView() {
 									{format(q18.at, { date: date.format(new Date(last.at)) })}
 								</span>
 								{last.findings.length > 0 ? (
-									<Button variant="ghost" onClick={() => setShown(shown === key ? null : key)}>
+									<Button
+										variant="ghost"
+										className="min-h-control"
+										onClick={() => setShown(shown === key ? null : key)}
+									>
 										{q18.findings}
 									</Button>
 								) : null}
@@ -235,6 +241,7 @@ function QualityView() {
 								<RightButton
 									right="runs.start"
 									variant="primary"
+									className="min-h-control"
 									onClick={() =>
 										void run(async () => {
 											setConfirming(null);
@@ -254,6 +261,7 @@ function QualityView() {
 							) : (
 								<RightButton
 									right="runs.start"
+									className="min-h-control"
 									aria-label={format(q18.runName, { name: nameOf(r) })}
 									disabled={!!live}
 									onClick={() => setConfirming(key)}
@@ -265,7 +273,9 @@ function QualityView() {
 						) : (
 							<>
 								<span className="text-12 text-n-11">{q18.notInstalled}</span>
-								<Button
+								<RightButton
+									right="code.write"
+									className="min-h-control"
 									aria-label={format(q18.installName, { name: r.name })}
 									busy={installing === r.name}
 									onClick={() =>
@@ -280,7 +290,7 @@ function QualityView() {
 									}
 								>
 									{q18.install}
-								</Button>
+								</RightButton>
 							</>
 						)}
 					</div>
@@ -295,24 +305,27 @@ function QualityView() {
 										key={i}
 										status={SEVERITY_STATUS[f.severity] ?? "idle"}
 										title={f.path ? `${q18.severity[f.severity]}: ${f.message}` : f.message}
-										action={
-											!f.path && tool
-												? {
-														label: format(q18.installName, { name: tool }),
-														onClick: () => void run(() => installTool(tool)),
-													}
-												: undefined
-										}
 										source={
 											f.path ? (
 												<Button
 													variant="ghost"
 													aria-label={format(q18.open, { path: f.path })}
+													disabled={noCode}
+													reason={noCode ? t.rights.noAccess : undefined}
 													onClick={() => setViewing({ path: f.path, line: f.line })}
 												>
 													{f.path}
 													{f.line ? `:${f.line}` : ""}
 												</Button>
+											) : tool ? (
+												<RightButton
+													right="code.write"
+													variant="ghost"
+													className="border-n-7"
+													onClick={() => void run(() => installTool(tool))}
+												>
+													{format(q18.installName, { name: tool })}
+												</RightButton>
 											) : undefined
 										}
 									/>
@@ -330,13 +343,17 @@ function QualityView() {
 	const reports = q.scanners.map((r) => r.last);
 	const score = securityScore(reports);
 	const found = reports.reduce((n, r) => n + (r?.findings.length ?? 0), 0);
+	// The title says what to do (`spec:app-redesign#REQ-023`): the gates that failed or that have findings.
+	const toFix = [...q.checks, ...q.scanners].filter(
+		(r) => r.last && (!r.last.passed || r.last.findings.length > 0),
+	).length;
+	const h = t.flow.health;
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 			<PageHeader
 				icon={<CheckIcon size={16} />}
-				title={t.tabs.code.quality}
-				count={q.checks.length + q.scanners.length}
+				title={toFix === 0 ? h.clean : toFix === 1 ? h.fixOne : format(h.fixMany, { count: toFix })}
 				action={<PageExport page="security" />}
 			/>
 			{error ? (
@@ -395,6 +412,7 @@ function QualityView() {
 				<Panel title={q18.sbom} bodyClassName="flex items-center gap-3 p-3">
 					<RightButton
 						right="code.write"
+						className="min-h-control"
 						aria-label={q18.exportSbom}
 						onClick={() => void run(async () => setExported(await sbom()))}
 					>
@@ -410,7 +428,15 @@ function QualityView() {
 					title={q18.checks}
 					count={q.checks.length}
 					bodyClassName={GRID}
-					toolbar={<Button onClick={() => setSetting(true)}>{q18.setup}</Button>}
+					toolbar={
+						<RightButton
+							right="project.settings"
+							className="min-h-control"
+							onClick={() => setSetting(true)}
+						>
+							{q18.setup}
+						</RightButton>
+					}
 				>
 					{rows("check", q.checks)}
 				</Panel>

@@ -20,7 +20,7 @@ function Ask({ dirty }: { dirty: boolean }) {
 			}}
 			title={l.title}
 			actions={
-				<Button variant="primary" onClick={() => block.proceed?.()}>
+				<Button variant="primary" className="min-h-control" onClick={() => block.proceed?.()}>
 					{l.leave}
 				</Button>
 			}

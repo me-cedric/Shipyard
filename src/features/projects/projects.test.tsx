@@ -209,18 +209,31 @@ describe("project switcher", () => {
 		);
 	});
 
-	it("offers Open folder, Clone, Close project and Remove from list in the one menu", async () => {
+	it("offers Projects, Open folder, Clone, Close project and Remove from list in the one menu", async () => {
 		const user = userEvent.setup();
 		await open("/mock/alpha");
 		mountApp("/home/today");
 		await user.click(await screen.findByRole("button", { name: /^Project/ }));
 		const menu = within(await screen.findByRole("menu"));
 		expect(menu.getAllByRole("menuitem").map((i) => i.textContent)).toEqual([
+			"Projects",
 			"Open a local folder",
 			"Clone a repository",
 			"Close project",
 			"Remove from list",
 		]);
+	});
+
+	it("opens the Projects page from the project name, with no section switch", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		const router = mountApp("/home/today");
+		await user.click(await screen.findByRole("button", { name: /^Project/ }));
+		await user.click(await screen.findByRole("menuitem", { name: "Projects" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/projects"));
+		expect(await screen.findByRole("heading", { level: 1, name: "Projects" })).toBeInTheDocument();
+		expect(screen.queryByRole("navigation", { name: "Tabs" })).toBeNull();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
 	it("opens a folder from the menu", async () => {
@@ -340,9 +353,11 @@ describe("project switcher", () => {
 		await open("/mock/alpha");
 		Object.assign(mockState().projects[0] ?? {}, { lastView: "/settings/health" });
 		mountApp("/home/today");
+		// The old address of Health opens Health of this project, under This project.
 		expect(
-			await screen.findByRole("link", { name: "Health", current: "page" }),
+			await screen.findByRole("link", { name: "This project", current: "page" }),
 		).toBeInTheDocument();
+		expect(await screen.findByRole("button", { name: "Check again" })).toBeInTheDocument();
 		await user.click(screen.getByRole("link", { name: "Library" }));
 		await waitFor(() => expect(mockState().projects[0]?.lastView).toBe("/library/home"));
 	});
@@ -352,7 +367,7 @@ describe("Settings / Project", () => {
 	it("saves the paths to the project file and shows one primary action", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		const input = await screen.findByRole("textbox", { name: "Decisions" });
 		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 		await user.clear(input);
@@ -365,7 +380,7 @@ describe("Settings / Project", () => {
 	it("lists every path key and writes only the keys that the person changes", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		for (const name of ["Diagrams", "Models", "Flows", "Test plans", "Dashboards", "Data models"])
 			expect(await screen.findByRole("textbox", { name })).toBeInTheDocument();
 		expect(screen.getByRole("textbox", { name: "Models" })).toHaveValue("docs/models");
@@ -381,7 +396,7 @@ describe("Settings / Project", () => {
 	it("edits the tracker scope and keeps it when the paths are saved", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		const scope = await screen.findByRole("textbox", { name: "Issue tracker scope" });
 		await user.type(scope, "PROJ");
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -407,7 +422,7 @@ describe("Settings / Project", () => {
 			}),
 		);
 		await unwrap(commands.connectionsSetSecret(c.id, "tok-scope-1"));
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		await user.click(await screen.findByRole("combobox", { name: "Issue tracker scope" }));
 		await user.click(await screen.findByRole("option", { name: "OPS" }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -436,7 +451,7 @@ describe("Settings / Project", () => {
 			}),
 		);
 		await open();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		await user.click(await screen.findByRole("combobox", { name: "Issue tracker" }));
 		await user.click(await screen.findByRole("option", { name: "Acme" }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -455,7 +470,7 @@ describe("Settings / Project", () => {
 	it("marks an override and applies the accent while the project is active", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
+		const router = mountApp("/setup/project");
 		await user.click(await screen.findByRole("combobox", { name: "Accent" }));
 		await user.click(await screen.findByRole("option", { name: "Violet" }));
 		await waitFor(() => expect(document.documentElement.dataset.accent).toBe("violet"));
@@ -463,14 +478,14 @@ describe("Settings / Project", () => {
 		await user.click(await screen.findByRole("option", { name: "Dark" }));
 		await waitFor(() => expect(document.documentElement.dataset.theme).toBe("dark"));
 		expect(screen.getAllByRole("img", { name: "Set by the project" }).length).toBeGreaterThan(0);
-		await user.click(screen.getByRole("link", { name: "Me" }));
+		router.history.push("/setup/me");
 		await screen.findByRole("combobox", { name: "Language" });
 		expect(screen.getAllByRole("img", { name: "Set by the project" })).toHaveLength(1);
 		expect(mockState().prefs.theme).toBe("light");
 	});
 
 	it("shows the first-run action when no project is active", async () => {
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
 	});
 });
@@ -487,7 +502,7 @@ describe("Settings / Project, project import", () => {
 				conflicts: ["docs/c.md"],
 			},
 		});
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		await user.click(await screen.findByRole("button", { name: "Import a project" }));
 		expect(await screen.findByRole("heading", { name: "Copied (1)" })).toBeInTheDocument();
 		expect(spy).toHaveBeenCalledOnce();
@@ -507,7 +522,7 @@ describe("Settings / Project, project import", () => {
 			status: "error",
 			error: { code: "unknown", details: "no source folder", action: null },
 		});
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		await user.click(await screen.findByRole("button", { name: "Import a project" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("no source folder");
 		spy.mockRestore();
@@ -515,12 +530,16 @@ describe("Settings / Project, project import", () => {
 });
 
 describe("Settings / Health", () => {
-	it("lists four groups with a count and offers one fix for each finding", async () => {
+	it("lists the groups of the project with a count, the group of this computer apart, and one fix for each finding", async () => {
 		await open();
-		mountApp("/settings/health");
+		const router = mountApp("/setup/computer?page=health");
+		expect(await screen.findByRole("heading", { name: "Tools (0)" })).toBeInTheDocument();
+		expect(screen.queryByRole("heading", { name: /^Compliance/ })).not.toBeInTheDocument();
+		router.history.push("/setup/project?page=health");
 		const compliance = await screen.findByRole("heading", { name: "Compliance (1)" });
 		expect(compliance).toBeInTheDocument();
-		for (const name of ["Tools (0)", "Broken refs (1)", "Generated files (0)"])
+		expect(screen.queryByRole("heading", { name: /^Tools \(/ })).not.toBeInTheDocument();
+		for (const name of ["Broken refs (1)", "Generated files (0)"])
 			expect(screen.getByRole("heading", { name })).toBeInTheDocument();
 		expect(screen.getByText("Broken ref adr:0009")).toBeInTheDocument();
 		expect(screen.getAllByRole("button", { name: /^(Write|Open|Recheck)$/ })).toHaveLength(2);
@@ -529,7 +548,7 @@ describe("Settings / Health", () => {
 	it("shows the new file first and writes it only after the confirm click", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/health");
+		mountApp("/setup/project?page=health");
 		await user.click(await screen.findByRole("button", { name: "Write" }));
 		expect(await screen.findByLabelText(".gitignore")).toHaveTextContent(".DS_Store");
 		expect(mockState().fixed).toEqual([]);
@@ -541,13 +560,49 @@ describe("Settings / Health", () => {
 	it("shows ghost rows and the ok shape for a healthy project", async () => {
 		await open();
 		mockState().fixed = ["ignore-missing", "ref-broken:adr:0009>spec:auth"];
-		mountApp("/settings/health");
+		mountApp("/setup/project?page=health");
 		const main = await screen.findByRole("main");
 		expect(await within(main).findByRole("img", { name: "Success" })).toBeInTheDocument();
 		// No fix button of a finding: the bootstrap, console and feedback panels have their own.
 		expect(
 			within(main).queryAllByRole("button", { name: /^(Write|Open|Apply|Recheck)$/ }),
 		).toHaveLength(0);
+	});
+
+	it("links each health page to the findings of the other scope, with their count", async () => {
+		const user = userEvent.setup();
+		await open();
+		const router = mountApp("/setup/computer?page=health");
+		await user.click(await screen.findByRole("link", { name: "Health of this project (2)" }));
+		await waitFor(() => expect(router.state.location.href).toBe("/setup/project?page=health"));
+		// This computer has no finding: no link.
+		expect(await screen.findByRole("heading", { name: "Compliance (1)" })).toBeInTheDocument();
+		expect(
+			screen.queryByRole("link", { name: /^Health of this computer/ }),
+		).not.toBeInTheDocument();
+	});
+
+	it("shows on the health of the project that a tool of this computer has a finding", async () => {
+		await open();
+		const run = vi.spyOn(commands, "healthRun").mockResolvedValue({
+			status: "ok",
+			data: [
+				{
+					id: "tool-missing:git",
+					group: "tools",
+					severity: "error",
+					code: "tool-missing",
+					detail: "git",
+					source: null,
+					fix: { kind: "recheck" },
+				},
+			],
+		} as Awaited<ReturnType<typeof commands.healthRun>>);
+		mountApp("/setup/project?page=health");
+		expect(
+			await screen.findByRole("link", { name: "Health of this computer (1)" }),
+		).toHaveAttribute("href", "/setup/computer?page=health");
+		run.mockRestore();
 	});
 
 	it("shows the worst finding in the status bar and opens Health from it", async () => {
@@ -564,7 +619,7 @@ describe("Settings / Health", () => {
 	it("reads French", async () => {
 		await open();
 		mockState().prefs.lang = "fr";
-		mountApp("/settings/health");
+		mountApp("/setup/project?page=health");
 		expect(await screen.findByRole("heading", { name: "Conformité (1)" })).toBeInTheDocument();
 		expect(screen.getByText("Référence rompue adr:0009")).toBeInTheDocument();
 	});
@@ -574,7 +629,7 @@ describe("Settings / Project, delivery files", () => {
 	it("edits a persona rate and refuses a negative one with the reason", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		const section = await screen.findByRole("region", { name: "Personas" });
 		const rates = within(section).getAllByRole("spinbutton", { name: "Daily sale rate" });
 		await user.clear(rates[0] as HTMLElement);
@@ -595,7 +650,7 @@ describe("Settings / Project, delivery files", () => {
 	it("saves the issue types and the hours of a day, and refuses 0 hours", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=tickets");
 		const section = within(await screen.findByRole("region", { name: "Tickets" }));
 		const story = section.getByRole("textbox", { name: "Story type" });
 		await user.clear(story);
@@ -615,7 +670,7 @@ describe("Settings / Project, delivery files", () => {
 	it("shows the folder and the remote, and saves how often the app looks at the remote", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		const section = within(await screen.findByRole("region", { name: "Project" }));
 		expect(await section.findByText("/mock/alpha")).toBeInTheDocument();
 		expect(await section.findByText("https://example.com/acme/project.git")).toBeInTheDocument();

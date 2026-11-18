@@ -11,7 +11,7 @@ describe("Settings / Health / bootstrap, skills, console and feedback", () => {
 
 	it("previews the files of the bootstrap form, then writes the new ones after a click", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/health");
+		mountApp("/setup/project?page=health");
 		const create = await screen.findByRole("button", { name: "Create files" });
 		expect(create).toBeDisabled();
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Demo");
@@ -29,7 +29,7 @@ describe("Settings / Health / bootstrap, skills, console and feedback", () => {
 
 	it("shows each skill as applied, stale or missing and fixes one after a click", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/health");
+		mountApp("/setup/project?page=health");
 		const panel = await screen.findByRole("region", { name: "Skills" });
 		await within(panel).findByText("ui-conformance");
 		expect(within(panel).getAllByText("Missing").length).toBeGreaterThan(0);
@@ -44,7 +44,7 @@ describe("Settings / Health / bootstrap, skills, console and feedback", () => {
 
 	it("filters the debug console by level", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/health");
+		mountApp("/setup/computer?page=logs");
 		const log = await screen.findByRole("list", { name: "Debug console" });
 		expect(await within(log).findAllByRole("listitem")).toHaveLength(3);
 		await user.click(screen.getByRole("combobox", { name: "Level" }));
@@ -55,7 +55,7 @@ describe("Settings / Health / bootstrap, skills, console and feedback", () => {
 
 	it("opens a feedback issue only with a title and shows a refusal", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/health");
+		mountApp("/setup/computer?page=logs");
 		const open = await screen.findByRole("button", { name: "Open on GitHub" });
 		expect(open).toBeDisabled();
 		await user.type(screen.getByRole("textbox", { name: "Title" }), "Crash");
@@ -69,7 +69,7 @@ describe("Settings / Health / bootstrap, skills, console and feedback", () => {
 
 	it("propagates the parent items to a linked project after a click", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/health");
+		mountApp("/setup/project?page=health");
 		const panel = await screen.findByRole("region", { name: "Linked projects" });
 		await user.click(
 			await within(panel).findByRole("button", { name: "Propagate to API gateway" }),

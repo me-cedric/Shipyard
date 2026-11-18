@@ -8,7 +8,7 @@ import { useRunActions, useRuns } from "@/lib/factory";
 import { format, LANGS, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
-import { useProjectActions, useProjects } from "@/lib/projects";
+import { projectKeys, useProjectActions, useProjects } from "@/lib/projects";
 import { setHitQuery, snippetParts, useParsedRef, useRefSearch } from "@/lib/refs";
 import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
@@ -18,9 +18,16 @@ import { ChatBubbleIcon, CodeBracketIcon, DocumentTextIcon, SparklesIcon } from 
 import { CommandPalette, type PaletteGroup } from "@/ui/organisms/command-palette";
 import type { Action } from "./actions";
 import { answerOf } from "./ask-answer";
-import { PLACE_ICON, sectionPath, viewPath, visiblePlaces, visibleSections } from "./places";
+import {
+	hiddenSection,
+	PLACE_ICON,
+	sectionPath,
+	viewPath,
+	visiblePlaces,
+	visibleSections,
+} from "./places";
 import { refPage, refSelection } from "./ref-page";
-import { tabLabel } from "./spaces";
+import { hiddenTab, tabLabel } from "./spaces";
 
 /**
  * The Ask bar of the top bar with its one panel. The palette action focuses the bar: it opens no
@@ -48,6 +55,11 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	const [query, setQuery] = useState("");
 	const projects = useProjects();
+	// The same query as the project form: one cache.
+	const projectFile = useQuery({
+		queryKey: projectKeys.settings,
+		queryFn: () => unwrap(commands.projectSettings()),
+	}).data?.file;
 	const { switchTo } = useProjectActions();
 	const text = query.trim();
 	// The Rust grammar tells whether the text is a ref. The index finds entities by ref or title.
@@ -65,6 +77,8 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		const open = refSelection(t, ref);
 		if (open) rememberSelection(...open);
 		openRefAt(ref, page);
+		// A connection is behind the door Connections of This project.
+		if (ref.startsWith("conn:")) return void navigate({ href: "/setup/project?page=connections" });
 		void navigate({ to: page });
 	};
 	const tabs = visiblePlaces(level).flatMap((place) =>
@@ -80,6 +94,46 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		})),
 	);
 
+	// The pages that left the section switch keep a destination: the projects, the impacts, the pull
+	// requests and each door of Setup (`spec:app-redesign#REQ-024`). A door shows with its scope.
+	const scopes = visibleSections("setup", level).map(([, tab]) => tab);
+	const door = (scope: string, page: string, label: string) => ({
+		id: `go-setup-${scope}-${page}`,
+		label: `${t.ui.place.setup} / ${label}`,
+		href: `/setup/${scope}?page=${page}`,
+		Icon: PLACE_ICON.setup,
+		hidden: !scopes.includes(scope),
+	});
+	const doors = [
+		{ id: "go-projects", label: t.tabs.home.projects, href: "/projects", Icon: CodeBracketIcon },
+		{
+			id: "go-flow-impacts",
+			label: `${t.ui.place.flow} / ${tabLabel(t, "code", "impacts")}`,
+			href: "/flow/impacts",
+			Icon: PLACE_ICON.flow,
+			hidden: hiddenTab(level, "code", "impacts"),
+		},
+		{
+			id: "go-code-pull-requests",
+			label: `${t.ui.place.code} / ${tabLabel(t, "code", "pull-requests")}`,
+			href: "/code/now#code-now-pulls",
+			Icon: PLACE_ICON.code,
+			hidden: hiddenSection(level, "code", "now"),
+		},
+		door("project", "connections", t.tabs.settings.connections),
+		// The tickets file is a part of the project file: no file, no door.
+		{ ...door("project", "tickets", t.projects.ticketsConfig.title), hidden: !projectFile },
+		door("project", "extensions", t.tabs.settings.extensions),
+		door("project", "health", t.settings.pages.projectHealth),
+		door("computer", "models", t.tabs.settings["agents-rules"]),
+		door("computer", "share", t.settings.outside.title),
+		door("computer", "health", t.settings.pages.computerHealth),
+		door("computer", "logs", t.settings.pages.logs),
+		door("me", "look", t.settings.pages.look),
+	]
+		.filter((d) => !("hidden" in d && d.hidden))
+		.map((d) => ({ ...d, run: () => void navigate({ href: d.href }) }));
+
 	const type = pageItemType(viewPath(pathname));
 	// The item that the inspector shows, when it is of the page type.
 	const subject = type && selectedRef && itemTypeOf(selectedRef) === type ? selectedRef : null;
@@ -89,7 +143,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 			id: "go",
 			heading: t.palette.goTo,
 			items: [
-				...tabs.map((a) => ({
+				...[...tabs, ...doors].map((a) => ({
 					id: a.id,
 					label: a.label,
 					icon: <a.Icon size={14} />,

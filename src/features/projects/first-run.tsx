@@ -80,6 +80,7 @@ export function FolderField({ path, onPick }: { path: string; onPick: (path: str
 		<div className="flex gap-2">
 			<Input label={t.projects.folder} placeholder={t.projects.folder} value={path} readOnly />
 			<Button
+				className="min-h-control"
 				onClick={async () => {
 					const picked = await pickFolder();
 					if (picked) onPick(picked);
@@ -92,39 +93,19 @@ export function FolderField({ path, onPick }: { path: string; onPick: (path: str
 	);
 }
 
-/** The first run: the role as named cards, then three starts. Open a local folder is the one primary action. */
-export function FirstRun() {
+/**
+ * One start of a project (open, clone, switch): the busy flag, the error line, and the offer to make
+ * a project of a folder with no Git. The first run and the Projects page share it.
+ */
+export function useProjectStart() {
 	const { t } = useI18n();
-	const { role, loaded, setPrefs } = usePrefs();
-	const { openFolder, clone, switchTo } = useProjectActions();
 	const qc = useQueryClient();
 	const router = useRouter();
-	const projects = useProjects().data;
-	const recent = [...(projects ?? [])].sort((a, b) => b.lastUsed - a.lastUsed).slice(0, 5);
-	// The role step shows only for a person with no saved role and no project. Nothing shows before the prefs and the list load.
-	const [chosen, setStep] = useState<Step | null>(null);
-	const step: Step | null =
-		chosen ?? (loaded && projects ? (role !== "none" || projects.length ? "start" : "role") : null);
-	// The badge "2" shows only when the role step showed.
-	const sawRole = useRef(false);
-	if (step === "role") sawRole.current = true;
-	// A click on a card picks the role, from the saved one. Continue saves it.
-	const [picked, setPick] = useState<Role | null>(null);
-	const pick = picked ?? role;
-	// After Continue the keyboard focus moves to the start step.
-	const startHead = useRef<HTMLHeadingElement>(null);
-	useEffect(() => {
-		if (chosen === "start") startHead.current?.focus();
-	}, [chosen]);
 	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
-	const [url, setUrl] = useState("");
-	const [folder, setFolder] = useCloneFolder();
-	const [creating, setCreating] = useState(false);
 	// A folder without Git: the error offers to make it a project.
 	const [plain, setPlain] = useState<string | null>(null);
-
-	const run = async (start: () => Promise<ProjectOutcome | null>) => {
+	const run = async (start: () => Promise<ProjectOutcome | null | undefined>) => {
 		setBusy(true);
 		setError(null);
 		setPlain(null);
@@ -148,9 +129,62 @@ export function FirstRun() {
 			}
 			return o;
 		});
+	return { run, error, busy, plain, makeProject };
+}
+
+/** The error line of a start, with Make it a project for a folder with no Git. */
+export function StartError({ start }: { start: ReturnType<typeof useProjectStart> }) {
+	const { t } = useI18n();
+	const { error, plain, busy, makeProject } = start;
+	if (!error) return null;
+	return (
+		<div className="flex items-center gap-3">
+			<ErrorNotice error={error} className="flex-1 text-ui text-danger-text" />
+			{plain ? (
+				<Button
+					variant="primary"
+					className="min-h-control"
+					disabled={busy}
+					onClick={() => void makeProject(plain)}
+				>
+					{t.projects.makeProject}
+				</Button>
+			) : null}
+		</div>
+	);
+}
+
+/** The first run: the role as named cards, then three starts. Open a local folder is the one primary action. */
+export function FirstRun() {
+	const { t } = useI18n();
+	const { role, loaded, setPrefs } = usePrefs();
+	const { openFolder, clone, switchTo } = useProjectActions();
+	const qc = useQueryClient();
+	const start = useProjectStart();
+	const { run, busy } = start;
+	const projects = useProjects().data;
+	const recent = [...(projects ?? [])].sort((a, b) => b.lastUsed - a.lastUsed).slice(0, 5);
+	// The role step shows only for a person with no saved role and no project. Nothing shows before the prefs and the list load.
+	const [chosen, setStep] = useState<Step | null>(null);
+	const step: Step | null =
+		chosen ?? (loaded && projects ? (role !== "none" || projects.length ? "start" : "role") : null);
+	// The badge "2" shows only when the role step showed.
+	const sawRole = useRef(false);
+	if (step === "role") sawRole.current = true;
+	// A click on a card picks the role, from the saved one. Continue saves it.
+	const [picked, setPick] = useState<Role | null>(null);
+	const pick = picked ?? role;
+	// After Continue the keyboard focus moves to the start step.
+	const startHead = useRef<HTMLHeadingElement>(null);
+	useEffect(() => {
+		if (chosen === "start") startHead.current?.focus();
+	}, [chosen]);
+	const [url, setUrl] = useState("");
+	const [folder, setFolder] = useCloneFolder();
+	const [creating, setCreating] = useState(false);
 
 	const back = (
-		<Button variant="ghost" onClick={() => setStep("start")}>
+		<Button variant="ghost" className="min-h-control" onClick={() => setStep("start")}>
 			{t.projects.back}
 		</Button>
 	);
@@ -172,7 +206,7 @@ export function FirstRun() {
 					<section aria-labelledby="first-run-role" className="flex flex-col gap-2">
 						<h2
 							id="first-run-role"
-							className="flex items-center gap-2 text-14 font-medium text-n-12"
+							className="flex items-center gap-2 text-20 font-semibold text-n-12"
 						>
 							<span
 								aria-hidden="true"
@@ -192,7 +226,7 @@ export function FirstRun() {
 								return (
 									<label
 										key={r}
-										className="flex h-12 cursor-pointer items-center gap-2.5 rounded-lg border bg-surface-2 px-3 text-ui text-n-12 shadow-1 transition-colors duration-(--duration-fast) hover:bg-n-3 has-checked:border-accent has-checked:bg-accent-soft has-checked:shadow-glow has-focus-visible:outline-[length:var(--focus-width,2px)] has-focus-visible:outline-accent"
+										className="flex min-h-control cursor-pointer items-center gap-2.5 rounded-lg border bg-surface-2 px-3 text-ui text-n-12 shadow-1 transition-colors duration-(--duration-fast) hover:bg-n-3 has-checked:border-accent has-checked:bg-accent-soft has-checked:shadow-glow has-focus-visible:outline-[length:var(--focus-width,2px)] has-focus-visible:outline-accent"
 									>
 										<input
 											type="radio"
@@ -211,6 +245,7 @@ export function FirstRun() {
 						<div className="flex justify-end">
 							<Button
 								variant="primary"
+								className="min-h-control"
 								onClick={() => {
 									setPrefs({ role: pick });
 									setStep("start");
@@ -227,7 +262,7 @@ export function FirstRun() {
 							id="first-run-start"
 							ref={startHead}
 							tabIndex={-1}
-							className="flex items-center gap-2 text-14 font-medium text-n-12 outline-none"
+							className="flex items-center gap-2 text-20 font-semibold text-n-12 outline-none"
 						>
 							{sawRole.current ? (
 								<span
@@ -294,6 +329,7 @@ export function FirstRun() {
 							{back}
 							<Button
 								variant="primary"
+								className="min-h-control"
 								disabled={busy || !url.trim() || !folder || !repoName(url)}
 								onClick={() => run(() => clone(url.trim(), `${folder}/${repoName(url)}`))}
 							>
@@ -302,16 +338,7 @@ export function FirstRun() {
 						</div>
 					</div>
 				) : null}
-				{error ? (
-					<div className="flex items-center gap-3">
-						<ErrorNotice error={error} className="flex-1 text-ui text-danger-text" />
-						{plain ? (
-							<Button variant="primary" disabled={busy} onClick={() => void makeProject(plain)}>
-								{t.projects.makeProject}
-							</Button>
-						) : null}
-					</div>
-				) : null}
+				<StartError start={start} />
 				{step === "start" && recent.length ? (
 					<section aria-labelledby="recent-projects" className="flex flex-col gap-2">
 						<h2 id="recent-projects" className="text-12 font-medium text-n-11">
@@ -333,7 +360,7 @@ export function FirstRun() {
 										<Button
 											variant="ghost"
 											title={p.path}
-											className="h-auto justify-start p-0 text-ui hover:bg-transparent hover:underline"
+											className="h-auto min-h-control justify-start p-0 text-ui hover:bg-transparent hover:underline"
 											onClick={() => run(() => switchTo(p.id))}
 										>
 											<StatusDot status={STATE_DOT[p.state]} label={t.projects.state[p.state]} />

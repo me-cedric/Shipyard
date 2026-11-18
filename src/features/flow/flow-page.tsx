@@ -348,7 +348,7 @@ function FlowPage({ view }: { view: "flow" | "list" | "done" }) {
 							icon={<CpuChipIcon size={28} />}
 							action={{
 								label: t.glossary.setUpRunner,
-								onClick: () => openSetting("/settings/connections#connections-runner"),
+								onClick: () => openSetting("/setup/computer#connections-runner"),
 							}}
 						/>
 					) : (features.data ?? []).length === 0 && !features.error ? (

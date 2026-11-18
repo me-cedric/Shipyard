@@ -237,6 +237,24 @@ export const forgeEs: typeof forgeEn = {
 		showAll: "Mostrar las {n} líneas",
 		noMatch: "Ningún archivo coincide",
 	},
+	now: {
+		files: "{count} archivos por confirmar",
+		file: "1 archivo por confirmar",
+		clean: "Nada por confirmar",
+		write: "Escríbelo por mí",
+		writePrompt:
+			"Escribe un mensaje de commit con el formato Conventional Commits para los archivos preparados: {files}",
+		pulls: "Pull requests",
+		past: "Fusionadas y cerradas",
+		merge: "Fusionar la pull request {number}",
+		health: "Salud del producto",
+	},
+	mark: {
+		label: "Estado de la sincronización",
+		inSync: "Sincronizado",
+		noRemote: "Aún no compartido",
+		error: "La sincronización falló",
+	},
 	pullPage: {
 		notFound: "No existe esa pull request",
 		views: "Vistas de la pull request",

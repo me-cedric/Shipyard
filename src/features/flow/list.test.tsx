@@ -225,7 +225,8 @@ describe("Flow / List: the tickets of the backlog", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/flow/list");
 		await user.click(await screen.findByRole("button", { name: "Connect an issue tracker" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/connections"));
+		// The connections of an issue tracker are under This project (`spec:app-redesign#REQ-024`).
+		await waitFor(() => expect(router.state.location.href).toBe("/setup/project?page=connections"));
 		expect(await screen.findByRole("textbox", { name: "Name" })).toBeInTheDocument();
 	});
 

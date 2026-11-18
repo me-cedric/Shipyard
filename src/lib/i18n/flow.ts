@@ -2,6 +2,11 @@
 export const flowEn = {
 	newAction: "New feature",
 	views: { flow: "Flow", list: "List", done: "Done", health: "Health" },
+	health: {
+		fixOne: "1 gate needs a fix",
+		fixMany: "{count} gates need a fix",
+		clean: "No gate needs a fix",
+	},
 	stages: { idea: "Idea", spec: "Spec", build: "Build", review: "Review", ready: "Ready" },
 	filter: "Show",
 	filters: { all: "All", needs: "Needs me", mine: "Mine" },
@@ -67,7 +72,7 @@ export const flowEn = {
 		noTicket: "No ticket",
 		noChat: "Nothing to say yet",
 		gates: "Gates",
-		impacts: "Impacts",
+		impacts: "Impacts on other code",
 		side: { brief: "Brief", changes: "Changes", people: "People", open: "Open" },
 		files: "{count} files",
 		lines: "+{added} -{removed}",
@@ -115,6 +120,11 @@ export const flowEn = {
 export const flowFr: typeof flowEn = {
 	newAction: "Nouvelle fonctionnalité",
 	views: { flow: "Flux", list: "Liste", done: "Terminé", health: "Santé" },
+	health: {
+		fixOne: "1 contrôle à corriger",
+		fixMany: "{count} contrôles à corriger",
+		clean: "Aucun contrôle à corriger",
+	},
 	stages: { idea: "Idée", spec: "Spec", build: "Construction", review: "Revue", ready: "Prêt" },
 	filter: "Afficher",
 	filters: { all: "Tout", needs: "Me concerne", mine: "Les miens" },
@@ -180,7 +190,7 @@ export const flowFr: typeof flowEn = {
 		noTicket: "Aucun ticket",
 		noChat: "Rien à dire pour l'instant",
 		gates: "Étapes de contrôle",
-		impacts: "Impacts",
+		impacts: "Impacts sur le reste du code",
 		side: { brief: "Cahier", changes: "Changements", people: "Personnes", open: "Ouvrir" },
 		files: "{count} fichiers",
 		lines: "+{added} -{removed}",

@@ -364,7 +364,7 @@ describe("Factory / Runs", () => {
 		const router = mountApp("/factory/runs");
 		expect(await screen.findByText("No AI tool found")).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Set up an AI tool" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/connections"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/computer"));
 		expect(router.state.location.hash).toBe("connections-runner");
 	});
 });

@@ -11,7 +11,7 @@ async function choose(user: ReturnType<typeof userEvent.setup>, field: string, o
 describe("Settings / Me (shell REQ-010)", () => {
 	it("saves the theme for the person, not for a project", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		await choose(user, "Theme", "Dark");
 		await waitFor(() => expect(mockState().prefs.theme).toBe("dark"));
 		expect(document.documentElement.dataset.theme).toBe("dark");
@@ -19,7 +19,7 @@ describe("Settings / Me (shell REQ-010)", () => {
 
 	it("saves density and contrast with a switch", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		await user.click(await screen.findByRole("switch", { name: "Compact" }));
 		await user.click(screen.getByRole("switch", { name: "High contrast" }));
 		await waitFor(() => expect(mockState().prefs.density).toBe("compact"));
@@ -28,7 +28,7 @@ describe("Settings / Me (shell REQ-010)", () => {
 
 	it("saves the role", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		await choose(user, "Role", "Developer");
 		await waitFor(() => expect(mockState().prefs.role).toBe("developer"));
 	});
@@ -37,12 +37,14 @@ describe("Settings / Me (shell REQ-010)", () => {
 describe("Settings / Me fonts, terminal and agent", () => {
 	it("saves the fonts, the shell, the terminal size and the default agent", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		// The fonts are a part of the look: they sit behind the door Look and layout.
+		const router = mountApp("/setup/me?page=look");
 		await choose(user, "Interface font", "Serif");
 		await choose(user, "Code font", "Menlo");
 		await waitFor(() => expect(mockState().prefs.uiFont).toBe("serif"));
 		expect(mockState().prefs.codeFont).toBe("menlo");
 		expect(document.documentElement.style.getPropertyValue("--font-sans")).toContain("Charter");
+		router.history.push("/setup/me");
 		const shell = await screen.findByRole("textbox", { name: "Shell" });
 		await user.type(shell, "/bin/zsh");
 		await user.tab();
@@ -60,7 +62,7 @@ describe("Settings / Me fonts, terminal and agent", () => {
 describe("Settings / Me notifications (shell REQ-008)", () => {
 	it("turns a source off and on through notifyOff", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		const sw = await screen.findByRole("switch", { name: "Approval" });
 		expect(sw).toBeChecked();
 		await user.click(sw);
@@ -73,7 +75,7 @@ describe("Settings / Me notifications (shell REQ-008)", () => {
 
 	it("has a switch for each new source, on by default, in English and French", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		for (const name of ["Run ended", "Pull request checks", "Failed scan", "Review draft"])
 			expect(await screen.findByRole("switch", { name })).toBeChecked();
 		await user.click(screen.getByRole("switch", { name: "Review draft" }));
@@ -81,7 +83,7 @@ describe("Settings / Me notifications (shell REQ-008)", () => {
 	});
 
 	it("keeps both changes when two switches turn off in quick succession", async () => {
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		const a = await screen.findByRole("switch", { name: "Approval" });
 		const b = screen.getByRole("switch", { name: "Failed sync" });
 		fireEvent.click(a);
@@ -95,7 +97,7 @@ describe("Settings / Me notifications (shell REQ-008)", () => {
 describe("language switch (shell REQ-011)", () => {
 	it("applies French to the sidebar and the palette without a restart, and keeps it", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/me");
+		mountApp("/setup/me");
 		await choose(user, "Language", "French");
 		await screen.findByRole("navigation", { name: "Barre latérale" });
 		expect(document.documentElement.lang).toBe("fr");

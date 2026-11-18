@@ -11,7 +11,7 @@ describe("Settings / Project and Health: name, logo, git tools, linked inspect, 
 
 	it("renames the project and sets its logo, which shows in the top bar", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		// The name is the first field of the project form; Save writes the project file.
 		const [name] = await screen.findAllByRole("textbox", { name: "Name" });
 		if (!name) throw new Error("no name field");
@@ -32,7 +32,7 @@ describe("Settings / Project and Health: name, logo, git tools, linked inspect, 
 		const user = userEvent.setup();
 		await unwrap(commands.codeStashPush("Half done"));
 		mockState().extras.behind["feat/auth/login"] = 2;
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		const panel = await screen.findByRole("region", { name: "Repository" });
 		await user.click(
 			await within(panel).findByRole("button", { name: "Show the changes of Half done" }),
@@ -51,11 +51,13 @@ describe("Settings / Project and Health: name, logo, git tools, linked inspect, 
 
 	it("inspects a linked project and writes a feedback e-mail", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/health");
+		const router = mountApp("/setup/project?page=health");
 		const panel = await screen.findByRole("region", { name: "Linked projects" });
 		await user.click(await within(panel).findByRole("button", { name: "Inspect API gateway" }));
 		expect(await screen.findByText("chore: deploy compass")).toBeInTheDocument();
-		await user.type(screen.getByRole("textbox", { name: "Title" }), "Slow board");
+		// The feedback is with the logs of this computer.
+		router.history.push("/setup/computer?page=logs");
+		await user.type(await screen.findByRole("textbox", { name: "Title" }), "Slow board");
 		await user.click(screen.getByRole("button", { name: "Open in mail" }));
 		await waitFor(() => expect(mockState().extras.mails).toHaveLength(1));
 		expect(mockState().extras.mails[0]).toContain("subject=Slow%20board");

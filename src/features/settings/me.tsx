@@ -130,7 +130,18 @@ function NotifySwitch({ source }: { source: EventSource }) {
 	);
 }
 
-export function Me() {
+/**
+ * Settings / Me. A part of Setup / Me (`spec:app-redesign#REQ-024`): `main` holds the person, and
+ * `look` holds the look, the layout and the fonts. The start list is on Start, and the permissions
+ * are under This computer: `permissions` keeps them here for a role that does not see it.
+ */
+export function Me({
+	part,
+	permissions: here = !part,
+}: {
+	part?: "main" | "look";
+	permissions?: boolean;
+}) {
 	const { t } = useI18n();
 	const {
 		density,
@@ -146,7 +157,9 @@ export function Me() {
 	const personal = usePersonalSections();
 	const look = useLookRows();
 	const permissions = usePermissionSection();
-	const withIcon = personal.map((s) => ({ ...s, icon: SECTION_ICON[s.id] }));
+	const withIcon = personal
+		.filter((s) => !part || (s.id === "fonts") === (part === "look"))
+		.map((s) => ({ ...s, icon: SECTION_ICON[s.id] }));
 	const nav = [
 		{ id: "setup", title: t.onboarding.setup.title },
 		{ id: "me", title: t.tabs.settings.me },
@@ -163,12 +176,32 @@ export function Me() {
 			{control}
 		</span>
 	);
+	if (part === "look")
+		return (
+			<div className="flex flex-col">
+				<PageHeader icon={<SwatchIcon size={16} />} title={t.settings.pages.look} />
+				<div className={SETTINGS_PAGE}>
+					<Settings
+						sections={[
+							{
+								id: "look",
+								title: t.settings.pages.look,
+								icon: <SwatchIcon size={14} />,
+								rows: look,
+							},
+							...withIcon,
+						]}
+					/>
+				</div>
+			</div>
+		);
 	return (
 		<div className="flex flex-col">
-			<PageHeader icon={<UserCircleIcon size={16} />} title={t.tabs.settings.me} />
+			{part ? null : <PageHeader icon={<UserCircleIcon size={16} />} title={t.tabs.settings.me} />}
+			{/* The list shows the sections that are on the page. */}
 			<SectionNav label={t.ui.sections} items={nav} />
 			<div className={SETTINGS_PAGE}>
-				<Checklist id="section-setup" />
+				{part ? null : <Checklist id="section-setup" />}
 				<Settings
 					sections={[
 						{
@@ -283,7 +316,7 @@ export function Me() {
 										/>,
 									),
 								},
-								...look,
+								...(part ? [] : look),
 							],
 						},
 						...withIcon,
@@ -298,7 +331,7 @@ export function Me() {
 								control: <NotifySwitch source={s} />,
 							})),
 						},
-						{ ...permissions, icon: SECTION_ICON.permissions },
+						...(here ? [{ ...permissions, icon: SECTION_ICON.permissions }] : []),
 					]}
 				/>
 			</div>

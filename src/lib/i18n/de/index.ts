@@ -191,6 +191,7 @@ export const de: Messages = {
 			usage: "Nutzung",
 		},
 		code: {
+			now: "Jetzt",
 			changes: "Lokale Änderungen",
 			history: "Verlauf",
 			branches: "Branches",
@@ -216,6 +217,7 @@ export const de: Messages = {
 			me: "Ich",
 			health: "Zustand",
 		},
+		setup: { start: "Start", project: "Dieses Projekt", computer: "Dieser Computer", me: "Ich" },
 	},
 	noun: {
 		home: "Projekt",

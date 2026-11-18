@@ -4,7 +4,7 @@ import { type PlaceId, type PlacePath, sectionView } from "./places";
 import { tabLabel } from "./spaces";
 
 /** The page that lists the entities of each ref kind. A run and a pull request are not here: each has its own page (`runOfRef`, `pullOfRef`). */
-const PAGE: Record<string, PlacePath> = {
+const PAGE: Record<string, PlacePath | "/projects"> = {
 	adr: "/library/decisions",
 	diagram: "/library/diagrams",
 	model: "/library/architecture",
@@ -22,8 +22,8 @@ const PAGE: Record<string, PlacePath> = {
 	wf: "/crew/recipes",
 	commit: "/code/history",
 	doc: "/library/documents",
-	conn: "/setup/connections",
-	project: "/today/projects",
+	conn: "/setup/project",
+	project: "/projects",
 };
 
 /** The page and the open item of a `doc:` ref, by the folder of the file. */
@@ -50,7 +50,8 @@ export const featureOfRef = (ref: string) =>
 			}
 		: undefined;
 
-export const refPage = (ref: string): PlacePath | undefined => PAGE[ref.slice(0, ref.indexOf(":"))];
+export const refPage = (ref: string): PlacePath | "/projects" | undefined =>
+	PAGE[ref.slice(0, ref.indexOf(":"))];
 
 /**
  * The open item that the page of the ref remembers (`useTabSelection`): its scope and its id. A

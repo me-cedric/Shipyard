@@ -37,6 +37,27 @@ describe("new project", () => {
 		);
 	});
 
+	it("shows the five steps on one page with All steps, and one step again from the step line", async () => {
+		const user = await openCreator();
+		expect(screen.queryByRole("textbox", { name: "Vision" })).toBeNull();
+		const all = screen.getByRole("button", { name: "All steps" });
+		expect(all).toHaveClass("min-h-control");
+		await user.click(all);
+		expect(all).toHaveAttribute("aria-pressed", "true");
+		for (const name of ["Project", "Brief", "Team", "Remote", "Start"])
+			expect(screen.getByRole("heading", { level: 2, name })).toBeInTheDocument();
+		// Each field of each step is there, with the text that the person typed.
+		expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("Demo");
+		expect(screen.getByRole("textbox", { name: "Vision" })).toBeInTheDocument();
+		expect(screen.getByRole("textbox", { name: "Member 1" })).toBeInTheDocument();
+		expect(screen.getByRole("combobox", { name: "Issue tracker" })).toBeInTheDocument();
+		expect(screen.getByRole("radio", { name: "Later" })).toBeInTheDocument();
+		await waitFor(() => expect(screen.getByRole("button", { name: "Create" })).toBeEnabled());
+		await stepTo(user, "Team");
+		expect(screen.queryByRole("textbox", { name: "Vision" })).toBeNull();
+		expect(screen.getByRole("textbox", { name: "Member 1" })).toBeInTheDocument();
+	});
+
 	it("fills the brief in the docs language until the person edits a field", async () => {
 		const user = await openCreator();
 		await stepTo(user, "Brief");

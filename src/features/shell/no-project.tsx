@@ -5,14 +5,13 @@ import { useI18n } from "@/lib/i18n";
 import { outcomeError, useActiveProject, useProjectActions } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { ArrowDownTrayIcon, FolderOpenIcon, PlusIcon } from "@/ui/icons";
-import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { ListDetail } from "@/ui/templates/list-detail";
 
 /**
- * The page of every space that needs a project and has none: open a folder, clone a repository or
- * start a new project. The same three ways as Home / Projects. The title is the `h1` of the space.
+ * The page of every place that needs a project and has none: open a folder, clone a repository or
+ * start a new project. The same three ways as the Projects page. The title is the `h1` of the place.
  */
 export function NoProject({ title, icon }: { title: string; icon: ReactNode }) {
 	const { t } = useI18n();
@@ -23,30 +22,37 @@ export function NoProject({ title, icon }: { title: string; icon: ReactNode }) {
 	return (
 		<ListDetail title={title} icon={icon}>
 			<div className="flex flex-col items-center p-4">
-				<EmptyState
-					title={t.empty.project}
-					action={{
-						label: t.projects.open,
-						icon: <FolderOpenIcon size={14} />,
-						onClick: () =>
-							void openFolder()
-								.then((o) => setError(o && outcomeError(t, o)))
-								.catch((e: unknown) => setError(e)),
-					}}
-					extra={
-						<>
-							<Button onClick={() => setCloning(true)}>
-								<ArrowDownTrayIcon size={14} />
-								{t.projects.clone}
-							</Button>
-							<Button onClick={() => setCreating(true)}>
-								<PlusIcon size={14} />
-								{t.creator.title}
-							</Button>
-						</>
-					}
-				/>
-				{error ? <ErrorNotice error={error} className="pt-3 text-ui text-danger-text" /> : null}
+				<section
+					aria-labelledby="no-project"
+					className="flex w-full max-w-xl flex-col items-center gap-4 rounded-xl bg-surface-2 p-8 shadow-1"
+				>
+					<h2 id="no-project" className="text-20 font-semibold text-n-12">
+						{t.workspace.moment.noProject}
+					</h2>
+					<div className="flex flex-wrap justify-center gap-2">
+						<Button className="min-h-control" onClick={() => setCreating(true)}>
+							<PlusIcon size={14} />
+							{t.creator.title}
+						</Button>
+						<Button className="min-h-control" onClick={() => setCloning(true)}>
+							<ArrowDownTrayIcon size={14} />
+							{t.projects.clone}
+						</Button>
+						<Button
+							variant="primary"
+							className="min-h-control"
+							onClick={() =>
+								void openFolder()
+									.then((o) => setError(o && outcomeError(t, o)))
+									.catch((e: unknown) => setError(e))
+							}
+						>
+							<FolderOpenIcon size={14} />
+							{t.projects.open}
+						</Button>
+					</div>
+					{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
+				</section>
 			</div>
 			<CloneDialog open={cloning} onClose={() => setCloning(false)} />
 			<NewProjectDialog open={creating} onClose={() => setCreating(false)} />

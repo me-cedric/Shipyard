@@ -77,6 +77,14 @@ const PATHS = [
 	"/home/inbox",
 	"/home/my-work",
 	"/home/activity",
+	// The addresses that wave 6 of `update-app-redesign` moved.
+	"/today/projects",
+	"/setup/connections",
+	"/setup/agents-rules",
+	"/setup/extensions",
+	"/setup/health",
+	"/setup/project",
+	"/setup/me",
 	"/factory/runs/$runId",
 	"/code/pull-requests/$pullId",
 ];

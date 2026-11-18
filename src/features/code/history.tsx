@@ -190,8 +190,8 @@ function HistoryView() {
 						<EmptyState
 							title={t.empty.commit}
 							action={{
-								label: t.tabs.code.changes,
-								onClick: () => void navigate({ to: "/code/changes" }),
+								label: t.ui.place.code,
+								onClick: () => void navigate({ to: "/code/now" }),
 							}}
 						/>
 					)}

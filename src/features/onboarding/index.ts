@@ -1,4 +1,5 @@
 export { Checklist } from "./checklist";
-export { usePermissionSection } from "./permissions";
+export { usePermissionSection, usePermissionsPlace } from "./permissions";
+export { SetupStart } from "./start";
 export { Tour } from "./tour";
 export { openTour } from "./tour-store";

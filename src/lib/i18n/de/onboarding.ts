@@ -12,7 +12,7 @@ export const onboardingDe: typeof onboardingEn = {
 	steps: {
 		loop: {
 			title: "Ein Kreislauf, von der Idee bis zum zusammengeführten Code",
-			body: "Entwurf, Spezifikationen, Arbeit, Agenten, Code und Wissen bleiben zusammen, in den Dateien Ihres Projekts.",
+			body: "Heute, Ablauf, Plan, Team, Bibliothek und Code führen ein Feature von der Idee bis zum Pull Request. Einrichtung enthält die Einstellungen.",
 		},
 		project: {
 			title: "Projekt öffnen",
@@ -72,6 +72,31 @@ export const onboardingDe: typeof onboardingEn = {
 			assign: "Zuweisen",
 			run: "Starten",
 		},
+		question: {
+			project: "An welchem Projekt arbeiten Sie?",
+			ai: "Welches KI-Tool erledigt die Arbeit?",
+			models: "Welche Modelle nutzt das KI-Tool?",
+			tracker: "Wo sind Ihre Tickets?",
+			forge: "Wo ist Ihr Code?",
+			team: "Wer gehört zum Team?",
+			permissions: "Was darf Shipyard auf diesem Computer?",
+			decision: "Was ist Ihre erste Entscheidung?",
+			spec: "Was bauen Sie zuerst?",
+			assign: "Wer übernimmt das erste Ticket?",
+			run: "Welches Ticket übernimmt ein Agent zuerst?",
+		},
+		skip: "Überspringen",
+		scope: {
+			project: "Dieses Projekt",
+			computer: "Dieser Computer",
+			me: "Ich",
+		},
+		state: {
+			connections: "Offene Verbindungen: {count}",
+			connected: "Verbunden",
+			tools: "KI-Tools bereit: {count}",
+			noProject: "Kein Projekt ist offen",
+		},
 	},
 	picture: {
 		folder: "Ordner öffnen",
@@ -93,6 +118,7 @@ export const onboardingDe: typeof onboardingEn = {
 			unknown: "Unbekannt",
 		},
 		allow: "Erlauben",
+		allowAll: "Alle erlauben",
 		settings: "Systemeinstellungen öffnen",
 		test: "Test senden",
 		testBody: "Die Benachrichtigungen sind an.",

@@ -9,7 +9,7 @@ const row = (name: string) => screen.findByRole("group", { name });
 describe("Settings / Connections / MCP servers: categories, recommended set and tests", () => {
 	it("adds the recommended set and groups the servers by category", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		await user.click(await screen.findByRole("button", { name: "Add the recommended set" }));
 		expect(await screen.findByText("Added: Context7, SonarQube")).toBeInTheDocument();
 		const data = await screen.findByRole("region", { name: "Data and docs" });
@@ -28,7 +28,7 @@ describe("Settings / Connections / MCP servers: categories, recommended set and 
 		const user = userEvent.setup();
 		await unwrap(commands.mcpEnable("context7", true));
 		await unwrap(commands.mcpEnable("sonarqube", true));
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		const ctx = await row("Context7");
 		await user.click(within(ctx).getByRole("button", { name: "Test Context7" }));
 		expect(await within(ctx).findByRole("status")).toHaveTextContent("Context7 works: 2 tools");
@@ -42,7 +42,7 @@ describe("Settings / Connections / MCP servers: categories, recommended set and 
 
 	it("filters the servers to add by category", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/computer");
 		await user.click(await screen.findByRole("button", { name: "Connection" }));
 		await user.click(screen.getByRole("combobox", { name: "Type" }));
 		await user.click(await screen.findByRole("option", { name: "MCP server" }));

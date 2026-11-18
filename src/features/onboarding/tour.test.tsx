@@ -27,9 +27,11 @@ describe("Onboarding tour", () => {
 		const dialog = await screen.findByRole("dialog", { name: titles[0] });
 		// The glossary words of the sentence are marked (REQ-008).
 		const body = within(dialog).getByText(
-			(_, el) => el?.tagName === "P" && !!el.textContent?.startsWith("Design, specs"),
+			// The sentence names the six places and Setup, not the spaces of before (adr:0023).
+			(_, el) => el?.tagName === "P" && !!el.textContent?.startsWith("Today, Flow, Plan, Crew"),
 		);
-		expect(within(body).getByRole("button", { name: "specs" })).toBeInTheDocument();
+		expect(body).toHaveTextContent("Setup");
+		expect(within(body).getByRole("button", { name: "pull request" })).toBeInTheDocument();
 		expect(within(dialog).getByText("Step 1 of 6")).toBeInTheDocument();
 		await user.click(within(dialog).getByRole("button", { name: o.next }));
 		expect(await screen.findByRole("dialog", { name: titles[1] })).toBeInTheDocument();
@@ -165,10 +167,29 @@ describe("Onboarding tour", () => {
 		expect(within(files).getByRole("button", { name: o.permissions.allow })).toBeInTheDocument();
 	});
 
-	it("shows the permissions and Replay the tour in Settings / Me", async () => {
+	it("asks for each permission that was not asked after one click on Allow all", async () => {
+		const user = userEvent.setup();
+		mockState().prefs.tourSeen = false;
+		await openProject();
+		mountApp("/home/today");
+		await screen.findByRole("dialog", { name: titles[0] });
+		for (let i = 0; i < 4; i++) await user.keyboard("{ArrowRight}");
+		const dialog = await screen.findByRole("dialog", { name: o.steps.permissions.title });
+		await user.click(await within(dialog).findByRole("button", { name: o.permissions.allowAll }));
+		await waitFor(() =>
+			expect(mockState().permissions.every((p) => p.state !== "notAsked")).toBe(true),
+		);
+		await waitFor(() =>
+			expect(within(dialog).queryByRole("button", { name: o.permissions.allowAll })).toBeNull(),
+		);
+	});
+
+	it("shows the permissions and Replay the tour in Setup / This computer", async () => {
 		const user = userEvent.setup();
 		mockState().permissions[1] = { kind: "files", state: "off", settings: true };
-		mountApp("/settings/me");
+		// The old address of the permissions opens This computer.
+		const router = mountApp("/settings/me#section-permissions");
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/computer"));
 		const files = await screen.findByRole("group", { name: o.permissions.kind.files });
 		expect(within(files).getByText(o.permissions.state.off)).toBeInTheDocument();
 		expect(within(files).getByRole("button", { name: o.permissions.settings })).toBeInTheDocument();

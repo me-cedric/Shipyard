@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
@@ -7,7 +7,8 @@ describe("No-project page (REQ-006)", () => {
 	it.each([
 		["/work/backlog", "Flow"],
 		["/specs/capabilities", "Capabilities"],
-		["/code/changes", "Local changes"],
+		// The old address opens Code / Now, whose title is the place.
+		["/code/changes", "Code"],
 		["/design/architecture", "Architecture"],
 		["/factory/runs", "Flow"],
 		["/knowledge/graph", "Graph"],
@@ -17,6 +18,11 @@ describe("No-project page (REQ-006)", () => {
 		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Clone a repository" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { level: 1, name: title })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { level: 2, name: "No project is open" })).toBeVisible();
+		for (const b of within(screen.getByRole("region", { name: "No project is open" })).getAllByRole(
+			"button",
+		))
+			expect(b).toHaveClass("min-h-control");
 		await user.click(screen.getByRole("button", { name: "New project" }));
 		expect(await screen.findByRole("dialog")).toBeInTheDocument();
 		await waitFor(() => expect(router.state.status).toBe("idle"));

@@ -58,6 +58,26 @@ test("closes a project, opens it again from the recent list and switches between
 	await expect(switcher).toHaveText(/beta/);
 });
 
+test("shows the open project on the Projects page and closes it there", async ({ page }) => {
+	await page.goto("/");
+	await openFirstFolder(page);
+	await expect(page.getByRole("button", { name: /^Project/ })).toHaveText(/alpha/);
+	// A move inside the app: a reload would reset the mock.
+	await page.evaluate(() => {
+		window.history.pushState({}, "", "/projects");
+		window.dispatchEvent(new PopStateEvent("popstate"));
+	});
+	await expect(page.getByRole("heading", { level: 1, name: "Projects" })).toBeVisible();
+	const open = page
+		.getByRole("list", { name: "Open now" })
+		.getByRole("listitem", { name: "alpha" });
+	await expect(open.getByText(/^Need you: \d+$/)).toBeVisible();
+	await expect(open.getByText(/^Agents at work: \d+$/)).toBeVisible();
+	await expect(page.getByText("Drop a folder here")).toBeVisible();
+	await open.getByRole("button", { name: "Close project" }).click();
+	await expect(page.getByRole("list", { name: "Recent projects" })).toBeVisible();
+});
+
 test("fixes a finding in Settings / Health after one confirm click", async ({ page }) => {
 	await page.goto("/");
 	await openFirstFolder(page);
