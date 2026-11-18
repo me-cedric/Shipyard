@@ -233,6 +233,8 @@ export const commands = {
 	prReviewStop: (number: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("pr_review_stop", { number })),
 	prReviewWaiting: () => typedError<ReviewWait[], AppError_Serialize>(__TAURI_INVOKE("pr_review_waiting")),
 	prWriteText: (base: string | null, click: boolean) => typedError<PrText, AppError_Serialize>(__TAURI_INVOKE("pr_write_text", { base, click })),
+	estimateAgentStart: (slug: string, taskIds: string[], click: boolean) => typedError<EstimateProposal[], AppError_Serialize>(__TAURI_INVOKE("estimate_agent_start", { slug, taskIds, click })),
+	estimateAgentStop: (slug: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("estimate_agent_stop", { slug })),
 	machineSessions: () => typedError<MachineSession_Serialize[], AppError_Serialize>(__TAURI_INVOKE("machine_sessions")),
 	machineSessionStop: (pid: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("machine_session_stop", { pid, click })),
 	machineSpend: (days: number) => typedError<Spend, AppError_Serialize>(__TAURI_INVOKE("machine_spend", { days })),
@@ -2155,6 +2157,15 @@ export type ErrorAction = {
 export type ErrorCode = 
 /**  Not in the table: the view shows the details. */
 "unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_id_invalid" | "change_exists" | "run_not_started" | "run_active" | "merge_draft" | "merge_closed" | "merge_method" | "forge_unreachable" | "cert_untrusted" | "forge_denied" | "forge_missing" | "git_nothing_staged" | "git_identity" | "git_busy" | "git_no_upstream" | "no_terminal" | "terminal_gone" | "device_not_set" | "no_editor" | "no_first_commit" | "remote_address" | "remote_exists" | "sheet_frozen" | "feed_invalid" | "setting_invalid" | "gitlab_no_mcp" | "gitlab_address" | "read_only" | "agents_stopped" | "agent_limit" | "budget_spent" | "head_missing" | "no_changes" | "review_posted" | "review_running" | "figma_no_token" | "branch_diverged" | "picture_invalid" | "review_no_result" | "agent_no_text" | "agent_no_title" | "review_no_draft" | "review_empty" | "no_base" | "figma_address" | "no_member" | "no_account" | "unknown_member" | "not_found" | "no_remote" | "secret_found" | "file_too_big" | "file_unsupported" | "path_invalid" | "already_exists" | "file_changed" | "no_compass" | "tool_missing" | "tool_failed" | "connection_kind" | "sign_in_failed" | "git_state" | "thread_state" | "stopped" | "import_not_planned" | "server_off" | "input_invalid" | "tracker_unsupported" | "project_file_invalid" | "doc_not_stale" | "git_dirty";
+
+/**  What the agent proposes for one task, in days. It is not in the sheet. */
+export type EstimateProposal = {
+	task: string,
+	best: number | null,
+	likely: number | null,
+	worst: number | null,
+	assumptions: string[],
+};
 
 /**
  *  A source of events that can notify the person (spec `shell`, REQ-008). One list feeds the

@@ -6,124 +6,8 @@ import { mountApp } from "@/test/mount";
 import { withTracker } from "@/test/tracker";
 import { joinEntry } from "./team-rights";
 
-const aside = async (name: string) => within(await screen.findByRole("complementary", { name }));
-
-describe("Work / Team", () => {
-	it("lists the members in a table with headers and units", async () => {
-		await withTracker();
-		mountApp("/work/team");
-		const ada = await screen.findByRole("row", { name: "ada" });
-		expect(
-			within(screen.getByRole("table", { name: "Team" }))
-				.getAllByRole("columnheader")
-				.map((h) => h.textContent),
-		).toEqual(["Name", "Role", "Capacity (days a week)", "Day rate", "Skills"]);
-		expect(
-			within(ada)
-				.getAllByRole("cell")
-				.map((c) => c.textContent),
-		).toEqual([
-			expect.stringContaining("Ada Lovelace"),
-			"dev",
-			"5",
-			"520/d",
-			expect.stringContaining("api"),
-		]);
-		expect(screen.getAllByRole("row", { name: /^[a-z]+$/ })).toHaveLength(5);
-	});
-
-	it("edits a member and writes the new capacity to the team", async () => {
-		const user = userEvent.setup();
-		await withTracker();
-		mountApp("/work/team");
-		await user.click(within(await screen.findByRole("row", { name: "grace" })).getByRole("button"));
-		const panel = await aside("Grace Hopper");
-		const capacity = panel.getByRole("spinbutton", { name: "Capacity (days a week)" });
-		expect(capacity).toHaveValue(4);
-		await user.clear(capacity);
-		await user.type(capacity, "3");
-		await user.click(panel.getByRole("button", { name: "Save" }));
-		await waitFor(() =>
-			expect(mockState().work.team.members.find((m) => m.handle === "grace")?.capacity).toBe(3),
-		);
-		expect(
-			within(await screen.findByRole("row", { name: "grace" })).getAllByRole("cell")[2],
-		).toHaveTextContent(/^3$/);
-	});
-
-	it("adds a member with one primary action", async () => {
-		const user = userEvent.setup();
-		await withTracker();
-		mountApp("/work/team");
-		await user.click(await screen.findByRole("button", { name: "Member" }));
-		const panel = await aside("Member");
-		await user.type(panel.getByRole("textbox", { name: "Name" }), "Barbara Liskov");
-		await user.type(panel.getByRole("textbox", { name: "Handle" }), "barbara");
-		await user.click(panel.getByRole("combobox", { name: "Role" }));
-		await user.click(await screen.findByRole("option", { name: "Developer" }));
-		await user.click(panel.getByRole("button", { name: "Save" }));
-		await waitFor(() => expect(mockState().work.team.members).toHaveLength(6));
-		// A second save replaces the member and adds none.
-		await user.click((await aside("Barbara Liskov")).getByRole("button", { name: "Save" }));
-		await waitFor(() => expect(screen.getAllByRole("row", { name: /^[a-z]+$/ })).toHaveLength(6));
-		expect(mockState().work.team.members).toHaveLength(6);
-	});
-
-	it("refuses a duplicate handle, names it and keeps the last valid team", async () => {
-		const user = userEvent.setup();
-		await withTracker();
-		mountApp("/work/team");
-		await user.click(within(await screen.findByRole("row", { name: "grace" })).getByRole("button"));
-		const panel = await aside("Grace Hopper");
-		const handle = panel.getByRole("textbox", { name: "Handle" });
-		await user.clear(handle);
-		await user.type(handle, "ada");
-		await user.click(panel.getByRole("button", { name: "Save" }));
-		expect(await panel.findByRole("alert")).toHaveTextContent("`ada` is shared by");
-		expect(mockState().work.team.members.map((m) => m.handle)).toEqual([
-			"ada",
-			"grace",
-			"alan",
-			"margaret",
-			"edsger",
-		]);
-	});
-
-	it("hides the day rate while the project is sealed and this machine has no passphrase", async () => {
-		const user = userEvent.setup();
-		await withTracker();
-		await unwrap(commands.workSeal("s3cret"));
-		await unwrap(commands.workLock());
-		mountApp("/work/team");
-		const ada = await screen.findByRole("row", { name: "ada" });
-		expect(ada).not.toHaveTextContent("520");
-		expect(within(ada).getByRole("img", { name: "Passphrase missing" })).toBeInTheDocument();
-		const field = screen.getByLabelText("Passphrase");
-		// The field never shows what a person types.
-		expect(field).toHaveAttribute("type", "password");
-		await user.type(field, "wrong");
-		await user.click(screen.getByRole("button", { name: "Unlock" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("does not open");
-		expect(field).toHaveValue("");
-		expect(screen.getByRole("row", { name: "ada" })).not.toHaveTextContent("520");
-		await user.type(screen.getByLabelText("Passphrase"), "s3cret");
-		await user.click(screen.getByRole("button", { name: "Unlock" }));
-		await waitFor(() =>
-			expect(screen.getByRole("row", { name: "ada" })).toHaveTextContent("520/d"),
-		);
-		expect(screen.queryByLabelText("Passphrase")).toBeNull();
-	});
-
-	it("is in French when the language is French", async () => {
-		mockState().prefs.lang = "fr";
-		await withTracker();
-		mountApp("/work/team");
-		expect(await screen.findByRole("button", { name: "Membre" })).toBeInTheDocument();
-		expect(
-			await screen.findByRole("columnheader", { name: "Capacité (jours par semaine)" }),
-		).toBeInTheDocument();
-	});
-
+// The members and their form are on Crew: `src/features/crew/crew-page.test.tsx`.
+describe("Crew / Rights: the team file", () => {
 	it("shows the rights of each role with icons, and names who the person is", async () => {
 		await withTracker();
 		mockState().person = {
@@ -134,7 +18,7 @@ describe("Work / Team", () => {
 			readOnly: false,
 			rights: ["project.settings", "work.edit"],
 		};
-		mountApp("/work/team");
+		mountApp("/crew/rights");
 		const matrix = within(await screen.findByRole("table", { name: "Rights of each role" }));
 		expect(matrix.getAllByRole("row")).toHaveLength(10);
 		const viewer = within(matrix.getByRole("row", { name: /^Viewer/ }));
@@ -156,7 +40,7 @@ describe("Work / Team", () => {
 	it("edits the level of a cell and saves the roles block", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/team");
+		mountApp("/crew/rights");
 		await user.click(await screen.findByRole("button", { name: "Edit" }));
 		await user.click(screen.getByRole("combobox", { name: "Developer Costs" }));
 		await user.click(await screen.findByRole("option", { name: "Read" }));
@@ -182,7 +66,7 @@ describe("Work / Team", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mockState().work.team.roles = { developer: { costs: "read" } };
-		mountApp("/work/team");
+		mountApp("/crew/rights");
 		await user.click(await screen.findByRole("button", { name: "Edit" }));
 		await user.click(screen.getByRole("button", { name: "Reset Developer to defaults" }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -192,7 +76,7 @@ describe("Work / Team", () => {
 	it("cancels an edit without a write", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/team");
+		mountApp("/crew/rights");
 		await user.click(await screen.findByRole("button", { name: "Edit" }));
 		await user.click(screen.getByRole("combobox", { name: "Developer Costs" }));
 		await user.click(await screen.findByRole("option", { name: "Read" }));
@@ -206,7 +90,7 @@ describe("Work / Team", () => {
 		await withTracker();
 		const grace = mockState().work.team.members.find((m) => m.handle === "grace");
 		Object.assign(grace ?? {}, { role: "viewer", roles: undefined, rights: [], admin: false });
-		mountApp("/work/team");
+		mountApp("/crew/rights");
 		const members = within(await screen.findByRole("table", { name: "Members" }));
 		const before = within(members.getByRole("row", { name: "grace levels" }));
 		expect(before.queryAllByRole("img", { name: "Read and write" })).toHaveLength(0);
@@ -248,52 +132,11 @@ describe("Work / Team", () => {
 			readOnly: false,
 			rights: ["work.edit"],
 		};
-		mountApp("/work/team");
+		mountApp("/crew/rights");
 		const edit = await screen.findByRole("button", { name: "Edit" });
 		await waitFor(() => expect(edit).toBeDisabled());
 		expect(edit).toHaveAccessibleDescription(
 			"Needs the right project.settings (your role: Developer)",
-		);
-	});
-
-	it("turns Member off with the right for a developer", async () => {
-		await withTracker();
-		mockState().person = {
-			member: "ada",
-			found: "email",
-			role: "developer",
-			admin: false,
-			readOnly: false,
-			rights: ["work.edit"],
-		};
-		mountApp("/work/team");
-		const add = await screen.findByRole("button", { name: "Member" });
-		await waitFor(() => expect(add).toBeDisabled());
-		expect(add).toHaveAccessibleDescription(
-			"Needs the right project.settings (your role: Developer)",
-		);
-	});
-
-	it("saves the e-mails, the role, the admin flag and the right changes of a member", async () => {
-		const user = userEvent.setup();
-		await withTracker();
-		mountApp("/work/team");
-		await user.click(within(await screen.findByRole("row", { name: "grace" })).getByRole("button"));
-		const panel = await aside("Grace Hopper");
-		await user.type(panel.getByRole("textbox", { name: "E-mails" }), "grace@example.com");
-		await user.click(panel.getByRole("combobox", { name: "Role" }));
-		await user.click(await screen.findByRole("option", { name: "Architect" }));
-		expect(panel.getByRole("list", { name: "Rights" })).toHaveTextContent("code.merge");
-		await user.click(panel.getByRole("switch", { name: "Admin" }));
-		await user.type(panel.getByRole("textbox", { name: /^Right changes/ }), "-code.merge");
-		await user.click(panel.getByRole("button", { name: "Save" }));
-		await waitFor(() =>
-			expect(mockState().work.team.members.find((m) => m.handle === "grace")).toMatchObject({
-				emails: ["grace@example.com"],
-				role: "architect",
-				admin: true,
-				rights: ["-code.merge"],
-			}),
 		);
 	});
 
@@ -308,7 +151,7 @@ describe("Work / Team", () => {
 			readOnly: false,
 			rights: [],
 		};
-		mountApp("/work/team");
+		mountApp("/crew/rights");
 		expect(await screen.findByText("You are not in the team file")).toBeInTheDocument();
 		const form = within(await screen.findByRole("form", { name: "Ask to join" }));
 		await user.type(form.getByRole("textbox", { name: "Name" }), "Zed Nobody");
@@ -333,7 +176,7 @@ describe("Work / Team", () => {
 				pageModes: { junior: { "code/terminal": "hidden" } },
 			}),
 		);
-		mountApp("/work/team");
+		mountApp("/crew/rights");
 		const panel = within(
 			await screen.findByRole("region", {
 				name: "Move the roles of this machine to the team file",
@@ -371,7 +214,7 @@ describe("Work / Team", () => {
 				result: "refused",
 			},
 		];
-		mountApp("/work/team");
+		mountApp("/crew/rights");
 		const log = within(await screen.findByRole("table", { name: "Audit" }));
 		expect(log.getByText("work_transition")).toBeInTheDocument();
 		expect(log.getByText("refused")).toBeInTheDocument();

@@ -177,25 +177,36 @@ describe("Run address", () => {
 		await idle(router);
 	});
 
-	it("opens the run from a run node and from a session node of the Agents map", async () => {
+	it("opens the run from its ref and from the agent of a live row of Crew", async () => {
 		await open();
 		const user = userEvent.setup();
 		const run = await find("ACME-2");
-		const session = (await unwrap(commands.sessionsList())).find((s) => s.run === run.id);
+		const session = (await unwrap(commands.sessionsList())).find(
+			(s) => s.run === run.id && s.state === "running",
+		);
 		const router = mountApp("/factory/agents-map");
-		// jsdom measures no node, so xyflow keeps each one hidden.
-		const node = async (ref: string) =>
-			within(await screen.findByTestId(`rf__node-${ref}`)).getByRole("button", { hidden: true });
-		const runNode = await node(run.reference);
-		expect(runNode).toHaveAttribute("title", run.reference);
-		expect(runNode).toHaveTextContent(`${run.key} ${run.title}`);
-		runNode.focus();
+		// The address of the agents map opens the live rows.
+		const table = () => screen.findByRole("table", { name: "Agents at work" });
+		const runRef = (
+			await within(await table()).findAllByRole("button", {
+				name: new RegExp(`^${run.reference},`),
+			})
+		)[0];
+		runRef?.focus();
 		await user.keyboard("{Enter}");
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
 		expect(router.state.location.search).toEqual({});
 		router.history.back();
-		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/agents-map"));
-		await user.click(await node(`run:${run.id}/${session?.step}`));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/crew"));
+		expect(router.state.location.search).toEqual({ view: "live" });
+		const agent = await waitFor(async () => {
+			const b = within(await table())
+				.getAllByRole("button")
+				.find((x) => x.title === `run:${run.id}/${session?.step}`);
+			if (!b) throw new Error("no agent");
+			return b;
+		});
+		await user.click(agent);
 		await waitFor(() => expect(router.state.location.search).toEqual({ unit: session?.step }));
 		await idle(router);
 	});

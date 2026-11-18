@@ -9,13 +9,21 @@ import { SPACE_IDS, SPACES, type SpaceId, tabIcon, tabLabel } from "./spaces";
 const TABS = SPACE_IDS.flatMap((space) => SPACES[space].map((tab) => [space, tab] as const));
 
 /**
- * An old tab that Flow hosts has the header of Flow (the place name, the icon of its view); Health
- * keeps the header of the Quality page, which wave 3 does not change.
+ * An old tab that Flow or Crew hosts has the header of its place (the place name, the icon of
+ * its section); Health keeps the header of the Quality page, which wave 3 does not change.
  */
 function hosted(space: SpaceId, tab: string) {
 	const [, place, slug] = (placePath(`/${space}/${tab}`) ?? "").split("/");
-	return place === "flow" && slug && slug !== "health" && slug !== "impacts" ? slug : undefined;
+	if (!slug || slug === "health" || slug === "impacts") return undefined;
+	return place === "flow" || place === "crew" ? ({ place, slug } as const) : undefined;
 }
+
+/** The title of a hosted tab: the name of its place. The agents map of before is the live view of Crew. */
+const placeTitle = (space: SpaceId, tab: string) => {
+	const at = hosted(space, tab);
+	if (!at) return undefined;
+	return tab === "agents-map" ? en.crewPlace.atWork : en.ui.place[at.place];
+};
 
 // update-ux-declutter REQ-017: each tab shows a visible page header with its icon and its title,
 // also while it loads, and a page has one level-one heading.
@@ -31,8 +39,8 @@ async function expectHeader(space: SpaceId, tab: string, title: string) {
 	const slot = h1?.previousElementSibling;
 	// The first-run welcome page carries the logo, not a tab icon.
 	if (title === en.ui.welcome) return expect(slot?.querySelector("img")).not.toBeNull();
-	const slug = hosted(space, tab);
-	const Icon = slug ? tabIcon("flow", slug) : tabIcon(space, tab);
+	const at = hosted(space, tab);
+	const Icon = at ? tabIcon(at.place, at.slug) : tabIcon(space, tab);
 	// An animated icon sets inline styles, so compare the shapes.
 	const shapes = (html: string | undefined) => {
 		const probe = document.createElement("div");
@@ -52,7 +60,7 @@ describe("a page header on every tab (REQ-017)", () => {
 		await expectHeader(
 			space,
 			tab,
-			home ? en.ui.welcome : hosted(space, tab) ? en.ui.place.flow : tabLabel(en, space, tab),
+			home ? en.ui.welcome : (placeTitle(space, tab) ?? tabLabel(en, space, tab)),
 		);
 	});
 	it.each(named)("shows the header of %s / %s with a project", async (space, tab) => {
@@ -64,9 +72,10 @@ describe("a page header on every tab (REQ-017)", () => {
 			tab,
 			today
 				? "(Today|\\d+ things? needs? you)"
-				: hosted(space, tab)
-					? en.ui.place.flow
-					: tabLabel(en, space, tab),
+				: // Plan says when the release ends in its title (app-redesign REQ-018).
+					space === "work" && tab === "plan"
+					? ".+ ends "
+					: (placeTitle(space, tab) ?? tabLabel(en, space, tab)),
 		);
 	});
 });

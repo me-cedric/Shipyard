@@ -368,16 +368,22 @@ export function TeamRights() {
 				<h2 className="flex-1 text-ui font-medium">{r.matrix}</h2>
 				{draft ? (
 					<>
-						<Button variant="primary" busy={busy} onClick={() => void save()}>
+						<Button
+							variant="primary"
+							className="min-h-control"
+							busy={busy}
+							onClick={() => void save()}
+						>
 							{t.work.save}
 						</Button>
-						<Button variant="ghost" onClick={() => setDraft(null)}>
+						<Button variant="ghost" className="min-h-control" onClick={() => setDraft(null)}>
 							{t.sync.backlog.cancel}
 						</Button>
 					</>
 				) : (
 					<RightButton
 						right="project.settings"
+						className="min-h-control"
 						onClick={() =>
 							setDraft({
 								table: roles.map(({ role, access }) => ({ role, access })),
@@ -538,13 +544,14 @@ export function JoinRequest() {
 			<Button
 				variant="primary"
 				type="submit"
+				className="min-h-control"
 				busy={busy}
 				disabled={!f.name.trim() || !/^\S+@\S+$/.test(f.email.trim())}
 			>
 				{r.sendJoin}
 			</Button>
 			{sent?.url ? (
-				<Button variant="ghost" onClick={() => openUrl(sent.url ?? "")}>
+				<Button variant="ghost" className="min-h-control" onClick={() => openUrl(sent.url ?? "")}>
 					{r.openPull}
 				</Button>
 			) : null}
@@ -552,6 +559,7 @@ export function JoinRequest() {
 			{(sent && !sent.url) || error ? (
 				<Button
 					variant="ghost"
+					className="min-h-control"
 					onClick={() => {
 						copyText(sent?.entry ?? joinEntry(f));
 						setCopied(true);
@@ -647,6 +655,7 @@ export function Migration() {
 				<RightButton
 					right="project.settings"
 					variant="primary"
+					className="min-h-control"
 					onClick={() =>
 						void run(async () => {
 							if (p.members.length) await act.saveTeam({ members: [...team, ...p.members] });

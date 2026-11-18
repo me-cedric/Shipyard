@@ -5,7 +5,7 @@ import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { ShellProvider } from "@/lib/shell";
 import { clearViewState, setViewProject } from "@/lib/shell/view-state";
 import { renderApp } from "@/ui/test-utils";
-import { Usage } from "./index";
+import { Spend as Usage } from "./spend";
 
 describe("Factory / Usage: iterations and prices", () => {
 	beforeEach(() => clearViewState());

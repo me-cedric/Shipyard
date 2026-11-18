@@ -412,7 +412,7 @@ impl Dispatch for FactoryHost {
     }
 
     fn reserved(&self) -> usize {
-        crate::pr_agent::running_count()
+        crate::pr_agent::running_count() + crate::estimate_agent::running_count()
     }
 
     fn start(&self, request: &StartRequest) -> Result<(), String> {
@@ -1113,6 +1113,7 @@ pub fn sessions(s: &AppState) -> Res<Vec<SessionView>> {
         });
     Ok(crate::pr_agent::sessions(&a.entry.id)
         .into_iter()
+        .chain(crate::estimate_agent::sessions(&a.entry.id))
         .chain(runs)
         .collect())
 }
@@ -1390,6 +1391,7 @@ pub fn set_kill_switch(s: &AppState, on: bool) -> bool {
     s.factory.factory.set_kill_switch(on);
     if on {
         crate::pr_agent::stop_all();
+        crate::estimate_agent::stop_all();
     }
     s.factory.publish();
     on

@@ -146,6 +146,7 @@ export const factoryDe: typeof factoryEn = {
 	workflows: "Workflows",
 	roles: "Rollen",
 	wf: {
+		permissions: "Schreibt ohne Rückfrage",
 		new: "Neu",
 		duplicate: "Duplizieren",
 		rename: "Umbenennen",

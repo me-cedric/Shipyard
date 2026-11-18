@@ -39,6 +39,18 @@ export const costingEs: typeof costingEn = {
 		confirmDelete: "¿Eliminar {count} tareas?",
 		clear: "Borrar la selección",
 	},
+	agent: {
+		ask: "Pedir una estimación a un agente",
+		stop: "Detener",
+		proposals: "Propuestas del agente",
+		best: "Mejor caso",
+		worst: "Peor caso",
+		accept: "Aceptar",
+		discard: "Descartar",
+		select: "Seleccione tareas primero",
+		sealed: "La hoja está sellada",
+	},
+	title: "{name}: {days} días de trabajo",
 	summary: {
 		byProfile: "Por perfil",
 		byLot: "Por lote",

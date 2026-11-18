@@ -6,7 +6,7 @@ import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { ShellProvider, useShell } from "@/lib/shell";
 import { spendStatus } from "@/ui/molecules/spend-meter";
 import { renderApp } from "@/ui/test-utils";
-import { AgentsMap, Sessions, Usage, Workflows } from "./index";
+import { Sessions, Usage, Workflows } from "./index";
 
 /** Stands in for the inspector of the shell. */
 function Panel() {
@@ -35,12 +35,12 @@ describe("Factory tabs", () => {
 		})) as unknown as typeof window.matchMedia;
 	});
 
-	it("Workflows: two groups with counts, from the mock", async () => {
+	it("Recipes: two groups with counts, from the mock", async () => {
 		await renderTab(<Workflows />);
 		const wf = await unwrap(commands.workflowsList());
 		const roles = await unwrap(commands.rolesList());
 		expect(
-			await screen.findByRole("heading", { name: `Workflows (${wf.length})` }),
+			await screen.findByRole("heading", { name: `Recipes (${wf.length})` }),
 		).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: `Roles (${roles.length})` })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: /^Bug/ })).toHaveTextContent("Fix");
@@ -308,23 +308,5 @@ describe("Factory tabs", () => {
 		expect(spendStatus(7.9, 10)).toBe("success");
 		expect(spendStatus(8, 10)).toBe("warning");
 		expect(spendStatus(10, 10)).toBe("danger");
-	});
-
-	it("Agents map: a click and Enter open the entity in the inspector", async () => {
-		const user = userEvent.setup();
-		await renderTab(<AgentsMap />);
-		const runs = await unwrap(commands.runsList());
-		const run = runs.find((r) => r.key === "ACME-2");
-		if (!run) throw new Error("ACME-2");
-		const node = async (ref: string) =>
-			within(await screen.findByTestId(`rf__node-${ref}`)).getByRole("button", { hidden: true });
-		// jsdom measures no node, so xyflow keeps each one hidden.
-		await user.click(await node(run.reference));
-		const panel = screen.getByRole("complementary", { name: "panel" });
-		expect(panel).toHaveTextContent(run.reference);
-		const ticket = await node("wi:ACME-3");
-		ticket.focus();
-		await user.keyboard("{Enter}");
-		expect(panel).toHaveTextContent("wi:ACME-3");
 	});
 });

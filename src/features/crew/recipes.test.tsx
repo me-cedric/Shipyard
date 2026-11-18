@@ -4,7 +4,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { ShellProvider } from "@/lib/shell";
 import { renderApp } from "@/ui/test-utils";
-import { Workflows } from "./index";
+import { Recipes as Workflows } from "./recipes";
 
 const text = async (id: string) => (await unwrap(commands.workflowGet(id))).text;
 
@@ -171,5 +171,51 @@ describe("Workflows: the form", () => {
 		await user.click(screen.getByRole("button", { name: "Apply" }));
 		await waitFor(async () => expect(await text("bug")).toContain("budget_usd: 2"));
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Apply" })).toBeNull());
+	});
+	// spec:app-redesign#REQ-016: the permissions of "Do not ask again" are a part of the recipe.
+	it("shows the permissions of a recipe and removes one", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		mockState().sync.file = "valid";
+		mockState().sync.automation.recipe_writes = {
+			feature: ["transition", "open_pr"],
+			bug: ["push"],
+		};
+		const user = await open("feature");
+		const part = within(await screen.findByRole("region", { name: "Writes without a question" }));
+		expect(part.getByText("Move the ticket")).toBeInTheDocument();
+		expect(part.getByText("Open a pull request")).toBeInTheDocument();
+		// The permissions of another recipe do not show here.
+		expect(part.queryByText("Push")).toBeNull();
+		await user.click(part.getByRole("button", { name: "Remove Open a pull request for feature" }));
+		await waitFor(() =>
+			expect(mockState().sync.automation.recipe_writes).toEqual({
+				feature: ["transition"],
+				bug: ["push"],
+			}),
+		);
+		await waitFor(() => expect(part.queryByText("Open a pull request")).toBeNull());
+	});
+
+	it("shows no permissions part on a recipe that has none, and Remove needs project.settings", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		mockState().sync.file = "valid";
+		mockState().sync.automation.recipe_writes = { feature: ["push"] };
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		const user = await open("spike");
+		await step("grill");
+		expect(screen.queryByRole("region", { name: "Writes without a question" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: /^Feature/ }));
+		const remove = await screen.findByRole("button", { name: "Remove Push for feature" });
+		await waitFor(() => expect(remove).toBeDisabled());
+		expect(remove).toHaveAccessibleDescription(
+			"Needs the right project.settings (your role: Viewer)",
+		);
 	});
 });

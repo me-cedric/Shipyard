@@ -86,6 +86,7 @@ import * as dv from "./mock-delivery";
 import * as deliveryActions from "./mock-delivery-actions";
 import * as design from "./mock-design";
 import * as dr from "./mock-doctor";
+import * as ea from "./mock-estimate-agent";
 import * as ex from "./mock-extensions";
 import * as xt from "./mock-extras";
 import * as fx from "./mock-factory";
@@ -190,6 +191,7 @@ type State = {
 	/** The demo pull requests, reports and fake terminal of Code. Seeded on first use. */
 	prs?: cp.MockPrs;
 	agentPr?: ap.MockAgentPr;
+	estimateAgent?: ea.MockEstimateAgent;
 	agents: MockAgents;
 	/** The mirror of the fake tracker, the automation file and the ticks. */
 	sync: MockSync;
@@ -467,6 +469,8 @@ const localPath = (path: string) => {
 		throw `path not allowed: ${path}`;
 	return null;
 };
+
+const estimateAgent = () => (state.estimateAgent ??= ea.seedEstimateAgent());
 
 const readOnly = () => active()?.overrides.readOnly === true;
 
@@ -1898,6 +1902,12 @@ const handlers: Handlers = {
 	prReviewStop: (number) => ap.reviewStop(agentPr(), number),
 	prReviewWaiting: () => ap.reviewWaiting(agentPr(), prs()),
 	prWriteText: (base, click) => ap.prWrite(click, readOnly(), base),
+	estimateAgentStart: (slug, taskIds, click) =>
+		ea.estimateStart(estimateAgent(), need(state.work), slug, taskIds, click, {
+			readOnly: readOnly(),
+			stopped: fx.killSwitchGet(state.factory),
+		}),
+	estimateAgentStop: (slug) => ea.estimateStop(estimateAgent(), slug),
 	codePullComment: (number, body, click) => cp.pullComment(prs(), number, body, click),
 	codePullReply: (reference, threadId, body, click) =>
 		cp.pullReply(prs(), reference, threadId, body, click),
@@ -2202,6 +2212,7 @@ const handlers: Handlers = {
 	runLogPage: (run, after, limit) => fx.runLogPage(state.factory, run, after, limit),
 	sessionsList: () => [
 		...ap.reviewSessions(agentPr()),
+		...ea.estimateSessions(estimateAgent()),
 		...fx.sessionsList(state.factory, active()?.id ?? null),
 	],
 	usageGet: () => fx.usageGet(state.factory, active()?.id ?? null),

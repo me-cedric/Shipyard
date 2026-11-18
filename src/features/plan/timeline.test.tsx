@@ -1,12 +1,12 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { weekStart } from "@/features/work/week-focus";
 import { errorMessages } from "@/lib/i18n/errors";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { addDays } from "@/lib/work";
 import { mountApp } from "@/test/mount";
 import { withTracker } from "@/test/tracker";
-import { weekStart } from "./week-focus";
 
 const aside = async (name: string) => within(await screen.findByRole("complementary", { name }));
 const bars = () =>
@@ -14,10 +14,10 @@ const bars = () =>
 // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- test input is a fixed name
 const bar = (name: string) => screen.getByRole("button", { name: new RegExp(`^${name},`) });
 
-describe("Work / Plan", () => {
+describe("Plan / Timeline and People", () => {
 	it("draws a bar for each task of the sheet, with the today marker", async () => {
 		await withTracker();
-		mountApp("/work/plan");
+		mountApp("/plan/timeline");
 		expect(await bars()).toHaveLength(6);
 		expect(screen.getByRole("img", { name: "Today 2026-11-02" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Authentication (4)" })).toBeInTheDocument();
@@ -26,7 +26,7 @@ describe("Work / Plan", () => {
 
 	it("moves a bar with the keyboard and stores the start decision only", async () => {
 		await withTracker();
-		mountApp("/work/plan");
+		mountApp("/plan/timeline");
 		await bars();
 		const before = (await unwrap(commands.planGet("mvp-1"))).gantt.bars.find(
 			(b) => b.task === "est:mvp-1#auth-api",
@@ -51,7 +51,7 @@ describe("Work / Plan", () => {
 	it("chooses a member in the inspector", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/plan");
+		mountApp("/plan/timeline");
 		await bars();
 		// The seed fixes a start and names a member for this task.
 		await user.click(bar("Login form"));
@@ -69,11 +69,11 @@ describe("Work / Plan", () => {
 	it("stores a holiday in the calendar and no date in the plan", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/plan");
+		mountApp("/plan/timeline");
 		await bars();
 		const plan = JSON.stringify(mockState().work.decisions);
-		await user.click(screen.getByRole("button", { name: "Calendar" }));
-		const panel = await aside("Calendar");
+		await user.click(screen.getByRole("button", { name: "Dates and days off" }));
+		const panel = await aside("Dates and days off");
 		expect(panel.getByRole("heading", { name: "Holidays (1)" })).toBeInTheDocument();
 		fireEvent.change(panel.getByLabelText("Holiday"), { target: { value: "2026-11-04" } });
 		await user.click(panel.getByRole("button", { name: "Add holiday" }));
@@ -101,10 +101,10 @@ describe("Work / Plan", () => {
 		expect(JSON.stringify(mockState().work.decisions)).toBe(plan);
 	});
 
-	it("zooms, groups the bars by member and shows the load and the warnings", async () => {
+	it("zooms, and People groups the tasks by member and shows the load and the warnings", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/plan");
+		const router = mountApp("/plan/timeline");
 		await bars();
 		const plan = await unwrap(commands.planGet("mvp-1"));
 		const over = plan.load.members.filter((m) =>
@@ -112,22 +112,23 @@ describe("Work / Plan", () => {
 		);
 		// Two lots book the same people on the same days.
 		expect(over.length).toBeGreaterThan(0);
-		const warnings = await screen.findByRole("region", { name: "Warnings" });
-		expect(within(warnings).getAllByText(/is over capacity on \d+ days/)).toHaveLength(over.length);
 		await user.click(screen.getByRole("tab", { name: "Month" }));
 		expect(screen.getByRole("tab", { name: "Month" })).toHaveAttribute("aria-selected", "true");
 		expect(await bars()).toHaveLength(6);
-		await user.click(screen.getByRole("tab", { name: "People" }));
+		// The view by person is the section People: the load and the warning of each person are there.
+		await router.navigate({ to: "/plan/people" });
 		expect(
 			await screen.findByRole("heading", { name: /^Ada Lovelace \(\d+\)$/ }),
 		).toBeInTheDocument();
+		expect(screen.getAllByText(/is over capacity on \d+ days/)).toHaveLength(over.length);
+		expect(screen.getAllByText(/^[\d.]+ of [\d.]+ days$/)).toHaveLength(plan.load.members.length);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
-	it("links a capacity warning to the member and the week in Work / Team", async () => {
+	it("links a capacity warning to the member and the week in Crew", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		const router = mountApp("/work/plan");
-		await bars();
+		const router = mountApp("/plan/people");
 		const plan = await unwrap(commands.planGet("mvp-1"));
 		const who = plan.load.members.find((m) =>
 			m.days.some((d) => (d.used ?? 0) > (d.capacity ?? 0) + 1e-6),
@@ -136,18 +137,19 @@ describe("Work / Plan", () => {
 		const name = (await unwrap(commands.workTeam())).team.members.find(
 			(m) => m.handle === who?.handle,
 		)?.name;
-		const warnings = await screen.findByRole("region", { name: "Warnings" });
 		await user.click(
-			within(warnings).getAllByRole("link", {
-				name: /is over capacity on \d+ days/,
-			})[0] as HTMLElement,
+			(
+				await screen.findAllByRole("link", {
+					name: /is over capacity on \d+ days/,
+				})
+			)[0] as HTMLElement,
 		);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/team"));
-		// The member opens in the inspector, which takes the name of the member: the capacity is there to change.
-		const inspector = await aside(name ?? "");
-		await waitFor(() => expect(inspector.getByLabelText(/Capacity/)).toBeInTheDocument());
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/crew"));
+		// The member opens in Crew, under the name of the member: the capacity is there to change.
+		expect(await screen.findByRole("heading", { name: name ?? "" })).toBeInTheDocument();
+		await waitFor(() => expect(screen.getByLabelText(/Capacity/)).toBeInTheDocument());
 		// The week of the warning is there too: the load of the member on each day of it.
-		const week = await inspector.findByRole("region", {
+		const week = await screen.findByRole("region", {
 			name: `Week of ${weekStart(first?.day ?? "")}`,
 		});
 		expect(within(week).getByText(new RegExp(`^${first?.day}: `))).toBeInTheDocument();
@@ -164,10 +166,10 @@ describe("Work / Plan", () => {
 		await withTracker();
 		const plan = await unwrap(commands.planGet("mvp-1"));
 		expect(plan.publicHolidays).toContain("2026-12-25");
-		mountApp("/work/plan");
+		mountApp("/plan/timeline");
 		await bars();
-		await user.click(screen.getByRole("button", { name: "Calendar" }));
-		const panel = await aside("Calendar");
+		await user.click(screen.getByRole("button", { name: "Dates and days off" }));
+		const panel = await aside("Dates and days off");
 		await user.click(panel.getByRole("combobox", { name: "Public holidays" }));
 		await user.click(await screen.findByRole("option", { name: "None" }));
 		await waitFor(() => expect(mockState().work.calendar.country).toBe(""));
@@ -186,7 +188,7 @@ describe("Work / Plan", () => {
 			done(new Blob([png])),
 		);
 		await withTracker();
-		mountApp("/work/plan");
+		mountApp("/plan/timeline");
 		await bars();
 		await user.click(screen.getByRole("button", { name: "Export" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Image (PNG)" }));
@@ -205,9 +207,59 @@ describe("Work / Plan", () => {
 	it("has one primary action and is in French when the language is French", async () => {
 		mockState().prefs.lang = "fr";
 		await withTracker();
-		mountApp("/work/plan");
-		expect(await screen.findByRole("button", { name: "Appliquer" })).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Calendrier" })).toBeInTheDocument();
+		mountApp("/plan/timeline");
+		expect(
+			await screen.findByRole("button", { name: "Envoyer à l'outil de suivi" }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Dates et jours non travaillés" }),
+		).toBeInTheDocument();
 		expect(screen.getByRole("img", { name: "Aujourd'hui 2026-11-02" })).toBeInTheDocument();
+	});
+
+	// spec:app-redesign#REQ-018
+	it("says in the title when the release ends", async () => {
+		await withTracker();
+		mountApp("/plan/timeline");
+		await bars();
+		const end = (await unwrap(commands.planGet("mvp-1"))).gantt.bars
+			.map((b) => b.end)
+			.sort()
+			.at(-1);
+		expect(end).toBe("2026-11-17");
+		expect(screen.getByRole("heading", { name: "MVP 1 ends 11/17/2026" })).toBeInTheDocument();
+		expect(screen.getByText("Tasks with no owner")).toBeInTheDocument();
+	});
+
+	it("shows three people over their capacity as one card with proposals, and applies one", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const router = mountApp("/plan/timeline");
+		await bars();
+		const cards = screen.getAllByRole("article");
+		expect(cards).toHaveLength(1);
+		const card = within(cards[0] as HTMLElement);
+		expect(card.getByRole("heading", { name: "3 people have too much work" })).toBeInTheDocument();
+		expect(card.getAllByRole("button", { name: /^Apply: / })).toHaveLength(3);
+		expect(card.getByRole("button", { name: "Rebalance" })).toBeInTheDocument();
+		await user.click(
+			card.getByRole("button", {
+				name: "Apply: Export endpoint from Ada Lovelace to Grace Hopper",
+			}),
+		);
+		await waitFor(() =>
+			expect(mockState().work.decisions.tasks["est:mvp-1#export-api"]).toEqual({ member: "grace" }),
+		);
+		// The other decisions stay.
+		expect(mockState().work.decisions.tasks["est:mvp-1#auth-web"]).toEqual({
+			member: "grace",
+			start: "2026-11-09",
+		});
+		await waitFor(() => expect(bar("Export endpoint")).toHaveAccessibleName(/Grace Hopper/));
+		// Show opens the people.
+		await user.click(screen.getByRole("link", { name: "Show" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/plan/people"));
+		expect(await screen.findAllByRole("button", { name: /^Apply: / })).not.toHaveLength(0);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 });

@@ -132,6 +132,7 @@ export const factoryEn = {
 	workflows: "Workflows",
 	roles: "Roles",
 	wf: {
+		permissions: "Writes without a question",
 		new: "New",
 		duplicate: "Duplicate",
 		rename: "Rename",
@@ -421,6 +422,7 @@ export const factoryFr: typeof factoryEn = {
 	workflows: "Workflows",
 	roles: "Rôles",
 	wf: {
+		permissions: "Écrit sans demander",
 		new: "Nouveau",
 		duplicate: "Dupliquer",
 		rename: "Renommer",

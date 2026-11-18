@@ -25,6 +25,7 @@ pub mod doctor;
 pub mod doctor_bootstrap;
 pub mod documents;
 pub mod errors;
+pub mod estimate_agent;
 pub mod extensions;
 pub mod factory;
 pub mod feedback;
@@ -270,6 +271,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::pr_agent::pr_review_stop,
             crate::pr_agent::pr_review_waiting,
             crate::pr_agent::pr_write_text,
+            crate::estimate_agent::estimate_agent_start,
+            crate::estimate_agent::estimate_agent_stop,
             crate::machine::machine_sessions,
             crate::machine::machine_session_stop,
             crate::machine::machine_spend,

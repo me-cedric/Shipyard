@@ -39,6 +39,18 @@ export const costingDe: typeof costingEn = {
 		confirmDelete: "{count} Aufgaben löschen?",
 		clear: "Auswahl aufheben",
 	},
+	agent: {
+		ask: "Einen Agenten schätzen lassen",
+		stop: "Stoppen",
+		proposals: "Vorschläge des Agenten",
+		best: "Bestfall",
+		worst: "Schlimmstfall",
+		accept: "Annehmen",
+		discard: "Verwerfen",
+		select: "Zuerst Aufgaben auswählen",
+		sealed: "Die Tabelle ist versiegelt",
+	},
+	title: "{name}: {days} Tage Arbeit",
 	summary: {
 		byProfile: "Nach Profil",
 		byLot: "Nach Los",

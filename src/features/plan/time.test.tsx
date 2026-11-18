@@ -8,10 +8,10 @@ import { importAll, withTracker } from "@/test/tracker";
 const group = async (name: string) => screen.findByRole("heading", { name });
 const row = (text: string) => screen.getByText(text).closest("[role=row]") as HTMLElement;
 
-describe("Work / Time", () => {
+describe("Plan / Time", () => {
 	it("lists the entries of the month by state", async () => {
 		await withTracker();
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		expect(await group("To send (2)")).toBeInTheDocument();
 		expect(await group("In issue tracker (1)")).toBeInTheDocument();
 		expect(row("Token API")).toHaveTextContent("4h");
@@ -22,7 +22,7 @@ describe("Work / Time", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		await importAll();
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		await user.click(await screen.findByRole("button", { name: "Entry" }));
 		await user.type(screen.getByRole("textbox", { name: "Duration" }), "2h");
 		await user.type(screen.getByRole("textbox", { name: "Note" }), "Pairing");
@@ -40,7 +40,7 @@ describe("Work / Time", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		await importAll();
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		await user.click(await screen.findByRole("button", { name: "Entry" }));
 		const field = screen.getByRole("combobox", { name: "Ticket" });
 		await user.click(field);
@@ -71,7 +71,7 @@ describe("Work / Time", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		await importAll();
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		await user.click(await screen.findByRole("button", { name: "Entry" }));
 		await user.type(screen.getByRole("textbox", { name: "Duration" }), "1h");
 		await user.type(screen.getByRole("combobox", { name: "Ticket" }), "ACME-1");
@@ -83,14 +83,14 @@ describe("Work / Time", () => {
 		);
 	});
 
-	it("opens Work / Team with the Member button focused when the person is not in the team", async () => {
+	it("opens the crew with the Member button focused when the person is not in the team", async () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mockState().work.me = null;
-		const router = mountApp("/work/time");
+		const router = mountApp("/plan/time");
 		expect(await screen.findByRole("alert")).toHaveTextContent("You are not in the team yet.");
 		await user.click(screen.getByRole("button", { name: "Open" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/team"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/crew"));
 		await waitFor(() => expect(screen.getByRole("button", { name: "Member" })).toHaveFocus());
 	});
 
@@ -99,7 +99,7 @@ describe("Work / Time", () => {
 		await withTracker();
 		mockState().work.team = { members: [] };
 		mockState().work.me = null;
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		expect(await screen.findByText("No members")).toBeInTheDocument();
 		// No raw error, and no other action in the page body.
 		expect(screen.queryByRole("alert")).toBeNull();
@@ -121,7 +121,7 @@ describe("Work / Time", () => {
 		await withTracker();
 		mockState().work.team = { members: [] };
 		mockState().work.account = null;
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		await user.click(await screen.findByRole("button", { name: "Add me to the team" }));
 		const alert = await screen.findByRole("alert");
 		expect(alert).toHaveTextContent("No account is signed in.");
@@ -133,7 +133,7 @@ describe("Work / Time", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mockState().work.me = null;
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		const alert = await screen.findByRole("alert");
 		expect(alert).toHaveTextContent("You are not in the team yet.");
 		expect(within(alert).getByRole("button", { name: "Open" })).toBeInTheDocument();
@@ -148,7 +148,7 @@ describe("Work / Time", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		await importAll();
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		await group("To send (2)");
 		expect(mockState().work.logs["ACME-1"]).toBeDefined();
 		const before = mockState().work.logs["ACME-1"]?.length ?? 0;
@@ -172,7 +172,7 @@ describe("Work / Time", () => {
 			await gate;
 			return real(...args);
 		});
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		await group("To send (2)");
 		const send = () => screen.getByRole("button", { name: /^Send 2026-11-03 ACME-1$/ });
 		await user.click(send());
@@ -188,7 +188,7 @@ describe("Work / Time", () => {
 
 	it("sends nothing for an entry with no ticket", async () => {
 		await withTracker();
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		await group("To send (2)");
 		expect(row("Stand-up and planning").querySelector("button")).toBeDisabled();
 	});
@@ -198,7 +198,7 @@ describe("Work / Time", () => {
 		await withTracker();
 		await importAll();
 		mockState().work.loseNextAnswer = true;
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		await group("To send (2)");
 		const before = mockState().work.logs["ACME-1"]?.length ?? 0;
 		await user.click(screen.getByRole("button", { name: /^Send 2026-11-03 ACME-1$/ }));
@@ -218,7 +218,7 @@ describe("Work / Time", () => {
 		await importAll();
 		const log = mockState().work.logs["ACME-2"]?.[0];
 		if (log) log.minutes = 180;
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		await group("In issue tracker (1)");
 		await user.click(screen.getByRole("button", { name: "Read the month" }));
 		const differs = await screen.findByRole("img", { name: "Durations differ" });
@@ -234,7 +234,7 @@ describe("Work / Time", () => {
 	it("edits the duration and the note of an entry", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		await user.click(await screen.findByRole("button", { name: /^Edit 2026-11-02 / }));
 		const duration = screen.getByRole("textbox", { name: "Duration" });
 		await user.clear(duration);
@@ -254,7 +254,7 @@ describe("Work / Time", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mockState().work.logs["ACME-2"] = [];
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		await user.click(await screen.findByRole("button", { name: /^Edit 2026-11-02 / }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("Not in issue tracker: worklog");
@@ -263,7 +263,7 @@ describe("Work / Time", () => {
 	it("refuses a bad duration and keeps the entry", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		await user.click(await screen.findByRole("button", { name: /^Edit 2026-11-02 / }));
 		const duration = screen.getByRole("textbox", { name: "Duration" });
 		await user.clear(duration);
@@ -276,7 +276,7 @@ describe("Work / Time", () => {
 	it("deletes an entry after a confirm, and keeps it when the person declines", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		const del = await screen.findByRole("button", { name: /^Delete 2026-11-02 / });
 		mockState().confirm = false;
 		await user.click(del);
@@ -289,7 +289,7 @@ describe("Work / Time", () => {
 	it("is in French when the language is French", async () => {
 		mockState().prefs.lang = "fr";
 		await withTracker();
-		mountApp("/work/time");
+		mountApp("/plan/time");
 		expect(await group("À envoyer (2)")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Saisie" })).toBeInTheDocument();
 	});

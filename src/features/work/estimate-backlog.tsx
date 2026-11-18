@@ -1,5 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { type PointerEvent, useMemo, useRef, useState } from "react";
+import { EstimateAgent } from "@/features/plan/estimate-agent";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { RightButton, useRights } from "@/lib/rights";
@@ -275,6 +276,7 @@ export function EstimateBacklog({
 					setActive(active.includes(id) ? active.filter((x) => x !== id) : [...active, id])
 				}
 			/>
+			<EstimateAgent slug={slug} view={view} ids={chosen} />
 			{chosen.length > 0 && !frozen ? (
 				<section
 					aria-label={format(c.bulk.selected, { count: chosen.length })}

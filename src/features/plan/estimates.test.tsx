@@ -10,11 +10,11 @@ const eur = (n: number) =>
 	n.toLocaleString("en", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 const view = (name: string) => screen.getByRole("tab", { name });
 
-describe("Work / Estimates", () => {
+describe("Plan / Estimates", () => {
 	it("lists the sheets of the lots", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		await user.click(await screen.findByRole("combobox", { name: "Sheet" }));
 		expect(await screen.findByRole("option", { name: "MVP 1" })).toBeInTheDocument();
 		expect(screen.getByRole("option", { name: "MVP 2" })).toBeInTheDocument();
@@ -22,7 +22,7 @@ describe("Work / Estimates", () => {
 
 	it("shows lot, feature and task, with a percentage task in days", async () => {
 		await withTracker();
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		const table = await screen.findByRole("table", { name: "Backlog" });
 		expect(within(table).getByRole("heading", { name: "Authentication (4)" })).toBeInTheDocument();
 		expect(within(table).getByRole("heading", { name: "Export (2)" })).toBeInTheDocument();
@@ -36,13 +36,13 @@ describe("Work / Estimates", () => {
 	it("says Unrated, not zero, and links to Team when no rate shows", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		const router = mountApp("/work/estimates");
+		const router = mountApp("/plan/estimates");
 		await user.click(await screen.findByRole("tab", { name: "Summary" }));
 		const links = await screen.findAllByRole("link", { name: "Unrated" });
 		expect(links.length).toBeGreaterThan(0);
 		expect(screen.getAllByText("Unrated").length).toBeGreaterThan(links.length - 1);
 		await user.click(links[0] as HTMLElement);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/team"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/crew"));
 	});
 
 	it("shows equal totals in the summary, the spread and the portfolio", async () => {
@@ -57,7 +57,7 @@ describe("Work / Estimates", () => {
 				{ ...alan, name: "Barbara", handle: "barbara", trackers: [], dayRate: 400 },
 				{ ...alan, name: "Frances", handle: "frances", trackers: [], dayRate: 440 },
 			);
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		const sheet = await unwrap(commands.estimateGet("mvp-1"));
 		await user.click(await screen.findByRole("tab", { name: "Summary" }));
 		for (const label of ["Days", "Cost", "Price", "Margin"])
@@ -90,7 +90,7 @@ describe("Work / Estimates", () => {
 	it("writes the entry of a task and no total", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		await user.click(within(await screen.findByRole("table")).getByText("Export endpoint"));
 		const panel = await aside("Task");
 		const days = panel.getByRole("spinbutton", { name: "Days" });
@@ -113,7 +113,7 @@ describe("Work / Estimates", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		await importAll();
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		await user.click(within(await screen.findByRole("table")).getByText("Token API"));
 		const panel = await aside("Task");
 		const task = (await panel.findByText("Task", { selector: "dt" })).parentElement as HTMLElement;
@@ -125,7 +125,7 @@ describe("Work / Estimates", () => {
 	it("seals with a passphrase, then shows the locked state and no number", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		await user.click(await screen.findByRole("button", { name: "Seal" }));
 		const field = screen.getByLabelText("Passphrase");
 		expect(field).toHaveAttribute("type", "password");
@@ -157,7 +157,7 @@ describe("Work / Estimates", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mockState().nextFile = "/mock/bad.xlsx";
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		await user.click(await screen.findByRole("button", { name: "Import" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		expect(await dialog.findByText("Row 7")).toBeInTheDocument();
@@ -171,7 +171,7 @@ describe("Work / Estimates", () => {
 	it("exports the sheet to a workbook", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		await user.click(await screen.findByRole("button", { name: "Export" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Sheet workbook" }));
 		await waitFor(() =>
@@ -182,7 +182,7 @@ describe("Work / Estimates", () => {
 	it("saves a three-point estimate with its confidence and assumptions, and counts the expected days", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		await user.click(within(await screen.findByRole("table")).getByText("Export endpoint"));
 		const panel = await aside("Task");
 		await user.click(panel.getByRole("checkbox", { name: "Three-point estimate" }));
@@ -212,7 +212,7 @@ describe("Work / Estimates", () => {
 	it("searches, filters, edits rows in bulk and moves a row with the keyboard", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		const table = await screen.findByRole("table", { name: "Backlog" });
 		await user.type(screen.getByRole("textbox", { name: "Search" }), "api");
 		await waitFor(() => expect(within(table).queryByText("Login form")).toBeNull());
@@ -250,7 +250,7 @@ describe("Work / Estimates", () => {
 	it("duplicates and freezes a sheet, refuses a change to it, and deletes a sheet after the confirm", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		const menu = async (item: string) => {
 			await user.click(await screen.findByRole("button", { name: "Sheet actions" }));
 			await user.click(await screen.findByRole("menuitem", { name: item }));
@@ -281,7 +281,7 @@ describe("Work / Estimates", () => {
 		const [ada] = mockState().work.team.members;
 		if (ada)
 			mockState().work.team.members.push({ ...ada, name: "Linus", handle: "linus", trackers: [] });
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		await user.click(await screen.findByRole("tab", { name: "Summary" }));
 		const lot = await screen.findByRole("table", { name: "By profile" });
 		const dev = (await within(lot).findByText("dev")).closest("[role=row]") as HTMLElement;
@@ -301,7 +301,7 @@ describe("Work / Estimates", () => {
 	it("is in French when the language is French", async () => {
 		mockState().prefs.lang = "fr";
 		await withTracker();
-		mountApp("/work/estimates");
+		mountApp("/plan/estimates");
 		expect(await screen.findByRole("tab", { name: "Synthèse" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Importer" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Tâche" })).toBeInTheDocument();
