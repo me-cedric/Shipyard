@@ -49,10 +49,11 @@
     {
       "id": "SCR-005",
       "slug": "work",
-      "title": "Plan",
+      "title": "Plan / Timeline: the title gives the end date of the release; the sheet, the zoom Day, Week and Month, Dates and days off, Export and Send to the issue tracker; one card names the people with too much work and offers proposals with Apply and Rebalance; the Gantt chart of the sheet; the old Work / Plan address opens it",
       "artifacts": [
         "spec:work",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/work.png"
     },
@@ -69,10 +70,11 @@
     {
       "id": "SCR-007",
       "slug": "agents-map",
-      "title": "Factory / Agents map: a node shows the ticket key and title, the step name or the file name; the ref is the tooltip and Copy ref is in the node menu; a run node opens the run page",
+      "title": "Crew, Live: one row for each agent at work with the agent, the feature and its state, and the files and specs that it reads and changes; the filter At work, Ended, Files and Specs; the ref is the tooltip and Copy ref is in the menu of the agent; it replaces the Agents map, and the old address opens it",
       "artifacts": [
         "spec:factory",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/agents.png"
     },
@@ -193,11 +195,12 @@
     {
       "id": "SCR-020",
       "slug": "factory-workflows",
-      "title": "Factory / Workflows: the list shows each name with its step names; Duplicate, Rename and Delete are in the More actions menu; the id shows in the editor header",
+      "title": "Crew / Recipes: each recipe and each agent role is a card with its step names and Edit; the editor shows each step as a card with the groups Who, People, How it works and Limits; Duplicate, Rename and Delete are in the More actions menu; the old Factory / Workflows address opens it",
       "artifacts": [
         "spec:factory",
         "spec:workflow-editor",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/workflows.png"
     },
@@ -223,10 +226,11 @@
     {
       "id": "SCR-025",
       "slug": "work-team",
-      "title": "Work / Team: the members and the rights of each role and member, by area",
+      "title": "Crew / Rights: the rights of each role and of each member by area, who Shipyard found, Ask to join, the move of the roles of this machine and the changes of rights; the members are on Crew, and the old Work / Team address opens Crew",
       "artifacts": [
         "spec:team-rights",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/team.png"
     },
@@ -253,10 +257,11 @@
     {
       "id": "SCR-032",
       "slug": "factory-usage",
-      "title": "Factory / Usage: the success rate, the Budgets panel with Edit, and the runs with their key and title",
+      "title": "Crew / Spend: the spend and the success rate with the runs, their key and title, on the left; the budgets, each with Edit, and this computer on the right; the agents switch in the header; the old Factory / Usage address opens it",
       "artifacts": [
         "spec:factory",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/usage.png"
     },
@@ -376,6 +381,33 @@
         "adr:0023"
       ],
       "file": "docs/assets/screenshots/new-feature.png"
+    },
+    {
+      "id": "SCR-041",
+      "slug": "crew",
+      "title": "Crew: the people as cards with their current work, role, days a week, skills and Over by or Has room; the agent roles as cards with their work and the count at work; the spend on open work with the limit for each feature; the recipes with Edit; the views Cards and Live and the agents switch; a person card opens the member page with Save and Remove from the team",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-042",
+      "slug": "plan-people",
+      "title": "Plan / People: each person with the load against the capacity of each week, the tasks with their dates, and the proposals for a person with too much work",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-043",
+      "slug": "plan-estimates",
+      "title": "Plan / Estimates: the estimate sheets with the costing and its seal; Ask an agent to estimate proposes Best, Likely and Worst with the assumptions for the selected tasks, with Accept, Discard and Stop; a sealed sheet turns the action off",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ]
     }
   ]
 }

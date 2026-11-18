@@ -136,3 +136,46 @@ Open after Wave 3:
 1. Read this file, `tasks.md`, `plan.md`, REQ-016 to REQ-019, REQ-030 and REQ-033, and the Crew and Plan screens in `docs/designs/redesign/`.
 2. Crew / Recipes is the place for the permissions of a recipe: show them with each step field (they are in Settings / Project today).
 3. Keep `inventory.test.tsx` green. Update the end-to-end specs and the persona walks with each page that moves.
+
+## Wave 4, Crew and Plan (2026-11-18): T018 to T020 and T035 done
+
+Branch `feature/app-redesign-wave-4-0f489d`, cut from the wave 3 branch, local commits only. Not pushed, no pull request. Waves 5 and 6 run on other branches at the same time.
+
+What the wave did:
+
+- T018: Crew has the sections Crew, Recipes, Sessions, Spend and Rights (`src/features/crew/`). Crew shows the people (load, role, days a week, skills) and the agent roles with their current work, the spend card and the recipes. One person is a page (`member.tsx`, `?member=<handle>`). Recipes is the workflows page with each step field and "Writes without a question", the durable permissions of a recipe. Spend is the usage page with the budgets (`budgets.tsx`). Rights holds the rights of the roles, the team file error, the join request, the migration and the audit tail. The agents switch (it stops all agents) is in the header of Crew, Sessions and Spend.
+- T019: the live work rows (`live.tsx`, `/crew/crew?view=live`) replace the agents map: agent, feature, and the files and specs with Open and Copy ref. The agents map folder is removed.
+- T020: Plan has the sections Timeline, People, Estimates and Time (`src/features/plan/`). The title of Timeline says when the plan ends. A capacity problem is one `AttentionCard` with proposals (`proposals.ts`, a pure function) and Rebalance. People shows the load against the capacity for each week. Time has a week grid above the month view. The send preview says New, Changed and Stays the same. The sheet is in the address (`?sheet=`), shared by Timeline, People and Estimates.
+- T035: "Ask an agent to estimate" (`src/features/plan/estimate-agent.tsx`, `crates/shipyard-app/src/estimate_agent.rs`, `crates/shipyard-engine/src/estimate.rs`, `src/lib/ipc/mock-estimate-agent.ts`). The commands `estimate_agent_start` and `estimate_agent_stop`. The agent proposes best, likely and worst with assumptions for each selected task. A value enters the sheet only on Accept. A sealed or frozen sheet refuses.
+
+Decisions of this wave (change them in one place):
+
+- Sections of Plan and Crew are `plan/<slug>` and `crew/<slug>` in `PLACES`, as the views of Flow. `REPLACES` names the old tabs, `OLD_SLUGS` holds the addresses of waves 1 to 3 (`/crew/team`, `/plan/plan`). `/factory/agents-map` opens `/crew/crew?view=live`. The sections load through `src/app/tab-view.tsx`, so Retry works after a failed load.
+- The i18n areas are `t.crewPlace` and `t.planPlace`.
+- No rebalance existed. A proposal moves the last task of a person who is over to a person of the same role who stays in capacity on each day, else it starts the task later. Apply uses `saveDecisions`.
+- The estimate agent follows `pr_agent.rs`: a slot that shows as a session (step `estimate`, key = the sheet), the budget gate and the usage of the assistant member, the agents switch, the agent limit (runs, reviews and estimates count together). It never writes a sheet. Stop is on Estimates, on its row in Crew / Sessions, and in the agents switch.
+- Remove of a recipe permission on Crew / Recipes saves at once, after a confirmation. Setup / Project still lists the permissions with Remove and Save (wave 6 owns that page).
+- The search keys: `view` and `member` on `/crew/crew`, `recipe` on `/crew/recipes`, `sheet` on the sections of Plan.
+
+Audit against the map of `plan.md` (rows "Work / Team, rights; Factory / Workflows, Agents map, Sessions, Usage" and "Work / Plan, Estimates, Time"): a reviewer in a fresh context compared each old page at the wave 3 commit with the new pages. Each control, filter, right gate, error line, empty state, intent and deep link has its new place. Gone on purpose: the graph canvas of the agents map (the runner name and the step status of an agent are not in a live row), the members table (cards with one line of facts, the rest on the member page), the member inspector (a page), the Gantt grouped by member with its load band (People), the capacity lines in the Warnings box (the card and People).
+
+Reviews in a fresh context: the interface with the audit (2 major, 3 minor) and the agent estimate (2 major, 4 minor). All fixed. The majors: an estimate agent had no Stop in Crew / Sessions, a second Accept could undo the first, the week grid erased the note of an entry of the month beside. The end-to-end run found two accessibility defects (heading order on Timeline, card names on Crew): fixed.
+
+Checks, run by the lead on the final tree:
+
+- Passed: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --no-fail-fast` (2049 tests), `pnpm typecheck`, `pnpm lint`, `pnpm test` (268 files, 2221 tests), `pnpm ipc:check`, `CI=1 npx playwright test` (134), `pnpm test:personas` (7), `openspec validate update-app-redesign --strict`.
+- The first run had three lanes at the same time: one Rust test with a timeout and the start of the dev server failed under that load. Run the Rust tests and Playwright in two lanes at most.
+- The manual finds the help of a page by the name of its old tab: `docs/guide/factory.md` keeps the headings Workflows, Agents map and Usage until T032.
+
+Open after Wave 4:
+
+- Not built from the pictures: the Costing tab (072: the seal stays in the toolbar and the costs in the summary), the budgets sub-page (083: Warn at, Then, Raise have no command), the team sub-page (084), the No / See / Change view of Rights (029), the grid of People (031), the live output and Take control of Sessions (028), the three cards of the member page (101).
+- "Ask an agent to estimate" is above the backlog for the selected tasks, not in the task panel as picture 085 shows.
+- A cell of the week grid with two entries or more shows the sum and is read-only.
+- Two Accept clicks in the same tick can both save: the buttons are off only after the first render.
+- The `Switch`, `Checkbox` and `Segmented` atoms and `RoleSelect` are under 44 px (T031).
+- The screenshots of the new screens are not taken: SCR-041 to SCR-043 of `docs/designs/screens.json` have no file. Run `node scripts/screenshots.ts` after the merge of waves 4 to 6.
+- `src/lib/i18n/errors.ts` and other pages still link to `/work/team` and `/factory/runs`. They redirect.
+- The guide has the new text in English and French. `docs/guide/team.md` still lists the old first tabs of each role (T032).
+- The German and Spanish texts of this wave are translations by the agent (`q:Q-172`).
+- Shared files that this wave touched, for the merge with waves 5 and 6: `src/app/router.tsx`, `src/app/tab-view.tsx`, `src/features/shell/places.ts`, `spaces.ts`, `ref-page.ts` and three shell tests, `src/features/home/role-panels.tsx` (four links), the four i18n index files (two lines each), `src/lib/ipc/mock.ts`, `src/ui/organisms/apply-dialog.tsx`, `e2e/`, `scripts/screenshots.ts`, `docs/designs/screens.json`, `docs/guide/`, both changelogs, `docs/openspec/specs/work/`.

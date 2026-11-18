@@ -85,22 +85,27 @@ A run that ended does not start again by itself. Click Start again on a failed o
 
 ## Workflows
 
-Workflows lists the workflows and the roles of the agents. Open one to read or change it, then save. A broken file shows its error and its line. The last good version keeps running.
+Workflows is now Crew / Recipes. Its old address opens it. A recipe is a workflow.
+
+Recipes lists the workflows and the roles of the agents, each as a card with its step names. Click a card to read or change it, then save. A broken file shows its error and its line. The last good version keeps running.
 
 A workflow opens in a form. Use Form and Text to switch between the form and the YAML text. Both edit the same file.
 
-- Steps: set the role or the action, the model tier, the effort, the mode, the needs, the tools and the gate of each step. More shows the other fields: workspace, for each, parallel children, retries, time limit, budget, skill, fresh context and review rounds. Add, remove and move a step up or down.
+- Steps: each step is a card with the groups Who, People, How it works and Limits. Set the role or the action, the model tier, the effort, the mode, the needs, the tools and the gate of each step. More shows the other fields: workspace, for each, parallel children, retries, time limit, budget, skill, fresh context and review rounds. Add, remove and move a step up or down.
 - Limits: the stall timeout in seconds. Turn on Budget to stop each run at an amount in USD, and Turn limit to pause each run after a number of turns. Both are off by default.
 - The form checks the workflow at each change. Save stays off while it shows an issue.
 - New makes a workflow from a preset: feature, bug, spike, docs-update, review-only, spec-split or bootstrap. The More actions menu of the open workflow has Duplicate, Rename and Delete. Duplicate copies the workflow. Rename and Delete refuse the default workflow of the project and a workflow that a run uses. Delete asks you to confirm.
 - A save from the form keeps the comment lines at the top of the file. Use Text to keep other comments.
 - An outside agent with the Workflows tools on (Settings / Connections / MCP) can list, read, check and propose a workflow. A proposal does not change the file: open the workflow, read the diff, then Apply or Discard.
+- Writes without a question lists the permissions of a recipe. Remove asks you to confirm, then saves for the whole team.
 
 ## Agents map
 
-Agents map draws the runs, their tickets, their agent sessions and the files of their findings as a graph. A node shows the ticket key and title, the step name or the file name. Hover a node to see its ref. Right-click it, or press the context-menu key, to copy the ref. Click a run or a session to open its run. The table button lists the same nodes for the keyboard.
+The Live view of Crew replaces the Agents map. Its old address opens it. Each row shows an agent at work, its feature with its state, and the files and specs that the agent reads and changes. The filter is At work, Ended, Files or Specs. Hover an agent to see its ref. Right-click it, or press the context-menu key, to copy the ref. Click the feature to open its page.
 
 ## Sessions
+
+Sessions is in Crew. An agent that reviews a pull request or estimates tasks shows there too.
 
 Sessions lists the agent sessions of the runs and the sessions on this computer. Click a run session to open its run at that step. Stop a session that you do not need.
 
@@ -108,9 +113,11 @@ The Agents switch stops every run and stops new runs. Turn it on again to go on.
 
 ## Usage
 
-Usage shows the tokens and the money that the agents used, by day and by person, against the budgets, and the success rate of the runs.
+Usage is now Crew / Spend. Its old address opens it.
 
-- Budgets shows the amounts that are set, with Edit. With no budget set, it shows the form. Click a day or a member to fill the form.
+Spend shows the tokens and the money that the agents used, by day and by person, against the budgets, and the success rate of the runs.
+
+- Budgets lists each amount that is set, with its own Edit. With no budget set, it shows the form. Click a day or a member to fill the form.
 - Click a run to open it.
 
 - Iterations counts the requests that each run sent to the model.

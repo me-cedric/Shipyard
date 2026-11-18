@@ -43,10 +43,10 @@ Wave 3, Flow and one feature
 
 Wave 4, Crew and Plan
 
-- [ ] T018 Crew: people and agents, Recipes with every step field, Sessions, Spend with budgets, Rights with the team file (`src/features/work/team*.tsx`, `src/features/factory/`). REQ-016.
-- [ ] T019 [P] Live work rows in place of the agents map. REQ-017.
-- [ ] T020 Plan: title with the end date, Timeline, People with proposals, Estimates, Costing, Time, dates and days off, Excel import, send preview (`src/features/work/`). REQ-018, REQ-019.
-- [ ] T035 Tests, then "Ask an agent to estimate": proposal per task, accept per task, off on a sealed sheet, budget and stop (`src/features/work/estimates.tsx`, one command in `crates/shipyard-app/`, mocks updated). REQ-030, REQ-033.
+- [x] T018 Crew: people and agents, Recipes with every step field, Sessions, Spend with budgets, Rights with the team file (`src/features/crew/`, `src/features/work/team-rights.tsx`, `src/features/factory/`). REQ-016.
+- [x] T019 [P] Live work rows in place of the agents map. REQ-017.
+- [x] T020 Plan: title with the end date, Timeline, People with proposals, Estimates, Costing, Time, dates and days off, Excel import, send preview (`src/features/plan/`, `src/features/work/`). REQ-018, REQ-019.
+- [x] T035 Tests, then "Ask an agent to estimate": proposal per task, accept per task, off on a sealed sheet, budget and stop (`src/features/plan/estimate-agent.tsx`, `crates/shipyard-app/src/estimate_agent.rs`, mocks updated). REQ-030, REQ-033.
 
 Wave 5, Library
 

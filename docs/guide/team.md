@@ -1,6 +1,6 @@
 # Team and rights
 
-The team file `.shipyard/team.yaml` lists the people of the project, their role and their rights. Work / Team edits it. A project with no team file, or with no admin, gives every person every right.
+The team file `.shipyard/team.yaml` lists the people of the project, their role and their rights. Crew edits it: the members on Crew, the rights on Crew / Rights. The old address of Work / Team opens Crew. A project with no team file, or with no admin, gives every person every right.
 
 ## Roles
 
@@ -39,29 +39,29 @@ The admin flag gives every right. A member can have changes: `+code.merge` adds 
 
 ## Set up the team
 
-1. Open Work / Team and click Member.
+1. Open Crew and click Member. To change a person, click the card of the person.
 2. Enter the name, the handle, the e-mails and the accounts of the issue tracker and the code host.
 3. Pick a role. The rights of the role show before you save.
 4. Set the admin flag for the people who manage the team.
-5. Save.
+5. Save. Remove from the team is on the same page.
 
 Add the admin last: a team with an admin gives the rights only to the people in the file.
 
 ## Who you are
 
-Shipyard finds you from the account of a signed-in connection, then from your git e-mail. Work / Team shows who it found. When the team file has an admin and you are not in it, you are a viewer: you can read each page and change nothing. Fill in Ask to join and send the copied entry to an admin.
+Shipyard finds you from the account of a signed-in connection, then from your git e-mail. Crew / Rights shows who it found. When the team file has an admin and you are not in it, you are a viewer: you can read each page and change nothing. Fill in Ask to join and send the copied entry to an admin.
 
 ## The rights come from the default branch
 
-When the project has a remote, Shipyard reads the rights from the team file of the default branch. A change in your working copy gives no right until it is merged. Work / Team warns you while the two differ. Protect the default branch in your code host, and require a review for `.shipyard/team.yaml`: Shipyard cannot stop a person who edits files with another tool.
+When the project has a remote, Shipyard reads the rights from the team file of the default branch. A change in your working copy gives no right until it is merged. Crew / Rights warns you while the two differ. Protect the default branch in your code host, and require a review for `.shipyard/team.yaml`: Shipyard cannot stop a person who edits files with another tool.
 
 ## Move the roles of this machine
 
-If this machine holds roles by e-mail, Work / Team offers to write them as members. A former functional lead becomes a product owner. A former junior becomes a developer without `code.merge` and `runs.approve`. The page modes of the old profiles are dropped, and the list shows each of them. A person with `project.settings` confirms.
+If this machine holds roles by e-mail, Crew / Rights offers to write them as members. A former functional lead becomes a product owner. A former junior becomes a developer without `code.merge` and `runs.approve`. The page modes of the old profiles are dropped, and the list shows each of them. A person with `project.settings` confirms.
 
 ## Audit
 
-Each write that needs a right, and each refusal, adds a line to the audit log on your machine. Work / Team shows the last 100 lines to a person with `project.settings`.
+Each write that needs a right, and each refusal, adds a line to the audit log on your machine. Crew / Rights shows the last 100 lines to a person with `project.settings`.
 
 ## Inbox
 

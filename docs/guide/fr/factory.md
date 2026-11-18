@@ -85,22 +85,27 @@ Une exécution terminée ne redémarre pas seule. Cliquez sur Relancer sur une e
 
 ## Workflows
 
-Workflows liste les workflows et les rôles des agents. Ouvrez-en un pour le lire ou le modifier, puis enregistrez. Un fichier cassé montre son erreur et sa ligne. La dernière bonne version continue de tourner.
+Workflows est maintenant Équipe / Recettes. Son ancienne adresse l'ouvre. Une recette est un workflow.
+
+Recettes liste les workflows et les rôles des agents, chacun sur une carte avec le nom de ses étapes. Cliquez sur une carte pour la lire ou la modifier, puis enregistrez. Un fichier cassé montre son erreur et sa ligne. La dernière bonne version continue de tourner.
 
 Un workflow s’ouvre dans un formulaire. Utilisez Formulaire et Texte pour passer du formulaire au texte YAML. Les deux modifient le même fichier.
 
-- Étapes : réglez le rôle ou l’action, le niveau de modèle, l’effort, le mode, les dépendances, les outils et la validation de chaque étape. Plus montre les autres champs : espace de travail, pour chaque, enfants en parallèle, nouveaux essais, limite de temps, budget, compétence, contexte neuf et tours de revue. Ajoutez, retirez et déplacez une étape vers le haut ou vers le bas.
+- Étapes : chaque étape est une carte avec les groupes Qui, Personnes, Fonctionnement et Limites. Réglez le rôle ou l’action, le niveau de modèle, l’effort, le mode, les dépendances, les outils et la validation de chaque étape. Plus montre les autres champs : espace de travail, pour chaque, enfants en parallèle, nouveaux essais, limite de temps, budget, compétence, contexte neuf et tours de revue. Ajoutez, retirez et déplacez une étape vers le haut ou vers le bas.
 - Limites : le délai d’inactivité en secondes. Activez Budget pour arrêter chaque exécution à un montant en USD, et Limite de tours pour mettre chaque exécution en pause après un nombre de tours. Les deux sont désactivés par défaut.
 - Le formulaire vérifie le workflow à chaque changement. Enregistrer reste désactivé tant qu’il montre un problème.
 - Nouveau crée un workflow à partir d’un modèle : feature, bug, spike, docs-update, review-only, spec-split ou bootstrap. Le menu Plus d’actions du workflow ouvert contient Dupliquer, Renommer et Supprimer. Dupliquer copie le workflow. Renommer et Supprimer refusent le workflow par défaut du projet et un workflow qu’une exécution utilise. Supprimer demande une confirmation.
 - Un enregistrement depuis le formulaire garde les lignes de commentaire en haut du fichier. Utilisez Texte pour garder les autres commentaires.
 - Un agent extérieur avec les outils Workflows activés (Réglages / Connexions / MCP) peut lister, lire, vérifier et proposer un workflow. Une proposition ne change pas le fichier : ouvrez le workflow, lisez le diff, puis Appliquer ou Écarter.
+- Écrit sans demander liste les permissions d'une recette. Retirer demande une confirmation, puis enregistre pour toute l'équipe.
 
 ## Carte des agents
 
-Carte des agents dessine les exécutions, leurs tickets, leurs sessions d’agent et les fichiers de leurs constats sous forme de graphe. Un nœud montre la clé et le titre du ticket, le nom de l’étape ou le nom du fichier. Survolez un nœud pour voir sa référence. Clic droit, ou touche menu contextuel, pour copier la référence. Cliquez sur une exécution ou une session pour ouvrir l’exécution. Le bouton tableau liste les mêmes nœuds pour le clavier.
+La vue En direct d'Équipe remplace la Carte des agents. Son ancienne adresse l'ouvre. Chaque ligne montre un agent au travail, sa fonctionnalité avec son état, et les fichiers et les specs que l'agent lit et modifie. Le filtre est Au travail, Terminée, Fichiers ou Specs. Survolez un agent pour voir sa référence. Clic droit, ou touche menu contextuel, pour copier la référence. Cliquez sur la fonctionnalité pour ouvrir sa page.
 
 ## Sessions
+
+Sessions est dans Équipe. Un agent qui relit une pull request ou qui estime des tâches s'y affiche aussi.
 
 Sessions liste les sessions d’agent des exécutions et celles de cet ordinateur. Cliquez sur une session d’exécution pour ouvrir l’exécution à cette étape. Arrêtez une session dont vous n’avez pas besoin.
 
@@ -108,9 +113,11 @@ L'interrupteur Agents arrête toutes les exécutions et empêche les nouvelles. 
 
 ## Consommation
 
-Consommation montre les jetons et l'argent que les agents ont utilisés, par jour et par personne, face aux budgets, et le taux de réussite des exécutions.
+Consommation est maintenant Équipe / Dépenses. Son ancienne adresse l'ouvre.
 
-- Budgets montre les montants fixés, avec Modifier. Sans budget, il montre le formulaire. Cliquez sur un jour ou une personne pour remplir le formulaire.
+Dépenses montre les jetons et l'argent que les agents ont utilisés, par jour et par personne, face aux budgets, et le taux de réussite des exécutions.
+
+- Budgets liste chaque montant fixé, avec son propre Modifier. Sans budget, il montre le formulaire. Cliquez sur un jour ou une personne pour remplir le formulaire.
 - Cliquez sur une exécution pour l’ouvrir.
 
 - Itérations compte les requêtes que chaque exécution a envoyées au modèle.
