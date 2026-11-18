@@ -5,8 +5,18 @@ Design keeps the architecture of the project: diagrams, decisions, API contracts
 ## Create or change an item
 
 1. Open the tab, then select an item. Or click the main action of the tab to create one.
-2. Change the text or the drawing. The preview follows.
+2. An item with a picture opens on the picture alone. Click Both or Text to see its text, then change the text or the drawing. The picture follows.
 3. Click Save. The app writes the whole file or nothing.
+
+## Picture, Both, Text
+
+An architecture model, a data model, a Mermaid diagram and the design doc open on the picture, so you can read them without their text. One switch at the top has three choices:
+
+- Picture: the picture alone.
+- Both: the text and the picture side by side.
+- Text: the text alone.
+
+Shipyard keeps your choice. It shows the text by itself when you need it: for a new file, when somebody changed the file at the same time, and for an error that names a line.
 
 ## Delete an item
 

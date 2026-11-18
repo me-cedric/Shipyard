@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { openFirstFolder } from "./first-run";
+import { openLibrary } from "./places";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
@@ -11,8 +12,7 @@ async function openKnowledge(page: Page, tab: string) {
 	await expect(
 		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
 	).toBeVisible();
-	await sidebar(page).getByRole("link", { name: "Library" }).click();
-	await tabs(page).getByRole("link", { name: tab }).click();
+	await openLibrary(page, tab);
 }
 
 test("filters the graph by kind and explains an entity from the inspector", async ({ page }) => {

@@ -89,6 +89,8 @@ export const errorsEs: Record<Exclude<ErrorCode, "unknown">, string> = {
 	thread_state:
 		"Esta conversación no puede hacer esto ahora. Espera a que termine el turno e inténtalo de nuevo.",
 	stopped: "Esto se detuvo. Vuelve a iniciarlo.",
+	tile_no_result: "El agente no dio ningún mosaico. Créalo de nuevo.",
+	tile_time_limit: "El agente tardó demasiado y se detuvo. Crea el mosaico de nuevo.",
 	import_not_planned: "No hay ninguna importación prevista. Lee primero el origen.",
 	server_off: "Este servidor está apagado. Actívalo primero.",
 	input_invalid: "Un valor está vacío o no es válido. Revisa los campos e inténtalo de nuevo.",

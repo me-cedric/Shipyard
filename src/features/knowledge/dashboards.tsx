@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { DEFAULT_BUDGET } from "@/features/flow/stop-action";
 import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
@@ -6,16 +7,19 @@ import {
 	type Dashboard,
 	message,
 	TILE_KINDS,
+	type TileProposal,
 	useDashboard,
 	useDashboards,
 	usePins,
 	useTile,
+	useTileBuild,
 } from "@/lib/knowledge";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton, RightIconButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useTeam } from "@/lib/work";
 import { Badge } from "@/ui/atoms/badge";
+import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
@@ -24,6 +28,7 @@ import {
 	ChevronRightIcon,
 	Cog6ToothIcon,
 	PlusIcon,
+	SparklesIcon,
 	Squares2X2Icon,
 	XMarkIcon,
 } from "@/ui/icons";
@@ -143,6 +148,112 @@ function TileSettings({ slug, id }: { slug: string; id: string }) {
 	);
 }
 
+/**
+ * "Build a tile for me": the person says what the tile must show and sets a budget, an agent
+ * proposes one tile, and the tile enters the dashboard only on Accept (spec:app-redesign#REQ-032).
+ */
+function TileBuilder({
+	build,
+	onAccept,
+}: {
+	build: ReturnType<typeof useTileBuild>;
+	/** Saves the tile to the dashboard. `false`: the save failed, and the proposal stays. */
+	onAccept: (tile: TileProposal) => Promise<boolean>;
+}) {
+	const k = useI18n().t.knowledge.dashboards;
+	const [text, setText] = useState("");
+	const [usd, setUsd] = useState(DEFAULT_BUDGET);
+	const proposal = build.proposal;
+	if (build.working)
+		return (
+			<div className="flex flex-wrap items-center gap-2">
+				<p role="status" className="text-ui text-n-11">
+					{k.building}
+				</p>
+				<Button className="min-h-control" onClick={() => void build.stop()}>
+					{k.buildStop}
+				</Button>
+			</div>
+		);
+	if (proposal)
+		return (
+			<section aria-label={k.proposed} className="flex max-w-xl flex-col gap-2">
+				<h2 className="text-ui font-medium text-n-12">{k.proposed}</h2>
+				<Tile kind={proposal.kind} title={proposal.title} />
+				<div className="flex flex-wrap items-center gap-2">
+					<RightButton
+						right="knowledge.edit"
+						variant="primary"
+						className="min-h-control"
+						onClick={async () => {
+							if (await onAccept(proposal)) build.discard();
+						}}
+					>
+						{k.accept}
+					</RightButton>
+					<Button className="min-h-control" onClick={build.discard}>
+						{k.discard}
+					</Button>
+				</div>
+			</section>
+		);
+	return (
+		<form
+			className="flex flex-wrap items-center gap-2"
+			onSubmit={(ev) => {
+				ev.preventDefault();
+				void build.start(text, usd);
+			}}
+		>
+			<Input
+				label={k.buildWhat}
+				className="min-h-control w-80 max-w-full"
+				maxLength={500}
+				value={text}
+				onChange={(ev) => setText(ev.target.value)}
+			/>
+			<fieldset
+				aria-label={k.buildBudget}
+				className="m-0 flex items-center gap-1 rounded-md border p-0"
+			>
+				<Button
+					variant="ghost"
+					className="min-h-control"
+					aria-label={k.buildLess}
+					disabled={usd <= 1}
+					onClick={() => setUsd(usd - 1)}
+				>
+					-
+				</Button>
+				<output className="min-w-10 text-center font-mono text-ui">${usd}</output>
+				<Button
+					variant="ghost"
+					className="min-h-control"
+					aria-label={k.buildMore}
+					onClick={() => setUsd(usd + 1)}
+				>
+					+
+				</Button>
+			</fieldset>
+			<RightButton
+				right="knowledge.edit"
+				type="submit"
+				variant="primary"
+				className="min-h-control"
+				disabled={!text.trim()}
+			>
+				{k.buildStart}
+			</RightButton>
+			{build.failure ? (
+				<p role="alert" className="w-full text-ui text-danger-text">
+					{/* A larger tile budget helps only when the tile budget is the one that is spent. */}
+					{build.failure.details.includes("the tile waits") ? k.buildSpent : build.failure.message}
+				</p>
+			) : null}
+		</form>
+	);
+}
+
 function DashboardView({ slug }: { slug: string }) {
 	const { t } = useI18n();
 	const k = t.knowledge.dashboards;
@@ -152,6 +263,8 @@ function DashboardView({ slug }: { slug: string }) {
 	const kindName = k.kind as Record<string, string>;
 	const [person, setPerson] = useState(EVERYONE);
 	const [failure, setFailure] = useState<string | null>(null);
+	const [building, setBuilding] = useState(false);
+	const build = useTileBuild(slug);
 	// The tile in the air and the column of the tile that the pointer holds.
 	const drag = useRef<{ id: string; grab: number } | null>(null);
 	if (!view)
@@ -165,9 +278,13 @@ function DashboardView({ slug }: { slug: string }) {
 	const write = async (tiles: Dashboard["tiles"]) => {
 		try {
 			setFailure(null);
-			await save({ ...dash, tiles });
+			if (await save({ ...dash, tiles })) return true;
+			// The save read the file again: the next click saves on the new file.
+			setFailure(t.knowledge.editor.conflict);
+			return false;
 		} catch (e) {
 			setFailure(message(e));
+			return false;
 		}
 	};
 	const move = (id: string, dx: number) =>
@@ -176,11 +293,11 @@ function DashboardView({ slug }: { slug: string }) {
 				x.id === id ? { ...x, x: Math.min(COLUMNS - x.w, Math.max(0, x.x + dx)) } : x,
 			),
 		);
-	const add = (kind: string) => {
+	const add = (kind: string, size: { w: number; h: number; title?: string } = { w: 4, h: 3 }) => {
 		let id = kind;
 		for (let n = 2; dash.tiles.some((x) => x.id === id); n++) id = `${kind}-${n}`;
 		const y = Math.max(0, ...dash.tiles.map((x) => x.y + x.h));
-		return write([...dash.tiles, { id, kind, x: 0, y, w: 4, h: 3 }]);
+		return write([...dash.tiles, { id, kind, x: 0, y, ...size }]);
 	};
 	/** The grid column under the pointer, from 0. */
 	const column = (e: React.DragEvent, grid: HTMLElement) => {
@@ -212,7 +329,25 @@ function DashboardView({ slug }: { slug: string }) {
 						}))}
 					/>
 				)}
+				{view.readOnly ? null : (
+					<RightButton
+						right="knowledge.edit"
+						className="min-h-control"
+						aria-expanded={building}
+						disabled={build.working}
+						onClick={() => setBuilding(!building)}
+					>
+						<SparklesIcon size={14} />
+						{k.build}
+					</RightButton>
+				)}
 			</div>
+			{building && !view.readOnly ? (
+				<TileBuilder
+					build={build}
+					onAccept={({ kind, title, w, h }) => add(kind, { w, h, ...(title ? { title } : {}) })}
+				/>
+			) : null}
 			{failure ? (
 				<p role="alert" className="text-ui text-danger-text">
 					{failure}

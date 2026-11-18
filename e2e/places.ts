@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { PLACE_IDS, sections } from "../src/features/shell/places";
 import { tabLabel } from "../src/features/shell/spaces";
 import { en } from "../src/lib/i18n/en";
@@ -7,4 +8,22 @@ export function placeOf(section: string): string {
 	const place = PLACE_IDS.find((p) => sections(p).some(([s, t]) => tabLabel(en, s, t) === section));
 	if (!place) throw new Error(`No place holds ${section}`);
 	return en.ui.place[place];
+}
+
+/** The English name of the section at a path `/place/slug`: Library has no switch that names it. */
+export function sectionAt(path: string): string {
+	const [, place, slug] = path.split("/");
+	const view = PLACE_IDS.includes(place as never)
+		? sections(place as (typeof PLACE_IDS)[number]).find(([, tab]) => tab === slug)
+		: undefined;
+	return view ? tabLabel(en, ...view) : "";
+}
+
+/** A page of Library: the sidebar link opens the four doors, then the chip of the page opens it. */
+export async function openLibrary(page: Page, name: string) {
+	await page
+		.getByRole("navigation", { name: "Sidebar" })
+		.getByRole("link", { name: "Library" })
+		.click();
+	await page.getByRole("main").getByRole("link", { name, exact: true }).click();
 }

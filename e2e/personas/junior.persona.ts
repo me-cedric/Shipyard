@@ -89,7 +89,8 @@ test("junior", async ({ page }) => {
 				"the question does not appear",
 			);
 			const tabs = page.getByRole("navigation", { name: "Tabs" });
-			if (await tabs.evaluate((n) => n.scrollWidth > n.clientWidth)) {
+			// A page of Library has no tab bar.
+			if ((await tabs.count()) && (await tabs.evaluate((n) => n.scrollWidth > n.clientWidth))) {
 				w.confusing("with the assistant and the inspector open, the tab bar is cut off at 1440 px");
 			}
 		},

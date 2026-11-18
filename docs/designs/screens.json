@@ -29,20 +29,22 @@
     {
       "id": "SCR-003",
       "slug": "design",
-      "title": "Design: the diagram or picture fits the zoom frame at the first paint; a sideways gesture or a drag pans it, a pinch zooms it, Fit brings it back",
+      "title": "Library / Architecture: the reader opens on the picture alone, with the switch Picture, Both, Text and the Library back link; the diagram or picture fits the zoom frame at the first paint; a sideways gesture or a drag pans it, a pinch zooms it, Fit brings it back",
       "artifacts": [
         "spec:design",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/design.png"
     },
     {
       "id": "SCR-004",
       "slug": "specs",
-      "title": "Specs",
+      "title": "Library / Questions: the register of open points, with the Library back link in place of the section switch",
       "artifacts": [
         "spec:specs",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/specs.png"
     },
@@ -91,10 +93,11 @@
     {
       "id": "SCR-009",
       "slug": "knowledge",
-      "title": "Knowledge: tabs with icons; the manual opens from the account menu, F1 or the palette, not from a tab",
+      "title": "Library / Learn: the path, the glossary, the learning paths and the feeds, with the Library back link; the manual opens from the account menu, F1, the Ask bar or its chip in Library",
       "artifacts": [
         "spec:knowledge",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/knowledge.png"
     },
@@ -408,6 +411,36 @@
         "spec:app-redesign",
         "adr:0023"
       ]
+    },
+    {
+      "id": "SCR-044",
+      "slug": "library",
+      "title": "Library: four doors (What it must do, How it is built, Why it is so, Learn and share), one chip for each page, and the waiting items first (open questions, decisions that wait); no section switch",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library.png"
+    },
+    {
+      "id": "SCR-045",
+      "slug": "library-reports",
+      "title": "Library / Reports: one card for each report with Export, Fill the form or a link to the page that holds it, and the Format choice (All, Word, Excel, Picture)",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/reports.png"
+    },
+    {
+      "id": "SCR-046",
+      "slug": "dashboard-tile-build",
+      "title": "Library / Dashboards, Build a tile for me: what the tile must show, the budget, Build and Stop, then the Proposed tile with Accept and Discard",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/tile-build.png"
     }
   ]
 }

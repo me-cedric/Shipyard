@@ -87,6 +87,17 @@ describe("Design / Decisions", () => {
 		);
 	});
 
+	it("opens a decision in its form, and a switch shows the text (spec:app-redesign#REQ-021)", async () => {
+		const user = userEvent.setup();
+		await mountDesign(<Decisions />);
+		await user.click(await row(/0003/));
+		expect(await screen.findByRole("textbox", { name: "Title" })).toBeInTheDocument();
+		expect(screen.queryByRole("textbox", { name: "ADR text" })).toBeNull();
+		await user.click(screen.getByRole("tab", { name: "Text" }));
+		expect(screen.getByRole("textbox", { name: "ADR text" })).toHaveValue(files()[ADR3]?.text);
+		expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull();
+	});
+
 	it("keeps the ref when the title changes", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Decisions />);
@@ -253,11 +264,11 @@ describe("Design / Flows", () => {
 	it("adds a brick, picks it in a flow with a name and a subnet, and follows a rename", async () => {
 		const user = userEvent.setup();
 		await open(user);
-		await user.click(await screen.findByRole("tab", { name: "Bricks" }));
+		await user.click(await screen.findByRole("button", { name: "Bricks" }));
 		await user.type(await screen.findByRole("textbox", { name: "Brick name" }), "Web");
 		await user.click(screen.getByRole("button", { name: "Brick" }));
 		await waitFor(() => expect(files()["docs/flows/bricks.json"]?.text).toContain('"Web"'));
-		await user.click(screen.getByRole("tab", { name: "Flows" }));
+		await user.click(screen.getByRole("button", { name: "Flows" }));
 		await user.click((await screen.findAllByRole("button", { name: /^Edit / }))[0] as HTMLElement);
 		await user.click(await screen.findByRole("combobox", { name: "Source brick" }));
 		await user.click(await screen.findByRole("option", { name: "Web" }));
@@ -271,7 +282,7 @@ describe("Design / Flows", () => {
 				subnet: "10.0.0.0/24",
 			}),
 		);
-		await user.click(screen.getByRole("tab", { name: "Bricks" }));
+		await user.click(screen.getByRole("button", { name: "Bricks" }));
 		const field = await screen.findByRole("textbox", { name: "Brick name Web" });
 		await user.clear(field);
 		await user.type(field, "Frontend");

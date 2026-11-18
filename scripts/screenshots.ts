@@ -24,6 +24,13 @@ const PLACE: Record<string, string> = {
 	Crew: "Crew",
 	Recipes: "Crew",
 	Spend: "Crew",
+	Dashboards: "Library",
+	Reports: "Library",
+	Plan: "Plan",
+	Team: "Crew",
+	Workflows: "Crew",
+	"Agents map": "Crew",
+	Usage: "Crew",
 	"Pull requests": "Code",
 	Connections: "Setup",
 	Project: "Setup",
@@ -31,7 +38,9 @@ const PLACE: Record<string, string> = {
 };
 const open = async (p: Page, tab: string) => {
 	await side(p).getByRole("link", { name: PLACE[tab] }).click();
-	await tabs(p).getByRole("link", { name: tab, exact: true }).click();
+	// Library has no section switch: a page opens from its chip in a door.
+	const from = PLACE[tab] === "Library" ? p.getByRole("main") : tabs(p);
+	await from.getByRole("link", { name: tab, exact: true }).click();
 };
 // Crew / Live: one row for each agent at work (the agents map of before).
 const openLive = async (p: Page) => {
@@ -93,6 +102,35 @@ const scenes: Scene[] = [
 				.getByRole("combobox", { name: "Ask or tell Shipyard" })
 				.fill("what blocks the release");
 			await p.getByRole("button", { name: "Open the full assistant" }).waitFor();
+		},
+	},
+	{
+		name: "library",
+		light: true,
+		run: async (p) => {
+			await side(p).getByRole("link", { name: "Library" }).click();
+			await p.getByRole("region", { name: "What it must do" }).waitFor();
+		},
+	},
+	{
+		name: "reports",
+		light: true,
+		run: async (p) => {
+			await open(p, "Reports");
+			await p.getByRole("navigation", { name: "Format" }).waitFor();
+		},
+	},
+	{
+		name: "tile-build",
+		light: true,
+		run: async (p) => {
+			await open(p, "Dashboards");
+			await p.getByRole("button", { name: "Build a tile for me" }).click();
+			await p
+				.getByRole("textbox", { name: "What the tile must show" })
+				.fill("The open questions for each owner");
+			await p.getByRole("button", { name: "Build", exact: true }).click();
+			await p.getByRole("region", { name: "Proposed tile" }).waitFor();
 		},
 	},
 	{ name: "design", run: (p) => open(p, "Architecture") },

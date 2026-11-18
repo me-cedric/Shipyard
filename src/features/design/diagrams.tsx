@@ -99,7 +99,7 @@ function Face({ a }: { a: Artifact | undefined }) {
 	return <img alt="" src={svgDataUri(svg)} className="h-28 w-full object-contain px-2" />;
 }
 
-function Diagram({ a }: { a: Artifact }) {
+function Diagram({ a, created }: { a: Artifact; created: boolean }) {
 	const { t, lang } = useI18n();
 	const outside = useOpenOutside();
 	const act = useDesignActions();
@@ -162,6 +162,7 @@ function Diagram({ a }: { a: Artifact }) {
 						<EditorPreview
 							id="design-diagrams-width"
 							label={t.design.resize.editor}
+							needText={created || file.conflict || error?.line != null}
 							editor={
 								<CodeEditor
 									label={t.design.diagram.text}
@@ -252,9 +253,9 @@ export function Diagrams() {
 				},
 			}}
 		>
-			{(row) => {
+			{(row, created) => {
 				const a = rows.find((x) => x.reference === row.ref);
-				return a ? <Diagram a={a} /> : null;
+				return a ? <Diagram a={a} created={created} /> : null;
 			}}
 		</ArtifactTab>
 	);

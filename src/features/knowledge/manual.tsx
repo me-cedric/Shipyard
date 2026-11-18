@@ -113,7 +113,10 @@ export function Manual() {
 		const known = pages.some((p) => p.id === target.page);
 		setPage(known ? target.page : "start");
 		const tabs = t.tabs as Record<string, Record<string, string>>;
-		setScrollTo(known && target.tab ? (tabs[target.page]?.[target.tab] ?? null) : null);
+		// A page of Library with no old view has its name in `t.library.views`.
+		const views: Record<string, string> = t.library.views;
+		const heading = tabs[target.page]?.[target.tab ?? ""] ?? views[target.tab ?? ""];
+		setScrollTo(known ? (heading ?? null) : null);
 		setQuery("");
 	}, [target, pages, t]);
 

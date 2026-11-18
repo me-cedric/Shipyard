@@ -23,7 +23,8 @@ import {
  * The places of the main menu in menu order (adr:0023 points 1 and 3). Each section is one view
  * `space/tab` of before the change, and the tab id is the slug of the section. The views of Flow
  * are `flow/<slug>`, and the sections of Plan and Crew are `plan/<slug>` and `crew/<slug>`:
- * `REPLACES` names the old views that each one takes over.
+ * `REPLACES` names the old views that each one takes over. The home of Library and Reports are
+ * `library/<slug>`: pages of their own, with no old view.
  */
 export const PLACES = {
 	today: ["home/today", "home/news", "home/activity", "home/projects"],
@@ -31,6 +32,7 @@ export const PLACES = {
 	plan: ["plan/timeline", "plan/people", "plan/estimates", "plan/time"],
 	crew: ["crew/crew", "crew/recipes", "crew/sessions", "crew/spend", "crew/rights"],
 	library: [
+		"library/home",
 		"design/diagrams",
 		"design/architecture",
 		"design/decisions",
@@ -49,6 +51,7 @@ export const PLACES = {
 		"knowledge/slides",
 		"knowledge/learn",
 		"knowledge/dashboards",
+		"library/reports",
 	],
 	code: ["code/changes", "code/history", "code/branches", "code/pull-requests", "code/terminal"],
 	setup: [
@@ -60,6 +63,17 @@ export const PLACES = {
 		"settings/health",
 	],
 } as const;
+
+/** The pages that hold an export of today. Reports shows while a role sees one (`spec:app-redesign#REQ-006`). */
+const REPORT_VIEWS = [
+	"knowledge/documents",
+	"code/history",
+	"code/quality",
+	"work/estimates",
+	"work/plan",
+	"design/flows",
+	"specs/questions",
+];
 
 /** The old views that a view of Flow replaces (`spec:app-redesign#REQ-010`, decision 2 of wave 3). */
 export const REPLACES: Record<string, readonly string[]> = {
@@ -77,6 +91,9 @@ export const REPLACES: Record<string, readonly string[]> = {
 	"crew/sessions": ["factory/sessions"],
 	"crew/spend": ["factory/usage"],
 	"crew/rights": ["work/team"],
+	"library/reports": REPORT_VIEWS,
+	// The home of Library stands for each chip of its doors: it hides only when each one is hidden.
+	"library/home": [...PLACES.library.filter((v) => !v.startsWith("library/")), ...REPORT_VIEWS],
 };
 
 /** The old views that a section stands for: the ones that it replaces, else itself. */
@@ -116,7 +133,7 @@ export const sectionView = (place: PlaceId, slug: string) =>
 /** The section `[place, slug]` that takes over an old view: the first one that names it. */
 const taker = (view: string) =>
 	Object.entries(REPLACES)
-		.find(([, old]) => old.includes(view))?.[0]
+		.find(([key, old]) => !key.startsWith("library/") && old.includes(view))?.[0]
 		.split("/") as [PlaceId, string] | undefined;
 
 /** The place that holds an old view. */
@@ -139,11 +156,15 @@ export const barSections = (place: PlaceId, level = open) =>
 export const visiblePlaces = (level = open) =>
 	PLACE_IDS.filter((p) => visibleSections(p, level).length > 0);
 
-/** The section that a place opens on: the first tab of the role when the place holds it, else the first visible one. */
+/**
+ * The section that a place opens on: the first tab of the role when the place holds it, else the
+ * first visible one. Library always opens on its doors (`spec:app-redesign#REQ-020`).
+ */
 export function firstSection(place: PlaceId, role: TeamRole | null, level = open) {
 	const shown = visibleSections(place, level);
 	const [, home, slug] = (placePath(firstPath(role)) ?? "").split("/");
-	const first = home === place ? shown.find((v) => v[1] === slug) : undefined;
+	const first =
+		home === place && place !== "library" ? shown.find((v) => v[1] === slug) : undefined;
 	return (first ?? shown[0] ?? sections(place)[0])?.[1] ?? "";
 }
 
@@ -151,7 +172,8 @@ export function firstSection(place: PlaceId, role: TeamRole | null, level = open
 export function viewPath(path: string) {
 	const [, place, slug] = path.split("/");
 	const view = place && slug && place in PLACES ? sectionView(place as PlaceId, slug) : undefined;
-	return view ? `/${viewsOf(...view)[0]}` : path;
+	// A page of Library with no old view keeps its own path.
+	return view && view[0] !== "library" ? `/${viewsOf(...view)[0]}` : path;
 }
 
 const TODAY_TABS = new Set(["inbox", "my-work"]);

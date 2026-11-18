@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 
+/** The look of a chip that names the items that wait. */
+export const ATTENTION_CHIP = "bg-attention-subtle font-semibold text-attention-text";
+
 /** A card for a thing that a person must act on. The only user of the attention colour. */
 export function AttentionCard({
 	who,

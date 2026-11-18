@@ -5,10 +5,20 @@ La Conception garde l'architecture du projet : diagrammes, décisions, contrats 
 ## Créer ou modifier un élément
 
 1. Ouvrez l'onglet, puis sélectionnez un élément. Ou cliquez sur l'action principale de l'onglet pour en créer un.
-2. Modifiez le texte ou le dessin. L'aperçu suit.
+2. Un élément avec une image s'ouvre sur l'image seule. Cliquez sur Les deux ou Texte pour voir son texte, puis modifiez le texte ou le dessin. L'image suit.
 3. Cliquez sur Enregistrer. L'application écrit tout le fichier ou rien.
 
 Quand quelqu'un modifie le fichier en même temps, l'application vous le dit. Choisissez Recharger pour prendre sa version, ou Garder le mien.
+
+## Image, Les deux, Texte
+
+Un modèle d'architecture, un modèle de données, un diagramme Mermaid et le document de design s'ouvrent sur l'image, pour les lire sans leur texte. Un sélecteur en haut a trois choix :
+
+- Image : l'image seule.
+- Les deux : le texte et l'image côte à côte.
+- Texte : le texte seul.
+
+Shipyard garde votre choix. Il montre le texte de lui-même quand vous en avez besoin : pour un nouveau fichier, quand quelqu'un a modifié le fichier en même temps, et pour une erreur qui nomme une ligne.
 
 ## Diagrammes
 

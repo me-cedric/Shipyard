@@ -1,6 +1,7 @@
 import { appendFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { sectionAt } from "../places";
 
 type Result = "ok" | "confusing" | "dead end" | "error";
 const OUT = resolve(process.env.PERSONAS_OUT ?? "test-results/personas");
@@ -126,6 +127,7 @@ export class Walk {
 
 	/** The sidebar link, then the tab: what a person clicks to reach a page. */
 	go = async (space: string, tab?: string) => {
+		if (space === "Library" && tab) return this.library(tab);
 		await this.click(
 			this.page.getByRole("navigation", { name: "Sidebar" }).getByRole("link", { name: space }),
 		);
@@ -136,6 +138,26 @@ export class Walk {
 					.getByRole("link", { name: tab, exact: true }),
 			);
 		}
+	};
+
+	/** A page of Library: the doors, then the chip of the page. A page of Library goes back by its link "Library". */
+	private library = async (tab: string) => {
+		const main = this.page.getByRole("main");
+		const back = main.getByRole("link", { name: "Library", exact: true });
+		const chip = main.getByRole("link", { name: tab, exact: true });
+		const inside = () => new URL(this.page.url()).pathname.startsWith("/library/");
+		if (!inside()) {
+			await this.click(
+				this.page
+					.getByRole("navigation", { name: "Sidebar" })
+					.getByRole("link", { name: "Library" }),
+			);
+			await expect.poll(inside, { timeout: WAIT }).toBe(true);
+			await chip.or(back).first().waitFor({ timeout: WAIT });
+		}
+		// The role opened on a page of Library, or the person is on one: the back link shows the doors.
+		if (!this.page.url().endsWith("/library/home")) await this.click(back);
+		await this.click(chip);
 	};
 
 	/** First run: pick the role card, open the demo folder. The app picks the page. */
@@ -158,8 +180,12 @@ export class Walk {
 				);
 				await this.click(this.page.getByRole("button", { name: "Continue" }));
 				await this.click(this.page.getByRole("button", { name: "Open a local folder" }));
+				// A page of Library has the back link in the place of the section switch.
 				await this.see(
-					this.page.getByRole("navigation", { name: "Tabs" }).getByRole("link").first(),
+					this.page
+						.getByRole("navigation", { name: "Tabs" })
+						.getByRole("link")
+						.or(this.page.getByRole("main").getByRole("link", { name: "Library", exact: true })),
 					"no page after the project opened",
 				);
 			},
@@ -168,10 +194,8 @@ export class Walk {
 
 	/** The first tab that the role sees must match its work. A wrong landing page still works, so it is "confusing". */
 	landsOn = async (space: string, tab: string) => {
-		const current = this.page
-			.getByRole("navigation", { name: "Tabs" })
-			.locator("[aria-current=page]");
-		const shown = ((await current.first().textContent()) ?? "").trim();
+		// The address names the section: a page of Library has no switch that marks it.
+		const shown = sectionAt(new URL(this.page.url()).pathname);
 		if (shown !== tab)
 			this.confusing(
 				`the role lands on "${shown}", the work of the role starts at ${space} / ${tab}`,

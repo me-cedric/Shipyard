@@ -24,6 +24,10 @@ export const reportsEs: typeof reportsEn = {
 	security: "Hallazgos de seguridad",
 	schedule: "Calendario",
 	gantt: "Diagrama de Gantt",
+	fill: "Rellenar el formulario",
+	openPage: "Abrir {page}",
+	format: "Formato",
+	formats: { all: "Todos", docx: "Word", xlsx: "Excel", picture: "Imagen" },
 	form: {
 		title: "Título",
 		base: "Ref base",

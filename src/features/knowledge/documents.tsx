@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { SavedActions } from "@/features/reports/export-menu";
-import { renderViews } from "@/features/reports/export-views";
 import { PageExport } from "@/features/reports/page-export";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, type ExportText, saveAs, unwrap } from "@/lib/ipc";
+import { saveAs } from "@/lib/ipc";
 import { DOC_DIR, useDocList } from "@/lib/knowledge";
 import { useDocxList } from "@/lib/knowledge/documents";
 import { RightButton } from "@/lib/rights";
@@ -11,7 +10,7 @@ import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
 import { ArrowDownTrayIcon, DocumentTextIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { DocActions, DocSearch, DocxView } from "./documents-parts";
+import { DocActions, DocSearch, DocxView, useDocumentExports } from "./documents-parts";
 import { ListTab } from "./list-tab";
 import { PageEditor } from "./pages";
 
@@ -37,14 +36,6 @@ export function Documents() {
 	// The file of the last export: the session list allows "Show in folder" and "Open" on it.
 	const [saved, setSaved] = useState<string | null>(null);
 
-	const words = (title: string, sections: string[]): ExportText => ({
-		title,
-		empty: k.text.empty,
-		gap: k.text.gap,
-		generated: k.text.generated,
-		contents: k.text.contents,
-		sections,
-	});
 	// The export in progress: a second click waits for it.
 	const [exporting, setExporting] = useState<string | null>(null);
 	const run =
@@ -65,45 +56,7 @@ export function Documents() {
 				setExporting(null);
 			}
 		};
-	const exports = [
-		{
-			id: "dossier",
-			label: k.dossier,
-			ext: "DOCX",
-			tone: "accent" as const,
-			go: run("dossier", "docx", async (path) =>
-				unwrap(
-					commands.exportDossierFile(words(k.dossier, k.text.dossier), await renderViews(), path),
-				),
-			),
-		},
-		{
-			id: "functional",
-			label: k.functional,
-			ext: "DOCX",
-			tone: "info" as const,
-			go: run("functional", "docx", async (path) =>
-				unwrap(commands.exportFunctionalFile(words(k.functional, k.text.functional), path)),
-			),
-		},
-		{
-			id: "quality",
-			label: k.sheet,
-			ext: "XLSX",
-			tone: "success" as const,
-			go: run("quality", "xlsx", async (path) => {
-				// The sheet is the quality tile: the numbers that the project already holds.
-				const tile = await unwrap(commands.dashboardTile("quality"));
-				await unwrap(
-					commands.exportSheetFile(
-						words(k.sheet, []),
-						[{ name: k.sheet, headers: tile.columns, rows: tile.rows }],
-						path,
-					),
-				);
-			}),
-		},
-	];
+	const exports = useDocumentExports().map((x) => ({ ...x, go: run(x.id, x.ext, x.job) }));
 	return (
 		<ListTab
 			title={k.title}
@@ -124,7 +77,7 @@ export function Documents() {
 							<RightButton
 								right="knowledge.edit"
 								key={x.id}
-								title={x.ext}
+								title={x.ext.toUpperCase()}
 								aria-label={`${k.export} ${x.label}`}
 								busy={exporting === x.id}
 								disabled={exporting !== null}

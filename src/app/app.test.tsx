@@ -34,16 +34,20 @@ const current = (nav: HTMLElement) =>
 const named = (place: string) => new RegExp(`^${place}`);
 
 describe("router", () => {
-	it.each(PLACE_IDS)("renders %s with its sections and opens the first one", async (place) => {
-		mount(`/${place}`);
-		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
-		const links = within(tabs).getAllByRole("link");
-		expect(links.map((l) => l.textContent)).toEqual(
-			barSections(place).map(([space, tab]) => tabLabel(en, space, tab)),
-		);
-		await waitFor(() => expect(links[0]).toHaveAttribute("aria-current", "page"));
-		expect(current(await sidebar())).toHaveAccessibleName(named(en.ui.place[place]));
-	});
+	// Library opens on its doors, with no switch: `library.test.tsx` checks it.
+	it.each(PLACE_IDS.filter((p) => p !== "library"))(
+		"renders %s with its sections and opens the first one",
+		async (place) => {
+			mount(`/${place}`);
+			const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+			const links = within(tabs).getAllByRole("link");
+			expect(links.map((l) => l.textContent)).toEqual(
+				barSections(place).map(([space, tab]) => tabLabel(en, space, tab)),
+			);
+			await waitFor(() => expect(links[0]).toHaveAttribute("aria-current", "page"));
+			expect(current(await sidebar())).toHaveAccessibleName(named(en.ui.place[place]));
+		},
+	);
 
 	it("has a label in each language for each tab", () => {
 		for (const space of SPACE_IDS)

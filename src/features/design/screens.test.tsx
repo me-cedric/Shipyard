@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockState } from "@/lib/ipc/mock";
-import { mountDesign } from "./harness";
+import { mountDesign, showText } from "./harness";
 import { Screens } from "./screens";
 
 const files = () => mockState().design.files;
@@ -118,6 +118,7 @@ describe("Design / Screens", () => {
 		const user = userEvent.setup();
 		await mountDesign(<Screens />);
 		await user.click(await row(/Design doc/));
+		await showText(user);
 		const text = await screen.findByRole("textbox", { name: "Design doc text" });
 		expect(text).toHaveValue(files()[DOC]?.text);
 		await user.type(text, "{Control>}{End}{/Control}\nNew line");
@@ -139,6 +140,7 @@ describe("Design / Screens", () => {
 		expect(tokens.queryByText("--accent")).toBeNull();
 		expect(tokens.queryByText("No tokens yet")).toBeNull();
 		// The view reads: the design doc stays as it was.
+		await showText(user);
 		expect(await screen.findByRole("textbox", { name: "Design doc text" })).toHaveValue(
 			files()[DOC]?.text,
 		);
@@ -150,6 +152,8 @@ describe("Design / Screens", () => {
 		await user.click(await row(/Design doc/));
 		const region = within(await screen.findByRole("region", { name: "Tokens" }));
 		expect(await region.findByText("No tokens yet")).toBeInTheDocument();
+		// The doc opens on the tokens alone; the starter block goes in the text, so the text shows.
+		expect(screen.queryByRole("textbox", { name: "Design doc text" })).toBeNull();
 		await user.click(region.getByRole("button", { name: "Add tokens to the design doc" }));
 		const text = screen.getByRole("textbox", { name: "Design doc text" });
 		expect((text as HTMLTextAreaElement).value).toContain("--color-primary");
@@ -164,6 +168,7 @@ describe("Design / Screens", () => {
 		delete files()[DOC];
 		await mountDesign(<Screens />);
 		await user.click(await row(/Design doc/));
+		await showText(user);
 		const text = await screen.findByRole("textbox", { name: "Design doc text" });
 		expect((text as HTMLTextAreaElement).value).toContain("## Context and scope");
 		await user.type(text, "x");

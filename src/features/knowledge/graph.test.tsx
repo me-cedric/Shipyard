@@ -109,7 +109,7 @@ describe("Knowledge / Graph", () => {
 	it("switches to the code graph", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("graph");
-		await user.click(await screen.findByRole("tab", { name: "Code" }));
+		await user.click(await screen.findByRole("button", { name: "Code" }));
 		const code = await unwrap(commands.graphCode());
 		expect(code.nodes.length).toBeGreaterThan(0);
 		// The map groups the files by folder.
@@ -120,7 +120,7 @@ describe("Knowledge / Graph", () => {
 	it("opens a folder into its files, a file into its calls, and Show all goes back to the map", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("graph");
-		await user.click(await screen.findByRole("tab", { name: "Code" }));
+		await user.click(await screen.findByRole("button", { name: "Code" }));
 		await user.click(await graphNode("cluster/folder:src/features/home"));
 		await user.click(await graphNode("src/features/home/home.tsx"));
 		await graphNode("src/features/home/home.tsx::Home");
@@ -133,7 +133,7 @@ describe("Knowledge / Graph", () => {
 		const user = userEvent.setup();
 		mockState().knowledge.indexed = false;
 		await mountKnowledge("graph");
-		await user.click(await screen.findByRole("tab", { name: "Code" }));
+		await user.click(await screen.findByRole("button", { name: "Code" }));
 		await user.click(await screen.findByRole("button", { name: "Index" }));
 		await screen.findByTestId("rf__node-cluster/folder:src/lib/ipc");
 	});
@@ -142,7 +142,7 @@ describe("Knowledge / Graph", () => {
 		const user = userEvent.setup();
 		mockState().knowledge.indexed = false;
 		await mountKnowledge("graph");
-		await user.click(await screen.findByRole("tab", { name: "Code" }));
+		await user.click(await screen.findByRole("button", { name: "Code" }));
 		await user.click(await screen.findByRole("button", { name: "Index" }));
 		const code = await unwrap(commands.graphCode());
 		expect(await screen.findByText(`Indexed, ${code.nodes.length} nodes`)).toBeInTheDocument();
@@ -152,7 +152,7 @@ describe("Knowledge / Graph", () => {
 		const user = userEvent.setup();
 		mockState().knowledge.indexed = false;
 		await mountKnowledge("graph");
-		await user.click(await screen.findByRole("tab", { name: "Code" }));
+		await user.click(await screen.findByRole("button", { name: "Code" }));
 		vi.spyOn(commands, "graphCode").mockResolvedValue({
 			status: "ok",
 			data: { state: "unindexed", nodes: [], edges: [] },
@@ -172,7 +172,7 @@ describe("Knowledge / Graph", () => {
 			const enable = vi.spyOn(commands, "mcpEnable");
 			const start = vi.spyOn(commands, "mcpStart");
 			const index = vi.spyOn(commands, "graphCodeIndex");
-			await user.click(await screen.findByRole("tab", { name: "Code" }));
+			await user.click(await screen.findByRole("button", { name: "Code" }));
 			await user.click(await screen.findByRole("button", { name: "Index" }));
 			await waitFor(() => expect(index).toHaveBeenCalledTimes(1));
 			expect(enable).not.toHaveBeenCalled();
@@ -184,7 +184,7 @@ describe("Knowledge / Graph", () => {
 			mockState().knowledge.indexed = false;
 			mockState().knowledge.server = false;
 			await mountKnowledge("graph");
-			await user.click(await screen.findByRole("tab", { name: "Code" }));
+			await user.click(await screen.findByRole("button", { name: "Code" }));
 			await user.click(await screen.findByRole("button", { name: "Index" }));
 			expect(screen.queryByRole("alert")).toBeNull();
 			await screen.findByTestId("rf__node-cluster/folder:src/lib/ipc");
@@ -198,7 +198,7 @@ describe("Knowledge / Graph", () => {
 				status: "error",
 				error: { code: "unknown", details: "it did not start", action: null },
 			});
-			await user.click(await screen.findByRole("tab", { name: "Code" }));
+			await user.click(await screen.findByRole("button", { name: "Code" }));
 			await user.click(await screen.findByRole("button", { name: "Index" }));
 			await screen.findByRole("alert");
 			expect(await screen.findByText("Index failed")).toBeInTheDocument();

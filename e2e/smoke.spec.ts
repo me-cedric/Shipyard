@@ -5,7 +5,8 @@ const PLACES = [
 	["Flow", "Flow"],
 	["Plan", "Timeline"],
 	["Crew", "Crew"],
-	["Library", "Diagrams"],
+	// Library opens on its four doors: it has no section switch.
+	["Library", null],
 	["Code", "Local changes"],
 	["Setup", "Project"],
 ] as const;
@@ -22,6 +23,12 @@ test("opens each place from the sidebar on its first section", async ({ page }) 
 			"aria-current",
 			"page",
 		);
+		if (tab === null) {
+			await expect(page).toHaveURL(/\/library\/home$/);
+			await expect(page.getByRole("heading", { level: 1, name: place })).toBeVisible();
+			await expect(tabs).toHaveCount(0);
+			continue;
+		}
 		await expect(tabs.getByRole("link").first()).toHaveText(tab);
 		await expect(tabs.getByRole("link").first()).toHaveAttribute("aria-current", "page");
 	}

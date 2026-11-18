@@ -14,6 +14,7 @@ import { flowDe } from "./flow";
 import { glossaryDe } from "./glossary";
 import { homeDe } from "./home";
 import { knowledgeDe } from "./knowledge";
+import { libraryDe } from "./library";
 import { onboardingDe } from "./onboarding";
 import { panelsDe } from "./panels";
 import { personalDe } from "./personal";
@@ -958,6 +959,7 @@ export const de: Messages = {
 	flow: flowDe,
 	crewPlace: crewDe,
 	planPlace: planDe,
+	library: libraryDe,
 	glossary: glossaryDe,
 	settings: settingsDe,
 	specs: specsDe,

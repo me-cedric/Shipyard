@@ -9,7 +9,13 @@ const listeners = new Set<() => void>();
 /** Asks the manual for the help of a route, such as `/code/history`. The caller then opens the manual. */
 export function openManualFor(pathname: string) {
 	const [, space, tab] = pathname.split("/");
-	target = { page: space || "start", tab: tab || null, at: Date.now() };
+	// The home of Library and Reports have no old view: their help is in the Knowledge page,
+	// under the heading with the name of the view (`t.library.views`).
+	target = {
+		page: space === "library" ? "knowledge" : space || "start",
+		tab: tab || null,
+		at: Date.now(),
+	};
 	for (const l of listeners) l();
 }
 

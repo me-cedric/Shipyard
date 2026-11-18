@@ -15,9 +15,7 @@ test("tester", async ({ page }) => {
 	);
 
 	await w.step("Open the test plans", "the Test plans tab, the coverage figures", async () => {
-		await w.click(
-			page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Test plans" }),
-		);
+		await w.go("Library", "Test plans");
 		await w.see(page.getByRole("progressbar").first(), "no coverage figure");
 		await w.see(page.getByText(/ \/ \d+$/).first(), "no requirement count");
 	});
@@ -41,6 +39,8 @@ test("tester", async ({ page }) => {
 
 	await w.step("Generate the scenarios", "Generate scenarios for export", async () => {
 		await w.click(page.getByRole("button", { name: "Generate scenarios for export" }));
+		// A plan opens as cards to read: Edit shows its text.
+		await w.click(page.getByRole("tab", { name: "Edit" }));
 		await w.see(page.getByText("Feature: export"), "the generated scenario does not open");
 		if (await page.getByText("the requirement holds").first().isVisible()) {
 			w.confusing(

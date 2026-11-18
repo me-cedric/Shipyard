@@ -6,7 +6,13 @@ import { lintGherkin } from "@/lib/specs/bdd-lint";
 import { Panel } from "@/ui/molecules/panel";
 
 /** The lint findings of the plans. */
-export function PlanLint({ plans, onOpen }: { plans: Plan[]; onOpen: (path: string) => void }) {
+export function PlanLint({
+	plans,
+	onOpen,
+}: {
+	plans: Plan[];
+	onOpen: (path: string, line: number) => void;
+}) {
 	const { t } = useI18n();
 	const b = t.reports.bdd;
 	// The same keys as `useFile`: an open plan and the lint share one read.
@@ -34,7 +40,7 @@ export function PlanLint({ plans, onOpen }: { plans: Plan[]; onOpen: (path: stri
 						<li key={`${f.plan.path}:${f.line}:${f.rule}`}>
 							<button
 								type="button"
-								onClick={() => onOpen(f.plan.path)}
+								onClick={() => onOpen(f.plan.path, f.line)}
 								className="flex min-h-row w-full items-center gap-3 border-b px-3 text-left text-ui"
 							>
 								<span className="min-w-0 flex-1 truncate">

@@ -70,7 +70,11 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 	const tabs = visiblePlaces(level).flatMap((place) =>
 		visibleSections(place, level).map(([space, tab]) => ({
 			id: `go-${place}-${tab}`,
-			label: `${t.ui.place[place]} / ${tabLabel(t, space, tab)}`,
+			// The home of Library has the name of its place: the list names it once.
+			label:
+				space === "library" && tab === "home"
+					? t.ui.place[place]
+					: `${t.ui.place[place]} / ${tabLabel(t, space, tab)}`,
 			Icon: PLACE_ICON[place],
 			run: () => void navigate({ to: sectionPath(place, tab) }),
 		})),

@@ -169,7 +169,8 @@ export function ArtifactTab({
 	timeline?: boolean;
 	/** A row of controls under the header, such as an Export menu. */
 	toolbar?: ReactNode;
-	children: (row: Row) => ReactNode;
+	/** `created` is true for the file that the person just made: its reader shows the text. */
+	children: (row: Row, created: boolean) => ReactNode;
 }) {
 	const { t } = useI18n();
 	const active = useActiveProject().data;
@@ -186,6 +187,7 @@ export function ArtifactTab({
 		all.map((r) => r.ref),
 	);
 	const [adding, setAdding] = useState(false);
+	const [created, setCreated] = useState<string>();
 	useFormIntent(form, () => setAdding(true));
 	const [view, setView] = useState<"list" | "grid">("list");
 	const enter = useEnter();
@@ -375,7 +377,7 @@ export function ArtifactTab({
 					</SplitPane>
 					<div className="flex min-w-0 flex-1 flex-col overflow-auto rounded-lg border bg-surface-1 p-3 shadow-1">
 						{open ? (
-							<Fragment key={open.ref}>{children(open)}</Fragment>
+							<Fragment key={open.ref}>{children(open, open.ref === created)}</Fragment>
 						) : (
 							<div aria-hidden="true" className="flex-1 rounded-md bg-dots mask-radial-from-20%" />
 						)}
@@ -389,6 +391,7 @@ export function ArtifactTab({
 					onClose={() => setAdding(false)}
 					onCreated={(ref) => {
 						if (!ref) return;
+						setCreated(ref);
 						setSelected(ref);
 						setView("list");
 						openRef(ref);

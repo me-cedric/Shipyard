@@ -30,7 +30,10 @@ describe("places (app-redesign REQ-001, adr:0023)", () => {
 	it("puts each old view in exactly one place, with no slug twice in a place", () => {
 		const views = SPACE_IDS.flatMap((s) => SPACES[s].map((tab) => `${s}/${tab}`));
 		// A view of Flow stands for the old views that it replaces: one old view can sit in two of them.
-		const placed: string[] = PLACE_IDS.flatMap((p) => PLACES[p].flatMap((v) => REPLACES[v] ?? [v]));
+		// Reports of Library is a page of its own: it has no old view.
+		const placed: string[] = PLACE_IDS.flatMap((p) =>
+			PLACES[p].flatMap((v) => REPLACES[v] ?? [v]),
+		).filter((v) => v !== "library/reports");
 		expect([...new Set(placed)].sort()).toEqual([...views].sort());
 		for (const p of PLACE_IDS) {
 			const slugs = PLACES[p].map((v) => v.split("/")[1]);
@@ -92,7 +95,25 @@ describe("places (app-redesign REQ-001, adr:0023)", () => {
 		expect(firstSection("flow", "po")).toBe("list");
 		expect(firstSection("flow", "ba")).toBe("list");
 		expect(firstSection("flow", "qa")).toBe("flow");
-		expect(firstSection("library", "qa")).toBe("test-plans");
+	});
+
+	// spec:app-redesign#REQ-020
+	it("opens Library on its home for each role, and hides the home only with each view and each report", () => {
+		expect(firstSection("library", null)).toBe("home");
+		expect(firstSection("library", "pm")).toBe("home");
+		expect(firstSection("library", "qa")).toBe("home");
+		expect(firstSection("library", "architect")).toBe("home");
+		const none = (areas: string[]) => (a: string) => (areas.includes(a) ? "none" : "write");
+		const slugs = (areas: string[]) => visibleSections("library", none(areas)).map(([, t]) => t);
+		expect(slugs(["design", "specs"])[0]).toBe("home");
+		// Reports stays while one page that holds an export stays, and the home stays with it.
+		expect(slugs(["design", "specs", "knowledge"])).toEqual(["home", "reports"]);
+		expect(slugs(["work", "code"])).toContain("reports");
+		// No page with an export is left: Reports hides. No view is left either: the place hides.
+		const noReport = ["design", "specs", "knowledge", "work", "code"];
+		expect(slugs(noReport)).toEqual([]);
+		expect(visiblePlaces(none(noReport))).not.toContain("library");
+		expect(slugs(["specs", "knowledge", "work", "code"])).toContain("reports");
 	});
 });
 
@@ -121,6 +142,10 @@ describe("old addresses (app-redesign REQ-002, adr:0023 point 9)", () => {
 		["/flow/list", undefined],
 		["/code/changes", "/code/changes"],
 		["/design/decisions", "/library/decisions"],
+		["/design/diagrams", "/library/diagrams"],
+		["/specs/questions", "/library/questions"],
+		["/knowledge/graph", "/library/graph"],
+		["/library/home", undefined],
 		["/settings/me", "/setup/me"],
 		["/nowhere", undefined],
 		["/work/nope", undefined],

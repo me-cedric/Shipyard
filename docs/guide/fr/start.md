@@ -5,7 +5,7 @@ Shipyard aide une équipe à livrer un projet logiciel : la conception, les spé
 ## La fenêtre
 
 - La barre de gauche contient les six lieux et Configuration : Aujourd'hui, Flux, Plan, Équipe, Bibliothèque, Code et Configuration. Chaque page d'avant se trouve dans un lieu, et son ancienne adresse l'ouvre toujours.
-- Les sections d'un lieu sont en haut de la page, dans un seul sélecteur.
+- Les sections d'un lieu sont en haut de la page, dans un seul sélecteur. Bibliothèque n'a pas de sélecteur : elle s'ouvre sur quatre portes, et chacune de ses pages a un lien Bibliothèque qui y revient.
 - L'inspecteur à droite montre l'élément que vous sélectionnez.
 - La barre d'état en bas montre le projet, l'état de la synchronisation et la commande de commit, avec le nombre de fichiers modifiés à côté de Commit.
 - La barre du haut contient Précédent et Suivant, Synchroniser, la barre Demander ou dire à Shipyard, les boutons Fichiers et Terminal et le menu du compte.

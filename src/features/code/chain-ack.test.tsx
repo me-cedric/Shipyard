@@ -30,7 +30,7 @@ describe("Docs chain acknowledgement", () => {
 
 	it("shows a red badge on the page whose artifacts are stale, and none after an acknowledgement", async () => {
 		await open();
-		mountApp("/library/capabilities");
+		mountApp("/library/home");
 		const link = await screen.findByRole("link", { name: /Test plans/ });
 		await waitFor(() => expect(link).toHaveTextContent("Out of date"));
 		expect(screen.getByRole("link", { name: /Capabilities/ })).not.toHaveTextContent("Out of date");
@@ -39,7 +39,7 @@ describe("Docs chain acknowledgement", () => {
 	it("shows no badge when the link was acknowledged", async () => {
 		await open();
 		await unwrap(commands.codeChainAck("main", "specs", "test-plans", "Not needed", true));
-		mountApp("/library/capabilities");
+		mountApp("/library/home");
 		const link = await screen.findByRole("link", { name: /Test plans/ });
 		await waitFor(() => expect(mockState().review?.acks).toHaveLength(1));
 		expect(link).not.toHaveTextContent("Out of date");

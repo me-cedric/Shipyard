@@ -24,7 +24,10 @@ for (const scheme of ["light", "dark"] as const) {
 			await page.locator(`nav a[href="/${place}"]`).first().click();
 			const found: string[] = [];
 			for (const tab of tabs) {
-				await page.locator(`a[href="${tab}"]`).first().click();
+				// Library has no switch: the sidebar opens its home, and a chip of the home opens a page.
+				if (place === "library") await page.locator('nav a[href="/library"]').first().click();
+				if (tab !== "/library/home") await page.locator(`a[href="${tab}"]`).first().click();
+				if (!tab.includes("?")) await expect(page).toHaveURL(new RegExp(`${tab}$`));
 				await expect(page.locator("main")).toBeVisible();
 				await page.waitForLoadState("networkidle");
 				const { violations } = await new AxeBuilder({ page }).analyze();

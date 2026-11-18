@@ -24,6 +24,10 @@ export const reportsDe: typeof reportsEn = {
 	security: "Sicherheitsfunde",
 	schedule: "Zeitplan",
 	gantt: "Gantt-Diagramm",
+	fill: "Formular ausfüllen",
+	openPage: "{page} öffnen",
+	format: "Format",
+	formats: { all: "Alle", docx: "Word", xlsx: "Excel", picture: "Bild" },
 	form: {
 		title: "Titel",
 		base: "Basis-Referenz",

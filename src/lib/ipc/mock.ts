@@ -120,6 +120,7 @@ import {
 	unlink as syncUnlink,
 } from "./mock-sync";
 import * as th from "./mock-themes";
+import * as tb from "./mock-tile-build";
 import * as work from "./mock-work";
 
 type Bindings = typeof commands;
@@ -2145,6 +2146,14 @@ const handlers: Handlers = {
 	dashboardSaveOne: (slug, dashboard, stamp) =>
 		kw.dashboardSave(need(state.knowledge), slug, dashboard, stamp),
 	dashboardTile: (kind) => kw.dashboardTile(knowledgeEnv(), kind),
+	dashboardTileBuild: (slug, text, budgetUsd) =>
+		tb.tileBuild(
+			agentPr(),
+			kw.dashboardGet(need(state.knowledge), slug).readOnly,
+			slug,
+			text,
+			budgetUsd,
+		),
 	learnGet: () => kw.learnGet(knowledgeEnv()),
 	learningGet: () => lrn.learningGet(need(state.learning)),
 	learningFeedsRead: () => lrn.feedsRead(need(state.learning)),
@@ -2211,7 +2220,7 @@ const handlers: Handlers = {
 	runGetOne: (run) => fx.runGetOne(state.factory, active()?.id ?? null, run),
 	runLogPage: (run, after, limit) => fx.runLogPage(state.factory, run, after, limit),
 	sessionsList: () => [
-		...ap.reviewSessions(agentPr()),
+		...tb.sessions(ap.reviewSessions(agentPr())),
 		...ea.estimateSessions(estimateAgent()),
 		...fx.sessionsList(state.factory, active()?.id ?? null),
 	],

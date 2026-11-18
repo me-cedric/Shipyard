@@ -14,6 +14,7 @@ import { flowEs } from "./flow";
 import { glossaryEs } from "./glossary";
 import { homeEs } from "./home";
 import { knowledgeEs } from "./knowledge";
+import { libraryEs } from "./library";
 import { onboardingEs } from "./onboarding";
 import { panelsEs } from "./panels";
 import { personalEs } from "./personal";
@@ -942,6 +943,7 @@ export const es: Messages = {
 	flow: flowEs,
 	crewPlace: crewEs,
 	planPlace: planEs,
+	library: libraryEs,
 	glossary: glossaryEs,
 	settings: settingsEs,
 	specs: specsEs,

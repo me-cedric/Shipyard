@@ -165,6 +165,8 @@ export function Screens() {
 							<EditorPreview
 								id="design-screens-width"
 								label={t.design.resize.editor}
+								// The starter block of the tokens goes in the text: the text shows.
+								needText={f.dirty || f.conflict}
 								editor={
 									<CodeEditor
 										label={t.design.screens.docText}

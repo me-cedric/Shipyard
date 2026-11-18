@@ -278,6 +278,15 @@ describe("palette pages and tickets", () => {
 		expect(await screen.findByRole("option", { name: "Library / Questions" })).toBeVisible();
 	});
 
+	it("names the home of Library once in the Go to list", async () => {
+		const user = userEvent.setup();
+		mountApp("/home");
+		await openPalette(user);
+		const go = await screen.findByRole("group", { name: "Go to" });
+		expect(await within(go).findByRole("option", { name: "Library" })).toBeVisible();
+		expect(screen.queryByRole("option", { name: "Library / Library" })).toBeNull();
+	});
+
 	it("finds a ticket by its key", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));

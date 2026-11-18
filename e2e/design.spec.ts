@@ -1,8 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { openFirstFolder } from "./first-run";
+import { openLibrary } from "./places";
 
-const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
-const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
 const inspector = (page: Page) => page.getByRole("complementary", { name: "Inspector" });
 
 /** Opens the mock project, then a Design section of the Library. */
@@ -12,8 +11,7 @@ async function openDesign(page: Page, tab: string) {
 	await expect(
 		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
 	).toBeVisible();
-	await sidebar(page).getByRole("link", { name: "Library" }).click();
-	await tabs(page).getByRole("link", { name: tab }).click();
+	await openLibrary(page, tab);
 }
 
 const list = (page: Page, name: string) => page.getByRole("list", { name });

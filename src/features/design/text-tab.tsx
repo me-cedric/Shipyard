@@ -9,7 +9,8 @@ import { FileFrame } from "./frame";
 import { ArtifactTab } from "./tab";
 
 /**
- * A tab of text files with a live view beside the text: LikeC4 models and DBML models.
+ * A tab of text files that open on their live view, with the text on demand (spec:app-redesign#REQ-021):
+ * LikeC4 models and DBML models.
  * The view keeps its last good render and reports its error with the line (REQ-006, REQ-007,
  * REQ-014, REQ-015).
  */
@@ -50,7 +51,7 @@ export function TextTab({
 				},
 			}}
 		>
-			{(row) => {
+			{(row, created) => {
 				const a = rows.find((x) => x.reference === row.ref);
 				return a ? (
 					<FileFrame path={a.path} refId={a.reference} title={a.title} issue={a.issue}>
@@ -58,6 +59,7 @@ export function TextTab({
 							<EditorPreview
 								id="design-text-width"
 								label={t.design.resize.editor}
+								needText={created || file.conflict || error?.line != null}
 								editor={
 									<CodeEditor
 										label={textLabel}

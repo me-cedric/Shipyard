@@ -29,7 +29,7 @@ Questions is the register of open points: risks, assumptions, issues, dependenci
 
 ## Test plans
 
-Test plans lists the test scenarios. Each scenario names the requirements that it checks.
+Test plans lists the test scenarios. Each scenario names the requirements that it checks. A plan opens on Read: one card for each scenario, with its steps. Click Edit to change its text. A plan with no scenario opens in its text. A finding of the check opens the plan in its text, at its line.
 
 ## Constitution
 

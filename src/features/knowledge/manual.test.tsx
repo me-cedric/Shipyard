@@ -1,10 +1,11 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { en } from "@/lib/i18n/en";
 import { fr } from "@/lib/i18n/fr";
 import { commands, unwrap } from "@/lib/ipc";
 import { mountApp } from "@/test/mount";
 import { MANUAL, manualFor, searchManual } from "./manual";
+import { openManualFor, useManualTarget } from "./manual-target";
 
 describe("Knowledge / Manual", () => {
 	it("ships a page for each space, with a section for each tab", () => {
@@ -94,5 +95,28 @@ describe("Knowledge / Manual", () => {
 			expect(within(page).getByRole("heading", { name: "Usage" })).toBeInTheDocument(),
 		);
 		expect(screen.getByRole("button", { name: "Factory" })).toHaveAttribute("aria-current", "page");
+	});
+
+	it("opens the Reports section of the guide from Library / Reports", async () => {
+		mountApp("/library/manual");
+		await screen.findByRole("navigation", { name: "Sidebar" });
+		// jsdom has no scrollIntoView.
+		const scroll = vi.fn();
+		Element.prototype.scrollIntoView = scroll;
+		act(() => openManualFor("/library/reports"));
+		const page = await screen.findByRole("article", { name: "Knowledge" });
+		const heading = await within(page).findByRole("heading", { name: "Reports" });
+		await waitFor(() => expect(scroll.mock.instances).toContain(heading));
+		Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+	});
+
+	it("finds the help of the new addresses of Library", () => {
+		const { result } = renderHook(() => useManualTarget());
+		act(() => openManualFor("/library/reports"));
+		expect(result.current).toMatchObject({ page: "knowledge", tab: "reports" });
+		act(() => openManualFor("/library/home"));
+		expect(result.current).toMatchObject({ page: "knowledge", tab: "home" });
+		act(() => openManualFor("/code/history"));
+		expect(result.current).toMatchObject({ page: "code", tab: "history" });
 	});
 });

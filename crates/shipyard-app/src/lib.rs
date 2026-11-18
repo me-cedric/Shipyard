@@ -273,6 +273,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::pr_agent::pr_write_text,
             crate::estimate_agent::estimate_agent_start,
             crate::estimate_agent::estimate_agent_stop,
+            crate::pr_agent::tile::dashboard_tile_build,
             crate::machine::machine_sessions,
             crate::machine::machine_session_stop,
             crate::machine::machine_spend,

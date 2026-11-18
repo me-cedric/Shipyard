@@ -29,7 +29,7 @@ Questions est le registre des points ouverts : risques, hypothèses, problèmes,
 
 ## Plans de test
 
-Plans de test liste les scénarios de test. Chaque scénario nomme les exigences qu'il vérifie.
+Plans de test liste les scénarios de test. Chaque scénario nomme les exigences qu'il vérifie. Un plan s'ouvre sur Lire : une carte pour chaque scénario, avec ses étapes. Cliquez sur Modifier pour changer son texte. Un plan sans scénario s'ouvre dans son texte. Un constat du contrôle ouvre le plan dans son texte, à sa ligne.
 
 ## Constitution
 

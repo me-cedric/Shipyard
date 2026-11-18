@@ -21,16 +21,20 @@ export function PageEditor({
 	path,
 	title,
 	actions,
+	edit,
 }: {
 	path: string;
 	title: string;
 	actions?: React.ReactNode;
+	/** The person asked to edit: the text shows. */
+	edit?: boolean;
 }) {
 	const { t } = useI18n();
 	const file = useDocFile(path);
 	const { gate } = useRights();
 	return (
 		<MarkdownEditor
+			edit={edit}
 			title={title}
 			refId={`doc:${path}`}
 			value={file.text}
@@ -80,7 +84,7 @@ function HandbookPage({ path, title }: { path: string; title: string }) {
 			]}
 		/>
 	);
-	if (mode === "edit") return <PageEditor path={path} title={title} actions={modes} />;
+	if (mode === "edit") return <PageEditor path={path} title={title} actions={modes} edit />;
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-3">
 			<div className="flex items-center gap-2">

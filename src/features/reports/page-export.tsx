@@ -14,21 +14,10 @@ export type ExportPage =
 	| "plan";
 
 /**
- * The Export menu of a page, one line to mount. `slug` is the estimate sheet of the plan. Each
- * item calls one Rust command, and a Rust refusal shows with its error action.
+ * The exports of each page. `slug` is the estimate sheet of the plan. Each item calls one Rust
+ * command, and a Rust refusal shows with its error action.
  */
-export function PageExport({
-	page,
-	slug,
-	disabled,
-	extra = [],
-}: {
-	page: ExportPage;
-	slug?: string;
-	disabled?: boolean;
-	/** Items that the page adds before the standard ones. */
-	extra?: ExportItem[];
-}) {
+export function useExportItems(slug?: string): Record<ExportPage, ExportItem[]> {
 	const { t } = useI18n();
 	const r = t.reports;
 	const words = (title: string, sections: string[] = []): ExportText => ({
@@ -46,7 +35,7 @@ export function PageExport({
 		label,
 		save: { name: id, ext, job: (path) => job(words(label), path) },
 	});
-	const items: Record<ExportPage, ExportItem[]> = {
+	return {
 		documents: [
 			{
 				id: "dossier-complete",
@@ -100,6 +89,23 @@ export function PageExport({
 			),
 		],
 	};
+}
+
+/** The Export menu of a page, one line to mount. */
+export function PageExport({
+	page,
+	slug,
+	disabled,
+	extra = [],
+}: {
+	page: ExportPage;
+	slug?: string;
+	disabled?: boolean;
+	/** Items that the page adds before the standard ones. */
+	extra?: ExportItem[];
+}) {
+	const items = useExportItems(slug);
+
 	return (
 		<ExportMenu
 			items={[...extra, ...items[page]]}

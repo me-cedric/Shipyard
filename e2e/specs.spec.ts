@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { openFirstFolder } from "./first-run";
-import { placeOf } from "./places";
+import { openLibrary, placeOf } from "./places";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 /** The row of a spec change in Flow / List: the title is the id of the change. */
@@ -31,6 +31,8 @@ async function openSpecs(page: Page, tab: string) {
 	await expect(page.getByRole("combobox", { name: "Issue tracker", exact: true })).toContainText(
 		"Acme",
 	);
+	// Library has no section switch: a page opens from its chip.
+	if (placeOf(tab) === "Library") return openLibrary(page, tab);
 	await sidebar.getByRole("link", { name: placeOf(tab) }).click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }

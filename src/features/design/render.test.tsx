@@ -10,7 +10,7 @@ import orders from "@/ui/organisms/fixtures/orders.drawio?raw";
 import { Architecture } from "./architecture";
 import { Data } from "./data";
 import { Diagrams } from "./diagrams";
-import { mountDesign } from "./harness";
+import { mountDesign, showText } from "./harness";
 
 // The engines of Mermaid, LikeC4, Excalidraw and BPMN need a browser. The stubs keep the wiring:
 // the text in, the error out, and the last good render kept.
@@ -92,10 +92,22 @@ describe("Design / Diagrams", () => {
 		expect(screen.queryByRole("list")).toBeNull();
 	});
 
+	it("opens a Mermaid diagram on its picture, and a switch shows the text (spec:app-redesign#REQ-021)", async () => {
+		const user = userEvent.setup();
+		await mountDesign(<Diagrams />);
+		await user.click(await row("sync-flow"));
+		expect(await screen.findByRole("img", { name: "sync-flow" })).toBeInTheDocument();
+		expect(screen.queryByRole("textbox", { name: "Diagram text" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Text" }));
+		expect(screen.getByRole("textbox", { name: "Diagram text" })).toBeInTheDocument();
+		expect(screen.queryByRole("img", { name: "sync-flow" })).toBeNull();
+	});
+
 	it("opens a Mermaid file in the frame, saves an edit and keeps the ref", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Diagrams />);
 		await user.click(await row("sync-flow"));
+		await showText(user);
 		const text = await screen.findByRole("textbox", { name: "Diagram text" });
 		expect(text).toHaveValue(files()["docs/diagrams/sync-flow.mmd"]?.text);
 		expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
@@ -111,6 +123,7 @@ describe("Design / Diagrams", () => {
 		const user = userEvent.setup();
 		await mountDesign(<Diagrams />);
 		await user.click(await row("sync-flow"));
+		await showText(user);
 		const text = await screen.findByRole("textbox", { name: "Diagram text" });
 		const other = { text: "flowchart LR\n  X --> Y\n", stamp: "9" };
 		files()["docs/diagrams/sync-flow.mmd"] = other;
@@ -130,6 +143,7 @@ describe("Design / Diagrams", () => {
 		const user = userEvent.setup();
 		await mountDesign(<Diagrams />);
 		await user.click(await row("sync-flow"));
+		await showText(user);
 		const text = await screen.findByRole("textbox", { name: "Diagram text" });
 		files()["docs/diagrams/sync-flow.mmd"] = { text: "flowchart LR\n  X --> Y\n", stamp: "9" };
 		await user.type(text, "Z");
@@ -255,10 +269,38 @@ describe("Design / Diagrams", () => {
 });
 
 describe("Design / Architecture", () => {
+	it("opens a model on its picture, and a switch shows the text (spec:app-redesign#REQ-021)", async () => {
+		const user = userEvent.setup();
+		await mountDesign(<Architecture />);
+		await user.click(await row("system"));
+		const view = await screen.findByRole("img", { name: "Model" });
+		await waitFor(() => expect(view).toHaveTextContent("shipyard = system"));
+		expect(screen.queryByRole("textbox", { name: "Model text" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Text" }));
+		expect(screen.getByRole("textbox", { name: "Model text" })).toHaveValue(
+			files()["docs/models/system.c4"]?.text,
+		);
+		expect(screen.queryByRole("img", { name: "Model" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Both" }));
+		expect(screen.getByRole("textbox", { name: "Model text" })).toBeInTheDocument();
+		expect(screen.getByRole("img", { name: "Model" })).toBeInTheDocument();
+	});
+
+	it("shows the text of a model when its error names a line", async () => {
+		const user = userEvent.setup();
+		files()["docs/models/system.c4"] = { text: "model {\nBAD line\n}\n", stamp: "1" };
+		await mountDesign(<Architecture />);
+		await user.click(await row("system"));
+		expect(await screen.findByRole("alert")).toHaveTextContent(/Line 2/);
+		expect(screen.getByRole("textbox", { name: "Model text" })).toBeInTheDocument();
+		expect(screen.getByTestId("error-line")).toBeInTheDocument();
+	});
+
 	it("lists the models, renders the open one and keeps the last good render on an error", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Architecture />);
 		await user.click(await row("system"));
+		await showText(user);
 		const text = await screen.findByRole("textbox", { name: "Model text" });
 		const view = await screen.findByRole("img", { name: "Model" });
 		await waitFor(() => expect(view).toHaveTextContent("shipyard = system"));
@@ -282,6 +324,7 @@ describe("Design / Data", () => {
 			expect(await screen.findByRole("region", { name })).toBeInTheDocument();
 		expect(screen.getByText("orders.customer_id → customers.id")).toBeInTheDocument();
 		expect(screen.getByText("order_lines.order_id → orders.id")).toBeInTheDocument();
+		await showText(user);
 		await user.type(await screen.findByRole("textbox", { name: "Model text" }), "Table broken {{");
 		const alert = await screen.findByRole("alert");
 		expect(alert).toHaveTextContent(/Line \d+/);

@@ -23,7 +23,9 @@ const SPEC_STATUSES = ["Draft", "Review", "Approved"];
  * changed on disk, nothing is written and the person reloads or keeps the own text (REQ-023).
  * A `missing` file starts empty and its first save creates it. With `form`, a markdown file opens
  * in a form; the text view is the other choice, and both edit the same text. With `read`, the file
- * opens as a page to read, and Edit switches to the editor.
+ * opens as a page to read, and Edit switches to the editor (spec:app-redesign#REQ-021). `page`
+ * draws that page for a file that is not Markdown. A file with nothing to read, a read error and
+ * a picked line show the editor.
  */
 export function FileEditor({
 	path,
@@ -33,9 +35,11 @@ export function FileEditor({
 	actions,
 	problem,
 	line,
+	pick,
 	highlight,
 	form,
 	read,
+	page,
 	children,
 }: {
 	path: string;
@@ -47,11 +51,15 @@ export function FileEditor({
 	problem?: EditorError | null;
 	/** The line to mark, when the person picked one. */
 	line?: number | null;
+	/** A number that changes at each pick of a line: the same line picked again shows the text again. */
+	pick?: number;
 	highlight?: (line: string) => Token[];
 	/** Open in the section form, with the text view as the other choice. */
 	form?: boolean;
 	/** Open as a page to read, with an Edit switch. */
 	read?: boolean;
+	/** The page to read of a file that is not Markdown. Null when the text has nothing to read. */
+	page?: (text: string) => ReactNode;
 	children?: ReactNode;
 }) {
 	const { t } = useI18n();
@@ -66,11 +74,16 @@ export function FileEditor({
 	const [opened, setOpened] = useState<string | null>(null);
 	const [view, setView] = useState<"form" | "text">(form ? "form" : "text");
 	const [mode, setMode] = useViewState<"read" | "edit">(`mode:${path}`, read ? "read" : "edit");
-	// A picked line shows in the text view: the form has no line numbers.
-	const [seen, setSeen] = useState(line);
-	if (line !== seen) {
-		setSeen(line);
-		if (line) setView("text");
+	// A picked line shows in the text view: the form has no line numbers. The stored choice stays.
+	const [picked, setPicked] = useState(false);
+	const asked = `${line}:${pick}`;
+	const [seen, setSeen] = useState<string>();
+	if (asked !== seen) {
+		setSeen(asked);
+		if (line) {
+			setView("text");
+			setPicked(true);
+		}
 	}
 	const base = missing ? "" : file.data?.text;
 	const failed = file.error instanceof Error ? file.error.message : null;
@@ -102,18 +115,25 @@ export function FileEditor({
 		});
 
 	const k = t.knowledge.handbook;
-	const modes = read ? (
-		<ViewTabs
-			label={k.mode}
-			value={mode}
-			onValueChange={setMode}
-			tabs={[
-				{ value: "read", label: k.read, icon: <BookOpenIcon size={12} /> },
-				{ value: "edit", label: k.edit, icon: <PencilIcon size={12} /> },
-			]}
-		/>
-	) : null;
-	if (mode === "read")
+	const reading = page ? page(text) : <MarkdownView source={text} label={title} reading />;
+	const editing = picked || mode === "edit";
+	// A text with nothing to read has no switch: Read would do nothing.
+	const modes =
+		read && reading ? (
+			<ViewTabs
+				label={k.mode}
+				value={editing ? "edit" : "read"}
+				onValueChange={(m) => {
+					setPicked(false);
+					setMode(m);
+				}}
+				tabs={[
+					{ value: "read", label: k.read, icon: <BookOpenIcon size={12} /> },
+					{ value: "edit", label: k.edit, icon: <PencilIcon size={12} /> },
+				]}
+			/>
+		) : null;
+	if (!editing && reading && !shown)
 		return (
 			<div className="flex min-h-0 flex-1 flex-col gap-3">
 				<div className="flex items-center gap-2">
@@ -122,10 +142,9 @@ export function FileEditor({
 					{modes}
 				</div>
 				<div className="min-h-0 flex-1 overflow-auto">
-					<div className="mx-auto max-w-[680px] pb-4">
-						<MarkdownView source={text} label={title} reading />
-					</div>
+					<div className="mx-auto max-w-[680px] pb-4">{reading}</div>
 				</div>
+				{children}
 			</div>
 		);
 	return (

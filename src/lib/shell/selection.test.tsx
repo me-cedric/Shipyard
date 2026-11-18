@@ -45,9 +45,13 @@ describe("List-detail views", () => {
 		await user.click(last);
 		await waitFor(() => expect(last).toHaveAttribute("aria-current", "true"));
 		expect(top).not.toHaveAttribute("aria-current");
-		await user.click(screen.getByRole("link", { name: "Documents" }));
+		// Library has no section switch: the back link and the chip of a door open a page.
+		const home = () => within(screen.getByRole("main")).getByRole("link", { name: "Library" });
+		await user.click(home());
+		await user.click(await screen.findByRole("link", { name: "Documents" }));
 		await screen.findByRole("navigation", { name: "Documents" });
-		await user.click(screen.getByRole("link", { name: "Handbook" }));
+		await user.click(home());
+		await user.click(await screen.findByRole("link", { name: "Handbook" }));
 		const back = await screen.findByRole("navigation", { name: "Handbook" });
 		expect(within(back).getByRole("button", { name })).toHaveAttribute("aria-current", "true");
 	});

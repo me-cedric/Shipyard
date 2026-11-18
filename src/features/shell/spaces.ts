@@ -59,13 +59,14 @@ export const SPACE_IDS = Object.keys(SPACES) as SpaceId[];
 // shortcut: one cast. A template over two unions makes invalid pairs, so the callers pass a valid pair.
 export const tabPath = (space: SpaceId, tab: TabId) => `/${space}/${tab}` as TabPath;
 
-/** A space of before adr:0023, or a place with sections of its own: Flow, Plan and Crew. */
-export type SectionSpace = SpaceId | "flow" | "plan" | "crew";
+/** A space of before adr:0023, or a place with sections of its own: Flow, Plan, Crew and Library. */
+export type SectionSpace = SpaceId | "flow" | "plan" | "crew" | "library";
 
 const OWN_VIEWS = (t: Messages) => ({
 	flow: t.flow.views,
 	plan: t.planPlace.views,
 	crew: t.crewPlace.views,
+	library: t.library.views,
 });
 
 export const tabLabel = (t: Messages, space: SectionSpace, tab: string): string =>
@@ -93,6 +94,8 @@ const TAB_ICON: Record<string, TabIcon> = {
 	"crew/sessions": CommandLineIcon,
 	"crew/spend": ChartBarIcon,
 	"crew/rights": LockClosedIcon,
+	"library/home": BookOpenIcon,
+	"library/reports": DocumentTextIcon,
 	"home/today": ClockIcon,
 	"home/projects": FolderOpenIcon,
 	"home/news": BellIcon,

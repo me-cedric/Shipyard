@@ -23,6 +23,10 @@ export const reportsEn = {
 	security: "Security findings",
 	schedule: "Schedule",
 	gantt: "Gantt chart",
+	fill: "Fill the form",
+	openPage: "Open {page}",
+	format: "Format",
+	formats: { all: "All", docx: "Word", xlsx: "Excel", picture: "Picture" },
 	form: {
 		title: "Title",
 		base: "Base ref",
@@ -76,6 +80,10 @@ export const reportsFr: typeof reportsEn = {
 	security: "Constats de sécurité",
 	schedule: "Planning",
 	gantt: "Diagramme de Gantt",
+	fill: "Remplir le formulaire",
+	openPage: "Ouvrir {page}",
+	format: "Format",
+	formats: { all: "Tous", docx: "Word", xlsx: "Excel", picture: "Image" },
 	form: {
 		title: "Titre",
 		base: "Référence de base",

@@ -5,7 +5,7 @@ Shipyard ayuda a un equipo a entregar un proyecto de software: el diseño, las e
 ## La ventana
 
 - La barra izquierda contiene los seis lugares y Configuración: Hoy, Flujo, Plan, Equipo, Biblioteca, Código y Configuración. Cada página de antes está en un lugar, y su dirección anterior la abre todavía.
-- Las secciones de un lugar están arriba en la página, en un solo selector.
+- Las secciones de un lugar están arriba en la página, en un solo selector. Biblioteca no tiene selector: se abre con cuatro puertas, y cada una de sus páginas tiene un enlace Biblioteca que vuelve a ellas.
 - El inspector de la derecha muestra el elemento que seleccionas.
 - La barra de estado de abajo muestra el proyecto, el estado de la sincronización y el control de commit, con el número de archivos modificados junto a Commit.
 - La barra superior contiene Atrás y Adelante, Sincronizar, la barra Preguntar o indicar a Shipyard, los botones Archivos y Terminal y el menú de la cuenta.

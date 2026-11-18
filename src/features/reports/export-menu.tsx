@@ -1,7 +1,7 @@
 import { Menu } from "@base-ui/react/menu";
 import { type ReactNode, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, saveAs, unwrap } from "@/lib/ipc";
+import { commands, type Right, saveAs, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { ArrowUpTrayIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
@@ -17,6 +17,8 @@ export type ExportItem = {
 	};
 	/** A form in a dialog. `done` shows a note. */
 	form?: (done: (note: string) => void, close: () => void) => ReactNode;
+	/** The right that the button of the Reports page needs. The backend refuses a write anyway. */
+	right?: Right;
 };
 
 /** "Show in folder" and "Open" for a file that an export wrote. A refusal goes to `onError`. */
@@ -45,10 +47,11 @@ export function SavedActions({
 }
 
 /**
- * One Export menu. A choice opens the save dialog, or a form when the export needs input. Each write
- * needs this click. A failure shows with its sentence and its action (`ErrorNotice`).
+ * The run of one export: the save dialog, or a form when the export needs input. Each write needs
+ * one click. `status` shows the written file with its two buttons, a failure with its sentence and
+ * its action (`ErrorNotice`), and the open form.
  */
-export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?: boolean }) {
+export function useExportRun() {
 	const { t } = useI18n();
 	const [note, setNote] = useState<string | null>(null);
 	// The path of the last export, for "Show in folder" and "Open". A form note has none.
@@ -71,7 +74,26 @@ export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?
 			setFailure(e);
 		}
 	};
-	// A failure of these two buttons shows like a failed export.
+	// A failure of the two buttons of a saved file shows like a failed export.
+	const status = (
+		<>
+			{note ? (
+				<span role="status" className="max-w-80 truncate font-mono text-12 text-n-11">
+					{note}
+				</span>
+			) : null}
+			{saved ? <SavedActions path={saved} onError={setFailure} /> : null}
+			<ErrorNotice error={failure} />
+			{form?.form?.(setNote, () => setForm(null))}
+		</>
+	);
+	return { pick, status };
+}
+
+/** One Export menu. A choice starts the export (`useExportRun`). */
+export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?: boolean }) {
+	const { t } = useI18n();
+	const { pick, status } = useExportRun();
 	return (
 		<span className="inline-flex flex-wrap items-center gap-2">
 			<Menu.Root>
@@ -95,14 +117,7 @@ export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?
 					</Menu.Positioner>
 				</Menu.Portal>
 			</Menu.Root>
-			{note ? (
-				<span role="status" className="max-w-80 truncate font-mono text-12 text-n-11">
-					{note}
-				</span>
-			) : null}
-			{saved ? <SavedActions path={saved} onError={setFailure} /> : null}
-			<ErrorNotice error={failure} />
-			{form?.form?.(setNote, () => setForm(null))}
+			{status}
 		</span>
 	);
 }

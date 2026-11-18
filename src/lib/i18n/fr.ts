@@ -14,6 +14,7 @@ import { flowFr } from "./flow";
 import { glossaryFr } from "./glossary";
 import { homeFr } from "./home";
 import { knowledgeFr } from "./knowledge";
+import { libraryFr } from "./library";
 import { onboardingFr } from "./onboarding";
 import { panelsFr } from "./panels";
 import { personalFr } from "./personal";
@@ -949,6 +950,7 @@ export const fr: Messages = {
 	flow: flowFr,
 	crewPlace: crewFr,
 	planPlace: planFr,
+	library: libraryFr,
 	glossary: glossaryFr,
 	settings: settingsFr,
 	specs: specsFr,

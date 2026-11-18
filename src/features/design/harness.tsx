@@ -5,6 +5,7 @@ import {
 	RouterProvider,
 } from "@tanstack/react-router";
 import { render, screen } from "@testing-library/react";
+import type { UserEvent } from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { Providers } from "@/app/providers";
 import { refActions } from "@/app/ref-actions";
@@ -45,6 +46,10 @@ export async function mountDesign(view: ReactElement, open = true) {
 		</Providers>,
 	);
 }
+
+/** Shows the text beside the picture: a reader opens on the picture alone (spec:app-redesign#REQ-021). */
+export const showText = async (user: UserEvent) =>
+	user.click(await screen.findByRole("button", { name: "Both" }));
 
 /** The inspector of the shell. */
 export const inspector = () => screen.findByRole("complementary", { name: "Inspector" });

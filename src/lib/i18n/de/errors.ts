@@ -108,6 +108,9 @@ export const errorsDe: Record<Exclude<ErrorCode, "unknown">, string> = {
 	thread_state:
 		"Diese Unterhaltung kann das jetzt nicht tun. Warten Sie, bis die Runde endet, und versuchen Sie es erneut.",
 	stopped: "Das wurde gestoppt. Starten Sie es erneut.",
+	tile_no_result: "Der Agent hat keine Kachel geliefert. Bauen Sie sie erneut.",
+	tile_time_limit:
+		"Der Agent hat zu lange gebraucht und wurde gestoppt. Bauen Sie die Kachel erneut.",
 	import_not_planned: "Es ist kein Import geplant. Lesen Sie zuerst die Quelle.",
 	server_off: "Dieser Server ist aus. Schalten Sie ihn zuerst ein.",
 	input_invalid:

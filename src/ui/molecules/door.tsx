@@ -11,6 +11,7 @@ export function Door({
 	count,
 	onClick,
 	render,
+	chips,
 }: {
 	label: string;
 	icon: ReactNode;
@@ -18,6 +19,8 @@ export function Door({
 	onClick?: () => void;
 	/** Draws a link in place of the button. */
 	render?: (props: DoorProps) => ReactNode;
+	/** The links inside the door. With chips, the door is a region and not one control. */
+	chips?: ReactNode;
 }) {
 	const props: DoorProps = {
 		className: TILE,
@@ -35,5 +38,12 @@ export function Door({
 			</>
 		),
 	};
+	if (chips !== undefined)
+		return (
+			<section aria-label={label} className={props.className}>
+				{props.children}
+				<div className="flex flex-wrap gap-2">{chips}</div>
+			</section>
+		);
 	return render ? render(props) : <button type="button" onClick={onClick} {...props} />;
 }

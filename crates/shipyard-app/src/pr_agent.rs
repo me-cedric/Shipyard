@@ -12,12 +12,17 @@
 //! post puts each finding on its line through the code host (`CodeApi::review`).
 
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::RecvTimeoutError;
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use shipyard_agents::assistant::{TurnInput, TurnKind, run_turn_with};
+use shipyard_agents::assistant::{TurnInput, TurnKind, run_turn_metered};
 use shipyard_agents::runner::CancelHandle;
-use shipyard_core::assistant::{Context, MessageState, ThreadSettings, scrub};
+use shipyard_core::assistant::{
+    ChatMessage, Context, FailKind, MessageState, Quote, ThreadSettings, scrub,
+};
 use shipyard_core::pickup::{AutoReview, PrState, PullSnapshot, reviews_due};
 use shipyard_core::run::BudgetLevel;
 use shipyard_engine::ports::Dispatch;
@@ -32,6 +37,8 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::factory::SessionView;
 use crate::work::need_click;
+
+pub mod tile;
 
 /// The member key of the usage that a review books: the assistant, as for its turns.
 const MEMBER: &str = "assistant";
@@ -134,7 +141,12 @@ pub struct ReviewInput {
 
 struct Job {
     project: String,
+    /// The pull request of a review. A tile build has a number above each pull request number.
     number: u32,
+    /// What the session row names: `#<pull request>`, or the dashboard of a tile build.
+    key: String,
+    /// `review`, or `tile` for "Build a tile for me".
+    step: &'static str,
     cancel: Option<CancelHandle>,
     runner: String,
     model: Option<String>,
@@ -177,6 +189,11 @@ struct Slot {
 
 impl Slot {
     fn take(project: &str, number: u32) -> Res<Self> {
+        Self::take_as(project, number, format!("#{number}"), "review")
+    }
+
+    /// A slot for another read-only agent turn: it is a session that a person stops as a review.
+    fn take_as(project: &str, number: u32, key: String, step: &'static str) -> Res<Self> {
         let mut all = jobs();
         if all
             .iter()
@@ -187,6 +204,8 @@ impl Slot {
         all.push(Job {
             project: project.into(),
             number,
+            key,
+            step,
             cancel: None,
             runner: String::new(),
             model: None,
@@ -251,9 +270,9 @@ pub fn sessions(project: &str) -> Vec<SessionView> {
         .iter()
         .filter(|j| j.project == project)
         .map(|j| SessionView {
-            run: format!("review{}", j.number),
-            key: format!("#{}", j.number),
-            step: "review".into(),
+            run: format!("{}{}", j.step, j.number),
+            key: j.key.clone(),
+            step: j.step.into(),
             runner: j.runner.clone(),
             model: j.model.clone(),
             state: shipyard_core::workflow::StepState::Running,
@@ -642,7 +661,7 @@ fn review_turn(
     result
 }
 
-/// One read-only turn of the agent in `dir`. The usage books under the assistant member.
+/// One read-only turn of the agent in `dir`, as text.
 fn ask(
     s: &AppState,
     pid: &str,
@@ -651,18 +670,58 @@ fn ask(
     slot: Option<&Slot>,
     program: Option<PathBuf>,
 ) -> Res<String> {
+    let m = turn(s, pid, dir, prompt, &[], slot, None, None, program);
+    match m.state {
+        MessageState::Failed { message, .. } => Err(message),
+        _ => Ok(m.text),
+    }
+}
+
+/// One read-only turn of the agent in `dir`. The usage books under the assistant member. The
+/// quotes go to the agent as data. The turn is cancelled when a usage event reports a cost at or
+/// above `cap` (USD): a runner that reports no cost before its reply is not cut by `cap`. The
+/// turn is cancelled on each runner when it takes longer than `limit`: it then ends as failed,
+/// with a text that says so.
+#[allow(clippy::too_many_arguments)]
+fn turn(
+    s: &AppState,
+    pid: &str,
+    dir: &Path,
+    prompt: &str,
+    quotes: &[Quote],
+    slot: Option<&Slot>,
+    cap: Option<f64>,
+    limit: Option<Duration>,
+    program: Option<PathBuf>,
+) -> ChatMessage {
     let settings = settings(s, pid);
     if let Some(slot) = slot {
         slot.describe(&settings);
     }
     let secrets = secrets(s);
     let scratch = s.dir.join("pr-reviews").join(pid).join("scratch");
-    let out = run_turn_with(
+    let handle = Arc::new(Mutex::new(None::<CancelHandle>));
+    let late = Arc::new(AtomicBool::new(false));
+    // The clock of the limit ends when `done` drops, at the end of the turn.
+    let (done, wait) = std::sync::mpsc::channel::<()>();
+    if let Some(limit) = limit {
+        let (handle, late) = (handle.clone(), late.clone());
+        std::thread::spawn(move || {
+            if wait.recv_timeout(limit) == Err(RecvTimeoutError::Timeout) {
+                late.store(true, Ordering::SeqCst);
+                if let Some(h) = &*handle.lock().unwrap_or_else(|e| e.into_inner()) {
+                    h.cancel();
+                }
+            }
+        });
+    }
+    let held = || handle.lock().unwrap_or_else(|e| e.into_inner());
+    let mut out = run_turn_metered(
         TurnInput {
             kind: TurnKind::Send,
             settings: &settings,
             context: &Context::default(),
-            quotes: &[],
+            quotes,
             text: prompt,
             rules: "",
             dir,
@@ -673,11 +732,31 @@ fn ask(
             program,
         },
         &|h| {
+            *held() = Some(h.clone());
+            // The limit passed before the runner started.
+            if late.load(Ordering::SeqCst) {
+                h.cancel();
+            }
             if let Some(slot) = slot {
                 slot.cancel_with(h);
             }
         },
+        &|_| {},
+        &|u| {
+            if cap.is_some_and(|c| u.cost_usd >= c)
+                && let Some(h) = &*held()
+            {
+                h.cancel();
+            }
+        },
     );
+    drop(done);
+    if let (true, Some(limit)) = (late.load(Ordering::SeqCst), limit) {
+        out.message.state = MessageState::Failed {
+            kind: FailKind::Error,
+            message: format!("the turn took longer than {} seconds", limit.as_secs_f64()),
+        };
+    }
     let u = &out.message.usage;
     if u.input_tokens + u.output_tokens > 0 || u.cost_usd > 0.0 {
         let booked = s.factory.factory.book_assistant(
@@ -691,10 +770,7 @@ fn ask(
             eprintln!("pr review budget: {e}");
         }
     }
-    match out.message.state {
-        MessageState::Failed { message, .. } => Err(message),
-        _ => Ok(out.message.text),
-    }
+    out.message
 }
 
 // ---------------------------------------------------------------- the actions
@@ -1077,15 +1153,15 @@ mod tests {
     /// The running slots and the limit are global: the tests that start a review take turns.
     static TURN: Mutex<()> = Mutex::new(());
 
-    fn turn() -> std::sync::MutexGuard<'static, ()> {
+    pub(super) fn turn() -> std::sync::MutexGuard<'static, ()> {
         TURN.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    struct Fx {
-        data: tempfile::TempDir,
-        repo: tempfile::TempDir,
-        s: AppState,
-        pid: String,
+    pub(super) struct Fx {
+        pub(super) data: tempfile::TempDir,
+        pub(super) repo: tempfile::TempDir,
+        pub(super) s: AppState,
+        pub(super) pid: String,
         first: String,
         second: String,
     }
@@ -1100,7 +1176,7 @@ mod tests {
         assert!(ok, "git {args:?}");
     }
 
-    fn fx() -> Fx {
+    pub(super) fn fx() -> Fx {
         let repo = tempfile::tempdir().unwrap();
         shipyard_git::project::init(repo.path()).unwrap();
         git(repo.path(), &["config", "user.email", "a@example.com"]);
@@ -1308,7 +1384,7 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
     }
 
     /// The factory knows the project, with a day budget of `usd`.
-    fn day_budget(f: &Fx, usd: f64) {
+    pub(super) fn day_budget(f: &Fx, usd: f64) {
         use shipyard_engine::fake::{FakeGit, FakePulls, FakeWorkspaces, FakeWriter};
         let writer = FakeWriter::default();
         let pulls = FakePulls::default();

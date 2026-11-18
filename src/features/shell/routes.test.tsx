@@ -140,10 +140,11 @@ describe("tab names", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/library/test-plans"));
 	});
 
-	it("opens Library on the Test plans for a tester", async () => {
+	// spec:app-redesign#REQ-020: the role picks the first page of the app, not the page of Library.
+	it("opens Library on its doors for a tester", async () => {
 		mockState().prefs.role = "qa";
 		const router = mountApp("/library");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/library/test-plans"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/home"));
 	});
 
 	it("lets the tabs wrap, so a narrow main view cuts none off", async () => {
@@ -178,11 +179,13 @@ describe("twin tabs (ux-declutter REQ-014, REQ-021)", () => {
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
-	it("shows the manual at /knowledge/manual with no selected tab", async () => {
+	it("shows the manual at /knowledge/manual with the back link and no section switch", async () => {
 		const router = mountApp("/knowledge/manual");
-		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
 		expect(await screen.findByRole("article", { name: "Getting started" })).toBeInTheDocument();
-		expect(within(tabs).queryByRole("link", { current: "page" })).toBeNull();
+		expect(
+			within(screen.getByRole("main")).getByRole("link", { name: en.library.back }),
+		).toHaveAttribute("href", "/library/home");
+		expect(screen.queryByRole("navigation", { name: "Tabs" })).toBeNull();
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
@@ -192,16 +195,20 @@ describe("twin tabs (ux-declutter REQ-014, REQ-021)", () => {
 	});
 
 	// The section switch of adr:0023 draws names only: the name is the text, as on the tabs before.
-	it.each(PLACE_IDS)("names each section of %s by its text", async (place) => {
-		mountApp(`/${place}`);
-		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
-		const links = await within(tabs).findAllByRole("link");
-		expect(links.map((l) => l.textContent)).toEqual(
-			barSections(place).map(([space, tab]) => tabLabel(en, space, tab)),
-		);
-		for (const icon of tabs.querySelectorAll("svg"))
-			expect(icon.closest("[aria-hidden='true']")).not.toBeNull();
-	});
+	// Library has no switch: `library.test.tsx` checks the name of each chip of its doors.
+	it.each(PLACE_IDS.filter((p) => p !== "library"))(
+		"names each section of %s by its text",
+		async (place) => {
+			mountApp(`/${place}`);
+			const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+			const links = await within(tabs).findAllByRole("link");
+			expect(links.map((l) => l.textContent)).toEqual(
+				barSections(place).map(([space, tab]) => tabLabel(en, space, tab)),
+			);
+			for (const icon of tabs.querySelectorAll("svg"))
+				expect(icon.closest("[aria-hidden='true']")).not.toBeNull();
+		},
+	);
 });
 
 describe("no tour and no hidden tab (shell REQ-016)", () => {

@@ -5,7 +5,7 @@ Shipyard hilft einem Team, ein Softwareprojekt auszuliefern: den Entwurf, die Sp
 ## Das Fenster
 
 - Die linke Leiste enthält die sechs Orte und Einrichtung: Heute, Ablauf, Plan, Team, Bibliothek, Code und Einrichtung. Jede frühere Seite liegt in einem Ort, und ihre alte Adresse öffnet sie weiterhin.
-- Die Abschnitte eines Ortes stehen oben auf der Seite, in einem Umschalter.
+- Die Abschnitte eines Ortes stehen oben auf der Seite, in einem Umschalter. Bibliothek hat keinen Umschalter: Sie öffnet sich mit vier Türen, und jede ihrer Seiten hat einen Link Bibliothek, der dorthin zurückführt.
 - Der Inspektor rechts zeigt das Element, das Sie auswählen.
 - Die Statusleiste unten zeigt das Projekt, den Sync-Status und die Commit-Steuerung, mit der Zahl der geänderten Dateien neben Commit.
 - Die obere Leiste enthält Zurück und Vorwärts, Synchronisieren, die Leiste Shipyard fragen oder beauftragen, die Schaltflächen Dateien und Terminal und das Kontomenü.

@@ -58,11 +58,75 @@ describe("Specs / Test plans", () => {
 		expect(within(broken).getByRole("button", { name: /spec:auth#REQ-009.*Broken/ })).toBeVisible();
 	});
 
+	it("opens a plan as scenarios to read, and a switch shows the text (spec:app-redesign#REQ-021)", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<TestPlans />);
+		await user.click(await plan(/Login/));
+		await user.click(await screen.findByRole("button", { name: "Open the plan" }));
+		const page = within(await screen.findByRole("article", { name: "Login" }));
+		expect(page.getAllByRole("heading")).toHaveLength(3);
+		expect(page.getAllByText("they act")).toHaveLength(3);
+		expect(screen.queryByRole("textbox", { name: "Login" })).toBeNull();
+		// The findings of the saved file stay beside the page.
+		expect(screen.getByRole("list", { name: "Broken citations" })).toBeVisible();
+		await user.click(screen.getByRole("tab", { name: "Edit" }));
+		expect(await screen.findByRole("textbox", { name: "Login" })).toHaveValue(
+			files()[PLAN]?.text ?? "",
+		);
+	});
+
+	it("opens a new plan in its text: it has no scenario to read", async () => {
+		const user = userEvent.setup();
+		files()[PLAN] = { text: "Feature: Login\n", stamp: "s1" };
+		await renderSpecs(<TestPlans />);
+		await user.click(await plan(/Login/));
+		await user.click(await screen.findByRole("button", { name: "Open the plan" }));
+		expect(await screen.findByRole("textbox", { name: "Login" })).toBeVisible();
+		// No page to read: the Read / Edit switch would do nothing.
+		expect(screen.queryByRole("tab", { name: "Read" })).toBeNull();
+	});
+
+	it("shows the tags of a scenario on its page, with the tags of its feature", async () => {
+		const user = userEvent.setup();
+		files()[PLAN] = {
+			text: "@smoke\nFeature: Login\n\n  @spec:auth#REQ-001\n  Scenario: A session starts\n    Given a person\n    Then it works\n\n  Scenario: Other\n    Then it works\n",
+			stamp: "s1",
+		};
+		await renderSpecs(<TestPlans />);
+		await user.click(await plan(/Login/));
+		await user.click(await screen.findByRole("button", { name: "Open the plan" }));
+		const read = within(await screen.findByRole("article", { name: "Login" }));
+		expect(read.getByText("@smoke @spec:auth#REQ-001")).toBeVisible();
+		expect(read.getByText("@smoke")).toBeVisible();
+	});
+
+	it("shows the text at each click on an error line, and keeps the stored Read choice", async () => {
+		const user = userEvent.setup();
+		files()[PLAN] = { text: "Scenario: no feature\n  Then it works\n", stamp: "s1" };
+		await renderSpecs(<TestPlans />);
+		await user.click(await plan(/auth-login|Login|no feature/));
+		await user.click(await screen.findByRole("button", { name: "Open the plan" }));
+		// The list mounts again with each form: find the line each time.
+		const line = async () =>
+			within(await screen.findByRole("list", { name: "Syntax errors" })).getByRole("button", {
+				name: /Line 1/,
+			});
+		expect(await screen.findByRole("article")).toBeVisible();
+		await user.click(await line());
+		expect(await screen.findByRole("textbox")).toBeVisible();
+		await user.click(screen.getByRole("tab", { name: "Read" }));
+		expect(await screen.findByRole("article")).toBeVisible();
+		await user.click(await line());
+		expect(await screen.findByRole("textbox")).toBeVisible();
+		expect(JSON.stringify({ ...localStorage })).not.toContain("edit");
+	});
+
 	it("reports a syntax error with its line after a save", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<TestPlans />);
 		await user.click(await plan(/Login/));
 		await user.click(await screen.findByRole("button", { name: "Open the plan" }));
+		await user.click(await screen.findByRole("tab", { name: "Edit" }));
 		const box = await screen.findByRole("textbox", { name: "Login" });
 		await waitFor(() => expect(box).toHaveValue(files()[PLAN]?.text ?? ""));
 		await user.clear(box);

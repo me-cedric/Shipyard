@@ -13,6 +13,7 @@ import { flowEn } from "./flow";
 import { glossaryEn } from "./glossary";
 import { homeEn } from "./home";
 import { knowledgeEn } from "./knowledge";
+import { libraryEn } from "./library";
 import { onboardingEn } from "./onboarding";
 import { panelsEn } from "./panels";
 import { personalEn } from "./personal";
@@ -925,6 +926,7 @@ export const en = {
 	flow: flowEn,
 	crewPlace: crewEn,
 	planPlace: planEn,
+	library: libraryEn,
 	glossary: glossaryEn,
 	settings: settingsEn,
 	specs: specsEn,

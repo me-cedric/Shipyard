@@ -160,6 +160,17 @@ describe("Specs / Change detail", () => {
 });
 
 describe("Specs / Capabilities", () => {
+	it("opens a spec as a page to read, and a switch shows the text (spec:app-redesign#REQ-021)", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<Capabilities />);
+		await user.click(await row(/auth/));
+		expect(await screen.findByRole("article", { name: "Spec" })).toBeVisible();
+		expect(screen.queryByRole("textbox", { name: "Spec" })).toBeNull();
+		await user.click(screen.getByRole("tab", { name: "Text" }));
+		expect(await screen.findByRole("textbox", { name: "Spec" })).toBeVisible();
+		expect(screen.queryByRole("article", { name: "Spec" })).toBeNull();
+	});
+
 	it("lists the capabilities with their counts, and a requirement shows its backlinks by kind", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Capabilities />);

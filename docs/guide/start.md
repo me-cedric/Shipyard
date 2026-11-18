@@ -5,7 +5,7 @@ Shipyard helps a team deliver a software project: the design, the specs, the wor
 ## The window
 
 - The left bar holds the six places and Setup: Today, Flow, Plan, Crew, Library, Code and Setup. Each page of before sits in one place, and its old address still opens it.
-- The sections of a place sit at the top of the page, in one switch.
+- The sections of a place sit at the top of the page, in one switch. Library has no switch: it opens on four doors, and each of its pages has a Library link that goes back to them.
 - The inspector on the right shows the item that you select.
 - The status bar at the bottom shows the project, the sync state and the commit control, with the count of changed files beside Commit.
 - The top bar holds Back and Forward, Sync, the bar Ask or tell Shipyard, the Files and Terminal buttons and the account menu.

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useOnFileChange } from "@/lib/files";
 import {
 	commands,
@@ -8,6 +8,8 @@ import {
 	type KGraph_Serialize,
 	type Learn,
 	type TileData_Serialize,
+	type TileProposal,
+	toFailure,
 	unwrap,
 } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
@@ -15,7 +17,7 @@ import { useActiveProject } from "@/lib/projects";
 export type KGraph = KGraph_Serialize;
 export type Dashboard = Dashboard_Serialize;
 export type TileData = TileData_Serialize;
-export type { DocList, Learn };
+export type { DocList, Learn, TileProposal };
 
 export const knowledgeKeys = {
 	all: ["knowledge"] as const,
@@ -195,6 +197,62 @@ export function useDashboard(slugName: string) {
 		return !w.conflict;
 	};
 	return { view: q.data, error: q.isError ? message(q.error) : null, save };
+}
+
+/**
+ * "Build a tile for me": one agent turn proposes a tile from the words of the person
+ * (spec:app-redesign#REQ-032). The turn has a budget, is a session of Crew while it runs, and
+ * stops as a session does (spec:app-redesign#REQ-033). Nothing is saved: the page saves the tile
+ * when the person accepts it. One build runs at a time, and it stops when the page goes away.
+ */
+export function useTileBuild(slugName: string) {
+	const qc = useQueryClient();
+	const [working, setWorking] = useState(false);
+	const [proposal, setProposal] = useState<TileProposal | null>(null);
+	const [failure, setFailure] = useState<{
+		code: string;
+		message: string;
+		details: string;
+	} | null>(null);
+	const busy = useRef(false);
+	// Crew reads the sessions again when the turn starts and when it ends.
+	const crew = () => void qc.invalidateQueries({ queryKey: ["factory"] });
+	const start = async (text: string, budgetUsd: number) => {
+		if (busy.current) return;
+		busy.current = true;
+		setWorking(true);
+		setFailure(null);
+		setProposal(null);
+		try {
+			const turn = unwrap(commands.dashboardTileBuild(slugName, text, budgetUsd));
+			crew();
+			setProposal(await turn);
+		} catch (e) {
+			const f = toFailure(e);
+			// The person stopped it: no error line.
+			if (f.code !== "stopped")
+				setFailure({ code: f.code, message: f.message, details: f.details });
+		} finally {
+			busy.current = false;
+			setWorking(false);
+			crew();
+		}
+	};
+	/** The stop of each build session of this dashboard: the page runs one build for a dashboard. */
+	const stop = useCallback(async () => {
+		const rows = await unwrap(commands.sessionsList());
+		for (const r of rows)
+			if (r.step === "tile" && r.key === slugName && r.pull != null)
+				await unwrap(commands.prReviewStop(r.pull));
+	}, [slugName]);
+	// A build that nobody waits for must not spend: it stops with the page.
+	useEffect(
+		() => () => {
+			if (busy.current) void stop().catch(() => {});
+		},
+		[stop],
+	);
+	return { working, proposal, failure, start, stop, discard: () => setProposal(null) };
 }
 
 // ---------------------------------------------------------------- pins

@@ -20,7 +20,7 @@ import { commands, type FlowRow_Deserialize, unwrap } from "@/lib/ipc";
 import { RightButton, RightIconButton } from "@/lib/rights";
 import { Input } from "@/ui/atoms/input";
 import { ArrowsRightLeftIcon, PlusIcon, TrashIcon } from "@/ui/icons";
-import { ViewTabs } from "@/ui/molecules/view-tabs";
+import { SectionSwitch } from "@/ui/molecules/section-switch";
 import { type FlowDraft, type FlowError, FlowMatrix } from "@/ui/organisms/flow-matrix";
 import type { FlowField } from "@/ui/organisms/flow-rows";
 import { FileFrame } from "./frame";
@@ -206,14 +206,13 @@ function Table({ a, file }: { a: Artifact; file: ReturnType<typeof useDesignFile
 						count: view === "flows" ? rows.length : bricks.length,
 					})}
 				</h3>
-				<ViewTabs
+				<SectionSwitch
 					label={f.views}
-					value={view}
-					onValueChange={setView}
-					tabs={[
-						{ value: "flows", label: t.tabs.design.flows },
-						{ value: "bricks", label: f.bricksTab },
+					items={[
+						{ id: "flows", label: t.tabs.design.flows, current: view === "flows" },
+						{ id: "bricks", label: f.bricksTab, current: view === "bricks" },
 					]}
+					onSelect={(id) => setView(id as typeof view)}
 				/>
 			</div>
 			{view === "bricks" ? (

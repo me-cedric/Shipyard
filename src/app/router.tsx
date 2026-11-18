@@ -196,8 +196,15 @@ const toPlace = ({ location }: { location: ParsedLocation }) => {
 	throw redirect({ href: `${to}${search}${hash}`, replace: true });
 };
 
-/** The views of Flow, each a page of the flow feature. The old tab views are its parts. */
+/**
+ * The views of Flow, each a page of the flow feature. The old tab views are its parts. The home of
+ * Library and Reports are pages of their own too.
+ */
 const FLOW_VIEW = {
+	"library/home": () =>
+		lazyRouteComponent(() => import("@/features/library/library-home"), "LibraryHome"),
+	"library/reports": () =>
+		lazyRouteComponent(() => import("@/features/reports/reports-page"), "Reports"),
 	"flow/flow": () => lazyRouteComponent(() => import("@/features/flow/flow-page"), "FlowBoard"),
 	"flow/list": () => lazyRouteComponent(() => import("@/features/flow/flow-page"), "FlowList"),
 	"flow/done": () => lazyRouteComponent(() => import("@/features/flow/flow-page"), "FlowDone"),

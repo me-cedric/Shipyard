@@ -344,7 +344,7 @@ describe("project switcher", () => {
 			await screen.findByRole("link", { name: "Health", current: "page" }),
 		).toBeInTheDocument();
 		await user.click(screen.getByRole("link", { name: "Library" }));
-		await waitFor(() => expect(mockState().projects[0]?.lastView).toBe("/library/diagrams"));
+		await waitFor(() => expect(mockState().projects[0]?.lastView).toBe("/library/home"));
 	});
 });
 

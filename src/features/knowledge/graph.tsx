@@ -12,7 +12,7 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
 import { Loading } from "@/ui/molecules/loading";
-import { ViewTabs } from "@/ui/molecules/view-tabs";
+import { SectionSwitch } from "@/ui/molecules/section-switch";
 import { type CanvasNode, GraphCanvas, KindMark } from "@/ui/organisms/graph-canvas";
 import { ListDetail } from "@/ui/templates/list-detail";
 import {
@@ -189,14 +189,14 @@ export function Graph() {
 			icon={<ShareIcon size={16} />}
 			count={shown.nodes.length}
 			chips={
-				<ViewTabs<Source>
+				<SectionSwitch
 					label={k.graph.source}
-					value={source}
-					onValueChange={setSource}
-					tabs={[
-						{ value: "refs", label: k.graph.refs },
-						{ value: "code", label: k.graph.code },
-					]}
+					items={(["refs", "code"] as const).map((id) => ({
+						id,
+						label: k.graph[id],
+						current: source === id,
+					}))}
+					onSelect={(id) => setSource(id as Source)}
 				/>
 			}
 			toolbar={

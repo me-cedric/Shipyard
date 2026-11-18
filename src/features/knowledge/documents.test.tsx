@@ -10,6 +10,10 @@ describe("Knowledge / Documents", () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
 		await user.click(await screen.findByRole("button", { name: "Client brief" }));
+		// A document opens as a page to read; the switch shows the text.
+		expect(await screen.findByRole("article", { name: "Preview" })).toBeInTheDocument();
+		expect(screen.queryByRole("textbox", { name: "Markdown" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Both" }));
 		expect(await screen.findByRole("textbox", { name: "Markdown" })).toHaveValue(
 			"# Client brief\n\nThe scope follows spec:billing and adr:0004.\n",
 		);
@@ -82,6 +86,7 @@ describe("Knowledge / Documents", () => {
 		await user.type(await screen.findByRole("searchbox", { name: "Search in the text" }), "scope");
 		const hits = await screen.findByRole("list", { name: "Results" });
 		await user.click(within(hits).getByRole("button", { name: /Client brief/ }));
+		await user.click(await screen.findByRole("button", { name: "Both" }));
 		expect(await screen.findByRole("textbox", { name: "Markdown" })).toHaveValue(
 			"# Client brief\n\nThe scope follows spec:billing and adr:0004.\n",
 		);
@@ -103,6 +108,7 @@ describe("Knowledge / Documents", () => {
 		const files = () => mockState().knowledge.files;
 		await waitFor(() => expect(files()["docs/documents/brief.md"]).toBeDefined());
 		expect(files()["docs/documents/client-brief.md"]).toBeUndefined();
+		await user.click(await screen.findByRole("button", { name: "Both" }));
 		expect(await screen.findByRole("textbox", { name: "Markdown" })).toHaveValue(
 			"# Client brief\n\nThe scope follows spec:billing and adr:0004.\n",
 		);

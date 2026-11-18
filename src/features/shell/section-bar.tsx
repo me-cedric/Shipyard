@@ -2,12 +2,21 @@ import { Link } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { useRights } from "@/lib/rights";
 import { SectionSwitch } from "@/ui/molecules/section-switch";
+import { LibraryBack } from "../library/back-link";
 import { StaleBadge, useStalePages } from "../specs/chain-badge";
 import { barSections, type PlaceId, sectionPath, viewsOf } from "./places";
 import { tabLabel } from "./spaces";
 
-/** The one section switch of a place, under the page (adr:0023 point 1). */
+/**
+ * The one section switch of a place, under the page (adr:0023 point 1). Library has no switch: its
+ * home shows the doors, and each other page shows the back link (`spec:app-redesign#REQ-020`).
+ */
 export function SectionBar({ place, slug }: { place: PlaceId; slug?: string }) {
+	if (place !== "library") return <Switch place={place} slug={slug} />;
+	return slug && slug !== "home" ? <LibraryBack /> : null;
+}
+
+function Switch({ place, slug }: { place: PlaceId; slug?: string }) {
 	const { t } = useI18n();
 	const stale = useStalePages();
 	const { level } = useRights();
