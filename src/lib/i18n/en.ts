@@ -231,7 +231,7 @@ export const en = {
 	forge: forgeEn,
 	knowledge: knowledgeEn,
 	costing: costingEn,
-	notFound: { title: "Not found", home: "Home" },
+	notFound: { title: "Not found", home: "Today" },
 	routeError: {
 		message: "This page did not load. Check the network, then try again.",
 		retry: "Retry",

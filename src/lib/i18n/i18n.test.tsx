@@ -111,6 +111,12 @@ describe.each(LANGS)("plain words (REQ-027): %s", (lang) => {
 	it('says "recipe" and "crew", never "workflow" or "Factory"', () => {
 		expect(hits(lang, /workflow|factory/i)).toEqual([]);
 	});
+
+	it("holds no translation of a banned word", () => {
+		expect(hits(lang, /\busines?\b|fabrique|flux de travail/i)).toEqual([]);
+		expect(hits(lang, /fabrik|arbeitsablauf/i)).toEqual([]);
+		expect(hits(lang, /f[áa]brica|flujos? de trabajo/i)).toEqual([]);
+	});
 });
 
 // The names of `q:Q-169` (English) and of the default of `q:Q-172` (French, German, Spanish).

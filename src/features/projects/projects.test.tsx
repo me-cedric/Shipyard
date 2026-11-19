@@ -231,7 +231,10 @@ describe("project switcher", () => {
 		await user.click(await screen.findByRole("button", { name: /^Project/ }));
 		await user.click(await screen.findByRole("menuitem", { name: "Projects" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/projects"));
-		expect(await screen.findByRole("heading", { level: 1, name: "Projects" })).toBeInTheDocument();
+		// The page is a lazy chunk: under the load of the full run it can take more than a second.
+		expect(
+			await screen.findByRole("heading", { level: 1, name: "Projects" }, { timeout: 5000 }),
+		).toBeInTheDocument();
 		expect(screen.queryByRole("navigation", { name: "Tabs" })).toBeNull();
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});

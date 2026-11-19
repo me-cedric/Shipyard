@@ -25,7 +25,7 @@ With nothing at all to show, one action opens Flow / List.
 - While an item is to do, one Get started checklist shows (see Getting started, First launch).
 - On a work day with no time logged, a card reminds you to log your time. It is not in the count.
 - The panels of your role show what your role watches, each with Open. Pick a role to see the panels of another role. A panel of a place that you cannot see stays hidden.
-- My work holds the tickets that the issue tracker gives to you, grouped as In progress, To do and Done in the last 7 days. Each row has its status and Start run.
+- My items holds the tickets that the issue tracker gives to you, grouped as In progress, To do and Done in the last 7 days. Each row has its status and Start run.
 - Since you were away lists what happened on your tickets and runs since the last time you opened Today, newest first.
 
 The menu bar panel shows the same things that need you.

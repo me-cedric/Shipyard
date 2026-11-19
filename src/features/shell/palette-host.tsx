@@ -104,6 +104,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		Icon: PLACE_ICON.setup,
 		hidden: !scopes.includes(scope),
 	});
+	const tickets = door("project", "tickets", t.projects.ticketsConfig.title);
 	const doors = [
 		{ id: "go-projects", label: t.tabs.home.projects, href: "/projects", Icon: CodeBracketIcon },
 		{
@@ -122,7 +123,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		},
 		door("project", "connections", t.tabs.settings.connections),
 		// The tickets file is a part of the project file: no file, no door.
-		{ ...door("project", "tickets", t.projects.ticketsConfig.title), hidden: !projectFile },
+		{ ...tickets, hidden: tickets.hidden || !projectFile },
 		door("project", "extensions", t.tabs.settings.extensions),
 		door("project", "health", t.settings.pages.projectHealth),
 		door("computer", "models", t.tabs.settings["agents-rules"]),

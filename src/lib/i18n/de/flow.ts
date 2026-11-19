@@ -1,7 +1,7 @@
 import type { flowEn } from "../flow";
 
 export const flowDe: typeof flowEn = {
-	newAction: "Neue Funktion",
+	newAction: "Neues Feature",
 	views: { flow: "Ablauf", list: "Liste", done: "Erledigt", health: "Zustand" },
 	health: {
 		fixOne: "1 Prüfung braucht eine Korrektur",
@@ -13,7 +13,7 @@ export const flowDe: typeof flowEn = {
 	filters: { all: "Alle", needs: "Betrifft mich", mine: "Meine" },
 	addIdea: "Idee hinzufügen",
 	empty: "Nichts hier",
-	features: "Funktionen",
+	features: "Features",
 	bring: "Ticket per Schlüssel holen",
 	finished: "Abgeschlossen",
 	state: {
@@ -103,7 +103,7 @@ export const flowDe: typeof flowEn = {
 		heading: "Was möchten Sie bauen?",
 		title: "Titel",
 		kind: "Art",
-		kinds: { feature: "Funktion", bug: "Fehler", idea: "Idee für später" },
+		kinds: { feature: "Feature", bug: "Fehler", idea: "Idee für später" },
 		way: "Wie",
 		ways: {
 			agent: "Ein Agent schreibt die Spezifikation",

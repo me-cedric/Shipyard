@@ -101,14 +101,14 @@ describe("Knowledge / Dashboards", () => {
 	it("pins a tile, and the pinned tile shows at the top of Dashboards and not on Home", async () => {
 		const user = userEvent.setup();
 		const router = await mountKnowledge("dashboards");
-		await user.click(await (await tile("Runs")).findByRole("button", { name: "Pin to Home" }));
+		await user.click(await (await tile("Runs")).findByRole("button", { name: "Pin to Today" }));
 		expect(await screen.findByRole("heading", { name: "Pinned (1)" })).toBeInTheDocument();
 		await router.navigate({ to: "/home/today" });
 		await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ });
 		expect(screen.queryByRole("heading", { name: /^Pinned/ })).toBeNull();
 		await router.navigate({ to: "/knowledge/dashboards" });
 		const pinned = within(await screen.findByRole("region", { name: "Pinned" }));
-		await user.click(await pinned.findByRole("button", { name: "Unpin from Home" }));
+		await user.click(await pinned.findByRole("button", { name: "Unpin from Today" }));
 		await waitFor(() => expect(screen.queryByRole("heading", { name: /^Pinned/ })).toBeNull());
 	});
 

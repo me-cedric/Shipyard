@@ -232,7 +232,7 @@ export const fr: Messages = {
 	forge: forgeFr,
 	knowledge: knowledgeFr,
 	costing: costingFr,
-	notFound: { title: "Introuvable", home: "Accueil" },
+	notFound: { title: "Introuvable", home: "Aujourd'hui" },
 	routeError: {
 		message: "Cette page ne s'est pas chargée. Vérifiez le réseau, puis réessayez.",
 		retry: "Réessayer",

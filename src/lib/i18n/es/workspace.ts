@@ -45,7 +45,7 @@ export const workspaceEs: typeof workspaceEn = {
 	},
 	conflict: {
 		agent: "Pasar al agente",
-		factory: "Pasar a un agente",
+		factory: "Enviar a Flujo",
 		sent: "Elemento de trabajo {key} creado",
 		prompt:
 			"Resuelve los conflictos de fusión en {files}. Conserva la intención de ambos lados. No dejes ningún marcador.",

@@ -115,7 +115,7 @@ test("pins a dashboard tile to the top of Dashboards, not to Home", async ({ pag
 	await openKnowledge(page, "Dashboards");
 	const tile = page.getByRole("region", { name: "Work items" });
 	await expect(tile).toBeVisible();
-	await tile.getByRole("button", { name: "Pin to Home" }).click();
+	await tile.getByRole("button", { name: "Pin to Today" }).click();
 	await expect(page.getByRole("region", { name: "Pinned" })).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Today" }).click();
 	await expect(tabs(page).getByRole("link", { name: "Today" })).toBeVisible();

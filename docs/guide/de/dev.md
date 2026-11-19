@@ -12,7 +12,7 @@
 | `crates/` | Rust-Workspace. Die Fachlogik in `shipyard-core` hat keine Ein- und Ausgabe. |
 | `crates/shipyard-app/` | Tauri-Hülle: `tauri.conf.json`, `capabilities/`, `icons/`, Befehle in `src/commands/`. |
 | `src/ui/` | Design-System: `tokens`, `icons`, `atoms`, `molecules`, `organisms`, `templates`, `gallery`. Lange Listen nutzen `VirtualList` und `DataTable` (TanStack Virtual und Table). |
-| `src/features/<space>/` | Ein Ordner pro Bereich. Ein Feature importiert nur `@/ui`, `@/lib` und seinen eigenen Ordner. |
+| `src/features/<space>/` | Ein Ordner pro Themengebiet, zum Beispiel `flow`, `crew` oder `code`. Ein Ort des Menüs kann Teile aus mehreren Ordnern zeigen. Ein Feature importiert nur `@/ui`, `@/lib` und seinen eigenen Ordner. |
 | `src/lib/ipc/` | Generierte Bindings und die Mock-Schicht. |
 | `src/lib/i18n/` | Die Kataloge für Englisch, Französisch, Deutsch und Spanisch. Jeder hat den Typ von `en.ts`. |
 | `e2e/` | Playwright-Tests auf dem Vite-Release-Build, mit dem Mock-IPC. |
@@ -70,7 +70,7 @@ pnpm build:sidecar   # only the sidecar: crates/shipyard-app/binaries/shipyard-<
 
 `pnpm test:e2e` baut die App mit `VITE_MOCK_DEMO=0` und liefert sie auf Port 4174 aus. Eine Datei deckt jeden Bereich ab, zum Beispiel `e2e/work.spec.ts`. Führen Sie eine Datei mit `pnpm playwright test e2e/<name>.spec.ts` aus.
 
-- `e2e/a11y.spec.ts` führt axe (`@axe-core/playwright`) auf jedem Tab jedes Bereichs aus, im hellen und im dunklen Design, mit reduzierter Bewegung. Ein Verstoß lässt den Test fehlschlagen. Ein neuer Tab kommt zum Lauf hinzu, wenn Sie ihn zu `SPACES` in `src/features/shell/spaces.ts` hinzufügen.
+- `e2e/a11y.spec.ts` führt axe (`@axe-core/playwright`) auf jedem Abschnitt jedes Ortes und auf den Seiten außerhalb der Abschnittsumschalter aus, im hellen und im dunklen Design, mit reduzierter Bewegung, in einem Fenster von 960 mal 600 px. Ein Verstoß lässt den Test fehlschlagen. Ein Schalter unter 44 px Höhe und eine Seite, die seitwärts scrollt, lassen ihn auch fehlschlagen. Ein neuer Abschnitt kommt zum Lauf hinzu, wenn Sie ihn zu `PLACES` in `src/features/shell/places.ts` hinzufügen. Eine Seite außerhalb der Umschalter kommt über `OFF_SWITCH` des Tests hinzu.
 - `e2e/design-system.spec.ts` deckt die Galerie ab: eine Seite für jede atomare Schicht, ein Fokusrahmen an jeder Schicht-Schaltfläche, der Design- und Sprachumschalter, und axe auf jeder Schicht in beiden Designs. Die Galerie existiert nur im Dev-Build. Der Test startet seinen eigenen `vite`-Dev-Server auf Port 4175. Er prüft, dass der Release-Build keine Galerie-Route hat.
 - `pnpm test:personas` geht die erste Stunde jedes Profils durch (Projektleitung, Architekt, Entwickler, Tester, Business-Analyst, fachlicher Leiter, Junior) im Demo-Build. Es nutzt `playwright.personas.config.ts` und `e2e/personas/*.persona.ts`, und `pnpm test:e2e` führt es nicht aus. Setzen Sie `PERSONAS_OUT` auf einen Ordner: Jedes Profil schreibt einen Screenshot für jeden Schritt und ein Protokoll mit den Klicks und dem Ergebnis jedes Schritts (ok, verwirrend, Sackgasse, Fehler). Ein Schritt, den die App nicht ausführen kann, lässt den Lauf weich fehlschlagen, und der Durchgang geht weiter.
 

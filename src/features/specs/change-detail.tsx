@@ -76,7 +76,7 @@ function Findings({ list, onPick }: { list: Finding[]; onPick: (line: number | n
 						<button
 							type="button"
 							onClick={() => onPick(f.line)}
-							className="flex min-h-row w-full items-center gap-2 border-b px-1 text-left text-ui"
+							className="flex min-h-control w-full items-center gap-2 border-b px-1 text-left text-ui"
 						>
 							<StatusDot status={f.level === "error" ? "danger" : "warning"} />
 							{f.line ? (

@@ -30,7 +30,7 @@ Click Export on the Theme files row. Shipyard writes the current theme to a `.js
 
 ## The theme file
 
-A theme file is JSON. The format is in ADR 0018.
+A theme file is JSON. The format is in adr:0018.
 
 ```json
 {

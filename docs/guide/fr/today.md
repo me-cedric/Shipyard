@@ -25,7 +25,7 @@ Quand il n'y a rien à montrer, une action ouvre Flux / Liste.
 - Tant qu'un élément reste à faire, une liste Pour commencer s'affiche (voir Démarrer, Premier lancement).
 - Un jour de travail sans temps saisi, une carte vous rappelle de saisir votre temps. Elle n'est pas dans le nombre.
 - Les panneaux de votre rôle montrent ce que votre rôle surveille, chacun avec Ouvrir. Choisissez un rôle pour voir les panneaux d'un autre rôle. Un panneau d'un lieu que vous ne voyez pas reste masqué.
-- Mon travail contient les tickets que l'outil de suivi vous attribue, groupés en En cours, À faire et Terminé dans les 7 derniers jours. Chaque ligne a son statut et Lancer une exécution.
+- Mes éléments contient les tickets que l'outil de suivi vous attribue, groupés en En cours, À faire et Terminé dans les 7 derniers jours. Chaque ligne a son statut et Lancer une exécution.
 - Depuis votre dernière visite liste ce qui s'est passé sur vos tickets et vos exécutions depuis la dernière ouverture d'Aujourd'hui, le plus récent d'abord.
 
 Le panneau de la barre de menus montre les mêmes choses qui vous attendent.

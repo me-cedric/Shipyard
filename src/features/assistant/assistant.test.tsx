@@ -297,7 +297,7 @@ describe("assistant panel: Explain and Send to factory", () => {
 		await dialog.findByText(/^doc:assistant\//);
 		await user.click(dialog.getByRole("button", { name: "Send" }));
 		expect(await dialog.findByRole("alert")).toHaveTextContent(
-			"The tracker refused the item: 400.",
+			"The issue tracker refused the item: 400.",
 		);
 		expect(dialog.queryByRole("status")).toBeNull();
 	});

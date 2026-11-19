@@ -65,7 +65,7 @@ export function Inspector({
 			/>
 			{/* Full width of the aside; the floor keeps the text whole while the aside opens from 0. */}
 			<div className="flex h-full w-full min-w-60 flex-col">
-				<div className="flex h-9 items-center justify-between border-b pr-1 pl-3">
+				<div className="flex min-h-control items-center justify-between border-b pr-1 pl-3">
 					<h2 className="text-ui font-medium">{title}</h2>
 					<IconButton label={t.common.close} shortcut="Esc" onClick={close}>
 						<XMarkIcon size={14} />

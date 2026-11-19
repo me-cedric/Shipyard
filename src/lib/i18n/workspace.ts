@@ -44,7 +44,7 @@ export const workspaceEn = {
 	},
 	conflict: {
 		agent: "Hand to agent",
-		factory: "Hand to an agent",
+		factory: "Send to Flow",
 		sent: "Work item {key} created",
 		prompt:
 			"Resolve the merge conflicts in {files}. Keep the intent of both sides. Leave no marker.",
@@ -179,7 +179,7 @@ export const workspaceFr: typeof workspaceEn = {
 	},
 	conflict: {
 		agent: "Confier à un agent",
-		factory: "Confier à un agent",
+		factory: "Envoyer vers Flux",
 		sent: "Élément {key} créé",
 		prompt:
 			"Résous les conflits de fusion dans {files}. Garde l'intention des deux côtés. Ne laisse aucun marqueur.",

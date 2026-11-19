@@ -12,11 +12,11 @@ Wählen Sie Den Assistenten fragen, um diese Elemente als Kontext in das Nachric
 
 ## Tun
 
-Tun startet eine Aktion oder eine Anfrage für die Seite, die Sie sehen. Beispiele: Neue Funktion, Anleitung zu dieser Seite öffnen, Tour wiederholen. Eine Aktion, die Ihre Rolle nicht nutzen kann, zeigt sich nicht.
+Tun startet eine Aktion oder eine Anfrage für die Seite, die Sie sehen. Beispiele: Neues Feature, Anleitung zu dieser Seite öffnen, Tour wiederholen. Eine Aktion, die Ihre Rolle nicht nutzen kann, zeigt sich nicht.
 
 ## Fragen
 
-Fragen Sie, was blockiert, was gestoppt ist oder was auf Sie wartet. Die Antwort nennt jede Funktion und gibt ihre Aktion: Antworten, Entblocken, Budget hinzufügen, Erneut versuchen, Fortsetzen oder Als erledigt schließen.
+Fragen Sie, was blockiert, was gestoppt ist oder was auf Sie wartet. Die Antwort nennt jedes Feature und gibt seine Aktion: Antworten, Entblocken, Budget hinzufügen, Erneut versuchen, Fortsetzen oder Als erledigt schließen.
 
 Jeder andere Text geht mit der Eingabetaste an den Assistenten.
 

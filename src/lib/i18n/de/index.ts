@@ -232,7 +232,7 @@ export const de: Messages = {
 	forge: forgeDe,
 	knowledge: knowledgeDe,
 	costing: costingDe,
-	notFound: { title: "Nicht gefunden", home: "Start" },
+	notFound: { title: "Nicht gefunden", home: "Heute" },
 	routeError: {
 		message:
 			"Diese Seite wurde nicht geladen. Prüfen Sie das Netzwerk und versuchen Sie es erneut.",

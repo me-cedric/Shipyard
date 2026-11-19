@@ -54,7 +54,7 @@ describe("the apply preview and apply", () => {
 		const dialog = await openApply(user);
 		await user.click(await dialog.findByRole("button", { name: "Apply" }));
 		expect(await dialog.findByRole("heading", { name: "Failed (1)" })).toBeInTheDocument();
-		expect(dialog.getByText(/the tracker refused the change/)).toBeInTheDocument();
+		expect(dialog.getByText(/the issue tracker refused the change/)).toBeInTheDocument();
 		expect(written()).toContain("est:mvp-1#auth");
 		expect(written()).toContain("est:mvp-1#auth-design");
 		expect(written()).not.toContain("est:mvp-1#auth-api");

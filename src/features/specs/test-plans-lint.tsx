@@ -41,7 +41,7 @@ export function PlanLint({
 							<button
 								type="button"
 								onClick={() => onOpen(f.plan.path, f.line)}
-								className="flex min-h-row w-full items-center gap-3 border-b px-3 text-left text-ui"
+								className="flex min-h-control w-full items-center gap-3 border-b px-3 text-left text-ui"
 							>
 								<span className="min-w-0 flex-1 truncate">
 									{format(b.rule[f.rule], { scenario: f.scenario })}

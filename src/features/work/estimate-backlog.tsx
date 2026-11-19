@@ -191,7 +191,7 @@ export function EstimateBacklog({
 		{
 			id: "pick",
 			header: "",
-			meta: { width: "3.25rem" },
+			meta: { width: "4.5rem" },
 			cell: ({ row }) => {
 				const task = row.original.task;
 				return (

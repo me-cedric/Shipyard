@@ -7,6 +7,7 @@ import { useRights } from "@/lib/rights";
 import { runHref } from "@/lib/shell";
 import { Leave } from "@/ui/atoms/leave";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
+import { hiddenSection } from "./places";
 
 const heading = "flex min-h-control items-center border-b px-3 text-12 font-medium text-n-11";
 
@@ -15,13 +16,20 @@ export function RunsPart({ live }: { live: { id: string; key: string; title: str
 	const { t } = useI18n();
 	const { cancel } = useRunActions();
 	const { error, run } = useGuard();
-	const stopGate = useRights().gate("runs.start");
+	const rights = useRights();
+	const stopGate = rights.gate("runs.start");
+	// The link shows with Flow / Flow (`spec:app-redesign#REQ-006`).
+	const seesFlow = !hiddenSection(rights.level, "flow", "flow");
 	const title = format(t.count, { name: t.shell.runs, count: live.length });
 	return (
 		<section aria-label={t.shell.runs}>
-			<Link to="/flow/flow" className={`${heading} text-accent-text hover:underline`}>
-				{title}
-			</Link>
+			{seesFlow ? (
+				<Link to="/flow/flow" className={`${heading} text-accent-text hover:underline`}>
+					{title}
+				</Link>
+			) : (
+				<h2 className={heading}>{title}</h2>
+			)}
 			{error ? (
 				<p role="alert" className="px-3 py-2 text-danger-text">
 					{error}

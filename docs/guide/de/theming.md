@@ -30,7 +30,7 @@ Klicken Sie in der Zeile Design-Dateien auf Exportieren. Shipyard schreibt das a
 
 ## Die Design-Datei
 
-Eine Design-Datei ist JSON. Das Format steht in ADR 0018.
+Eine Design-Datei ist JSON. Das Format steht in adr:0018.
 
 ```json
 {

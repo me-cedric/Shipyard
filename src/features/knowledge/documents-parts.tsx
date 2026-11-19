@@ -93,7 +93,7 @@ export function DocSearch({ onPick }: { onPick: (path: string) => void }) {
 								type="button"
 								data-nav=""
 								onClick={() => onPick(h.path)}
-								className="flex min-h-row w-full items-center gap-2 rounded-md px-2 text-left text-ui hover:bg-n-3"
+								className="flex min-h-control w-full items-center gap-2 rounded-md px-2 text-left text-ui hover:bg-n-3"
 							>
 								<span className="shrink-0 text-n-12">{h.title}</span>
 								<span className="min-w-0 flex-1 truncate text-12 text-n-11">{h.snippet}</span>

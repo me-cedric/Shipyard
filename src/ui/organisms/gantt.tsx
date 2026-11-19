@@ -110,9 +110,11 @@ function BarButton({
 	return (
 		<>
 			<Tooltip label={bar.name} shortcut="← →">
+				{/* A bar is a mark on the time scale: `min-h-0` keeps it at 20 px in its 28 px row (exempt in e2e/a11y.spec.ts). */}
 				<button
 					type="button"
 					data-nav=""
+					data-gantt-bar=""
 					aria-label={name}
 					aria-current={selected ? "true" : undefined}
 					onPointerDown={down}
@@ -133,7 +135,7 @@ function BarButton({
 					}}
 					style={{ left: left + dx, width }}
 					className={cn(
-						"absolute top-1 flex h-5 touch-none items-center overflow-hidden rounded-full border px-2 text-left text-11 font-medium whitespace-nowrap shadow-1 transition-shadow duration-(--duration-fast) hover:shadow-2",
+						"absolute top-1 flex h-5 min-h-0 touch-none items-center overflow-hidden rounded-full border px-2 text-left text-11 font-medium whitespace-nowrap shadow-1 transition-shadow duration-(--duration-fast) hover:shadow-2",
 						tone,
 						bar.fixed && "border-l-4",
 						selected && "shadow-glow outline-2 outline-offset-1 outline-n-12",

@@ -19,7 +19,7 @@ Die Dateien, die Sie geändert haben, zeigen sich als Baum.
 
 Die Pull Requests der Code-Plattform kommen danach. Die Liste hat eine Suche und zwei Filter. Alle zeigt jeden Pull Request. Zu prüfen zeigt die offenen Pull Requests, die keine Entwürfe sind, auf ein Review warten und keine angeforderten Änderungen haben. Die offenen Pull Requests zeigen sich zuerst. Die Schaltfläche Zusammengeführt und geschlossen zeigt die beiden anderen Gruppen, jeweils mit ihrer Zahl. Eine Zeile zeigt die Nummer, den Titel, die Entwurfsmarke, den Zustand der Prüfungen und den Zustand des Reviews. Pull Request öffnen beginnt einen neuen: Mit einem Agenten schreiben füllt den Titel und den Text aus den Änderungen des Branches, dem verknüpften Ticket und der verknüpften Spezifikationsänderung, und nichts öffnet sich, bis Sie auf Öffnen klicken.
 
-Klicken Sie auf eine Zeile, um den Pull Request auf der Seite seiner Funktion zu öffnen, Bereich Änderungen (siehe die Seite Ablauf, Die Seite einer Funktion). Ein bereiter Pull Request zeigt Zusammenführen: Es öffnet diese Seite, auf der Sie das Zusammenführen bestätigen.
+Klicken Sie auf eine Zeile, um den Pull Request auf der Seite seines Features zu öffnen, Bereich Änderungen (siehe die Seite Ablauf, Die Seite eines Features). Ein bereiter Pull Request zeigt Zusammenführen: Es öffnet diese Seite, auf der Sie das Zusammenführen bestätigen.
 
 Zwei Türen unten öffnen Produktzustand (Ablauf / Zustand) und die Dateien des Projekts.
 

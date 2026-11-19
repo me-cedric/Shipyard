@@ -10,11 +10,11 @@ Team öffnet sich mit den Karten. Personen zeigt jede Person als Karte: die aktu
 
 ## Live
 
-Der Umschalter Karten und Live steht oben in Team. Live zeigt die Agenten bei der Arbeit. Jede Zeile zeigt einen Agenten, seine Funktion mit ihrem Zustand, und die Dateien und Specs, die der Agent liest und ändert. Der Filter ist Bei der Arbeit, Beendet, Dateien oder Specs. Fahren Sie über einen Agenten, um seine Ref zu sehen. Klicken Sie mit der rechten Maustaste, oder drücken Sie die Kontextmenü-Taste, um die Ref zu kopieren. Klicken Sie auf die Funktion, um ihre Seite zu öffnen.
+Der Umschalter Karten und Live steht oben in Team. Live zeigt die Agenten bei der Arbeit. Jede Zeile zeigt einen Agenten, sein Feature mit seinem Zustand, und die Dateien und Specs, die der Agent liest und ändert. Der Filter ist Bei der Arbeit, Beendet, Dateien oder Specs. Fahren Sie über einen Agenten, um seine Ref zu sehen. Klicken Sie mit der rechten Maustaste, oder drücken Sie die Kontextmenü-Taste, um die Ref zu kopieren. Klicken Sie auf das Feature, um seine Seite zu öffnen.
 
 ## Rezepte
 
-Ein Rezept ist die Liste der Schritte, denen ein Agent bei einer Funktion folgt. Rezepte listet die Rezepte und die Rollen der Agenten, jeweils als Karte mit den Namen ihrer Schritte. Klicken Sie auf eine Karte, um sie zu lesen oder zu ändern, dann speichern Sie. Eine fehlerhafte Datei zeigt ihren Fehler und ihre Zeile. Die letzte gute Version läuft weiter.
+Ein Rezept ist die Liste der Schritte, denen ein Agent bei einem Feature folgt. Rezepte listet die Rezepte und die Rollen der Agenten, jeweils als Karte mit den Namen ihrer Schritte. Klicken Sie auf eine Karte, um sie zu lesen oder zu ändern, dann speichern Sie. Eine fehlerhafte Datei zeigt ihren Fehler und ihre Zeile. Die letzte gute Version läuft weiter.
 
 Ein Rezept öffnet sich in einem Formular. Nutzen Sie Formular und Text, um zwischen dem Formular und dem YAML-Text zu wechseln. Beide bearbeiten dieselbe Datei.
 
@@ -28,14 +28,14 @@ Ein Rezept öffnet sich in einem Formular. Nutzen Sie Formular und Text, um zwis
 
 ## Sitzungen
 
-Sitzungen listet die Agenten-Sitzungen der Läufe und die Sitzungen auf diesem Computer. Ein Agent, der einen Pull Request prüft, Aufgaben schätzt oder eine Kachel baut, zeigt sich dort auch. Klicken Sie auf eine Lauf-Sitzung, um ihre Funktion bei diesem Schritt zu öffnen. Stoppen Sie eine Sitzung, die Sie nicht brauchen.
+Sitzungen listet die Agenten-Sitzungen der Läufe und die Sitzungen auf diesem Computer. Ein Agent, der einen Pull Request prüft, Aufgaben schätzt oder eine Kachel baut, zeigt sich dort auch. Klicken Sie auf eine Lauf-Sitzung, um ihr Feature bei diesem Schritt zu öffnen. Stoppen Sie eine Sitzung, die Sie nicht brauchen.
 
 ## Ausgaben
 
 Ausgaben zeigt die Tokens und das Geld, die die Agenten verbraucht haben, pro Tag und pro Person, gegenüber den Budgets, und die Erfolgsquote der Läufe.
 
 - Budgets listet jeden festgelegten Betrag, mit eigenem Bearbeiten. Ohne festgelegtes Budget zeigt es das Formular. Klicken Sie auf einen Tag oder ein Mitglied, um das Formular zu füllen.
-- Klicken Sie auf einen Lauf, um seine Funktion zu öffnen.
+- Klicken Sie auf einen Lauf, um sein Feature zu öffnen.
 - Iterationen zählt die Anfragen, die jeder Lauf an das Modell gesendet hat.
 - Die Beträge zeigen sich standardmäßig. Schalten Sie Preise anzeigen aus, um sie zu verbergen: Eine Geld-Kachel zeigt dann die Token-Zahl. Die App merkt sich den Schalter für jedes Projekt.
 - Eine Warnung zeigt sich bei 80 Prozent eines Budgets.

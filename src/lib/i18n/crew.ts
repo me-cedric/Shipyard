@@ -48,7 +48,7 @@ export const crewFr: typeof crewEn = {
 	feature: "Fonctionnalité",
 	touches: "Lit et modifie",
 	files: "Fichiers",
-	specs: "Specs",
+	specs: "Spécifications",
 	overBy: "{days} jours en trop",
 	hasRoom: "A de la place",
 	countAtWork: "{count} au travail",

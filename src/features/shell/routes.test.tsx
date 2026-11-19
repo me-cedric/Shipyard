@@ -72,36 +72,28 @@ describe("role homes (shell REQ-009, team-rights REQ-013, app-redesign REQ-006)"
 		expect(within(nav).getByRole("link", { current: "page" })).toHaveAccessibleName("Library");
 	});
 
+	// The team file has an admin and this person is not in it: the role viewer with its default levels.
+	const teamWithAdmin = () =>
+		unwrap(
+			commands.workTeamSave({
+				members: [{ name: "Cy Lead", handle: "cy", role: "techlead", admin: true }],
+			}),
+		);
+
 	it("opens a viewer on Today and lists every place that the levels of the role show", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mockState().person = {
-			member: null,
-			found: "unknown",
-			role: "viewer",
-			admin: false,
-			readOnly: false,
-			rights: [],
-		};
+		await teamWithAdmin();
 		const router = mountApp("/");
-		expect(within(await sidebar()).getAllByRole("link")).toHaveLength(7);
+		expect(within(await sidebar()).getAllByRole("link")).toHaveLength(6);
 		await waitFor(() => expect(router.state.location.pathname).toBe("/today/today"));
 	});
 
-	// spec:app-redesign#REQ-006, scenario "A viewer": the team gives the viewer the level none for code.
+	// spec:app-redesign#REQ-006, scenario "A viewer": the default level of the viewer for code is none.
 	it("opens a viewer on Today and shows no Code place, no Code destination and no link to the changes", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		const view = await unwrap(commands.rightsGet());
 		mockState().prefs.role = "viewer";
-		mockState().person = {
-			member: null,
-			found: "unknown",
-			role: "viewer",
-			admin: false,
-			readOnly: false,
-			rights: [],
-			access: { ...view.person.access, code: "none" },
-		};
+		await teamWithAdmin();
 		const router = mountApp("/");
 		const nav = await sidebar();
 		await waitFor(() => expect(router.state.location.pathname).toBe("/today/today"));
@@ -220,6 +212,58 @@ describe("role homes (shell REQ-009, team-rights REQ-013, app-redesign REQ-006)"
 			expect(panel.queryByRole("option", { name: en.flow.newAction })).toBeNull(),
 		);
 		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	// One person of the mock project with some areas at the level none.
+	const withNone = async (...areas: string[]) => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const view = await unwrap(commands.rightsGet());
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "developer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+			access: { ...view.person.access, ...Object.fromEntries(areas.map((a) => [a, "none"])) },
+		};
+	};
+
+	it("lists no Setup / Tickets destination when the role sees no settings", async () => {
+		const user = userEvent.setup();
+		await withNone("settings");
+		const router = mountApp("/today/today");
+		await sidebar();
+		await user.keyboard("{Control>}k{/Control}");
+		const panel = within(await screen.findByRole("listbox"));
+		expect(await panel.findByRole("option", { name: "Today / Today" })).toBeInTheDocument();
+		// The project file loads after the list opens: wait for a door that needs no right.
+		expect(await panel.findByRole("option", { name: en.tabs.home.projects })).toBeInTheDocument();
+		await waitFor(() =>
+			expect(
+				panel.queryByRole("option", { name: `Setup / ${en.projects.ticketsConfig.title}` }),
+			).toBeNull(),
+		);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("shows no New feature and no Add idea on Flow when the role sees no List", async () => {
+		await withNone("work", "specs");
+		const router = mountApp("/flow/flow");
+		expect(await screen.findByRole("heading", { name: en.ui.place.flow })).toBeInTheDocument();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+		expect(screen.queryByRole("button", { name: en.flow.newAction })).toBeNull();
+		expect(screen.queryByRole("button", { name: en.flow.addIdea })).toBeNull();
+	});
+
+	it("shows no link to Flow on Today / Activity when the role sees no Flow", async () => {
+		await withNone("work", "runs");
+		const router = mountApp("/today/activity");
+		const part = await screen.findByRole("region", { name: en.shell.runs });
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+		const name = new RegExp(`^${en.shell.runs}`);
+		expect(within(part).queryByRole("link", { name })).toBeNull();
+		expect(within(part).getByRole("heading", { name })).toBeInTheDocument();
 	});
 
 	it("hides a place at the level none and shows No access on its route; Setup / Me stays", async () => {

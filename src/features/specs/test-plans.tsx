@@ -122,7 +122,7 @@ function PlanEditor({
 								<button
 									type="button"
 									onClick={() => setPick((p) => ({ line: e.line, n: p.n + 1 }))}
-									className="flex min-h-row w-full items-center gap-2 border-b px-1 text-left text-ui"
+									className="flex min-h-control w-full items-center gap-2 border-b px-1 text-left text-ui"
 								>
 									<span className="font-mono text-12 text-n-11">
 										{t.specs.editor.line} {e.line}

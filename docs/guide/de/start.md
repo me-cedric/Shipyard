@@ -1,6 +1,6 @@
 # Erste Schritte
 
-Shipyard hilft einem Team, ein Softwareprojekt auszuliefern: die Funktionen, den Plan, die Personen und die Agenten, die Spezifikationen, den Entwurf und den Code. Alles bleibt in den Dateien des Projekts, sodass das Team es mit git teilt.
+Shipyard hilft einem Team, ein Softwareprojekt auszuliefern: die Features, den Plan, die Personen und die Agenten, die Spezifikationen, den Entwurf und den Code. Alles bleibt in den Dateien des Projekts, sodass das Team es mit git teilt.
 
 ## Das Fenster
 
@@ -92,8 +92,8 @@ Wenn Ihre Rolle ihre erste Seite nicht sieht, öffnet sich Heute. Ohne Rolle öf
 | Begriff | Bedeutung |
 |---|---|
 | Ort | Ein Eintrag der linken Leiste, etwa Ablauf oder Bibliothek. |
-| Funktion | Eine Sache, die gebaut wird. Ablauf zeigt sie einmal, mit ihrem Ticket, ihrer Spezifikation, der Arbeit des Agenten und ihrem Pull Request. |
-| Rezept | Die Schritte, denen ein Agent bei einer Funktion folgt: Plan, Arbeit, Prüfung, dann ein Pull Request. |
+| Feature | Eine Sache, die gebaut wird. Ablauf zeigt sie einmal, mit ihrem Ticket, ihrer Spezifikation, der Arbeit des Agenten und ihrem Pull Request. |
+| Rezept | Die Schritte, denen ein Agent bei einem Feature folgt: Plan, Arbeit, Prüfung, dann ein Pull Request. |
 | Team | Die Personen und die Agenten des Projekts. |
 | Ref | Der Kurzname eines Elements, etwa `adr:0003` oder `wi:ACME-12`. Klicken Sie auf eine Ref, um ihr Element zu öffnen. |
 | Ticketsystem | Das Werkzeug, das die Tickets hält: Jira, GitHub, GitLab, Azure DevOps oder Linear. |

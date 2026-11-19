@@ -4,7 +4,7 @@ Heute sagt Ihnen, was jetzt zu tun ist. Der Umschalter oben hat drei Abschnitte:
 
 ## Was auf Sie wartet
 
-Der Titel nennt die Zahl der Dinge, die auf Sie warten. Eine Karte zeigt das erste: wer fragt, für welche Funktion, und die Antwort.
+Der Titel nennt die Zahl der Dinge, die auf Sie warten. Eine Karte zeigt das erste: wer fragt, für welches Feature, und die Antwort.
 
 - Eine Frage beantworten: Drücken Sie eine Ziffer, dann die Eingabetaste, oder tippen Sie Ihre eigene Antwort.
 - Eine Änderung freigeben oder ablehnen. Einen Plan lesen, dann freigeben oder mit einer Notiz ablehnen.
@@ -25,7 +25,7 @@ Wenn es nichts zu zeigen gibt, öffnet eine Aktion Ablauf / Liste.
 - Solange ein Eintrag offen ist, zeigt sich eine Liste Erste Schritte (siehe Erste Schritte, Erster Start).
 - An einem Arbeitstag ohne erfasste Zeit erinnert eine Karte an die Zeiterfassung. Sie zählt nicht mit.
 - Die Felder Ihrer Rolle zeigen, was Ihre Rolle beobachtet, jedes mit Öffnen. Wählen Sie eine Rolle, um die Felder einer anderen Rolle zu sehen. Ein Feld eines Ortes, den Sie nicht sehen, bleibt ausgeblendet.
-- Meine Arbeit enthält die Tickets, die das Ticketsystem Ihnen zuweist, gruppiert als In Arbeit, Zu erledigen und Erledigt in den letzten 7 Tagen. Jede Zeile hat ihren Status und Lauf starten.
+- Meine Elemente enthält die Tickets, die das Ticketsystem Ihnen zuweist, gruppiert als In Arbeit, Zu erledigen und Erledigt in den letzten 7 Tagen. Jede Zeile hat ihren Status und Lauf starten.
 - Seit Ihrer Abwesenheit listet, was an Ihren Tickets und Läufen seit dem letzten Öffnen von Heute geschehen ist, das Neueste zuerst.
 
 Das Feld der Menüleiste zeigt dieselben Dinge, die auf Sie warten.

@@ -14,12 +14,12 @@ Build the new interface on the data and the commands of today. The work is in th
 | Stack/runtime | The existing stack: Tauri, Rust crates, React frontend, the router of `src/app/router.tsx`. |
 | Dependencies | None new. Shared components come from `src/ui/`. |
 | Data/storage | No new table. One read model "feature" in `shipyard-core`, built from the ticket, the spec change, the run and the pull request refs. |
-| APIs/contracts | One new read command for the feature model, one for the durable permission of a recipe, and the commands that start the three new agent actions (REQ-030 to REQ-033) on the run engine of today. The IPC mocks follow each command change. |
+| APIs/contracts | One new read command for the feature model (`features_list`), one write command for the durable permission of a recipe (`approvals_allow_recipe`), and the commands of the new agent actions on the run engine of today: `estimate_agent_start`, `estimate_agent_stop` and `dashboard_tile_build` (REQ-030, REQ-032, REQ-033). "Fix all with an agent" (REQ-031) adds no command: it starts a run with a command of today. The IPC mocks follow each command change. |
 | Risks | The size of the change: mitigated by waves and by the inventory test of REQ-003. A lost function: mitigated by the map below and by one audit per wave. Two interfaces at once: each wave replaces its pages on main and removes its old pages when the inventory test passes (`q:Q-171`). |
 
 ## Affected Surfaces
 
-- Code: `src/features/shell/`, `src/app/router.tsx`, each folder of `src/features/`, `src/ui/`, `src/lib/i18n/`, `src/lib/ipc/mock*.ts`, `crates/shipyard-core/` (feature read model, state to stage map), `crates/shipyard-app/` (two read commands).
+- Code: `src/features/shell/`, `src/app/router.tsx`, each folder of `src/features/`, `src/ui/`, `src/lib/i18n/`, `src/lib/ipc/mock*.ts`, `crates/shipyard-core/` (feature read model, state to stage map), `crates/shipyard-app/` (the commands `features_list`, `approvals_allow_recipe`, `estimate_agent_start`, `estimate_agent_stop` and `dashboard_tile_build`).
 - Tests: unit tests of the state to stage map and of the feature model, the inventory test, component tests of each new page, e2e and a11y runs, persona walkthroughs.
 - Docs/specs: `docs/designs/screens.json`, `docs/assets/screenshots/`, `docs/guide/` in four languages, `docs/delivery/test-plans/app-redesign.feature`, `docs/decisions/0023-six-places-one-flow.md` (`adr:0023`) and the status of `adr:0004`, the constitution section 2 if the ADR renames the loop, the specs of the capabilities that each wave touches.
 
@@ -40,13 +40,13 @@ Build the new interface on the data and the commands of today. The work is in th
 | Work / Backlog, Board; Factory / Runs board and History; Specs / Changes | Flow (Flow, List, Done) |
 | Run page, change detail, ticket detail, pull request page, unit chat | One feature page (Story, Brief, Design, Changes, Checks, Chat) |
 | Code / Quality | Flow / Health |
-| Code / Impacts | Checks of a feature |
+| Code / Impacts | Checks of a feature; the full page stays at `/flow/impacts`, off the section switch |
 | Work / Team, rights; Factory / Workflows, Agents map, Sessions, Usage | Crew (Crew, Recipes, Sessions, Spend, Rights) |
 | Work / Plan, Estimates, Time | Plan (Timeline, People, Estimates, Time) |
 | Design (all tabs); Specs / Capabilities, Questions, Test plans, Constitution; Knowledge (all tabs); reports | Library (four doors) |
 | Code / Changes, History, Branches, Pull requests, Terminal, Files | Code (Now, History, Branches, Terminal) |
-| Settings / Project, Extensions, automation | Setup / This project |
-| Settings / Connections, Agents and rules, Health | Setup / This computer |
+| Settings / Project, Extensions, automation; the connections of the issue tracker and the code host; the health of the project | Setup / This project |
+| Settings / Agents and rules, sharing, logs; the health of the computer | Setup / This computer |
 | Settings / Me | Setup / Me |
 | Search, command palette, Ask, assistant panel | Ask bar and full assistant |
 
@@ -68,7 +68,7 @@ openspec validate update-app-redesign --strict
 
 - [ ] Spec still matches intended behavior.
 - [ ] `docs/designs/screens.json` and `docs/assets/screenshots/` hold each new screen.
-- [ ] `docs/guide/` is updated in the four languages.
-- [ ] `docs/delivery/test-plans/app-redesign.feature` matches the scenarios of the spec.
-- [ ] The specs of the touched capabilities are updated, and each moved requirement ref is searched and fixed.
-- [ ] `CHANGELOG.md` and `CHANGELOG.fr.md` have the same number of new lines.
+- [x] `docs/guide/` is updated in the four languages.
+- [x] `docs/delivery/test-plans/app-redesign.feature` matches the scenarios of the spec.
+- [x] The specs of the touched capabilities are updated, and each moved requirement ref is searched and fixed.
+- [x] `CHANGELOG.md` and `CHANGELOG.fr.md` have the same number of new lines.

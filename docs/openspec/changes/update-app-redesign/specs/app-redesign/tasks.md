@@ -35,7 +35,7 @@ Wave 2, Today and Ask
 
 Wave 3, Flow and one feature
 
-- [x] T013 Flow with the five stages and the views Flow, List, Done (`src/features/work/`, `src/features/factory/runs/`). REQ-010, REQ-011.
+- [x] T013 Flow with the five stages and the views Flow, List, Done (`src/features/flow/`). REQ-010, REQ-011.
 - [x] T014 Feature page: stage line, Story, Brief, Design, Changes, Checks, Chat, from the run page, the change detail, the ticket detail and the pull request page. REQ-012, REQ-015.
 - [x] T015 One approval for one intent, each effect approvable alone, the durable permission of a recipe (one command in `crates/shipyard-app/`, mocks updated). REQ-013.
 - [x] T016 [P] One main action for each stop state. REQ-014.
@@ -45,7 +45,7 @@ Wave 4, Crew and Plan
 
 - [x] T018 Crew: people and agents, Recipes with every step field, Sessions, Spend with budgets, Rights with the team file (`src/features/crew/`, `src/features/work/team-rights.tsx`, `src/features/factory/`). REQ-016.
 - [x] T019 [P] Live work rows in place of the agents map. REQ-017.
-- [x] T020 Plan: title with the end date, Timeline, People with proposals, Estimates, Costing, Time, dates and days off, Excel import, send preview (`src/features/plan/`, `src/features/work/`). REQ-018, REQ-019.
+- [x] T020 Plan: title with the end date, Timeline, People with proposals, Estimates with the seal of the costing in its toolbar, Time, dates and days off, Excel import, send preview (`src/features/plan/`, `src/features/work/`). REQ-018, REQ-019.
 - [x] T035 Tests, then "Ask an agent to estimate": proposal per task, accept per task, off on a sealed sheet, budget and stop (`src/features/plan/estimate-agent.tsx`, `crates/shipyard-app/src/estimate_agent.rs`, mocks updated). REQ-030, REQ-033.
 
 Wave 5, Library
@@ -65,16 +65,16 @@ Wave 6, Code, Health and Setup
 
 Wave 7, roles, words, removal
 
-- [ ] T028 Role views: hidden places by level, first page per role (`spaces.ts`). REQ-006.
-- [ ] T029 [P] Plain words in English, French, German and Spanish, with the English names of `q:Q-169`; use the French, German and Spanish names of `q:Q-172` (the default is a translation of each name); the check for "tracker" and "forge" (`src/lib/i18n/`). REQ-027.
-- [ ] T030 Remove the old shell and each old page that a wave did not remove yet. REQ-029.
-- [ ] T031 Accessibility and size run at 960 by 600 on each page. REQ-026.
-- [ ] T032 Docs: `docs/designs/screens.json`, `docs/assets/screenshots/`, `docs/guide/` in four languages, the specs of the touched capabilities, `CHANGELOG.md` and `CHANGELOG.fr.md`.
-- [ ] T033 Run the validation commands of `plan.md`.
-- [ ] T034 Compare the implementation against the spec and update the stale artifacts.
+- [x] T028 Role views: hidden places by level, first page per role (`src/features/shell/places.ts`). REQ-006.
+- [x] T029 [P] Plain words in English, French, German and Spanish, with the English names of `q:Q-169`; use the French, German and Spanish names of `q:Q-172` (the default is a translation of each name); the check for "tracker" and "forge" (`src/lib/i18n/`). REQ-027.
+- [x] T030 Remove the old shell and each old page that a wave did not remove yet. REQ-029.
+- [x] T031 Accessibility and size run at 960 by 600 on each page. REQ-026.
+- [x] T032 Docs: `docs/designs/screens.json`, `docs/assets/screenshots/`, `docs/guide/` in four languages, the specs of the touched capabilities, `CHANGELOG.md` and `CHANGELOG.fr.md`.
+- [x] T033 Run the validation commands of `plan.md`.
+- [x] T034 Compare the implementation against the spec and update the stale artifacts.
 
 ## Completion Check
 
 - [ ] All acceptance criteria are met.
-- [ ] Required validation passed or failures are marked pre-existing.
+- [x] Required validation passed or failures are marked pre-existing.
 - [ ] Specs, docs, and code agree.

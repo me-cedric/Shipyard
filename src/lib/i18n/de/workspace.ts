@@ -45,7 +45,7 @@ export const workspaceDe: typeof workspaceEn = {
 	},
 	conflict: {
 		agent: "An Agenten übergeben",
-		factory: "An einen Agenten übergeben",
+		factory: "An Ablauf senden",
 		sent: "Arbeitselement {key} erstellt",
 		prompt:
 			"Löse die Merge-Konflikte in {files}. Behalte die Absicht beider Seiten. Lass keine Markierung zurück.",

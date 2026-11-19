@@ -106,7 +106,14 @@ export function MachineSessions() {
 					{error}
 				</p>
 			) : null}
-			<DataTable label={m.title} columns={columns} data={rows} rowId={(r) => r.key} />
+			<DataTable
+				label={m.title}
+				columns={columns}
+				data={rows}
+				rowId={(r) => r.key}
+				// The stop button of a row is 44 px high.
+				rowHeight={44}
+			/>
 		</SectionCard>
 	);
 }

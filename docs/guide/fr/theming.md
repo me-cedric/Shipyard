@@ -30,7 +30,7 @@ Cliquez sur Exporter sur la ligne Fichiers de thème. Shipyard écrit le thème 
 
 ## Le fichier de thème
 
-Un fichier de thème est du JSON. Le format est dans l'ADR 0018.
+Un fichier de thème est du JSON. Le format est dans adr:0018.
 
 ```json
 {

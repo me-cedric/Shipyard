@@ -64,6 +64,13 @@ describe("prefs", () => {
 		expect(document.documentElement.dataset.theme).toBe("light");
 	});
 
+	// app-redesign REQ-025: a chosen theme stays.
+	it("shows the stored theme after the load", async () => {
+		mockState().prefs.theme = "dark";
+		mount();
+		await waitFor(() => expect(document.documentElement.dataset.theme).toBe("dark"));
+	});
+
 	it("loads from the app data folder, writes data attributes and saves through the command", async () => {
 		mockState().prefs.density = "compact";
 		mount();

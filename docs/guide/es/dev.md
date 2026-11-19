@@ -12,7 +12,7 @@
 | `crates/` | Espacio de trabajo de Rust. La lógica de dominio de `shipyard-core` no tiene entrada ni salida. |
 | `crates/shipyard-app/` | Envoltorio de Tauri: `tauri.conf.json`, `capabilities/`, `icons/`, comandos en `src/commands/`. |
 | `src/ui/` | Sistema de diseño: `tokens`, `icons`, `atoms`, `molecules`, `organisms`, `templates`, `gallery`. Las listas largas usan `VirtualList` y `DataTable` (TanStack Virtual y Table). |
-| `src/features/<space>/` | Una carpeta por área. Una funcionalidad importa solo `@/ui`, `@/lib` y su propia carpeta. |
+| `src/features/<space>/` | Una carpeta por área funcional, por ejemplo `flow`, `crew` o `code`. Un lugar del menú puede mostrar partes de varias carpetas. Una funcionalidad importa solo `@/ui`, `@/lib` y su propia carpeta. |
 | `src/lib/ipc/` | Los bindings generados y la capa de mock. |
 | `src/lib/i18n/` | Los catálogos de inglés, francés, alemán y español. Cada uno tiene el tipo de `en.ts`. |
 | `e2e/` | Pruebas de Playwright sobre el build de release de Vite, con el IPC de mock. |
@@ -70,7 +70,7 @@ pnpm build:sidecar   # only the sidecar: crates/shipyard-app/binaries/shipyard-<
 
 `pnpm test:e2e` compila la aplicación con `VITE_MOCK_DEMO=0` y la sirve en el puerto 4174. Un archivo cubre cada área, por ejemplo `e2e/work.spec.ts`. Ejecuta un archivo con `pnpm playwright test e2e/<name>.spec.ts`.
 
-- `e2e/a11y.spec.ts` ejecuta axe (`@axe-core/playwright`) en cada pestaña de cada área, en el tema claro y en el oscuro, con movimiento reducido. Una infracción hace fallar la prueba. Una pestaña nueva entra en la ejecución cuando la añades a `SPACES` en `src/features/shell/spaces.ts`.
+- `e2e/a11y.spec.ts` ejecuta axe (`@axe-core/playwright`) en cada sección de cada lugar y en las páginas fuera de los selectores de sección, en el tema claro y en el oscuro, con movimiento reducido, en una ventana de 960 por 600 px. Una infracción hace fallar la prueba. Un control de menos de 44 px de alto y una página que se desplaza hacia un lado también la hacen fallar. Una sección nueva entra en la ejecución cuando la añades a `PLACES` en `src/features/shell/places.ts`. Una página fuera de los selectores entra por `OFF_SWITCH` de la prueba.
 - `e2e/design-system.spec.ts` cubre la galería: una página por cada capa atómica, un anillo de foco en cada botón de capa, el cambio de tema y de idioma, y axe en cada capa en los dos temas. La galería existe solo en el build de desarrollo. La prueba inicia su propio servidor de desarrollo `vite` en el puerto 4175. Comprueba que el build de release no tiene ruta de galería.
 - `pnpm test:personas` recorre la primera hora de cada perfil (jefe de proyecto, arquitecto, desarrollador, tester, analista de negocio, responsable funcional, junior) en el build de demostración. Usa `playwright.personas.config.ts` y `e2e/personas/*.persona.ts`, y `pnpm test:e2e` no lo ejecuta. Fija `PERSONAS_OUT` en una carpeta: cada perfil escribe una captura por cada paso y un registro con los clics y el resultado de cada paso (ok, confuso, sin salida, error). Un paso que la aplicación no puede hacer hace fallar la ejecución de forma suave y el recorrido continúa.
 

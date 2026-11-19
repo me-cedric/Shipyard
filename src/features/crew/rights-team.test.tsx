@@ -22,8 +22,9 @@ describe("Crew / Rights: the team file", () => {
 		const matrix = within(await screen.findByRole("table", { name: "Rights of each role" }));
 		expect(matrix.getAllByRole("row")).toHaveLength(10);
 		const viewer = within(matrix.getByRole("row", { name: /^Viewer/ }));
-		expect(viewer.getAllByRole("img", { name: "Read" })).toHaveLength(7);
-		expect(viewer.getAllByRole("img", { name: "Hidden" })).toHaveLength(1);
+		// The viewer does not see Code and the costs by default (spec:app-redesign#REQ-006).
+		expect(viewer.getAllByRole("img", { name: "Read" })).toHaveLength(6);
+		expect(viewer.getAllByRole("img", { name: "Hidden" })).toHaveLength(2);
 		expect(viewer.getAllByRole("img", { name: /^(Merge|Approve) no$/ })).toHaveLength(2);
 		expect(
 			within(matrix.getByRole("row", { name: /^Developer/ })).getByRole("img", {

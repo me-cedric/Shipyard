@@ -17,7 +17,7 @@ export const crewEs: typeof crewEn = {
 	feature: "Funcionalidad",
 	touches: "Lee y cambia",
 	files: "Archivos",
-	specs: "Specs",
+	specs: "Especificaciones",
 	overBy: "{days} días de más",
 	hasRoom: "Tiene margen",
 	countAtWork: "{count} trabajando",

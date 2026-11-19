@@ -2,8 +2,9 @@
 
 ## [0.2.0]
 - Each role opens on its own first page: the product owner on Flow / List, the project manager on Plan / Timeline, the business analyst on Library / Specs, the architect on Library / Decisions, the tech lead and the developer on Flow, the tester on Library / Test plans, the designer on Library / Screens and the viewer on Today; a place or a view that a role cannot open stays hidden, with its links and its actions.
+- A viewer does not see the Code place by default (the `roles:` block of the team file can give it back), a save of a member keeps the `roles:` block, and each error text says issue tracker, code host and recipe and opens the new address of its page.
 - The words are plainer in English, French, German and Spanish: Recipes for Workflows, Map for Graph, Specs for Capabilities, Project rules for Constitution, Network flows for Flows, and Flow in place of Factory.
-- Each control is 44 px high or more, and no page scrolls sideways in the smallest window (960 by 600).
+- Each button, field, switch and table row that opens is 44 px high or more, and no page scrolls sideways in the smallest window (960 by 600); a link in a sentence and a bar of the timeline keep their size.
 - The manual follows the places (Today, Flow, Plan, Crew, Library, Code, Setup) in English, French, German and Spanish.
 - The pages of the eight old spaces are gone: each function has one page in a place, and an old address still opens that page.
 - Crew shows the people and the agents on one page: each person is a card with the current work, the role, the days a week, the skills and Over by or Has room, each agent role is a card with its work, and the page shows the spend on open work and the recipes; a card opens the person, with Save and Remove from the team; the sections are Crew, Recipes (the workflows), Sessions, Spend (Usage) and Rights, with the agents switch, and the old addresses of Team, Workflows, Usage and the Agents map open them.

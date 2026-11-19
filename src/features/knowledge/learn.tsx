@@ -69,7 +69,7 @@ export function Learn() {
 		<ListDetail title={k.title} icon={<AcademicCapIcon size={16} />} count={path.length}>
 			<div
 				style={{ "--side": `${side.size}px` } as CSSProperties}
-				className="grid min-h-0 flex-1 auto-rows-min gap-3 overflow-auto px-4 pt-1 pb-4 lg:grid-cols-[minmax(0,1fr)_var(--side)]"
+				className="grid min-h-0 flex-1 auto-rows-min gap-3 overflow-auto px-4 pt-1 pb-4 lg:grid-cols-[minmax(20rem,1fr)_minmax(0,var(--side))]"
 			>
 				<div className="flex min-w-0 flex-col gap-3">
 					{learn && path.length === 0 && glossary.length === 0 ? (

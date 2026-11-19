@@ -23,7 +23,7 @@ The app is organised by the kind of file. Eight spaces hold about 45 tabs, four 
 - Architect: opens Library, sees the decision that waits, and accepts or refuses it.
 - Tech lead: approves "Send it for review?" once, and allows the same action for the next features of the recipe.
 - Developer: follows the agent in the Chat of the feature, opens Code for the commit and the branches, and merges.
-- QA: opens Flow / Health without the Code place, and sees which gate needs a fix.
+- QA: opens Flow / Health, and sees which gate needs a fix.
 - Designer: links a Figma screen to a feature and sees which screen the code does not have yet.
 - Viewer: reads Today and Flow, and cannot change a thing.
 

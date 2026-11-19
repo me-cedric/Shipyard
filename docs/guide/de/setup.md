@@ -49,7 +49,7 @@ Erweiterungen enthält den Katalog, die Plugins und die Kindprojekte.
 
 Zustand dieses Projekts listet die Probleme des Projekts. Jedes Problem hat eine Schaltfläche, die es behebt. Untersuchen zeigt den Branch und die Änderungen eines verknüpften Projekts.
 
-Alles mit einem Agenten beheben legt eine Funktion in Ablauf mit den Befunden in ihrem Auftrag an, und startet einen Lauf mit dem Budget des Rezepts. Ohne Budget ist die Schaltfläche aus. Das Ticket der Korrektur hat das Label `health-fix`. Der Lauf durchläuft dieselbe Prüfung und dieselben Freigaben wie jede andere Funktion, und Stoppen beendet ihn. Die Befunde zu den Werkzeugen dieses Computers gehören nicht zur Korrektur.
+Alles mit einem Agenten beheben legt ein Feature in Ablauf mit den Befunden in seinem Auftrag an, und startet einen Lauf mit dem Budget des Rezepts. Ohne Budget ist die Schaltfläche aus. Das Ticket der Korrektur hat das Label `health-fix`. Der Lauf durchläuft dieselbe Prüfung und dieselben Freigaben wie jedes andere Feature, und Stoppen beendet ihn. Die Befunde zu den Werkzeugen dieses Computers gehören nicht zur Korrektur.
 
 ## Dieser Computer
 

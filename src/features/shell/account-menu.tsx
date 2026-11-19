@@ -27,7 +27,7 @@ export function AccountMenu() {
 			<Menu.Trigger
 				aria-label={t.shell.account}
 				title={t.shell.account}
-				className="flex size-7 shrink-0 items-center justify-center rounded-full text-n-11 hover:bg-n-3 hover:text-n-12"
+				className="flex size-(--control-h) shrink-0 items-center justify-center rounded-full text-n-11 hover:bg-n-3 hover:text-n-12"
 			>
 				{avatar ? (
 					<img src={avatar} alt="" className="size-6 rounded-full object-cover" />

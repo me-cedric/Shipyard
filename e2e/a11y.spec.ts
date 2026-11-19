@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { barSections, PLACE_IDS } from "../src/features/shell/places";
 import { openFirstFolder, pickDarkTheme } from "./first-run";
 import { visit } from "./places";
@@ -8,6 +8,7 @@ import { visit } from "./places";
 const OFF_SWITCH = [
 	"/projects",
 	"/flow/impacts",
+	"/flow/new",
 	"/setup/project?page=connections",
 	"/setup/project?page=tickets",
 	"/setup/project?page=extensions",
@@ -24,13 +25,14 @@ test.use({ viewport: { width: 960, height: 600 } });
 
 /** Each control that a person clicks. */
 const CONTROL =
-	'button, a[href], input, select, textarea, [role="button"], [role="tab"], [role="switch"], [role="checkbox"], [role="menuitem"], [role="option"], [role="radio"]';
+	'button, a[href], input, select, textarea, summary, [role="button"], [role="tab"], [role="switch"], [role="checkbox"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="radio"], [role="treeitem"], [role="combobox"], [role="row"][tabindex]';
 
 /** The controls that can be under 44 px high: the selector, then the reason. */
 const EXEMPT: [string, string][] = [
 	[".excalidraw", "The canvas of the whiteboard sets the sizes of its tools."],
 	[".react-flow", "A diagram zooms: its nodes and its zoom buttons change size with it."],
 	[".xterm", "The terminal reads the keys in a hidden text area."],
+	["[data-gantt-bar]", "A bar of the timeline is a mark on a time scale, 20 px high in its row."],
 ];
 
 /** The size faults of the page: a sideways scroll, and each control with a hit box under 44 px high. */
@@ -39,18 +41,21 @@ const sizeFaults = (page: Page) =>
 		([control, exempt]) => {
 			const root = document.documentElement;
 			const faults = new Set<string>();
-			if (root.scrollWidth > root.clientWidth) {
-				// The fault names the first parts that pass the right edge of the window.
-				const wide = [...document.querySelectorAll<HTMLElement>("body *")]
+			// The window, and `main`: the content of a page scrolls inside it, so the root never grows.
+			for (const box of [root, document.querySelector<HTMLElement>("main")]) {
+				if (!box || box.scrollWidth <= box.clientWidth + 1) continue;
+				const edge = (box === root ? 0 : box.getBoundingClientRect().left) + box.clientWidth + 1;
+				// The fault names the first parts that pass the right edge of the box.
+				const wide = [...box.querySelectorAll<HTMLElement>("*")]
 					.filter(
 						(el) =>
-							el.getBoundingClientRect().right > root.clientWidth + 1 &&
-							(el.parentElement?.getBoundingClientRect().right ?? 0) <= root.clientWidth + 1,
+							el.getBoundingClientRect().right > edge &&
+							(el.parentElement?.getBoundingClientRect().right ?? 0) <= edge,
 					)
 					.slice(0, 3)
 					.map((el) => `${el.tagName.toLowerCase()}.${el.className}`);
 				faults.add(
-					`scrolls sideways: ${root.scrollWidth} > ${root.clientWidth} (${wide.join(" | ")})`,
+					`${box.tagName.toLowerCase()} scrolls sideways: ${box.scrollWidth} > ${box.clientWidth} (${wide.join(" | ")})`,
 				);
 			}
 			for (const el of document.querySelectorAll<HTMLElement>(control)) {
@@ -68,15 +73,36 @@ const sizeFaults = (page: Page) =>
 		[CONTROL, EXEMPT.map(([selector]) => selector).join(", ")] as const,
 	);
 
+/** Waits for the opening move of a popup: a box that still grows reads a few px too small. */
+async function settled(popup: Locator) {
+	let last = -1;
+	await expect
+		.poll(async () => {
+			const height = (await popup.boundingBox())?.height ?? 0;
+			const same = height === last;
+			last = height;
+			return same;
+		})
+		.toBe(true);
+}
+
 /** The axe violations and the size faults of the page that shows, each one with the name of the page. */
 async function scan(page: Page, where: string): Promise<string[]> {
-	let { violations } = await new AxeBuilder({ page }).analyze();
-	// A page that still draws its data can show a mixed state, such as the face of a deck before
-	// its theme: the scan runs one more time, and the second result counts.
-	if (violations.length) {
-		await page.waitForTimeout(500);
-		({ violations } = await new AxeBuilder({ page }).analyze());
-	}
+	// A page that still changes gives a mixed reading: the deck theme of Slides loads after the
+	// page, and axe then pairs the background of before with the text colour of after.
+	await page.evaluate(
+		() =>
+			new Promise<void>((done) => {
+				let timer = setTimeout(done, 250);
+				const observer = new MutationObserver(() => {
+					clearTimeout(timer);
+					timer = setTimeout(done, 250);
+				});
+				observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+				setTimeout(done, 5000);
+			}),
+	);
+	const { violations } = await new AxeBuilder({ page }).analyze();
 	return [
 		// The summary names the cause, for example the two colours and the contrast ratio.
 		...violations.map(
@@ -142,10 +168,34 @@ for (const scheme of ["light", "dark"] as const) {
 		await expect(page).toHaveURL(/\/flow\/(feature|runs)\//);
 		await page.waitForLoadState("networkidle");
 		found.push(...(await scan(page, "/flow/feature")));
-		// The full assistant.
+		// Each section of the feature page.
+		const parts = page.getByRole("navigation", { name: "Sections" }).getByRole("button");
+		for (let i = 0; i < (await parts.count()); i++) {
+			await parts.nth(i).click();
+			await page.waitForLoadState("networkidle");
+			found.push(...(await scan(page, `/flow/feature, section ${i + 1}`)));
+		}
+		// An open menu: its items are controls too. Only the sizes: axe counts a popup, which is
+		// drawn at the end of the page, as content outside a landmark.
+		await page.getByRole("button", { name: "Account" }).click();
+		await expect(page.getByRole("menu")).toBeVisible();
+		await settled(page.getByRole("menu"));
+		found.push(...(await sizeFaults(page)).map((fault) => `account menu ${fault}`));
+		await page.keyboard.press("Escape");
+		// The full assistant, then an open select list.
 		await page.keyboard.press("Control+j");
-		await expect(page.getByRole("complementary", { name: "Assistant" })).toBeVisible();
+		const assistant = page.getByRole("complementary", { name: "Assistant" });
+		await expect(assistant).toBeVisible();
 		found.push(...(await scan(page, "assistant")));
+		await assistant
+			.getByRole("group", { name: "Mode" })
+			.getByRole("button", { name: "Agent" })
+			.click();
+		await assistant.getByRole("combobox", { name: "Permission", exact: true }).click();
+		await expect(page.getByRole("listbox")).toBeVisible();
+		await settled(page.getByRole("listbox"));
+		found.push(...(await sizeFaults(page)).map((fault) => `assistant, permission list ${fault}`));
+		await page.keyboard.press("Escape");
 		await page.keyboard.press("Control+j");
 		// Each step of a new project.
 		await visit(page, "/projects");

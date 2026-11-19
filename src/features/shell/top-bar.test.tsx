@@ -36,6 +36,18 @@ describe("top bar (ux-declutter REQ-009 to REQ-013)", () => {
 		expect(bar.getByText("Ctrl+K")).toBeInTheDocument();
 	});
 
+	// spec:app-redesign#REQ-022: the sync state is one mark that opens Code / Now.
+	it("shows the sync state as a link to Code / Now", async () => {
+		await alpha();
+		const router = mountApp("/today/today");
+		const bar = await top();
+		expect(await bar.findByRole("link", { name: /^Sync state: / })).toHaveAttribute(
+			"href",
+			"/code/now",
+		);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
 	it("opens the avatar menu with the theme as one choice, the manual and the other entries", async () => {
 		const user = userEvent.setup();
 		mockState().prefs.customTheme = "ocean";

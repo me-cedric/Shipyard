@@ -25,7 +25,7 @@ Cuando no hay nada que mostrar, una acción abre Flujo / Lista.
 - Mientras queda un elemento por hacer, se muestra una lista Empezar (consulta Primeros pasos, Primer inicio).
 - En un día laborable sin tiempo registrado, una tarjeta te recuerda registrar tu tiempo. No está en el número.
 - Los paneles de tu rol muestran lo que tu rol vigila, cada uno con Abrir. Elige un rol para ver los paneles de otro rol. Un panel de un lugar que no puedes ver queda oculto.
-- Mi trabajo contiene los tickets que el gestor de tickets te asigna, agrupados en En curso, Por hacer y Hecho en los últimos 7 días. Cada fila tiene su estado e Iniciar ejecución.
+- Mis elementos contiene los tickets que el gestor de tickets te asigna, agrupados en En curso, Por hacer y Hecho en los últimos 7 días. Cada fila tiene su estado e Iniciar ejecución.
 - Desde tu ausencia lista lo que pasó en tus tickets y ejecuciones desde la última vez que abriste Hoy, lo más reciente primero.
 
 El panel de la barra de menús muestra las mismas cosas que te esperan.

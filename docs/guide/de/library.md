@@ -23,7 +23,7 @@ Bibliothek hat keinen Umschalter für Abschnitte. Klicken Sie auf jeder Seite vo
 
 ### Spezifikationen
 
-Spezifikationen listet, was das Produkt heute tut, mit den Anforderungen jeder Spezifikation. Eine Änderung an einer Spezifikation beginnt als Vorschlag: siehe die Seite Ablauf, Liste und Die Seite einer Funktion, Auftrag.
+Spezifikationen listet, was das Produkt heute tut, mit den Anforderungen jeder Spezifikation. Eine Änderung an einer Spezifikation beginnt als Vorschlag: siehe die Seite Ablauf, Liste und Die Seite eines Features, Auftrag.
 
 ### Testpläne
 

@@ -96,7 +96,7 @@ test("functional lead", async ({ page }) => {
 					"the Runs tile shows state codes (WaitingForAnswer, ChangesRequested), not words",
 				);
 			}
-			await w.click(page.getByRole("button", { name: "Pin to Home" }).first());
+			await w.click(page.getByRole("button", { name: "Pin to Today" }).first());
 		},
 		true,
 	);

@@ -7,6 +7,7 @@ import { TicketPicker } from "@/features/factory/ticket-picker";
 import { useMyItems } from "@/features/home/stats";
 import { runnerKeys } from "@/features/settings/connections/keys";
 import { NoProject } from "@/features/shell/no-project";
+import { hiddenSection } from "@/features/shell/places";
 import { tabIcon } from "@/features/shell/spaces";
 import { ALL, applyFilters, type Filters, NO_FILTER } from "@/features/work/filters";
 import { useGuard } from "@/features/work/guard";
@@ -226,6 +227,8 @@ function FlowPage({ view }: { view: "flow" | "list" | "done" }) {
 	const active = useActiveProject().data;
 	// The write controls wait for the rights, so a viewer never sees one on for a moment.
 	const rights = useRightsView();
+	// New feature and Add idea open `/flow/new`, which shows with the List (`spec:app-redesign#REQ-006`).
+	const noList = hiddenSection(useRights().level, "flow", "list");
 	const Icon = tabIcon("flow", view);
 	if (active === undefined)
 		return <Loading title={t.ui.place.flow} icon={Icon && <Icon size={16} />} />;
@@ -271,14 +274,16 @@ function FlowPage({ view }: { view: "flow" | "list" | "done" }) {
 				title={t.ui.place.flow}
 				chips={<AgentsToggle />}
 				action={
-					<Button
-						variant="primary"
-						className="min-h-control"
-						onClick={() => void navigate({ to: "/flow/new" })}
-					>
-						<PlusIcon size={14} />
-						{t.flow.newAction}
-					</Button>
+					noList ? undefined : (
+						<Button
+							variant="primary"
+							className="min-h-control"
+							onClick={() => void navigate({ to: "/flow/new" })}
+						>
+							<PlusIcon size={14} />
+							{t.flow.newAction}
+						</Button>
+					)
 				}
 			/>
 			<div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pt-2 pb-4">
@@ -381,7 +386,7 @@ function FlowPage({ view }: { view: "flow" | "list" | "done" }) {
 												</li>
 											))}
 										</ul>
-										{stage === "idea" ? (
+										{stage === "idea" && !noList ? (
 											<Button
 												className="min-h-control"
 												onClick={() => void navigate({ to: "/flow/new", search: { kind: "idea" } })}

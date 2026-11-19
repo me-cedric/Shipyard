@@ -70,7 +70,11 @@ export function TextTab({
 									/>
 								}
 								preview={
-									<div className="min-h-0 min-w-0 flex-1 overflow-auto">
+									<div
+										// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable)
+										tabIndex={0}
+										className="min-h-0 min-w-0 flex-1 overflow-auto"
+									>
 										{view(file.text, onError)}
 									</div>
 								}

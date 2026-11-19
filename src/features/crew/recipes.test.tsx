@@ -159,7 +159,7 @@ describe("Workflows: the form", () => {
 		await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
 		expect(await unwrap(commands.workflowsList())).toHaveLength(7);
 		await user.click(screen.getByRole("button", { name: "Delete feature" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("default workflow");
+		expect(await screen.findByRole("alert")).toHaveTextContent("default recipe");
 		expect(await unwrap(commands.workflowsList())).toHaveLength(7);
 	});
 

@@ -10,6 +10,7 @@ import { type RunScopeData, useRunScope } from "@/features/factory/runs/run-deta
 import { nameOf } from "@/features/factory/runs/run-live";
 import { UnitTranscript } from "@/features/factory/runs/unit-chat";
 import { transcript } from "@/features/factory/runs/unit-transcript";
+import { hiddenSection } from "@/features/shell/places";
 import { hiddenTab } from "@/features/shell/spaces";
 import { ChangeDetail } from "@/features/specs/change-detail";
 import { NameDialog } from "@/features/specs/name-dialog";
@@ -41,6 +42,9 @@ export function StartAgent({ parts }: { parts: Parts }) {
 	const { openRef } = useShell();
 	const { error, run: guard } = useGuard();
 	const key = keyOf(parts.ticket);
+	// A feature with no ticket starts at `/flow/new`, which shows with the List.
+	const noList = hiddenSection(useRights().level, "flow", "list");
+	if (!key && noList) return null;
 	return (
 		<>
 			<RightButton

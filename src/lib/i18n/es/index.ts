@@ -232,7 +232,7 @@ export const es: Messages = {
 	forge: forgeEs,
 	knowledge: knowledgeEs,
 	costing: costingEs,
-	notFound: { title: "No encontrado", home: "Inicio" },
+	notFound: { title: "No encontrado", home: "Hoy" },
 	routeError: {
 		message: "Esta página no se cargó. Revisa la red e inténtalo de nuevo.",
 		retry: "Reintentar",

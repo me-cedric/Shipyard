@@ -118,6 +118,8 @@ export function DataTable<T extends RowData>({
 			setView({ ...view, sizes: typeof u === "function" ? u(view.sizes) : u }),
 	});
 	const rows = table.getRowModel().rows;
+	// A row that opens is a control: 44 px high (`spec:app-redesign#REQ-026`).
+	const height = rowHeight ?? (onOpen && !flow ? 44 : undefined);
 	const entries: Entry<T>[] = [];
 	const counts = new Map<string, number>();
 	if (group)
@@ -163,7 +165,7 @@ export function DataTable<T extends RowData>({
 					items={entries}
 					itemKey={(e) => (e.kind === "group" ? `g:${e.id}` : e.row.id)}
 					isRow={(e) => e.kind === "row"}
-					rowHeight={rowHeight}
+					rowHeight={height}
 					header={
 						<div role="row" style={grid} className="grid h-row items-center gap-3 border-b px-3">
 							{table.getHeaderGroups().flatMap((hg) =>
@@ -236,10 +238,10 @@ export function DataTable<T extends RowData>({
 											}
 										: undefined
 								}
-								style={rowHeight ? { ...grid, height: rowHeight } : grid}
+								style={height ? { ...grid, height } : grid}
 								className={cn(
 									"grid items-center gap-3 border-b px-3",
-									flow ? "min-h-row" : "h-row",
+									flow ? (onOpen ? "min-h-control" : "min-h-row") : "h-row",
 									onOpen && "cursor-pointer hover:bg-n-3",
 									selected === id && "bg-n-4",
 								)}

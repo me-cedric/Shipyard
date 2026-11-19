@@ -1,7 +1,7 @@
 import type { flowEn } from "../flow";
 
 export const flowEs: typeof flowEn = {
-	newAction: "Nueva función",
+	newAction: "Nueva funcionalidad",
 	views: { flow: "Flujo", list: "Lista", done: "Hecho", health: "Salud" },
 	health: {
 		fixOne: "1 control necesita una corrección",
@@ -13,7 +13,7 @@ export const flowEs: typeof flowEn = {
 	filters: { all: "Todo", needs: "Me necesita", mine: "Mío" },
 	addIdea: "Añadir una idea",
 	empty: "Nada aquí",
-	features: "Funciones",
+	features: "Funcionalidades",
 	bring: "Traer un ticket por su clave",
 	finished: "Terminadas",
 	state: {
@@ -103,7 +103,7 @@ export const flowEs: typeof flowEn = {
 		heading: "¿Qué quiere construir?",
 		title: "Título",
 		kind: "Tipo",
-		kinds: { feature: "Función", bug: "Error", idea: "Idea para más tarde" },
+		kinds: { feature: "Funcionalidad", bug: "Error", idea: "Idea para más tarde" },
 		way: "Cómo",
 		ways: {
 			agent: "Un agente escribe la especificación",

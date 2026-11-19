@@ -1,6 +1,6 @@
 # Ablauf
 
-Ablauf zeigt jede Funktion einmal, von der Idee bis zum Merge. Eine Funktion verbindet ein Ticket des Ticketsystems, eine Spezifikationsänderung, die Arbeit eines Agenten und einen Pull Request. Die App hält eine Kopie der Tickets, sodass Ablauf sich auch ohne Netz öffnet.
+Ablauf zeigt jedes Feature einmal, von der Idee bis zum Merge. Ein Feature verbindet ein Ticket des Ticketsystems, eine Spezifikationsänderung, die Arbeit eines Agenten und einen Pull Request. Die App hält eine Kopie der Tickets, sodass Ablauf sich auch ohne Netz öffnet.
 
 Der Umschalter hat vier Abschnitte: Ablauf, Liste, Erledigt und Zustand. Ablauf ist das Board. Es hat fünf Phasen:
 
@@ -12,22 +12,22 @@ Der Umschalter hat vier Abschnitte: Ablauf, Liste, Erledigt und Zustand. Ablauf 
 | Prüfung | Der Pull Request ist offen, oder Änderungen sind angefordert. |
 | Fertig | Der Pull Request ist zusammengeführt, oder der Lauf ist erledigt. |
 
-Eine Karte zeigt den Titel, wer an der Funktion arbeitet und ihren Zustand. Eine Karte, die auf Sie wartet, hat die Hinweisfarbe. Klicken Sie auf eine Karte, um die Seite der Funktion zu öffnen. Das Menü einer Karte hat Stoppen, den Verlauf und Verschieben zu einem Status des Ticketsystems. Wenn das Ticketsystem das Verschieben ablehnt, zeigt die Karte den Grund.
+Eine Karte zeigt den Titel, wer an dem Feature arbeitet und seinen Zustand. Eine Karte, die auf Sie wartet, hat die Hinweisfarbe. Klicken Sie auf eine Karte, um die Seite des Features zu öffnen. Das Menü einer Karte hat Stoppen, den Verlauf und Verschieben zu einem Status des Ticketsystems. Wenn das Ticketsystem das Verschieben ablehnt, zeigt die Karte den Grund.
 
 Die Leiste über dem Board enthält:
 
-- Suchen: eine Funktion über den Schlüssel ihres Tickets oder ihren Titel finden.
+- Suchen: ein Feature über den Schlüssel seines Tickets oder seinen Titel finden.
 - Einen Filter: Alle, Betrifft mich oder Meine. Die Suche und der Filter bleiben in der Adresse.
 - Den Agenten-Schalter. Aus stoppt jeden Agenten und verhindert neue Läufe. Schalten Sie ihn wieder ein, um fortzufahren.
 - Lauf starten: Wählen Sie ein Ticket über seinen Titel.
-- Neu: eine neue Funktion beginnen.
+- Neu: ein neues Feature beginnen.
 
-## Neue Funktion
+## Neues Feature
 
 Neu öffnet eine Seite mit einer Frage: Was möchten Sie bauen?
 
 1. Tippen Sie den Titel.
-2. Wählen Sie die Art: Funktion, Fehler oder Idee für später. Eine Idee legt nur die Spezifikationsänderung an.
+2. Wählen Sie die Art: Feature, Fehler oder Idee für später. Eine Idee legt nur die Spezifikationsänderung an.
 3. Wählen Sie den Weg: Ein Agent schreibt die Spezifikation, Ich schreibe die Spezifikation, oder Sofort bauen, ohne Spezifikation.
 4. Klicken Sie auf Erstellen.
 
@@ -37,7 +37,7 @@ Jeder Weg legt zuerst eine Spezifikationsänderung mit Ihrem Text als Titel an. 
 
 ## Liste
 
-Liste zeigt dieselben Funktionen als eine Tabelle: den Titel, die Phase, wer und den Zustand. Sie enthält auch die Bedienelemente der Tickets:
+Liste zeigt dieselben Features als eine Tabelle: den Titel, die Phase, wer und den Zustand. Sie enthält auch die Bedienelemente der Tickets:
 
 - Filtern nach Status, Person, Label und Lauf.
 - Ein Ticket über seinen Schlüssel holen.
@@ -48,25 +48,25 @@ Liste zeigt dieselben Funktionen als eine Tabelle: den Titel, die Phase, wer und
 
 ## Erledigt
 
-Erledigt enthält die fertigen Funktionen und den Verlauf der Läufe: jeden beendeten Lauf und jeden älteren Lauf eines Tickets, das neueste Ende zuerst. Klicken Sie auf eine Zeile, um ihre Funktion zu öffnen. Der letzte fehlgeschlagene Lauf eines Tickets bleibt auch auf dem Board, mit Erneut versuchen.
+Erledigt enthält die fertigen Features und den Verlauf der Läufe: jeden beendeten Lauf und jeden älteren Lauf eines Tickets, das neueste Ende zuerst. Klicken Sie auf eine Zeile, um ihr Feature zu öffnen. Der letzte fehlgeschlagene Lauf eines Tickets bleibt auch auf dem Board, mit Erneut versuchen.
 
-## Die Seite einer Funktion
+## Die Seite eines Features
 
-Jede Funktion hat eine Seite, `/flow/feature/<id>`. Die Kennung ist die Ref eines ihrer Teile: des Tickets, der Spezifikationsänderung, des Laufs oder des Pull Requests. Die Seite zeigt den Titel, die Phasenlinie und einen Umschalter mit sechs Bereichen. Zurück führt zu Ablauf mit seiner Suche und seinem Filter, und Escape tut dasselbe. Ein Link zu einem Lauf oder zu einem Pull Request öffnet diese Seite im Bereich dieses Teils.
+Jedes Feature hat eine Seite, `/flow/feature/<id>`. Die Kennung ist die Ref eines ihrer Teile: des Tickets, der Spezifikationsänderung, des Laufs oder des Pull Requests. Die Seite zeigt den Titel, die Phasenlinie und einen Umschalter mit sechs Bereichen. Zurück führt zu Ablauf mit seiner Suche und seinem Filter, und Escape tut dasselbe. Ein Link zu einem Lauf oder zu einem Pull Request öffnet diese Seite im Bereich dieses Teils.
 
 ### Verlauf
 
 Verlauf zeigt zuerst, was auf Sie wartet: die Fragen, die Freigaben, den Plan mit seinen Aktionen, und den Grund, warum ein Agent gestoppt hat, mit seiner einen Aktion. Dann listet er die Ereignisse in einfachen Sätzen. Ein Bedienelement öffnet das ganze Protokoll, in dem Wichtig die Fragen, die Fehler, die Zustandswechsel und die Ergebnisse zeigt, und Alle jedes Ereignis zeigt. Anfragen und Sitzungen zeigt die Anfragen mit ihren Kosten, den Graphen des Rezepts und die Sitzungen. Verfolgen zeigt eine laufende Sitzung. Im Terminal öffnen setzt eine beendete Sitzung fort.
 
-Die Seitenspalte zeigt den Agenten (das KI-Tool, das Modell, den Schritt n von m, die Kosten und das Budget, die verstrichene Zeit, mit Sprechen und Stoppen), den Auftrag, die Änderungen und die Personen. Eine Funktion ohne Agenten hat Agent starten.
+Die Seitenspalte zeigt den Agenten (das KI-Tool, das Modell, den Schritt n von m, die Kosten und das Budget, die verstrichene Zeit, mit Sprechen und Stoppen), den Auftrag, die Änderungen und die Personen. Ein Feature ohne Agenten hat Agent starten.
 
 ### Auftrag
 
-Auftrag zeigt den Plan in Prüfung, die Fakten des Tickets und die Spezifikationsänderung der Funktion. Ein Formular zeigt jeden Teil der Änderung mit seinem Zustand: fehlt, Entwurf oder fertig. Eine Rohtextansicht gibt es auch. Klicken Sie auf Validieren: Jedes Problem zeigt sich an seinem Teil, mit seiner Zeile. Folgen Sie dem nächsten Schritt, den die App zeigt, zum Beispiel die Arbeit in Tickets aufteilen. Eine Änderung nimmt ihren Titel aus der ersten Überschrift ihres Vorschlags. Die Kennung bleibt der Ordnername. Eine Funktion ohne Spezifikation hat Spezifikation schreiben.
+Auftrag zeigt den Plan in Prüfung, die Fakten des Tickets und die Spezifikationsänderung des Features. Ein Formular zeigt jeden Teil der Änderung mit seinem Zustand: fehlt, Entwurf oder fertig. Eine Rohtextansicht gibt es auch. Klicken Sie auf Validieren: Jedes Problem zeigt sich an seinem Teil, mit seiner Zeile. Folgen Sie dem nächsten Schritt, den die App zeigt, zum Beispiel die Arbeit in Tickets aufteilen. Eine Änderung nimmt ihren Titel aus der ersten Überschrift ihres Vorschlags. Die Kennung bleibt der Ordnername. Ein Feature ohne Spezifikation hat Spezifikation schreiben.
 
 ### Entwurf
 
-Entwurf listet die Entscheidungen, Diagramme, Bildschirme, API-Verträge und Datenmodelle, die einen Teil der Funktion zitieren.
+Entwurf listet die Entscheidungen, Diagramme, Bildschirme, API-Verträge und Datenmodelle, die einen Teil des Features zitieren.
 
 ### Änderungen
 
@@ -117,7 +117,7 @@ Team / Rezepte und Einrichtung / Dieses Projekt listen die Erlaubnisse jedes Rez
 
 Ein Lauf behebt zuerst seine eigenen Probleme. Ein blockierender Befund, eine rote Prüfung, ein Konflikt oder ein leerer Branch startet eine Korrekturrunde ohne Klick. Die Runden sind begrenzt: 3 fehlgeschlagene Versuche pro Schritt, 3 Feedback-Runden und 8 Korrekturrunden pro Lauf. Derselbe Fehler zweimal hintereinander stoppt den Lauf sofort.
 
-Dann stoppt der Lauf, und die Funktion wartet auf Sie. Die Seite sagt den Zustand in einfachen Worten, die Ursache in einem Satz und was der Lauf versucht hat, mit einer Hauptaktion. Heute und die Fragen-Leiste geben dieselbe Aktion. Der Lauf schreibt denselben Text auch als Kommentar an das Ticket, und das Ticket erhält das Label `shipyard:blocked`.
+Dann stoppt der Lauf, und das Feature wartet auf Sie. Die Seite sagt den Zustand in einfachen Worten, die Ursache in einem Satz und was der Lauf versucht hat, mit einer Hauptaktion. Heute und die Fragen-Leiste geben dieselbe Aktion. Der Lauf schreibt denselben Text auch als Kommentar an das Ticket, und das Ticket erhält das Label `shipyard:blocked`.
 
 | Aktion | Wann |
 |---|---|
@@ -149,4 +149,4 @@ Die Aktualität der Doku listet die Dokumente, die dem Code des Branches nicht g
 
 ## Auswirkungen
 
-Auswirkungen sagt, welche Elemente eine Änderung berührt, und schlägt einen Aktionsplan vor. Die Seite öffnet sich aus den Prüfungen einer Funktion: Klicken Sie auf Auswirkungen auf anderen Code. Die ganze Seite ist `/flow/impacts`. Sie braucht Zugriff auf den Code.
+Auswirkungen sagt, welche Elemente eine Änderung berührt, und schlägt einen Aktionsplan vor. Die Seite öffnet sich aus den Prüfungen eines Features: Klicken Sie auf Auswirkungen auf anderen Code. Die ganze Seite ist `/flow/impacts`. Sie braucht Zugriff auf den Code.

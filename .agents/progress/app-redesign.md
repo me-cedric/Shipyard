@@ -260,3 +260,49 @@ Open after Wave 6:
 Checks, run by the lead on the final tree:
 
 - Passed: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --no-fail-fast`, `pnpm typecheck`, `pnpm lint`, `pnpm test` (265 files, 2303 tests), `CI=1 npx playwright test` (134), `pnpm test:personas` (7), `openspec validate update-app-redesign --strict`. No Rust file changed in this wave.
+
+## Wave 7, roles, words, removal, sizes and docs (2026-11-19): T028 to T032 in the commits, fix round after the review
+
+Branch `feature/app-redesign-wave-7-0c590f`. The commits `400cbe95` (guide by place in four languages), `b04345c8` (screens, Screen tags, spec deltas, changelog) and `724c3d92` (role first pages, plain words, 44 px controls, removal of the dead old pages) hold T028 to T032. The boxes of `tasks.md` and of `plan.md` are for the lead to tick after the validation run (T033).
+
+Notes of the earlier waves that are closed now:
+
+- The atoms `Button`, `Input`, `IconButton`, `Checkbox`, `Switch`, `Segmented` and `Select` have `min-h-control`, and `src/ui/tokens/tokens.css` has one base rule of 44 px for each control (notes of waves 1, 2, 3, 4 and 6 about T031).
+- `orderedSpaces`, `visibleTabs` and `barTabs` are gone from `src/features/shell/spaces.ts`. The role views and `FIRST_PAGE` are in `src/features/shell/places.ts`. The old page modes of Connections, Health, ProjectSettings and Me are removed.
+- The guide is by place in English, French, German and Spanish: `start`, `today`, `flow`, `plan`, `crew`, `library`, `code`, `setup`, `projects`, `ask`, `theming`, `dev`. The pages `home`, `work`, `factory`, `specs`, `design`, `knowledge`, `settings` and `team` are gone.
+- Today has three sections (Today, News, Activity). Projects is the page `/projects` since wave 6.
+- A dashboard tile with its source off names the issue tracker.
+
+Fix round of the frontend and the docs (after three reviews and one audit):
+
+- Rights: the palette hides Setup / Tickets with no access to the settings; Flow hides New feature and Add idea, and the feature page hides Start an agent for a feature with no ticket, when the role sees no List; the Runs heading of Today / Activity is plain text when the role sees no Flow.
+- Words: the conflict action is "Send to Flow"; the tile action is "Pin to Today" and Not found opens "Today"; "Spécifications", "Spezifikationen" and "Especificaciones" in Crew and Rights; "Code-Plattform" and "plataforma de código"; "Feature" in German and "funcionalidad" in Spanish, in the catalogues and in the German guide. The word test has one pattern for each language.
+- Sizes: a table row that opens is 44 px high (`DataTable`); `summary` is in the base rule; five buttons lost `min-h-row`; the bars of the terminal drawer and of the inspector, and the account button, are 44 px; the bar of the timeline keeps 20 px with `min-h-0` and is exempt in the run; Learn keeps 20rem for the path beside the side column.
+- `e2e/a11y.spec.ts`: one axe pass with no second try; the sideways scroll reads `main` too; the controls include `summary`, a row that opens, the menu and tree items and the select; the run adds `/flow/new`, each section of the feature page, an open menu and an open select list (sizes only for the two popups).
+- Docs: the README map, the developer guide, `adr:0018` in the theming guide, "My items" in the Today guide and in SCR-001, the plan map and the commands of `plan.md`, the paths of T013, T020 and T028, the state of `q:Q-172` in the checklist.
+
+Open after Wave 7:
+
+- REQ-001: the feature page and Crew / Crew draw a second section switch under the place switch.
+- REQ-005: the selection action says "Send to Flow", and the changed files have Undo only.
+- REQ-008: the first view of Today is named "Today", not "Needs you".
+- REQ-016 and REQ-017: one control turns the agents on and off and stops them; Live shows the ticket, the run, the spec change and the files of findings only.
+- REQ-026: a ref chip and a glossary word have a 44 px hit box that passes over the lines next to them (`-my-3`); a link in running text is under 44 px; the narrow top bar preference has no effect on a bar with 44 px controls. Each one needs a decision of the owner.
+- REQ-033: Crew / Sessions has no stop and no label for a tile build.
+- The action "Open the manual for this page" still shows for a role with no access to Library / Manual (owner decision: hide the action, or let every role read the manual).
+- `spec:shell#REQ-001` says a collapsed sidebar of 48 px; the code draws 56 px.
+- No test opens the gallery to find a new card, and no test runs each action of the inventory.
+- SCR-096 (the close guard) has no picture: the dialog opens only on the event of the desktop shell, and the browser mock cannot show it. `feature-design.png` shows the empty state, and `menu-bar-panel.png` shows the panel with no project.
+
+Rust side of the fix round and last steps of the lead:
+
+- The default level of the viewer for code is `none` (`crates/shipyard-core/src/rights.rs`, the mock, the team-rights spec, `adr:0019`): a viewer opens Today and sees no Code place (`spec:app-redesign#REQ-006`). The `roles:` block of the team file can give Code back. An unknown person gets the same levels.
+- Saving a member keeps the `roles:` block of the team file (`team_save_members` in `crates/shipyard-app/src/work.rs`, the mock). Before, each save of a member removed it.
+- The error texts of the crates and their mirrors say issue tracker, code host and recipe, and each error target is the new address. The descriptions of the MCP tools in `crates/shipyard-mcp/src/outside.rs` still say "workflow": a change there needs `docs/api/shipyard-mcp.yaml` too.
+- `e2e/a11y.spec.ts` waits for a page at rest (no change of the page for 250 ms) before each scan. Before, a scan could start while a page still loaded: it missed the scroll area of Library / Data, which had no keyboard stop at 960 by 600 (fixed in `src/features/design/text-tab.tsx`), and it gave a false contrast fault on the deck face of Library / Slides.
+- Pictures: `node scripts/screenshots.ts` made all 77 pictures again from the final tree; 79 of 80 screen entries have a picture.
+- Picture 066 hides more places by role (for example Plan for the architect, Crew for the tester). The levels cannot hide Plan and keep Flow, because both read the area `work`. Only the viewer default changed. The rest needs a decision of the owner.
+- Each German and Spanish text of the interface and of the guide is a translation by the agent, with the names of option 1 of `q:Q-172`, which is still open.
+- Not pushed, no pull request, the change is not archived.
+
+Checks, run by the lead on the final tree: see the last commit message of the wave and the final report of the session.

@@ -92,7 +92,7 @@ const PATHS = [
 /** A real address for each path: a parameter gets a value. */
 const address = (path: string) => path.replace("$runId", "run-1").replace("$pullId", "pr-1");
 
-describe("inventory (ux-declutter REQ-016)", () => {
+describe("inventory (app-redesign REQ-003 and REQ-029, ux-declutter REQ-016)", () => {
 	it("keeps every route", () => {
 		const router = createAppRouter(createMemoryHistory({ initialEntries: ["/"] }));
 		routers().push(router);

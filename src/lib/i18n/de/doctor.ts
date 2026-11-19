@@ -56,7 +56,7 @@ export const doctorDe: typeof doctorEn = {
 		confirm: "Einen Agenten starten, der {count} Befunde behebt? Budget des Laufs: {budget}",
 		confirmOne: "Einen Agenten starten, der 1 Befund behebt? Budget des Laufs: {budget}",
 		noBudget: "Legen Sie zuerst ein Budget im Rezept {recipe} fest",
-		open: "Funktion öffnen",
+		open: "Feature öffnen",
 		stop: "Stoppen",
 		confirmStop: "Den Agenten stoppen?",
 	},

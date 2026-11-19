@@ -139,7 +139,7 @@ export const rightsFr: typeof rightsEn = {
 		none: "aucun",
 		area: {
 			work: "Travail",
-			specs: "Specs",
+			specs: "Spécifications",
 			design: "Conception",
 			knowledge: "Connaissances",
 			code: "Code",

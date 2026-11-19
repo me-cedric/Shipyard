@@ -30,7 +30,7 @@ Haz clic en Exportar en la fila Archivos de tema. Shipyard escribe el tema actua
 
 ## El archivo de tema
 
-Un archivo de tema es JSON. El formato está en ADR 0018.
+Un archivo de tema es JSON. El formato está en adr:0018.
 
 ```json
 {

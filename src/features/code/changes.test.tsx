@@ -234,7 +234,9 @@ describe("Code / Now, the files to commit", () => {
 		code.conflicts = [{ path: "x.txt", text: false, segments: [] }];
 		mockState().code = code;
 		mountApp("/code/now");
-		await user.click(await screen.findByRole("button", { name: "Hand to an agent" }));
+		// The assistant panel has a "Send to Flow" of its own: this one is on the page.
+		const main = within(await screen.findByRole("main"));
+		await user.click(await main.findByRole("button", { name: "Send to Flow" }));
 		expect(await screen.findByText("Work item SHIP-200 created")).toBeInTheDocument();
 	});
 

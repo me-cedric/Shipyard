@@ -389,6 +389,7 @@
 	:where(
 		button,
 		a[href],
+		summary,
 		select,
 		textarea,
 		input:not([type="checkbox"], [type="radio"], [type="hidden"]),
