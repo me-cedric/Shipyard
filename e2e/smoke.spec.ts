@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openFirstFolder } from "./first-run";
 
 const PLACES = [
 	["Today", "Today"],
@@ -13,6 +14,8 @@ const PLACES = [
 
 test("opens each place from the sidebar on its first section", async ({ page }) => {
 	await page.goto("/");
+	// The first run is a bare page: the rail shows with the project.
+	await openFirstFolder(page);
 	// Each page names itself before the app: "Today · Shipyard".
 	await expect(page).toHaveTitle(/Shipyard$/);
 	const sidebar = page.getByRole("navigation", { name: "Sidebar" });
@@ -35,7 +38,8 @@ test("opens each place from the sidebar on its first section", async ({ page }) 
 });
 
 test("runs an action from the Ask bar with the keyboard", async ({ page }) => {
-	await page.goto("/");
+	// With no project, a page of Setup has the shell and the Ask bar.
+	await page.goto("/setup/me");
 	await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
 	await page.keyboard.press("ControlOrMeta+k");
 	await expect(page.getByRole("combobox", { name: "Ask or tell Shipyard" })).toBeFocused();

@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { openFirstFolder } from "./first-run";
+import { openFirstFolder, openSync } from "./first-run";
 import { placeOf, visit } from "./places";
 
 /** Opens the mock project, then the Code space on the given tab. */
@@ -22,18 +22,22 @@ const heading = (page: Page, name: string) => page.getByRole("heading", { name }
 const section = (page: Page, name: string) =>
 	page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name }).click();
 
-test("stages a file, commits it from the status bar and finds it in History", async ({ page }) => {
+test("stages a file, commits it from the card of the sync mark and finds it in History", async ({
+	page,
+}) => {
 	await openCode(page, "Now");
 	await expect(heading(page, "Staged (1)")).toBeVisible();
-	const commit = page.getByRole("contentinfo").getByRole("button", { name: "Commit" });
+	const commit = (await openSync(page)).getByRole("button", { name: "Commit" });
 	await expect(commit).toBeEnabled();
+	await page.keyboard.press("Escape");
 
 	await unstaged(page).getByRole("checkbox", { name: "Select docs/guide.md" }).click();
 	await page.getByRole("button", { name: "Stage (1)", exact: true }).click();
 	await expect(heading(page, "Staged (2)")).toBeVisible();
 
+	await openSync(page);
 	await commit.click();
-	const dialog = page.getByRole("dialog");
+	const dialog = page.getByRole("dialog", { name: "Commit" });
 	await dialog.getByRole("textbox", { name: "Summary" }).fill("wip: guide");
 	await dialog.getByRole("button", { name: "Commit" }).click();
 	await expect(dialog.getByRole("alert")).toContainText("feat, fix, chore, docs, refactor, test");
@@ -43,7 +47,9 @@ test("stages a file, commits it from the status bar and finds it in History", as
 	await page.keyboard.press("ControlOrMeta+Enter");
 	await expect(dialog).toBeHidden();
 	await expect(heading(page, "Staged (0)")).toBeVisible();
+	await openSync(page);
 	await expect(commit).toBeDisabled();
+	await page.keyboard.press("Escape");
 
 	await page
 		.getByRole("navigation", { name: "Tabs" })
@@ -80,9 +86,11 @@ test("creates a branch in Code / Branches with the type, area and subject", asyn
 	await page.getByRole("textbox", { name: "Area" }).fill("auth");
 	await page.getByRole("textbox", { name: "Subject" }).fill("login-timeout");
 	await page.getByRole("button", { name: "Branch" }).click();
-	await expect(page.getByRole("combobox", { name: "Working branch" })).toHaveText(
+	// The working branch is in the card of the sync mark.
+	await expect((await openSync(page)).getByRole("combobox", { name: "Working branch" })).toHaveText(
 		"fix/auth/login-timeout",
 	);
+	await page.keyboard.press("Escape");
 	await expect(heading(page, "Local (3)")).toBeVisible();
 });
 
@@ -280,14 +288,25 @@ test("echoes a line in the terminal", async ({ page }) => {
 	await expect(terminal).toContainText("echo hello");
 });
 
-test("echoes a line in the terminal drawer of the top bar", async ({ page }) => {
-	// The drawer stays for the other sections: the button of the top bar opens it.
+test("echoes a line in the terminal drawer, from Code / Now and from the Ask bar", async ({
+	page,
+}) => {
+	// The drawer stays for the other sections: the button of Code / Now opens it.
 	await openCode(page, "Now");
-	await page.getByRole("banner").getByRole("button", { name: "Terminal" }).click();
+	await page.getByRole("main").getByRole("button", { name: "Terminal" }).click();
 	const terminal = page.getByRole("region", { name: "Terminal", exact: true });
 	await expect(terminal).toContainText("/project $");
 	await terminal.locator(".xterm-helper-textarea").focus();
 	await page.keyboard.type("echo hello");
 	await page.keyboard.press("Enter");
 	await expect(terminal).toContainText("echo hello");
+
+	// The same action is in the Ask bar: it closes the drawer, then opens it again.
+	const ask = page.getByRole("combobox", { name: "Ask or tell Shipyard" });
+	for (const shown of [0, 1]) {
+		await ask.click();
+		await ask.fill("Terminal");
+		await page.getByRole("option", { name: /^Terminal/ }).click();
+		await expect(terminal).toHaveCount(shown);
+	}
 });

@@ -78,8 +78,18 @@ export const de: Messages = {
 		openAssistant: "Den vollen Assistenten öffnen",
 		markBlocked: "Blockiert",
 		markStopped: "Gestoppt",
-		markNeeds: "Braucht dich",
+		markNeeds: "Braucht Sie",
 		noAnswer: "Nichts gefunden",
+		reply: "Antworten",
+		send: "Senden",
+		esc: "esc",
+		/** The heading of an answer: `One` for one feature, the other with `{count}`. */
+		headBlocked: "{count} Features sind blockiert.",
+		headBlockedOne: "1 Feature ist blockiert.",
+		headStopped: "{count} Features sind gestoppt.",
+		headStoppedOne: "1 Feature ist gestoppt.",
+		headNeeds: "{count} Features brauchen Sie.",
+		headNeedsOne: "1 Feature braucht Sie.",
 		/** Words of a question, comma separated: the answer part matches them in the text. */
 		wordsBlocked: "blockier,hängt,steckt",
 		wordsStopped: "stopp,angehalten,fehlgeschlagen",
@@ -255,6 +265,14 @@ export const de: Messages = {
 		runsNone: "Kein aktiver Lauf",
 		account: "Konto",
 		changedFiles: "Geänderte Dateien",
+		change: "Ändern",
+		menu: {
+			manual: "Handbuch",
+			shortcuts: "Tastenkürzel",
+			whatsNew: "Neuigkeiten",
+			tour: "Tour wiederholen",
+			update: "Nach einem Update suchen",
+		},
 	},
 	refKind: {
 		project: "Projekt",
@@ -281,6 +299,8 @@ export const de: Messages = {
 	},
 	projects: {
 		switcher: "Projekt",
+		job: "Was ist Ihr Beruf?",
+		start: "Wie fangen Sie an?",
 		open: "Lokalen Ordner öffnen",
 		clone: "Repository klonen",
 		create: "Projekt erstellen",

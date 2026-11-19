@@ -9,7 +9,7 @@ describe("Settings / Project and Health: name, logo, git tools, linked inspect, 
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 	}, 20_000);
 
-	it("renames the project and sets its logo, which shows in the top bar", async () => {
+	it("renames the project and sets its logo, which shows in the rail", async () => {
 		const user = userEvent.setup();
 		mountApp("/setup/project");
 		// The name is the first field of the project form; Save writes the project file.
@@ -25,7 +25,9 @@ describe("Settings / Project and Health: name, logo, git tools, linked inspect, 
 		const fresh = await screen.findByRole("region", { name: "Project" });
 		await user.click(within(fresh).getByRole("button", { name: "Choose a picture" }));
 		await waitFor(() => expect(mockState().extras.pictures.logo).toBeDefined());
-		expect(await screen.findByRole("img", { name: "Alpha web" })).toBeInTheDocument();
+		// The picture is a part of the project switch: the name of the switch says the project.
+		const project = await screen.findByRole("button", { name: "Project Alpha web" });
+		await waitFor(() => expect(project.querySelector("img")).not.toBeNull());
 	}, 20_000);
 
 	it("shows and restores a stash, and brings a lagging branch up to date after a click", async () => {

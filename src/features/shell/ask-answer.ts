@@ -22,6 +22,17 @@ const MARK_OF: Record<keyof AnswerWords, Mark> = {
 	needs: "needs_you",
 };
 
+/** The heading words: per mark, `one` for one feature and `many` with `{count}`; `none` for no feature. */
+export type AnswerHeads = Record<Mark, { one: string; many: string }> & { none: string };
+
+/** The heading sentence of one group of the answer. It holds only the count that the answer knows. */
+export function headingOf(group: Answer[number], heads: AnswerHeads): string {
+	const count = group.features.length;
+	if (count === 0) return heads.none;
+	const { one, many } = heads[group.mark];
+	return count === 1 ? one : many.replace("{count}", String(count));
+}
+
 /** The ref that the open action shows: the run first, then the pull request, the change, the ticket. */
 const refOf = (f: FlowFeature_Serialize) => f.run ?? f.pr ?? f.change ?? f.ticket ?? null;
 

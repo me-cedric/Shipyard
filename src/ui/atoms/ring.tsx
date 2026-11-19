@@ -1,12 +1,12 @@
 import { motion } from "motion/react";
-import { type ReactNode, useId } from "react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { SPRING } from "../motion";
 
 const R = 15;
 const C = 2 * Math.PI * R;
 
-/** A value out of a maximum as a ring, with the figure in its centre. The arc is the accent gradient. */
+/** A value out of a maximum as a ring, with the figure in its centre. The arc is the accent. */
 export function Ring({
 	value,
 	max,
@@ -20,7 +20,6 @@ export function Ring({
 	children?: ReactNode;
 	className?: string;
 }) {
-	const gradient = useId();
 	const pct = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: a <meter> cannot hold the ring and its figure
@@ -33,19 +32,13 @@ export function Ring({
 			className={cn("relative inline-flex size-11 shrink-0 items-center justify-center", className)}
 		>
 			<svg aria-hidden="true" viewBox="0 0 36 36" className="absolute inset-0 -rotate-90">
-				<defs>
-					<linearGradient id={gradient} x1="0" y1="0" x2="1" y2="1">
-						<stop offset="0" stopColor="var(--accent)" />
-						<stop offset="1" stopColor="var(--gradient-to)" />
-					</linearGradient>
-				</defs>
-				<circle cx="18" cy="18" r={R} fill="none" stroke="var(--n-4)" strokeWidth="3" />
+				<circle cx="18" cy="18" r={R} fill="none" stroke="var(--n-5)" strokeWidth="3" />
 				<motion.circle
 					cx="18"
 					cy="18"
 					r={R}
 					fill="none"
-					stroke={`url(#${gradient})`}
+					stroke="var(--accent)"
 					strokeWidth="3"
 					strokeLinecap="round"
 					strokeDasharray={C}

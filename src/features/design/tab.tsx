@@ -126,6 +126,7 @@ function NewDialog({
 /** The dot of a row on the timeline, in the colour of its tag. */
 const DOT: Record<NonNullable<Row["tone"]>, string> = {
 	neutral: "bg-n-8",
+	you: "bg-warning",
 	accent: "bg-accent",
 	success: "bg-success",
 	warning: "bg-warning",

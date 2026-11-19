@@ -22,20 +22,31 @@
 	--text-13--line-height: 1.25rem;
 	--text-14: 0.875rem;
 	--text-14--line-height: 1.25rem;
+	--text-15: 0.9375rem;
+	--text-15--line-height: 1.375rem;
 	--text-16: 1rem;
 	--text-16--line-height: 1.5rem;
+	--text-17: 1.0625rem;
+	--text-17--line-height: 1.5rem;
 	--text-20: 1.25rem;
 	--text-20--line-height: 1.75rem;
+	--text-30: 1.875rem;
+	--text-30--line-height: 1.2;
+	--text-30--letter-spacing: -0.01em;
+	--text-44: 2.75rem;
+	--text-44--line-height: 1.1;
+	--text-44--letter-spacing: -0.02em;
 
-	/* 4 nested items, 8 controls, 12 cards and panels, 16 dialogs and hero panels. */
-	--radius-sm: 4px;
-	--radius-md: 8px;
-	--radius-lg: 12px;
-	--radius-xl: 16px;
+	/* 9 nested items, 12 controls, 14 the Ask bar and an option, 20 cards, tiles and dialogs. */
+	--radius-sm: 9px;
+	--radius-md: 12px;
+	--radius-field: 14px;
+	--radius-lg: 20px;
+	--radius-xl: 20px;
 	--radius-full: 9999px;
 
-	--font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-	--font-mono: "Departure Mono", ui-monospace, "SF Mono", Menlo, monospace;
+	--font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+	--font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
 
 	--duration-fast: 120ms;
 	--duration-base: 200ms;
@@ -79,8 +90,12 @@
 	--color-accent-fg: var(--accent-fg);
 	--color-accent-subtle: var(--accent-subtle);
 	--color-accent-text: var(--accent-text);
+	--color-accent-tint: var(--accent-tint);
+	--color-primary: var(--primary);
+	--color-primary-fg: var(--primary-fg);
 
 	--color-attention: var(--attention);
+	--color-attention-strong: var(--attention-strong);
 	--color-attention-subtle: var(--attention-subtle);
 	--color-attention-text: var(--attention-text);
 	--color-attention-soft: var(--attention-soft);
@@ -127,74 +142,74 @@
 	--row-h: 28px;
 	/* The height of each control that a person clicks (app-redesign REQ-026). */
 	--control-h: 44px;
-	--text-ui: 0.8125rem;
+	--text-ui: 0.9375rem;
 
-	--n-1: light-dark(oklch(0.992 0.003 250), oklch(0.155 0.008 250));
-	--n-2: light-dark(oklch(0.98 0.004 250), oklch(0.18 0.009 250));
-	--n-3: light-dark(oklch(0.962 0.005 250), oklch(0.21 0.01 250));
-	--n-4: light-dark(oklch(0.945 0.006 250), oklch(0.235 0.011 250));
-	--n-5: light-dark(oklch(0.928 0.006 250), oklch(0.26 0.012 250));
-	--n-6: light-dark(oklch(0.905 0.007 250), oklch(0.29 0.013 250));
-	--n-7: light-dark(oklch(0.872 0.008 250), oklch(0.33 0.014 250));
-	--n-8: light-dark(oklch(0.82 0.01 250), oklch(0.395 0.016 250));
-	--n-9: light-dark(oklch(0.64 0.012 250), oklch(0.56 0.016 250));
-	--n-10: light-dark(oklch(0.54 0.012 250), oklch(0.62 0.015 250));
-	--n-11: light-dark(oklch(0.48 0.012 250), oklch(0.76 0.012 250));
-	--n-12: light-dark(oklch(0.23 0.01 250), oklch(0.96 0.005 250));
+	/* The values of the design source (`shared.css`): the base rules in light, the `.dark` rules in dark. */
+	--n-1: light-dark(#ffffff, #0f1115);
+	--n-2: light-dark(#f7f8fa, #14171c);
+	--n-3: light-dark(#eef0f4, #2a2e38);
+	--n-4: light-dark(#e6e8ed, #22262f);
+	--n-5: light-dark(#e3e6ec, #2e3340);
+	--n-6: light-dark(#eceef2, #2a2e38);
+	--n-7: light-dark(#d5d9e2, #343946);
+	--n-8: light-dark(#c3c8d3, #4a5060);
+	--n-9: light-dark(#8b92a1, #6b7282);
+	--n-10: light-dark(#4a5060, #a7adbb);
+	--n-11: light-dark(#5b6272, #a7adbb);
+	--n-12: light-dark(#151821, #eceef2);
 
 	/* Accent: one blue, deep in light and soft in dark. */
-	--accent: light-dark(oklch(0.5 0.19 265), oklch(0.72 0.14 265));
-	--accent-hover: light-dark(oklch(0.45 0.19 265), oklch(0.78 0.13 265));
-	--accent-fg: light-dark(oklch(0.99 0 0), oklch(0.2 0.03 265));
-	--accent-subtle: light-dark(oklch(0.95 0.03 265), oklch(0.28 0.06 265));
-	--accent-text: light-dark(oklch(0.46 0.17 265), oklch(0.8 0.12 265));
+	--accent: light-dark(#2450d8, #7e9bff);
+	--accent-hover: light-dark(#1a3ba8, #9db3ff);
+	--accent-fg: light-dark(#ffffff, #0f1115);
+	--accent-subtle: light-dark(#dce6ff, #1b2b5e);
+	--accent-text: light-dark(#1a3ba8, #c3d1ff);
+	/* The ground of a selected option or tile. */
+	--accent-tint: light-dark(#f1f5ff, #16234a);
+
+	/* Primary: the main button, the avatar of an agent, a done step. It follows the text colour. */
+	--primary: var(--n-12);
+	--primary-fg: light-dark(#ffffff, #0f1115);
 
 	/* Attention: the one colour for "a person must act". Only the attention card uses it. */
-	--attention: light-dark(oklch(0.7 0.15 55), oklch(0.76 0.14 55));
-	--attention-subtle: light-dark(oklch(0.96 0.03 60), oklch(0.3 0.07 55));
-	--attention-text: light-dark(oklch(0.45 0.12 50), oklch(0.86 0.09 65));
+	--attention: light-dark(#e8833a, #e8833a);
+	/* A meter over its budget. */
+	--attention-strong: light-dark(#c2570c, #ffc79a);
+	--attention-subtle: light-dark(#ffefe2, #4a2508);
+	--attention-text: light-dark(#9a3f06, #ffc79a);
 
 	--success: light-dark(oklch(0.62 0.16 150), oklch(0.72 0.17 150));
-	--success-subtle: light-dark(oklch(0.95 0.04 150), oklch(0.27 0.05 150));
-	--success-text: light-dark(oklch(0.42 0.12 150), oklch(0.8 0.15 150));
+	--success-subtle: light-dark(#e4f4ea, #0f3a22);
+	--success-text: light-dark(#14603a, #9be3b8);
 	--warning: light-dark(oklch(0.75 0.15 80), oklch(0.82 0.15 85));
 	--warning-subtle: light-dark(oklch(0.96 0.05 90), oklch(0.29 0.05 80));
 	--warning-text: light-dark(oklch(0.45 0.1 70), oklch(0.85 0.13 85));
 	--danger: light-dark(oklch(0.55 0.21 25), oklch(0.68 0.2 25));
 	--danger-subtle: light-dark(oklch(0.95 0.03 25), oklch(0.28 0.07 25));
-	--danger-text: light-dark(oklch(0.48 0.19 25), oklch(0.8 0.13 25));
+	--danger-text: light-dark(#a8321f, oklch(0.8 0.13 25));
 	--info: light-dark(oklch(0.58 0.17 275), oklch(0.72 0.14 275));
 	--info-subtle: light-dark(oklch(0.95 0.03 275), oklch(0.28 0.06 275));
 	--info-text: light-dark(oklch(0.46 0.16 275), oklch(0.82 0.1 275));
 
-	/* Four surface levels. Each is lighter in the dark theme. Level 0 has a faint accent tint. */
-	--surface-0: color-mix(
-		in oklch,
-		var(--accent) 2%,
-		light-dark(oklch(0.965 0.004 265), oklch(0.17 0.006 265))
-	);
-	--surface-1: light-dark(oklch(1 0 0), oklch(0.2 0.009 265));
-	--surface-2: light-dark(oklch(1 0 0), oklch(0.225 0.01 265));
-	--surface-3: light-dark(oklch(1 0 0), oklch(0.255 0.011 265));
+	/* A flat grey page. A card, a control and a popup share one raised surface. */
+	--surface-0: light-dark(#f3f4f7, #0f1115);
+	--surface-1: light-dark(#ffffff, #1a1d24);
+	--surface-2: light-dark(#ffffff, #1a1d24);
+	--surface-3: light-dark(#ffffff, #1a1d24);
 
-	/* Elevation: soft, wide shadows in light; in dark a 1 px top highlight does most of the work. */
-	--highlight: light-dark(oklch(1 0 0 / 70%), oklch(1 0 0 / 5%));
-	--shade: light-dark(oklch(0.3 0.02 250 / 7%), oklch(0 0 0 / 30%));
-	--shade-wide: light-dark(oklch(0.3 0.02 250 / 6%), oklch(0 0 0 / 22%));
-	--elevation-1:
-		inset 0 1px 0 var(--highlight), 0 1px 2px var(--shade), 0 2px 8px var(--shade-wide);
+	/* Elevation: 1 a current item, 2 a card, 3 a popup. In dark, 1 and 2 have no shadow. */
+	--elevation-1: 0 1px 2px light-dark(rgb(21 24 33 / 8%), transparent);
 	--elevation-2:
-		inset 0 1px 0 var(--highlight), 0 2px 4px var(--shade), 0 10px 24px var(--shade-wide);
+		0 1px 2px light-dark(rgb(21 24 33 / 6%), transparent),
+		0 10px 30px light-dark(rgb(21 24 33 / 4%), transparent);
 	--elevation-3:
-		inset 0 1px 0 var(--highlight), 0 4px 8px var(--shade), 0 20px 48px var(--shade-wide);
+		0 2px 6px light-dark(rgb(21 24 33 / 8%), rgb(0 0 0 / 40%)),
+		0 16px 40px light-dark(rgb(21 24 33 / 12%), rgb(0 0 0 / 50%));
 
-	/* One hue: a gradient to the hue + 40 degrees, and a glow for focus and live state. */
-	--gradient-to: oklch(from var(--accent) l c calc(h + 40));
-	--accent-gradient: linear-gradient(135deg, var(--accent), var(--gradient-to));
+	/* The old gradient and glow names stay until their users are gone: a flat colour and a plain ring. */
+	--gradient-to: var(--accent);
 	--accent-soft: color-mix(in oklch, var(--accent) 16%, transparent);
-	--accent-glow:
-		0 0 0 1px color-mix(in oklch, var(--accent) 40%, transparent),
-		0 0 18px color-mix(in oklch, var(--accent) 25%, transparent);
+	--accent-glow: 0 0 0 2px var(--accent);
 
 	/* Soft status tints for chips and lane headers. */
 	--success-soft: color-mix(in oklch, var(--success) 14%, transparent);
@@ -202,14 +217,6 @@
 	--danger-soft: color-mix(in oklch, var(--danger) 14%, transparent);
 	--info-soft: color-mix(in oklch, var(--info) 14%, transparent);
 	--attention-soft: color-mix(in oklch, var(--attention) 16%, transparent);
-
-	/* The canvas of the main area: an accent aurora at the top over a faint dot grid. */
-	--aurora: light-dark(
-		color-mix(in oklch, var(--accent) 10%, transparent),
-		color-mix(in oklch, var(--accent) 14%, transparent)
-	);
-	--aurora-2: color-mix(in oklch, var(--gradient-to) 9%, transparent);
-	--grain: light-dark(oklch(0.3 0.02 250 / 6%), oklch(1 0 0 / 4%));
 }
 
 :root[data-theme="light"] {
@@ -225,49 +232,40 @@
 }
 
 /*
- * OLED (spec `themes`, REQ-001): true black base, raised surfaces lifted by a small step, text at
- * WCAG AA or more on each surface. The accent and the status colours stay those of the dark theme.
- * A `.canvas-dark` block takes the same values. The high-contrast block below still wins.
+ * OLED (spec `themes`, REQ-001): the dark theme on a true black page. The raised surfaces, the
+ * text, the accent and the status colours stay those of the dark theme, so text keeps WCAG AA or
+ * more on each surface. A `.canvas-dark` block takes the same values. The high-contrast block
+ * below still wins.
  */
 :root[data-theme="oled"],
 :root[data-theme="oled"] .canvas-dark,
 [data-scheme="oled"] {
 	color-scheme: dark;
-	--n-1: oklch(0 0 0);
-	--n-2: oklch(0.12 0.004 250);
-	--n-3: oklch(0.15 0.005 250);
-	--n-4: oklch(0.175 0.006 250);
-	--n-5: oklch(0.2 0.007 250);
-	--n-6: oklch(0.25 0.008 250);
-	--n-7: oklch(0.3 0.01 250);
-	--n-8: oklch(0.37 0.012 250);
-	--n-9: oklch(0.58 0.014 250);
-	--n-10: oklch(0.66 0.013 250);
-	--n-11: oklch(0.8 0.01 250);
-	--n-12: oklch(0.97 0.004 250);
-	--surface-0: oklch(0 0 0);
-	--surface-1: oklch(0.11 0.004 250);
-	--surface-2: oklch(0.14 0.005 250);
-	--surface-3: oklch(0.17 0.006 250);
-	--highlight: oklch(1 0 0 / 6%);
-	--aurora: transparent;
-	--aurora-2: transparent;
-	--grain: oklch(1 0 0 / 3%);
+	--n-1: #000000;
+	--n-2: #0b0c0f;
+	--surface-0: #000000;
 }
 
 /* A project can override the accent. Only the hue changes. */
 :root[data-accent] .canvas-dark,
 :root[data-accent] {
-	--accent: light-dark(oklch(0.5 0.19 var(--accent-hue)), oklch(0.72 0.14 var(--accent-hue)));
+	--accent: light-dark(oklch(0.494 0.2 var(--accent-hue)), oklch(0.711 0.15 var(--accent-hue)));
 	--accent-hover: light-dark(
-		oklch(0.45 0.19 var(--accent-hue)),
-		oklch(0.78 0.13 var(--accent-hue))
+		oklch(0.407 0.18 var(--accent-hue)),
+		oklch(0.779 0.112 var(--accent-hue))
 	);
 	--accent-subtle: light-dark(
-		oklch(0.95 0.03 var(--accent-hue)),
-		oklch(0.28 0.05 var(--accent-hue))
+		oklch(0.925 0.036 var(--accent-hue)),
+		oklch(0.307 0.09 var(--accent-hue))
 	);
-	--accent-text: light-dark(oklch(0.46 0.17 var(--accent-hue)), oklch(0.8 0.12 var(--accent-hue)));
+	--accent-text: light-dark(
+		oklch(0.407 0.18 var(--accent-hue)),
+		oklch(0.865 0.066 var(--accent-hue))
+	);
+	--accent-tint: light-dark(
+		oklch(0.97 0.014 var(--accent-hue)),
+		oklch(0.269 0.074 var(--accent-hue))
+	);
 }
 
 :root[data-accent="blue"] {
@@ -296,12 +294,12 @@
 	--n-6: light-dark(oklch(0.78 0.01 250), oklch(0.42 0.015 250));
 	--n-7: light-dark(oklch(0.62 0.012 250), oklch(0.52 0.016 250));
 	--n-8: light-dark(oklch(0.5 0.012 250), oklch(0.62 0.016 250));
-	--n-10: light-dark(oklch(0.42 0.012 250), oklch(0.82 0.012 250));
+	--n-10: light-dark(oklch(0.36 0.012 250), oklch(0.82 0.012 250));
 	--n-11: light-dark(oklch(0.34 0.012 250), oklch(0.89 0.008 250));
 	--n-12: light-dark(oklch(0.14 0.01 250), oklch(0.99 0.003 250));
 	/* Text on a soft accent tint, such as the active page tab: 7:1 or more in both themes. */
 	--accent-text: light-dark(
-		oklch(0.4 0.15 var(--accent-hue, 265)),
+		oklch(0.34 0.15 var(--accent-hue, 265)),
 		oklch(0.95 0.05 var(--accent-hue, 265))
 	);
 }
@@ -309,7 +307,7 @@
 /* Density changes row height and text size, nothing else. */
 :root[data-density="compact"] {
 	--row-h: 24px;
-	--text-ui: 0.75rem;
+	--text-ui: 0.8125rem;
 }
 
 @utility h-row {
@@ -324,8 +322,9 @@
 	min-height: var(--control-h);
 }
 
+/* The old name of the gradient fill: the flat primary colour, over any background colour. */
 @utility bg-accent-gradient {
-	background-image: var(--accent-gradient);
+	background-image: linear-gradient(var(--primary), var(--primary));
 }
 
 /* A faint dot grid: the empty canvas of a preview. */
@@ -334,21 +333,14 @@
 	background-size: 14px 14px;
 }
 
+/* The page ground: flat. */
 @utility bg-canvas {
 	background-color: var(--surface-0);
-	background-image:
-		radial-gradient(50% 260px at 30% 0, var(--aurora), transparent),
-		radial-gradient(40% 220px at 80% 0, var(--aurora-2), transparent),
-		radial-gradient(var(--grain) 1px, transparent 1px);
-	background-size:
-		100% 100%,
-		100% 100%,
-		20px 20px;
 }
 
 @utility text-ui {
 	font-size: var(--text-ui);
-	line-height: 1.5;
+	line-height: 1.45;
 }
 
 @layer base {
@@ -370,13 +362,13 @@
 		color: var(--n-12);
 		font-family: var(--font-sans);
 		font-size: var(--text-ui);
-		line-height: 1.5;
+		line-height: 1.45;
 		-webkit-font-smoothing: antialiased;
 	}
 
 	:focus-visible,
 	:root[data-focus-ring="always"] :focus {
-		outline: var(--focus-width, 2px) solid var(--accent-text);
+		outline: var(--focus-width, 2px) solid var(--accent);
 		outline-offset: 1px;
 	}
 

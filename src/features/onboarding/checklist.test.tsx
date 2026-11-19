@@ -266,7 +266,8 @@ describe("Get started checklist", () => {
 	it("starts the creator from the tour and shows the items on their steps", async () => {
 		const user = userEvent.setup();
 		const router = mountApp("/home/today");
-		await screen.findByRole("navigation", { name: "Sidebar" });
+		// The first run shows without the shell.
+		await screen.findByRole("heading", { level: 1, name: en.projects.job });
 		// The tour opens by itself after the first project. A replay opens it with no project.
 		openTour();
 		const dialog = await screen.findByRole("dialog", { name: o.steps.loop.title });

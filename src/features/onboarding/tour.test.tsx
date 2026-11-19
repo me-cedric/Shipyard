@@ -14,7 +14,7 @@ describe("Onboarding tour", () => {
 	it("does not open at the first launch, before a project", async () => {
 		mockState().prefs.tourSeen = false;
 		mountApp("/home/today");
-		await screen.findByRole("heading", { level: 1, name: en.ui.welcome });
+		await screen.findByRole("heading", { level: 1, name: en.projects.job });
 		expect(screen.queryByRole("dialog")).toBeNull();
 		expect(mockState().prefs.tourSeen).toBe(false);
 	});
@@ -46,6 +46,8 @@ describe("Onboarding tour", () => {
 
 	it("stays closed once seen, replays from the palette at step 1 and ends on the manual", async () => {
 		const user = userEvent.setup();
+		// The first run shows without the shell: the Ask bar needs an open project.
+		await openProject();
 		const router = mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		expect(screen.queryByRole("dialog")).toBeNull();

@@ -71,8 +71,8 @@ test("junior", async ({ page }) => {
 	);
 
 	await w.step("Read the manual", "Manual, the page of the manual", async () => {
-		await w.click(page.getByRole("banner").getByRole("button", { name: "Account" }));
-		await w.click(page.getByRole("menuitem", { name: "Open the manual for this page" }));
+		await w.click(page.getByRole("button", { name: /^Account/ }));
+		await w.click(page.getByRole("menuitem", { name: "Manual" }));
 		await w.see(
 			page.getByRole("heading", { name: "Manual", exact: true }).first(),
 			"no manual page",
@@ -81,7 +81,7 @@ test("junior", async ({ page }) => {
 
 	await w.step(
 		"Ask the assistant a question",
-		"the Ask bar in the top bar, Open the full assistant, Message, Send",
+		"the Ask bar in the top row, Open the full assistant, Message, Send",
 		async () => {
 			const message = page.getByRole("textbox", { name: "Message" });
 			if (!(await message.isVisible())) {

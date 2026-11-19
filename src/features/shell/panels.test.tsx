@@ -30,6 +30,7 @@ vi.mock("@xterm/addon-fit", () => ({
 }));
 
 const alpha = () => unwrap(commands.projectsOpen("/mock/alpha", false));
+// The files and the terminal left the top row: the sync mark shows when the project is loaded.
 const bar = async () => within((await screen.findAllByRole("banner"))[0] as HTMLElement);
 
 describe("File drawer", () => {
@@ -51,7 +52,7 @@ describe("File drawer", () => {
 		const user = userEvent.setup();
 		await alpha();
 		mountApp("/home/today");
-		await (await bar()).findByRole("button", { name: "Files" });
+		await (await bar()).findByRole("button", { name: /^Sync state: / });
 		await user.keyboard("{Control>}p{/Control}");
 		const drawer = await screen.findByRole("complementary", { name: "Files" });
 		const search = within(drawer).getByRole("searchbox", { name: "Search files" });
@@ -73,7 +74,7 @@ describe("Terminal drawer", () => {
 		const user = userEvent.setup();
 		await alpha();
 		mountApp("/work/board");
-		await (await bar()).findByRole("button", { name: "Terminal" });
+		await (await bar()).findByRole("button", { name: /^Sync state: / });
 		await user.keyboard("{Control>}`{/Control}");
 		const drawer = await screen.findByRole("region", { name: "Terminals" });
 		const tabs = within(drawer).getByRole("tablist", { name: "Terminals" });
@@ -93,7 +94,7 @@ describe("Terminal drawer", () => {
 		const user = userEvent.setup();
 		await alpha();
 		mountApp("/work/board");
-		await (await bar()).findByRole("button", { name: "Terminal" });
+		await (await bar()).findByRole("button", { name: /^Sync state: / });
 		await user.keyboard("{Control>}`{/Control}");
 		const drawer = await screen.findByRole("region", { name: "Terminals" });
 		const size = () => within(drawer).getByRole("separator", { name: "Terminal size" });
@@ -118,7 +119,7 @@ describe("Terminal drawer", () => {
 		const user = userEvent.setup();
 		await alpha();
 		mountApp("/work/board");
-		await (await bar()).findByRole("button", { name: "Terminal" });
+		await (await bar()).findByRole("button", { name: /^Sync state: / });
 		await user.keyboard("{Control>}`{/Control}");
 		const drawer = await screen.findByRole("region", { name: "Terminals" });
 		const tabs = within(drawer).getByRole("tablist", { name: "Terminals" });

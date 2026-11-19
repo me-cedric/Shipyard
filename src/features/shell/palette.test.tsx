@@ -17,6 +17,8 @@ async function openPalette(user: ReturnType<typeof userEvent.setup>) {
 describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 	it("lists an action for each place, with its shortcut", async () => {
 		const user = userEvent.setup();
+		// With no project the page is bare: the Ask bar needs the shell.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await openPalette(user);
 		const panel = within(await screen.findByRole("listbox"));
@@ -90,6 +92,7 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 
 	it("runs an action by name with Enter and closes", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await openPalette(user);
 		await user.keyboard("Toggle inspector{ArrowDown}{Enter}");
@@ -100,6 +103,7 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 
 	it("opens no dialog, and Escape closes the panel", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await openPalette(user);
 		expect(screen.queryByRole("dialog")).toBeNull();
@@ -110,6 +114,7 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 
 	it("runs the item that an arrow key chose, and sends other text to the assistant", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		const bar = await openPalette(user);
 		await user.type(bar, "Toggle inspector");
@@ -164,6 +169,15 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 		await user.type(bar, "what blocks the release?{Enter}");
 		expect(await screen.findByRole("button", { name: "Unblock Fix menu" })).toBeVisible();
 		expect(screen.getByRole("button", { name: "Unblock Cache list" })).toBeVisible();
+		// The heading counts the features of the answer, and each row shows its state.
+		expect(screen.getByRole("heading", { name: "2 features are blocked." })).toBeVisible();
+		expect(screen.getAllByText("Blocked")).toHaveLength(2);
+		expect(screen.getByRole("img", { name: "Shipyard" })).toBeVisible();
+		// The lists stay under the answer.
+		expect(
+			within(screen.getByRole("group", { name: "Go to" })).getAllByRole("option"),
+		).not.toHaveLength(0);
+		expect(screen.getByRole("group", { name: "Do" })).toBeVisible();
 		// The text stays: an answer shows for it, and the assistant does not open.
 		expect(bar).toHaveValue("what blocks the release?");
 		spy.mockRestore();
@@ -275,6 +289,40 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 		await waitFor(() => expect(draft).toHaveValue("How do I stop the dev server?"));
 	});
 
+	it("covers the page area when open and gives it back on Escape", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mountApp("/home");
+		const bar = await openPalette(user);
+		const area = document.querySelector("[data-page-area]");
+		expect(area?.querySelector("[data-ask-layer]")).toContainElement(bar);
+		expect(screen.getByRole("textbox", { name: "Reply" })).toBeVisible();
+		const layer = within(document.querySelector("[data-ask-layer]") as HTMLElement);
+		expect(layer.getByRole("button", { name: "Send" })).toBeVisible();
+		await user.keyboard("{Escape}");
+		expect(document.querySelector("[data-ask-layer]")).toBeNull();
+		expect(screen.queryByRole("textbox", { name: "Reply" })).toBeNull();
+		expect(bar).toBeInTheDocument();
+	});
+
+	it("sends the text of the Reply field to the assistant draft, with and without an answer", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mountApp("/home/today");
+		const bar = await openPalette(user);
+		await user.type(screen.getByRole("textbox", { name: "Reply" }), "write a poem{Enter}");
+		const draft = await screen.findByRole("textbox", { name: "Message" });
+		await waitFor(() => expect(draft).toHaveValue("write a poem"));
+		expect(screen.queryByRole("listbox")).toBeNull();
+		await user.click(bar);
+		await user.type(bar, "what stopped?{Enter}");
+		await user.type(await screen.findByRole("textbox", { name: "Reply" }), "start it again");
+		const layer = within(document.querySelector("[data-ask-layer]") as HTMLElement);
+		await user.click(layer.getByRole("button", { name: "Send" }));
+		await waitFor(() => expect(draft).toHaveValue("start it again"));
+		expect(bar).toHaveValue("");
+	});
+
 	it("opens a ref with Enter", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
@@ -288,6 +336,8 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 
 	it("hides an action that cannot run", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await unwrap(commands.codeUnstage(["src"]));
 		mountApp("/home");
 		const input = await openPalette(user);
 		// Nothing is staged, so the commit action is off.
@@ -298,6 +348,7 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 	it("shows French labels after the language changes", async () => {
 		const user = userEvent.setup();
 		mockState().prefs.lang = "fr";
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await screen.findByRole("navigation", { name: "Barre latérale" });
 		await user.keyboard("{Control>}k{/Control}");
@@ -321,7 +372,8 @@ describe("project actions of the palette", () => {
 
 	it("hides Close project when no project is open", async () => {
 		const user = userEvent.setup();
-		mountApp("/home");
+		// A page of Setup shows in the shell with no project. Today is the first run then, without the shell.
+		mountApp("/setup/me");
 		const input = await openPalette(user);
 		await user.type(input, "Close project");
 		expect(screen.queryByRole("option", { name: /^Close project/ })).toBeNull();
@@ -331,6 +383,7 @@ describe("project actions of the palette", () => {
 describe("palette pages and tickets", () => {
 	it("lists a go action for a tab", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await openPalette(user);
 		expect(await screen.findByRole("option", { name: "Library / Questions" })).toBeVisible();
@@ -338,6 +391,7 @@ describe("palette pages and tickets", () => {
 
 	it("names the home of Library once in the Go to list", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await openPalette(user);
 		const go = await screen.findByRole("group", { name: "Go to" });

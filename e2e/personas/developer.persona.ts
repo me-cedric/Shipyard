@@ -83,14 +83,23 @@ test("developer", async ({ page }) => {
 		await w.until(() => effect.count(), 0, "the approval stays in the list after Approve");
 	});
 
-	await w.step("Stage and commit my changes", "Code, Now, Stage, Commit", async () => {
-		await w.go("Code", "Now");
-		await w.click(page.getByRole("button", { name: "Stage (4)" }));
-		await w.click(page.getByRole("button", { name: "Commit" }).last());
-		await w.fill(page.getByRole("dialog").getByRole("textbox"), "fix(auth): refuse an empty token");
-		await w.click(page.getByRole("dialog").getByRole("button", { name: "Commit" }));
-		await w.until(() => page.getByRole("dialog").count(), 0, "the commit dialog stays open");
-	});
+	await w.step(
+		"Stage and commit my changes",
+		"Code, Now, Stage, the sync mark, Commit",
+		async () => {
+			await w.go("Code", "Now");
+			await w.click(page.getByRole("button", { name: "Stage (4)" }));
+			// Commit of the old status bar is in the card of the sync mark.
+			await w.click(page.getByRole("banner").getByRole("button", { name: /^Sync state/ }));
+			await w.click(
+				page.getByRole("dialog", { name: "Sync state" }).getByRole("button", { name: "Commit" }),
+			);
+			const dialog = page.getByRole("dialog", { name: "Commit" });
+			await w.fill(dialog.getByRole("textbox"), "fix(auth): refuse an empty token");
+			await w.click(dialog.getByRole("button", { name: "Commit" }));
+			await w.until(() => page.getByRole("dialog").count(), 0, "the commit dialog stays open");
+		},
+	);
 
 	await w.step("Review a pull request", "the pull request row, Approve", async () => {
 		await w.go("Code", "Now");
@@ -135,9 +144,12 @@ test("developer", async ({ page }) => {
 
 	await w.step(
 		"Open the terminal",
-		"Terminal button of the top bar",
+		"the Ask bar, Terminal under Do",
 		async () => {
-			await w.click(page.getByRole("banner").getByRole("button", { name: "Terminal" }));
+			const ask = page.getByRole("combobox", { name: "Ask or tell Shipyard" });
+			await w.click(ask);
+			await w.fill(ask, "Terminal");
+			await w.click(page.getByRole("option", { name: /^Terminal/ }));
 			await w.see(page.getByRole("region", { name: "Terminal" }), "no terminal drawer");
 		},
 		true,

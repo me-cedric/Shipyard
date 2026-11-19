@@ -3,6 +3,8 @@ import { expect, type Page, test } from "@playwright/test";
 const FIRST = "One loop, from idea to merged code";
 const PERMISSIONS = "Allow what Shipyard needs";
 const LAST = "Run your first ticket";
+/** With no project the first run shows without the shell. A Setup page has the shell and the Ask bar. */
+const START = "/setup/computer";
 
 /** A dialog that is open. A dialog that closes stays in the page until its exit animation ends, and the command palette that opened the tour can still be closing when the tour closes. */
 const openDialogs = (page: Page) => page.locator('[role="dialog"][data-open]');
@@ -16,7 +18,7 @@ async function replay(page: Page) {
 }
 
 test("replays the tour, skips it with Close and ends it on Done", async ({ page }) => {
-	await page.goto("/");
+	await page.goto(START);
 	await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
 	await replay(page);
 	await page.getByRole("button", { name: "Next" }).click();
@@ -34,7 +36,7 @@ test("replays the tour, skips it with Close and ends it on Done", async ({ page 
 test("asks for a permission from the tour and shows the list in Setup / This computer", async ({
 	page,
 }) => {
-	await page.goto("/");
+	await page.goto(START);
 	await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
 	await replay(page);
 	for (let i = 0; i < 4; i++) await page.keyboard.press("ArrowRight");
@@ -54,7 +56,7 @@ test("asks for a permission from the tour and shows the list in Setup / This com
 });
 
 test("offers the settings on the steps and lists them in Setup / Start", async ({ page }) => {
-	await page.goto("/");
+	await page.goto(START);
 	await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
 	await replay(page);
 	await page.keyboard.press("ArrowRight");

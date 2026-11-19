@@ -49,12 +49,18 @@ test.describe("gallery in the dev build", () => {
 
 	test("shows a page for each atomic layer", async ({ page }) => {
 		for (const layer of LAYERS) {
-			const button = page.getByRole("button", { name: layer });
+			// The gallery shows an icon button with the name of a layer: the layer button is in the switch.
+			const button = page
+				.getByRole("navigation", { name: "Tabs" })
+				.getByRole("button", { name: layer });
 			await button.click();
 			await expect(button).toHaveAttribute("aria-current", "page");
 			await expect(page.locator("main, #root").getByText(/\S/).first()).toBeVisible();
 		}
-		await page.getByRole("button", { name: "Atoms" }).click();
+		await page
+			.getByRole("navigation", { name: "Tabs" })
+			.getByRole("button", { name: "Atoms" })
+			.click();
 		for (const atom of [
 			"Button",
 			"IconButton",

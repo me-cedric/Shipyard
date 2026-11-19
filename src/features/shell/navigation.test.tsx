@@ -5,6 +5,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 import { pageTitle } from "./page-chrome";
+import { openAccount, openSync } from "./test-open";
 
 describe("page title", () => {
 	it("names the section, else the place, else the app", () => {
@@ -28,6 +29,7 @@ describe("navigation (W15 M8)", () => {
 
 	it("goes back and forward with the buttons and with Mod plus brackets", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/home");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await router.navigate({ to: "/settings" });
@@ -42,45 +44,47 @@ describe("navigation (W15 M8)", () => {
 
 	it("opens the manual from the avatar menu and with F1", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/home");
-		await user.click(await screen.findByRole("button", { name: "Account" }));
-		await user.click(
-			await screen.findByRole("menuitem", { name: "Open the manual for this page" }),
-		);
+		const menu = await openAccount(user);
+		await user.click(menu.getByRole("menuitem", { name: /^Manual/ }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/library/manual"));
 		await router.navigate({ to: "/work" });
 		await user.keyboard("{F1}");
 		await waitFor(() => expect(router.state.location.pathname).toBe("/library/manual"));
 	});
 
-	it("toggles the sidebar from the top bar and keeps one terminal button", async () => {
+	it("toggles the sidebar from the top row, which holds no terminal button", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		const bar = within(await screen.findByRole("banner"));
 		await user.click(bar.getByRole("button", { name: "Hide sidebar" }));
 		await waitFor(() => expect(mockState().prefs.sidebarOpen).toBe(false));
 		expect(bar.getByRole("button", { name: "Show sidebar" })).toBeVisible();
 		expect(screen.queryByRole("button", { name: /^(Collapse|Expand)$/ })).toBeNull();
-		expect(bar.getAllByRole("button", { name: /terminal/i })).toHaveLength(1);
+		// The terminal is an action of the Ask bar and of Code / Now.
+		expect(bar.queryByRole("button", { name: /terminal/i })).toBeNull();
 	});
 
-	it("fetches or pushes from the menu beside Sync", async () => {
+	it("fetches or pushes from the card of the sync mark", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const fetch = vi.spyOn(commands, "codeFetch");
 		const push = vi.spyOn(commands, "codePush");
 		mountApp("/home");
-		await user.click(await screen.findByRole("button", { name: "More ways to sync" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Fetch only" }));
+		const card = await openSync(user);
+		await user.click(card.getByRole("button", { name: "Fetch only" }));
 		await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
 		expect(push).not.toHaveBeenCalled();
-		await user.click(screen.getByRole("button", { name: "More ways to sync" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Push" }));
+		await user.click(card.getByRole("button", { name: "Push" }));
 		await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
 	});
 
 	it("changes the text size with Mod plus =, - and 0", async () => {
 		const user = userEvent.setup();
+		// The shell shows with an open project: the first run is a bare page.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}={/Control}");
@@ -91,7 +95,7 @@ describe("navigation (W15 M8)", () => {
 		await waitFor(() => expect(mockState().prefs.uiScale).toBe(16));
 	});
 
-	it("folds the right-hand icons into a More menu under 1100 px", async () => {
+	it("keeps the top row to the same controls under 1100 px, with no More menu", async () => {
 		const real = window.matchMedia;
 		window.matchMedia = ((q: string) => ({
 			matches: q.includes("1099"),
@@ -100,10 +104,13 @@ describe("navigation (W15 M8)", () => {
 		})) as unknown as typeof window.matchMedia;
 		try {
 			const user = userEvent.setup();
+			await unwrap(commands.projectsOpen("/mock/alpha", false));
 			mountApp("/home");
-			await user.click(await screen.findByRole("button", { name: "More" }));
-			expect(await screen.findByRole("menuitem", { name: /Terminal|terminal/ })).toBeVisible();
-			expect(screen.queryByRole("button", { name: /terminal/i })).toBeNull();
+			const bar = within(await screen.findByRole("banner"));
+			expect(bar.queryByRole("button", { name: "More" })).toBeNull();
+			// The terminal stays reachable: it is an action of the Ask bar.
+			await user.click(bar.getByRole("combobox", { name: "Ask or tell Shipyard" }));
+			expect(await screen.findByRole("option", { name: /^Terminal/ })).toBeInTheDocument();
 		} finally {
 			window.matchMedia = real;
 		}

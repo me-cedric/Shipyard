@@ -377,7 +377,7 @@ export function PlanEstimates() {
 				</div>
 			) : null}
 			{view === "spread" && sheet ? (
-				<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
+				<div className="mx-4 mb-4 flex min-h-64 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
 					<DataTable
 						label={e.views.spread}
 						data={sheet.spread.map((m) => ({ month: m.month, days: m.days, cost: m.cost }))}
@@ -388,7 +388,7 @@ export function PlanEstimates() {
 				</div>
 			) : null}
 			{view === "portfolio" && portfolio ? (
-				<div className="mx-4 mb-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
+				<div className="mx-4 mb-2 flex min-h-64 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
 					<DataTable
 						label={e.views.portfolio}
 						data={portfolio.sheets.map(([name, tt]) => ({ name, ...tt }))}

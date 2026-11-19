@@ -1,5 +1,5 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AskOnItem, AssistantPanel, SelectionActions, useAssistant } from "@/features/assistant";
 import { FileDrawer } from "@/features/code/file-drawer";
 import { TerminalDrawer } from "@/features/code/terminal-drawer";
@@ -17,6 +17,7 @@ import { Inspector } from "@/ui/organisms/inspector";
 import { Toaster } from "@/ui/organisms/toaster";
 import { Shell } from "@/ui/templates/shell";
 import { useActions, useShortcuts } from "./actions";
+import { BareContext } from "./bare";
 import { CloseGuard } from "./close-guard";
 import { ContextBar } from "./context-bar";
 import { useDropFolder } from "./drop-folder";
@@ -25,13 +26,12 @@ import { RouteAnnouncer, SkipLink } from "./page-chrome";
 import { RefDetail } from "./ref-detail";
 import { ShortcutHelp } from "./shortcut-help";
 import { Sidebar } from "./sidebar";
-import { StatusBar } from "./status-bar";
 import { ViewMemory } from "./view-memory";
 import { WhatsNew } from "./whats-new";
 
 function Frame() {
 	const { t } = useI18n();
-	const { sidebarOpen, navSide, drawerSide, narrowBar, terminalDock } = usePrefs();
+	const { sidebarOpen, navSide, drawerSide, terminalDock } = usePrefs();
 	const {
 		inspectorOpen,
 		setInspectorOpen,
@@ -57,7 +57,30 @@ function Frame() {
 	const project = useActiveProject().data;
 	const { commit: runCommit } = useCodeActions();
 	const { gate } = useRights();
-	const { list, sync, commit, palette, files, terminal, fetch, push, back, forward } = useActions();
+	const { list: all, sync, commit, palette, fetch, push, back, forward } = useActions();
+	// The count of pages that show without the shell: the first run and "No project is open".
+	const [claims, setBare] = useState(0);
+	const claimBare = useCallback(() => {
+		setBare((n) => n + 1);
+		return () => setBare((n) => n - 1);
+	}, []);
+	// Before the first page shows, the frame is bare: the shell does not flash before the first run.
+	const first = useRouterState({
+		select: (s) => (s.resolvedLocation?.pathname ?? "/") === "/",
+	});
+	const shown = useRef(false);
+	if (!first) shown.current = true;
+	const bare = (first && !shown.current) || claims > 0;
+	// A bare page has no Ask bar: the actions that open it do nothing.
+	const list = useMemo(
+		() =>
+			bare
+				? all.map((a) =>
+						a.id === "palette" || a.id === "project-switch" ? { ...a, disabled: true } : a,
+					)
+				: all,
+		[all, bare],
+	);
 	useShortcuts(list);
 	useNativeMenu(list);
 	useShellEvents();
@@ -93,27 +116,28 @@ function Frame() {
 	const toggle = list.find((a) => a.id === "toggle-sidebar");
 	if (!toggle) throw new Error("Missing action: toggle-sidebar");
 	return (
-		<>
+		<BareContext.Provider value={claimBare}>
 			<SkipLink />
 			<RouteAnnouncer />
 			<Shell
 				sidebarOpen={sidebarOpen}
 				navSide={navSide}
 				drawerSide={drawerSide}
-				narrow={narrowBar}
+				bare={bare}
 				contextbar={
-					<ContextBar
-						sync={sync}
-						fetch={fetch}
-						push={push}
-						actions={list}
-						palette={palette}
-						files={files}
-						terminal={terminal}
-						back={back}
-						forward={forward}
-						toggleSidebar={toggle}
-					/>
+					bare ? null : (
+						<ContextBar
+							sync={sync}
+							fetch={fetch}
+							push={push}
+							commit={commit}
+							actions={list}
+							palette={palette}
+							back={back}
+							forward={forward}
+							toggleSidebar={toggle}
+						/>
+					)
 				}
 				sidebar={<Sidebar />}
 				main={<Outlet />}
@@ -153,7 +177,6 @@ function Frame() {
 						) : null}
 					</Inspector>
 				}
-				statusbar={<StatusBar commit={commit} />}
 			/>
 			<Toaster toasts={toasts} onDismiss={dismiss} onHold={hold} />
 			<ShortcutHelp actions={list} />
@@ -169,7 +192,7 @@ function Frame() {
 				reason={gate("code.write").reason}
 			/>
 			<ViewMemory />
-		</>
+		</BareContext.Provider>
 	);
 }
 

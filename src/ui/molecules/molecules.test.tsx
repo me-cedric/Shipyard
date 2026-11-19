@@ -6,6 +6,8 @@ import { EmptyState } from "./empty-state";
 import { GroupSection } from "./group-section";
 import { QuestionCard } from "./question-card";
 import { RefChip } from "./ref-chip";
+import { SpendMeter } from "./spend-meter";
+import { Stat } from "./stat";
 
 const question: AskedQuestion_Serialize = {
 	id: "Q-101",
@@ -86,5 +88,41 @@ describe("GroupSection (REQ-009)", () => {
 			</GroupSection>,
 		);
 		expect(screen.getByRole("heading", { name: "Open (3)" })).toBeInTheDocument();
+	});
+});
+
+describe("SpendMeter", () => {
+	it("is a named meter with the spend and the budget, and changes colour over the budget", () => {
+		const { container } = renderApp(
+			<>
+				<SpendMeter usd={2} budget={10} label="Under" />
+				<SpendMeter usd={12} budget={10} label="Over" />
+				<SpendMeter usd={3} budget={null} label="None" />
+			</>,
+		);
+		const under = screen.getByRole("meter", { name: "Under" });
+		expect(under).toHaveAttribute("aria-valuenow", "2");
+		expect(under).toHaveAttribute("aria-valuemax", "10");
+		expect(under.firstElementChild).toHaveClass("bg-accent");
+		expect(under.firstElementChild).toHaveStyle({ width: "20%" });
+		const over = screen.getByRole("meter", { name: "Over" });
+		expect(over.firstElementChild).toHaveClass("bg-attention-strong");
+		expect(over.firstElementChild).toHaveStyle({ width: "100%" });
+		// No budget: no meter.
+		expect(screen.queryByRole("meter", { name: "None" })).toBeNull();
+		expect(container.querySelectorAll('[role="meter"]')).toHaveLength(2);
+	});
+});
+
+describe("Stat", () => {
+	it("shows the figure as the definition of its name", () => {
+		renderApp(
+			<dl>
+				<Stat label="Days" value="34.5" />
+			</dl>,
+		);
+		expect(screen.getByRole("term")).toHaveTextContent("Days");
+		expect(screen.getByRole("definition")).toHaveTextContent("34.5");
+		expect(screen.getByRole("definition")).toHaveClass("text-20", "text-n-12");
 	});
 });

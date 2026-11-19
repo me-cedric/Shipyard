@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { openSync } from "@/features/shell/test-open";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { seedCode } from "@/lib/ipc/mock-code";
@@ -8,7 +9,9 @@ import { mountApp } from "@/test/mount";
 const open = () => unwrap(commands.projectsOpen("/mock/alpha", false));
 const main = () => screen.getByRole("main");
 const group = (name: string) => screen.findByRole("heading", { name });
-const status = () => screen.getByRole("contentinfo");
+// The commit action of the old status bar is in the card of the sync mark.
+const commitOfCard = async (user: Parameters<typeof openSync>[0]) =>
+	(await openSync(user)).getByRole("button", { name: "Commit" });
 const unstaged = () => within(screen.getByRole("region", { name: "Unstaged" }));
 
 async function changes() {
@@ -60,7 +63,7 @@ describe("Code / Now, the files to commit", () => {
 		await changes();
 		const primary = within(screen.getByRole("region", { name: "5 files to commit" }))
 			.getAllByRole("button")
-			.filter((b) => b.className.includes("bg-accent"));
+			.filter((b) => b.className.includes("bg-primary"));
 		expect(primary.map((b) => b.textContent)).toEqual(["Stage (4)", "Commit"]);
 	});
 
@@ -242,22 +245,25 @@ describe("Code / Now, the files to commit", () => {
 
 	it("shows the empty state with one action when no project is active", async () => {
 		mountApp("/code/now");
-		const add = await screen.findByRole("button", { name: "Open a local folder" });
-		expect(add.className).toContain("bg-accent");
+		// The one primary action opens the project list; the folder action stays beside it.
+		const add = await screen.findByRole("link", { name: "Open a project" });
+		expect(add.className).toContain("bg-primary");
+		expect(screen.getByRole("button", { name: "Open a local folder" })).toBeVisible();
 	});
 });
 
-describe("the commit action of the status bar", () => {
+describe("the commit action of the sync mark", () => {
 	it("is off with nothing staged and on after a stage", async () => {
 		const user = userEvent.setup();
 		await open();
 		await unwrap(commands.codeUnstage(["src/lib/util.ts"]));
 		mountApp("/code/now");
 		await group("Staged (0)");
-		const commit = within(status()).getByRole("button", { name: "Commit" });
-		expect(commit).toBeDisabled();
+		expect(await commitOfCard(user)).toBeDisabled();
+		await user.keyboard("{Escape}");
 		await user.click(unstaged().getByRole("checkbox", { name: "Select src/app.ts" }));
 		await user.click(screen.getByRole("button", { name: "Stage (1)" }));
+		const commit = await commitOfCard(user);
 		await waitFor(() => expect(commit).toBeEnabled());
 	});
 
@@ -268,14 +274,14 @@ describe("the commit action of the status bar", () => {
 		mockState().code = code;
 		mountApp("/code/now");
 		await group("Conflicts (1)");
-		expect(within(status()).getByRole("button", { name: "Commit" })).toBeDisabled();
+		expect(await commitOfCard(userEvent.setup())).toBeDisabled();
 	});
 
 	it("refuses a wrong type, then commits the staged files only", async () => {
 		const user = userEvent.setup();
 		await changes();
-		await user.click(within(status()).getByRole("button", { name: "Commit" }));
-		const dialog = await screen.findByRole("dialog");
+		await user.click(await commitOfCard(user));
+		const dialog = await screen.findByRole("dialog", { name: /commit/i });
 		const summary = within(dialog).getByRole("textbox", { name: "Summary" });
 		await user.type(summary, "wip: tidy");
 		await user.click(within(dialog).getByRole("button", { name: "Commit" }));
@@ -298,6 +304,6 @@ describe("the commit action of the status bar", () => {
 		// The unstaged part of util.ts stays unstaged, and the commit button goes off.
 		await group("Staged (0)");
 		expect(await group("Unstaged (4)")).toBeInTheDocument();
-		expect(within(status()).getByRole("button", { name: "Commit" })).toBeDisabled();
+		expect(await commitOfCard(user)).toBeDisabled();
 	});
 });

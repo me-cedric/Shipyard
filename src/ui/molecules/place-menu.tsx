@@ -1,16 +1,18 @@
 import type { ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { LiveDot } from "../atoms/live-dot";
+import { Badge } from "../atoms/badge";
 
 export type Place = {
 	id: string;
 	label: string;
 	icon: ReactNode;
 	count?: number;
-	/** A dot with this spoken text, for news that has no number here. */
+	/** The count waits for the person: the orange tag. */
+	countYou?: boolean;
+	/** A spoken text, for news that has no number here. */
 	alert?: string;
-	/** A breathing dot with this spoken text, while an agent works. */
+	/** A spoken text, while an agent works. */
 	live?: string;
 	current?: boolean;
 };
@@ -21,7 +23,7 @@ export type PlaceLinkProps = {
 };
 
 const LINK =
-	"relative flex min-h-control items-center gap-3 rounded-lg px-3 text-14 text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12";
+	"relative flex min-h-control items-center gap-3 rounded-md px-3 font-medium text-n-10 transition-colors duration-(--duration-fast) hover:text-n-12";
 
 /** A vertical menu of places. The caller draws the link, so this layer knows no router. */
 export function PlaceMenu({
@@ -55,31 +57,17 @@ export function PlaceMenu({
 							{p.icon}
 						</span>
 						<span className={cn("min-w-0 flex-1 truncate", narrow && "sr-only")}>{p.label}</span>
-						{p.live ? (
-							<>
-								<LiveDot />
-								<span className="sr-only"> {p.live}</span>
-							</>
-						) : null}
-						{p.alert ? (
-							<>
-								<span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-accent" />
-								<span className="sr-only"> {p.alert}</span>
-							</>
-						) : null}
+						{p.live ? <span className="sr-only"> {p.live}</span> : null}
+						{p.alert ? <span className="sr-only"> {p.alert}</span> : null}
 						{p.count !== undefined ? (
 							<>
 								{" "}
-								<span
-									className={cn(
-										"tabular-nums",
-										narrow
-											? "absolute top-1 right-1 min-w-4 rounded-full bg-accent px-1 text-center text-11 text-accent-fg"
-											: "text-12",
-									)}
+								<Badge
+									variant={p.countYou ? "you" : "neutral"}
+									className={cn("tabular-nums", narrow && "absolute -top-1 -right-1 h-5 px-1.5")}
 								>
 									{p.count}
-								</span>
+								</Badge>
 							</>
 						) : null}
 					</>
@@ -88,7 +76,7 @@ export function PlaceMenu({
 		</li>
 	);
 	return (
-		<nav aria-label={label ?? t.ui.places} className="flex h-full flex-col">
+		<nav aria-label={label ?? t.ui.places} className="flex min-h-0 flex-1 flex-col">
 			<ul className="flex flex-1 flex-col gap-1">
 				{items.map((p) => entry(p))}
 				{end ? entry(end, "mt-auto") : null}

@@ -56,7 +56,7 @@ const openTimeline = async (p: Page) => {
 	await open(p, "Timeline");
 	await p.getByRole("heading", { level: 1, name: / ends / }).waitFor();
 };
-// The Projects page opens from the project name of the top bar (wave 6).
+// The Projects page opens from the project switch at the top of the rail.
 const openProjects = async (p: Page) => {
 	await p.getByRole("button", { name: /^Project/ }).click();
 	await p.getByRole("menuitem", { name: "Projects" }).click();
@@ -394,7 +394,7 @@ const scenes: Scene[] = [
 	{
 		name: "account-menu",
 		run: async (p) => {
-			await p.getByRole("button", { name: "Account" }).click();
+			await p.getByRole("button", { name: /^Account/ }).click();
 			await p.getByRole("menu").waitFor();
 		},
 	},
@@ -426,7 +426,7 @@ const scenes: Scene[] = [
 			await p.goto("/home/today");
 			await p.getByRole("button", { name: "Continue" }).click();
 			await p.goto("/flow/flow");
-			await p.getByRole("heading", { level: 2, name: /project/i }).waitFor();
+			await p.getByRole("heading", { level: 1, name: /project/i }).waitFor();
 		},
 	},
 ];

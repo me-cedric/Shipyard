@@ -13,11 +13,16 @@ import { setHitQuery, snippetParts, useParsedRef, useRefSearch } from "@/lib/ref
 import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { rememberSelection } from "@/lib/shell/selection";
+import { Avatar } from "@/ui/atoms/avatar";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
+import { Input } from "@/ui/atoms/input";
+import { LinkButton } from "@/ui/atoms/link-button";
 import { ChatBubbleIcon, CodeBracketIcon, DocumentTextIcon, SparklesIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { CommandPalette, type PaletteGroup } from "@/ui/organisms/command-palette";
 import type { Action } from "./actions";
-import { answerOf } from "./ask-answer";
+import { answerOf, headingOf } from "./ask-answer";
 import {
 	hiddenSection,
 	PLACE_ICON,
@@ -30,8 +35,8 @@ import { refPage, refSelection } from "./ref-page";
 import { hiddenTab, tabLabel } from "./spaces";
 
 /**
- * The Ask bar of the top bar with its one panel. The palette action focuses the bar: it opens no
- * dialog. adr:0023 spec:app-redesign#REQ-004 spec:app-redesign#REQ-005
+ * The Ask bar of the top row. Open, it covers the page area with the answer, the Reply field and
+ * the lists. The palette action focuses the bar: it opens no dialog. adr:0023 spec:app-redesign#REQ-004 spec:app-redesign#REQ-005
  */
 export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut?: string }) {
 	const { t, lang } = useI18n();
@@ -54,6 +59,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	const [query, setQuery] = useState("");
+	const [reply, setReply] = useState("");
 	const projects = useProjects();
 	// The same query as the project form: one cache.
 	const projectFile = useQuery({
@@ -147,13 +153,13 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 				...[...tabs, ...doors].map((a) => ({
 					id: a.id,
 					label: a.label,
-					icon: <a.Icon size={14} />,
+					icon: <a.Icon size={20} />,
 					onSelect: a.run,
 				})),
 				...(projects.data ?? []).map((p) => ({
 					id: `project-${p.id}`,
 					label: p.name,
-					icon: <CodeBracketIcon size={14} />,
+					icon: <CodeBracketIcon size={20} />,
 					onSelect: () => void switchTo(p.id),
 				})),
 				...(parsed
@@ -162,7 +168,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 								id: "ref",
 								// The label holds the text, because the bar filters by label.
 								label: format(t.shell.openRef, { ref: text }),
-								icon: <DocumentTextIcon size={14} />,
+								icon: <DocumentTextIcon size={20} />,
 								onSelect: () => show(text),
 							},
 						]
@@ -185,7 +191,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 								p.hit ? <mark key={i}>{p.text}</mark> : <span key={i}>{p.text}</span>,
 							)
 						: undefined,
-					icon: <DocumentTextIcon size={14} />,
+					icon: <DocumentTextIcon size={20} />,
 					onSelect: () => show(h.ref),
 				})),
 		})),
@@ -198,14 +204,14 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 					.map((a) => ({
 						id: a.id,
 						label: a.label,
-						icon: <a.Icon size={14} />,
+						icon: <a.Icon size={20} />,
 						shortcut: a.shortcut,
 						onSelect: a.run,
 					})),
 				...(type ? PROMPT_KINDS[type] : []).map((kind) => ({
 					id: `prompt-${kind}`,
 					label: t.assistant.ask[kind],
-					icon: <ChatBubbleIcon size={14} />,
+					icon: <ChatBubbleIcon size={20} />,
 					onSelect: () =>
 						ask(cannedPrompt(promptLanguage, type as NonNullable<typeof type>, kind, subject)),
 				})),
@@ -215,7 +221,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 								id: "ask-hits",
 								label: t.palette.ask,
 								listed: true,
-								icon: <SparklesIcon size={14} />,
+								icon: <SparklesIcon size={20} />,
 								// The text goes to the message box. It is not sent.
 								onSelect: () =>
 									ask(
@@ -260,23 +266,36 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		stopped: t.factory.why.again,
 		needs_you: t.factory.answer,
 	};
+	const heads = {
+		blocked: { one: t.palette.headBlockedOne, many: t.palette.headBlocked },
+		stopped: { one: t.palette.headStoppedOne, many: t.palette.headStopped },
+		needs_you: { one: t.palette.headNeedsOne, many: t.palette.headNeeds },
+		none: t.palette.noAnswer,
+	};
 	const answer = (
-		<section className="flex flex-col gap-2 px-2 pt-1">
+		<Card pad className="flex flex-col gap-4.5">
+			{found ? (
+				<div className="flex items-center gap-3">
+					<Avatar name="Shipyard" agent />
+					<span aria-hidden="true" className="font-semibold">
+						Shipyard
+					</span>
+				</div>
+			) : null}
 			{found?.map((g) => (
-				<div key={g.mark} className="flex flex-col gap-1">
-					<h2 className="text-12 text-n-11">{markName[g.mark]}</h2>
-					{g.features.length === 0 ? (
-						<p className="text-ui text-n-11">{t.palette.noAnswer}</p>
-					) : null}
-					<ul className="flex flex-col gap-1">
+				<div key={g.mark} className="flex flex-col gap-4.5">
+					<h2 className="font-semibold text-30 text-n-12">{headingOf(g, heads)}</h2>
+					<ul className="flex flex-col gap-2.5">
 						{g.features.map((f) => (
-							<li key={`${f.title}-${f.ref}`} className="flex items-center justify-between gap-2">
-								<span className="min-w-0 flex-1 truncate text-ui text-n-12">{f.title}</span>
+							<li
+								key={`${f.title}-${f.ref}`}
+								className="flex flex-wrap items-center gap-3 rounded-field bg-surface-0 p-4"
+							>
+								<span className="min-w-0 flex-[1_1_220px] font-semibold text-n-12">{f.title}</span>
+								<Badge variant="you">{markName[g.mark]}</Badge>
 								{f.action && f.run && f.action !== "reply" ? (
 									<RightButton
 										right="runs.start"
-										variant="primary"
-										className="min-h-control"
 										aria-label={`${label[f.action]} ${f.title}`}
 										onClick={() => {
 											const { action, run } = f;
@@ -290,7 +309,6 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 									</RightButton>
 								) : f.ref ? (
 									<Button
-										className="min-h-control"
 										aria-label={`${actionOf[g.mark]} ${f.title}`}
 										onClick={() => {
 											const ref = f.ref;
@@ -307,13 +325,34 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 				</div>
 			))}
 			{stopError ? (
-				<p role="alert" className="text-ui text-danger-text">
+				<p role="alert" className="text-danger-text text-ui">
 					{stopError}
 				</p>
 			) : null}
-			<Button
-				variant="ghost"
-				className="min-h-control self-start"
+			<form
+				className="flex flex-wrap gap-2.5"
+				onSubmit={(e) => {
+					e.preventDefault();
+					const v = reply.trim();
+					if (!v) return;
+					// The reply goes to the full assistant, as the text of the bar does.
+					ask(v);
+					setReply("");
+					setQuery("");
+					setPaletteOpen(false);
+				}}
+			>
+				<Input
+					label={t.palette.reply}
+					value={reply}
+					onChange={(e) => setReply(e.target.value)}
+					className="w-auto flex-[1_1_200px]"
+				/>
+				<Button type="submit" variant="primary">
+					{t.palette.send}
+				</Button>
+			</form>
+			<LinkButton
 				onClick={() => {
 					// The text goes to the draft and opens the panel; no text only opens the panel.
 					if (text) ask(text);
@@ -322,8 +361,8 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 				}}
 			>
 				{t.palette.openAssistant}
-			</Button>
-		</section>
+			</LinkButton>
+		</Card>
 	);
 
 	return (

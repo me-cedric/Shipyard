@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { openSync } from "@/features/shell/test-open";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
@@ -13,12 +14,8 @@ async function cleanCopy() {
 	await unwrap(commands.codeDiscard(["src"], false));
 }
 
-const bar = async () => within(await screen.findByRole("contentinfo"));
-// The one Sync action sits in the context bar on top.
-const top = async () => within(await screen.findByRole("banner"));
-
 describe("the sync action and the connection state rows", () => {
-	it("runs one tick from the context bar and the row shows the state with the time", async () => {
+	it("runs one tick from the card of the sync mark and the row shows the state with the time", async () => {
 		const user = userEvent.setup();
 		const id = await withTracker();
 		mountApp("/setup/project?page=connections");
@@ -26,26 +23,27 @@ describe("the sync action and the connection state rows", () => {
 		// Nothing synced yet: the dash, no time.
 		expect(await within(row).findByRole("status")).toHaveTextContent("Idle");
 		expect(row.querySelector("time")).toBeNull();
-		await user.click((await top()).getByRole("button", { name: "Sync" }));
+		await user.click((await openSync(user)).getByRole("button", { name: "Sync" }));
 		await waitFor(() => expect(mockState().sync.ticks).toBe(1));
 		await waitFor(() => expect(row.querySelector("time")).not.toBeNull());
 		expect(mockState().sync.lastOk[id]).toBeGreaterThan(0);
 		expect(mockState().sync.mirror.length).toBeGreaterThan(0);
 	});
 
-	it("shows the failed state with the reason, and the status bar says why", async () => {
+	it("shows the failed state with the reason, and the card of the sync mark says why", async () => {
 		const user = userEvent.setup();
 		await withTracker(false);
 		await cleanCopy();
 		mountApp("/setup/project?page=connections");
 		const row = await screen.findByRole("group", { name: "Acme" });
-		await user.click((await top()).getByRole("button", { name: "Sync" }));
+		const card = await openSync(user);
+		await user.click(card.getByRole("button", { name: "Sync" }));
 		await waitFor(() => expect(within(row).getByRole("status")).toHaveTextContent("Failed"));
 		expect(within(row).getByRole("status")).toHaveTextContent("This connection has no token yet.");
-		expect((await bar()).getAllByRole("alert")[0]).toHaveTextContent(
-			"This connection has no token yet.",
-		);
-		expect((await bar()).getByRole("button", { name: "Open settings" })).toBeVisible();
+		// The one alert is the live region beside the mark; the card shows the same reason.
+		expect(screen.getAllByRole("alert")[0]).toHaveTextContent("This connection has no token yet.");
+		expect(card.getByText("This connection has no token yet.")).toBeVisible();
+		expect(card.getByRole("button", { name: "Open settings" })).toBeVisible();
 	});
 
 	it("focuses the pickup label field when the address names its anchor", async () => {

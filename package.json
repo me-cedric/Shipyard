@@ -26,7 +26,8 @@
 	"dependencies": {
 		"@base-ui/react": "^1.9.0",
 		"@excalidraw/excalidraw": "^0.18.1",
-		"@fontsource-variable/inter": "^5.3.0",
+		"@fontsource-variable/geist": "^5.3.0",
+		"@fontsource-variable/geist-mono": "^5.3.0",
 		"@likec4/language-services": "^1.60.0",
 		"@tanstack/react-query": "^5.105.0",
 		"@tanstack/react-router": "^1.170.46",

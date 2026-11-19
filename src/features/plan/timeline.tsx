@@ -432,7 +432,7 @@ export function Timeline() {
 					</ul>
 				</section>
 			) : null}
-			<div className="mx-4 mb-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-surface-1 shadow-1">
+			<div className="mx-4 mb-3 flex min-h-64 flex-1 flex-col overflow-hidden rounded-xl border bg-surface-1 shadow-1">
 				<Gantt
 					key={zoom}
 					bars={bars}

@@ -78,13 +78,15 @@ describe("StageLine", () => {
 		const list = screen.getByRole("list", { name: "Stages" });
 		const items = within(list).getAllByRole("listitem");
 		expect(items.map((i) => i.textContent)).toEqual([
-			"✓Idea done",
-			"✓Spec done",
-			"●Build current",
+			"Idea done",
+			"Spec done",
+			"Build current",
 			"Review",
 			"Ready",
 		]);
 		expect(items[2]).toHaveAttribute("aria-current", "step");
+		// The shape tells the state too: a check for a done stage, none for the others.
+		expect(items.map((i) => i.querySelectorAll("svg").length)).toEqual([1, 1, 0, 0, 0]);
 	});
 
 	it("shows a mark as text with a shape", () => {
@@ -104,7 +106,7 @@ describe("AttentionCard", () => {
 			</AttentionCard>,
 		);
 		const card = screen.getByRole("article");
-		expect(card).toHaveClass("border-attention");
+		expect(card).toHaveClass("outline-attention");
 		expect(within(card).getByText("Ana")).toBeInTheDocument();
 		expect(within(card).getByRole("heading", { name: "Approve the plan" })).toBeInTheDocument();
 		expect(within(card).getByRole("button", { name: "Approve" })).toBeInTheDocument();
@@ -178,7 +180,7 @@ describe("Door", () => {
 });
 
 describe("value row (SettingsRow)", () => {
-	it("is a row of 44 px or more with a name, a value and an action at the end", () => {
+	it("is a row of 60 px or more with a name, a value and an action at the end", () => {
 		renderApp(
 			<SettingsRow label="Branch">
 				<span>main</span>
@@ -186,7 +188,7 @@ describe("value row (SettingsRow)", () => {
 			</SettingsRow>,
 		);
 		const row = screen.getByRole("group", { name: "Branch" });
-		expect(row).toHaveClass("min-h-11");
+		expect(row).toHaveClass("min-h-15");
 		expect(within(row).getByText("main")).toBeInTheDocument();
 		expect(within(row).getByRole("button", { name: "Change" })).toBeInTheDocument();
 	});

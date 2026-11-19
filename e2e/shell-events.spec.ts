@@ -1,7 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { openFirstFolder } from "./first-run";
+import { visit } from "./places";
 
 test("shows a notification for a newer version, in a toast and in the centre", async ({ page }) => {
-	await page.goto("/setup/me");
+	// Today needs a project: with none, the bare page of the first run shows.
+	await page.goto("/");
+	await openFirstFolder(page);
+	await visit(page, "/setup/me");
 	// The mock release address with `newer` in it has a newer version.
 	const address = page.getByRole("textbox", { name: "Release address" });
 	await address.fill("https://example.com/newer/latest");

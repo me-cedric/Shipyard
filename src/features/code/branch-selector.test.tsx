@@ -12,7 +12,8 @@ async function start() {
 	const code = seedCode();
 	code.remoteBranches.push("origin/dev");
 	mockState().code = code;
-	mountApp("/code/branches");
+	// The selector is in the action row of Code / Now and in the card of the sync mark.
+	mountApp("/code/now");
 	return userEvent.setup();
 }
 

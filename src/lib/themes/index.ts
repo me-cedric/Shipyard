@@ -55,6 +55,7 @@ export function themeVars(t: ThemeFile): Record<string, string> {
 		v["--accent-hover"] = "color-mix(in oklch, var(--accent) 85%, var(--n-12))";
 		v["--accent-subtle"] = "color-mix(in oklch, var(--accent) 18%, var(--surface-0))";
 		v["--accent-text"] = "color-mix(in oklch, var(--accent) 80%, var(--n-12))";
+		v["--accent-tint"] = "color-mix(in oklch, var(--accent) 8%, var(--surface-0))";
 	}
 	if (t.radius != null) {
 		const r = t.radius;

@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { openSync } from "@/features/shell/test-open";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { seedCode } from "@/lib/ipc/mock-code";
@@ -61,10 +62,11 @@ describe("Code / History", () => {
 });
 
 describe("Code / Branches", () => {
-	it("shows the working branch in the header selector and lists the local and remote branches", async () => {
+	it("shows the working branch in the selector of the sync mark and lists the local and remote branches", async () => {
 		await open();
 		mountApp("/code/branches");
-		expect(await selector()).toHaveTextContent("main");
+		const card = await openSync(userEvent.setup());
+		expect(card.getByRole("combobox", { name: "Working branch" })).toHaveTextContent("main");
 		expect(await screen.findByRole("heading", { name: "Local (2)" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Remote (1)" })).toBeInTheDocument();
 	});
@@ -76,7 +78,7 @@ describe("Code / Branches", () => {
 		const create = await screen.findByRole("button", { name: "Branch" });
 		const primary = within(main())
 			.getAllByRole("button")
-			.filter((b) => b.className.includes("bg-accent"));
+			.filter((b) => b.className.includes("bg-primary"));
 		expect(primary).toEqual([create]);
 		// An empty area and subject give `feat//`: the same rule refuses it and shows the types.
 		await user.click(create);
@@ -97,7 +99,10 @@ describe("Code / Branches", () => {
 		await user.click(screen.getByRole("button", { name: "Branch" }));
 		await waitFor(() => expect(mockState().code?.branch).toBe("fix/auth/login-timeout"));
 		expect(await screen.findByRole("heading", { name: "Local (3)" })).toBeInTheDocument();
-		expect(await selector()).toHaveTextContent("fix/auth/login-timeout");
+		const card = await openSync(user);
+		expect(card.getByRole("combobox", { name: "Working branch" })).toHaveTextContent(
+			"fix/auth/login-timeout",
+		);
 	});
 
 	it("switches and refuses a switch that would overwrite a change, naming the file", async () => {
@@ -127,7 +132,7 @@ describe("Code / Branches", () => {
 		await waitFor(() => expect(mockState().code?.branches["feat/auth/login"]).toBeUndefined());
 	});
 
-	it("switches from the header selector", async () => {
+	it("switches from the selector of Code / Now", async () => {
 		const user = userEvent.setup();
 		await open();
 		await unwrap(commands.codeDiscard(["src/app.ts"], false));

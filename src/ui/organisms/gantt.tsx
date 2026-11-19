@@ -240,7 +240,7 @@ export function Gantt({
 					{band ? <LoadStrip band={band} x={x} dayWidth={dayWidth} /> : null}
 					<span
 						aria-hidden="true"
-						className="absolute bottom-0.5 z-10 -translate-x-1/2 rounded-full bg-accent-gradient px-1.5 font-mono text-11 text-accent-fg shadow-glow"
+						className="absolute bottom-0.5 z-10 -translate-x-1/2 rounded-full bg-primary px-1.5 font-mono text-11 text-primary-fg"
 						style={{ left: x(today) + dayWidth / 2 }}
 					>
 						{today.slice(8)}
@@ -289,7 +289,7 @@ export function Gantt({
 								aria-label={
 									milestoneLabel?.(e.id, ends.get(e.id) ?? "") ?? `${e.id} ${ends.get(e.id)}`
 								}
-								className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] bg-accent-gradient shadow-glow"
+								className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] bg-primary"
 								style={{ left: x(ends.get(e.id) ?? today) + dayWidth }}
 							/>
 						) : null}
@@ -336,7 +336,7 @@ export function Gantt({
 			<div
 				role="img"
 				aria-label={`${todayLabel} ${today}`}
-				className="pointer-events-none absolute top-0 bottom-0 z-10 w-0.5 -translate-x-1/2 bg-accent shadow-glow"
+				className="pointer-events-none absolute top-0 bottom-0 z-10 w-0.5 -translate-x-1/2 bg-accent"
 				style={{ left: x(today) + dayWidth / 2 }}
 			/>
 		</VirtualList>

@@ -20,7 +20,8 @@ describe("visual language v2 molecules (ADR 0014)", () => {
 			/>,
 		);
 		expect(screen.getByRole("heading", { level: 1, name: "Runs" })).toBeInTheDocument();
-		expect(screen.getByText("4")).toBeInTheDocument();
+		// The count is plain text after the title, not a pill, and not a part of the name of the title.
+		expect(screen.getByText("4")).toHaveClass("text-n-11");
 		expect(screen.getByText("main")).toBeInTheDocument();
 		await userEvent.click(screen.getByRole("button", { name: "More" }));
 		await userEvent.click(await screen.findByRole("menuitem", { name: "Refresh" }));

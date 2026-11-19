@@ -160,24 +160,25 @@ export class Walk {
 		await this.click(chip);
 	};
 
-	/** First run: pick the role card, open the demo folder. The app picks the page. */
+	/** First run, a bare page: pick the role tile, open the demo folder. The app picks the page. */
 	start = async () => {
 		await this.page.goto("/");
 		await this.step(
 			"First screen",
-			"the Welcome page: role cards and project cards",
+			"the first question: one tile for each role",
 			async () => {
-				await this.see(this.page.getByRole("heading", { name: "Welcome" }), "no Welcome page");
+				await this.see(
+					this.page.getByRole("heading", { level: 1, name: "What is your job?" }),
+					"no first question",
+				);
 			},
 			true,
 		);
 		await this.step(
 			"Pick the role and open the project",
-			`the "${this.role.label}" card, Continue, then "Open a local folder"`,
+			`the "${this.role.label}" tile, Continue, then "Open a local folder"`,
 			async () => {
-				await this.click(
-					this.page.getByRole("radiogroup").getByText(this.role.label, { exact: true }),
-				);
+				await this.click(this.page.getByRole("button", { name: this.role.label, exact: true }));
 				await this.click(this.page.getByRole("button", { name: "Continue" }));
 				await this.click(this.page.getByRole("button", { name: "Open a local folder" }));
 				// A page of Library has the back link in the place of the section switch.

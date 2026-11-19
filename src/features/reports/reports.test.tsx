@@ -87,7 +87,9 @@ describe("Exports and the terminal (W11)", () => {
 		await user.click(await screen.findByRole("combobox", { name: "Terminal app" }));
 		await user.click(await screen.findByRole("option", { name: "kitty" }));
 		await waitFor(() => expect(mockState().prefs.terminalApp).toBe("kitty"));
-		await user.click(await screen.findByRole("button", { name: "Terminal" }));
+		// The terminal action is in the Ask bar, under Do.
+		await user.click(await screen.findByRole("combobox", { name: "Ask or tell Shipyard" }));
+		await user.click(await screen.findByRole("option", { name: /^Terminal/ }));
 		await user.click(await screen.findByRole("button", { name: "Dock terminal" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Open in kitty" }));
 		await waitFor(() =>

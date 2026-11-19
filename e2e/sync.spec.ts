@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { openFirstFolder } from "./first-run";
+import { openFirstFolder, openSync } from "./first-run";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
@@ -64,7 +64,7 @@ test("imports the backlog after a count, then reads it from the mirror with no t
 	await expect(page.getByRole("button", { name: /ACME-2(?!\d)/ })).toBeVisible();
 });
 
-test("the sync action in the status bar runs a tick and the connection shows its state", async ({
+test("the sync action in the card of the sync mark runs a tick and the connection shows its state", async ({
 	page,
 }) => {
 	await openWithTracker(page);
@@ -78,9 +78,16 @@ test("the sync action in the status bar runs a tick and the connection shows its
 	const row = page.getByRole("group", { name: "Acme" });
 	await expect(row.getByRole("status")).toHaveText("Idle");
 
-	// Keyboard only: focus the action, press Enter.
-	const sync = page.getByRole("banner").getByRole("button", { name: "Sync", exact: true });
-	await sync.focus();
+	// Keyboard only: focus the sync mark, press Enter, then focus the action, press Enter.
+	await page
+		.getByRole("banner")
+		.getByRole("button", { name: /^Sync state/ })
+		.focus();
+	await page.keyboard.press("Enter");
+	await page
+		.getByRole("dialog", { name: "Sync state" })
+		.getByRole("button", { name: "Sync", exact: true })
+		.focus();
 	await page.keyboard.press("Enter");
 	await expect(row.getByRole("status")).toContainText(/Idle\s*\d{1,2}[:.]\d{2}/);
 
@@ -100,7 +107,7 @@ test("a failed poll shows the failed state and keeps the mirror", async ({ page 
 		.getByRole("navigation", { name: "This project" })
 		.getByRole("link", { name: "Connections" })
 		.click();
-	await page.getByRole("banner").getByRole("button", { name: "Sync", exact: true }).click();
+	await (await openSync(page)).getByRole("button", { name: "Sync", exact: true }).click();
 	const row = page.getByRole("group", { name: "Acme" });
 	await expect(row.getByRole("status")).toContainText("Failed");
 	await expect(row.getByRole("status")).toContainText("This connection has no token yet.");

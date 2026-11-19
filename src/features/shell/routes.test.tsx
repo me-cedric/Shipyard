@@ -16,6 +16,7 @@ import {
 	visibleSections,
 } from "./places";
 import { SPACE_IDS, SPACES, tabIcon, tabLabel } from "./spaces";
+import { openSync } from "./test-open";
 
 const sidebar = () => screen.findByRole("navigation", { name: "Sidebar" });
 
@@ -101,8 +102,11 @@ describe("role homes (shell REQ-009, team-rights REQ-013, app-redesign REQ-006)"
 			expect(within(nav).queryByRole("link", { name: /^Code/ })).not.toBeInTheDocument(),
 		);
 		expect(within(nav).getAllByRole("link")).toHaveLength(6);
-		const bar = within(await screen.findByRole("contentinfo"));
-		expect(bar.queryByRole("link", { name: /lines added/ })).toBeNull();
+		// The card of the sync mark holds the links to the changes.
+		const card = await openSync(user);
+		expect(card.queryByRole("link", { name: /lines added/ })).toBeNull();
+		expect(card.queryByRole("link", { name: /^Changed files/ })).toBeNull();
+		await user.keyboard("{Escape}");
 		await user.keyboard("{Control>}k{/Control}");
 		const panel = within(await screen.findByRole("listbox"));
 		expect(await panel.findByRole("option", { name: "Today / Today" })).toBeInTheDocument();
@@ -335,6 +339,7 @@ describe("tab names", () => {
 	});
 
 	it("lets the tabs wrap, so a narrow main view cuts none off", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/code/changes");
 		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
 		await within(tabs).findByRole("link", { name: "Branches" });
@@ -350,6 +355,7 @@ describe("tab names", () => {
 
 describe("twin tabs (ux-declutter REQ-014, REQ-021)", () => {
 	it("keeps Manual out of the section switch; Terminal is a section of Code: Code shows 4 sections", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/code/changes");
 		const code = await screen.findByRole("navigation", { name: "Tabs" });
 		expect(within(code).getAllByRole("link")).toHaveLength(4);
@@ -406,6 +412,7 @@ describe("twin tabs (ux-declutter REQ-014, REQ-021)", () => {
 
 describe("no tour and no hidden tab (shell REQ-016)", () => {
 	it("shows every section of a place, with no tour or help text", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/work");
 		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
 		expect(within(tabs).getAllByRole("link")).toHaveLength(barSections("flow").length);

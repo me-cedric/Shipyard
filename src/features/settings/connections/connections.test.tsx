@@ -48,7 +48,7 @@ describe("Settings / Connections", () => {
 		const router = mountApp("/setup/project?page=connections");
 		const main = await screen.findByRole("main");
 		const add = await within(main).findByRole("button", { name: "Connection" });
-		expect(add.className).toContain("bg-accent");
+		expect(add.className).toContain("bg-primary");
 		expect(within(main).getByText("No connections")).toBeInTheDocument();
 		// The runners are detected, not added: they come first under This computer. The MCP servers
 		// (with the recommended set) and the certificates wait in Advanced.
@@ -78,7 +78,7 @@ describe("Settings / Connections", () => {
 		expect(screen.getByRole("heading", { name: "Code hosts (1)" })).toBeInTheDocument();
 		const primary = within(screen.getByRole("main"))
 			.getAllByRole("button")
-			.filter((b) => b.className.includes("bg-accent"));
+			.filter((b) => b.className.includes("bg-primary"));
 		expect(primary.map((b) => b.textContent)).toEqual(["Connection"]);
 	});
 
@@ -414,10 +414,12 @@ describe("Settings / Connections", () => {
 		await seed({ name: "Acme" });
 		mountApp("/setup/project?page=connections");
 		await user.click(within(await row("Acme")).getByRole("button", { name: "Edit" }));
-		expect(screen.getByRole("button", { name: "Connection" }).className).not.toContain("bg-accent");
+		expect(screen.getByRole("button", { name: "Connection" }).className).not.toContain(
+			"bg-primary",
+		);
 		const primary = within(screen.getByRole("main"))
 			.getAllByRole("button")
-			.filter((b) => b.className.includes("bg-accent"));
+			.filter((b) => b.className.includes("bg-primary"));
 		expect(primary.map((b) => b.textContent)).toEqual(["Save"]);
 	});
 

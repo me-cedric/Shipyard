@@ -9,12 +9,12 @@ export function spendStatus(usd: number, budget: number | null): SpendStatus | n
 }
 
 const BAR: Record<SpendStatus, string> = {
-	success: "bg-success",
-	warning: "bg-warning",
-	danger: "bg-danger",
+	success: "bg-accent",
+	warning: "bg-accent",
+	danger: "bg-attention-strong",
 };
 
-/** Spend against a budget: a bar, and a shape and colour for the status. */
+/** Spend against a budget: the meter, and a shape and colour for the status. The bar changes colour over the budget. */
 export function SpendMeter({
 	usd,
 	budget,
@@ -35,10 +35,10 @@ export function SpendMeter({
 				aria-valuemin={0}
 				aria-valuemax={budget}
 				aria-valuenow={usd}
-				className="h-1.5 w-full min-w-12 overflow-hidden rounded-full bg-n-4"
+				className="h-2 w-full min-w-12 overflow-hidden rounded-full bg-n-5"
 			>
 				<span
-					className={`block h-full ${BAR[status]}`}
+					className={`block h-full rounded-full ${BAR[status]}`}
 					style={{ width: `${Math.min(100, (usd / budget) * 100)}%` }}
 				/>
 			</span>

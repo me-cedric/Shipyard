@@ -108,6 +108,7 @@ describe("Library / Manual", () => {
 
 	it("opens the page of the current place, at its section, from the palette", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/crew/spend");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}k{/Control}");

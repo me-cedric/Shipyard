@@ -52,7 +52,7 @@ export type Action = {
 	chord?: string;
 	/** The chord that ships with the app. */
 	defaultChord?: string;
-	/** The action cannot run now. The status bar shows it off and the palette hides it. */
+	/** The action cannot run now. Its button shows it off and the palette hides it. */
 	disabled?: boolean;
 	/** An id of before adr:0023: it still runs, but the palette does not list it. */
 	hidden?: boolean;
@@ -69,7 +69,7 @@ const THEME_ICON: Record<Theme, Icon> = {
 
 export const shortcutText = (key: string) => chordText(`mod+${key}`);
 
-/** The one registry. The palette, the context bar and the status bar read it. */
+/** The one registry. The palette, the top row, the sync mark and the account menu read it. */
 export function useActions() {
 	const { t, setLang } = useI18n();
 	const { sidebarOpen, setPrefs, profile, theme, uiScale } = usePrefs();

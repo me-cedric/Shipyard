@@ -49,9 +49,9 @@ describe("Loading", () => {
 		renderApp(<Page before={<Loading title="Runs" />} after={loaded("Runs")} />);
 		await load();
 		expect(screen.getByTestId("page")).toHaveAttribute("data-reveal");
-		expect(screen.getByRole("heading", { name: "Runs" }).parentElement).toHaveAttribute(
-			"data-page-header",
-		);
+		expect(
+			screen.getByRole("heading", { name: "Runs" }).closest("[data-page-header]"),
+		).not.toBeNull();
 		act(() => {
 			vi.advanceTimersByTime(DURATION.fast + 50);
 		});

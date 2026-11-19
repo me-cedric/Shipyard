@@ -44,24 +44,24 @@ export function Select({
 				aria-label={label}
 				aria-description={disabled ? reason : undefined}
 				className={cn(
-					"inline-flex min-h-control min-w-24 shrink-0 items-center justify-between gap-2 rounded-md whitespace-nowrap border border-n-7 bg-n-1 px-2 text-ui text-n-12",
+					"inline-flex min-h-control min-w-24 shrink-0 items-center justify-between gap-2 rounded-md whitespace-nowrap border border-n-7 bg-surface-1 px-4 text-n-12",
 					className,
 				)}
 			>
 				<BaseSelect.Value className="min-w-0 truncate" placeholder={placeholder} />
-				<BaseSelect.Icon className="rotate-90 text-n-10">
+				<BaseSelect.Icon className="rotate-90 text-n-11">
 					<ChevronRightIcon size={12} />
 				</BaseSelect.Icon>
 			</BaseSelect.Trigger>
 			<BaseSelect.Portal>
 				<BaseSelect.Positioner sideOffset={4} className="z-50">
-					<BaseSelect.Popup className="min-w-(--anchor-width) rounded-lg border border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring origin-(--transform-origin) data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 p-1 text-ui">
+					<BaseSelect.Popup className="min-w-(--anchor-width) rounded-field border border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring origin-(--transform-origin) data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 p-1 text-ui">
 						<BaseSelect.List>
 							{items.map((item) => (
 								<BaseSelect.Item
 									key={item.value}
 									value={item.value}
-									className="flex min-h-control cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5"
+									className="flex min-h-control cursor-pointer items-center gap-2 rounded-sm px-3 text-n-12 data-[highlighted]:bg-n-3"
 								>
 									<BaseSelect.ItemIndicator className="w-3">
 										<CheckIcon size={12} />

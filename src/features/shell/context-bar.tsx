@@ -1,53 +1,22 @@
-import { useNavigate } from "@tanstack/react-router";
-import { useState, useSyncExternalStore } from "react";
 import { SyncMark } from "@/features/code/sync-mark";
-import { CloneDialog } from "@/features/projects/clone-dialog";
-import { usePicture } from "@/features/settings/picture-field";
 import { useI18n } from "@/lib/i18n";
-import { errorDialog } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
-import { outcomeError, useActiveProject, useProjectActions, useProjects } from "@/lib/projects";
-import { useShell } from "@/lib/shell";
 import { IconButton } from "@/ui/atoms/icon-button";
-import {
-	ChevronLeftIcon,
-	ChevronRightIcon,
-	CommandLineIcon,
-	FolderOpenIcon,
-	SidebarIcon,
-} from "@/ui/icons";
-import { MenuButton } from "@/ui/molecules/menu-button";
-import { ProjectSwitcher } from "@/ui/molecules/project-switcher";
-import { AccountMenu } from "./account-menu";
+import { ChevronLeftIcon, ChevronRightIcon, SidebarIcon } from "@/ui/icons";
 import type { Action } from "./actions";
 import { PaletteHost } from "./palette-host";
 
-const NARROW = "(max-width: 1099px)";
-
-/** True under 1100 px: the right-hand icons fold into one More menu. */
-function useNarrow() {
-	return useSyncExternalStore(
-		(on) => {
-			const q = window.matchMedia?.(NARROW);
-			q?.addEventListener?.("change", on);
-			return () => q?.removeEventListener?.("change", on);
-		},
-		() => window.matchMedia?.(NARROW)?.matches ?? false,
-	);
-}
-
 /**
- * The bar on top of every page: the project, the branch, the state of the repository with the one
- * Sync, then the Ask bar and the account menu.
+ * The top row of every page: the rail toggle, Back and Forward, the Ask bar, then the sync mark at
+ * the right end. The project is in the rail, and the files and the terminal are actions of the Ask bar.
  */
 export function ContextBar({
 	sync,
 	fetch,
 	push,
+	commit,
 	actions,
 	palette,
-	files,
-	terminal,
 	back,
 	forward,
 	toggleSidebar,
@@ -55,101 +24,46 @@ export function ContextBar({
 	sync: Action;
 	fetch: Action;
 	push: Action;
+	commit: Action;
 	/** Every action: the Ask bar lists them under Do. */
 	actions: Action[];
 	palette: Action;
-	files: Action;
-	terminal: Action;
 	back: Action;
 	forward: Action;
 	toggleSidebar: Action;
 }) {
 	const { t } = useI18n();
 	const { sidebarOpen } = usePrefs();
-	const projects = useProjects().data ?? [];
-	const active = useActiveProject().data;
-	const { switchTo, openFolder, close, remove } = useProjectActions();
-	const navigate = useNavigate();
-	const [cloning, setCloning] = useState(false);
-	const { filesOpen, terminalOpen } = useShell();
-	const narrow = useNarrow();
-	const logo = usePicture("logo").data;
 	return (
 		<>
-			<IconButton
-				label={sidebarOpen ? t.workspace.view.hideSidebar : t.workspace.view.showSidebar}
-				shortcut={toggleSidebar.shortcut}
-				onClick={toggleSidebar.run}
-			>
-				<SidebarIcon size={16} />
-			</IconButton>
-			<IconButton label={back.label} shortcut={back.shortcut} onClick={back.run}>
-				<ChevronLeftIcon size={16} />
-			</IconButton>
-			<IconButton label={forward.label} shortcut={forward.shortcut} onClick={forward.run}>
-				<ChevronRightIcon size={16} />
-			</IconButton>
-			{active && logo ? (
-				<img src={logo} alt={active.name} className="size-6 shrink-0 rounded-sm object-contain" />
-			) : null}
-			<ProjectSwitcher
-				projects={projects}
-				value={active?.id ?? null}
-				onChange={(id) => void switchTo(id)}
-				onAll={() => void navigate({ to: "/projects" })}
-				onOpen={() =>
-					void openFolder().then((o) => {
-						const error = o && outcomeError(t, o);
-						if (error) void errorDialog(error);
-					})
-				}
-				onClone={() => setCloning(true)}
-				onClose={() => void close()}
-				onRemove={(p) => void remove(p)}
-				className="max-w-56 border-transparent bg-transparent hover:bg-n-3"
-			/>
-			<CloneDialog open={cloning} onClose={() => setCloning(false)} />
-			<SyncMark sync={sync} fetch={fetch} push={push} />
-			<span className="flex-1" />
+			<div className="flex shrink-0 gap-2">
+				<IconButton
+					variant="outline"
+					label={sidebarOpen ? t.workspace.view.hideSidebar : t.workspace.view.showSidebar}
+					shortcut={toggleSidebar.shortcut}
+					onClick={toggleSidebar.run}
+				>
+					<SidebarIcon size={16} />
+				</IconButton>
+				<IconButton
+					variant="outline"
+					label={back.label}
+					shortcut={back.shortcut}
+					onClick={back.run}
+				>
+					<ChevronLeftIcon size={16} />
+				</IconButton>
+				<IconButton
+					variant="outline"
+					label={forward.label}
+					shortcut={forward.shortcut}
+					onClick={forward.run}
+				>
+					<ChevronRightIcon size={16} />
+				</IconButton>
+			</div>
 			<PaletteHost actions={actions} shortcut={palette.shortcut} />
-			{narrow ? null : (
-				<>
-					<IconButton
-						label={files.label}
-						shortcut={files.shortcut}
-						aria-pressed={filesOpen}
-						disabled={files.disabled}
-						onClick={files.run}
-						className="aria-pressed:bg-n-4 aria-pressed:text-n-12"
-					>
-						<FolderOpenIcon size={16} />
-					</IconButton>
-					<IconButton
-						label={terminal.label}
-						shortcut={terminal.shortcut}
-						aria-pressed={terminalOpen}
-						disabled={terminal.disabled}
-						onClick={terminal.run}
-						className="aria-pressed:bg-n-4 aria-pressed:text-n-12"
-					>
-						<CommandLineIcon size={16} />
-					</IconButton>
-				</>
-			)}
-			{narrow ? (
-				<MenuButton
-					label={t.workspace.view.more}
-					iconOnly
-					icon="⋯"
-					items={[files, terminal].map((a) => ({
-						id: a.id,
-						label: a.label,
-						disabled: a.disabled,
-						onSelect: a.run,
-					}))}
-				/>
-			) : null}
-			<AccountMenu />
+			<SyncMark sync={sync} fetch={fetch} push={push} commit={commit} />
 		</>
 	);
 }

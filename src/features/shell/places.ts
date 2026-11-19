@@ -1,13 +1,13 @@
 import type { ComponentType } from "react";
 import type { TeamRole } from "@/lib/ipc";
 import {
-	BookOpenIcon,
-	CalendarDaysIcon,
-	CodeBracketIcon,
-	Cog6ToothIcon,
-	HomeIcon,
-	UsersIcon,
-	ViewColumnsIcon,
+	CodeIcon,
+	CrewIcon,
+	FlowIcon,
+	LibraryIcon,
+	PlanIcon,
+	SetupIcon,
+	TodayIcon,
 } from "@/ui/icons";
 import {
 	hiddenTab,
@@ -106,13 +106,13 @@ export type PlacePath = { [P in PlaceId]: `/${P}/${TabOf<(typeof PLACES)[P][numb
 export const PLACE_IDS = Object.keys(PLACES) as PlaceId[];
 
 export const PLACE_ICON: Record<PlaceId, ComponentType<{ size?: number }>> = {
-	today: HomeIcon,
-	flow: ViewColumnsIcon,
-	plan: CalendarDaysIcon,
-	crew: UsersIcon,
-	library: BookOpenIcon,
-	code: CodeBracketIcon,
-	setup: Cog6ToothIcon,
+	today: TodayIcon,
+	flow: FlowIcon,
+	plan: PlanIcon,
+	crew: CrewIcon,
+	library: LibraryIcon,
+	code: CodeIcon,
+	setup: SetupIcon,
 };
 
 // shortcut: one cast. A template over two unions makes invalid pairs, so the callers pass a slug of the place.

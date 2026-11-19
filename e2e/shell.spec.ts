@@ -5,8 +5,13 @@ import { visit } from "./places";
 test("first run shows one primary action and no tour or help text", async ({ page }) => {
 	await page.goto("/");
 	await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
-	await expect(page.getByRole("navigation", { name: "Sidebar" }).getByRole("link")).toHaveCount(7);
+	// The first run is a bare page: no rail, no top row. The rail shows with the project.
+	const sidebar = page.getByRole("navigation", { name: "Sidebar" });
+	await expect(sidebar).toHaveCount(0);
+	await expect(page.getByRole("banner")).toHaveCount(0);
 	await expect(page.getByText(/tour|tip/i)).toHaveCount(0);
+	await openFirstFolder(page);
+	await expect(sidebar.getByRole("link")).toHaveCount(7);
 });
 
 test("keyboard path: place shortcut, palette action, inspector and a focus ring", async ({
@@ -35,9 +40,10 @@ test("keyboard path: place shortcut, palette action, inspector and a focus ring"
 	await expect(page.getByRole("dialog")).toHaveCount(0);
 	// Tab reaches the sidebar and the focus shows a ring (keyboard focus).
 	const sidebar = page.getByRole("navigation", { name: "Sidebar" });
-	// The context bar comes first: about 16 stops.
+	// The rail is before the top row: Shift+Tab from the top row reaches its foot.
+	await page.getByRole("banner").getByRole("button", { name: "Back" }).focus();
 	for (let i = 0; i < 24; i++) {
-		await page.keyboard.press("Tab");
+		await page.keyboard.press("Shift+Tab");
 		if (await sidebar.locator(":focus").count()) break;
 	}
 	const focused = sidebar.locator(":focus");
@@ -82,7 +88,7 @@ test("shows the shortcuts overlay and rebinds an action", async ({ page }) => {
 // spec:app-redesign#REQ-006, scenario "A viewer": Today opens and the menu shows no Code place.
 test("a viewer opens on Today and sees no Code place", async ({ page }) => {
 	await page.goto("/");
-	await page.getByRole("radiogroup").getByText("Viewer", { exact: true }).click();
+	await page.getByRole("button", { name: "Viewer", exact: true }).click();
 	await openFirstFolder(page);
 	await expect(page).toHaveURL(/\/today\/today$/);
 	const sidebar = page.getByRole("navigation", { name: "Sidebar" });

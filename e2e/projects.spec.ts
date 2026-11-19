@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openFirstFolder } from "./first-run";
+import { openAccount, openFirstFolder } from "./first-run";
 
 test("opens a folder from the first run, opens a second project and switches back", async ({
 	page,
@@ -43,7 +43,8 @@ test("closes a project, opens it again from the recent list and switches between
 	await pick("menuitem", "Close project");
 	const recent = page.getByRole("list", { name: "Recent projects" });
 	await expect(recent.getByRole("button", { name: /alpha/ })).toBeVisible();
-	await expect(switcher).not.toHaveText(/alpha/);
+	// No project is open: the bare page of the first run has no rail and no project switch.
+	await expect(switcher).toHaveCount(0);
 	await recent.getByRole("button", { name: /alpha/ }).click();
 	await expect(switcher).toHaveText(/alpha/);
 	await expect(
@@ -81,7 +82,7 @@ test("shows the open project on the Projects page and closes it there", async ({
 test("fixes a finding in Settings / Health after one confirm click", async ({ page }) => {
 	await page.goto("/");
 	await openFirstFolder(page);
-	await page.getByRole("link", { name: /Health \(2\)/ }).click();
+	await (await openAccount(page)).getByRole("menuitem", { name: /Health \(2\)/ }).click();
 	await expect(page.getByRole("heading", { name: "Compliance (1)" })).toBeVisible();
 	await page.getByRole("button", { name: "Write" }).click();
 	await expect(page.getByLabel(".gitignore")).toContainText(".DS_Store");

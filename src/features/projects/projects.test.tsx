@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
+import { openAccount } from "@/features/shell/test-open";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
@@ -13,13 +14,21 @@ const firstRunButtons = () => within(screen.getByRole("main")).getAllByRole("but
 
 describe("first run", () => {
 	beforeEach(() => localStorage.removeItem("shipyard.cloneFolder"));
-	it("shows the role as named cards, then three starts, with one primary action", async () => {
+	it("shows the role as tiles, then three starts, with one primary action", async () => {
 		const user = userEvent.setup();
 		mountApp("/home/today");
-		await screen.findByRole("button", { name: "Continue" });
+		const go = await screen.findByRole("button", { name: "Continue" });
 		expect(screen.queryByRole("button", { name: "Open a local folder" })).toBeNull();
-		const roles = within(screen.getByRole("radiogroup", { name: "Role" })).getAllByRole("radio");
-		expect(roles.map((r) => r.closest("label")?.textContent)).toEqual([
+		// A bare page: no rail, no top row. The skip link stays.
+		expect(screen.queryByRole("navigation")).toBeNull();
+		expect(screen.queryByRole("combobox", { name: "Ask or tell Shipyard" })).toBeNull();
+		expect(screen.getByRole("button", { name: "Skip to the content" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { level: 1, name: "What is your job?" })).toBeVisible();
+		expect(screen.getByRole("img", { name: "Step 1 of 3" })).toBeVisible();
+		const roles = within(screen.getByRole("group", { name: "What is your job?" })).getAllByRole(
+			"button",
+		);
+		expect(roles.map((r) => r.textContent)).toEqual([
 			"Product owner",
 			"Project manager",
 			"Architect",
@@ -31,9 +40,18 @@ describe("first run", () => {
 			"Viewer",
 			"Other",
 		]);
-		expect(screen.getByRole("radio", { name: "Other" })).toBeChecked();
-		await user.click(screen.getByRole("radio", { name: "Tech lead" }));
-		await waitFor(() => expect(screen.getByRole("radio", { name: "Tech lead" })).toBeChecked());
+		expect(screen.getByRole("button", { name: "Other", pressed: true })).toBeInTheDocument();
+		// Continue is the one primary action of the step.
+		expect(firstRunButtons().filter((b) => b.className.includes("bg-primary"))).toEqual([go]);
+		// The large button: 52 px high, 220 px wide or more. The block is in the middle of the window.
+		expect(go).toHaveClass("min-h-13", "min-w-55", "text-17");
+		expect(go).not.toHaveClass("min-h-control");
+		expect(go.parentElement).toHaveClass("min-h-full", "justify-center");
+		await user.click(screen.getByRole("button", { name: "Tech lead" }));
+		await waitFor(() =>
+			expect(screen.getByRole("button", { name: "Tech lead", pressed: true })).toBeInTheDocument(),
+		);
+		expect(screen.getByRole("button", { name: "Other", pressed: false })).toBeInTheDocument();
 		// A click selects. Continue saves and shows the three starts.
 		expect(mockState().prefs.role).not.toBe("techlead");
 		await next(user);
@@ -45,8 +63,8 @@ describe("first run", () => {
 			"Clone a repository",
 			"Create a project",
 		]);
-		expect(buttons.filter((b) => b.className.includes("bg-accent"))).toHaveLength(1);
-		expect(buttons[0]?.className).toContain("bg-accent");
+		// Each start is a tile of the same weight: the step has no primary button.
+		expect(buttons.filter((b) => b.className.includes("bg-primary"))).toHaveLength(0);
 	});
 
 	it("starts at the three starts for a saved role, and keeps the role", async () => {
@@ -54,9 +72,9 @@ describe("first run", () => {
 		mountApp("/home/today");
 		await screen.findByRole("button", { name: "Open a local folder" });
 		expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
-		expect(screen.getByRole("heading", { level: 2, name: "Project" })).toHaveTextContent(
-			/^Project$/,
-		);
+		// The role step did not show, so it does not count.
+		expect(screen.getByRole("heading", { level: 1, name: "How do you start?" })).toBeVisible();
+		expect(screen.getByRole("img", { name: "Step 1 of 2" })).toBeVisible();
 		expect(mockState().prefs.role).toBe("qa");
 	});
 
@@ -73,11 +91,9 @@ describe("first run", () => {
 		mountApp("/home/today");
 		await next(user);
 		await waitFor(() =>
-			expect(screen.getByRole("heading", { level: 2, name: "Project" })).toHaveFocus(),
+			expect(screen.getByRole("heading", { level: 1, name: "How do you start?" })).toHaveFocus(),
 		);
-		expect(screen.getByRole("heading", { level: 2, name: "Project" })).toHaveTextContent(
-			"2Project",
-		);
+		expect(screen.getByRole("img", { name: "Step 2 of 3" })).toBeVisible();
 	});
 
 	it("opens a local folder and lists it in the switcher", async () => {
@@ -329,9 +345,9 @@ describe("project switcher", () => {
 		await open("/mock/alpha");
 		mockState().prefs.sidebarOpen = false;
 		mountApp("/home/today");
-		// The switcher sits in the context bar since W10: it keeps the name when the sidebar folds.
+		// The switcher sits in the rail (look pass 1). A closed rail shows icons only: the name stays in the spoken name.
 		const trigger = await screen.findByRole("button", { name: /^Project/ });
-		await waitFor(() => expect(trigger).toHaveTextContent("alpha"));
+		await waitFor(() => expect(trigger).toHaveAccessibleName("Project alpha"));
 		await user.click(trigger);
 		expect(await screen.findByRole("menuitemradio", { name: /alpha/ })).toBeInTheDocument();
 	});
@@ -608,12 +624,11 @@ describe("Settings / Health", () => {
 		run.mockRestore();
 	});
 
-	it("shows the worst finding in the status bar and opens Health from it", async () => {
+	it("shows the worst finding in the account menu and opens Health from it", async () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/home/today");
-		const bar = await screen.findByRole("contentinfo");
-		const link = await within(bar).findByRole("link", { name: /Health \(2\)/ });
+		const link = await (await openAccount(user)).findByRole("menuitem", { name: /Health \(2\)/ });
 		expect(within(link).getByRole("img", { name: "Warning" })).toBeInTheDocument();
 		await user.click(link);
 		expect(await screen.findByRole("heading", { name: "Compliance (1)" })).toBeInTheDocument();

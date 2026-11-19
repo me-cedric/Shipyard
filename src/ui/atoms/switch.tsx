@@ -21,7 +21,7 @@ export function Switch({ label, iconOnly, reason, className, disabled, ...props 
 				aria-description={disabled ? reason : undefined}
 				disabled={disabled}
 				className={cn(
-					"relative inline-flex h-4 w-7 shrink-0 items-center rounded-full border border-n-8 bg-n-3 transition-colors duration-(--duration-fast) data-[checked]:border-transparent data-[checked]:bg-accent",
+					"relative inline-flex h-4 w-7 shrink-0 items-center rounded-full border border-n-7 bg-n-4 transition-colors duration-(--duration-fast) data-[checked]:border-transparent data-[checked]:bg-accent",
 					className,
 				)}
 				{...props}

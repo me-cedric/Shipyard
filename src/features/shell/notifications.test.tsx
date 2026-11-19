@@ -4,6 +4,7 @@ import { useState } from "react";
 import { I18nProvider } from "@/lib/i18n";
 import { en } from "@/lib/i18n/en";
 import { fr } from "@/lib/i18n/fr";
+import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
 import { mountApp } from "@/test/mount";
@@ -44,6 +45,7 @@ describe("Notification centre", () => {
 
 	it("shows the changelog once after an update, across two starts", async () => {
 		mockState().prefs.seenVersion = "0.0.9";
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/today");
 		const toast = await screen.findByRole("status", { name: "Notifications" });
 		expect(await within(toast).findByText("What changed in 0.1.0")).toBeInTheDocument();
@@ -59,6 +61,7 @@ describe("Notification centre", () => {
 
 	it("repeats the check every 6 hours and stops when the switch is off", async () => {
 		const spy = vi.spyOn(globalThis, "setInterval");
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await waitFor(() => expect(spy.mock.calls.some((c) => c[1] === 6 * 60 * 60 * 1000)).toBe(true));
@@ -86,6 +89,7 @@ describe("Notification centre", () => {
 	it("keeps the changelog back and the version unchanged when the update source is off", async () => {
 		mockState().prefs.seenVersion = "0.0.9";
 		mockState().prefs.notifyOff = ["update"];
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await new Promise((r) => setTimeout(r, 50));
@@ -95,6 +99,7 @@ describe("Notification centre", () => {
 
 	it("says that the app is up to date on a manual check and stays quiet at start", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/today/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await router.navigate({ to: "/today/news" });
@@ -106,6 +111,7 @@ describe("Notification centre", () => {
 	it("names a failed check, and only on a manual check", async () => {
 		const user = userEvent.setup();
 		mockState().prefs.releaseUrl = "https://example.com/broken";
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		expect(screen.queryByText("Update check failed")).toBeNull();
@@ -295,6 +301,7 @@ describe("Native menu", () => {
 
 	it("maps each menu item to a palette action", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}k{/Control}");

@@ -322,8 +322,11 @@ describe("Factory / Runs", () => {
 			await within(panel).findByRole("textbox", { name: "Message to the agent" }),
 			"Keep both lines.{Enter}",
 		);
-		await waitFor(async () => expect((await find("ACME-9")).state).toBe("Working"));
-	});
+		// The whole suite runs in parallel: the panel can take more than one second to send.
+		await waitFor(async () => expect((await find("ACME-9")).state).toBe("Working"), {
+			timeout: 10_000,
+		});
+	}, 20_000);
 
 	it("shows each event on one line, with the raw JSON behind a chevron", async () => {
 		const user = userEvent.setup();

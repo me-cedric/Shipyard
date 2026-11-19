@@ -8,9 +8,9 @@ export type SwitchItemProps = {
 };
 
 const ITEM =
-	"inline-flex min-h-control items-center rounded-md px-3 text-14 text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12";
+	"inline-flex min-h-control cursor-pointer items-center rounded-sm px-3.5 font-medium text-n-10 transition-colors duration-(--duration-fast) hover:text-n-12";
 
-/** One segmented control under a page title. It wraps when the width is small. Links through `renderItem`, buttons by default. */
+/** One segmented control in the title row of a page. It wraps when the width is small. Links through `renderItem`, buttons by default. */
 export function SectionSwitch({
 	label,
 	items,
@@ -24,7 +24,7 @@ export function SectionSwitch({
 }) {
 	return (
 		<nav aria-label={label}>
-			<ul className="flex w-fit max-w-full flex-wrap gap-1 rounded-lg bg-n-4 p-1">
+			<ul className="flex w-fit max-w-full flex-wrap rounded-md bg-n-4 p-1">
 				{items.map((i) => {
 					const className = cn(ITEM, i.current && "bg-surface-2 text-n-12 shadow-1");
 					return (

@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRef, useState } from "react";
 import { vi } from "vitest";
@@ -9,7 +9,9 @@ function Bar({
 	groups,
 	onSubmit = () => {},
 	onOpenChange = () => {},
+	answered,
 }: {
+	answered?: boolean;
 	groups: PaletteGroup[];
 	onSubmit?: (text: string) => unknown;
 	onOpenChange?: (open: boolean) => void;
@@ -27,7 +29,13 @@ function Bar({
 					onOpenChange(o);
 				}}
 				groups={groups}
-				answer={<p>the answer</p>}
+				answer={
+					<>
+						<p>the answer</p>
+						<input aria-label="Reply" />
+					</>
+				}
+				answered={answered}
 				text={text}
 				onTextChange={setText}
 				onSubmit={onSubmit}
@@ -98,5 +106,75 @@ describe("CommandPalette", () => {
 		await userEvent.keyboard("{Escape}");
 		expect(screen.queryByText("the answer")).toBeNull();
 		expect(before).toHaveFocus();
+	});
+
+	it("does not return the focus to the control of an earlier open", async () => {
+		renderApp(<Bar groups={[]} />);
+		const before = screen.getByRole("button", { name: "before" });
+		before.focus();
+		await userEvent.tab();
+		await userEvent.keyboard("{Escape}");
+		expect(before).toHaveFocus();
+		// The second open comes from no control: the focus was on the page.
+		before.blur();
+		await userEvent.click(field());
+		expect(screen.getByText("the answer")).toBeInTheDocument();
+		await userEvent.keyboard("{Escape}");
+		expect(screen.queryByText("the answer")).toBeNull();
+		expect(before).not.toHaveFocus();
+		expect(document.body).toHaveFocus();
+	});
+
+	it("covers the page area when open, with the large field and the Escape hint", async () => {
+		const { container } = renderApp(<Bar groups={go()} />);
+		expect(container.querySelector("[data-ask-layer]")).toBeNull();
+		await userEvent.click(field());
+		const layer = container.querySelector("[data-ask-layer]");
+		expect(layer).toHaveClass("absolute", "inset-0");
+		// The field is the same element: it keeps the focus.
+		expect(layer).toContainElement(field());
+		expect(field()).toHaveFocus();
+		expect(screen.getByText("esc")).toBeInTheDocument();
+		expect(screen.queryByText("Ctrl+K")).toBeNull();
+	});
+
+	it("draws each group as rows in one list, with the Enter hint on the active row", async () => {
+		const groups = [
+			...go(),
+			{ id: "d", heading: "Do", items: [{ id: "c", label: "Gamma", onSelect: () => {} }] },
+		];
+		renderApp(<Bar groups={groups} />);
+		await userEvent.click(field());
+		const list = within(screen.getByRole("listbox"));
+		expect(within(list.getByRole("group", { name: "Go to" })).getAllByRole("option")).toHaveLength(
+			2,
+		);
+		expect(within(list.getByRole("group", { name: "Do" })).getAllByRole("option")).toHaveLength(1);
+		expect(screen.queryByText("↵")).toBeNull();
+		await userEvent.keyboard("{ArrowDown}");
+		expect(within(list.getByRole("option", { name: "Alpha" })).getByText("↵")).toBeInTheDocument();
+		await userEvent.keyboard("{ArrowDown}");
+		expect(within(list.getByRole("option", { name: "Beta" })).getByText("↵")).toBeInTheDocument();
+	});
+
+	it("keeps the keys of a field of the answer out of the list, and closes on Escape", async () => {
+		const onSelect = vi.fn();
+		renderApp(<Bar groups={go(onSelect)} />);
+		await userEvent.click(field());
+		await userEvent.keyboard("{ArrowDown}");
+		const reply = screen.getByRole("textbox", { name: "Reply" });
+		await userEvent.click(reply);
+		expect(reply).toHaveFocus();
+		await userEvent.keyboard("ok{Enter}");
+		expect(onSelect).not.toHaveBeenCalled();
+		expect(reply).toHaveValue("ok");
+		await userEvent.keyboard("{Escape}");
+		expect(screen.queryByText("the answer")).toBeNull();
+	});
+
+	it("keeps each item under an answer, whatever the text", async () => {
+		renderApp(<Bar groups={go()} answered />);
+		await userEvent.type(field(), "what blocks");
+		expect(screen.getAllByRole("option")).toHaveLength(2);
 	});
 });

@@ -121,7 +121,7 @@ export function TileCard({
 							<span className="w-28 shrink-0 truncate text-n-11">{name}</span>
 							<span aria-hidden="true" className="h-1.5 flex-1 rounded-full bg-n-4">
 								<span
-									className="block h-1.5 rounded-full bg-accent-gradient"
+									className="block h-1.5 rounded-full bg-accent"
 									style={{ width: `${((Number(n) || 0) / max) * 100}%` }}
 								/>
 							</span>

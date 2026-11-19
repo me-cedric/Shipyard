@@ -105,24 +105,25 @@ function PlaceLayout({ place }: { place: PlaceId }) {
 				: undefined;
 	return (
 		<div className="flex h-full flex-col">
-			<SectionBar place={place} slug={slug} />
-			{/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable) */}
-			<div tabIndex={0} className="flex min-h-0 flex-1 flex-col overflow-auto">
-				{/* A new section rises into place. Only the position moves, so the text never hides. */}
-				<motion.div
-					key={path}
-					initial={still ? false : { y: 8 }}
-					animate={{ y: 0 }}
-					transition={SPRING.gentle}
-					className="flex min-h-0 flex-1 flex-col"
-				>
-					{view && hiddenSection(level, ...view) ? (
-						<NoAccess space={view[0]} tab={view[1]} />
-					) : (
-						<Outlet />
-					)}
-				</motion.div>
-			</div>
+			<SectionBar place={place} slug={slug}>
+				{/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable) */}
+				<div tabIndex={0} className="flex min-h-0 flex-1 flex-col overflow-auto">
+					{/* A new section rises into place. Only the position moves, so the text never hides. */}
+					<motion.div
+						key={path}
+						initial={still ? false : { y: 8 }}
+						animate={{ y: 0 }}
+						transition={SPRING.gentle}
+						className="flex min-h-0 flex-1 flex-col"
+					>
+						{view && hiddenSection(level, ...view) ? (
+							<NoAccess space={view[0]} tab={view[1]} />
+						) : (
+							<Outlet />
+						)}
+					</motion.div>
+				</div>
+			</SectionBar>
 		</div>
 	);
 }

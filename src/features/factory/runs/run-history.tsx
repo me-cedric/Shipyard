@@ -110,7 +110,7 @@ export function RunHistory({
 		);
 	return (
 		<div className="flex min-h-0 flex-1 flex-col px-4 pb-4">
-			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
+			<div className="flex min-h-64 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
 				<DataTable
 					memory="runs-history"
 					label={l.history}

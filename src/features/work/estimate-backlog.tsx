@@ -263,7 +263,8 @@ export function EstimateBacklog({
 	];
 
 	return (
-		<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col gap-2">
+		// No `min-h-0` here: the table keeps `min-h-64`, and the page scrolls when the window is short.
+		<div className="mx-4 mb-4 flex flex-1 flex-col gap-2">
 			<div className={CONTROLS}>
 				<FilterBar
 					query={query}
@@ -344,7 +345,7 @@ export function EstimateBacklog({
 				</section>
 			) : null}
 			<ErrorNotice error={failure} />
-			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
+			<div className="flex min-h-64 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
 				<DataTable
 					label={e.views.backlog}
 					data={lines}

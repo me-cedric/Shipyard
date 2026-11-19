@@ -80,6 +80,16 @@ export const fr: Messages = {
 		markStopped: "Arrêtée",
 		markNeeds: "Besoin de vous",
 		noAnswer: "Rien trouvé",
+		reply: "Répondre",
+		send: "Envoyer",
+		esc: "échap",
+		/** The heading of an answer: `One` for one feature, the other with `{count}`. */
+		headBlocked: "{count} fonctionnalités sont bloquées.",
+		headBlockedOne: "1 fonctionnalité est bloquée.",
+		headStopped: "{count} fonctionnalités sont arrêtées.",
+		headStoppedOne: "1 fonctionnalité est arrêtée.",
+		headNeeds: "{count} fonctionnalités ont besoin de vous.",
+		headNeedsOne: "1 fonctionnalité a besoin de vous.",
 		/** Words of a question, comma separated: the answer part matches them in the text. */
 		wordsBlocked: "bloqu,coinc",
 		wordsStopped: "arrêt,stopp,échou",
@@ -257,6 +267,14 @@ export const fr: Messages = {
 		runsNone: "Aucune exécution active",
 		account: "Compte",
 		changedFiles: "Fichiers modifiés",
+		change: "Modifier",
+		menu: {
+			manual: "Manuel",
+			shortcuts: "Raccourcis",
+			whatsNew: "Nouveautés",
+			tour: "Revoir la visite",
+			update: "Rechercher une mise à jour",
+		},
 	},
 	refKind: {
 		project: "Projet",
@@ -283,6 +301,8 @@ export const fr: Messages = {
 	},
 	projects: {
 		switcher: "Projet",
+		job: "Quel est votre métier ?",
+		start: "Comment commencez-vous ?",
 		open: "Ouvrir un dossier local",
 		clone: "Cloner un dépôt",
 		create: "Créer un projet",

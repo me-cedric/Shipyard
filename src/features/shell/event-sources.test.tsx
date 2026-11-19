@@ -33,7 +33,7 @@ describe("Notification sources of the shell", () => {
 		const failed = (await unwrap(commands.runsList())).find((r) => r.state === "Failed");
 		if (!failed) throw new Error("no failed run");
 		mountApp("/");
-		await screen.findByRole("navigation", { name: "Sidebar" });
+		// The events come before the run source reads the runs: the rail shows after the first page.
 		await waitFor(() => expect(handlers["factory-run"]).toBeDefined());
 		for (let i = 0; i < 2; i++)
 			await act(async () => {

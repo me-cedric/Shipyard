@@ -1,5 +1,5 @@
 import type { FlowFeature_Serialize } from "@/lib/ipc/bindings";
-import { type AnswerWords, answerOf } from "./ask-answer";
+import { type AnswerHeads, type AnswerWords, answerOf, headingOf } from "./ask-answer";
 
 const words: AnswerWords = { blocked: "block,stuck", stopped: "stop,fail", needs: "need,waiting" };
 const feature = (
@@ -90,5 +90,27 @@ describe("answerOf", () => {
 		const facts = [feature("Fix the French menu", "blocked", "run:1", "close_done")];
 		const a = answerOf("what blocks", facts, words, runs);
 		expect(a?.[0]?.features.map((f) => f.action)).toEqual(["closeDone"]);
+	});
+});
+
+describe("headingOf", () => {
+	const heads: AnswerHeads = {
+		blocked: { one: "1 feature is blocked.", many: "{count} features are blocked." },
+		stopped: { one: "1 feature stopped.", many: "{count} features stopped." },
+		needs_you: { one: "1 feature needs you.", many: "{count} features need you." },
+		none: "Nothing found",
+	};
+	const heading = (text: string) => answerOf(text, list, words)?.map((g) => headingOf(g, heads));
+
+	it("counts the features of the mark", () => {
+		expect(heading("what blocks")).toEqual(["2 features are blocked."]);
+		expect(heading("what stopped, what needs me")).toEqual([
+			"1 feature stopped.",
+			"1 feature needs you.",
+		]);
+	});
+
+	it("says that nothing has the mark", () => {
+		expect(headingOf({ mark: "blocked", features: [] }, heads)).toBe("Nothing found");
 	});
 });

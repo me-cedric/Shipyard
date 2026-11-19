@@ -89,7 +89,7 @@ describe("Flow / Flow (REQ-010, REQ-011)", () => {
 		const build = await column("Build");
 		const card = within(build).getByText("Fix the French menu").closest("article");
 		expect(card).not.toBeNull();
-		expect(card).toHaveClass("border-attention");
+		expect(card).toHaveClass("outline-attention");
 		expect(within(card as HTMLElement).getByText("Blocked")).toBeVisible();
 		// The title shows once in Build, and a person acts on three features only.
 		expect(within(build).getAllByRole("heading", { name: "Fix the French menu" })).toHaveLength(1);

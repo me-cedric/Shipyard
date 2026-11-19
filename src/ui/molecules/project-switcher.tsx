@@ -13,6 +13,7 @@ import {
 	TrashIcon,
 	XMarkIcon,
 } from "../icons";
+import { MENU_ITEM, MENU_POPUP } from "./menu-button";
 
 export type ProjectState = "clean" | "changed" | "behind" | "ahead" | "missing";
 
@@ -27,9 +28,6 @@ export const STATE_DOT: Record<ProjectState, Status> = {
 
 export type SwitcherProject = { id: string; name: string; state: ProjectState };
 
-const ITEM =
-	"flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[highlighted]:bg-n-5";
-
 function Entry({ icon, children }: { icon: ReactNode; children: ReactNode }) {
 	return (
 		<>
@@ -43,12 +41,14 @@ function Entry({ icon, children }: { icon: ReactNode; children: ReactNode }) {
 
 /**
  * One control for the projects. Its menu lists them with the state of each working copy, then
- * opens a folder, clones, closes the active project and removes a project from the list. Compact
- * (a collapsed sidebar) shows an icon button that opens the same menu.
+ * opens a folder, clones, closes the active project and removes a project from the list. The
+ * control shows the picture of the project, else the accent square, then the name. Compact (a
+ * closed rail) shows the picture alone.
  */
 export function ProjectSwitcher({
 	projects,
 	value,
+	picture,
 	compact,
 	onChange,
 	onAll,
@@ -61,6 +61,8 @@ export function ProjectSwitcher({
 	projects: SwitcherProject[];
 	/** The id of the active project, or null when none is open. */
 	value: string | null;
+	/** The address of the picture of the active project. */
+	picture?: string;
 	compact?: boolean;
 	onChange: (id: string) => void;
 	/** Opens the page of all the projects. With none, the menu has no such entry. */
@@ -76,22 +78,22 @@ export function ProjectSwitcher({
 	const trigger = (
 		<Menu.Trigger
 			// The name holds the visible text, so a voice-control command matches it.
-			aria-label={
-				compact || !active ? t.projects.switcher : `${t.projects.switcher} ${active.name}`
-			}
+			aria-label={active ? `${t.projects.switcher} ${active.name}` : t.projects.switcher}
 			className={cn(
-				"inline-flex h-row shrink-0 items-center gap-2 rounded-md border border-n-7 bg-n-1 text-ui text-n-12",
-				compact ? "w-8 justify-center" : "min-w-24 justify-between px-2",
+				"flex min-h-control w-full min-w-0 items-center gap-2.5 rounded-md font-semibold text-n-12",
+				compact ? "justify-center" : "px-3",
 				className,
 			)}
 		>
-			{compact ? (
-				<FolderOpenIcon size={16} />
+			{picture ? (
+				<img src={picture} alt="" className="size-7 shrink-0 rounded-sm object-contain" />
 			) : (
+				<span aria-hidden="true" className="size-7 shrink-0 rounded-sm bg-accent" />
+			)}
+			{compact ? null : (
 				<>
-					{/* No state shape here: it read as a warning. The status bar counts the changes. */}
-					<span className="truncate">{active?.name ?? t.projects.switcher}</span>
-					<ChevronRightIcon size={12} className="rotate-90 text-n-10" />
+					<span className="min-w-0 truncate text-17">{active?.name ?? t.projects.switcher}</span>
+					<ChevronRightIcon size={16} className="ml-auto shrink-0 rotate-90 text-n-10" />
 				</>
 			)}
 		</Menu.Trigger>
@@ -100,11 +102,11 @@ export function ProjectSwitcher({
 		<Menu.Root>
 			{compact ? <Tooltip label={t.projects.switcher}>{trigger}</Tooltip> : trigger}
 			<Menu.Portal>
-				<Menu.Positioner sideOffset={4} className="z-50">
-					<Menu.Popup className="min-w-48 rounded-lg border border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring origin-(--transform-origin) data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 p-1 text-ui">
+				<Menu.Positioner align="start" sideOffset={4} className="z-50">
+					<Menu.Popup className={MENU_POPUP}>
 						<Menu.RadioGroup value={value ?? ""} onValueChange={(id) => onChange(String(id))}>
 							{projects.map((p) => (
-								<Menu.RadioItem key={p.id} value={p.id} closeOnClick className={ITEM}>
+								<Menu.RadioItem key={p.id} value={p.id} closeOnClick className={MENU_ITEM}>
 									<Menu.RadioItemIndicator className="w-3">
 										<CheckIcon size={12} />
 									</Menu.RadioItemIndicator>
@@ -116,22 +118,22 @@ export function ProjectSwitcher({
 						</Menu.RadioGroup>
 						{projects.length ? <Menu.Separator className="my-1 h-px bg-n-6" /> : null}
 						{onAll ? (
-							<Menu.Item className={ITEM} onClick={onAll}>
+							<Menu.Item className={MENU_ITEM} onClick={onAll}>
 								<Entry icon={<Squares2X2Icon size={12} />}>{t.tabs.home.projects}</Entry>
 							</Menu.Item>
 						) : null}
-						<Menu.Item className={ITEM} onClick={onOpen}>
+						<Menu.Item className={MENU_ITEM} onClick={onOpen}>
 							<Entry icon={<FolderOpenIcon size={12} />}>{t.projects.open}</Entry>
 						</Menu.Item>
-						<Menu.Item className={ITEM} onClick={onClone}>
+						<Menu.Item className={MENU_ITEM} onClick={onClone}>
 							<Entry icon={<ArrowDownTrayIcon size={12} />}>{t.projects.clone}</Entry>
 						</Menu.Item>
-						<Menu.Item className={ITEM} disabled={!active} onClick={onClose}>
+						<Menu.Item className={MENU_ITEM} disabled={!active} onClick={onClose}>
 							<Entry icon={<XMarkIcon size={12} />}>{t.projects.close}</Entry>
 						</Menu.Item>
 						{projects.length ? (
 							<Menu.SubmenuRoot>
-								<Menu.SubmenuTrigger className={ITEM}>
+								<Menu.SubmenuTrigger className={MENU_ITEM}>
 									<Entry icon={<TrashIcon size={12} />}>
 										<span className="flex-1">{t.projects.remove}</span>
 									</Entry>
@@ -139,9 +141,9 @@ export function ProjectSwitcher({
 								</Menu.SubmenuTrigger>
 								<Menu.Portal>
 									<Menu.Positioner sideOffset={4} className="z-50">
-										<Menu.Popup className="min-w-40 rounded-lg border border-n-6 bg-surface-3 p-1 text-ui shadow-3">
+										<Menu.Popup className={MENU_POPUP}>
 											{projects.map((p) => (
-												<Menu.Item key={p.id} className={ITEM} onClick={() => onRemove(p)}>
+												<Menu.Item key={p.id} className={MENU_ITEM} onClick={() => onRemove(p)}>
 													{p.name}
 												</Menu.Item>
 											))}

@@ -32,6 +32,8 @@ describe("shortcut chords", () => {
 describe("keyboard shortcuts overlay (shell REQ-005)", () => {
 	it("opens with its chord and lists each action with its chord", async () => {
 		const user = userEvent.setup();
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}{Shift>}k{/Shift}{/Control}");
@@ -43,6 +45,8 @@ describe("keyboard shortcuts overlay (shell REQ-005)", () => {
 
 	it("rebinds an action, runs it with the new chord and stores it in the preferences", async () => {
 		const user = userEvent.setup();
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}{Shift>}k{/Shift}{/Control}");
@@ -58,6 +62,8 @@ describe("keyboard shortcuts overlay (shell REQ-005)", () => {
 
 	it("refuses a chord that another action holds and a chord without Mod", async () => {
 		const user = userEvent.setup();
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}{Shift>}k{/Shift}{/Control}");
@@ -73,6 +79,8 @@ describe("keyboard shortcuts overlay (shell REQ-005)", () => {
 	it("keeps a stored chord after a reload of the preferences", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.prefsSet({ shortcuts: { "toggle-inspector": "mod+shift+u" } }));
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}{Shift>}u{/Shift}{/Control}");
@@ -87,6 +95,8 @@ describe("keyboard shortcuts overlay (shell REQ-005)", () => {
 	it("keeps a chord that a person stored for an area of before the six places", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.prefsSet({ shortcuts: { "go-design": "mod+shift+d" } }));
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}{Shift>}d{/Shift}{/Control}");

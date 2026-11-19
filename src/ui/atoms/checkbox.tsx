@@ -11,17 +11,18 @@ export type CheckboxProps = Omit<ComponentProps<typeof BaseCheckbox.Root>, "aria
 
 export function Checkbox({ label, hideLabel, className, ...props }: CheckboxProps) {
 	return (
-		<label className="inline-flex min-h-control items-center gap-2 text-ui">
+		<label className="inline-flex min-h-control items-center gap-3 text-ui">
 			<BaseCheckbox.Root
 				aria-label={label}
 				className={cn(
-					"flex size-4 shrink-0 items-center justify-center rounded-sm border border-n-8 bg-n-1 transition-colors duration-(--duration-fast) data-[checked]:border-transparent data-[checked]:bg-accent data-[checked]:text-accent-fg",
+					// Half of the small radius: a 20 px box with the full one looks like a radio button.
+					"flex size-5 shrink-0 items-center justify-center rounded-[calc(var(--radius-sm)/2)] border border-n-7 bg-surface-1 transition-colors duration-(--duration-fast) data-[checked]:border-transparent data-[checked]:bg-accent data-[checked]:text-accent-fg",
 					className,
 				)}
 				{...props}
 			>
 				<BaseCheckbox.Indicator>
-					<CheckIcon size={12} />
+					<CheckIcon size={14} />
 				</BaseCheckbox.Indicator>
 			</BaseCheckbox.Root>
 			<span className={hideLabel ? "sr-only" : undefined}>{label}</span>

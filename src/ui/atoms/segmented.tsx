@@ -30,14 +30,14 @@ export function Segmented<V extends string>({
 				// A pressed choice stays pressed.
 				if (v[0]) onValueChange(v[0] as V);
 			}}
-			className="relative isolate flex w-full items-center rounded-full border bg-n-2 p-0.5"
+			className="relative isolate flex w-full items-center rounded-md bg-n-4 p-1"
 		>
 			<span
 				aria-hidden="true"
 				data-segmented-thumb
-				className={cn(THUMB, "inset-y-0.5 left-0.5 -z-10 rounded-full bg-accent-gradient shadow-1")}
+				className={cn(THUMB, "inset-y-1 left-1 -z-10 rounded-sm bg-surface-1 shadow-1")}
 				style={{
-					width: `calc((100% - 0.25rem) / ${items.length})`,
+					width: `calc((100% - 0.5rem) / ${items.length})`,
 					transform: `translateX(${at * 100}%)`,
 				}}
 			/>
@@ -45,7 +45,7 @@ export function Segmented<V extends string>({
 				<Toggle
 					key={i.value}
 					value={i.value}
-					className="min-h-control flex-1 rounded-full px-2 text-12 text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 data-[pressed]:text-accent-fg"
+					className="min-h-control flex-1 rounded-sm px-3.5 font-medium text-n-10 transition-colors duration-(--duration-fast) hover:text-n-12 data-[pressed]:text-n-12"
 				>
 					{i.label}
 				</Toggle>

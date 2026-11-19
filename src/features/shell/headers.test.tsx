@@ -1,10 +1,9 @@
 import { screen, waitFor, within } from "@testing-library/react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { en } from "@/lib/i18n/en";
 import { commands, unwrap } from "@/lib/ipc";
 import { mountApp } from "@/test/mount";
 import { placePath } from "./places";
-import { type SectionSpace, SPACE_IDS, SPACES, type SpaceId, tabIcon, tabLabel } from "./spaces";
+import { type SectionSpace, SPACE_IDS, SPACES, type SpaceId, tabLabel } from "./spaces";
 
 const TABS = SPACE_IDS.flatMap((space) => SPACES[space].map((tab) => [space, tab] as const));
 
@@ -34,35 +33,26 @@ const placeTitle = (space: SpaceId, tab: string) => {
 	return tab === "agents-map" ? en.crewPlace.atWork : en.ui.place[at.place];
 };
 
-// update-ux-declutter REQ-017: each tab shows a visible page header with its icon and its title,
+// update-ux-declutter REQ-017: each tab shows a visible page header with its title,
 // also while it loads, and a page has one level-one heading.
 async function expectHeader(space: SpaceId, tab: string, title: string) {
 	const router = mountApp(`/${space}/${tab}`);
 	await waitFor(() => expect(router.state.status).toBe("idle"));
 	await waitFor(() => expect(within(screen.getByRole("main")).queryByRole("status")).toBeNull());
-	const heads = within(screen.getByRole("main")).getAllByRole("heading", { level: 1 });
+	// The first run draws nothing before the prefs and the list of projects load.
+	const heads = await within(screen.getByRole("main")).findAllByRole("heading", { level: 1 });
 	expect(heads).toHaveLength(1);
 	const [h1] = heads;
 	expect(h1).toHaveTextContent(new RegExp(`^${title}`));
 	expect(h1?.classList.contains("sr-only")).toBe(false);
 	const slot = h1?.previousElementSibling;
-	// The first-run welcome page carries the logo, not a tab icon.
-	if (title === en.ui.welcome) return expect(slot?.querySelector("img")).not.toBeNull();
-	const at = hosted(space, tab);
-	const moved = MOVED[`${space}/${tab}`];
-	const Icon = at
-		? tabIcon(at.place, at.slug)
-		: moved
-			? tabIcon(moved[1], moved[2])
-			: tabIcon(space, tab);
-	// An animated icon sets inline styles, so compare the shapes.
-	const shapes = (html: string | undefined) => {
-		const probe = document.createElement("div");
-		probe.innerHTML = html ?? "";
-		return [...probe.querySelectorAll("path")].map((p) => p.getAttribute("d"));
-	};
-	expect(shapes(slot?.innerHTML)).toEqual(shapes(Icon && renderToStaticMarkup(<Icon size={16} />)));
-	expect(shapes(slot?.innerHTML).length).toBeGreaterThan(0);
+	// The first run is headed by its step bar, not by a tab icon.
+	if (title === en.projects.job) return expect(slot).toHaveAttribute("role", "img");
+	// Look pass 1: the title row has no icon tile, and a page shows one section switch at most.
+	expect(slot?.querySelector("svg") ?? null).toBeNull();
+	expect(
+		within(screen.getByRole("main")).queryAllByRole("navigation", { name: en.nav.tabs }).length,
+	).toBeLessThanOrEqual(1);
 }
 
 // Wave 6: a page behind a door of Setup, Projects and Impacts are no tabs, and each has its one heading.
@@ -97,9 +87,16 @@ describe("a page header on every tab (REQ-017)", () => {
 	const named = TABS;
 	const title = (space: SpaceId, tab: string) => placeTitle(space, tab) ?? tabLabel(en, space, tab);
 	it.each(named)("shows the header of %s / %s with no project", async (space, tab) => {
-		// Home / Today without a project is the welcome page, headed by the logo.
+		// Home / Today without a project is the first run. A place that needs a project shows the
+		// page "No project is open". Setup, the terminal, the manual and the other sections of Home need
+		// no project.
 		const home = space === "home" && tab === "today";
-		await expectHeader(space, tab, home ? en.ui.welcome : title(space, tab));
+		const bare = space !== "home" && space !== "settings" && tab !== "terminal" && tab !== "manual";
+		await expectHeader(
+			space,
+			tab,
+			home ? en.projects.job : bare ? en.workspace.moment.noProject : title(space, tab),
+		);
 	});
 	it.each(named)("shows the header of %s / %s with a project", async (space, tab) => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
@@ -117,7 +114,10 @@ describe("a page header on every tab (REQ-017)", () => {
 					: // Plan says when the release ends in its title (app-redesign REQ-018).
 						space === "work" && tab === "plan"
 						? ".+ ends "
-						: title(space, tab),
+						: // Estimates says the size of the release in its title, once the estimate loads.
+							space === "work" && tab === "estimates"
+							? "(Estimates|.+ is .+ days of work)"
+							: title(space, tab),
 		);
 	});
 });

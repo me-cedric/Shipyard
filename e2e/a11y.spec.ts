@@ -177,7 +177,7 @@ for (const scheme of ["light", "dark"] as const) {
 		}
 		// An open menu: its items are controls too. Only the sizes: axe counts a popup, which is
 		// drawn at the end of the page, as content outside a landmark.
-		await page.getByRole("button", { name: "Account" }).click();
+		await page.getByRole("button", { name: /^Account/ }).click();
 		await expect(page.getByRole("menu")).toBeVisible();
 		await settled(page.getByRole("menu"));
 		found.push(...(await sizeFaults(page)).map((fault) => `account menu ${fault}`));

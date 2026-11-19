@@ -38,6 +38,8 @@ describe("router", () => {
 	it.each(PLACE_IDS.filter((p) => p !== "library"))(
 		"renders %s with its sections and opens the first one",
 		async (place) => {
+			// The shell shows with an open project: without one the page is bare.
+			await unwrap(commands.projectsOpen("/mock/alpha", false));
 			mount(`/${place}`);
 			const tabs = await screen.findByRole("navigation", { name: "Tabs" });
 			const links = within(tabs).getAllByRole("link");
@@ -79,14 +81,20 @@ describe("router", () => {
 		["pm", "Plan"],
 		["developer", "Flow"],
 	])("sends / to the home of role %s", async (role, name) => {
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/", role);
 		expect(current(await sidebar())).toHaveAccessibleName(named(name));
 	});
 
 	it("opens Flow for a junior, as for a developer, and keeps all 7 entries", async () => {
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/", "junior");
 		const nav = await sidebar();
-		expect(await within(nav).findByRole("link", { name: "Flow", current: "page" })).toBeTruthy();
+		expect(
+			await within(nav).findByRole("link", { name: named("Flow"), current: "page" }),
+		).toBeTruthy();
 		const links = within(nav).getAllByRole("link");
 		const names = ["Today", "Flow", "Plan", "Crew", "Library", "Code", "Setup"];
 		expect(links).toHaveLength(names.length);
@@ -102,6 +110,8 @@ describe("router", () => {
 describe("shell", () => {
 	it("opens the palette with Mod+K and opens a ref in the inspector", async () => {
 		const user = userEvent.setup();
+		// The first run shows without the shell: the shell needs an open project.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/home");
 		await sidebar();
 		await user.keyboard("{Control>}k{/Control}");
@@ -113,6 +123,8 @@ describe("shell", () => {
 
 	it("toggles the inspector with Mod+I", async () => {
 		const user = userEvent.setup();
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/home");
 		await sidebar();
 		const inspector = screen.getByLabelText("Inspector", { selector: "aside" });
@@ -123,6 +135,8 @@ describe("shell", () => {
 
 	it("opens a place with Mod+2", async () => {
 		const user = userEvent.setup();
+		// The first run shows without the shell: the shell needs an open project.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/home");
 		await sidebar();
 		await user.keyboard("{Control>}2{/Control}");
@@ -151,19 +165,26 @@ describe("shell", () => {
 		expect(panel).toHaveAttribute("data-open", "false");
 	});
 
-	it("shows sync, the Ask bar and account on top, and only commit in the status bar", async () => {
+	it("shows the Ask bar and the sync mark in the top row, the account in the rail and no status bar", async () => {
+		const user = userEvent.setup();
+		// The first run shows without the shell: the shell needs an open project.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/home");
 		const top = within((await screen.findByRole("banner")) as HTMLElement);
-		for (const name of ["Sync", "Account"])
-			expect(top.getByRole("button", { name })).toBeInTheDocument();
 		expect(top.getByRole("combobox", { name: "Ask or tell Shipyard" })).toBeInTheDocument();
-		const bar = (await screen.findByRole("contentinfo")) as HTMLElement;
-		expect(
-			within(bar)
-				.getAllByRole("button")
-				.map((b) => b.textContent),
-		).toEqual(["Commit"]);
-		expect(await within(bar).findByRole("img", { name: "Success" })).toBeInTheDocument();
+		expect(screen.queryByRole("contentinfo")).toBeNull();
+		const rail = within(screen.getByRole("navigation", { name: "Sidebar" }));
+		expect(rail.getByRole("button", { name: /^Account/ })).toBeInTheDocument();
+		// Sync and Commit are in the card of the sync mark.
+		await user.click(top.getByRole("button", { name: /^Sync state/ }));
+		const card = within(await screen.findByRole("dialog", { name: "Sync state" }));
+		for (const name of ["Sync", "Commit"])
+			expect(card.getByRole("button", { name })).toBeInTheDocument();
+		// The health is in the account menu.
+		await user.keyboard("{Escape}");
+		await user.click(rail.getByRole("button", { name: /^Account/ }));
+		const health = await screen.findByRole("menuitem", { name: /^Health/ });
+		expect(await within(health).findByRole("img", { name: "Warning" })).toBeInTheDocument();
 	});
 
 	it("shows one plain sentence and a Retry when a view fails to load, and loads it on Retry", async () => {

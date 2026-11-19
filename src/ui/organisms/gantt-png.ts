@@ -53,10 +53,10 @@ export async function ganttPng(
 		const d = addDays(from, i);
 		if (o.isOff(d)) ctx.fillRect(x(d), HEAD, dw, height - HEAD);
 	}
-	ctx.font = "600 14px Inter, sans-serif";
+	ctx.font = '600 14px "Geist Variable", sans-serif';
 	ctx.fillStyle = tok("n-12");
 	ctx.fillText(o.title, 12, 20);
-	ctx.font = "12px Inter, sans-serif";
+	ctx.font = '12px "Geist Variable", sans-serif';
 	ctx.fillStyle = tok("n-11");
 	for (let i = 0; i < days; i++) {
 		const d = addDays(from, i);
@@ -78,13 +78,13 @@ export async function ganttPng(
 		ctx.stroke();
 		if ("group" in r) {
 			ctx.fillStyle = tok("n-11");
-			ctx.font = "600 12px Inter, sans-serif";
+			ctx.font = '600 12px "Geist Variable", sans-serif';
 			ctx.fillText(r.group, 12, y + 18, LABEL - 24);
 			continue;
 		}
 		const b = r.bar;
 		ctx.fillStyle = tok("n-12");
-		ctx.font = "12px Inter, sans-serif";
+		ctx.font = '12px "Geist Variable", sans-serif';
 		ctx.fillText(b.name, 12, y + 18, LABEL - 24);
 		const owner = b.owner ? owners.indexOf(b.owner) : -1;
 		ctx.fillStyle = tok(owner < 0 ? "n-8" : (TONES[owner % TONES.length] ?? "n-8"));

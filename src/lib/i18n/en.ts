@@ -79,6 +79,16 @@ export const en = {
 		markStopped: "Stopped",
 		markNeeds: "Needs you",
 		noAnswer: "Nothing found",
+		reply: "Reply",
+		send: "Send",
+		esc: "esc",
+		/** The heading of an answer: `One` for one feature, the other with `{count}`. */
+		headBlocked: "{count} features are blocked.",
+		headBlockedOne: "1 feature is blocked.",
+		headStopped: "{count} features stopped.",
+		headStoppedOne: "1 feature stopped.",
+		headNeeds: "{count} features need you.",
+		headNeedsOne: "1 feature needs you.",
 		/** Words of a question, comma separated: the answer part matches them in the text. */
 		wordsBlocked: "block,stuck",
 		wordsStopped: "stop,fail",
@@ -253,6 +263,15 @@ export const en = {
 		runsNone: "No active run",
 		account: "Account",
 		changedFiles: "Changed files",
+		change: "Change",
+		// The short labels of the account menu.
+		menu: {
+			manual: "Manual",
+			shortcuts: "Shortcuts",
+			whatsNew: "What is new",
+			tour: "Show the tour again",
+			update: "Check for an update",
+		},
 	},
 	refKind: {
 		project: "Project",
@@ -279,6 +298,8 @@ export const en = {
 	},
 	projects: {
 		switcher: "Project",
+		job: "What is your job?",
+		start: "How do you start?",
 		open: "Open a local folder",
 		clone: "Clone a repository",
 		create: "Create a project",
