@@ -24,7 +24,10 @@ describe("Exports and the terminal (W11)", () => {
 		mountApp("/knowledge/documents");
 		await user.click(await screen.findByRole("button", { name: "Export" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Complete dossier" }));
-		const show = await screen.findByRole("button", { name: "Show in folder" });
+		// The File card of the open document has its own "Show in folder": take the one of the export.
+		const saved = (await screen.findByText("Exported: /mock/dossier.docx"))
+			.parentElement as HTMLElement;
+		const show = await within(saved).findByRole("button", { name: "Show in folder" });
 		await user.click(show);
 		expect(screen.queryByRole("alert")).toBeNull();
 		mockState().reports.exported.length = 0;
@@ -32,32 +35,17 @@ describe("Exports and the terminal (W11)", () => {
 		expect(await screen.findByRole("alert")).toBeVisible();
 	});
 
-	it("writes a change request from a form and shows its two files", async () => {
+	it("opens the page of the change request form from the Export menu of Documents", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/knowledge/documents");
+		const router = mountApp("/knowledge/documents");
 		await user.click(await screen.findByRole("button", { name: "Export" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Change request" }));
-		const form = await screen.findByRole("dialog");
-		await user.type(within(form).getByRole("textbox", { name: "Title" }), "Add billing");
-		await user.click(within(form).getByRole("button", { name: "Export" }));
-		await waitFor(() => expect(mockState().reports.changeRequests).toEqual(["CR-001"]));
-		expect(await screen.findByText(/CR-001\.md/)).toBeInTheDocument();
-	}, 15000);
-
-	it("shows a refused export with its sentence", async () => {
-		const user = userEvent.setup();
-		await open();
-		const project = mockState().projects[0];
-		if (project) project.overrides.readOnly = true;
-		mountApp("/knowledge/documents");
-		await user.click(await screen.findByRole("button", { name: "Export" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Change request" }));
-		const form = await screen.findByRole("dialog");
-		await user.type(within(form).getByRole("textbox", { name: "Title" }), "Add billing");
-		await user.click(within(form).getByRole("button", { name: "Export" }));
-		expect(await within(form).findByRole("alert")).toBeVisible();
-		expect(mockState().reports.changeRequests).toEqual([]);
+		await waitFor(() =>
+			expect(router.state.location.pathname).toBe("/library/reports/change-request"),
+		);
+		expect(await screen.findByRole("textbox", { name: "Title" })).toBeVisible();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	}, 15000);
 
 	it("exports the security findings from Code / Quality", async () => {
@@ -75,9 +63,10 @@ describe("Exports and the terminal (W11)", () => {
 		mountApp("/code/history");
 		await user.click(await screen.findByRole("button", { name: "Export" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Work done" }));
-		const form = await screen.findByRole("dialog");
-		await user.click(within(form).getByRole("button", { name: "Export" }));
+		expect(await screen.findByRole("heading", { level: 1, name: "Work done" })).toBeVisible();
+		await user.click(screen.getByRole("button", { name: "Write the report" }));
 		await waitFor(() => expect(kinds()).toEqual(["work-done"]));
+		expect(await screen.findByText("/mock/work-done.xlsx")).toBeInTheDocument();
 	});
 
 	it("picks the terminal app in Settings / Me and opens a terminal from the terminal drawer", async () => {

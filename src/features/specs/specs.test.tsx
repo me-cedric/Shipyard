@@ -3,12 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { specsEn, specsFr } from "@/lib/i18n/specs";
 import { commands } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
+import { parseRules } from "./constitution";
 import { Capabilities, Constitution } from "./index";
 import { renderChange, renderSpecs } from "./test-harness";
 
 const files = () => mockState().specs.files;
 const CH = "docs/openspec/changes";
-const row = (name: RegExp) => screen.findByRole("button", { name });
 /** The change as the Brief of its feature page draws it (the cards of the list moved to Flow / List). */
 const open = async (_user: ReturnType<typeof userEvent.setup>, id: string) => {
 	await renderChange(id);
@@ -159,51 +159,92 @@ describe("Specs / Change detail", () => {
 	});
 });
 
-describe("Specs / Capabilities", () => {
-	it("opens a spec as a page to read, and a switch shows the text (spec:app-redesign#REQ-021)", async () => {
-		const user = userEvent.setup();
-		await renderSpecs(<Capabilities />);
-		await user.click(await row(/auth/));
-		expect(await screen.findByRole("article", { name: "Spec" })).toBeVisible();
-		expect(screen.queryByRole("textbox", { name: "Spec" })).toBeNull();
-		await user.click(screen.getByRole("tab", { name: "Text" }));
-		expect(await screen.findByRole("textbox", { name: "Spec" })).toBeVisible();
-		expect(screen.queryByRole("article", { name: "Spec" })).toBeNull();
-	});
+describe("Library / Specs", () => {
+	const list = async () => within(await screen.findByRole("group", { name: "Specs" }));
 
-	it("lists the capabilities with their counts, and a requirement shows its backlinks by kind", async () => {
+	it("shows the spec list and the open spec in one page, each requirement with its state", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Capabilities />);
-		// Each capability is a card: a button with its name and its requirement count.
-		expect(await row(/auth\s*3/)).toBeVisible();
-		expect(await row(/billing\s*2/)).toBeVisible();
-		await user.click(await row(/auth/));
-		const table = await screen.findByRole("table", { name: "Requirements" });
-		expect(await within(table).findByRole("row", { name: /REQ-001/ })).toBeVisible();
-		await user.click(within(table).getByRole("row", { name: /REQ-003/ }));
+		const specs = await list();
+		expect(await specs.findByRole("button", { name: "auth" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+		expect(await screen.findByRole("heading", { name: "auth", level: 2 })).toBeVisible();
+		const reqs = within(await screen.findByRole("list", { name: "Requirements" }));
+		await waitFor(() => expect(reqs.getAllByRole("listitem")).toHaveLength(3));
+		expect(await reqs.findByRole("button", { name: /Keep a session.*Tested/ })).toBeVisible();
+		expect(reqs.getByRole("button", { name: /Login.*Fail/ })).toBeVisible();
+		expect(reqs.getByRole("button", { name: /Sign out.*No test yet/ })).toBeVisible();
+		// No requirement id on the page: the row opens the requirement.
+		expect(screen.queryByText("REQ-001")).toBeNull();
+		await user.click(reqs.getByRole("button", { name: /Login/ }));
 		await waitFor(() =>
 			expect(screen.getByRole("status", { name: "Inspector" })).toHaveTextContent(
 				"spec:auth#REQ-003 test:1 wi:1",
 			),
 		);
+		await user.click(specs.getByRole("button", { name: /billing/ }));
+		expect(await screen.findByRole("heading", { name: "billing", level: 2 })).toBeVisible();
+	});
+
+	it("switches between the requirements, the text and the files of a spec (spec:app-redesign#REQ-021)", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<Capabilities />);
+		expect(await screen.findByRole("list", { name: "Requirements" })).toBeVisible();
+		expect(screen.queryByRole("textbox", { name: "Spec" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Text" }));
+		const box = await screen.findByRole("textbox", { name: "Spec" });
+		await waitFor(() => expect(box).toHaveValue(files()["docs/openspec/specs/auth/spec.md"]?.text));
+		expect(screen.queryByRole("list", { name: "Requirements" })).toBeNull();
 		// The plan of the capability is a file of the capability.
-		await user.click(screen.getByRole("tab", { name: "Spec" }));
-		// A settled capability opens as a page to read; Text shows the file.
+		await user.click(screen.getByRole("button", { name: "Files" }));
 		expect(await screen.findByRole("article", { name: "Spec" })).toBeVisible();
-		await user.click(screen.getByRole("tab", { name: "Text" }));
-		expect(await screen.findByRole("textbox", { name: "Spec" })).toHaveValue(
-			files()["docs/openspec/specs/auth/spec.md"]?.text,
-		);
+		await user.click(screen.getByRole("tab", { name: "Plan" }));
+		expect(await screen.findByRole("article", { name: "Plan" })).toBeVisible();
+	});
+
+	it("has the header actions, and the reference behind More", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<Capabilities />);
+		expect(await screen.findByRole("button", { name: "Check against the code" })).toBeVisible();
+		expect(screen.getByRole("button", { name: "Write a spec from the code" })).toBeVisible();
+		expect(screen.getByRole("button", { name: "New change" })).toBeVisible();
+		await screen.findByRole("heading", { name: "auth", level: 2 });
+		await user.click(screen.getByRole("button", { name: "More" }));
+		expect(await screen.findByRole("menuitem", { name: "Copy the reference" })).toBeVisible();
+		expect(screen.getByRole("menuitem", { name: "Copy the file name" })).toBeVisible();
+	});
+
+	it("shows the changes in progress, the linked items and the check of a spec", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<Capabilities />);
+		const specs = await list();
+		const card = await specs.findByRole("button", { name: /export/ });
+		expect(card).toHaveTextContent("1 open question");
+		await user.click(card);
+		const changes = within(await screen.findByRole("region", { name: "Changes in progress" }));
+		expect(changes.getByRole("link")).toHaveAttribute("href", "/flow/feature/change%3Aadd-export");
+		const linked = within(await screen.findByRole("region", { name: "Linked" }));
+		expect(
+			linked.getByRole("link", { name: /Which export formats ship first\?.*Open/ }),
+		).toBeVisible();
+		const check = within(screen.getByRole("region", { name: "Check the specs" }));
+		expect(check.getAllByText("Not checked")).toHaveLength(2);
+		await user.click(check.getByRole("button", { name: "Check" }));
+		await waitFor(() => expect(check.queryByText("Not checked")).toBeNull());
 	});
 });
 
-describe("Specs / Constitution", () => {
+describe("Library / Project rules", () => {
 	it("shows the file and saves an edit", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Constitution />);
-		// The constitution opens as a page to read.
-		expect(await screen.findByRole("article", { name: "Project rules" })).toBeVisible();
-		await user.click(screen.getByRole("tab", { name: "Edit" }));
+		// The rules open as a page to read: one numbered card for each rule.
+		const page = within(await screen.findByRole("article", { name: "Project rules" }));
+		expect(page.getAllByRole("listitem")).toHaveLength(2);
+		expect(page.getByText("The spec comes first.")).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Edit" }));
 		const box = await screen.findByRole("textbox", { name: "Project rules" });
 		await waitFor(() =>
 			expect(box).toHaveValue(files()["docs/openspec/constitution.md"]?.text ?? ""),
@@ -213,6 +254,41 @@ describe("Specs / Constitution", () => {
 		await waitFor(() =>
 			expect(files()["docs/openspec/constitution.md"]?.text).toMatch(/New rule\.$/),
 		);
+		// Read shows the new rule as the third card.
+		await user.click(screen.getByRole("button", { name: "Read" }));
+		expect(
+			within(await screen.findByRole("article", { name: "Project rules" })).getAllByRole(
+				"listitem",
+			),
+		).toHaveLength(3);
+	});
+
+	it("opens the text at its end for a new rule", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<Constitution />);
+		await user.click(await screen.findByRole("button", { name: "Add a rule" }));
+		const box = (await screen.findByRole("textbox", {
+			name: "Project rules",
+		})) as HTMLTextAreaElement;
+		await waitFor(() => expect(box).toHaveFocus());
+		expect(box.selectionStart).toBe(box.value.length);
+	});
+
+	it("names the roles that can change the rules, with the way to the rights", async () => {
+		await renderSpecs(<Constitution />);
+		const card = within(await screen.findByRole("region", { name: "Who can change the rules" }));
+		expect(await card.findByText("Tech lead")).toBeVisible();
+		expect(card.getAllByText("Can change").length).toBeGreaterThan(0);
+		expect(card.getByRole("link", { name: "Change the rights" })).toHaveAttribute(
+			"href",
+			"/crew/rights",
+		);
+	});
+
+	it("reads each item of a list as one rule", () => {
+		expect(
+			parseRules("# Rules\n\n## One\n\n1. First rule\n   goes on.\n2. Second\n\nText.\n- Third\n"),
+		).toEqual(["First rule goes on.", "Second", "Third"]);
 	});
 });
 

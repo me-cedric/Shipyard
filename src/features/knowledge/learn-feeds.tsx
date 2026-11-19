@@ -1,20 +1,41 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { RightButton, RightIconButton } from "@/lib/rights";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
-import { ArrowPathIcon, LinkIcon, PlusIcon, XMarkIcon } from "@/ui/icons";
+import { ArrowPathIcon, PlusIcon, XMarkIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { Panel } from "@/ui/molecules/panel";
 
 export const learningKey = ["knowledge", "learning"] as const;
 const feedsKey = ["knowledge", "learning", "feeds"] as const;
 
 /** Opens an address in the browser of the system. The backend accepts http and https only. */
 export const openAddress = (url: string) => void unwrap(commands.openLink(url)).catch(() => {});
+
+/** A card of the Learn page: a small title, an optional toolbar, then the body. */
+export function LearnCard({
+	title,
+	toolbar,
+	children,
+}: {
+	title: string;
+	toolbar?: ReactNode;
+	children: ReactNode;
+}) {
+	return (
+		<Card pad className="flex flex-col gap-3.5">
+			<div className="flex flex-wrap items-center gap-2.5">
+				<h2 className="mr-auto text-13 font-semibold text-n-11">{title}</h2>
+				{toolbar}
+			</div>
+			{children}
+		</Card>
+	);
+}
 
 /**
  * The feeds of the project. The backend reads them and gives plain text: no HTML of a feed reaches
@@ -42,10 +63,8 @@ export function LearnFeeds() {
 	};
 	const rows = feeds.data ?? [];
 	return (
-		<Panel
+		<LearnCard
 			title={k.feeds}
-			count={rows.length}
-			icon={<LinkIcon size={14} />}
 			toolbar={
 				<IconButton
 					label={k.refresh}
@@ -55,7 +74,6 @@ export function LearnFeeds() {
 					<ArrowPathIcon size={14} />
 				</IconButton>
 			}
-			bodyClassName="flex flex-col gap-3 p-3"
 		>
 			<form
 				className="flex items-end gap-2"
@@ -129,6 +147,6 @@ export function LearnFeeds() {
 					</section>
 				);
 			})}
-		</Panel>
+		</LearnCard>
 	);
 }

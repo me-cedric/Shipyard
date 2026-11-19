@@ -12,7 +12,7 @@ describe("design to code (REQ-020): the next step of a design item", () => {
 		await mountDesign(<Decisions />);
 		await user.click(
 			within(await screen.findByRole("list", { name: "Decisions" })).getByRole("button", {
-				name: /0004/,
+				name: /Polling sync/,
 			}),
 		);
 		const panel = within(await screen.findByRole("complementary", { name: "Inspector" }));

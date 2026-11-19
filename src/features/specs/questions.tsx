@@ -1,59 +1,139 @@
-import { motion } from "motion/react";
 import { useState } from "react";
+import { LibraryPage } from "@/features/library/page-parts";
 import { PageExport } from "@/features/reports/page-export";
 import { WithProject } from "@/features/shell/no-project";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
+import { commands, unwrap } from "@/lib/ipc";
 import { RightButton } from "@/lib/rights";
-import { KINDS, type QuestionEntry, STATUSES, useQuestions } from "@/lib/specs";
-import { cn } from "@/lib/utils";
+import {
+	KINDS,
+	type QuestionEntry,
+	readQuestion,
+	STATUSES,
+	useQuestions,
+	useSpecsActions,
+} from "@/lib/specs";
+import { memberName, useTeam, useWorkContext } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
+import { Button } from "@/ui/atoms/button";
+import { Chip } from "@/ui/atoms/chip";
+import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { ChatBubbleIcon, PlusIcon } from "@/ui/icons";
+import { PlusIcon } from "@/ui/icons";
+import { AttentionCard } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
-import { LIST, useEnter } from "@/ui/motion";
-import { ListDetail } from "@/ui/templates/list-detail";
+import { Row } from "@/ui/molecules/row";
+import { useGuard } from "./guard";
+import { STATE_TONE } from "./parts";
 import { FoldDialog, QuestionDialog } from "./question-dialogs";
 
 const ALL = "all";
+const MINE = "mine";
+/** The kind chips, in the order of the page. */
+const CHIPS = ["question", "risk", "assumption", "dependency", "decision", "issue"];
 
-type Tone = "neutral" | "accent" | "success" | "warning" | "danger" | "info";
-/** The tint of a status: the chip and the line on top of the card. */
-const STATUS: Record<string, { tone: Tone; line: string }> = {
-	open: { tone: "warning", line: "bg-warning" },
-	answered: { tone: "success", line: "bg-success" },
-	withdrawn: { tone: "neutral", line: "bg-n-8" },
-};
-const KIND: Record<string, Tone> = {
-	risk: "danger",
-	assumption: "info",
-	issue: "warning",
-	dependency: "accent",
-	question: "accent",
-	decision: "success",
-};
-
-/** Specs / Questions: the RAID register with combined filters, create, edit and fold. */
+/** Library / Questions: the open items to answer, then the closed ones, with create, edit and fold. */
 export function Questions() {
 	const { t } = useI18n();
 	return (
-		<WithProject title={t.tabs.specs.questions} icon={<ChatBubbleIcon size={16} />}>
+		<WithProject title={t.tabs.specs.questions} icon={null}>
 			<Register />
 		</WithProject>
+	);
+}
+
+/** One open item: who owns it, its kind, and the answer in place. */
+function OpenCard({
+	entry,
+	who,
+	onEdit,
+}: {
+	entry: QuestionEntry;
+	who: string;
+	onEdit: () => void;
+}) {
+	const { t } = useI18n();
+	const s = t.specs.question;
+	const p = t.specs.page;
+	const act = useSpecsActions();
+	const { failure, run } = useGuard();
+	const [answer, setAnswer] = useState("");
+	const q = entry.question;
+	const kinds = p.kindOne as Record<string, string>;
+	// The answer is the last line of the text, as the form of the question writes it.
+	const save = () =>
+		run(async () => {
+			const file = await unwrap(commands.specsRead(entry.path));
+			const now = readQuestion(file.text);
+			const w = await act.saveQuestion(
+				entry.path,
+				{ ...now, status: "answered", body: `${now.body.trimEnd()}\n${answer.trim()}\n` },
+				file.stamp,
+			);
+			if (w.conflict) throw new Error(s.conflict);
+		});
+	return (
+		<AttentionCard who={who || t.review.question.noOwner} title={q.title}>
+			<div className="flex flex-wrap items-center gap-2">
+				<Badge>{kinds[q.kind] ?? q.kind}</Badge>
+				{entry.issues.length ? (
+					<StatusDot status="warning" label={entry.issues.join(", ")} />
+				) : null}
+				<Button
+					className="ml-auto"
+					aria-label={format(p.editItem, { name: q.title })}
+					onClick={onEdit}
+				>
+					{t.knowledge.handbook.edit}
+				</Button>
+			</div>
+			<form
+				className="flex flex-wrap items-center gap-2.5"
+				onSubmit={(e) => {
+					e.preventDefault();
+					if (answer.trim()) void save();
+				}}
+			>
+				<div className="min-w-0 flex-[1_1_200px]">
+					<Input
+						label={format(p.answerTo, { name: q.title })}
+						placeholder={s.answer}
+						value={answer}
+						onChange={(e) => setAnswer(e.target.value)}
+					/>
+				</div>
+				<RightButton
+					right="specs.edit"
+					type="submit"
+					variant="primary"
+					disabled={answer.trim() === ""}
+					aria-label={format(p.answerTo, { name: q.title })}
+				>
+					{s.answer}
+				</RightButton>
+			</form>
+			<ErrorNotice error={failure} />
+		</AttentionCard>
 	);
 }
 
 function Register() {
 	const { t } = useI18n();
 	const s = t.specs.question;
+	const p = t.specs.page;
+	const l = t.library;
 	const questions = useQuestions();
 	const all = questions.data;
+	const members = useTeam().data?.team.members ?? [];
+	const me = useWorkContext().data?.me ?? null;
+	const [chip, setChip] = useState(ALL);
+	const [filters, setFilters] = useState(false);
 	const [text, setText] = useState("");
-	const [kind, setKind] = useState(ALL);
 	const [status, setStatus] = useState(ALL);
 	const [owner, setOwner] = useState(ALL);
 	// `null` closed, `"new"` the create form.
@@ -65,31 +145,49 @@ function Register() {
 	const shown = (all ?? []).filter(
 		({ question: q }) =>
 			(text === "" || has(q.id) || has(q.title)) &&
-			(kind === ALL || q.kind === kind) &&
+			(chip === ALL || (chip === MINE ? q.owner === me : q.kind === chip)) &&
 			(status === ALL || q.status === status) &&
 			(owner === ALL || q.owner === owner),
 	);
-	const enter = useEnter();
-	const options = (all: string, values: string[]) => [
-		{ value: ALL, label: all },
-		...values.map((v) => ({ value: v, label: v })),
+	const open = shown.filter((e) => e.question.status === "open");
+	const closed = shown.filter((e) => e.question.status !== "open");
+	const waiting = (all ?? []).filter((e) => e.question.status === "open").length;
+	const kinds = p.kinds as Record<string, string>;
+	const kindOne = p.kindOne as Record<string, string>;
+	const states = p.state as Record<string, string>;
+	const options = (first: string, values: string[], labels?: Record<string, string>) => [
+		{ value: ALL, label: first },
+		...values.map((v) => ({ value: v, label: labels?.[v] ?? v })),
 	];
 	const create = () => setEdit("new");
 	return (
-		<ListDetail
-			title={t.tabs.specs.questions}
-			icon={<ChatBubbleIcon size={16} />}
-			count={all?.length}
+		<LibraryPage
+			title={
+				waiting === 0
+					? t.tabs.specs.questions
+					: waiting === 1
+						? l.questionsOne
+						: format(l.questionsMany, { count: waiting })
+			}
 			action={
-				all?.length ? (
+				<>
+					<PageExport page="raid" />
 					<RightButton right="specs.edit" variant="primary" onClick={create}>
-						<PlusIcon size={14} />
 						{s.new}
 					</RightButton>
-				) : null
+				</>
 			}
-			toolbar={
-				<>
+			menu={[{ label: p.filters, onClick: () => setFilters((on) => !on) }]}
+		>
+			<fieldset aria-label={s.kind} className="flex flex-wrap gap-2">
+				{[ALL, ...CHIPS, ...KINDS.filter((k) => !CHIPS.includes(k)), MINE].map((k) => (
+					<Chip key={k} selected={chip === k} onClick={() => setChip(k)}>
+						{k === ALL ? t.specs.filter.all : k === MINE ? p.mine : (kinds[k] ?? k)}
+					</Chip>
+				))}
+			</fieldset>
+			{filters ? (
+				<div className="flex flex-wrap items-center gap-2">
 					<FilterBar
 						query={text}
 						onQueryChange={setText}
@@ -98,81 +196,86 @@ function Register() {
 						onToggle={() => {}}
 					/>
 					<Select
-						label={s.kind}
-						value={kind}
-						onValueChange={setKind}
-						items={options(s.allKinds, KINDS)}
-					/>
-					<Select
 						label={s.status}
 						value={status}
 						onValueChange={setStatus}
-						items={options(s.allStatuses, STATUSES)}
+						items={options(s.allStatuses, STATUSES, states)}
 					/>
 					<Select
 						label={s.owner}
 						value={owner}
 						onValueChange={setOwner}
-						items={options(s.allOwners, owners)}
-					/>
-					<PageExport page="raid" />
-				</>
-			}
-		>
-			<ErrorNotice error={questions.error} className="px-4 py-2" />
-			{all && all.length === 0 ? (
-				<div className="p-4">
-					<EmptyState
-						title={t.empty.questions}
-						action={{ label: s.new, icon: <PlusIcon size={14} />, onClick: create }}
+						items={options(
+							s.allOwners,
+							owners,
+							Object.fromEntries(owners.map((o) => [o, memberName(members, o)])),
+						)}
 					/>
 				</div>
-			) : (
-				<motion.ul
+			) : null}
+			<ErrorNotice error={questions.error} />
+			{all && all.length === 0 ? (
+				<EmptyState
+					title={t.empty.questions}
+					action={{ label: s.new, icon: <PlusIcon size={14} />, onClick: create }}
+				/>
+			) : null}
+			{open.length ? (
+				<ul
 					aria-label={t.tabs.specs.questions}
-					variants={LIST}
-					initial={enter}
-					animate="shown"
-					className="grid min-h-0 auto-rows-min grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-3 overflow-auto px-4 pt-1 pb-4"
+					className="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] items-start gap-6"
 				>
-					{shown.map((e) => {
-						const q = e.question;
-						const st = STATUS[q.status] ?? { tone: "neutral", line: "bg-n-8" };
-						return (
-							<li key={e.path}>
-								<Card interactive className="relative overflow-hidden p-0">
-									<span
-										aria-hidden="true"
-										className={cn("absolute inset-x-0 top-0 h-0.5", st.line)}
-									/>
-									<button
-										type="button"
-										onClick={() => setEdit(e)}
-										className="flex h-full w-full flex-col gap-2 rounded-lg p-3 text-left"
-									>
-										<span className="flex items-center gap-2">
-											<span className="font-mono text-12 text-n-11">{q.id}</span>
-											<Badge variant={KIND[q.kind] ?? "neutral"}>{q.kind}</Badge>
-											<span className="flex-1" />
+					{open.map((e) => (
+						<li key={e.path} className="flex min-w-0 flex-col">
+							<OpenCard
+								entry={e}
+								who={memberName(members, e.question.owner)}
+								onEdit={() => setEdit(e)}
+							/>
+						</li>
+					))}
+				</ul>
+			) : null}
+			{closed.length ? (
+				<Card className="py-2">
+					<section aria-label={p.closed}>
+						<h2 className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">{p.closed}</h2>
+						<ul>
+							{closed.map((e) => {
+								const q = e.question;
+								const who = memberName(members, q.owner);
+								return (
+									<li key={e.path} className="[&+&]:border-t [&+&]:border-n-6">
+										<Row>
+											{who ? <Avatar name={who} size="s" /> : null}
+											<button
+												type="button"
+												aria-label={format(p.editItem, { name: q.title })}
+												onClick={() => setEdit(e)}
+												className="min-h-control min-w-0 flex-[1_1_200px] cursor-pointer text-left font-semibold hover:underline"
+											>
+												{q.title}
+											</button>
 											{e.issues.length ? (
 												<StatusDot status="warning" label={e.issues.join(", ")} />
 											) : null}
-											<Badge variant={st.tone}>{q.status}</Badge>
-										</span>
-										<span className="line-clamp-2 min-h-10 text-ui text-n-12">{q.title}</span>
-										{q.owner ? (
-											<span className="flex items-center gap-2 text-12 text-n-11">
-												<Avatar name={q.owner} className="size-5" />
-												{q.owner}
-											</span>
-										) : null}
-									</button>
-								</Card>
-							</li>
-						);
-					})}
-				</motion.ul>
-			)}
+											<Badge>{kindOne[q.kind] ?? q.kind}</Badge>
+											<Badge variant={STATE_TONE[q.status] ?? "neutral"}>
+												{states[q.status] ?? q.status}
+											</Badge>
+											{q.status === "answered" && q.specRef ? (
+												<Button aria-label={`${p.foldLong}: ${q.title}`} onClick={() => setFold(e)}>
+													{p.foldLong}
+												</Button>
+											) : null}
+										</Row>
+									</li>
+								);
+							})}
+						</ul>
+					</section>
+				</Card>
+			) : null}
 			{edit ? (
 				<QuestionDialog
 					key={edit === "new" ? "new" : edit.path}
@@ -185,6 +288,6 @@ function Register() {
 				/>
 			) : null}
 			{fold ? <FoldDialog entry={fold} onClose={() => setFold(null)} /> : null}
-		</ListDetail>
+		</LibraryPage>
 	);
 }

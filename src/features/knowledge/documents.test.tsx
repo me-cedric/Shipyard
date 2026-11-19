@@ -5,15 +5,28 @@ import { mockState } from "@/lib/ipc/mock";
 import { Documents } from "./documents";
 import { inspector, mountKnowledge, mountView } from "./harness";
 
+/** The documents that Shipyard writes are in the "More" menu of the page. */
+const exportFrom = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+	await user.click(await screen.findByRole("button", { name: "More" }));
+	await user.click(await screen.findByRole("menuitem", { name }));
+};
+/** Rename and Delete are in the "More" menu of the card of the document. */
+const cardAction = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+	await user.click(await screen.findByRole("button", { name: "More Client brief" }));
+	await user.click(await screen.findByRole("menuitem", { name }));
+};
+
 describe("Knowledge / Documents", () => {
 	it("lists the documents and opens one in the same editor, with its entity in the inspector", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
-		await user.click(await screen.findByRole("button", { name: "Client brief" }));
+		await user.click(await screen.findByRole("button", { name: /^Client brief/ }));
 		// A document opens as a page to read; the switch shows the text.
-		expect(await screen.findByRole("article", { name: "Preview" })).toBeInTheDocument();
+		expect(await screen.findByRole("article", { name: "Client brief" })).toBeInTheDocument();
 		expect(screen.queryByRole("textbox", { name: "Markdown" })).toBeNull();
-		await user.click(screen.getByRole("button", { name: "Both" }));
+		// The format of the file is a pill on its card.
+		expect(screen.getByRole("button", { name: /^Client brief\s*Markdown$/ })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Text" }));
 		expect(await screen.findByRole("textbox", { name: "Markdown" })).toHaveValue(
 			"# Client brief\n\nThe scope follows spec:billing and adr:0004.\n",
 		);
@@ -26,11 +39,11 @@ describe("Knowledge / Documents", () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
 		const exported = () => mockState().knowledge.exported.map((e) => e.kind);
-		await user.click(await screen.findByRole("button", { name: "Export Architecture dossier" }));
+		await exportFrom(user, "Export Architecture dossier");
 		await waitFor(() => expect(exported()).toEqual(["dossier"]));
-		await user.click(screen.getByRole("button", { name: "Export Functional documentation" }));
+		await exportFrom(user, "Export Functional documentation");
 		await waitFor(() => expect(exported()).toEqual(["dossier", "functional"]));
-		await user.click(screen.getByRole("button", { name: "Export Quality sheet" }));
+		await exportFrom(user, "Export Quality sheet");
 		await waitFor(() => expect(exported()).toEqual(["dossier", "functional", "sheet"]));
 		expect(await screen.findByText("Exported: /mock/quality.xlsx")).toBeInTheDocument();
 	});
@@ -39,7 +52,7 @@ describe("Knowledge / Documents", () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
 		mockState().nextFile = "";
-		await user.click(await screen.findByRole("button", { name: "Export Architecture dossier" }));
+		await exportFrom(user, "Export Architecture dossier");
 		await waitFor(() => expect(mockState().nextFile).toBeUndefined());
 		expect(mockState().knowledge.exported).toHaveLength(0);
 		expect(screen.queryByText(/^Exported:/)).toBeNull();
@@ -49,14 +62,18 @@ describe("Knowledge / Documents", () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
 		mockState().nextFile = "/mock/Clients/acme-dossier.docx";
-		await user.click(await screen.findByRole("button", { name: "Export Architecture dossier" }));
+		await exportFrom(user, "Export Architecture dossier");
 		expect(await screen.findByText("Exported: /mock/Clients/acme-dossier.docx")).toBeVisible();
 		const [sent] = mockState().knowledge.exported;
 		expect(sent?.path).toBe("/mock/Clients/acme-dossier.docx");
 		// A diagram that does not render in the test webview goes as its source.
 		expect(sent?.views).toEqual([{ title: "Run states", source: "graph TD\n  A --> B", png: "" }]);
-		await user.click(screen.getByRole("button", { name: "Show in folder" }));
-		await user.click(screen.getByRole("button", { name: "Open" }));
+		// The File card of the open document has a "Show in folder" too: these are the ones of the export.
+		const saved = within(
+			screen.getByText("Exported: /mock/Clients/acme-dossier.docx").parentElement as HTMLElement,
+		);
+		await user.click(saved.getByRole("button", { name: "Show in folder" }));
+		await user.click(saved.getByRole("button", { name: "Open" }));
 		expect(screen.queryByRole("alert")).toBeNull();
 	}, 30000);
 
@@ -64,7 +81,7 @@ describe("Knowledge / Documents", () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
 		mockState().nextFile = "/mock/quality.txt";
-		await user.click(await screen.findByRole("button", { name: "Export Quality sheet" }));
+		await exportFrom(user, "Export Quality sheet");
 		expect(await screen.findByRole("alert")).toHaveTextContent(errorMessages.en.file_unsupported);
 		expect(mockState().knowledge.exported).toHaveLength(0);
 	});
@@ -86,7 +103,7 @@ describe("Knowledge / Documents", () => {
 		await user.type(await screen.findByRole("searchbox", { name: "Search in the text" }), "scope");
 		const hits = await screen.findByRole("list", { name: "Results" });
 		await user.click(within(hits).getByRole("button", { name: /Client brief/ }));
-		await user.click(await screen.findByRole("button", { name: "Both" }));
+		await user.click(await screen.findByRole("button", { name: "Text" }));
 		expect(await screen.findByRole("textbox", { name: "Markdown" })).toHaveValue(
 			"# Client brief\n\nThe scope follows spec:billing and adr:0004.\n",
 		);
@@ -98,8 +115,8 @@ describe("Knowledge / Documents", () => {
 	it("renames a document and keeps it open under its new name", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
-		await user.click(await screen.findByRole("button", { name: "Client brief" }));
-		await user.click(await screen.findByRole("button", { name: "Rename Client brief" }));
+		await user.click(await screen.findByRole("button", { name: /^Client brief/ }));
+		await cardAction(user, "Rename");
 		const dialog = within(await screen.findByRole("dialog"));
 		const name = dialog.getByRole("textbox", { name: "Name" });
 		await user.clear(name);
@@ -108,7 +125,7 @@ describe("Knowledge / Documents", () => {
 		const files = () => mockState().knowledge.files;
 		await waitFor(() => expect(files()["docs/documents/brief.md"]).toBeDefined());
 		expect(files()["docs/documents/client-brief.md"]).toBeUndefined();
-		await user.click(await screen.findByRole("button", { name: "Both" }));
+		await user.click(await screen.findByRole("button", { name: "Text" }));
 		expect(await screen.findByRole("textbox", { name: "Markdown" })).toHaveValue(
 			"# Client brief\n\nThe scope follows spec:billing and adr:0004.\n",
 		);
@@ -117,8 +134,8 @@ describe("Knowledge / Documents", () => {
 	it("deletes a document to the trash only after a confirmation", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
-		await user.click(await screen.findByRole("button", { name: "Client brief" }));
-		await user.click(await screen.findByRole("button", { name: "Delete Client brief" }));
+		await user.click(await screen.findByRole("button", { name: /^Client brief/ }));
+		await cardAction(user, "Delete");
 		const dialog = within(
 			await screen.findByRole("dialog", {
 				name: /Move docs\/documents\/client-brief\.md to the trash/,
@@ -129,13 +146,13 @@ describe("Knowledge / Documents", () => {
 		await waitFor(() =>
 			expect(mockState().knowledge.files["docs/documents/client-brief.md"]).toBeUndefined(),
 		);
-		await waitFor(() => expect(screen.queryByRole("button", { name: "Client brief" })).toBeNull());
+		await waitFor(() => expect(screen.queryByRole("button", { name: /^Client brief/ })).toBeNull());
 	});
 
 	it("shows a Word file as text, read only", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
-		await user.click(await screen.findByRole("button", { name: "kickoff-notes" }));
+		await user.click(await screen.findByRole("button", { name: /^kickoff-notes/ }));
 		const doc = await screen.findByRole("article", { name: "kickoff-notes" });
 		expect(await within(doc).findByRole("heading", { name: "Kickoff notes" })).toBeInTheDocument();
 		expect(within(doc).getByText("The client agreed the scope.")).toBeInTheDocument();

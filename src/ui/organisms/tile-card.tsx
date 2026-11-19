@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { IconButton } from "../atoms/icon-button";
-import { Sparkline } from "../atoms/sparkline";
-import { LockClosedIcon, LockOpenIcon, ViewColumnsIcon } from "../icons";
+import { MenuButton } from "../molecules/menu-button";
 
 export type TileLabels = {
 	table: string;
@@ -10,6 +8,8 @@ export type TileLabels = {
 	pin: string;
 	unpin: string;
 	cut: string;
+	/** The name of the menu of a tile, before its title. */
+	more: string;
 };
 export type TileBody = {
 	columns: string[];
@@ -31,6 +31,8 @@ export function TileCard({
 	pinned,
 	onPin,
 	actions,
+	lead,
+	edit,
 }: {
 	title: string;
 	data: TileBody | undefined;
@@ -39,56 +41,65 @@ export function TileCard({
 	labels: TileLabels;
 	pinned?: boolean;
 	onPin?: () => void;
-	/** Extra controls, left of the pin. */
+	/** Extra controls, after the title. */
 	actions?: React.ReactNode;
+	/** A part before the title: the drag handle. */
+	lead?: React.ReactNode;
+	/** The tile of the edit page: a dashed outline. */
+	edit?: boolean;
 }) {
 	const [table, setTable] = useState(false);
 	const off = data?.off != null;
 	const counts = (data?.rows ?? []).map((r) => Number(r[1]) || 0);
 	const max = Math.max(1, ...counts);
-	const chart = !off && data?.columns.length === 2;
 	return (
 		<section
 			aria-label={title}
 			aria-disabled={off || undefined}
 			className={cn(
-				"relative flex h-full min-h-0 flex-col gap-2 overflow-hidden rounded-lg border bg-surface-2 p-3 shadow-1 transition-shadow duration-(--duration-base) hover:shadow-2",
+				"flex h-full min-h-0 flex-col gap-3 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2",
+				edit && "outline-2 outline-n-8 outline-dashed",
 				off && "opacity-60",
 			)}
 		>
-			<span
-				aria-hidden="true"
-				className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-linear-to-b from-accent-soft to-transparent opacity-60"
-			/>
-			{/* The title keeps its own line when the 44 px buttons take the width of a narrow tile. */}
-			<header className="relative flex flex-wrap items-center gap-1">
-				<h2 className="min-w-24 flex-1 truncate text-ui font-medium text-n-12">{title}</h2>
+			<header className="flex flex-wrap items-center gap-2">
+				{lead}
+				<h2 className="min-w-24 flex-1 truncate text-17 font-semibold text-n-12">{title}</h2>
 				{actions}
-				{off ? null : (
-					<IconButton label={labels.table} aria-pressed={table} onClick={() => setTable(!table)}>
-						<ViewColumnsIcon size={12} />
-					</IconButton>
+				{/* Show as table and the pin: one quiet menu, so that a tile in read mode has no icon row. */}
+				{off && !onPin ? null : (
+					<MenuButton
+						iconOnly
+						label={`${labels.more} ${title}`}
+						icon={
+							<svg aria-hidden="true" viewBox="0 0 16 16" className="size-4" fill="currentColor">
+								<circle cx="3" cy="8" r="1.25" />
+								<circle cx="8" cy="8" r="1.25" />
+								<circle cx="13" cy="8" r="1.25" />
+							</svg>
+						}
+						items={[
+							...(off
+								? []
+								: [
+										{
+											id: "table",
+											label: labels.table,
+											checked: table,
+											onSelect: () => setTable(!table),
+										},
+									]),
+							...(onPin
+								? [{ id: "pin", label: pinned ? labels.unpin : labels.pin, onSelect: onPin }]
+								: []),
+						]}
+					/>
 				)}
-				{onPin ? (
-					<IconButton
-						label={pinned ? labels.unpin : labels.pin}
-						aria-pressed={!!pinned}
-						onClick={onPin}
-					>
-						{pinned ? <LockClosedIcon size={12} /> : <LockOpenIcon size={12} />}
-					</IconButton>
-				) : null}
 			</header>
-			{chart && !table ? (
-				<div className="relative flex items-end gap-3">
-					<span className="font-mono text-20 text-n-12">{counts.reduce((a, b) => a + b, 0)}</span>
-					<Sparkline values={counts} className="ml-auto h-8 max-w-32" />
-				</div>
-			) : null}
 			{off ? (
 				<p className="text-ui text-n-11">{offText}</p>
 			) : table || data?.columns.length !== 2 ? (
-				<table aria-label={`${title}, ${labels.table}`} className="w-full text-left text-12">
+				<table aria-label={`${title}, ${labels.table}`} className="w-full text-left text-13">
 					<thead>
 						<tr className="border-b text-n-11">
 							{(data?.columns ?? []).map((c) => (
@@ -114,18 +125,18 @@ export function TileCard({
 			) : (
 				<ul
 					aria-label={`${title}, ${labels.chart}`}
-					className="relative flex flex-col gap-1.5 text-12"
+					className="flex min-h-37.5 flex-col justify-center gap-2 text-13"
 				>
 					{(data?.rows ?? []).map(([name, n]) => (
 						<li key={name} className="flex items-center gap-2">
-							<span className="w-28 shrink-0 truncate text-n-11">{name}</span>
-							<span aria-hidden="true" className="h-1.5 flex-1 rounded-full bg-n-4">
+							<span className="w-28 shrink-0 truncate text-n-10">{name}</span>
+							<span aria-hidden="true" className="h-2 flex-1 rounded-full bg-n-4">
 								<span
-									className="block h-1.5 rounded-full bg-accent"
+									className="block h-2 rounded-full bg-accent"
 									style={{ width: `${((Number(n) || 0) / max) * 100}%` }}
 								/>
 							</span>
-							<span className="w-8 text-right font-mono text-n-12">{n}</span>
+							<span className="w-8 text-right font-semibold text-n-12">{n}</span>
 						</li>
 					))}
 				</ul>

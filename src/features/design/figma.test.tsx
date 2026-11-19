@@ -14,10 +14,12 @@ describe("Design / Screens: Figma and the .fig viewer", () => {
 				name: /Home/,
 			}),
 		);
-		const figma = await screen.findByRole("region", { name: "Figma" });
-		await user.type(within(figma).getByLabelText("Figma token"), "figd_secret");
-		await user.click(within(figma).getByRole("button", { name: "Save the token" }));
+		await user.click(await screen.findByRole("button", { name: "Connect Figma" }));
+		await user.type(await screen.findByLabelText("Figma token"), "figd_secret");
+		await user.click(screen.getByRole("button", { name: "Save the token" }));
 		await waitFor(() => expect(mockState().extras.figmaToken).toBe(true));
+		// The banner goes; the panel of the open screen takes over.
+		const figma = await screen.findByRole("region", { name: "Figma" });
 		await user.type(
 			await within(figma).findByRole("textbox", { name: "Figma project address" }),
 			"https://www.figma.com/files/project/42",

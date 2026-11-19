@@ -1,3 +1,9 @@
+import {
+	createMemoryHistory,
+	createRootRoute,
+	createRouter,
+	RouterProvider,
+} from "@tanstack/react-router";
 import { screen } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { commands, unwrap } from "@/lib/ipc";
@@ -22,12 +28,19 @@ function Probe() {
 /** A view inside the shell state, with the mock project open. */
 export async function renderSpecs(ui: ReactElement) {
 	await unwrap(commands.projectsOpen("/mock/alpha", false));
-	return renderApp(
-		<ShellProvider>
-			{ui}
-			<Probe />
-		</ShellProvider>,
-	);
+	// The pages sit in a router: the way back and the links of the cards need it.
+	const router = createRouter({
+		routeTree: createRootRoute({
+			component: () => (
+				<ShellProvider>
+					{ui}
+					<Probe />
+				</ShellProvider>
+			),
+		}),
+		history: createMemoryHistory(),
+	});
+	return renderApp(<RouterProvider router={router} />);
 }
 
 /** The detail of one change, as the Brief of its feature page draws it. */

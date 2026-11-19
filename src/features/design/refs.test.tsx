@@ -22,9 +22,9 @@ describe("the ref of a design artifact", () => {
 		await mountDesign(<Diagrams />);
 		await user.click((await list("Diagrams")).getByRole("button", { name: /context/ }));
 		// The inspector header offers Copy ref too: any of them copies the same ref.
-		await user.click(
-			(await screen.findAllByRole("button", { name: "Copy ref" }))[0] as HTMLElement,
-		);
+		// The reference sits in the "More" menu of the page.
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Copy ref" }));
 		expect(writeText).toHaveBeenCalledWith("diagram:context");
 	});
 
@@ -43,7 +43,7 @@ describe("the ref of a design artifact", () => {
 	it("shows the citation of an ADR in its backlinks", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Decisions />);
-		await user.click((await list("Decisions")).getByRole("button", { name: /0004/ }));
+		await user.click((await list("Decisions")).getByRole("button", { name: /Polling sync/ }));
 		const panel = await inspector();
 		expect(await panel.findAllByRole("button", { name: /^doc:/ })).not.toHaveLength(0);
 	});
@@ -51,7 +51,9 @@ describe("the ref of a design artifact", () => {
 	it("shows ghost rows for an artifact that nothing cites", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Decisions />);
-		await user.click((await list("Decisions")).getByRole("button", { name: /0003/ }));
+		await user.click(
+			(await list("Decisions")).getByRole("button", { name: /Ship a browser mock/ }),
+		);
 		const panel = await inspector();
 		await panel.findByText("adr:0003", { selector: "code" });
 		await waitFor(() => expect(panel.queryAllByRole("heading", { level: 3 })).toHaveLength(0));

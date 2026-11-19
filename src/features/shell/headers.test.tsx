@@ -121,7 +121,12 @@ describe("a page header on every tab (REQ-017)", () => {
 							: // Time names whose time it shows, as the design does ("My time").
 								space === "work" && tab === "time"
 								? "(Time|My time|.+ time)"
-								: title(space, tab),
+								: // Questions says the count of the open ones, and Test plans the open plan (Library, look pass 2).
+									space === "specs" && tab === "questions"
+									? "(Questions|\\d+ open questions?)"
+									: space === "specs" && tab === "test-plans"
+										? "(Test plans|Test plan: .+)"
+										: title(space, tab),
 		);
 	});
 });

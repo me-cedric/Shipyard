@@ -11,38 +11,44 @@ describe("Knowledge / Learn", () => {
 		const learn = await unwrap(commands.learnGet());
 		expect(learn.path.length).toBeGreaterThan(0);
 		const list = await screen.findByRole("list", { name: "Path" });
-		expect(
-			await screen.findByRole("heading", { name: `Path (${learn.path.length})` }),
-		).toBeInTheDocument();
+		expect(await screen.findByText(`0 of ${learn.path.length}`)).toBeInTheDocument();
+		expect(screen.getByRole("progressbar", { name: "Progress" })).toHaveAttribute(
+			"aria-valuemax",
+			String(learn.path.length),
+		);
 		const shown = within(list)
 			.getAllByRole("listitem")
-			.map((li) => li.querySelector("button")?.getAttribute("aria-label")?.split(",")[0]);
-		expect(shown).toEqual(learn.path.map((s) => s.ref));
+			.map((li) => li.querySelector("button")?.textContent);
+		expect(shown).toEqual(learn.path.map((s) => s.title));
 		const ranks = learn.path.map((s) => RANK.indexOf(s.kind));
 		expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
 	});
 
-	it("opens a step from its title, not only from its chip", async () => {
+	it("marks the next step with Start, and Start opens it and moves the mark on", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("learn");
 		const { path } = await unwrap(commands.learnGet());
 		const step = path[0];
 		if (!step) throw new Error("no step");
 		const list = await screen.findByRole("list", { name: "Path" });
-		await user.click(await within(list).findByRole("button", { name: step.title }));
+		await user.click(await within(list).findByRole("button", { name: "Start" }));
 		await waitFor(async () => expect(await inspector()).toHaveTextContent(step.ref));
+		expect(await screen.findByText(/^1 of /)).toBeInTheDocument();
+		await user.click(within(list).getByRole("button", { name: step.title }));
 	});
 
-	it("shows the glossary with a count, and a term opens the spec that defines it", async () => {
+	it("shows the glossary, and a term opens the spec that defines it", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("learn");
 		const { glossary } = await unwrap(commands.learnGet());
 		const term = glossary[0];
 		if (!term) throw new Error("no term");
-		expect(
-			await screen.findByRole("heading", { name: `Glossary (${glossary.length})` }),
-		).toBeInTheDocument();
-		await user.click(await screen.findByRole("button", { name: term.term }));
+		expect(await screen.findByRole("heading", { name: "Glossary" })).toBeInTheDocument();
+		const list = await screen.findByRole("list", { name: "Glossary" });
+		await waitFor(() =>
+			expect(within(list).getAllByRole("listitem")).toHaveLength(glossary.length),
+		);
+		await user.click(await within(list).findByRole("button", { name: term.term }));
 		await waitFor(async () => expect(await inspector()).toHaveTextContent(term.spec));
 	});
 });

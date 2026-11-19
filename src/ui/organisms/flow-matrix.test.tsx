@@ -55,7 +55,7 @@ describe("FlowMatrix", () => {
 	it("filters rows by text", async () => {
 		setup();
 		expect(screen.getAllByRole("row")).toHaveLength(3);
-		await userEvent.type(screen.getByRole("textbox", { name: "Search" }), "dns");
+		await userEvent.type(screen.getByRole("searchbox", { name: "Search" }), "dns");
 		expect(screen.getAllByRole("row")).toHaveLength(2);
 		expect(screen.queryByText("5432")).toBeNull();
 	});
@@ -74,7 +74,9 @@ describe("FlowMatrix", () => {
 
 	it("edits and removes a row", async () => {
 		const { onEdit, onRemove } = setup();
-		await userEvent.click(screen.getByRole("button", { name: "Edit web db" }));
+		// Edit and Remove sit in the menu of the row.
+		await userEvent.click(screen.getByRole("button", { name: "web db" }));
+		await userEvent.click(await screen.findByRole("menuitem", { name: "Edit" }));
 		const port = screen.getByRole("textbox", { name: "Port" });
 		await userEvent.clear(port);
 		await userEvent.type(port, "5433");
@@ -85,7 +87,8 @@ describe("FlowMatrix", () => {
 			"1",
 			expect.objectContaining({ port: "5433", source: "web" }),
 		);
-		await userEvent.click(screen.getByRole("button", { name: "Remove app dns" }));
+		await userEvent.click(screen.getByRole("button", { name: "app dns" }));
+		await userEvent.click(await screen.findByRole("menuitem", { name: "Remove" }));
 		expect(onRemove).toHaveBeenCalledWith("2");
 	});
 });

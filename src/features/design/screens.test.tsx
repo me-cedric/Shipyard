@@ -8,15 +8,18 @@ const files = () => mockState().design.files;
 const DOC = "docs/designs/design.md";
 const row = async (name: string | RegExp) =>
 	within(await screen.findByRole("list", { name: "Screens" })).findByRole("button", { name });
+const openTokens = async (user: ReturnType<typeof userEvent.setup>) =>
+	user.click(await screen.findByRole("button", { name: "Tokens" }));
 const main = async () => within(await screen.findByRole("main"));
 
 describe("Design / Screens", () => {
-	it("lists the screens, with the design doc above them", async () => {
+	it("lists the screens as cards with Built or Not built, and a switch to the tokens", async () => {
 		await mountDesign(<Screens />);
 		const list = await screen.findByRole("list", { name: "Screens" });
-		expect(within(list).getAllByRole("listitem")).toHaveLength(3);
-		expect(within(list).getByRole("button", { name: /Design doc/ })).toBeInTheDocument();
+		expect(within(list).getAllByRole("listitem")).toHaveLength(2);
+		expect(within(list).getByRole("button", { name: /Home/ })).toHaveTextContent("Built");
 		expect(within(list).getByRole("button", { name: /Checkout/ })).toHaveTextContent("Broken link");
+		expect(screen.getByRole("button", { name: "Tokens" })).toBeInTheDocument();
 	});
 
 	it("shows the artifacts of a screen and opens its design link outside the app", async () => {
@@ -117,7 +120,7 @@ describe("Design / Screens", () => {
 	it("edits the design doc and writes it", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Screens />);
-		await user.click(await row(/Design doc/));
+		await openTokens(user);
 		await showText(user);
 		const text = await screen.findByRole("textbox", { name: "Design doc text" });
 		expect(text).toHaveValue(files()[DOC]?.text);
@@ -130,7 +133,7 @@ describe("Design / Screens", () => {
 		const user = userEvent.setup();
 		files()["src/tokens.css"] = { text: ":root { --brand: #123456; --gap: 4px; }", stamp: "1" };
 		await mountDesign(<Screens />);
-		await user.click(await row(/Design doc/));
+		await openTokens(user);
 		const region = await screen.findByRole("region", { name: "Tokens" });
 		// It scrolls, so the keyboard reaches it.
 		expect(region).toHaveAttribute("tabindex", "0");
@@ -149,7 +152,7 @@ describe("Design / Screens", () => {
 	it("says no tokens yet, and adds a starter block to the doc text for the person to save", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Screens />);
-		await user.click(await row(/Design doc/));
+		await openTokens(user);
 		const region = within(await screen.findByRole("region", { name: "Tokens" }));
 		expect(await region.findByText("No tokens yet")).toBeInTheDocument();
 		// The doc opens on the tokens alone; the starter block goes in the text, so the text shows.
@@ -167,7 +170,7 @@ describe("Design / Screens", () => {
 		const user = userEvent.setup();
 		delete files()[DOC];
 		await mountDesign(<Screens />);
-		await user.click(await row(/Design doc/));
+		await openTokens(user);
 		await showText(user);
 		const text = await screen.findByRole("textbox", { name: "Design doc text" });
 		expect((text as HTMLTextAreaElement).value).toContain("## Context and scope");
@@ -179,7 +182,7 @@ describe("Design / Screens", () => {
 	it("adds a screen to the screens file", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Screens />);
-		await user.click(await screen.findByRole("button", { name: "Screen" }));
+		await user.click(await screen.findByRole("button", { name: "Add a screen" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		await user.type(dialog.getByRole("textbox", { name: "Name" }), "Profile");
 		await user.click(dialog.getByRole("button", { name: "Create" }));
@@ -191,11 +194,11 @@ describe("Design / Screens", () => {
 		expect(await row(/Profile/)).toBeInTheDocument();
 	});
 
-	it("shows ghost rows under the design doc when there is no screen", async () => {
+	it("offers to add the first screen when there is none", async () => {
 		delete files()["docs/designs/screens.json"];
 		await mountDesign(<Screens />);
-		await screen.findByRole("list", { name: "Screens" });
-		expect(await screen.findAllByRole("button", { name: "Screen" })).toHaveLength(1);
+		expect(await screen.findAllByRole("button", { name: "Add a screen" })).toHaveLength(2);
+		expect(screen.queryByRole("list", { name: "Screens" })).toBeNull();
 	});
 
 	it("shows the error of a screens file that does not parse", async () => {

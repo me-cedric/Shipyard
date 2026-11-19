@@ -1,8 +1,7 @@
 import { useI18n } from "@/lib/i18n";
-import { commands, type ExportText, saveAs, unwrap } from "@/lib/ipc";
+import { commands, type ExportText, unwrap } from "@/lib/ipc";
 import { type ExportItem, ExportMenu } from "./export-menu";
 import { renderViews } from "./export-views";
-import { ChangeRequestForm, WorkDoneForm } from "./forms";
 
 export type ExportPage =
 	| "documents"
@@ -57,16 +56,14 @@ export function useExportItems(slug?: string): Record<ExportPage, ExportItem[]> 
 			{
 				id: "change-request",
 				label: r.changeRequest,
-				form: (done, close) => <ChangeRequestForm done={done} close={close} />,
+				form: true,
 			},
 		],
 		workDone: [
 			{
 				id: "work-done",
 				label: r.workDone,
-				form: (done, close) => (
-					<WorkDoneForm done={done} close={close} pick={() => saveAs("work-done", "xlsx")} />
-				),
+				form: true,
 			},
 		],
 		costing: [

@@ -1,99 +1,183 @@
-import { useState } from "react";
-import { format, useI18n } from "@/lib/i18n";
-import { commands, unwrap } from "@/lib/ipc";
-import { Button } from "@/ui/atoms/button";
+import { Link, Navigate, useParams } from "@tanstack/react-router";
+import { type ReactNode, useState } from "react";
+import {
+	DetailColumn,
+	LibraryPage,
+	LinkedCard,
+	LinkedRow,
+	PageColumns,
+	SideCards,
+} from "@/features/library/page-parts";
+import { NoProject } from "@/features/shell/no-project";
+import { useI18n } from "@/lib/i18n";
+import { commands, saveAs, unwrap } from "@/lib/ipc";
+import { useActiveProject } from "@/lib/projects";
+import { useTeam } from "@/lib/work";
+import { Avatar } from "@/ui/atoms/avatar";
+import { Badge } from "@/ui/atoms/badge";
+import { Button, buttonVariants } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { DocumentTextIcon } from "@/ui/icons";
+import { BackLink } from "@/ui/molecules/back-link";
+import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { Dialog } from "@/ui/organisms/dialog";
+import { MenuButton } from "@/ui/molecules/menu-button";
+import { Row } from "@/ui/molecules/row";
+import { SavedActions } from "./export-menu";
+import { useReports } from "./reports-page";
 
-type Props = { done: (note: string) => void; close: () => void };
+const FIELD = "w-auto flex-[1_1_200px]";
 
-/** The shell of a form: fields, the one Export button and the error with its action. */
-function Form({
-	title,
-	ready,
-	run,
-	close,
-	children,
-}: {
-	title: string;
-	ready: boolean;
-	run: () => Promise<string>;
-	close: () => void;
-	children: React.ReactNode;
-}) {
-	const { t } = useI18n();
-	const [failure, setFailure] = useState<unknown>(null);
+/** One row of a form: the name of the field, then its control. */
+function Field({ label, children }: { label: string; children: ReactNode }) {
 	return (
-		<Dialog
-			open
-			onOpenChange={(o) => !o && close()}
-			title={title}
-			actions={
-				<Button
-					variant="primary"
-					disabled={!ready}
-					onClick={() => {
-						setFailure(null);
-						void run().then(close).catch(setFailure);
-					}}
-				>
-					{t.reports.export}
-				</Button>
-			}
-		>
+		<Row className="py-2">
+			<span className="flex-[1_1_200px] font-medium">{label}</span>
 			{children}
-			<ErrorNotice error={failure} />
-		</Dialog>
+		</Row>
 	);
 }
 
-/** `CR-003`: a title, the two refs and the approvers. It writes the files in the project. */
-export function ChangeRequestForm({ done, close }: Props) {
+/**
+ * The card of a form: its fields, the one button that writes the report, the error with its
+ * action, then one card for each written file. `run` gives the paths of the files.
+ */
+function Sheet({
+	ready,
+	run,
+	children,
+}: {
+	ready: boolean;
+	run: () => Promise<string[]>;
+	children: ReactNode;
+}) {
+	const { t } = useI18n();
+	const [written, setWritten] = useState<string[]>([]);
+	const [failure, setFailure] = useState<unknown>(null);
+	const [busy, setBusy] = useState(false);
+	return (
+		<>
+			<Card className="py-2">
+				{children}
+				<Field label="">
+					<Button
+						variant="primary"
+						busy={busy}
+						disabled={!ready}
+						onClick={() => {
+							setFailure(null);
+							setBusy(true);
+							run()
+								.then(setWritten)
+								.catch(setFailure)
+								.finally(() => setBusy(false));
+						}}
+					>
+						{t.reports.write}
+					</Button>
+				</Field>
+			</Card>
+			<ErrorNotice error={failure} />
+			{written.map((path) => (
+				<Card key={path} pad className="flex flex-wrap items-center gap-3">
+					<Badge variant="success">{t.reports.written}</Badge>
+					<span role="status" className="flex-[1_1_200px] break-all font-mono text-14">
+						{path}
+					</span>
+					<SavedActions path={path} onError={setFailure} />
+				</Card>
+			))}
+		</>
+	);
+}
+
+/** `CR-003`: a title, the two versions and the people who approve. It writes the files in the project. */
+function ChangeRequest() {
 	const { t } = useI18n();
 	const f = t.reports.form;
+	const members = useTeam().data?.team.members ?? [];
 	const [title, setTitle] = useState("");
 	const [base, setBase] = useState("main");
 	const [head, setHead] = useState("HEAD");
-	const [approvers, setApprovers] = useState("");
+	const [picked, setPicked] = useState<string[]>([]);
+	// A project with no team keeps the typed list of names.
+	const [typed, setTyped] = useState("");
 	return (
-		<Form
-			title={t.reports.changeRequest}
+		<Sheet
 			ready={Boolean(title.trim() && base.trim() && head.trim())}
-			close={close}
 			run={async () => {
-				const names = approvers
-					.split(",")
-					.map((a) => a.trim())
-					.filter(Boolean);
+				const names = members.length
+					? picked
+					: typed
+							.split(",")
+							.map((a) => a.trim())
+							.filter(Boolean);
 				const out = await unwrap(
 					commands.exportChangeRequestFiles(title, base.trim(), head.trim(), names, true),
 				);
-				done(format(t.reports.changeRequestDone, out));
-				return out.id;
+				return [out.markdown, out.docx];
 			}}
 		>
-			<Input caption label={f.title} value={title} onChange={(e) => setTitle(e.target.value)} />
-			<Input caption label={f.base} value={base} onChange={(e) => setBase(e.target.value)} />
-			<Input caption label={f.head} value={head} onChange={(e) => setHead(e.target.value)} />
-			<Input
-				caption
-				label={f.approvers}
-				value={approvers}
-				onChange={(e) => setApprovers(e.target.value)}
-			/>
-		</Form>
+			<Field label={f.title}>
+				<Input
+					label={f.title}
+					className={FIELD}
+					value={title}
+					onChange={(e) => setTitle(e.target.value)}
+				/>
+			</Field>
+			<Field label={f.base}>
+				<Input
+					label={f.base}
+					className={FIELD}
+					value={base}
+					onChange={(e) => setBase(e.target.value)}
+				/>
+			</Field>
+			<Field label={f.head}>
+				<Input
+					label={f.head}
+					className={FIELD}
+					value={head}
+					onChange={(e) => setHead(e.target.value)}
+				/>
+			</Field>
+			<Field label={f.approvers}>
+				{members.length ? (
+					<span className="flex flex-wrap items-center gap-2">
+						{picked.map((name) => (
+							<Avatar key={name} name={name} size="s" />
+						))}
+						<MenuButton
+							label={f.add}
+							items={members.map((m) => ({
+								id: m.handle,
+								label: m.name,
+								checked: picked.includes(m.name),
+								onSelect: () =>
+									setPicked((p) =>
+										p.includes(m.name) ? p.filter((x) => x !== m.name) : [...p, m.name],
+									),
+							}))}
+						/>
+					</span>
+				) : (
+					<Input
+						label={f.approvers}
+						className={FIELD}
+						value={typed}
+						onChange={(e) => setTyped(e.target.value)}
+					/>
+				)}
+			</Field>
+		</Sheet>
 	);
 }
 
 const day = (back: number) => new Date(Date.now() - back * 864e5).toISOString().slice(0, 10);
 
-/** The work done between two refs for a period. The save dialog comes after the form. */
-export function WorkDoneForm({
-	done,
-	close,
-	pick,
-}: Props & { pick: () => Promise<string | null> }) {
+/** The work done between two versions for a period. The save dialog comes after the form. */
+function WorkDone() {
 	const { t } = useI18n();
 	const f = t.reports.form;
 	const [base, setBase] = useState("main");
@@ -101,35 +185,119 @@ export function WorkDoneForm({
 	const [from, setFrom] = useState(day(30));
 	const [to, setTo] = useState(day(0));
 	return (
-		<Form
-			title={t.reports.workDone}
+		<Sheet
 			ready={Boolean(base.trim() && head.trim() && from && to)}
-			close={close}
 			run={async () => {
-				const path = await pick();
-				if (!path) return "";
-				const text = {
-					title: t.reports.workDone,
-					...t.reports.text,
-					sections: [],
-				};
+				const path = await saveAs("work-done", "xlsx");
+				if (!path) return [];
+				const text = { title: t.reports.workDone, ...t.reports.text, sections: [] };
 				await unwrap(
 					commands.exportWorkDoneFile(text, base.trim(), head.trim(), from, to, path, true),
 				);
-				done(format(t.reports.exported, { path }));
-				return path;
+				return [path];
 			}}
 		>
-			<Input caption label={f.base} value={base} onChange={(e) => setBase(e.target.value)} />
-			<Input caption label={f.head} value={head} onChange={(e) => setHead(e.target.value)} />
-			<Input
-				caption
-				type="date"
-				label={f.from}
-				value={from}
-				onChange={(e) => setFrom(e.target.value)}
-			/>
-			<Input caption type="date" label={f.to} value={to} onChange={(e) => setTo(e.target.value)} />
-		</Form>
+			<Field label={f.base}>
+				<Input
+					label={f.base}
+					className={FIELD}
+					value={base}
+					onChange={(e) => setBase(e.target.value)}
+				/>
+			</Field>
+			<Field label={f.head}>
+				<Input
+					label={f.head}
+					className={FIELD}
+					value={head}
+					onChange={(e) => setHead(e.target.value)}
+				/>
+			</Field>
+			<Field label={f.from}>
+				<Input
+					type="date"
+					label={f.from}
+					className={FIELD}
+					value={from}
+					onChange={(e) => setFrom(e.target.value)}
+				/>
+			</Field>
+			<Field label={f.to}>
+				<Input
+					type="date"
+					label={f.to}
+					className={FIELD}
+					value={to}
+					onChange={(e) => setTo(e.target.value)}
+				/>
+			</Field>
+		</Sheet>
+	);
+}
+
+const FORMS: Record<string, () => ReactNode> = {
+	"change-request": ChangeRequest,
+	"work-done": WorkDone,
+};
+
+/**
+ * The form of a report that asks first, as a page: `/library/reports/$form`. A report that the
+ * role does not see, or an address with no form, goes back to Reports.
+ */
+export function ReportForm() {
+	const { t } = useI18n();
+	const r = t.reports;
+	const { form } = useParams({ strict: false }) as { form: string };
+	const active = useActiveProject().data;
+	const reports = useReports();
+	const title = t.library.views.reports;
+	const mine = reports.find((x) => x.item.id === form && x.item.form);
+	const Form = FORMS[form];
+	if (active === null) return <NoProject title={title} icon={<DocumentTextIcon size={16} />} />;
+	if (!mine || !Form) return <Navigate to="/library/reports" replace />;
+	const others = reports.filter((x) => x.item.form && x.item.id !== form);
+	const plain = reports.filter((x) => !x.item.form);
+	return (
+		<LibraryPage
+			title={mine.item.label}
+			back={<BackLink label={title} render={(p) => <Link to="/library/reports" {...p} />} />}
+		>
+			<PageColumns>
+				<DetailColumn>
+					<Form />
+				</DetailColumn>
+				<SideCards>
+					{others.length ? (
+						<LinkedCard title={r.askFirst}>
+							{others.map(({ item }) => (
+								<LinkedRow
+									key={item.id}
+									label={item.label}
+									trailing={<span className={buttonVariants()}>{r.fillShort}</span>}
+									render={(p) => (
+										<Link to="/library/reports/$form" params={{ form: item.id }} {...p} />
+									)}
+								/>
+							))}
+						</LinkedCard>
+					) : null}
+					<LinkedCard title={r.noForm}>
+						{plain.length ? (
+							<Row className="py-3">{plain.map((x) => x.name).join(", ")}</Row>
+						) : null}
+						<LinkedRow label={r.all} render={(p) => <Link to="/library/reports" {...p} />} />
+					</LinkedCard>
+					{plain.some((x) => x.item.id === "dossier-complete") ? (
+						<LinkedCard title={r.parts}>
+							<Row className="gap-1.5 py-3">
+								{r.dossierSections.map((part) => (
+									<Badge key={part}>{part}</Badge>
+								))}
+							</Row>
+						</LinkedCard>
+					) : null}
+				</SideCards>
+			</PageColumns>
+		</LibraryPage>
 	);
 }

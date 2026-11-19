@@ -25,7 +25,7 @@ const CASES = [
 	["Factory", "/factory/runs", "Start run", "runs.start"],
 	["Specs", "/specs/changes", "New change", "specs.edit"],
 	["Knowledge", "/knowledge/handbook", "New page", "knowledge.edit"],
-	["Design", "/design/diagrams", "Diagram", "design.edit"],
+	["Design", "/design/diagrams", "Excalidraw", "design.edit"],
 ] as const;
 
 describe("a viewer sees the write controls off, with the reason", () => {

@@ -49,7 +49,8 @@ describe("List-detail views", () => {
 		const home = () => within(screen.getByRole("main")).getByRole("link", { name: "Library" });
 		await user.click(home());
 		await user.click(await screen.findByRole("link", { name: "Documents" }));
-		await screen.findByRole("navigation", { name: "Documents" });
+		// Documents is a list of cards, not a page tree.
+		await screen.findByRole("list", { name: "Documents" });
 		await user.click(home());
 		await user.click(await screen.findByRole("link", { name: "Handbook" }));
 		const back = await screen.findByRole("navigation", { name: "Handbook" });

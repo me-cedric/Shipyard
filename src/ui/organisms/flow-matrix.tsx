@@ -1,17 +1,13 @@
 import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import { Badge } from "../atoms/badge";
 import { Button } from "../atoms/button";
+import { Chip } from "../atoms/chip";
 import { IconButton } from "../atoms/icon-button";
 import { Input } from "../atoms/input";
 import { Select } from "../atoms/select";
-import {
-	CheckIcon,
-	MagnifyingGlassIcon,
-	PencilIcon,
-	PlusIcon,
-	TrashIcon,
-	XMarkIcon,
-} from "../icons";
+import { CheckIcon, XMarkIcon } from "../icons";
+import { MenuButton } from "../molecules/menu-button";
 import {
 	ALL,
 	distinct,
@@ -30,6 +26,7 @@ export type FlowError = { id: string; field: FlowField; message: string };
 
 /** Allow and deny as tinted chips. Another action stays neutral. */
 const TINT: Record<string, "success" | "danger"> = { allow: "success", deny: "danger" };
+const CELL = "px-3 py-2 align-middle";
 
 /** The columns in order. The extra ones show when `labels` names them. */
 const ORDER: FlowField[] = [
@@ -55,9 +52,11 @@ const EMPTY: FlowDraft = {
 };
 
 /**
- * The flow matrix: source, destination, VLAN or VNET, protocol, port, action.
- * The filters combine. A callback that returns `false` keeps the editor open: pass the field error
- * in `error`. The caller owns the rows and the checks.
+ * The flow matrix: from, to, network zone, protocol, port, allowed. A row names its bricks, with
+ * the addresses under them. The chips, the two pickers and the search combine. Edit and Remove of a
+ * row are in its menu; the editor of a row holds every field. `startAdd` opens the editor of a new
+ * row. A callback that returns `false` keeps the editor open: pass the field error in `error`. The
+ * caller owns the rows and the checks.
  */
 export function FlowMatrix({
 	rows,
@@ -68,7 +67,13 @@ export function FlowMatrix({
 	onRemove,
 	labels,
 	bricks,
+	startAdd,
+	chipLabels,
 }: {
+	/** The names of the filter chips by action value, when they differ from the names in a row. */
+	chipLabels?: Record<string, string>;
+	/** The editor of a new row is open at the start. */
+	startAdd?: boolean;
 	rows: FlowRow[];
 	/** The names of the bricks. With them, the two brick columns pick one in place of typing. */
 	bricks?: string[];
@@ -94,11 +99,27 @@ export function FlowMatrix({
 		| "cancel",
 		string
 	> &
-		Partial<Record<"name" | "sourceName" | "destinationName" | "subnet", string>>;
+		Partial<
+			Record<
+				| "name"
+				| "sourceName"
+				| "destinationName"
+				| "subnet"
+				// The column heads, when they differ from the field names.
+				| "from"
+				| "to"
+				| "zone"
+				| "allowed"
+				// The name of the group of chips, and of a row menu with `{name}`.
+				| "show"
+				| "rowMenu",
+				string
+			>
+		>;
 }) {
 	const TEXT = ORDER.filter((f) => !EXTRA.has(f) || labels[f] !== undefined);
 	const [filter, setFilter] = useState<FlowFilter>(NO_FILTER);
-	const [editing, setEditing] = useState<string | null>(null);
+	const [editing, setEditing] = useState<string | null>(startAdd ? "" : null);
 	const [draft, setDraft] = useState<FlowDraft>(EMPTY);
 	const shown = useMemo(() => filterFlows(rows, filter), [rows, filter]);
 	const actionName = (v: string) => actions.find((a) => a.value === v)?.label ?? v;
@@ -117,56 +138,96 @@ export function FlowMatrix({
 		if (keep !== false) setEditing(null);
 	};
 
+	const cols = labels.name !== undefined && rows.some((r) => r.name) ? 8 : 7;
 	const editor = (id: string) => (
-		<tr key={`edit-${id}`} className="bg-n-2 align-top">
-			{TEXT.map((f) => (
-				<td key={f} className="p-1">
-					{bricks?.length && BRICK_FIELDS.includes(f) ? (
-						<Select
-							label={labels[f] ?? f}
-							items={[
-								{ value: NO_BRICK, label: "—" },
-								...[...new Set([draft[f] ?? "", ...bricks])]
-									.filter(Boolean)
-									.map((b) => ({ value: b, label: b })),
-							]}
-							value={draft[f] || NO_BRICK}
-							onValueChange={(v) => setDraft({ ...draft, [f]: v === NO_BRICK ? "" : v })}
-						/>
-					) : (
-						<Input
-							label={labels[f] ?? f}
-							value={draft[f] ?? ""}
-							aria-invalid={error?.id === id && error.field === f ? true : undefined}
-							onChange={(e) => setDraft({ ...draft, [f]: e.target.value })}
-						/>
+		<tr key={`edit-${id}`} className="bg-n-2">
+			<td colSpan={cols} className="p-3">
+				<div className="flex flex-wrap items-end gap-2.5">
+					{TEXT.map((f) =>
+						bricks?.length && BRICK_FIELDS.includes(f) ? (
+							<Select
+								key={f}
+								label={labels[f] ?? f}
+								items={[
+									{ value: NO_BRICK, label: "—" },
+									...[...new Set([draft[f] ?? "", ...bricks])]
+										.filter(Boolean)
+										.map((b) => ({ value: b, label: b })),
+								]}
+								value={draft[f] || NO_BRICK}
+								onValueChange={(v) => setDraft({ ...draft, [f]: v === NO_BRICK ? "" : v })}
+							/>
+						) : (
+							<div key={f} className="w-40">
+								<Input
+									label={labels[f] ?? f}
+									placeholder={labels[f] ?? f}
+									value={draft[f] ?? ""}
+									aria-invalid={error?.id === id && error.field === f ? true : undefined}
+									onChange={(e) => setDraft({ ...draft, [f]: e.target.value })}
+								/>
+							</div>
+						),
 					)}
-				</td>
-			))}
-			<td className="p-1">
-				<Select
-					label={labels.action}
-					items={actions}
-					value={draft.action}
-					onValueChange={(v) => setDraft({ ...draft, action: v })}
-				/>
-			</td>
-			<td className="p-1">
-				<div className="flex">
+					<Select
+						label={labels.action}
+						items={actions}
+						value={draft.action}
+						onValueChange={(v) => setDraft({ ...draft, action: v })}
+					/>
 					<IconButton label={labels.save} onClick={save}>
-						<CheckIcon size={14} />
+						<CheckIcon size={16} />
 					</IconButton>
 					<IconButton label={labels.cancel} onClick={() => setEditing(null)}>
-						<XMarkIcon size={14} />
+						<XMarkIcon size={16} />
 					</IconButton>
 				</div>
 			</td>
 		</tr>
 	);
+	/** A brick or a host by its name, with the address under it. */
+	const end = (name: string | undefined, address: string) => (
+		<td className={CELL}>
+			{name ? <span className="block font-semibold">{name}</span> : null}
+			<span className={cn("block font-mono", name ? "text-13 text-n-11" : "font-semibold")}>
+				{address}
+			</span>
+		</td>
+	);
+	const heads = [
+		labels.from ?? labels.source,
+		labels.to ?? labels.destination,
+		labels.zone ?? labels.network,
+		labels.protocol,
+		labels.port,
+		labels.allowed ?? labels.action,
+		...(cols === 8 ? [labels.name ?? ""] : []),
+	];
 
 	return (
-		<div className="flex flex-col gap-2">
-			<search className="flex items-center gap-2">
+		<div className="flex flex-col gap-6">
+			<search className="flex flex-wrap items-center gap-2">
+				<fieldset aria-label={labels.show ?? labels.action} className="contents">
+					{[all, ...actions].map((a) => (
+						<Chip
+							key={a.value}
+							selected={filter.action === a.value}
+							className={filter.action === a.value ? undefined : "bg-surface-2"}
+							onClick={() => setFilter({ ...filter, action: a.value })}
+						>
+							{chipLabels?.[a.value] ?? a.label}
+						</Chip>
+					))}
+				</fieldset>
+				<div className="w-70 max-w-full">
+					<Input
+						label={labels.search}
+						placeholder={labels.search}
+						type="search"
+						value={filter.query}
+						onChange={(e) => setFilter({ ...filter, query: e.target.value })}
+					/>
+				</div>
 				<Select
 					label={labels.network}
 					items={pick("network")}
@@ -179,80 +240,81 @@ export function FlowMatrix({
 					value={filter.protocol}
 					onValueChange={(protocol) => setFilter({ ...filter, protocol })}
 				/>
-				<Select
-					label={labels.action}
-					items={[all, ...actions]}
-					value={filter.action}
-					onValueChange={(action) => setFilter({ ...filter, action })}
-				/>
-				<div className="relative w-44">
-					<span
-						aria-hidden="true"
-						className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-n-10"
-					>
-						<MagnifyingGlassIcon size={14} />
-					</span>
-					<Input
-						label={labels.search}
-						value={filter.query}
-						onChange={(e) => setFilter({ ...filter, query: e.target.value })}
-						className="pl-7"
-					/>
-				</div>
-				<Button className="ml-auto" onClick={() => start("", EMPTY)}>
-					<PlusIcon size={14} />
+				<Button variant="primary" className="ml-auto" onClick={() => start("", EMPTY)}>
 					{labels.add}
 				</Button>
 			</search>
-			<table className="w-full border-collapse text-ui">
-				<thead>
-					<tr className="text-left text-12 text-n-11">
-						{[...TEXT, "action" as const].map((f) => (
-							<th key={f} scope="col" className="px-2 py-1 font-medium">
-								{labels[f]}
-							</th>
-						))}
-						<td />
-					</tr>
-				</thead>
-				<tbody>
-					{editing === "" ? editor("") : null}
-					{shown.map((r) =>
-						editing === r.id ? (
-							editor(r.id)
-						) : (
-							<tr key={r.id} className="border-t border-n-6 hover:bg-n-2">
-								{TEXT.map((f) => (
-									<td key={f} className="px-2 py-1 font-mono text-12">
-										{r[f] ?? ""}
+			<div className="overflow-x-auto rounded-lg bg-surface-2 px-6 py-2 shadow-2">
+				<table className="w-full min-w-[760px] border-collapse text-left">
+					<thead>
+						<tr>
+							{heads.map((h) => (
+								<th key={h} scope="col" className="h-11 px-3 text-13 font-normal text-n-11">
+									{h}
+								</th>
+							))}
+							<td />
+						</tr>
+					</thead>
+					<tbody>
+						{editing === "" ? editor("") : null}
+						{shown.map((r) =>
+							editing === r.id ? (
+								editor(r.id)
+							) : (
+								<tr key={r.id} className="border-t border-n-6">
+									{end(r.sourceName, r.source)}
+									{end(r.destinationName, r.destination)}
+									<td className={CELL}>
+										{r.network}
+										{r.subnet ? (
+											<span className="block font-mono text-13 text-n-11">{r.subnet}</span>
+										) : null}
 									</td>
-								))}
-								<td className="px-2 py-1">
-									<Badge variant={TINT[r.action] ?? "neutral"}>{actionName(r.action)}</Badge>
-								</td>
-								<td className="px-2 py-1">
-									<div className="flex justify-end">
-										<IconButton
-											label={`${labels.edit} ${r.source} ${r.destination}`}
-											onClick={() => start(r.id, r)}
-										>
-											<PencilIcon size={14} />
-										</IconButton>
-										<IconButton
-											label={`${labels.remove} ${r.source} ${r.destination}`}
-											onClick={() => onRemove(r.id)}
-										>
-											<TrashIcon size={14} />
-										</IconButton>
-									</div>
-								</td>
-							</tr>
-						),
-					)}
-				</tbody>
-			</table>
+									<td className={CELL}>{r.protocol}</td>
+									<td className={cn(CELL, "font-mono")}>{r.port}</td>
+									<td className={CELL}>
+										<Badge variant={TINT[r.action] ?? "neutral"}>{actionName(r.action)}</Badge>
+									</td>
+									{cols === 8 ? <td className={CELL}>{r.name}</td> : null}
+									<td className="py-1 text-right">
+										<MenuButton
+											iconOnly
+											label={(labels.rowMenu ?? "{name}").replace(
+												"{name}",
+												`${r.sourceName || r.source} ${r.destinationName || r.destination}`,
+											)}
+											icon={
+												<svg
+													aria-hidden="true"
+													viewBox="0 0 16 16"
+													className="size-4"
+													fill="currentColor"
+												>
+													<circle cx="3" cy="8" r="1.25" />
+													<circle cx="8" cy="8" r="1.25" />
+													<circle cx="13" cy="8" r="1.25" />
+												</svg>
+											}
+											items={[
+												{ id: "edit", label: labels.edit, onSelect: () => start(r.id, r) },
+												{
+													id: "remove",
+													label: labels.remove,
+													danger: true,
+													onSelect: () => onRemove(r.id),
+												},
+											]}
+										/>
+									</td>
+								</tr>
+							),
+						)}
+					</tbody>
+				</table>
+			</div>
 			{error && editing === error.id ? (
-				<p role="alert" className="text-ui text-danger-text">
+				<p role="alert" className="text-danger-text">
 					{labels[error.field]}: {error.message}
 				</p>
 			) : null}

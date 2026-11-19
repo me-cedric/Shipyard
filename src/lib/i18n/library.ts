@@ -13,6 +13,16 @@ export const libraryEn = {
 	questionsMany: "{count} open questions",
 	decisionsOne: "1 decision waits",
 	decisionsMany: "{count} decisions wait",
+	tested: "What is tested",
+	answers: "Answers",
+	glossary: "Glossary",
+	learnProgress: "{label}, {done} of {total}",
+	pinned: "Pinned",
+	openedLast: "Opened last",
+	pin: "Pin",
+	unpin: "Unpin",
+	pinPage: "Pin {name}",
+	unpinPage: "Unpin {name}",
 };
 
 export const libraryFr: typeof libraryEn = {
@@ -29,4 +39,14 @@ export const libraryFr: typeof libraryEn = {
 	questionsMany: "{count} questions ouvertes",
 	decisionsOne: "1 décision en attente",
 	decisionsMany: "{count} décisions en attente",
+	tested: "Ce qui est testé",
+	answers: "Réponses",
+	glossary: "Glossaire",
+	learnProgress: "{label}, {done} sur {total}",
+	pinned: "Épinglé",
+	openedLast: "Ouvert en dernier",
+	pin: "Épingler",
+	unpin: "Désépingler",
+	pinPage: "Épingler {name}",
+	unpinPage: "Désépingler {name}",
 };

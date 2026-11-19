@@ -1,5 +1,6 @@
 import { Menu } from "@base-ui/react/menu";
-import { type ReactNode, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type Right, saveAs, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
@@ -15,8 +16,8 @@ export type ExportItem = {
 		ext: "xlsx" | "docx" | "svg" | "png";
 		job: (path: string) => Promise<unknown>;
 	};
-	/** A form in a dialog. `done` shows a note. */
-	form?: (done: (note: string) => void, close: () => void) => ReactNode;
+	/** The report asks first: its form is the page `/library/reports/<id>`. */
+	form?: boolean;
 	/** The right that the button of the Reports page needs. The backend refuses a write anyway. */
 	right?: Right;
 };
@@ -47,22 +48,22 @@ export function SavedActions({
 }
 
 /**
- * The run of one export: the save dialog, or a form when the export needs input. Each write needs
- * one click. `status` shows the written file with its two buttons, a failure with its sentence and
- * its action (`ErrorNotice`), and the open form.
+ * The run of one export: the save dialog, or the page of its form when the export needs input.
+ * Each write needs one click. `status` shows the written file with its two buttons, and a failure
+ * with its sentence and its action (`ErrorNotice`).
  */
 export function useExportRun() {
 	const { t } = useI18n();
 	const [note, setNote] = useState<string | null>(null);
-	// The path of the last export, for "Show in folder" and "Open". A form note has none.
+	// The path of the last export, for "Show in folder" and "Open".
 	const [saved, setSaved] = useState<string | null>(null);
 	const [failure, setFailure] = useState<unknown>(null);
-	const [form, setForm] = useState<ExportItem | null>(null);
+	const navigate = useNavigate();
 	const pick = async (x: ExportItem) => {
 		setNote(null);
 		setSaved(null);
 		setFailure(null);
-		if (x.form) return setForm(x);
+		if (x.form) return void navigate({ to: "/library/reports/$form", params: { form: x.id } });
 		if (!x.save) return;
 		try {
 			const path = await saveAs(x.save.name, x.save.ext);
@@ -84,7 +85,6 @@ export function useExportRun() {
 			) : null}
 			{saved ? <SavedActions path={saved} onError={setFailure} /> : null}
 			<ErrorNotice error={failure} />
-			{form?.form?.(setNote, () => setForm(null))}
 		</>
 	);
 	return { pick, status };

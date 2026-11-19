@@ -1,24 +1,126 @@
+import { useState } from "react";
 import { TEMPLATE } from "@/lib/design";
-import { useI18n } from "@/lib/i18n";
-import { QueueListIcon } from "@/ui/icons";
-import { DbmlView } from "@/ui/organisms/dbml-view";
-import { TextTab } from "./text-tab";
+import { format, useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/ui/atoms/badge";
+import { Input } from "@/ui/atoms/input";
+import { dbml } from "@/ui/molecules/syntax";
+import { ZoomFrame } from "@/ui/molecules/zoom-frame";
+import { parseDbml } from "@/ui/organisms/dbml";
+import { useRender } from "@/ui/organisms/use-render";
+import { ListCard, ListColumn } from "../library/page-parts";
+import { Canvas } from "./parts";
+import { ReaderPage, type ReaderView } from "./text-tab";
 
-/** Design / Data: the DBML models as tables and relations (REQ-014, REQ-015). */
+async function load(source: string) {
+	const { data, error } = parseDbml(source);
+	if (!data) throw new Error(error);
+	return data;
+}
+
+/**
+ * The tables of the open model: the list at the left with "Find a table", and the canvas of table
+ * cards with the zoom. A column that is a key has the pill "Key"; a column that points to another
+ * table has the pill "Link", which names the target. A broken text keeps the last good tables.
+ */
+function Tables({ frame, shown, files }: ReaderView) {
+	const { t } = useI18n();
+	const p = t.design.page;
+	const model = useRender(frame.file.text, load, frame.onError);
+	const [query, setQuery] = useState("");
+	const [picked, setPicked] = useState<string | null>(null);
+	const tables = model?.tables ?? [];
+	const q = query.trim().toLowerCase();
+	return (
+		<>
+			<ListColumn>
+				<Input
+					label={p.findTable}
+					placeholder={p.findTable}
+					type="search"
+					value={query}
+					onChange={(e) => setQuery(e.target.value)}
+				/>
+				<ul aria-label={t.design.data.view} className="flex flex-col gap-2.5">
+					{tables
+						.filter((x) => x.name.toLowerCase().includes(q))
+						.map((x) => (
+							<li key={x.name}>
+								<ListCard
+									name={x.name}
+									selected={x.name === picked}
+									onClick={() => setPicked(x.name === picked ? null : x.name)}
+									pills={
+										<span className="text-n-11">
+											{format(p.columns, { count: x.fields.length })}
+										</span>
+									}
+								/>
+							</li>
+						))}
+				</ul>
+				{files}
+			</ListColumn>
+			{shown ? (
+				<Canvas>
+					<ZoomFrame label={t.design.data.view} className="h-full min-h-[520px] flex-1">
+						<div className="grid w-[840px] grid-cols-3 items-start gap-7 p-6">
+							{tables.map((x) => (
+								<section
+									key={x.name}
+									aria-label={x.name}
+									className={cn(
+										"overflow-hidden rounded-[16px] bg-surface-2 shadow-2",
+										x.name === picked && "outline-2 outline-accent",
+									)}
+								>
+									<h3 className="bg-accent px-4 py-3 text-15 font-semibold text-accent-fg">
+										{x.name}
+									</h3>
+									<ul>
+										{x.fields.map((f) => {
+											const ref = model?.refs.find((r) => r.from === `${x.name}.${f.name}`);
+											return (
+												<li
+													key={f.name}
+													className="flex min-h-10 items-center gap-2 px-4 [&+&]:border-t [&+&]:border-n-6"
+												>
+													{f.pk ? <Badge variant="accent">{p.key}</Badge> : null}
+													{ref ? <Badge title={`${ref.from} → ${ref.to}`}>{p.link}</Badge> : null}
+													<span className="font-mono">{f.name}</span>
+													<span
+														className="ml-auto text-13 text-n-11"
+														title={f.notNull ? t.design.data.notNull : undefined}
+													>
+														{f.type}
+													</span>
+												</li>
+											);
+										})}
+									</ul>
+								</section>
+							))}
+						</div>
+					</ZoomFrame>
+				</Canvas>
+			) : null}
+		</>
+	);
+}
+
+/** Library / Data: the DBML models as tables and links (REQ-014, REQ-015). */
 export function Data() {
 	const { t } = useI18n();
 	return (
-		<TextTab
+		<ReaderPage
 			kind="data"
 			title={t.tabs.design.data}
-			icon={<QueueListIcon size={16} />}
-			noun={t.design.noun.data}
+			newLabel={t.design.page.newData}
 			ext="dbml"
 			template={TEMPLATE.data}
 			textLabel={t.design.data.text}
-			view={(source, onError) => (
-				<DbmlView source={source} labels={t.design.data} onError={onError} />
-			)}
+			highlight={dbml}
+			view={(v) => <Tables {...v} />}
 		/>
 	);
 }

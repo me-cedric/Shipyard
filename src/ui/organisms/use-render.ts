@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { type EditorError, toEditorError } from "./error-line";
 
 /**
- * Render a source text after a short pause. A failure reports its error and keeps the last good
- * result. A success clears the error. An old run never replaces a newer one.
+ * Render a source text after a short pause. The first text does not wait (a file that loads gives
+ * an empty text first): the pause is for typing. A failure reports its error and keeps the last good result. A success clears the error.
+ * An old run never replaces a newer one.
  */
 export function useRender<T>(
 	source: string,
@@ -13,20 +14,25 @@ export function useRender<T>(
 ): T | null {
 	const [value, setValue] = useState<T | null>(null);
 	const run = useRef(0);
+	const before = useRef("");
 	const latest = useRef({ render, onError });
 	latest.current = { render, onError };
 	useEffect(() => {
 		const id = ++run.current;
-		const timer = setTimeout(async () => {
-			try {
-				const v = await latest.current.render(source);
-				if (id !== run.current) return;
-				setValue(() => v);
-				latest.current.onError?.(null);
-			} catch (e) {
-				if (id === run.current) latest.current.onError?.(toEditorError(e));
-			}
-		}, delay);
+		const timer = setTimeout(
+			async () => {
+				try {
+					const v = await latest.current.render(source);
+					if (id !== run.current) return;
+					setValue(() => v);
+					latest.current.onError?.(null);
+				} catch (e) {
+					if (id === run.current) latest.current.onError?.(toEditorError(e));
+				}
+			},
+			before.current ? delay : 0,
+		);
+		before.current = source;
 		return () => {
 			clearTimeout(timer);
 			run.current++;

@@ -406,7 +406,48 @@ function placeRoute<P extends PlaceId>(place: P) {
 						}),
 					]
 				: [];
-	return route.addChildren([index, ...sections, ...run, ...code, ...old, ...moved, ...today]);
+	// The sub-pages of Library: each has its own address and a back link to its page.
+	const library =
+		place === "library"
+			? [
+					createRoute({
+						getParentRoute: () => route,
+						path: "dashboards/$slug/edit",
+						component: lazyRouteComponent(
+							() => import("@/features/knowledge/dashboards"),
+							"DashboardEdit",
+						),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "reports/$form",
+						component: lazyRouteComponent(() => import("@/features/reports/forms"), "ReportForm"),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "flows/matrix",
+						component: lazyRouteComponent(
+							() => import("@/features/design/flows"),
+							"FlowMatrixPage",
+						),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "test-plans/coverage",
+						component: lazyRouteComponent(() => import("@/features/specs/coverage"), "Coverage"),
+					}),
+				]
+			: [];
+	return route.addChildren([
+		index,
+		...sections,
+		...run,
+		...code,
+		...old,
+		...moved,
+		...today,
+		...library,
+	]);
 }
 
 /** A bare old space opens the first page of the role when the space held it, else the place of its first tab that the role sees: `/factory` shows Flow. */

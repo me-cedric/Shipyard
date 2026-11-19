@@ -1,24 +1,37 @@
 import { TEMPLATE } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
-import { CpuChipIcon } from "@/ui/icons";
+import { likec4 } from "@/ui/molecules/syntax";
 import { LikeC4View } from "@/ui/organisms/likec4-view";
-import { TextTab } from "./text-tab";
+import { Canvas } from "./parts";
+import { ReaderPage } from "./text-tab";
 
-/** Design / Architecture: the LikeC4 models, rendered live (REQ-006, REQ-007). */
+/**
+ * Library / Architecture: the LikeC4 models, rendered live (REQ-006, REQ-007). A full-width
+ * reader: the models as chips under the title, the picture left and the text right.
+ */
 export function Architecture() {
 	const { t } = useI18n();
 	return (
-		<TextTab
+		<ReaderPage
 			kind="model"
 			title={t.tabs.design.architecture}
-			icon={<CpuChipIcon size={16} />}
-			noun={t.design.noun.model}
+			newLabel={t.design.page.newModel}
 			ext="c4"
 			template={TEMPLATE.model}
 			textLabel={t.design.architecture.text}
-			view={(source, onError) => (
-				<LikeC4View source={source} label={t.design.architecture.render} onError={onError} />
-			)}
+			highlight={likec4}
+			chips
+			view={({ frame, shown }) =>
+				shown ? (
+					<Canvas>
+						<LikeC4View
+							source={frame.file.text}
+							label={t.design.architecture.render}
+							onError={frame.onError}
+						/>
+					</Canvas>
+				) : null
+			}
 		/>
 	);
 }

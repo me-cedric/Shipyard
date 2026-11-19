@@ -458,10 +458,9 @@ describe("palette pages and tickets", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/library/decisions"));
 		// The page opens on the record, not on its first item.
 		const decisions = await screen.findByRole("list", { name: "Decisions" });
-		expect(await within(decisions).findByRole("button", { name: /0004/ })).toHaveAttribute(
-			"aria-current",
-			"true",
-		);
+		expect(
+			await within(decisions).findByRole("button", { name: /Polling sync with local mirror/ }),
+		).toHaveAttribute("aria-pressed", "true");
 		expect(within(inspector).getByText("adr:0004", { selector: "code" })).toBeVisible();
 		await router.navigate({ to: "/specs/questions" });
 		await waitFor(() =>

@@ -81,7 +81,9 @@ describe("Library doors", () => {
 		expect(views).toHaveLength(19);
 		for (const [space, slug] of views) {
 			const holds = doors.filter((d) => hrefs(d).includes(`/library/${slug}`));
-			expect(holds, slug).toHaveLength(1);
+			// Questions has two chips: the open ones in What it must do, the answers in Why it is so.
+			expect(holds, slug).toHaveLength(slug === "questions" ? 2 : 1);
+			if (slug === "questions") continue;
 			// The chip has the name of its page. The Manual is a chip too: no page is off the doors.
 			const names = within(holds[0] as HTMLElement)
 				.getAllByRole("link")
@@ -145,8 +147,78 @@ describe("Library doors", () => {
 		},
 	);
 
+	it("orders the chips as the design, with one chip for the open questions", async () => {
+		const router = await mount("/library/home");
+		const names = async (d: string) =>
+			within(await door(d))
+				.getAllByRole("link")
+				.map((a) => a.textContent);
+		await waitFor(async () =>
+			expect(await names(en.library.doors.what)).toEqual([
+				"Specs",
+				"Test plans",
+				"What is tested",
+				expect.stringMatching(/open question/),
+			]),
+		);
+		const what = within(await door(en.library.doors.what));
+		expect(what.queryByRole("link", { name: "Questions" })).toBeNull();
+		expect(what.getByRole("link", { name: "What is tested" })).toHaveAttribute(
+			"href",
+			"/library/test-plans/coverage",
+		);
+		await waitFor(async () =>
+			expect(await names(en.library.doors.why)).toEqual([
+				"1 decision waits",
+				"Decisions",
+				"Answers",
+				"Project rules",
+			]),
+		);
+		expect(
+			within(await door(en.library.doors.why)).getByRole("link", { name: "Answers" }),
+		).toHaveAttribute("href", "/library/questions");
+		const learn = within(await door(en.library.doors.learn));
+		expect(learn.getByRole("link", { name: "Glossary" })).toHaveAttribute("href", "/library/learn");
+		const path = (await unwrap(commands.learnGet())).path;
+		expect(path.length).toBeGreaterThan(0);
+		expect(await learn.findByRole("link", { name: `Learn, 0 of ${path.length}` })).toHaveAttribute(
+			"href",
+			"/library/learn",
+		);
+		expect(screen.getByRole("heading", { level: 2, name: en.library.doors.what })).toHaveClass(
+			"text-30",
+		);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("lists the pages opened last, and pins and unpins one", async () => {
+		const user = userEvent.setup();
+		const router = await mount("/library/handbook");
+		// The link above the page gives way to the one in the page header: wait for the page first.
+		await screen.findByRole("heading", { level: 1, name: "Handbook" });
+		await user.click(
+			await within(await screen.findByRole("main")).findByRole("link", { name: en.library.back }),
+		);
+		const last = await screen.findByRole("region", { name: "Opened last" });
+		expect(within(last).getByRole("link", { name: "Handbook" })).toHaveAttribute(
+			"href",
+			"/library/handbook",
+		);
+		expect(screen.queryByRole("region", { name: "Pinned" })).toBeNull();
+		await user.click(within(last).getByRole("button", { name: "Pin Handbook" }));
+		const pinned = await screen.findByRole("region", { name: "Pinned" });
+		expect(within(pinned).getByRole("link", { name: "Handbook" })).toBeVisible();
+		const unpin = within(pinned).getByRole("button", { name: "Unpin Handbook" });
+		expect(unpin).toHaveClass("min-h-control");
+		await user.click(unpin);
+		await waitFor(() => expect(screen.queryByRole("region", { name: "Pinned" })).toBeNull());
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
 	it("shows the back link and no section switch on a page of Library", async () => {
 		const router = await mount("/library/handbook");
+		await screen.findByRole("heading", { level: 1, name: "Handbook" });
 		const back = await within(await screen.findByRole("main")).findByRole("link", {
 			name: en.library.back,
 		});

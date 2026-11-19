@@ -7,7 +7,8 @@ import { graphNode, inspector, mountKnowledge } from "./harness";
 describe("Explain", () => {
 	it("opens the assistant on the entity and shows the answer with each cited ref as a chip", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("graph");
+		// The force graph is the view "Graph" of the map.
+		await mountKnowledge("graph", "/library/graph?view=graph");
 		const g = await unwrap(commands.graphGet());
 		const spec = g.nodes.find((n) => n.kind === "spec");
 		if (!spec) throw new Error("spec");

@@ -20,7 +20,9 @@ export function KnowledgeActions({ refId }: { refId: string }) {
 					variant="ghost"
 					onClick={() => {
 						setFocus(refId);
-						void router.navigate({ to: "/library/graph" });
+						// On the map already: the view of the person stays.
+						if (router.state.location.pathname !== "/library/graph")
+							void router.navigate({ to: "/library/graph" });
 					}}
 				>
 					<MagnifyingGlassIcon size={14} />

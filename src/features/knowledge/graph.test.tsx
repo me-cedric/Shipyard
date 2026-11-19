@@ -11,9 +11,123 @@ const graph = () => unwrap(commands.graphGet());
 const clusterOf = (g: Awaited<ReturnType<typeof graph>>, ref: string) =>
 	clusterNodes(g.nodes).find((c) => c.members.some((m) => m.ref === ref))?.id ?? "";
 
+/** The force graph of the page: the view "Graph". */
+const mountGraph = () => mountKnowledge("graph", "/library/graph?view=graph");
+const mountMap = (search = "") => mountKnowledge("graph", `/library/graph${search}`);
+const region = async (name: string) => within(await screen.findByRole("region", { name }));
+
+describe("Library / Map", () => {
+	it("shows one group for each kind with its items as chips, and the rest behind N more", async () => {
+		const user = userEvent.setup();
+		await mountMap();
+		const g = await graph();
+		const specs = g.nodes.filter((n) => n.kind === "spec");
+		const group = await region("Spec");
+		expect(group.getAllByRole("button")).toHaveLength(Math.min(specs.length, 6));
+		if (specs.length > 6) {
+			await user.click(group.getByRole("button", { name: `Spec: ${specs.length - 5} more` }));
+			expect(group.getAllByRole("button")).toHaveLength(specs.length);
+		}
+		expect(screen.queryByTestId(/^rf__node-/)).toBeNull();
+	});
+
+	it("shows the chosen item with Open and Explain, its links and its reference with Copy", async () => {
+		const user = userEvent.setup();
+		await mountMap();
+		const g = await graph();
+		const edge = g.edges[0];
+		if (!edge) throw new Error("edge");
+		const [from, to] = [edge.source, edge.target].map((r) => g.nodes.find((n) => n.ref === r));
+		if (!(from && to)) throw new Error("nodes");
+		await region("Chosen item");
+		// The chip can sit behind "N more".
+		for (const more of screen.queryAllByRole("button", { name: /more$/ })) await user.click(more);
+		const chip = screen
+			.getAllByRole("button", { name: from.title || from.ref })
+			.find((b) => b.hasAttribute("aria-pressed"));
+		if (!chip) throw new Error("chip");
+		await user.click(chip);
+		const chosen = await region("Chosen item");
+		expect(chosen.getByRole("heading", { name: from.title || from.ref })).toBeInTheDocument();
+		expect(chosen.getByRole("button", { name: "Open" })).toBeInTheDocument();
+		const linked = await region("Linked to");
+		expect(linked.getByText(to.title || to.ref)).toBeInTheDocument();
+		expect(screen.getByText(from.ref)).toBeInTheDocument();
+		const copy = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(navigator, "clipboard", {
+			value: { writeText: copy },
+			configurable: true,
+		});
+		await user.click(screen.getByRole("button", { name: "Copy" }));
+		expect(copy).toHaveBeenCalledWith(from.ref);
+		await user.click(chosen.getByRole("button", { name: "Open" }));
+		await waitFor(async () => expect(await inspector()).toHaveTextContent(from.ref));
+	});
+
+	it("keeps only the stale items with the chip Stale", async () => {
+		const user = userEvent.setup();
+		await mountMap();
+		const g = await graph();
+		const stale = g.nodes.filter((n) => n.stale);
+		expect(stale.length).toBeGreaterThan(0);
+		await user.click(
+			within(await screen.findByRole("group", { name: "Show only" })).getByRole("button", {
+				name: "Stale",
+			}),
+		);
+		const kinds = new Set(stale.map((n) => n.kind));
+		await waitFor(() =>
+			expect(document.querySelectorAll("[data-map-group]")).toHaveLength(kinds.size),
+		);
+	});
+
+	it("opens the code map from the address: folders, files, symbols, callers and callees", async () => {
+		const user = userEvent.setup();
+		await mountMap("?source=code");
+		await user.click(await screen.findByRole("button", { name: "Folder src/features/home" }));
+		await user.click(
+			await screen.findByRole("button", { name: "File src/features/home/today.tsx" }),
+		);
+		await user.click(
+			within(await screen.findByRole("group", { name: "Symbol: today.tsx" })).getByRole("button", {
+				name: "Today",
+			}),
+		);
+		const chosen = await region("Chosen item");
+		expect(chosen.getByRole("heading", { name: "Today" })).toBeInTheDocument();
+		expect(chosen.getByRole("button", { name: "Explain" })).toBeInTheDocument();
+		expect(
+			(await region("Who calls it")).getByRole("button", { name: /Home/ }),
+		).toBeInTheDocument();
+		expect(
+			(await region("What it calls")).getByRole("button", { name: /useCommand/ }),
+		).toBeInTheDocument();
+	});
+
+	it("runs the index again from the header of the code map", async () => {
+		const user = userEvent.setup();
+		await mountMap("?source=code");
+		const index = vi.spyOn(commands, "graphCodeIndex");
+		await user.click(await screen.findByRole("button", { name: "Index again" }));
+		await waitFor(() => expect(index).toHaveBeenCalledTimes(1));
+		vi.restoreAllMocks();
+	});
+
+	it("lists the items as a table with the view Table", async () => {
+		const user = userEvent.setup();
+		await mountMap();
+		await user.click(
+			within(await screen.findByRole("group", { name: "View" })).getByRole("button", {
+				name: "Table",
+			}),
+		);
+		expect(await screen.findByRole("table", { name: "Table view" })).toBeInTheDocument();
+	});
+});
+
 describe("Knowledge / Graph", () => {
 	it("draws the clusters first, with their counts, and the kinds with a count", async () => {
-		await mountKnowledge("graph");
+		await mountGraph();
 		const g = await graph();
 		const spec = g.nodes.filter((n) => n.kind === "spec");
 		expect(spec.length).toBeGreaterThan(0);
@@ -26,7 +140,7 @@ describe("Knowledge / Graph", () => {
 
 	it("opens a cluster in place on a click or Enter, and closes it on a second one", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("graph");
+		await mountGraph();
 		const cluster = await graphNode("cluster/adr");
 		await user.click(cluster);
 		expect(await graphNode("adr:0001")).toHaveAttribute(
@@ -44,7 +158,7 @@ describe("Knowledge / Graph", () => {
 
 	it("hides a kind with its toggle, and its cluster with it", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("graph");
+		await mountGraph();
 		const g = await graph();
 		const count = g.nodes.filter((n) => n.kind === "adr").length;
 		await graphNode("cluster/adr");
@@ -55,7 +169,7 @@ describe("Knowledge / Graph", () => {
 
 	it("finds a node with the search, opens its cluster and shows only the matches", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("graph");
+		await mountGraph();
 		await graphNode("cluster/adr");
 		await user.type(screen.getByRole("textbox", { name: "Search" }), "adr:0001");
 		expect(await graphNode("adr:0001")).toBeInTheDocument();
@@ -66,7 +180,7 @@ describe("Knowledge / Graph", () => {
 
 	it("marks a stale node and lists the clusters and their members in the table view", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("graph");
+		await mountGraph();
 		const g = await graph();
 		const stale = g.nodes.find((n) => n.stale);
 		if (!stale) throw new Error("marks");
@@ -82,7 +196,7 @@ describe("Knowledge / Graph", () => {
 
 	it("opens the entity in the inspector, then centres the graph on it with its neighbours", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("graph");
+		await mountGraph();
 		const g = await graph();
 		const edge = g.edges[0];
 		if (!edge) throw new Error("edge");
@@ -109,7 +223,7 @@ describe("Knowledge / Graph", () => {
 
 	it("switches to the code graph", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("graph");
+		await mountGraph();
 		await user.click(await screen.findByRole("button", { name: "Code" }));
 		const code = await unwrap(commands.graphCode());
 		expect(code.nodes.length).toBeGreaterThan(0);
@@ -120,7 +234,7 @@ describe("Knowledge / Graph", () => {
 
 	it("opens a folder into its files, a file into its calls, and Show all goes back to the map", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("graph");
+		await mountGraph();
 		await user.click(await screen.findByRole("button", { name: "Code" }));
 		await user.click(await graphNode("cluster/folder:src/features/home"));
 		await user.click(await graphNode("src/features/home/home.tsx"));
@@ -133,7 +247,7 @@ describe("Knowledge / Graph", () => {
 	it("shows one Index action in place of a code graph that has no index", async () => {
 		const user = userEvent.setup();
 		mockState().knowledge.indexed = false;
-		await mountKnowledge("graph");
+		await mountGraph();
 		await user.click(await screen.findByRole("button", { name: "Code" }));
 		await user.click(await screen.findByRole("button", { name: "Index" }));
 		await screen.findByTestId("rf__node-cluster/folder:src/lib/ipc");
@@ -142,7 +256,7 @@ describe("Knowledge / Graph", () => {
 	it("tells the person that the index worked, with the node count", async () => {
 		const user = userEvent.setup();
 		mockState().knowledge.indexed = false;
-		await mountKnowledge("graph");
+		await mountGraph();
 		await user.click(await screen.findByRole("button", { name: "Code" }));
 		await user.click(await screen.findByRole("button", { name: "Index" }));
 		const code = await unwrap(commands.graphCode());
@@ -152,7 +266,7 @@ describe("Knowledge / Graph", () => {
 	it("says so when the index holds no rows", async () => {
 		const user = userEvent.setup();
 		mockState().knowledge.indexed = false;
-		await mountKnowledge("graph");
+		await mountGraph();
 		await user.click(await screen.findByRole("button", { name: "Code" }));
 		vi.spyOn(commands, "graphCode").mockResolvedValue({
 			status: "ok",
@@ -169,7 +283,7 @@ describe("Knowledge / Graph", () => {
 		it("makes one backend call and does not change the saved server setting", async () => {
 			const user = userEvent.setup();
 			mockState().knowledge.indexed = false;
-			await mountKnowledge("graph");
+			await mountGraph();
 			const enable = vi.spyOn(commands, "mcpEnable");
 			const start = vi.spyOn(commands, "mcpStart");
 			const index = vi.spyOn(commands, "graphCodeIndex");
@@ -184,7 +298,7 @@ describe("Knowledge / Graph", () => {
 			const user = userEvent.setup();
 			mockState().knowledge.indexed = false;
 			mockState().knowledge.server = false;
-			await mountKnowledge("graph");
+			await mountGraph();
 			await user.click(await screen.findByRole("button", { name: "Code" }));
 			await user.click(await screen.findByRole("button", { name: "Index" }));
 			expect(screen.queryByRole("alert")).toBeNull();
@@ -194,7 +308,7 @@ describe("Knowledge / Graph", () => {
 		it("shows the error of the index", async () => {
 			const user = userEvent.setup();
 			mockState().knowledge.indexed = false;
-			await mountKnowledge("graph");
+			await mountGraph();
 			vi.spyOn(commands, "graphCodeIndex").mockResolvedValue({
 				status: "error",
 				error: { code: "unknown", details: "it did not start", action: null },

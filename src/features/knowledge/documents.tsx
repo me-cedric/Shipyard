@@ -5,14 +5,19 @@ import { format, useI18n } from "@/lib/i18n";
 import { saveAs } from "@/lib/ipc";
 import { DOC_DIR, useDocList } from "@/lib/knowledge";
 import { useDocxList } from "@/lib/knowledge/documents";
-import { RightButton } from "@/lib/rights";
+import { revealPath } from "@/lib/menus";
+import { useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
-import { ArrowDownTrayIcon, DocumentTextIcon } from "@/ui/icons";
+import { Badge } from "@/ui/atoms/badge";
+import { Button } from "@/ui/atoms/button";
+import { DocumentTextIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { DocActions, DocSearch, DocxView, useDocumentExports } from "./documents-parts";
+import { Row } from "@/ui/molecules/row";
+import { DocSearch, DocxView, useDocActions, useDocumentExports } from "./documents-parts";
 import { ListTab } from "./list-tab";
-import { PageEditor } from "./pages";
+import { CardHeader, PageCard } from "./pages";
 
 /**
  * Knowledge / Documents: the Markdown documents and the exports. An export is a projection that
@@ -31,6 +36,7 @@ export function Documents() {
 		select(path);
 		openRef(`doc:${path}`, true);
 	};
+	const canEdit = !useRights().gate("knowledge.edit").reason;
 	const [note, setNote] = useState<string | null>(null);
 	const [failure, setFailure] = useState<unknown>(null);
 	// The file of the last export: the session list allows "Show in folder" and "Open" on it.
@@ -63,61 +69,81 @@ export function Documents() {
 			icon={<DocumentTextIcon size={16} />}
 			noun={k.newDocument}
 			nameLabel={k.name}
+			find={k.find}
 			base={DOC_DIR.documents}
 			rows={rows}
 			template={(name) => `# ${name}\n`}
-			toolbar={
-				<div className="flex flex-col items-start gap-3">
-					<PageExport page="documents" />
-					<div className="w-full max-w-xl">
-						<DocSearch onPick={pick} />
-					</div>
-					<div className="flex flex-wrap gap-2">
-						{exports.map((x) => (
-							<RightButton
-								right="knowledge.edit"
-								key={x.id}
-								title={x.ext.toUpperCase()}
-								aria-label={`${k.export} ${x.label}`}
-								busy={exporting === x.id}
-								disabled={exporting !== null}
-								onClick={() => void x.go()}
-							>
-								<ArrowDownTrayIcon size={14} />
-								{x.label}
-							</RightButton>
-						))}
-					</div>
-				</div>
+			pills={(row) => <Badge>{k.format[row.path.endsWith(".docx") ? "docx" : "md"]}</Badge>}
+			// The documents that Shipyard writes are cards of Reports: here they are in "More".
+			menu={
+				canEdit
+					? exports.map((x) => ({
+							label: `${k.export} ${x.label}`,
+							disabled: exporting !== null,
+							onClick: () => void x.go(),
+						}))
+					: []
 			}
 			notice={
 				note ? (
-					<div className="flex flex-wrap items-center gap-2 px-4 pb-2">
-						<p role="status" className="text-ui text-n-11">
+					<div className="flex flex-wrap items-center gap-2">
+						<p role="status" className="text-n-11">
 							{note}
 						</p>
 						{saved ? <SavedActions path={saved} onError={setFailure} /> : null}
 						<ErrorNotice error={failure} />
 					</div>
 				) : (
-					<ErrorNotice error={failure} className="px-4 pb-2" />
+					<ErrorNotice error={failure} />
 				)
 			}
-		>
-			{(row) => {
-				const actions = <DocActions path={row.path} title={row.title} onRenamed={pick} />;
-				return row.path.endsWith(".docx") ? (
-					<div className="flex flex-col gap-3">
-						<div className="flex items-center gap-2">
-							<h2 className="min-w-0 flex-1 truncate text-14 font-medium text-n-12">{row.title}</h2>
-							{actions}
-						</div>
-						<DocxView path={row.path} title={row.title} />
+			side={() => (
+				<Card pad className="flex flex-col items-start gap-3">
+					<div className="w-full">
+						<DocSearch onPick={pick} />
 					</div>
-				) : (
-					<PageEditor path={row.path} title={row.title} actions={actions} />
-				);
-			}}
+					<PageExport page="documents" />
+				</Card>
+			)}
+			below={(row) => (
+				<Card className="py-2">
+					<Row>
+						<span className="text-n-10">{k.file}</span>
+						<span className="ml-auto min-w-0 break-all font-mono text-14">{row.path}</span>
+						<Button className="min-h-control" onClick={() => revealPath(row.path)}>
+							{t.ui.item.reveal}
+						</Button>
+					</Row>
+				</Card>
+			)}
+		>
+			{(row) => <Document path={row.path} title={row.title} onRenamed={pick} />}
 		</ListTab>
+	);
+}
+
+/** The open document: a Markdown file in the page card, or a Word file as text, read only. */
+function Document({
+	path,
+	title,
+	onRenamed,
+}: {
+	path: string;
+	title: string;
+	onRenamed: (path: string) => void;
+}) {
+	const actions = useDocActions(path, onRenamed);
+	return (
+		<>
+			{path.endsWith(".docx") ? (
+				<>
+					<CardHeader title={title} more={actions.items} />
+					<DocxView path={path} title={title} />
+				</>
+			) : (
+				<PageCard path={path} title={title} more={actions.items} />
+			)}
+			{actions.dialog}
+		</>
 	);
 }

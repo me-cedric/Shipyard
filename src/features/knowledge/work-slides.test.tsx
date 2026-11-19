@@ -73,12 +73,13 @@ describe("Knowledge / Slides: planning and costing slides", () => {
 		expect(() => appendSlide("<p>x</p>", "<section/>")).toThrow();
 	});
 
-	it("adds a costing slide to an HTML deck from the menu", async () => {
+	it("adds a costing slide to an HTML deck from its button", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("slides");
-		await user.click(await screen.findByRole("button", { name: "Roadmap" }));
-		await user.click(await screen.findByRole("button", { name: "Add a slide" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Costing slide" }));
+		await user.click(await screen.findByRole("button", { name: /^Roadmap/ }));
+		// The two slides from the data are buttons under the stage.
+		expect(await screen.findByRole("button", { name: "Planning slide" })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Costing slide" }));
 		await waitFor(() =>
 			expect(mockState().knowledge.files["docs/slides/roadmap.html"]?.text).toContain(
 				"<h2>Costing</h2>",

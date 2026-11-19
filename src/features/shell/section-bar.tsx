@@ -40,13 +40,17 @@ export function SectionBar({
 		<PageSwitchContext.Provider value={slot}>
 			{place === "library" ? (
 				// The manual is help, not a page of Library: no way back to the doors.
-				slug && slug !== "home" && slug !== "manual" ? (
-					<LibraryBack />
-				) : null
-			) : claims ? null : (
-				<div className="flex shrink-0 justify-end pb-3">{node}</div>
+				slug === "manual" ? (
+					children
+				) : (
+					<LibraryBack slug={slug}>{children}</LibraryBack>
+				)
+			) : (
+				<>
+					{claims ? null : <div className="flex shrink-0 justify-end pb-3">{node}</div>}
+					{children}
+				</>
 			)}
-			{children}
 		</PageSwitchContext.Provider>
 	);
 }

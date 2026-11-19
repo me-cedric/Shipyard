@@ -249,6 +249,7 @@ export function GraphCanvas({
 	legend = false,
 	positions,
 	tableNodes,
+	defaultTable = false,
 }: {
 	nodes: CanvasNode[];
 	links: [string, string][];
@@ -269,8 +270,10 @@ export function GraphCanvas({
 	positions?: ReadonlyMap<string, { x: number; y: number }>;
 	/** The rows of the table view, when they are more than the nodes drawn. */
 	tableNodes?: CanvasNode[];
+	/** The table shows first. */
+	defaultTable?: boolean;
 }) {
-	const [table, setTable] = useState(false);
+	const [table, setTable] = useState(defaultTable);
 	const root = useRef<HTMLElement>(null);
 	const dark = useDark();
 	const reduced = useReducedMotionPref();

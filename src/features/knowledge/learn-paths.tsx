@@ -19,19 +19,10 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Progress } from "@/ui/atoms/progress";
 import { Select } from "@/ui/atoms/select";
-import {
-	AcademicCapIcon,
-	LinkIcon,
-	PencilIcon,
-	PlusIcon,
-	TrashIcon,
-	UsersIcon,
-	XMarkIcon,
-} from "@/ui/icons";
+import { LinkIcon, PencilIcon, PlusIcon, TrashIcon, XMarkIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { Panel } from "@/ui/molecules/panel";
 import { DataTable } from "@/ui/organisms/data-table";
-import { learningKey, openAddress } from "./learn-feeds";
+import { LearnCard, learningKey, openAddress } from "./learn-feeds";
 
 const KINDS: StepKind[] = ["course", "certification", "reading"];
 const stepKey = (p: LearningPath, s: LearningStep) => `${p.id}/${s.id}`;
@@ -188,10 +179,8 @@ export function LearnPaths() {
 
 	return (
 		<>
-			<Panel
+			<LearnCard
 				title={k.paths}
-				count={paths.length}
-				icon={<AcademicCapIcon size={14} />}
 				toolbar={
 					<span className="flex items-center gap-2">
 						{people.length ? (
@@ -212,7 +201,6 @@ export function LearnPaths() {
 						</RightButton>
 					</span>
 				}
-				bodyClassName="flex flex-col gap-3 p-3"
 			>
 				{editing ? (
 					<PathForm start={editing} people={people} onDone={() => setEditing(null)} />
@@ -312,9 +300,9 @@ export function LearnPaths() {
 						</section>
 					);
 				})}
-			</Panel>
+			</LearnCard>
 			{paths.length && people.length ? (
-				<Panel title={k.team} icon={<UsersIcon size={14} />} flush>
+				<LearnCard title={k.team}>
 					<DataTable
 						label={k.team}
 						data={people}
@@ -341,7 +329,7 @@ export function LearnPaths() {
 							})),
 						]}
 					/>
-				</Panel>
+				</LearnCard>
 			) : null}
 		</>
 	);

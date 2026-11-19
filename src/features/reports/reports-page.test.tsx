@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { mountView } from "@/features/knowledge/harness";
+import { mountKnowledge, mountView } from "@/features/knowledge/harness";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { Reports } from "./reports-page";
@@ -34,16 +34,27 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 			"Work done",
 			"Estimates",
 			"Network flows",
-			"RAID register",
+			"Questions and risks",
 			"Security findings",
-			"Architecture dossier",
-			"Functional documentation",
-			"Quality sheet",
 			"Schedule",
-			"Gantt chart",
-			"Sheet workbook",
+			"Timeline picture",
+			"Estimate workbook",
 		])
 			expect(await screen.findByRole("heading", { level: 2, name })).toBeVisible();
+		// The three documents of Documents are rows of "Written for you".
+		const forYou = within(screen.getByRole("region", { name: "Written for you" }));
+		for (const name of ["Architecture dossier", "Functional documentation", "Quality sheet"]) {
+			expect(forYou.getByText(name)).toBeVisible();
+			expect(forYou.getByRole("link", { name: `Open ${name}` })).toHaveAttribute(
+				"href",
+				"/library/documents",
+			);
+		}
+		expect(screen.getByRole("link", { name: "Dashboards" })).toHaveAttribute(
+			"href",
+			"/library/dashboards",
+		);
+		expect(screen.getByRole("link", { name: "Library" })).toHaveAttribute("href", "/library/home");
 	});
 
 	it("exports a sheet with one click and shows the file", async () => {
@@ -59,7 +70,7 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 		const user = userEvent.setup();
 		await mountView(<Reports />);
 		await user.click(
-			await screen.findByRole("button", { name: "Export Functional documentation" }),
+			await screen.findByRole("button", { name: "Write it Functional documentation" }),
 		);
 		await waitFor(() =>
 			expect(mockState().knowledge.exported.map((e) => e.kind)).toEqual(["functional"]),
@@ -69,41 +80,85 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 	it("keeps only the reports of the chosen format", async () => {
 		const user = userEvent.setup();
 		await mountView(<Reports />);
-		const formats = await screen.findByRole("navigation", { name: "Format" });
+		const formats = await screen.findByRole("group", { name: "Format" });
 		await user.click(within(formats).getByRole("button", { name: "Word" }));
 		expect(screen.getByRole("heading", { name: "Complete dossier" })).toBeVisible();
 		expect(screen.getByRole("heading", { name: "Change request" })).toBeVisible();
 		expect(screen.queryByRole("heading", { name: "Security findings" })).toBeNull();
 		await user.click(within(formats).getByRole("button", { name: "Picture" }));
-		expect(screen.getByRole("heading", { name: "Gantt chart" })).toBeVisible();
+		expect(screen.getByRole("heading", { name: "Timeline picture" })).toBeVisible();
 		expect(screen.queryByRole("heading", { name: "Complete dossier" })).toBeNull();
 		await user.click(within(formats).getByRole("button", { name: "All" }));
 		expect(screen.getByRole("heading", { name: "Security findings" })).toBeVisible();
 	});
 
-	it("opens the form of a report that asks first, and writes it", async () => {
-		const user = userEvent.setup();
+	it("links a report that asks first to the page of its form", async () => {
 		await mountView(<Reports />);
-		await user.click(await screen.findByRole("button", { name: "Fill the form Change request" }));
-		const form = await screen.findByRole("dialog");
-		await user.type(within(form).getByRole("textbox", { name: "Title" }), "Add billing");
-		await user.click(within(form).getByRole("button", { name: "Export" }));
+		expect(
+			await screen.findByRole("link", { name: "Fill the form Change request" }),
+		).toHaveAttribute("href", "/library/reports/change-request");
+		expect(screen.getByRole("link", { name: "Fill the form Work done" })).toHaveAttribute(
+			"href",
+			"/library/reports/work-done",
+		);
+	});
+
+	it("writes a change request on the page of its form, with people of the team", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("reports", "/library/reports/change-request");
+		expect(await screen.findByRole("heading", { level: 1, name: "Change request" })).toBeVisible();
+		expect(screen.getByRole("link", { name: "Reports" })).toHaveAttribute(
+			"href",
+			"/library/reports",
+		);
+		const write = screen.getByRole("button", { name: "Write the report" });
+		expect(write).toBeDisabled();
+		await user.type(screen.getByRole("textbox", { name: "Title" }), "Add billing");
+		expect(screen.getByRole("textbox", { name: "From version" })).toHaveValue("main");
+		expect(screen.getByRole("textbox", { name: "To version" })).toHaveValue("HEAD");
+		await user.click(await screen.findByRole("button", { name: "Add" }));
+		const first = (await screen.findAllByRole("menuitemcheckbox"))[0] as HTMLElement;
+		const name = first.textContent ?? "";
+		await user.click(first);
+		await user.keyboard("{Escape}");
+		expect(await screen.findByRole("img", { name })).toBeVisible();
+		await user.click(write);
 		await waitFor(() => expect(mockState().reports.changeRequests).toEqual(["CR-001"]));
 		expect(await screen.findByText(/CR-001\.md/)).toBeInTheDocument();
+		expect(screen.getByText(/CR-001\.docx/)).toBeInTheDocument();
+		expect(screen.getAllByRole("button", { name: "Show in folder" })).toHaveLength(2);
+		// The right cards: the other form, the reports with no form and the parts of the dossier.
+		expect(screen.getByRole("link", { name: /^Work done/ })).toHaveAttribute(
+			"href",
+			"/library/reports/work-done",
+		);
+		expect(screen.getByRole("link", { name: "All reports" })).toHaveAttribute(
+			"href",
+			"/library/reports",
+		);
+		expect(
+			within(screen.getByRole("region", { name: "Parts of the complete dossier" })).getByText(
+				"Data models",
+			),
+		).toBeVisible();
 	}, 15000);
 
 	it("shows a refused export with its sentence", async () => {
 		const user = userEvent.setup();
-		await mountView(<Reports />);
+		await mountKnowledge("reports", "/library/reports/change-request");
 		const project = mockState().projects[0];
 		if (project) project.overrides.readOnly = true;
-		await user.click(await screen.findByRole("button", { name: "Fill the form Change request" }));
-		const form = await screen.findByRole("dialog");
-		await user.type(within(form).getByRole("textbox", { name: "Title" }), "Add billing");
-		await user.click(within(form).getByRole("button", { name: "Export" }));
-		expect(await within(form).findByRole("alert")).toBeVisible();
+		await user.type(await screen.findByRole("textbox", { name: "Title" }), "Add billing");
+		await user.click(screen.getByRole("button", { name: "Write the report" }));
+		expect(await screen.findByRole("alert")).toBeVisible();
 		expect(mockState().reports.changeRequests).toEqual([]);
 	}, 15000);
+
+	it("sends an address with no form back to Reports", async () => {
+		const router = await mountKnowledge("reports", "/library/reports/none");
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/reports"));
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
 
 	it("sends a report that needs a chosen sheet to its page", async () => {
 		await mountView(<Reports />);
@@ -112,7 +167,7 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 			"/plan/timeline",
 		);
 		expect(
-			within(await card("Sheet workbook")).getByRole("link", { name: "Open Estimates" }),
+			within(await card("Estimate workbook")).getByRole("link", { name: "Open Estimates" }),
 		).toHaveAttribute("href", "/plan/estimates");
 		expect(screen.queryByRole("button", { name: "Export Schedule" })).toBeNull();
 	});
@@ -131,12 +186,12 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 		for (const name of [
 			"Work done",
 			"Estimates",
-			"RAID register",
+			"Questions and risks",
 			"Security findings",
 			"Schedule",
-			"Gantt chart",
+			"Timeline picture",
 			"Image (PNG)",
-			"Sheet workbook",
+			"Estimate workbook",
 		])
 			expect(screen.queryByRole("heading", { level: 2, name })).toBeNull();
 		expect(screen.queryByRole("link", { name: "Open Plan" })).toBeNull();
@@ -151,8 +206,10 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 		await waitFor(() =>
 			expect(screen.queryByRole("heading", { level: 2, name: "Complete dossier" })).toBeNull(),
 		);
-		for (const name of ["Change request", "Network flows", "Quality sheet"])
+		for (const name of ["Change request", "Network flows"])
 			expect(screen.queryByRole("heading", { level: 2, name })).toBeNull();
+		expect(screen.queryByText("Quality sheet")).toBeNull();
+		expect(screen.queryByRole("region", { name: "Written for you" })).toBeNull();
 	});
 
 	it("shows the Network flows export only when a flow file exists", async () => {

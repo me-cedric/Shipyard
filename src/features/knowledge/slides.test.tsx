@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockState } from "@/lib/ipc/mock";
 import { useShell } from "@/lib/shell";
@@ -22,8 +22,10 @@ vi.mock("reveal.js", () => ({
 const THEME = { color: "rgb(26, 26, 26)", backgroundColor: "rgb(255, 255, 255)" };
 const HTML = "docs/slides/roadmap.html";
 const files = () => mockState().knowledge.files;
+/** The card of a deck: its name, then its number of slides. */
+const card = (name: string) => new RegExp(`^${name}`);
 const open = async (user: ReturnType<typeof userEvent.setup>, name = "Kickoff") =>
-	user.click(await screen.findByRole("button", { name }));
+	user.click(await screen.findByRole("button", { name: card(name) }));
 const frame = async () => (await screen.findByTitle("Roadmap")) as HTMLIFrameElement;
 
 /** The draft that `ask` gives the assistant. */
@@ -38,8 +40,11 @@ describe("Knowledge / Slides", () => {
 
 	it("lists the HTML decks and the Markdown decks", async () => {
 		await mountKnowledge("slides");
-		expect(await screen.findByRole("button", { name: "Roadmap" })).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Kickoff" })).toBeInTheDocument();
+		expect(await screen.findByRole("button", { name: card("Roadmap") })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: card("Kickoff") })).toBeInTheDocument();
+		// Each card tells the number of slides of its deck.
+		expect(await screen.findByRole("button", { name: /^Roadmap\s*2 slides$/ })).toBeInTheDocument();
+		expect(await screen.findByRole("button", { name: /^Kickoff\s*5 slides$/ })).toBeInTheDocument();
 	});
 
 	it("shows an HTML deck in a frame that runs scripts with no origin, from the file", async () => {
@@ -63,6 +68,11 @@ describe("Knowledge / Slides", () => {
 		fireEvent.keyDown(stage, { key: "a" });
 		expect(post).toHaveBeenCalledTimes(1);
 		expect(post).toHaveBeenCalledWith({ deckKey: "ArrowRight" }, "*");
+		// The pager under the stage gives the same keys to the frame.
+		await user.click(screen.getByRole("button", { name: "Slide before" }));
+		expect(post).toHaveBeenLastCalledWith({ deckKey: "ArrowLeft" }, "*");
+		await user.click(screen.getByRole("button", { name: "Slide after" }));
+		expect(post).toHaveBeenLastCalledWith({ deckKey: "ArrowRight" }, "*");
 
 		await user.click(screen.getByRole("button", { name: "Present" }));
 		const present = await screen.findByRole("region", { name: "Present" });
@@ -91,10 +101,10 @@ describe("Knowledge / Slides", () => {
 	it("deletes an HTML deck from the item menu", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("slides");
-		fireEvent.contextMenu(await screen.findByRole("button", { name: "Roadmap" }));
+		fireEvent.contextMenu(await screen.findByRole("button", { name: card("Roadmap") }));
 		await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
 		await waitFor(() => expect(files()[HTML]).toBeUndefined());
-		await waitFor(() => expect(screen.queryByRole("button", { name: "Roadmap" })).toBeNull());
+		await waitFor(() => expect(screen.queryByRole("button", { name: card("Roadmap") })).toBeNull());
 	});
 
 	it("New deck asks an agent for an HTML deck and writes no file", async () => {
@@ -124,10 +134,19 @@ describe("Knowledge / Slides", () => {
 			</>,
 		);
 		await open(user);
-		expect(await screen.findByRole("region", { name: "Slides (5)" })).toBeInTheDocument();
-		expect(screen.getByRole("article", { name: "Slide 2" })).toHaveTextContent("Goals");
+		const stage = await screen.findByRole("region", { name: "Slides (5)" });
+		// The stage shows one slide: the pager and the strip of slides move it.
+		expect(await within(stage).findByRole("article", { name: "Slide 1" })).toBeInTheDocument();
+		expect(screen.getByText("1 of 5")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Slide before" })).toBeDisabled();
+		await user.click(screen.getByRole("button", { name: "Slide after" }));
+		expect(within(stage).getByRole("article", { name: "Slide 2" })).toHaveTextContent("Goals");
+		expect(screen.getByRole("button", { name: "Slide 2" })).toHaveAttribute("aria-pressed", "true");
+		await user.click(screen.getByRole("button", { name: "Slide 5" }));
+		expect(screen.getByText("5 of 5")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Slide after" })).toBeDisabled();
 		expect(screen.queryByRole("tab", { name: "Edit" })).toBeNull();
-		await user.click(screen.getByRole("button", { name: "Convert" }));
+		await user.click(screen.getByRole("button", { name: "Turn into a web deck" }));
 		expect(screen.getByRole("status", { name: "draft" })).toHaveTextContent(
 			"Rewrite the Markdown deck docs/slides/kickoff.md as the HTML deck docs/slides/kickoff.html.",
 		);
@@ -163,6 +182,8 @@ describe("Knowledge / Slides", () => {
 		await mountKnowledge("slides");
 		await open(user);
 		await screen.findByRole("region", { name: "Slides (5)" });
+		// The deck moves only in the present mode: the stage of the page has no transition.
+		await user.click(await screen.findByRole("button", { name: "Present" }));
 		await waitFor(() => expect(reveal.configs.at(-1)?.transition).toBe("none"));
 	});
 });

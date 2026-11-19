@@ -9,8 +9,11 @@ import { renderSpecs } from "./test-harness";
 type User = ReturnType<typeof userEvent.setup>;
 const files = () => mockState().specs.files;
 const QDIR = "docs/delivery/questions";
-// Each question is a card: a button with its id first.
-const rows = () => screen.findAllByRole("button", { name: /^Q-\d+/ });
+// Each question has one Edit control: a button on an open card, the title of a closed row.
+const rows = () => screen.findAllByRole("button", { name: /^Edit: / });
+const Q020 = "Edit: Claim stamps need an issue tracker comment write";
+const Q034 = "Edit: A duplicate of Q-020";
+const Q035 = "Edit: Which export formats ship first?";
 const pick = async (user: User, name: string, option: string) => {
 	await user.click(screen.getByRole("combobox", { name }));
 	await user.click(await screen.findByRole("option", { name: option }));
@@ -26,14 +29,20 @@ describe("Specs / Questions", () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Questions />);
 		expect(await rows()).toHaveLength(7);
-		await pick(user, "Status", "open");
+		// The status, the owner and the search sit behind More.
+		await user.click(screen.getByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Filters" }));
+		await pick(user, "Status", "Open");
 		await waitFor(async () => expect(await rows()).toHaveLength(3));
-		await pick(user, "Owner", "ada");
+		await pick(user, "Owner", "Ada Lovelace");
 		await waitFor(async () => expect(await rows()).toHaveLength(2));
-		await pick(user, "Kind", "question");
+		const kinds = within(screen.getByRole("group", { name: "Kind" }));
+		await user.click(kinds.getByRole("button", { name: "Questions" }));
 		await waitFor(async () => expect(await rows()).toHaveLength(1));
-		expect(screen.getByRole("button", { name: /^Q-035/ })).toHaveTextContent("ada");
-		await pick(user, "Kind", "All kinds");
+		expect(screen.getByRole("button", { name: Q035 }).closest("article")).toHaveTextContent(
+			"Ada Lovelace",
+		);
+		await user.click(kinds.getByRole("button", { name: "All" }));
 		await pick(user, "Owner", "All owners");
 		await pick(user, "Status", "All statuses");
 		await user.type(screen.getByRole("textbox", { name: "Search" }), "code host");
@@ -82,7 +91,7 @@ describe("Specs / Questions", () => {
 	it("takes the status from a menu, and answered asks for the answer", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Questions />);
-		await user.click(await screen.findByRole("button", { name: /^Q-020/ }));
+		await user.click(await screen.findByRole("button", { name: Q020 }));
 		const dialog = within(await screen.findByRole("dialog"));
 		expect(dialog.queryByLabelText("Answer")).toBeNull();
 		await waitFor(() => expect(dialog.getByRole("button", { name: "Save" })).toBeEnabled());
@@ -99,7 +108,7 @@ describe("Specs / Questions", () => {
 	it("saves the changed owner of a question", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Questions />);
-		await user.click(await screen.findByRole("button", { name: /^Q-020/ }));
+		await user.click(await screen.findByRole("button", { name: Q020 }));
 		const dialog = within(await screen.findByRole("dialog"));
 		await pick(user, "Owner", "Alan Turing");
 		await user.click(dialog.getByRole("button", { name: "Save" }));
@@ -109,7 +118,7 @@ describe("Specs / Questions", () => {
 	it("fills the form from the file that the stamp belongs to", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Questions />);
-		const row = await screen.findByRole("button", { name: /^Q-020/ });
+		const row = await screen.findByRole("button", { name: Q020 });
 		const path = `${QDIR}/Q-020.md`;
 		const f = files()[path];
 		if (!f) throw new Error("no Q-020");
@@ -127,7 +136,7 @@ describe("Specs / Questions", () => {
 	it("renames a question and edits its text, and the file keeps both", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Questions />);
-		await user.click(await screen.findByRole("button", { name: /^Q-020/ }));
+		await user.click(await screen.findByRole("button", { name: Q020 }));
 		const dialog = within(await screen.findByRole("dialog"));
 		await waitFor(() =>
 			expect(dialog.getByLabelText("Text")).toHaveValue(
@@ -144,7 +153,7 @@ describe("Specs / Questions", () => {
 	it("deletes a question only after a confirmation, and the file goes to the trash", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Questions />);
-		await user.click(await screen.findByRole("button", { name: /^Q-034/ }));
+		await user.click(await screen.findByRole("button", { name: Q034 }));
 		await user.click(
 			await within(await screen.findByRole("dialog")).findByRole("button", { name: "Delete" }),
 		);
@@ -157,6 +166,55 @@ describe("Specs / Questions", () => {
 		await user.click(confirm.getByRole("button", { name: "Move to trash" }));
 		await waitFor(() => expect(files()[`${QDIR}/Q-034.md`]).toBeUndefined());
 		await waitFor(async () => expect(await rows()).toHaveLength(6));
+	});
+
+	it("shows the count of open questions, the open items as cards and the closed ones in one card", async () => {
+		await renderSpecs(<Questions />);
+		expect(await screen.findByRole("heading", { name: "3 open questions" })).toBeVisible();
+		expect(await screen.findAllByRole("article")).toHaveLength(3);
+		const closed = within(screen.getByRole("region", { name: "Closed" }));
+		expect(closed.getAllByRole("listitem")).toHaveLength(4);
+		expect(closed.getAllByText("Answered")).toHaveLength(3);
+		// No raw id on the page.
+		expect(screen.queryByText("Q-012")).toBeNull();
+	});
+
+	it("answers an open question in place: the answer is the last line of its text", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<Questions />);
+		const name = "Answer: Claim stamps need an issue tracker comment write";
+		const send = await screen.findByRole("button", { name });
+		expect(send).toBeDisabled();
+		await user.type(screen.getByRole("textbox", { name }), "Use labels");
+		await user.click(send);
+		await waitFor(() => expect(files()[`${QDIR}/Q-020.md`]?.text).toContain("status: answered"));
+		expect(files()[`${QDIR}/Q-020.md`]?.text.trimEnd().endsWith("Use labels")).toBe(true);
+		expect(await screen.findByRole("heading", { name: "2 open questions" })).toBeVisible();
+	});
+
+	it("offers to add the answer to the spec on an answered row that names a spec", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<Questions />);
+		const name = "Answer: Which export formats ship first?";
+		await user.type(await screen.findByRole("textbox", { name }), "CSV first");
+		await user.click(screen.getByRole("button", { name }));
+		await user.click(
+			await screen.findByRole("button", {
+				name: "Add the answer to the spec: Which export formats ship first?",
+			}),
+		);
+		const dialog = within(await screen.findByRole("dialog"));
+		expect(await dialog.findByRole("region", { name: "Preview" })).toHaveTextContent("+ CSV first");
+	});
+
+	it("keeps the items of the person with Mine", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<Questions />);
+		expect(await rows()).toHaveLength(7);
+		await user.click(screen.getByRole("button", { name: "Mine" }));
+		await waitFor(async () => expect(await rows()).toHaveLength(3));
+		// A row with no spec has no "Add the answer to the spec".
+		expect(screen.queryByRole("button", { name: /^Add the answer to the spec/ })).toBeNull();
 	});
 
 	it("folds an answer after a preview and one click, with no new section", async () => {
@@ -178,7 +236,7 @@ describe("Specs / Questions", () => {
 		const spec = "docs/openspec/changes/add-export/specs/export/spec.md";
 		const before = files()[spec]?.text ?? "";
 		await renderSpecs(<Questions />);
-		await user.click(await screen.findByRole("button", { name: /^Q-035/ }));
+		await user.click(await screen.findByRole("button", { name: Q035 }));
 		await user.click(await screen.findByRole("button", { name: "Fold" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		const preview = await dialog.findByRole("region", { name: "Preview" });

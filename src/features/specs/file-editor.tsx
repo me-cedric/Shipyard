@@ -3,6 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { useRights } from "@/lib/rights";
 import { useViewState } from "@/lib/shell/view-state";
 import { useFile, useSpecsActions } from "@/lib/specs";
+import { Segmented } from "@/ui/atoms/segmented";
 import { BookOpenIcon, PencilIcon } from "@/ui/icons";
 import { CodeEditor, type Token } from "@/ui/molecules/code-editor";
 import { RefChip } from "@/ui/molecules/ref-chip";
@@ -18,6 +19,9 @@ import { useGuard } from "./guard";
 /** The status values of a spec. The value in the file is always offered too. */
 const SPEC_STATUSES = ["Draft", "Review", "Approved"];
 
+/** The parts that a page lays out itself: the Read / Text switch, the mode, the Edit action and the body. */
+export type FileFrame = { modes: ReactNode; editing: boolean; edit: () => void; body: ReactNode };
+
 /**
  * One file in the `EditorFrame`. A save sends the stamp that the person opened. When the file
  * changed on disk, nothing is written and the person reloads or keeps the own text (REQ-023).
@@ -25,7 +29,8 @@ const SPEC_STATUSES = ["Draft", "Review", "Approved"];
  * in a form; the text view is the other choice, and both edit the same text. With `read`, the file
  * opens as a page to read, and Edit switches to the editor (spec:app-redesign#REQ-021). `page`
  * draws that page for a file that is not Markdown. A file with nothing to read, a read error and
- * a picked line show the editor.
+ * a picked line show the editor. With `frame`, the page draws the switch in its own header: the
+ * switch is Read / Text, and the page to read has no ref chip.
  */
 export function FileEditor({
 	path,
@@ -40,6 +45,7 @@ export function FileEditor({
 	form,
 	read,
 	page,
+	frame,
 	children,
 }: {
 	path: string;
@@ -60,6 +66,8 @@ export function FileEditor({
 	read?: boolean;
 	/** The page to read of a file that is not Markdown. Null when the text has nothing to read. */
 	page?: (text: string) => ReactNode;
+	/** Lays out the switch and the body in the header and the columns of a page. */
+	frame?: (parts: FileFrame) => ReactNode;
 	children?: ReactNode;
 }) {
 	const { t } = useI18n();
@@ -118,22 +126,47 @@ export function FileEditor({
 	const reading = page ? page(text) : <MarkdownView source={text} label={title} reading />;
 	const editing = picked || mode === "edit";
 	// A text with nothing to read has no switch: Read would do nothing.
-	const modes =
-		read && reading ? (
-			<ViewTabs
+	const pickMode = (m: "read" | "edit") => {
+		setPicked(false);
+		setMode(m);
+	};
+	const modes = !(read && reading) ? null : frame ? (
+		<div className="shrink-0">
+			<Segmented
 				label={k.mode}
 				value={editing ? "edit" : "read"}
-				onValueChange={(m) => {
-					setPicked(false);
-					setMode(m);
-				}}
-				tabs={[
-					{ value: "read", label: k.read, icon: <BookOpenIcon size={12} /> },
-					{ value: "edit", label: k.edit, icon: <PencilIcon size={12} /> },
+				onValueChange={pickMode}
+				items={[
+					{ value: "read", label: k.read },
+					{ value: "edit", label: t.editing.view.text },
 				]}
 			/>
-		) : null;
-	if (!editing && reading && !shown)
+		</div>
+	) : (
+		<ViewTabs
+			label={k.mode}
+			value={editing ? "edit" : "read"}
+			onValueChange={pickMode}
+			tabs={[
+				{ value: "read", label: k.read, icon: <BookOpenIcon size={12} /> },
+				{ value: "edit", label: k.edit, icon: <PencilIcon size={12} /> },
+			]}
+		/>
+	);
+	const toText = () => pickMode("edit");
+	if (!editing && reading && !shown) {
+		if (frame)
+			return frame({
+				modes,
+				editing: false,
+				edit: toText,
+				body: (
+					<>
+						{reading}
+						{children}
+					</>
+				),
+			});
 		return (
 			<div className="flex min-h-0 flex-1 flex-col gap-3">
 				<div className="flex items-center gap-2">
@@ -147,14 +180,15 @@ export function FileEditor({
 				{children}
 			</div>
 		);
-	return (
+	}
+	const body = (
 		<EditorFrame
 			title={title}
 			refId={refId}
 			actions={
 				formed ? (
 					<>
-						{modes}
+						{frame ? null : modes}
 						<ViewTabs
 							label={t.editing.view.label}
 							value={view}
@@ -168,7 +202,7 @@ export function FileEditor({
 					</>
 				) : (
 					<>
-						{modes}
+						{frame ? null : modes}
 						{actions}
 					</>
 				)
@@ -213,4 +247,5 @@ export function FileEditor({
 			</div>
 		</EditorFrame>
 	);
+	return frame ? frame({ modes, editing: true, edit: toText, body }) : body;
 }

@@ -8,6 +8,14 @@ import { mountKnowledge } from "./harness";
 
 const FILE = "docs/dashboards/team.yaml";
 const tile = async (name: string) => within(await screen.findByRole("region", { name }));
+/** The edit page of the dashboard of the mock project. */
+const mountEdit = () => mountKnowledge("dashboards", "/library/dashboards/team/edit");
+/** Opens the menu of a tile and picks one of its items. */
+const pick = async (user: ReturnType<typeof userEvent.setup>, name: string, item: string) => {
+	await user.click(await screen.findByRole("button", { name: `More ${name}` }));
+	const role = item === "Show as table" ? "menuitemcheckbox" : "menuitem";
+	await user.click(await screen.findByRole(role, { name: item }));
+};
 
 describe("Knowledge / Dashboards", () => {
 	it("shows a dashboard as a grid of tiles with a count, each drawn from the data of the project", async () => {
@@ -25,7 +33,7 @@ describe("Knowledge / Dashboards", () => {
 		await mountKnowledge("dashboards");
 		const work = await unwrap(commands.dashboardTile("questions"));
 		const t = await tile("Questions");
-		await user.click(await t.findByRole("button", { name: "Show as table" }));
+		await pick(user, "Questions", "Show as table");
 		const rows = within(await t.findByRole("table")).getAllByRole("row");
 		expect(rows).toHaveLength(work.rows.length + 1);
 	});
@@ -53,8 +61,10 @@ describe("Knowledge / Dashboards", () => {
 
 	it("saves a moved tile to the file", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("dashboards");
-		await user.click(await (await tile("Work items")).findByRole("button", { name: "Move right" }));
+		await mountEdit();
+		await user.click(await screen.findByRole("button", { name: "Tile settings Work items" }));
+		const panel = within(await screen.findByRole("complementary", { name: "Tile settings" }));
+		await user.click(panel.getByRole("button", { name: "Move right" }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.dashboardGetOne("team"))).value.tiles[0]?.x).toBe(1),
 		);
@@ -62,7 +72,7 @@ describe("Knowledge / Dashboards", () => {
 	});
 
 	it("moves a tile when it is dragged to another column", async () => {
-		await mountKnowledge("dashboards");
+		await mountEdit();
 		const item = (await screen.findByRole("region", { name: "Work items" })).closest("li");
 		const grid = item?.parentElement;
 		if (!(item && grid)) throw new Error("grid");
@@ -88,7 +98,61 @@ describe("Knowledge / Dashboards", () => {
 		files()[FILE] = { text: old.replace("version: 1", "version: 2"), stamp: "7" };
 		await mountKnowledge("dashboards");
 		expect(await screen.findByText("Read only")).toBeInTheDocument();
-		expect(screen.queryByRole("button", { name: "Move right" })).toBeNull();
+		expect(screen.queryByRole("link", { name: "Edit" })).toBeNull();
+		cleanup();
+		await mountEdit();
+		expect(await screen.findByText("Read only")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: /^Tile settings/ })).toBeNull();
+		expect(screen.queryByRole("button", { name: /^Remove tile/ })).toBeNull();
+	});
+
+	it("shows no edit control on a tile in read mode, and Edit opens the edit page", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("dashboards");
+		await tile("Runs");
+		expect(screen.queryByRole("button", { name: /^(Tile settings|Remove tile)/ })).toBeNull();
+		expect(screen.queryByRole("group", { name: "Add a tile" })).toBeNull();
+		await user.click(await screen.findByRole("link", { name: "Edit" }));
+		expect(await screen.findByRole("heading", { level: 1, name: "Team" })).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "Dashboards" })).toHaveAttribute(
+			"href",
+			"/library/dashboards",
+		);
+		await user.click(screen.getByRole("link", { name: "Done" }));
+		expect(
+			await screen.findByRole("heading", { level: 1, name: "Dashboards" }),
+		).toBeInTheDocument();
+	});
+
+	it("renames a dashboard on its edit page", async () => {
+		const user = userEvent.setup();
+		await mountEdit();
+		// The shell has a "Rename" of its own: take the one of the page.
+		const page = within(await screen.findByRole("main"));
+		await user.click(await page.findByRole("button", { name: "Rename" }));
+		const name = screen.getByRole("textbox", { name: "Dashboard name" });
+		await user.clear(name);
+		await user.type(name, "Delivery");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(await screen.findByRole("heading", { level: 1, name: "Delivery" })).toBeInTheDocument();
+		expect((await unwrap(commands.dashboardGetOne("team"))).value.title).toBe("Delivery");
+	});
+
+	it("links to the pages that hold more numbers", async () => {
+		await mountKnowledge("dashboards");
+		const more = within(await screen.findByRole("region", { name: "More numbers" }));
+		expect(more.getByRole("link", { name: "Spend of the agents" })).toHaveAttribute(
+			"href",
+			"/crew/spend",
+		);
+		expect(more.getByRole("link", { name: "Quality gates" })).toHaveAttribute(
+			"href",
+			"/flow/health",
+		);
+		expect(more.getByRole("link", { name: "Plan and load of people" })).toHaveAttribute(
+			"href",
+			"/plan/timeline",
+		);
 	});
 
 	it("shows the states of the Runs tile as plain words, not as codes", async () => {
@@ -101,22 +165,23 @@ describe("Knowledge / Dashboards", () => {
 	it("pins a tile, and the pinned tile shows at the top of Dashboards and not on Home", async () => {
 		const user = userEvent.setup();
 		const router = await mountKnowledge("dashboards");
-		await user.click(await (await tile("Runs")).findByRole("button", { name: "Pin to Today" }));
+		await pick(user, "Runs", "Pin to Today");
 		expect(await screen.findByRole("heading", { name: "Pinned (1)" })).toBeInTheDocument();
 		await router.navigate({ to: "/home/today" });
 		await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ });
 		expect(screen.queryByRole("heading", { name: /^Pinned/ })).toBeNull();
 		await router.navigate({ to: "/knowledge/dashboards" });
 		const pinned = within(await screen.findByRole("region", { name: "Pinned" }));
-		await user.click(await pinned.findByRole("button", { name: "Unpin from Today" }));
+		await user.click(await pinned.findByRole("button", { name: "More Runs" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Unpin from Today" }));
 		await waitFor(() => expect(screen.queryByRole("heading", { name: /^Pinned/ })).toBeNull());
 	});
 
 	it("adds a tile, renames and widens it in its settings, and removes it", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("dashboards");
-		await user.click(await screen.findByRole("button", { name: "Add tile" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Specs" }));
+		await mountEdit();
+		const kinds = within(await screen.findByRole("group", { name: "Add a tile" }));
+		await user.click(kinds.getByRole("button", { name: "Specs" }));
 		const saved = async () => (await unwrap(commands.dashboardGetOne("team"))).value.tiles;
 		await waitFor(async () => expect((await saved()).map((x) => x.id)).toContain("specs"));
 		await user.click(await screen.findByRole("button", { name: "Tile settings Specs" }));
@@ -163,7 +228,7 @@ describe("Knowledge / Dashboards", () => {
 		const items = await unwrap(commands.syncItems({}));
 		const open = items.filter((i) => i.category !== "done");
 		const t = await tile("Items by assignee");
-		await user.click(await t.findByRole("button", { name: "Show as table" }));
+		await pick(user, "Items by assignee", "Show as table");
 		const total = async () =>
 			within(await t.findByRole("table"))
 				.getAllByRole("row")
@@ -203,7 +268,7 @@ describe("Dashboards / Build a tile for me (spec:app-redesign#REQ-032, #REQ-033)
 
 	it("shows a proposed tile with Accept and Discard, and the dashboard does not change", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("dashboards");
+		await mountEdit();
 		const before = mockState().knowledge.files[FILE]?.text;
 		await build(user, "Runs by state");
 		const p = await proposed();
@@ -216,7 +281,7 @@ describe("Dashboards / Build a tile for me (spec:app-redesign#REQ-032, #REQ-033)
 
 	it("puts the tile on the dashboard when the person accepts it", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("dashboards");
+		await mountEdit();
 		await build(user, "Specs health");
 		await user.click((await proposed()).getByRole("button", { name: "Accept" }));
 		await waitFor(async () =>
@@ -228,7 +293,7 @@ describe("Dashboards / Build a tile for me (spec:app-redesign#REQ-032, #REQ-033)
 
 	it("drops the proposed tile on Discard", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("dashboards");
+		await mountEdit();
 		await build(user, "Specs health");
 		await user.click((await proposed()).getByRole("button", { name: "Discard" }));
 		expect(screen.queryByRole("region", { name: "Proposed tile" })).toBeNull();
@@ -238,7 +303,7 @@ describe("Dashboards / Build a tile for me (spec:app-redesign#REQ-032, #REQ-033)
 
 	it("is a session while it runs, and Stop ends it with no tile and no error", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("dashboards");
+		await mountEdit();
 		await build(user, "Runs by state");
 		expect(await screen.findByText("The agent builds the tile")).toHaveRole("status");
 		const rows = await unwrap(commands.sessionsList());
@@ -257,7 +322,7 @@ describe("Dashboards / Build a tile for me (spec:app-redesign#REQ-032, #REQ-033)
 
 	it("sends the budget that the person set, and says when the budget is spent", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("dashboards");
+		await mountEdit();
 		await user.click(await screen.findByRole("button", { name: "Build a tile for me" }));
 		const budget = within(screen.getByRole("group", { name: "Budget (USD)" }));
 		expect(budget.getByRole("status")).toHaveTextContent("$2");
@@ -287,7 +352,7 @@ describe("Dashboards / Build a tile for me (spec:app-redesign#REQ-032, #REQ-033)
 
 	it("keeps the proposed tile when the file changed on disk, and accepts it on the next click", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("dashboards");
+		await mountEdit();
 		await build(user, "Specs health");
 		const p = await proposed();
 		// The file changes behind the page while the proposal waits.
@@ -304,7 +369,7 @@ describe("Dashboards / Build a tile for me (spec:app-redesign#REQ-032, #REQ-033)
 
 	it("keeps the form open while a build runs, and stops each build of the dashboard", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("dashboards");
+		await mountEdit();
 		// A build of the same dashboard that this page did not start.
 		const other = unwrap(commands.dashboardTileBuild("team", "Runs", 1)).catch((e) => e);
 		await build(user, "Runs by state");
@@ -319,7 +384,7 @@ describe("Dashboards / Build a tile for me (spec:app-redesign#REQ-032, #REQ-033)
 
 	it("stops the build when the person leaves the page", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("dashboards");
+		await mountEdit();
 		await build(user, "Runs by state");
 		expect(await screen.findByText("The agent builds the tile")).toHaveRole("status");
 		const stop = vi.spyOn(commands, "prReviewStop");
@@ -333,7 +398,7 @@ describe("Dashboards / Build a tile for me (spec:app-redesign#REQ-032, #REQ-033)
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const old = files()[FILE]?.text ?? "";
 		files()[FILE] = { text: old.replace("version: 1", "version: 2"), stamp: "7" };
-		await mountKnowledge("dashboards");
+		await mountEdit();
 		expect(await screen.findByText("Read only")).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: "Build a tile for me" })).toBeNull();
 	});
@@ -348,7 +413,7 @@ describe("Dashboards / Build a tile for me (spec:app-redesign#REQ-032, #REQ-033)
 			readOnly: false,
 			rights: [],
 		};
-		mountApp("/knowledge/dashboards");
+		mountApp("/library/dashboards/team/edit");
 		const button = await screen.findByRole("button", { name: "Build a tile for me" });
 		expect(button).toBeDisabled();
 		expect(button).toHaveAccessibleDescription(

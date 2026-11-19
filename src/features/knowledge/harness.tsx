@@ -3,8 +3,8 @@ import { mountDesign } from "@/features/design/harness";
 import { commands, unwrap } from "@/lib/ipc";
 import { mountApp } from "@/test/mount";
 
-/** One Knowledge tab in the whole app, on the mock project. */
-export async function mountKnowledge(tab: string) {
+/** One Knowledge tab in the whole app, on the mock project. `address` opens a sub-page of it. */
+export async function mountKnowledge(tab: string, address = `/knowledge/${tab}`) {
 	// jsdom has no matchMedia: the graph and the decks read it.
 	window.matchMedia = ((query: string) => ({
 		matches: false,
@@ -14,7 +14,7 @@ export async function mountKnowledge(tab: string) {
 	})) as unknown as typeof window.matchMedia;
 	localStorage.clear();
 	await unwrap(commands.projectsOpen("/mock/alpha", false));
-	return mountApp(`/knowledge/${tab}`);
+	return mountApp(address);
 }
 
 /** A node of the graph. jsdom measures no node, so xyflow keeps each one hidden. */
