@@ -143,7 +143,11 @@ export function Manual() {
 	const [scrollTo, setScrollTo] = useState<string | null>(null);
 	const current = pages.find((p) => p.id === page) ?? pages[0];
 	// The card draws the title itself, then the picture; the reader gets the text below the first heading.
-	const body = current?.text.replace(/^#\s+.+\n?/, "") ?? "";
+	const all = current?.text.replace(/^#\s+.+\n?/, "") ?? "";
+	// The first paragraph sits above the picture, as in the design; a page that opens on a list or a heading has none.
+	const [first = "", ...others] = all.trimStart().split(/\n\s*\n/);
+	const lead = /^(#|[-*|>`]|\d+\.)/.test(first) ? "" : first;
+	const body = lead ? others.join("\n\n") : all;
 	const hits = useMemo(() => searchManual(query, pages), [query, pages]);
 	const picture = current ? pictureOf(current.id) : undefined;
 
@@ -240,13 +244,22 @@ export function Manual() {
 						<div className="flex max-w-[640px] flex-col gap-4 pb-1">
 							{current ? (
 								<>
-									<h2 className="text-32 font-semibold text-n-12">{current.title}</h2>
+									<h2 className="text-30 font-semibold text-n-12">{current.title}</h2>
+									{lead ? (
+										<MarkdownView
+											key={`${current.id}-lead`}
+											source={lead}
+											label=""
+											refs={false}
+											reading
+										/>
+									) : null}
 									{picture ? (
 										<img
 											src={picture}
 											alt={format(m.picture, { page: current.title })}
 											loading="lazy"
-											className="w-full rounded-field border border-n-6"
+											className="w-full rounded-field border border-dashed border-n-7 bg-n-3 p-2"
 										/>
 									) : null}
 									<MarkdownView
@@ -261,7 +274,7 @@ export function Manual() {
 							) : null}
 						</div>
 					</section>
-					<div className="flex shrink-0 flex-wrap gap-2.5">
+					<div className="flex shrink-0 flex-wrap gap-2.5 border-t border-n-6 pt-4">
 						<Button
 							variant="primary"
 							disabled={!current}

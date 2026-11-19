@@ -39,7 +39,7 @@ export function Inspector({
 		onClose();
 	};
 	// The card needs the width of its two buttons.
-	const width = card ? Math.max(panel.size, 440) : panel.size;
+	const width = card ? Math.max(panel.size, 476) : panel.size;
 	return (
 		<>
 			{/* The dim is a look only: the page under it stays in use. */}

@@ -31,7 +31,7 @@ export function useLastVisit() {
 
 /** What happened on my tickets and runs since the last visit, with one link to all news (spec:app-redesign#REQ-009). */
 export function SinceAway() {
-	const { t, lang } = useI18n();
+	const { t } = useI18n();
 	const members = useTeam().data?.team.members ?? [];
 	const mine = useMyItems();
 	const keys = new Set(mine.map((i) => i.key));
@@ -52,7 +52,6 @@ export function SinceAway() {
 		.sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0))
 		.slice(0, SHOWN);
 	if (!events.length) return null;
-	const time = new Intl.DateTimeFormat(lang, { dateStyle: "short", timeStyle: "short" });
 	return (
 		<section aria-labelledby={title} className="rounded-lg bg-surface-2 py-2 shadow-2">
 			<h2 id={title} className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">
@@ -63,19 +62,13 @@ export function SinceAway() {
 					<li key={`${e.run}:${e.id}`} className="border-t border-n-6 first:border-t-0">
 						<Link
 							{...runHref(e.run)}
-							className="flex min-h-15 flex-wrap items-center gap-3 px-6 py-2 text-n-12"
+							title={`${e.title} · ${format(t.home.stat.by, { name: memberName(members, mine.find((i) => i.key === e.key)?.member ?? null) })}`}
+							className="flex min-h-15 items-center gap-3 px-6 py-2 text-n-12"
 						>
 							<Avatar agent size="s" name={e.step ?? t.ui.activity.system} />
-							<span className="min-w-0 flex-1">
-								<span className="block">{eventSentence(t.home.event, t.factory.state, e)}</span>
-								<span className="block text-13 text-n-11">
-									{e.title} ·{" "}
-									{format(t.home.stat.by, {
-										name: memberName(members, mine.find((i) => i.key === e.key)?.member ?? null),
-									})}
-								</span>
+							<span className="min-w-0 flex-1 truncate">
+								{eventSentence(t.home.event, t.factory.state, e)}
 							</span>
-							<span className="text-13 text-n-11">{e.ts === null ? "" : time.format(e.ts)}</span>
 						</Link>
 					</li>
 				))}

@@ -65,7 +65,7 @@ function Card({
 	return (
 		<section aria-label={title} className={cn(SURFACE, "flex flex-col gap-2.5 px-6 py-5.5")}>
 			<h2 className="text-13 font-semibold text-n-11">{title}</h2>
-			<span className="text-17 font-semibold text-n-12">{children ?? count}</span>
+			<span className="text-30 font-semibold text-n-12">{children ?? count}</span>
 			<Link
 				to={to}
 				// shortcut: one cast. The section routes are built in a loop, so the link type does not know `page`.
@@ -353,7 +353,7 @@ export function PlanCards({ className }: { className?: string }) {
 		>
 			<section className={cn(SURFACE, "flex flex-col gap-3.5 px-6 py-5.5")}>
 				<h2 className="text-17 font-semibold text-n-12">
-					{finish ? format(t.planPlace.ends, { name, day: day(finish) }) : name}
+					{finish ? format(t.planPlace.ends, { name, day: day(finish, true) }) : name}
 				</h2>
 				<Progress
 					value={features.filter((f) => f.stage === "ready").length}
@@ -410,6 +410,8 @@ export function RolePanelsPage() {
 	const roles = Object.keys(ROLE_PANELS) as TeamRole[];
 	const role = roles.find((r) => r === search.role) ?? teamRole;
 	const names: Record<string, string> = t.rights.panel;
+	// The same word as Role views and the first run: the viewer is "I only look".
+	const roleName = (r: TeamRole) => (r === "viewer" ? t.home.roles.viewer : t.rights.role[r]);
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
 			<NoSwitch>
@@ -434,7 +436,7 @@ export function RolePanelsPage() {
 								void navigate({ to: "/today/panels", search: { role: r }, replace: true })
 							}
 						>
-							{t.rights.role[r]}
+							{roleName(r)}
 						</Chip>
 					))}
 				</div>
@@ -464,7 +466,7 @@ export function RolePanelsPage() {
 							.filter((r) => r !== role)
 							.map((r) => (
 								<Row key={r}>
-									<span className="flex-[1_1_200px] font-medium">{t.rights.role[r]}</span>
+									<span className="flex-[1_1_200px] font-medium">{roleName(r)}</span>
 									<span className="flex flex-[3_1_320px] flex-wrap gap-1.5 py-2">
 										{ROLE_PANELS[r].map((id) => (
 											<Badge key={id}>{names[id]}</Badge>

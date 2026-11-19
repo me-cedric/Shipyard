@@ -151,6 +151,11 @@ describe("Library / Manual", () => {
 		mountApp("/library/manual");
 		const page = await screen.findByRole("article", { name: "Start" });
 		expect(screen.getByRole("img", { name: "Picture of the page Start" })).toBeVisible();
+		// The first paragraph sits above the picture, and the title is large.
+		const picture = screen.getByRole("img", { name: "Picture of the page Start" });
+		const lead = screen.getByText(/^Shipyard helps a team deliver/);
+		expect(lead.compareDocumentPosition(picture) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(screen.getByRole("heading", { level: 2, name: "Start" })).toHaveClass("text-30");
 		const header = screen.getByRole("heading", { level: 1, name: "Manual" }).closest("div");
 		expect(within(header as HTMLElement).getByText("F1")).toBeInTheDocument();
 		expect(within(header as HTMLElement).queryByText(String(MANUAL.length))).toBeNull();

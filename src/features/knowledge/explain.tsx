@@ -1,24 +1,20 @@
 import { useRouter } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { useGraphFocus } from "@/lib/knowledge";
-import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
 import { MagnifyingGlassIcon } from "@/ui/icons";
 
 /**
- * The two actions of every entity in the inspector. Explain opens the assistant with the entity as
- * context and asks for the cited answer (REQ-008). Open in graph centres the graph on it (REQ-004).
- * The palette runs the same Explain action.
+ * Open in graph centres the graph on the entity (REQ-004). Explain (REQ-008) is a main button of the
+ * link card, in `RefDetail`; the palette runs the same Explain action.
  */
 export function KnowledgeActions({ refId }: { refId: string }) {
 	const { t } = useI18n();
-	const { explain } = useShell();
 	const [, setFocus] = useGraphFocus();
 	// A view outside the router has no graph to open.
 	const router = useRouter({ warn: false });
 	return (
 		<div className="flex flex-wrap gap-2">
-			<Button onClick={() => explain(refId)}>{t.inspector.explain}</Button>
 			{router ? (
 				<Button
 					variant="ghost"

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { openFirstFolder } from "./first-run";
 
 const PLACES = [
-	["Today", "Today"],
+	["Today", "Needs you"],
 	["Flow", "Flow"],
 	["Plan", "Timeline"],
 	["Crew", "Crew"],

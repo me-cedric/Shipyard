@@ -41,13 +41,10 @@ describe("refs in the shell", () => {
 		await user.type(input, "polling");
 		await user.click(await screen.findByRole("option", { name: /adr:0004/ }));
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
-		expect(await within(inspector).findByRole("heading", { name: "Spec (2)" })).toBeVisible();
-		expect(within(inspector).getByRole("heading", { name: "Change (1)" })).toBeVisible();
-		expect(
-			within(inspector).getByRole("button", {
-				name: /^adr:0004, Polling sync with local mirror, Resolved$/,
-			}),
-		).toBeVisible();
+		// One line for each linked item, in a list.
+		expect(await within(inspector).findAllByRole("button", { name: /^spec:/ })).toHaveLength(2);
+		expect(within(inspector).getAllByRole("button", { name: /^change:/ })).toHaveLength(1);
+		expect(within(inspector).getByText("adr:0004", { selector: "code" })).toBeVisible();
 	});
 
 	it("opens a cited entity from a backlink chip with the keyboard", async () => {
@@ -63,11 +60,9 @@ describe("refs in the shell", () => {
 		chip.focus();
 		await user.keyboard("{ArrowDown}{Enter}");
 		await waitFor(() =>
-			expect(
-				within(inspector).getByRole("button", { name: /^spec:auth, Spec: auth, Resolved$/ }),
-			).toBeVisible(),
+			expect(within(inspector).getByText("spec:auth", { selector: "code" })).toBeVisible(),
 		);
-		expect(within(inspector).queryByRole("heading", { name: /Spec \(/ })).toBeNull();
+		expect(within(inspector).queryAllByRole("button", { name: /^spec:/ })).toHaveLength(0);
 	});
 
 	it("shows ghost rows and no text for an entity that nothing cites", async () => {
@@ -77,9 +72,7 @@ describe("refs in the shell", () => {
 		await user.type(input, "wi:SHIP-42");
 		await user.click(await screen.findByRole("option", { name: /Open wi:SHIP-42/ }));
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
-		expect(
-			await within(inspector).findByRole("button", { name: "wi:SHIP-42, Unresolved" }),
-		).toBeVisible();
+		expect(await within(inspector).findByText("wi:SHIP-42", { selector: "code" })).toBeVisible();
 		expect(within(inspector).queryAllByRole("heading", { level: 3 })).toHaveLength(0);
 	});
 
@@ -96,8 +89,6 @@ describe("refs in the shell", () => {
 		);
 		await user.keyboard("{ArrowDown}{Enter}");
 		const inspector = await screen.findByLabelText("Inspecteur", { selector: "aside" });
-		expect(
-			await within(inspector).findByRole("heading", { name: "Spécification (2)" }),
-		).toBeVisible();
+		expect(await within(inspector).findAllByRole("button", { name: /^spec:/ })).toHaveLength(2);
 	});
 });

@@ -67,22 +67,23 @@ describe("first run", () => {
 		expect(buttons.filter((b) => b.className.includes("bg-primary"))).toHaveLength(0);
 	});
 
-	it("starts at the three starts for a saved role, and keeps the role", async () => {
+	it("shows the No project card, not the first run, for a saved role, and keeps the role", async () => {
 		mockState().prefs.role = "qa";
 		mountApp("/home/today");
-		await screen.findByRole("button", { name: "Open a local folder" });
+		await screen.findByRole("button", { name: "Open a project" });
 		expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
-		// The role step did not show, so it does not count.
-		expect(screen.getByRole("heading", { level: 1, name: "How do you start?" })).toBeVisible();
-		expect(screen.getByRole("img", { name: "Step 1 of 2" })).toBeVisible();
+		// The first run is for the first launch only: no step bar, no start question.
+		expect(screen.getByRole("heading", { level: 1, name: "No project is open" })).toBeVisible();
+		expect(screen.queryByRole("heading", { name: "How do you start?" })).toBeNull();
+		expect(screen.queryByRole("img", { name: /^Step / })).toBeNull();
 		expect(mockState().prefs.role).toBe("qa");
 	});
 
-	it("starts at the three starts when the list holds a project", async () => {
+	it("shows the No project card when the list holds a project", async () => {
 		await open("/mock/alpha");
 		await unwrap(commands.projectsClose());
 		mountApp("/home/today");
-		await screen.findByRole("button", { name: "Open a local folder" });
+		await screen.findByRole("button", { name: "Open a project" });
 		expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
 	});
 
@@ -290,16 +291,17 @@ describe("project switcher", () => {
 		);
 	});
 
-	it("closes the project, keeps it in the list and opens it again from the first run", async () => {
+	it("closes the project, keeps it in the list and opens it again from the No project card", async () => {
 		const user = userEvent.setup();
 		await open("/mock/alpha");
 		mountApp("/home/today");
 		await user.click(await screen.findByRole("button", { name: /^Project/ }));
 		await user.click(await screen.findByRole("menuitem", { name: "Close project" }));
-		const recent = await screen.findByRole("list", { name: "Recent projects" });
+		await user.click(await screen.findByRole("button", { name: "Open a project" }));
+		const recent = within(await screen.findByRole("menu"));
 		expect(await unwrap(commands.projectsActive())).toBeNull();
 		expect(mockState().projects).toHaveLength(1);
-		await user.click(within(recent).getByRole("button", { name: /alpha/ }));
+		await user.click(recent.getByRole("menuitem", { name: /alpha/ }));
 		expect(
 			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
 		).toBeInTheDocument();
@@ -359,18 +361,21 @@ describe("project switcher", () => {
 		expect(await screen.findByRole("menuitemradio", { name: /alpha/ })).toBeInTheDocument();
 	});
 
-	it("shows the recent projects of the registry, the last used first, on the first run", async () => {
+	it("shows the recent projects of the registry, the last used first, on the No project card", async () => {
+		const user = userEvent.setup();
 		await open("/mock/alpha");
 		await open("/mock/beta");
 		await unwrap(commands.projectsClose());
 		Object.assign(mockState().projects[0] ?? {}, { lastUsed: 200 });
 		Object.assign(mockState().projects[1] ?? {}, { lastUsed: 100 });
 		mountApp("/home/today");
-		const recent = await screen.findByRole("list", { name: "Recent projects" });
+		await user.click(await screen.findByRole("button", { name: "Open a project" }));
+		const menu = within(await screen.findByRole("menu"));
 		expect(
-			within(recent)
-				.getAllByRole("button")
-				.map((b) => b.textContent),
+			menu
+				.getAllByRole("menuitem")
+				.map((i) => i.textContent)
+				.slice(0, 2),
 		).toEqual(["alpha", "beta"]);
 	});
 

@@ -63,7 +63,7 @@ export function GaugeView({ gauge }: { gauge: GaugeData }) {
 /** The same figures as two bars, for the Ask page: Context, then one bar for each quota window. */
 export function GaugeBars({ gauge }: { gauge: GaugeData }) {
 	const { t } = useI18n();
-	const name = "font-semibold text-13 text-n-11";
+	const name = "whitespace-nowrap font-semibold text-13 text-n-11";
 	return (
 		<div className="flex flex-wrap items-center gap-4">
 			<span aria-hidden="true" className={name}>

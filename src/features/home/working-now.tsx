@@ -109,7 +109,9 @@ export function WorkingNow() {
 							confirm={format(t.factory.machine.confirmStop, { name: r.key })}
 							onConfirm={() => void run(() => cancel(r.id))}
 						>
-							<StopIcon size={14} />
+							<span className="inline-flex [&_svg]:fill-current">
+								<StopIcon size={18} />
+							</span>
 						</ConfirmButton>
 					</Row>
 				);

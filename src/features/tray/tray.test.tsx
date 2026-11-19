@@ -42,6 +42,21 @@ describe("Menu bar panel", () => {
 		expect(await openSpend()).toBeInTheDocument();
 	});
 
+	it("shows two working rows, then All n, and an In sync chip with the time as its title", async () => {
+		vi.spyOn(commands, "syncState").mockResolvedValue({
+			status: "ok",
+			data: [{ id: "c", status: "ok", lastOk: 1_700_000_000, failures: 0, error: null }],
+		} as never);
+		await renderTray();
+		const work = await screen.findByRole("region", { name: "Active runs" });
+		const stops = within(work).getAllByRole("button", { name: /^Stop / });
+		expect(stops).toHaveLength(2);
+		expect(within(work).getByRole("button", { name: /^All \d+$/ })).toBeInTheDocument();
+		const chip = await screen.findByRole("status");
+		expect(chip).toHaveTextContent("In sync");
+		expect(chip).toHaveAttribute("title", expect.stringMatching(/^Synced /));
+	});
+
 	it("shows no Needs you count when no project is open", async () => {
 		renderApp(<TrayView />);
 		expect(await openSpend()).toBeInTheDocument();

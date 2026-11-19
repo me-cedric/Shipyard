@@ -33,10 +33,10 @@ describe("the ref of a design artifact", () => {
 		await mountDesign(<Diagrams />);
 		await user.click((await list("Diagrams")).getByRole("button", { name: /context/ }));
 		const panel = await inspector();
-		expect(await panel.findByRole("button", { name: /^diagram:context/ })).toBeInTheDocument();
+		expect(await panel.findByText("diagram:context", { selector: "code" })).toBeInTheDocument();
 		// The design doc and the home screen cite the diagram.
-		expect(await panel.findByRole("heading", { name: "Document (1)" })).toBeInTheDocument();
-		expect(panel.getByRole("heading", { name: "Screen (1)" })).toBeInTheDocument();
+		expect(await panel.findAllByRole("button", { name: /^doc:/ })).toHaveLength(1);
+		expect(panel.getAllByRole("button", { name: /^screen:/ })).toHaveLength(1);
 		expect(panel.getByRole("button", { name: /^screen:home/ })).toBeInTheDocument();
 	});
 
@@ -45,7 +45,7 @@ describe("the ref of a design artifact", () => {
 		await mountDesign(<Decisions />);
 		await user.click((await list("Decisions")).getByRole("button", { name: /0004/ }));
 		const panel = await inspector();
-		expect(await panel.findByRole("heading", { name: /^Document \(\d+\)$/ })).toBeInTheDocument();
+		expect(await panel.findAllByRole("button", { name: /^doc:/ })).not.toHaveLength(0);
 	});
 
 	it("shows ghost rows for an artifact that nothing cites", async () => {
@@ -53,7 +53,7 @@ describe("the ref of a design artifact", () => {
 		await mountDesign(<Decisions />);
 		await user.click((await list("Decisions")).getByRole("button", { name: /0003/ }));
 		const panel = await inspector();
-		await panel.findByRole("button", { name: /^adr:0003/ });
+		await panel.findByText("adr:0003", { selector: "code" });
 		await waitFor(() => expect(panel.queryAllByRole("heading", { level: 3 })).toHaveLength(0));
 	});
 });

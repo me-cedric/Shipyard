@@ -10,7 +10,7 @@ test("junior", async ({ page }) => {
 		"Land on the learning path",
 		"the page that opens first: Home, Today, then Knowledge, Learn",
 		async () => {
-			await w.landsOn("Today", "Today");
+			await w.landsOn("Today", "Needs you");
 			await w.go("Library", "Learn");
 			await w.see(page.getByText("0/10"), "no progress on the path");
 		},
@@ -111,7 +111,7 @@ test("junior", async ({ page }) => {
 		"Follow the Get started list",
 		"Home, the Connect action of the Code host item",
 		async () => {
-			await w.go("Today", "Today");
+			await w.go("Today", "Needs you");
 			await w.click(
 				page.getByRole("group", { name: "Code host" }).getByRole("button", { name: "Connect" }),
 			);

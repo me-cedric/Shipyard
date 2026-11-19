@@ -36,6 +36,8 @@ const MIN_H = 280;
 const MAX_SHARE = 0.8;
 /** The panel lists this many things that need the person; a row opens the rest in Today. */
 const SHOWN = 3;
+/** The panel lists this many working rows; the heading opens all of them in the flow. */
+const SHOWN_RUNS = 2;
 /** The height of the tallest bar, in px: the box of the bars is 40 px. */
 const BAR_H = 40;
 
@@ -169,9 +171,10 @@ export function TrayView() {
 							role="status"
 							dot
 							variant={failed ? "danger" : "success"}
+							title={failed ? undefined : format(u.synced, { time: clock(last, lang) })}
 							className="ml-auto shrink-0"
 						>
-							{failed ? u.syncFailed : format(u.synced, { time: clock(last, lang) })}
+							{failed ? u.syncFailed : u.inSync}
 						</Badge>
 					) : null}
 				</div>
@@ -218,8 +221,24 @@ export function TrayView() {
 				) : null}
 				{runs.length ? (
 					<Card aria-label={t.shell.runs} role="region" className="py-1">
-						<h2 className="px-4 pt-3 pb-0.5 font-semibold text-13 text-n-11">{u.running}</h2>
-						{runs.map((r) => (
+						<div className="flex items-center justify-between pr-2 pl-4">
+							<h2 className="pt-3 pb-0.5 font-semibold text-13 text-n-11">{u.running}</h2>
+							{runs.length > SHOWN_RUNS ? (
+								<button
+									type="button"
+									onClick={() =>
+										void run(async () => {
+											await commands.trayOpen();
+											if (isTauri()) await emit(OPEN_PATH_EVENT, "/flow/flow");
+										})
+									}
+									className="inline-flex min-h-control items-center px-2 font-semibold text-accent"
+								>
+									{format(u.all, { count: runs.length })}
+								</button>
+							) : null}
+						</div>
+						{runs.slice(0, SHOWN_RUNS).map((r) => (
 							<div
 								key={r.id}
 								className="flex min-h-13 items-center gap-3 pr-2 pl-4 [&+&]:border-t [&+&]:border-n-6"
@@ -323,7 +342,7 @@ export function TrayView() {
 						{error}
 					</span>
 				) : null}
-				<div className="flex gap-2.5">
+				<div className="sticky bottom-0 -mx-4 -mb-4 flex gap-2.5 bg-surface-0 px-4 pt-2 pb-4">
 					<Button className="flex-1" busy={busy} onClick={() => void run(syncAll)}>
 						{t.shell.sync}
 					</Button>

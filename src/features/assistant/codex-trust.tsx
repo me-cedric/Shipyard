@@ -39,8 +39,13 @@ export function CodexTrust({ card }: { card?: boolean } = {}): ReactNode {
 	if (card)
 		return (
 			<AttentionCard title={t.assistant.codexTrust.title}>
-				{/* The card names what the click writes: nothing is written before it. */}
-				<p className="text-13 text-n-11">{t.assistant.codexTrust.body}</p>
+				{/* The card names what the click writes, behind a disclosure: nothing is written before it. */}
+				<details className="text-13 text-n-11">
+					<summary className="flex min-h-control cursor-pointer items-center font-semibold">
+						{t.assistant.codexTrust.writes}
+					</summary>
+					<p>{t.assistant.codexTrust.body}</p>
+				</details>
 				<div className="flex gap-2.5">
 					<Button className="flex-1" onClick={() => setLater(true)}>
 						{t.assistant.codexTrust.notNow}

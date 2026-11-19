@@ -65,7 +65,8 @@ export function Shell({
 			onPointerUp={() => setResizing(false)}
 			onPointerCancel={() => setResizing(false)}
 			onLostPointerCapture={() => setResizing(false)}
-			className="relative z-10 max-w-[40vw] shrink-0 overflow-hidden"
+			// Above the dim of the link card (z-30): the rail stays clear.
+			className="relative z-[31] max-w-[40vw] shrink-0 overflow-hidden"
 		>
 			{sidebarOpen ? (
 				<Splitter

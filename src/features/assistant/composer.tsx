@@ -166,7 +166,7 @@ export function Composer({
 			data-drop-zone
 			className={
 				full
-					? "flex flex-col gap-3 rounded-lg bg-surface-2 p-3.5 shadow-2"
+					? "flex flex-col gap-2 rounded-lg bg-surface-2 p-3 shadow-2"
 					: "m-2 mt-0 flex flex-col gap-2 rounded-xl border bg-surface-2 p-2 shadow-1"
 			}
 			onDragOver={(e) => e.preventDefault()}
@@ -200,7 +200,7 @@ export function Composer({
 					ref={inputRef}
 					label={t.assistant.message}
 					rows={full ? 1 : 3}
-					className={full ? "min-h-13 resize-none" : undefined}
+					className={full ? "min-h-11 resize-none" : undefined}
 					placeholder={full ? t.assistant.message : undefined}
 					value={a.draft}
 					aria-controls={menuOpen ? listId : undefined}
@@ -281,7 +281,7 @@ export function Composer({
 			/>
 			{full ? (
 				<>
-					<div className="flex flex-wrap items-center gap-2.5">
+					<div className="flex flex-wrap items-center gap-2 [&_button]:whitespace-nowrap">
 						<div className="flex-none">{mode}</div>
 						{s ? (
 							<div className="flex-none">

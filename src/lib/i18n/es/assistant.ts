@@ -121,6 +121,7 @@ export const assistantEs: typeof assistantEn = {
 		body: 'Codex no confía en esta carpeta. Shipyard la añade al archivo de configuración de Codex con trust_level = "trusted". Después Codex se ejecuta aquí sin preguntar de nuevo.',
 		button: "Confiar en esta carpeta",
 		title: "Codex pregunta: ¿confiar en esta carpeta?",
+		writes: "Qué escribe",
 		notNow: "Ahora no",
 	},
 };

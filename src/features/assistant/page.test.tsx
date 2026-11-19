@@ -135,6 +135,10 @@ describe("Ask page, the full assistant", () => {
 		const router = mountApp("/ask");
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 		await screen.findByRole("heading", { name: "Codex asks: trust this folder?" });
+		// The sentence that says what the click writes sits behind a disclosure, not a tooltip.
+		const writes = screen.getByText("What this writes");
+		expect(writes.closest("details")).not.toHaveAttribute("open");
+		expect(writes.closest("details")).toHaveTextContent(/Codex does not trust this folder/);
 		await user.click(screen.getByRole("button", { name: "Not now" }));
 		expect(screen.queryByRole("heading", { name: "Codex asks: trust this folder?" })).toBeNull();
 		expect(mockState().codexTrusted).toBe(false);

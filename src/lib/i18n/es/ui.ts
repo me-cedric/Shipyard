@@ -36,6 +36,7 @@ export const uiEs: typeof uiEn = {
 		running: "En curso",
 		agents: "Agentes",
 		synced: "Sincronizado {time}",
+		inSync: "Sincronizado",
 		syncFailed: "Falló la sincronización",
 		open: "Abrir Shipyard",
 		all: "Ver todo ({count})",

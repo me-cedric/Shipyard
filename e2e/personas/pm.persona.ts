@@ -159,7 +159,7 @@ test("project manager", async ({ page }) => {
 		"Answer what needs me",
 		"Home, the Needs you list",
 		async () => {
-			await w.go("Today", "Today");
+			await w.go("Today", "Needs you");
 			await w.see(
 				page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
 				"no inbox",

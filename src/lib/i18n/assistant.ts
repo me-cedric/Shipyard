@@ -120,6 +120,7 @@ export const assistantEn = {
 		body: 'Codex does not trust this folder. Shipyard adds it to the Codex config file with trust_level = "trusted". Codex then runs here without asking again.',
 		button: "Trust this folder",
 		title: "Codex asks: trust this folder?",
+		writes: "What this writes",
 		notNow: "Not now",
 	},
 };
@@ -245,6 +246,7 @@ export const assistantFr: typeof assistantEn = {
 		body: "Codex ne fait pas confiance à ce dossier. Shipyard l'ajoute au fichier de configuration de Codex avec trust_level = \"trusted\". Codex s'exécute ensuite ici sans redemander.",
 		button: "Faire confiance à ce dossier",
 		title: "Codex demande : faire confiance à ce dossier ?",
+		writes: "Ce que cela écrit",
 		notNow: "Pas maintenant",
 	},
 };

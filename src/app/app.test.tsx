@@ -118,7 +118,7 @@ describe("shell", () => {
 		const input = await screen.findByRole("combobox", { name: "Ask or tell Shipyard" });
 		await user.type(input, "wi:KEY-1");
 		await user.click(await screen.findByRole("option", { name: /Open wi:KEY-1/ }));
-		expect(await screen.findByRole("button", { name: "wi:KEY-1, Unresolved" })).toBeVisible();
+		expect(await screen.findByText("wi:KEY-1", { selector: "code" })).toBeVisible();
 	});
 
 	it("toggles the inspector with Mod+I", async () => {

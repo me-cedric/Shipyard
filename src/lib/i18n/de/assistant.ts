@@ -121,6 +121,7 @@ export const assistantDe: typeof assistantEn = {
 		body: 'Codex vertraut diesem Ordner nicht. Shipyard fügt ihn mit trust_level = "trusted" zur Konfigurationsdatei von Codex hinzu. Codex läuft dann hier, ohne erneut zu fragen.',
 		button: "Diesem Ordner vertrauen",
 		title: "Codex fragt: diesem Ordner vertrauen?",
+		writes: "Was das schreibt",
 		notNow: "Nicht jetzt",
 	},
 };

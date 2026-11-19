@@ -1,4 +1,5 @@
-import { format, useI18n } from "@/lib/i18n";
+import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import {
 	openDefault,
 	openUrl,
@@ -15,19 +16,19 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { CheckIcon } from "@/ui/icons";
 import { BacklinkList } from "@/ui/molecules/backlink-list";
-import { RefChip } from "@/ui/molecules/ref-chip";
 import { ItemFacts, OpenActions } from "./item-facts";
 import { docTarget } from "./ref-page";
 
 /**
  * The card that explains a link, one shape for every ref: the kind, the name, what it is, the path
  * with its preview and last change, the items linked to it or "Nothing links here", Open and
- * Explain, the ref with Copy the ref, then the other actions.
+ * Explain, the ref with Copy the ref, then More with the other actions.
  */
 export function RefDetail({ refId, onOpen }: { refId: string; onOpen: (ref: string) => void }) {
 	const resolved = useResolvedRef(refId).data;
 	const backlinks = useBacklinks(refId).data ?? [];
-	const { refActions } = useShell();
+	const { refActions, explain } = useShell();
+	const [more, setMore] = useState(false);
 	const { t } = useI18n();
 	// A document is its path. Another item shows the place that the index holds, when it has one.
 	const place = resolved?.location ?? (refId.startsWith("doc:") ? refId.slice(4) : null);
@@ -75,50 +76,66 @@ export function RefDetail({ refId, onOpen }: { refId: string; onOpen: (ref: stri
 				) : (
 					<h3 className="pb-1.5 text-13 font-semibold text-n-11">{t.inspector.linked}</h3>
 				)}
-				{backlinks.map((g) => (
-					<section key={g.kind} aria-label={kindName(g.kind)} className="border-n-6 [&+&]:border-t">
-						<h4 className="sr-only">
-							{format(t.count, { name: kindName(g.kind), count: g.items.length })}
-						</h4>
-						<ul>
-							{g.items.map((i) => (
-								<li key={i.source} className="flex min-h-15 flex-wrap items-center gap-x-3">
+				<ul className="flex flex-col divide-y divide-n-6">
+					{backlinks.flatMap((g) =>
+						g.items.map((i) => (
+							<li key={i.source}>
+								{/* One line: the kind and the title. The ref and the state stay in the name. */}
+								<button
+									type="button"
+									aria-label={[i.source, i.title, t.ref.resolved].filter(Boolean).join(", ")}
+									onClick={() => onOpen(i.source)}
+									className="flex min-h-control w-full min-w-0 cursor-pointer items-center gap-3 text-left"
+								>
 									<Badge aria-hidden="true">{kindName(g.kind)}</Badge>
 									<span className="min-w-0 flex-1 truncate font-semibold">{i.title}</span>
-									<RefChip
-										refId={i.source}
-										state="resolved"
-										title={i.title ?? undefined}
-										onOpen={onOpen}
-									/>
-								</li>
-							))}
-						</ul>
-					</section>
-				))}
+								</button>
+							</li>
+						)),
+					)}
+				</ul>
 			</section>
-			<OpenActions refId={refId} />
-			{refActions?.(refId, resolved?.title ?? refId)}
+			<div className="flex gap-2">
+				<div className="flex min-w-0 flex-1 *:flex-1">
+					<OpenActions refId={refId} />
+				</div>
+				<Button className="flex-1" onClick={() => explain(refId)}>
+					{t.inspector.explain}
+				</Button>
+			</div>
 			<div className="flex flex-wrap items-center gap-3 rounded-field bg-n-3 py-2.5 pr-2.5 pl-4">
-				<span className="mr-auto flex min-w-0">
-					<RefChip
-						refId={refId}
-						state={resolved?.state ?? "unresolved"}
-						title={resolved?.title ?? undefined}
-					/>
-				</span>
+				<code className="mr-auto min-w-0 flex-1 truncate text-12 text-n-12" title={refId}>
+					{refId}
+				</code>
 				<Button onClick={() => void copy(refId)}>
 					{copied ? <CheckIcon size={14} /> : null}
 					{copied ? t.ui.item.copied : t.inspector.copyRef}
 				</Button>
 			</div>
-			<div className="flex flex-wrap gap-2">
-				{/* The inspector has its own Explain button (`refActions`): the Ask group skips it here. */}
-				{[...actions, ...askItems(refId, path).filter((a) => a.id !== "ask-explain")].map((a) => (
-					<Button key={a.id} variant="ghost" onClick={a.onSelect}>
-						{a.label}
-					</Button>
-				))}
+			<div className="flex flex-col gap-2">
+				<Button
+					variant="ghost"
+					className="self-start"
+					aria-expanded={more}
+					onClick={() => setMore(!more)}
+				>
+					{t.ui.more}
+				</Button>
+				{more ? (
+					<>
+						{refActions?.(refId, resolved?.title ?? refId)}
+						<div className="flex flex-wrap gap-2">
+							{/* The Explain button sits beside Open: the Ask group skips it here. */}
+							{[...actions, ...askItems(refId, path).filter((a) => a.id !== "ask-explain")].map(
+								(a) => (
+									<Button key={a.id} variant="ghost" onClick={a.onSelect}>
+										{a.label}
+									</Button>
+								),
+							)}
+						</div>
+					</>
+				) : null}
 			</div>
 		</div>
 	);

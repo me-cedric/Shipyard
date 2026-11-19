@@ -22,6 +22,7 @@ describe("Knowledge: delete an item", () => {
 		const user = userEvent.setup();
 		await mountKnowledge("handbook");
 		await user.click(await screen.findByRole("button", { name: "Getting started" }));
+		await user.click(await within(await inspector()).findByRole("button", { name: "More" }));
 		await user.click(await within(await inspector()).findByRole("button", { name: "Delete" }));
 		await waitFor(() => expect(files()[PAGE]).toBeUndefined());
 		await waitFor(async () => expect(await inspector()).toHaveAttribute("data-open", "false"));

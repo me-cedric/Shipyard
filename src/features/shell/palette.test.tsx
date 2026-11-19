@@ -349,7 +349,7 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 		await user.keyboard("adr:0004");
 		await user.keyboard("{ArrowDown}{Enter}");
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
-		expect(await within(inspector).findByRole("button", { name: /^adr:0004/ })).toBeVisible();
+		expect(await within(inspector).findByText("adr:0004", { selector: "code" })).toBeVisible();
 	});
 
 	it("hides an action that cannot run", async () => {
@@ -454,7 +454,7 @@ describe("palette pages and tickets", () => {
 		await openPalette(user);
 		await user.keyboard("adr:0004{ArrowDown}{Enter}");
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
-		expect(await within(inspector).findByRole("button", { name: /^adr:0004/ })).toBeVisible();
+		expect(await within(inspector).findByText("adr:0004", { selector: "code" })).toBeVisible();
 		await waitFor(() => expect(router.state.location.pathname).toBe("/library/decisions"));
 		// The page opens on the record, not on its first item.
 		const decisions = await screen.findByRole("list", { name: "Decisions" });
@@ -462,10 +462,10 @@ describe("palette pages and tickets", () => {
 			"aria-current",
 			"true",
 		);
-		expect(within(inspector).getByRole("button", { name: /^adr:0004/ })).toBeVisible();
+		expect(within(inspector).getByText("adr:0004", { selector: "code" })).toBeVisible();
 		await router.navigate({ to: "/specs/questions" });
 		await waitFor(() =>
-			expect(within(inspector).queryByRole("button", { name: /^adr:0004/ })).toBeNull(),
+			expect(within(inspector).queryByText("adr:0004", { selector: "code" })).toBeNull(),
 		);
 	});
 });

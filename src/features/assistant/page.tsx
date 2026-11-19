@@ -135,7 +135,7 @@ export function AssistantPage() {
 					</Button>
 				}
 			/>
-			<div className="grid min-h-0 flex-1 grid-cols-[minmax(200px,1fr)_minmax(0,3fr)_minmax(260px,1.5fr)] gap-6 px-4 pb-6">
+			<div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,3fr)_minmax(280px,1.5fr)] gap-6 px-4 pb-6">
 				<div className="min-h-0 overflow-y-auto">
 					<Threads a={a} full />
 				</div>
@@ -163,7 +163,7 @@ export function AssistantPage() {
 						<Composer a={a} inputRef={input} full onOpenRef={openRef} />
 					)}
 				</div>
-				<div className="flex min-h-0 min-w-0 flex-col gap-4 overflow-y-auto">
+				<div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto">
 					<SelectionCard a={a} />
 					<May a={a} />
 					{a.current?.thread.settings.runner === "codex" ? <CodexTrust card /> : null}

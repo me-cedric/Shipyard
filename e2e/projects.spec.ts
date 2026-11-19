@@ -41,11 +41,11 @@ test("closes a project, opens it again from the recent list and switches between
 		await expect(page.getByRole("menu")).toBeHidden();
 	};
 	await pick("menuitem", "Close project");
-	const recent = page.getByRole("list", { name: "Recent projects" });
-	await expect(recent.getByRole("button", { name: /alpha/ })).toBeVisible();
-	// No project is open: the bare page of the first run has no rail and no project switch.
+	// No project is open: the bare No project card has no rail and no project switch.
 	await expect(switcher).toHaveCount(0);
-	await recent.getByRole("button", { name: /alpha/ }).click();
+	await page.getByRole("button", { name: "Open a project" }).click();
+	await expect(page.getByRole("menuitem", { name: /alpha/ })).toBeVisible();
+	await page.getByRole("menuitem", { name: /alpha/ }).click();
 	await expect(switcher).toHaveText(/alpha/);
 	await expect(
 		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
@@ -78,7 +78,7 @@ test("shows the open project on the Projects page and closes it there", async ({
 	).toBeVisible();
 	await expect(page.getByText("Drop a folder here")).toBeVisible();
 	await open.getByRole("button", { name: "Close project" }).click();
-	await expect(page.getByRole("list", { name: "Recent projects" })).toBeVisible();
+	await expect(page.getByRole("heading", { level: 1, name: "No project is open" })).toBeVisible();
 });
 
 test("fixes a finding in Settings / Health after one confirm click", async ({ page }) => {
