@@ -192,6 +192,7 @@ export function PlanEstimates() {
 					}}
 				/>
 			</>,
+			true,
 		);
 
 	const taskId = typeof search.task === "string" ? search.task : null;
@@ -201,6 +202,7 @@ export function PlanEstimates() {
 		return frame(
 			<PageHeader title={t.costing.sheet.rename} back={back} />,
 			body(<SheetForm key={slug} slug={slug} onSaved={() => go(home)} />),
+			true,
 		);
 	if (sub && slug && sheet) {
 		const task = sheet.sheet.features.flatMap((f) => f.tasks).find((x) => x.id === taskId);
@@ -230,6 +232,7 @@ export function PlanEstimates() {
 					/>
 				</>,
 			),
+			true,
 		);
 	}
 
