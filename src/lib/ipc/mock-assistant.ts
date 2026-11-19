@@ -493,7 +493,7 @@ export function toFactory(
 	const preview = toFactoryPreview(a, env, id);
 	const r = find(a, env, id);
 	if (r.thread.messages.some((m) => m.role === "user" && /refuse/i.test(m.text))) {
-		throw "The tracker refused the item: 400.";
+		throw "The issue tracker refused the item: 400.";
 	}
 	const action = r.sent ? "unchanged" : "create";
 	r.sent ??= `SHIP-${100 + a.seq}`;

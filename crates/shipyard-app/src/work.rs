@@ -561,6 +561,15 @@ pub fn team_save(s: &AppState, mut team: Team) -> Res<TeamView> {
     Ok(c.team())
 }
 
+/// The team save of the interface, which sends the members: a team with no `roles:` block keeps
+/// the block of the file. Crew / Rights changes the block (`rights::roles_save`).
+pub fn team_save_members(s: &AppState, mut team: Team) -> Res<TeamView> {
+    if team.roles.is_empty() {
+        team.roles = ctx(s)?.team().team.roles;
+    }
+    team_save(s, team)
+}
+
 /// Add the signed-in person to the team: the name of the git identity, a handle from the login
 /// (or the git e-mail) and the login as the issue tracker account. A person who is in the team
 /// already changes nothing. A click is needed, and a read-only project refuses.
@@ -679,7 +688,7 @@ pub fn assign(s: &AppState, key: &str, handle: &str, click: bool) -> Res<()> {
     let account = m
         .trackers
         .first()
-        .ok_or_else(|| format!("{} has no tracker account in team.yaml", m.name))?;
+        .ok_or_else(|| format!("{} has no issue tracker account in team.yaml", m.name))?;
     let t = tracker(s)?;
     let w = writer(s, &t)?;
     w.assign(key, account).map_err(err)?;
@@ -774,7 +783,7 @@ pub struct TicketComment {
 pub fn ticket_comments(s: &AppState, key: &str) -> Res<Vec<TicketComment>> {
     let t = tracker(s)?;
     if !t.caps.comments {
-        return Err("the tracker does not hold comments".into());
+        return Err("the issue tracker does not hold comments".into());
     }
     let w = writer(s, &t)?;
     Ok(writes::all_comments(&*w, key)
@@ -931,7 +940,7 @@ pub fn ticket_type_set(s: &AppState, key: &str, name: &str, click: bool) -> Res<
     }
     let t = tracker(s)?;
     if !ticket_edit_caps_of(&t).issue_type {
-        return Err("this tracker has no issue type to change".into());
+        return Err("this issue tracker has no issue type to change".into());
     }
     let w = writer(s, &t)?;
     w.set_issue_type(key, name).map_err(err)?;
@@ -954,7 +963,7 @@ pub fn ticket_due_set(s: &AppState, key: &str, day: Option<&str>, click: bool) -
     }
     let t = tracker(s)?;
     if !ticket_edit_caps_of(&t).due_date {
-        return Err("this tracker has no due date".into());
+        return Err("this issue tracker has no due date".into());
     }
     let w = writer(s, &t)?;
     w.set_due_date(key, day).map_err(err)?;
@@ -994,7 +1003,7 @@ pub fn ticket_priority_set(s: &AppState, key: &str, priority: &str, click: bool)
     )?;
     let t = tracker(s)?;
     if !t.priority {
-        return Err("this tracker has no priority field".into());
+        return Err("this issue tracker has no priority field".into());
     }
     let w = writer(s, &t)?;
     w.set_priority(key, priority).map_err(err)?;
@@ -1758,7 +1767,7 @@ pub fn worklog_send(
     if entry.worklog.is_some() {
         // A change that did not reach the tracker: send it again. Else the receipt refuses.
         if entry.unsynced.is_none() {
-            return Err("the entry has a receipt: it is in the tracker".into());
+            return Err("the entry has a receipt: it is in the issue tracker".into());
         }
         push_update(&*w, &entry, offset_minutes, reduce_remaining)?;
         let entry = set_entry(s, &c, &rel, id, |e| e.unsynced = None)?;
@@ -1786,7 +1795,7 @@ pub fn worklog_send(
     let mut entries = read_time(&c.read(&rel)?.unwrap_or_default()).map_err(err)?;
     let at = entries.iter().position(|e| e.id == id).ok_or_else(|| {
         format!(
-            "the entry `{id}` is gone from {rel}: its worklog {} is in the tracker",
+            "the entry `{id}` is gone from {rel}: its worklog {} is in the issue tracker",
             log.id
         )
     })?;
@@ -2016,7 +2025,7 @@ pub fn preview(s: &AppState, slugs: &[String]) -> Res<Vec<DiffRow>> {
 pub(crate) fn container(t: &Target) -> Res<&str> {
     t.scope
         .as_deref()
-        .ok_or_else(|| "the tracker scope is not set".to_string())
+        .ok_or_else(|| "the issue tracker scope is not set".to_string())
 }
 
 /// Write the rows to the tracker, on the click of a person (REQ-026). The preview is computed
@@ -2163,7 +2172,7 @@ pub async fn work_team_add_me(app: AppHandle, click: bool) -> Api<TeamView> {
 #[tauri::command]
 #[specta::specta]
 pub async fn work_team_save(app: AppHandle, team: Team) -> Api<TeamView> {
-    blocking(app, move |s| team_save(s, team)).await
+    blocking(app, move |s| team_save_members(s, team)).await
 }
 
 #[tauri::command]

@@ -417,10 +417,7 @@ fn step_line(text: &str, step: &str) -> Option<usize> {
 fn describe(text: &str, issue: &WorkflowIssue) -> (Option<usize>, String) {
     use WorkflowIssue as I;
     match issue {
-        I::NoSteps => (
-            line_of(text, "steps", ""),
-            "the workflow has no step".into(),
-        ),
+        I::NoSteps => (line_of(text, "steps", ""), "the recipe has no step".into()),
         I::BadId { field } => (
             line_of(text, field.rsplit('.').next().unwrap_or("id"), ""),
             format!("bad id in `{field}`: use a-z, 0-9, - and _"),

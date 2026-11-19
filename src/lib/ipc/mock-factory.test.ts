@@ -554,7 +554,7 @@ describe("mock factory: workflows, roles and tiers", () => {
 		expect(file.workflow?.steps.find((s) => s.id === "build")?.for_each).toBe("plan.tasks");
 		expect(file.workflow?.limits).toEqual({ max_turns: null, budget_usd: null, stall_s: 300 });
 		await expect(unwrap(commands.workflowGet("nope"))).rejects.toMatchObject({
-			details: expect.stringContaining("no workflow `nope`"),
+			details: expect.stringContaining("no recipe `nope`"),
 		});
 	});
 
@@ -577,7 +577,7 @@ describe("mock factory: workflows, roles and tiers", () => {
 			details: expect.stringContaining(".shipyard/workflows/bug.yaml:2: id `other` differs"),
 		});
 		await expect(unwrap(commands.workflowWrite("bug", "id: bug\n"))).rejects.toMatchObject({
-			details: expect.stringContaining(".shipyard/workflows/bug.yaml: the workflow has no step"),
+			details: expect.stringContaining(".shipyard/workflows/bug.yaml: the recipe has no step"),
 		});
 		// The refused text left the file as it was.
 		expect((await unwrap(commands.workflowGet("bug"))).text).toBe(text);
@@ -629,7 +629,7 @@ describe("mock factory: workflows, roles and tiers", () => {
 		await unwrap(commands.workflowRename("hotfix", "urgent"));
 		expect((await unwrap(commands.workflowsList())).map((w) => w.id)).toContain("urgent");
 		await expect(unwrap(commands.workflowDelete("feature"))).rejects.toMatchObject({
-			details: expect.stringContaining("default workflow"),
+			details: expect.stringContaining("default recipe"),
 		});
 		await unwrap(commands.workflowDelete("urgent"));
 		expect((await unwrap(commands.workflowsList())).map((w) => w.id)).not.toContain("urgent");

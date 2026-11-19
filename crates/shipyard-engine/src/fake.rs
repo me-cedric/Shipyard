@@ -288,7 +288,7 @@ impl TrackerPort for FakeTracker {
         let now = self.clock.now();
         let mut s = lock(&self.state);
         if s.refuse_stamp {
-            return Err("the tracker refused the comment".into());
+            return Err("the issue tracker refused the comment".into());
         }
         s.stamp_writes += 1;
         if let Some(other) = s.race.take() {

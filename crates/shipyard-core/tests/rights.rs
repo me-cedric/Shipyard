@@ -236,7 +236,11 @@ fn each_right_maps_to_a_level_of_its_area() {
     assert!(!a.has(Right::CodeMerge) && !a.has(Right::CodeWrite));
     assert_eq!(Right::ProjectSettings.area(), Area::Settings);
     assert_eq!(Right::CostsView.need(), Level::Read);
-    assert_eq!(Role::Viewer.defaults().hidden(), [Area::Costs]);
+    // `spec:app-redesign#REQ-006`: a viewer does not see Code, until the `roles:` block gives it back.
+    assert_eq!(Role::Viewer.defaults().hidden(), [Area::Code, Area::Costs]);
+    let t: Team =
+        serde_norway::from_str("members: []\nroles:\n  viewer: { code: read }\n").unwrap();
+    assert_eq!(role_access(&t, Role::Viewer).hidden(), [Area::Costs]);
 }
 
 #[test]

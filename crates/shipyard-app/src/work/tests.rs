@@ -277,6 +277,24 @@ pub(crate) fn write_team_file(f: &Fx, team: Team) -> Res<()> {
 // ---------------------------------------------------------------- team (REQ-003, REQ-004)
 
 #[test]
+fn a_save_of_the_members_keeps_the_roles_block() {
+    let f = fx();
+    let mut t = team5();
+    t.roles = serde_json::from_value(serde_json::json!({"viewer": {"code": "read"}})).unwrap();
+    save_team(&f, t.clone());
+    // The interface sends the members only.
+    let mut members = Team {
+        members: t.members.clone(),
+        ..Team::default()
+    };
+    members.members[0].capacity = 4.0;
+    let back = team_save_members(&f.s, members).unwrap();
+    assert_eq!(back.team.members[0].capacity, 4.0);
+    assert_eq!(back.team.roles, t.roles);
+    assert!(f.file(".shipyard/team.yaml").contains("roles:"));
+}
+
+#[test]
 fn the_team_is_edited_as_text_and_a_duplicate_keeps_the_last_valid_team() {
     let f = fx();
     assert!(team_get(&f.s).unwrap().team.members.is_empty());
@@ -670,7 +688,7 @@ fn assign_sends_the_first_account_of_the_member_and_only_on_a_click() {
     assert!(
         assign(&f.s, "PROJ-5", "di", true)
             .unwrap_err()
-            .contains("no tracker account")
+            .contains("no issue tracker account")
     );
     assert_eq!(f.writes(), 0);
 
@@ -2076,7 +2094,11 @@ fn a_ticket_thread_reads_comments_posts_one_edits_the_title_and_adds_a_label() {
     assert!(ticket_label_add(&f.s, "PROJ-5", "two words", true).is_err());
     assert!(ticket_label_add(&f.s, "PROJ-5", "a,b", true).is_err());
     assert!(ticket_label_add(&f.s, "PROJ-5", "x", false).is_err());
-    assert_eq!(f.writes(), writes, "no refused call reached the tracker");
+    assert_eq!(
+        f.writes(),
+        writes,
+        "no refused call reached the issue tracker"
+    );
 
     ticket_comment_add(&f.s, "PROJ-5", " ok ", true).unwrap();
     ticket_edit(&f.s, "PROJ-5", Some("New".into()), None, None, true).unwrap();

@@ -317,9 +317,7 @@ impl Inner {
                         )
                 })
                 .map(|s| s.id.clone())
-                .ok_or_else(|| {
-                    format!("no step with role `{}` is left in this workflow", h.role)
-                })?,
+                .ok_or_else(|| format!("no step with role `{}` is left in this recipe", h.role))?,
         };
         if target == own {
             return Err("a step cannot hand off to itself".into());

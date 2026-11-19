@@ -71,7 +71,7 @@ A right is the old name of a level. The backend checks a right, and a right is v
 | developer | write | read | write | write | write | write | read | none | no | yes |
 | qa | write | write | read | write | write | write | read | none | no | no |
 | designer | write | read | write | write | read | read | read | none | no | no |
-| viewer | read | read | read | read | read | read | read | none | no | no |
+| viewer | read | read | read | read | none | read | read | none | no | no |
 
 The `roles:` block of the team file changes this table for the team, one role and one cell at a time:
 
@@ -210,6 +210,11 @@ The roles SHALL be `po`, `pm`, `architect`, `techlead`, `ba`, `developer`, `qa`,
 - GIVEN the member `ana` has the roles `po` and `designer`
 - WHEN Shipyard gives the levels of `ana`
 - THEN `ana` has `write` in `specs` and in `design`
+
+#### Scenario: Member save keeps the block
+- GIVEN the team file has a `roles:` block
+- WHEN a person saves a member on Crew
+- THEN the team file still has the `roles:` block
 
 ### Requirement: REQ-006 Personal narrowing
 

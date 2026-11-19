@@ -163,7 +163,7 @@ describe("mock ipc", () => {
 			{ details: expect.stringContaining("email") },
 		);
 		await expect(bad({ group: "forge", kind: "linear" })).rejects.toMatchObject({
-			details: expect.stringContaining("not a forge"),
+			details: expect.stringContaining("not a code host"),
 		});
 		expect(mockState().connections).toEqual([]);
 	});

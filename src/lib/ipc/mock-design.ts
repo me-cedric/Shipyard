@@ -254,7 +254,7 @@ const DIAGRAMS: Record<string, string> = {
 		appState: {},
 	}),
 	"sync-flow.mmd":
-		"flowchart LR\n  Tracker --> Mirror\n  Mirror --> Work\n  Work -->|apply| Tracker\n",
+		"flowchart LR\n  T[Issue tracker] --> Mirror\n  Mirror --> Work\n  Work -->|apply| T\n",
 	"order-process.bpmn": `<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="d1">
   <process id="order" isExecutable="false">

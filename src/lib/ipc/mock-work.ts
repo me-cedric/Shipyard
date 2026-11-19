@@ -666,10 +666,9 @@ export function teamGet(w: MockWork): TeamView_Serialize {
 
 export function teamSave(w: MockWork, t: Team_Deserialize): TeamView_Serialize {
 	writable(w);
-	const team = {
-		members: (t.members ?? []).map(normMember),
-		...(t.roles && Object.keys(t.roles).length ? { roles: t.roles } : {}),
-	};
+	// A save with no `roles:` block keeps the block of the file (`work::team_save_members`).
+	const roles = t.roles && Object.keys(t.roles).length ? t.roles : w.team.roles;
+	const team = { members: (t.members ?? []).map(normMember), ...(roles ? { roles } : {}) };
 	// The last admin cannot remove the settings write (`rights::keeps_admin`).
 	if (w.team.members.some((m) => m.admin) && !team.members.some((m) => m.admin))
 		throw "the team needs one admin: the last admin cannot remove the settings write";
@@ -778,7 +777,7 @@ export function workAssign(
 		(x) => x.handle === handle || x.trackers.some((t) => t.toLowerCase() === handle.toLowerCase()),
 	);
 	if (!m) throw `unknown member \`${handle}\``;
-	if (m.trackers.length === 0) throw `${m.name} has no tracker account in team.yaml`;
+	if (m.trackers.length === 0) throw `${m.name} has no issue tracker account in team.yaml`;
 	const item = mirror.find((t) => t.key === key);
 	if (!item) throw `not found: ${key}`;
 	item.assignee = m.name;
@@ -798,7 +797,7 @@ export function workTransition(mirror: Mirror, key: string, to: string, click: b
 	if (!item) throw `not found: ${key}`;
 	const category = STATUSES[to.toLowerCase()];
 	if (!category)
-		throw `the tracker refused the change: no transition to \`${to}\` (To Do, In Progress, In Review, Done)`;
+		throw `the issue tracker refused the change: no transition to \`${to}\` (To Do, In Progress, In Review, Done)`;
 	item.status = Object.keys(STATUSES)
 		.map((s) => s.replace(/\b\w/g, (c) => c.toUpperCase()))
 		.find((s) => s.toLowerCase() === to.toLowerCase()) as string;
@@ -1324,13 +1323,13 @@ export function timeSend(
 		(e) => e.id === id && e.day.startsWith(day.slice(0, 7)),
 	);
 	if (!entry) throw `no entry \`${id}\` in docs/time/${handle}/${day.slice(0, 7)}.yaml`;
-	if (!canSend) throw "this tracker does not support TimeTracking";
+	if (!canSend) throw "this issue tracker does not support TimeTracking";
 	if (entry.worklog && entry.unsynced) {
 		delete entry.unsynced;
 		return { entry: { ...entry }, alreadyThere: false, error: null };
 	}
 	if (entry.worklog)
-		throw "the tracker refused the change: the entry has a receipt: it is in the tracker";
+		throw "the issue tracker refused the change: the entry has a receipt: it is in the issue tracker";
 	if (!entry.ticket) throw "setting: the entry names no ticket";
 	const logs = w.logs[entry.ticket] ?? [];
 	w.logs[entry.ticket] = logs;
@@ -1348,7 +1347,7 @@ export function timeSend(
 	logs.push(log);
 	if (w.loseNextAnswer) {
 		w.loseNextAnswer = false;
-		throw "the answer was lost, the change may be in the tracker: connection reset";
+		throw "the answer was lost, the change may be in the issue tracker: connection reset";
 	}
 	entry.worklog = log.id;
 	delete entry.unsynced;
@@ -1414,7 +1413,7 @@ function write(w: MockWork, rows: DiffRow_Serialize[]): ApplyRow_Serialize[] {
 		};
 		if (d.action === "unchanged") return base;
 		if (w.failRows.includes(d.row.reference))
-			return { ...base, error: "the tracker refused the change: 400 summary: bad" };
+			return { ...base, error: "the issue tracker refused the change: 400 summary: bad" };
 		const key = d.key ?? `ACME-${100 + ++w.counter}`;
 		w.written[d.row.reference] = { key, row: d.row };
 		return { ...base, key };

@@ -81,7 +81,7 @@ export const errorsEs: Record<Exclude<ErrorCode, "unknown">, string> = {
 	file_changed: "El archivo cambió en el disco. Vuelve a cargarlo e inténtalo de nuevo.",
 	no_compass: "No hay ninguna versión de compass fijada. Fija una primero.",
 	tool_missing:
-		"Un programa que esto necesita no está instalado o no se inició. Revisa Ajustes y luego Salud.",
+		"Un programa que esto necesita no está instalado o no se inició. Revisa Configuración y luego Este ordenador.",
 	tool_failed: "Un programa falló. Lee su salida e inténtalo de nuevo.",
 	connection_kind: "Esta conexión es de otro tipo. Elige otra conexión.",
 	sign_in_failed: "El inicio de sesión no funcionó. Inténtalo de nuevo o usa un token.",

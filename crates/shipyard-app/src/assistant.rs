@@ -218,7 +218,7 @@ pub fn gauge(t: &Thread) -> Gauge {
 pub fn run_label(workflow: &str) -> Res<String> {
     match parse(&format!("wf:{workflow}")) {
         Some(_) => Ok(format!("wf:{workflow}")),
-        None => Err(format!("`{workflow}` is not a workflow id")),
+        None => Err(format!("`{workflow}` is not a recipe id")),
     }
 }
 
@@ -838,7 +838,7 @@ pub fn to_factory(
         Some(id) => {
             let label = run_label(id)?;
             if !crate::factory::workflows(s)?.iter().any(|w| w.id == *id) {
-                return Err(format!("no workflow `{id}` in this project"));
+                return Err(format!("no recipe `{id}` in this project"));
             }
             Some(label)
         }
@@ -881,7 +881,7 @@ pub fn conflict_to_factory(s: &AppState, workflow: String, click: bool) -> Res<F
         .iter()
         .any(|w| w.id == workflow)
     {
-        return Err(format!("no workflow `{workflow}` in this project"));
+        return Err(format!("no recipe `{workflow}` in this project"));
     }
     let files: Vec<String> = crate::commands::code::conflicts(s)?
         .into_iter()
@@ -1151,7 +1151,7 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
         assert!(conflict_to_factory(&f.s, "w".into(), false).is_err());
         assert!(conflict_to_factory(&f.s, "../x".into(), true).is_err());
         let e = conflict_to_factory(&f.s, "nope".into(), true).unwrap_err();
-        assert!(e.contains("no workflow"), "{e}");
+        assert!(e.contains("no recipe"), "{e}");
     }
 
     #[test]

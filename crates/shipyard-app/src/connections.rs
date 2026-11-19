@@ -290,7 +290,7 @@ fn tracker_config(r: &Record) -> TrackerConfig {
 
 fn forge_config(r: &Record) -> Res<ForgeConfig> {
     Ok(ForgeConfig {
-        kind: r.kind.forge().ok_or("this product is not a forge")?,
+        kind: r.kind.forge().ok_or("this product is not a code host")?,
         url: r.url.clone(),
     })
 }
@@ -744,7 +744,7 @@ impl Connections {
     pub fn tracker(&self, id: &str) -> Res<Box<dyn Tracker>> {
         let r = self.record(id)?;
         if r.group != ConnectionGroup::Tracker {
-            return Err(format!("{id} is not a tracker"));
+            return Err(format!("{id} is not an issue tracker"));
         }
         shipyard_trackers::connect(&tracker_config(&r), self.secret(&r)?, self.http_for(&r)?)
             .map_err(|e| e.to_string())
@@ -756,7 +756,7 @@ impl Connections {
     pub fn tracker_write(&self, id: &str) -> Res<Box<dyn TrackerWrite>> {
         let r = self.record(id)?;
         if r.group != ConnectionGroup::Tracker {
-            return Err(format!("{id} is not a tracker"));
+            return Err(format!("{id} is not an issue tracker"));
         }
         let http = Arc::new(Clocked {
             inner: self.http_for(&r)?,
@@ -770,7 +770,7 @@ impl Connections {
     pub fn forge(&self, id: &str) -> Res<Box<dyn Forge>> {
         let r = self.record(id)?;
         if r.group != ConnectionGroup::Forge {
-            return Err(format!("{id} is not a forge"));
+            return Err(format!("{id} is not a code host"));
         }
         shipyard_forges::connect(&forge_config(&r)?, self.secret(&r)?, self.http_for(&r)?)
             .map_err(|e| e.to_string())
@@ -781,7 +781,7 @@ impl Connections {
     pub fn pull_api(&self, id: &str) -> Res<Box<dyn shipyard_forges::PullApi>> {
         let r = self.record(id)?;
         if r.group != ConnectionGroup::Forge {
-            return Err(format!("{id} is not a forge"));
+            return Err(format!("{id} is not a code host"));
         }
         shipyard_forges::connect_pull_api(&forge_config(&r)?, self.secret(&r)?, self.http_for(&r)?)
             .map_err(|e| e.to_string())
@@ -792,7 +792,7 @@ impl Connections {
     pub fn code_api(&self, id: &str) -> Res<Box<dyn shipyard_forges::CodeApi>> {
         let r = self.record(id)?;
         if r.group != ConnectionGroup::Forge {
-            return Err(format!("{id} is not a forge"));
+            return Err(format!("{id} is not a code host"));
         }
         shipyard_forges::connect_code_api(&forge_config(&r)?, self.secret(&r)?, self.http_for(&r)?)
             .map_err(|e| e.to_string())

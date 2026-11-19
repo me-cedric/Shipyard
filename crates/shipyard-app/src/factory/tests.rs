@@ -1000,7 +1000,7 @@ fn a_workflow_is_made_from_a_preset_renamed_and_deleted() {
 fn the_default_workflow_and_a_workflow_of_a_live_run_stay() {
     let fx = fx(Writes::default());
     let e = delete_workflow(&fx.s, "feature").unwrap_err();
-    assert_eq!(e, "`feature` is the default workflow of the project");
+    assert_eq!(e, "`feature` is the default recipe of the project");
     assert!(rename_workflow(&fx.s, "feature", "other").is_err());
     assert!(workflow_read(&fx.s, "feature").is_ok());
     // The run of SHIP-1 uses the workflow `one`.

@@ -52,6 +52,12 @@ Feature: team-rights
     When Shipyard gives the levels of `ana`
     Then `ana` has `write` in `specs` and in `design`
 
+  @spec:team-rights#REQ-005
+  Scenario: Roles and default rights: Member save keeps the block
+    Given the team file has a `roles:` block
+    When a person saves a member on Crew
+    Then the team file still has the `roles:` block
+
   @spec:team-rights#REQ-006
   Scenario: Personal narrowing: No widening
     Given the member `dee` has the role `pm` in the team file

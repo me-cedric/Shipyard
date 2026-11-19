@@ -781,7 +781,7 @@ const slug = (name: string, kind: string) => {
 /** The checks of `connections_add` and `connections_edit`: the same rules as the Rust adapters. */
 function checkDraft(d: ConnectionDraft_Deserialize) {
 	if (!d.name.trim()) throw "the name needs 1 to 60 characters";
-	if (d.group === "forge" && !FORGE_KINDS.includes(d.kind)) throw "this product is not a forge";
+	if (d.group === "forge" && !FORGE_KINDS.includes(d.kind)) throw "this product is not a code host";
 	if (d.kind !== "linear" || d.group === "forge") {
 		if (!/^https:\/\/[^/\s@]+/.test(d.url.trim()) && !d.url.trim().startsWith("http://localhost"))
 			throw "bad address: use an https address";
@@ -939,7 +939,7 @@ const ROLE_ACCESS: [TeamRole, Access][] = [
 	["developer", access("WRWWWWRN", false, true)],
 	["qa", access("WWRWWWRN")],
 	["designer", access("WRWWRRRN")],
-	["viewer", access("RRRRRRRN")],
+	["viewer", access("RRRRNRRN")],
 ];
 
 /** The table of the team: the defaults, then the `roles:` block. An unknown cell has no effect. */
@@ -983,7 +983,7 @@ function teamPerson(): RightsPerson_Serialize {
 	const members = state.work.team.members;
 	if (!members.some((m) => m.admin)) return SOLO;
 	const table = roleTable();
-	const levels = (r: TeamRole) => table.find(([x]) => x === r)?.[1] ?? access("RRRRRRRN");
+	const levels = (r: TeamRole) => table.find(([x]) => x === r)?.[1] ?? access("RRRRNRRN");
 	const me = state.email
 		? members.find((m) => m.emails?.includes(state.email as string))
 		: undefined;
@@ -1328,7 +1328,7 @@ const handlers: Handlers = {
 	connectionsSuggest: () => (active() ? SUGGESTION : null),
 	connectionsScopes: (id) => {
 		const c = conn(id);
-		if (c.group !== "tracker") throw `${id} is not a tracker`;
+		if (c.group !== "tracker") throw `${id} is not an issue tracker`;
 		if (!state.secrets[id]) throw "no secret saved";
 		return scopesOf(c.kind);
 	},
@@ -1363,7 +1363,7 @@ const handlers: Handlers = {
 		return c;
 	},
 	connectionsCreateRepo: (id, slug, click) => {
-		if (conn(id).group !== "forge") throw `${id} is not a forge`;
+		if (conn(id).group !== "forge") throw `${id} is not a code host`;
 		if (!click) throw "this change needs the click of a person";
 		if (slug.split("/").length < 2 || slug.split("/").some((p) => !p || p === "." || p === ".."))
 			throw `setting: a repository name has the form owner/name`;
@@ -1378,7 +1378,7 @@ const handlers: Handlers = {
 		};
 	},
 	connectionsRepos: (id) => {
-		if (conn(id).group !== "forge") throw `${id} is not a forge`;
+		if (conn(id).group !== "forge") throw `${id} is not a code host`;
 		return {
 			items: [
 				{
@@ -1968,7 +1968,7 @@ const handlers: Handlers = {
 	specsChangeDelegate: (key, workflow, click) => {
 		if (!click) throw "this change needs the click of a person";
 		if (readOnly()) throw "the profile of this project is read only";
-		if (!/^[a-z0-9][a-z0-9_.-]*$/.test(workflow)) throw `\`${workflow}\` is not a workflow id`;
+		if (!/^[a-z0-9][a-z0-9_.-]*$/.test(workflow)) throw `\`${workflow}\` is not a recipe id`;
 		if (!state.sync.mirror.some((t) => t.key === key))
 			throw `${key} is not in the mirror: sync first`;
 		return `wf:${workflow}`;

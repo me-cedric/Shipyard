@@ -385,7 +385,7 @@ function parseWorkflow(
 	if (!fileId) return refuse(null, "the file has no `id`");
 	if (fileId.v !== id)
 		return refuse(fileId.line, `id \`${fileId.v}\` differs from the file name \`${id}\``);
-	if (raws.length === 0) return refuse(null, "the workflow has no step");
+	if (raws.length === 0) return refuse(null, "the recipe has no step");
 	for (const raw of raws) {
 		const role = raw.role;
 		if (role && !roles.includes(role.v))
@@ -1408,7 +1408,7 @@ export const workflowsList = (f: MockFactory): WorkflowItem_Serialize[] =>
 
 export function workflowGet(f: MockFactory, id: string): WorkflowFile_Serialize {
 	const text = f.workflows[fileId(id)];
-	if (text === undefined) throw `no workflow \`${id}\``;
+	if (text === undefined) throw `no recipe \`${id}\``;
 	return { id, text, ...checkWorkflow(f, id, text) };
 }
 
@@ -1504,21 +1504,21 @@ const withId = (text: string, id: string) => text.replace(/^id:.*$/m, `id: ${id}
 export function workflowCreate(f: MockFactory, id: string, from: WorkflowSource): null {
 	if (f.workflows[fileId(id)] !== undefined) throw `\`${id}\` already exists`;
 	const text = (from.kind === "preset" ? WORKFLOWS : f.workflows)[from.id];
-	if (text === undefined) throw `no workflow \`${from.id}\``;
+	if (text === undefined) throw `no recipe \`${from.id}\``;
 	f.workflows[id] = withId(text, id);
 	return null;
 }
 
 /** The default workflow and a workflow of a live run stay. */
 const keep = (f: MockFactory, id: string) => {
-	if (id === "feature") throw `\`${id}\` is the default workflow`;
+	if (id === "feature") throw `\`${id}\` is the default recipe`;
 	if (f.runs.some((r) => r.workflow === id && !FINAL.includes(r.state)))
 		throw `a run uses \`${id}\``;
 };
 
 export function workflowRename(f: MockFactory, id: string, to: string): null {
 	const text = f.workflows[fileId(id)];
-	if (text === undefined) throw `no workflow \`${id}\``;
+	if (text === undefined) throw `no recipe \`${id}\``;
 	keep(f, id);
 	if (f.workflows[fileId(to)] !== undefined) throw `\`${to}\` already exists`;
 	f.workflows[to] = withId(text, to);
@@ -1527,7 +1527,7 @@ export function workflowRename(f: MockFactory, id: string, to: string): null {
 }
 
 export function workflowDelete(f: MockFactory, id: string): null {
-	if (f.workflows[fileId(id)] === undefined) throw `no workflow \`${id}\``;
+	if (f.workflows[fileId(id)] === undefined) throw `no recipe \`${id}\``;
 	keep(f, id);
 	delete f.workflows[id];
 	return null;

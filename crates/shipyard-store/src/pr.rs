@@ -56,7 +56,7 @@ pub fn pr_ref(forge: &str, number: u64) -> Result<String> {
     let text = format!("pr:{forge}:{number}");
     match parse(&text) {
         Some(Ref::Pr { .. }) => Ok(text),
-        _ => Err(format!("`{forge}` is not a forge name for a pr: ref").into()),
+        _ => Err(format!("`{forge}` is not a code host name for a pr: ref").into()),
     }
 }
 

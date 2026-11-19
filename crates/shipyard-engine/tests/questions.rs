@@ -473,7 +473,7 @@ fn a_tracker_without_comments_gets_no_answer_comment_and_the_log_says_so() {
     assert!(fx.logged(&run, "note").iter().any(|n| {
         n["note"]
             .as_str()
-            .is_some_and(|t| t.contains("the tracker has no comments"))
+            .is_some_and(|t| t.contains("the issue tracker has no comments"))
     }));
 }
 

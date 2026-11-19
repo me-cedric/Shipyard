@@ -319,7 +319,7 @@ impl Inner {
             .project_of(run_id)
             .is_some_and(|p| p.writer.can_comment())
         {
-            let note = json!({"note": format!("{}: the answer is not on the ticket: the tracker has no comments", q.id)});
+            let note = json!({"note": format!("{}: the answer is not on the ticket: the issue tracker has no comments", q.id)});
             self.log(run_id, None, kind::NOTE, note);
             return;
         }

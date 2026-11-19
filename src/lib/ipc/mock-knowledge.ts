@@ -86,7 +86,7 @@ const file = (text: string): Files[string] => ({ text, stamp: "1" });
 
 // ---------------------------------------------------------------- seed
 
-const DECK = `# Kickoff\n\nShipyard, one place for the work\n\n---\n\n## Goals\n\n- One graph of refs\n- One crew\n- One handbook\n\n---\n\n## Decisions\n\n- adr:0001 Use Tauri\n- adr:0004 Polling sync\n\n---\n\n## Plan\n\n1. Specs first\n2. Waves\n\n---\n\n## Questions\n\nAsk now.\n`;
+const DECK = `# Kickoff\n\nShipyard, one place for the work\n\n---\n\n## Goals\n\n- One map of refs\n- One crew\n- One handbook\n\n---\n\n## Decisions\n\n- adr:0001 Use Tauri\n- adr:0004 Polling sync\n\n---\n\n## Plan\n\n1. Specs first\n2. Waves\n\n---\n\n## Questions\n\nAsk now.\n`;
 
 const DASHBOARD: Dashboard_Serialize = {
 	version: VERSION,

@@ -104,7 +104,7 @@ const DEFAULTS: Record<TeamRole, Access> = {
 	developer: levels("WRWWWWRN", false, true),
 	qa: levels("WWRWWWRN"),
 	designer: levels("WRWWRRRN"),
-	viewer: levels("RRRRRRRN"),
+	viewer: levels("RRRRNRRN"),
 };
 
 /** Where a right sits: its area or switch, and the level that it needs. */

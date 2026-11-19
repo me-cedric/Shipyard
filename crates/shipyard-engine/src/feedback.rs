@@ -117,7 +117,7 @@ impl Inner {
                     (format!("CI failed:\n{}", list.join("\n")), Vec::new())
                 }
                 Ok(_) => (
-                    "CI failed. The forge names no failed check.".into(),
+                    "CI failed. The code host names no failed check.".into(),
                     Vec::new(),
                 ),
                 Err(e) => (

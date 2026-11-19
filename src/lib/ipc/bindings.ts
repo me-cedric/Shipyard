@@ -656,7 +656,7 @@ export type Action = "create" | "update" | "unchanged";
 
 /**  What a person can do about an error. The view maps each kind to a button. */
 export type ActionKind = 
-/**  Open a Settings field. `target` is the route and the anchor id of the row, such as `/settings/project#issue-tracker`. */
+/**  Open a Settings field. `target` is the route and the anchor id of the row, such as `/setup/project#issue-tracker`. */
 "setting" | 
 /**  Read the tracker again. */
 "sync" | 

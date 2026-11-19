@@ -133,7 +133,7 @@ describe("mock assistant", () => {
 		expect(b).toMatchObject({ label: null, item: { action: "unchanged", key: a.item.key } });
 	});
 
-	it("fails the send when the tracker refuses the item", async () => {
+	it("fails the send when the issue tracker refuses the item", async () => {
 		const id = await thread();
 		await send(id, "Refuse this one");
 		await expect(unwrap(commands.assistantToFactory(id, null, true))).rejects.toMatchObject({

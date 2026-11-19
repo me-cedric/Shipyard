@@ -94,7 +94,7 @@ pub trait TrackerWrite: Tracker {
     /// `priority` is one of [`PRIORITIES`]. A tracker with no priority field refuses (Q-123).
     fn set_priority(&self, _key: &str, _priority: &str) -> Result<(), TrackerError> {
         Err(TrackerError::Refused(
-            "this tracker has no priority field".into(),
+            "this issue tracker has no priority field".into(),
         ))
     }
 
@@ -102,13 +102,15 @@ pub trait TrackerWrite: Tracker {
     /// A tracker with no type field refuses (Q-125).
     fn set_issue_type(&self, _key: &str, _name: &str) -> Result<(), TrackerError> {
         Err(TrackerError::Refused(
-            "this tracker has no issue type to change".into(),
+            "this issue tracker has no issue type to change".into(),
         ))
     }
 
     /// The due day as `YYYY-MM-DD`. `None` clears it. A tracker with no due date refuses (Q-125).
     fn set_due_date(&self, _key: &str, _day: Option<&str>) -> Result<(), TrackerError> {
-        Err(TrackerError::Refused("this tracker has no due date".into()))
+        Err(TrackerError::Refused(
+            "this issue tracker has no due date".into(),
+        ))
     }
 
     /// Needs the `transitions` flag. A refusal is [`TrackerError::Refused`] with the reason (REQ-002).
@@ -135,14 +137,14 @@ pub trait TrackerWrite: Tracker {
         _log: &NewWorklog,
     ) -> Result<Worklog, TrackerError> {
         Err(TrackerError::Refused(
-            "this tracker cannot change a worklog".into(),
+            "this issue tracker cannot change a worklog".into(),
         ))
     }
 
     /// Delete a worklog that Shipyard sent. A tracker that cannot refuses.
     fn delete_worklog(&self, _click: &Click, _key: &str, _id: &str) -> Result<(), TrackerError> {
         Err(TrackerError::Refused(
-            "this tracker cannot delete a worklog".into(),
+            "this issue tracker cannot delete a worklog".into(),
         ))
     }
 
@@ -260,7 +262,7 @@ pub fn send_worklog(
     w.capabilities().require(Capability::TimeTracking)?;
     if entry.worklog.is_some() {
         return Err(TrackerError::Refused(
-            "the entry has a receipt: it is in the tracker".into(),
+            "the entry has a receipt: it is in the issue tracker".into(),
         ));
     }
     let key = entry

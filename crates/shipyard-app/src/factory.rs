@@ -1550,7 +1550,7 @@ pub fn workflow_read(s: &AppState, id: &str) -> Res<WorkflowFile> {
     let id = file_id(id)?;
     let (root, loaded) = fresh(s)?;
     let text = std::fs::read_to_string(root.join(WORKFLOWS_DIR).join(format!("{id}.yaml")))
-        .map_err(|_| format!("no workflow `{id}`"))?;
+        .map_err(|_| format!("no recipe `{id}`"))?;
     let (workflow, issue) = check_workflow(id, &text, &loaded);
     Ok(WorkflowFile {
         id: id.into(),
@@ -1676,7 +1676,7 @@ pub enum WorkflowSource {
 
 fn refuse_existing(root: &Path, id: &str) -> Res<()> {
     if workflow_path(root, id).exists() {
-        return Err(format!("a workflow `{id}` exists"));
+        return Err(format!("a recipe `{id}` exists"));
     }
     Ok(())
 }
@@ -1714,7 +1714,7 @@ fn refuse_in_use(s: &AppState, id: &str) -> Res<()> {
     }
     .unwrap_or_else(|| DEFAULT_WORKFLOW.into());
     if default == id {
-        return Err(format!("`{id}` is the default workflow of the project"));
+        return Err(format!("`{id}` is the default recipe of the project"));
     }
     let live = s
         .factory
@@ -1757,7 +1757,7 @@ pub fn delete_workflow(s: &AppState, id: &str) -> Res<()> {
     let id = file_id(id)?;
     let (_, root) = root_of(s)?;
     refuse_in_use(s, id)?;
-    std::fs::remove_file(workflow_path(&root, id)).map_err(|_| format!("no workflow `{id}`"))?;
+    std::fs::remove_file(workflow_path(&root, id)).map_err(|_| format!("no recipe `{id}`"))?;
     let _ = ensure(s);
     Ok(())
 }

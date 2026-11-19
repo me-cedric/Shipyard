@@ -1949,7 +1949,7 @@ impl Inner {
         let wf = p
             .files
             .workflow(wf_id)
-            .ok_or_else(|| format!("no workflow `{wf_id}`"))?;
+            .ok_or_else(|| format!("no recipe `{wf_id}`"))?;
         let ms = self.clock.now().as_millis() as u64;
         self.seq += 1;
         let id = ulid(ms, self.seq);

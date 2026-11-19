@@ -140,7 +140,7 @@ impl PullApi for GitHub {
         let made = pull(&v);
         if made.number == 0 {
             return Err(ForgeError::Rejected(
-                "the forge accepted the request but returned no pull request".into(),
+                "the code host accepted the request but returned no pull request".into(),
             ));
         }
         Ok(made)

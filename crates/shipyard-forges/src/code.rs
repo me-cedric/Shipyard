@@ -245,7 +245,7 @@ pub trait CodeApi: PullApi {
     fn merge(&self, repo: &str, number: u64, method: MergeMethod) -> Result<(), ForgeError> {
         if !self.merge_methods().contains(&method) {
             return Err(ForgeError::Config(format!(
-                "this forge does not offer the method {method:?}"
+                "this code host does not offer the method {method:?}"
             )));
         }
         let p = self.pull(repo, number)?;
@@ -761,7 +761,7 @@ impl CodeApi for Azure {
         )?;
         let id = text(&me, "/authenticatedUser/id");
         if id.is_empty() {
-            return Err(ForgeError::Rejected("the forge gave no user id".into()));
+            return Err(ForgeError::Rejected("the code host gave no user id".into()));
         }
         // 10 approved, -5 waiting for the author.
         let vote = if v == Verdict::Approve { 10 } else { -5 };

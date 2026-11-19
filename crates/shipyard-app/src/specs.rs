@@ -390,7 +390,7 @@ pub fn change_delegate(s: &AppState, key: &str, workflow: &str, click: bool) -> 
         .iter()
         .any(|w| w.id == workflow)
     {
-        return Err(format!("no workflow `{workflow}` in this project"));
+        return Err(format!("no recipe `{workflow}` in this project"));
     }
     crate::work::mark_for_run(s, key, workflow, click)?;
     Ok(label)

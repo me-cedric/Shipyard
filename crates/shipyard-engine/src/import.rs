@@ -31,7 +31,7 @@ impl Engine {
             })
         })?;
         if truncated {
-            return Err(format!("the tracker lists more than {MAX_PAGES} pages").into());
+            return Err(format!("the issue tracker lists more than {MAX_PAGES} pages").into());
         }
         Ok(ImportPlan { tickets })
     }

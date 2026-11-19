@@ -385,7 +385,7 @@ impl Role {
             Role::Developer => Access::of([W, R, W, W, W, W, R, N], false, true),
             Role::Qa => Access::of([W, W, R, W, W, W, R, N], false, false),
             Role::Designer => Access::of([W, R, W, W, R, R, R, N], false, false),
-            Role::Viewer => Access::of([R, R, R, R, R, R, R, N], false, false),
+            Role::Viewer => Access::of([R, R, R, R, N, R, R, N], false, false),
         }
     }
 }

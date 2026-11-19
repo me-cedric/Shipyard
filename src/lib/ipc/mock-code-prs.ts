@@ -490,7 +490,7 @@ export function pullClose(p: MockPrs, number: number) {
 export function pullMerge(p: MockPrs, number: number, method: MergeMethod, click: boolean) {
 	need(click);
 	const d = find(p, number);
-	if (!d.mergeMethods.includes(method)) throw `this forge does not offer the method ${method}`;
+	if (!d.mergeMethods.includes(method)) throw `this code host does not offer the method ${method}`;
 	if (d.state !== "open") throw "the pull request is not open";
 	if (d.draft) throw "a draft pull request cannot merge: mark it ready first";
 	d.state = "merged";
