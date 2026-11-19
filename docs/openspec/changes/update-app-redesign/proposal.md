@@ -25,6 +25,8 @@ The owner also set a rule for the redesign: when a current feature is illogical 
 - Setup has three scopes: this project, this computer, me.
 - Three new agent actions: "Ask an agent to estimate" in Plan, "Fix all with an agent" in the health of the project, "Build a tile for me" in the dashboards. Each one proposes, and nothing changes before a person accepts.
 - The visual language changes: a calm ground, one accent colour, one colour for "a person must act", large type and targets.
+- The shell has a rail and one top row. The top bar and the status bar go, and each of their controls moves to the rail, the top row, the card of the sync mark, the account menu or the Ask bar.
+- The fonts are Geist and Geist Mono, bundled with the app.
 
 Each action and each view that a person reaches today stays reachable. The address of each current page keeps working.
 

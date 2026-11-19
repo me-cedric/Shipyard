@@ -73,6 +73,18 @@ Wave 7, roles, words, removal
 - [x] T033 Run the validation commands of `plan.md`.
 - [x] T034 Compare the implementation against the spec and update the stale artifacts.
 
+Look pass 1, shell, tokens and shared parts
+
+- [x] T038 [P] Tokens with the values of the design: flat page background, one accent, one attention colour, near-black primary, 15 px text, radius 12 px for controls and 20 px for cards; Geist and Geist Mono bundled (`src/ui/tokens/tokens.css`, `src/ui/tokens/fonts.css`, `package.json`). REQ-025, `spec:design-system#REQ-003`.
+- [x] T039 [P] Shared parts with gallery entries and tests: new LinkButton, Chip, StepBar, Row, Option, Tile, BackLink; the new look in place for Button, IconButton, Badge, Avatar, Input, Segmented, Progress, Kbd, PageHeader, SectionSwitch, Card, AttentionCard, StageLine, SettingsRow (`src/ui/atoms/`, `src/ui/molecules/`, `src/ui/gallery/gallery.tsx`). REQ-026, REQ-028.
+- [x] T040 Shell: the rail with the project switch and the account row, the top row with the sync mark and its card, no top bar and no status bar; the inventory test of the moved controls (`src/ui/templates/shell.tsx`, `src/features/shell/`, `src/features/code/sync-mark.tsx`, `src/features/shell/inventory.test.tsx`). `spec:shell#REQ-001`, `spec:shell#REQ-018`, `spec:shell#REQ-020`, `spec:shell#REQ-021`, REQ-003.
+- [x] T041 [P] Ask bar: the open bar as one centred column over the page area (`src/features/shell/palette-host.tsx`, `src/ui/organisms/command-palette.tsx`, `src/ui/molecules/ask-bar.tsx`). REQ-004, `spec:shell#REQ-005`.
+- [x] T042 First run and "No project is open" as bare pages without the shell (`src/features/projects/first-run.tsx`, `src/features/shell/no-project.tsx`, `src/features/shell/bare.ts`). `spec:shell#REQ-019`.
+- [x] T043 Move the unit tests, the e2e specs, the persona walks and `scripts/screenshots.ts` to the new shell (`src/`, `e2e/`).
+- [x] T044 Docs: the deltas of `shell` and `design-system`, the test plans, `docs/designs/screens.json`, `README.md`, `docs/design/visual-language-v2.md`, `docs/guide/` in four languages, `CHANGELOG.md` and `CHANGELOG.fr.md`, `.agents/progress/app-redesign.md`.
+- [ ] T045 Retake the pictures of `docs/assets/screenshots/` and add the picture of SCR-097.
+- [ ] T046 Owner decision on the open points of look pass 1 in `.agents/progress/app-redesign.md` (the field border under 3:1, the Sign out action, the narrow bar preference).
+
 ## Completion Check
 
 - [ ] All acceptance criteria are met.

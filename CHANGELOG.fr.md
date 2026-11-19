@@ -1,6 +1,12 @@
 # Journal des modifications
 
 ## [0.2.0]
+- L'interface a une nouvelle apparence dans les thèmes Clair, Sombre, OLED et Système : un fond de page uni, une couleur d'accent, une couleur pour ce qui vous attend, des boutons principaux presque noirs, les polices Geist et Geist Mono, un texte de 15 px, et des contrôles et des cartes plus arrondis.
+- La fenêtre n'a plus de barre du haut ni de barre d'état : la barre latérale contient le nom du projet en haut, les six lieux avec leurs nombres, Configuration et votre compte en bas, et chaque page commence par une rangée qui contient le bouton de la barre latérale, Précédent, Suivant, la barre Demander ou dire à Shipyard et la marque de synchronisation.
+- La marque de synchronisation ouvre une carte avec les fichiers modifiés, les lignes ajoutées et supprimées, la branche de travail et les boutons de synchronisation, de récupération, d'envoi et de commit ; un échec de synchronisation s'y affiche avec son action pour réessayer.
+- Le menu du compte s'ouvre en bas de la barre latérale et contient le thème, la langue, le mode d'emploi, les raccourcis clavier, Nouveautés, Revoir la visite, Rechercher les mises à jour, la version de Shipyard et Santé.
+- La barre Demander ou dire à Shipyard, ouverte, s'affiche en une colonne au centre de la page, avec la réponse, Répondre, Aller à et Faire ; Fichiers et Terminal sont des actions de la barre.
+- Le premier lancement et la page affichée quand aucun projet n'est ouvert s'affichent seuls, sans la barre latérale : le premier lancement demande votre rôle avec des tuiles et une barre d'étapes, puis comment commencer.
 - Chaque rôle s'ouvre sur sa première page : le responsable produit sur Flux / Liste, le chef de projet sur Plan / Calendrier, l'analyste métier sur Bibliothèque / Spécifications, l'architecte sur Bibliothèque / Décisions, le responsable technique et le développeur sur Flux, le testeur sur Bibliothèque / Plans de test, le designer sur Bibliothèque / Écrans et le lecteur sur Aujourd'hui ; un lieu ou une vue qu'un rôle ne peut pas ouvrir reste caché, avec ses liens et ses actions.
 - Un lecteur ne voit pas le lieu Code par défaut (le bloc `roles:` du fichier d'équipe peut le rendre), l'enregistrement d'un membre garde le bloc `roles:`, et chaque texte d'erreur dit outil de suivi, hébergeur de code et recette et ouvre la nouvelle adresse de sa page.
 - Les mots sont plus simples en anglais, français, allemand et espagnol : Recettes pour Workflows, Carte pour Graphe, Spécifications pour Capacités, Règles du projet pour Constitution, Flux réseau pour Flux, et Flux à la place d'Usine.
@@ -16,7 +22,7 @@
 - Bibliothèque / Rapports liste chaque rapport sur une page, avec Exporter, Remplir le formulaire (Demande de changement, Travail réalisé) ou un lien vers la page qui contient l'export, et un choix de Format (Tous, Word, Excel, Image) ; le menu Exporter de chaque page reste.
 - Tableaux de bord a Créer une tuile pour moi : tapez ce que la tuile doit montrer, fixez un budget et cliquez sur Créer ; un agent qui lit seulement le projet propose une tuile, Accepter l'ajoute et Rejeter l'abandonne, Arrêter met fin au travail, qui s'affiche aussi dans Équipe / Sessions, et le tableau de bord change seulement avec Accepter.
 - Code a les sections Maintenant, Historique, Branches et Terminal : Maintenant montre les fichiers à valider avec une zone de commit, puis les pull requests, et les anciennes adresses de Modifications locales et de Pull requests l'ouvrent.
-- Une marque dans la barre du haut montre l'état de la synchronisation sur chaque page (échec, fichiers modifiés, Pas encore partagé, en retard, en avance ou À jour) et ouvre Code / Maintenant.
+- Une marque en haut de chaque page montre l'état de la synchronisation (échec, fichiers modifiés, Pas encore partagé, en retard, en avance ou À jour).
 - Santé dans Flux s'affiche pour chaque rôle ; un droit manquant désactive Lancer et Configurer.
 - Les impacts d'un changement s'ouvrent depuis les Contrôles de sa fonctionnalité.
 - La santé de ce projet propose « Tout corriger avec un agent » : une fonctionnalité dans Flux, une exécution avec le budget et l'arrêt de chaque exécution.

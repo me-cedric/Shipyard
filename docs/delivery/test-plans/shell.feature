@@ -7,6 +7,19 @@ Feature: shell
     Then the main area shows Plan
     And the Plan entry shows as current
 
+  @spec:shell#REQ-001
+  Scenario: Sidebar: Collapsed rail
+    Given the rail is open
+    When the person activates "Hide sidebar" in the top row
+    Then the rail is 72 px wide and shows icons only
+    And the project switch and the account row keep their spoken names
+
+  @spec:shell#REQ-001
+  Scenario: Sidebar: Switch the project
+    Given two projects are known
+    When the person opens the project switch at the top of the rail and selects the other project
+    Then the app opens that project
+
   @spec:shell#REQ-002
   Scenario: Main area and inspector: Toggle inspector
     Given a view with a selected item
@@ -52,18 +65,40 @@ Feature: shell
     When the person activates a backlink
     Then the inspector shows the linked entity
 
-  @spec:shell#REQ-007
-  Scenario: Status bar: Sync from the status bar
+  @spec:shell#REQ-021
+  Scenario: Top row and sync mark: No bars
     Given a project is open
-    When the person activates the sync action
+    When the shell renders
+    Then the shell shows no top bar and no status bar
+    And the page area starts with the rail toggle, Back, Forward, the Ask bar and the sync mark
+
+  @spec:shell#REQ-021
+  Scenario: Top row and sync mark: Sync from the sync mark
+    Given a project is open
+    When the person opens the sync mark and activates Sync
     Then the app starts one sync
     And the action shows its running state
 
-  @spec:shell#REQ-007
-  Scenario: Status bar: Health and runs
+  @spec:shell#REQ-021
+  Scenario: Top row and sync mark: What waits
+    Given five changed files and two commits ahead
+    When the person opens the sync mark
+    Then the card shows the count 5 as a link to Code / Now
+    And Sync shows 2 ahead
+
+  @spec:shell#REQ-021
+  Scenario: Top row and sync mark: Sync failure
+    Given a sync failed
+    When the top row renders
+    Then the sync mark says "Sync failed"
+    And the card shows the failure and its retry action
+
+  @spec:shell#REQ-021
+  Scenario: Top row and sync mark: Health and runs
     Given two runs are active and one health check fails
-    When the status bar renders
-    Then it shows the count 2 for runs and a failed health shape and colour
+    When the person opens the account menu
+    Then the rail shows the count 2 on Flow
+    And the Health item shows the count 1 and a failed health shape and colour
 
   @spec:shell#REQ-008
   Scenario: Notifications: New approval
@@ -117,7 +152,7 @@ Feature: shell
   Scenario: Native menu: Menu runs an action
     Given a project is open
     When the person chooses sync in the native menu
-    Then the app runs the same sync as the status bar
+    Then the app runs the same sync as the card of the sync mark
 
   @spec:shell#REQ-013
   Scenario: Context menus: Keyboard context menu
@@ -172,8 +207,8 @@ Feature: shell
   @spec:shell#REQ-017
   Scenario: Shell accessibility: Keyboard navigation
     Given the app is open
-    When the person uses the space shortcuts and Tab
-    Then focus reaches the sidebar, the main area, the inspector and the status bar
+    When the person uses the place shortcuts and Tab
+    Then focus reaches the rail, the top row, the main area and the inspector
     And each focused item shows a focus ring
 
   @spec:shell#REQ-008
@@ -183,3 +218,41 @@ Feature: shell
     Then a small panel shows the spend, the active runs, the Needs you items and the agents switch
     And a project switch in the panel moves the main window to that project
     And Escape closes the panel
+
+  @spec:shell#REQ-005
+  Scenario: Command palette: Open the terminal
+    Given the Ask bar has the focus
+    When the person types "Terminal" and presses Enter
+    Then the terminal drawer opens
+
+  @spec:shell#REQ-018
+  Scenario: Account menu: Open the account menu
+    Given a project is open
+    When the person activates the account row at the foot of the rail
+    Then the menu shows the theme, the language, the manual, the keyboard shortcuts, What's new, Replay the tour and Check for updates
+    And the menu shows the version of the app and the Health item
+
+  @spec:shell#REQ-018
+  Scenario: Account menu: Change the theme
+    Given the account menu is open
+    When the person selects Dark in the theme row
+    Then the interface shows in the Dark theme
+
+  @spec:shell#REQ-019
+  Scenario: Pages without the shell: First run
+    Given the app starts for the first time
+    When the first screen renders
+    Then the page shows no rail and no top row
+
+  @spec:shell#REQ-019
+  Scenario: Pages without the shell: No project is open
+    Given the person closed the project
+    When the page "No project is open" renders
+    Then the page shows no rail and no top row
+    And the page offers to make a new project, to clone a repository, to open a local folder and to open the Projects page
+
+  @spec:shell#REQ-020
+  Scenario: Moved controls: Inventory
+    Given the fixed list of the controls of the top bar and of the status bar of before this change
+    When the inventory test runs
+    Then it finds each control by its role and its name in its new home

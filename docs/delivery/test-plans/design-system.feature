@@ -5,7 +5,7 @@ Feature: design-system
     Given a component in the gallery
     When a reviewer inspects its style
     Then each colour, space, size and radius comes from a token
-    And the component has no shadow
+    And each shadow comes from an elevation token
 
   @spec:design-system#REQ-001
   Scenario: Design tokens: Project accent
@@ -29,8 +29,14 @@ Feature: design-system
   Scenario: Fonts: Switzer not yet licensed
     Given no written consent from ITF
     When the app renders text
-    Then the text font is Inter
-    And ids, numbers and code use Departure Mono
+    Then the text font is Geist
+    And ids, numbers and code use Geist Mono
+
+  @spec:design-system#REQ-003
+  Scenario: Fonts: Bundled fonts
+    Given the computer has no network
+    When the app renders text
+    Then the text font is Geist and the mono font is Geist Mono
 
   @spec:design-system#REQ-004
   Scenario: Atoms: Atom in the gallery

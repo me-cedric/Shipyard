@@ -182,8 +182,8 @@ Feature: projects
   @spec:projects#REQ-013
   Scenario: Health dot: Worst finding
     Given one warning and one error
-    When the status bar renders
-    Then the dot shows the error shape and colour
+    When the person opens the account menu
+    Then the dot of the Health item shows the error shape and colour
 
   @spec:projects#REQ-013
   Scenario: Health dot: Assistive label

@@ -1,6 +1,6 @@
 # Die Fragen-Leiste
 
-Shipyard fragen oder beauftragen, in der oberen Leiste, ist die eine Leiste für eine Frage, einen Ort und eine Aktion. Drücken Sie Ctrl+K (Cmd+K auf einem Mac), um dorthin zu gehen. Tippen Sie, dann nutzen Sie die Pfeiltasten und die Eingabetaste. Escape schließt sie.
+Shipyard fragen oder beauftragen, in der oberen Zeile jeder Seite, ist die eine Leiste für eine Frage, einen Ort und eine Aktion. Drücken Sie Ctrl+K (Cmd+K auf einem Mac), um dorthin zu gehen. Tippen Sie, dann nutzen Sie die Pfeiltasten und die Eingabetaste. Escape schließt sie.
 
 ## Gehe zu
 

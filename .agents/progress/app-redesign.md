@@ -306,3 +306,120 @@ Rust side of the fix round and last steps of the lead:
 - Not pushed, no pull request, the change is not archived.
 
 Checks, run by the lead on the final tree: see the last commit message of the wave and the final report of the session.
+
+## Look pass 1, shell, tokens and shared parts (2026-11-19)
+
+The pass set the tokens to the values of the design, replaced the top bar and the status bar by a rail and one top row, rebuilt the Ask bar and the first run, and gave each page the shared parts of the design. Tasks T038 to T044 of `tasks.md`. The pages of a place are not rebuilt: five later sessions do that on these parts.
+
+Tokens (`src/ui/tokens/tokens.css`, `src/ui/tokens/fonts.css`): flat page background, one accent, one attention colour, near-black `primary`, Geist and Geist Mono bundled (`spec:design-system#REQ-003`), 15 px text, radius 12 px for controls and 20 px for cards. New tokens: `accent-tint`, `primary`, `primary-fg`, `attention-strong`, `rounded-field`, `text-15`, `text-17`, `text-30`, `text-44`.
+
+Shell (`src/ui/templates/shell.tsx`, `src/features/shell/`): the rail is 72 px closed and 216 px open (the splitter sets 180 px to 320 px). The page area has the attribute `data-page-area` and starts with the top row. The first run and "No project is open" claim a bare page through `useBare()` of `src/features/shell/bare.ts`. The spec delta is `spec:shell#REQ-001`, `spec:shell#REQ-018` to `spec:shell#REQ-021`; `spec:shell#REQ-021` replaces the status bar requirement (REQ-007 of `shell`).
+
+### Shared parts
+
+| Part | File | Props |
+|---|---|---|
+| `Button` | `src/ui/atoms/button.tsx` | `variant?: "primary" \| "secondary" \| "ghost" \| "danger"`, `size?: "md" \| "lg"` (`lg` is 52 px), `busy?`, `reason?`, and the props of a button |
+| `LinkButton` (new) | `src/ui/atoms/link-button.tsx` | the props of a button. The file also exports `linkClass` for a router link |
+| `IconButton` | `src/ui/atoms/icon-button.tsx` | `label: string`, `shortcut?: string`, `reason?: string`, `variant?: "ghost" \| "outline"` |
+| `Badge` | `src/ui/atoms/badge.tsx` | `variant?: "neutral" \| "you" \| "accent" \| "success" \| "warning" \| "danger" \| "info"`, `dot?: boolean` |
+| `Avatar` | `src/ui/atoms/avatar.tsx` | `name: string`, `src?: string`, `size?: "s" \| "m"`, `agent?: boolean`, `className?` |
+| `Chip` (new) | `src/ui/atoms/chip.tsx` | `selected?: boolean` (sets `aria-pressed`), and the props of a button |
+| `Input` | `src/ui/atoms/input.tsx` | `label: string`, `caption?`, and the props of an input |
+| `Segmented` | `src/ui/atoms/segmented.tsx` | `label: string`, `value`, `onValueChange`, `items: { value; label }[]` |
+| `Progress` | `src/ui/atoms/progress.tsx` | `value: number`, `max: number`, `label: string`, `over?: boolean`, `className?` |
+| `StepBar` (new) | `src/ui/atoms/step-bar.tsx` | `total: number`, `current: number` (1-based), `label: string`, `className?` |
+| `Kbd` | `src/ui/atoms/kbd.tsx` | the props of `kbd` |
+| `PageHeader` | `src/ui/molecules/page-header.tsx` | `title: string`, `count?: number`, `chips?`, `action?`, `menu?: PageMenuItem[]`, `back?`, `icon?` (draws nothing). It reads `PageSwitchContext` and draws the section switch in the title row |
+| `SectionSwitch` | `src/ui/molecules/section-switch.tsx` | `label: string`, `items: SwitchItem[]`, `onSelect?`, `renderItem?` |
+| `Card` | `src/ui/molecules/card.tsx` | `interactive?: boolean`, `pad?: boolean`, and the props of a `div` |
+| `AttentionCard` | `src/ui/molecules/attention-card.tsx` | `who: string`, `title: string`, `children?` |
+| `Row` (new) | `src/ui/molecules/row.tsx` | `render?: (props: RowProps) => ReactNode`, `className?`, `children` |
+| `Option` (new) | `src/ui/molecules/option.tsx` | `selected?: boolean`, `trailing?`, and the props of a button |
+| `Tile` (new) | `src/ui/molecules/tile.tsx` | `icon?`, `label: string`, `selected?: boolean` (sets `aria-pressed`), and the props of a button. The file also exports `TILE_GRID` |
+| `StageLine` | `src/ui/molecules/stage-line.tsx` | `stage: Stage`, `mark?: Mark \| null` |
+| `SettingsRow` | `src/ui/molecules/settings-row.tsx` | `id?: string`, `icon?`, `label`, `current?: boolean`, `children` |
+| `BackLink` (new) | `src/ui/molecules/back-link.tsx` | `label: string`, `render?: (props: BackLinkProps) => ReactNode` |
+
+Each part has an entry in `src/ui/gallery/gallery.tsx`.
+
+### Moved controls: old control, new home
+
+The test `src/features/shell/inventory.test.tsx` finds each control by its role and its name (`spec:shell#REQ-020`).
+
+| Old control | Old place | New home | Role and name |
+|---|---|---|---|
+| Hide sidebar / Show sidebar | Top bar | Top row (banner) | button "Hide sidebar" |
+| Back | Top bar | Top row | button "Back" |
+| Forward | Top bar | Top row | button "Forward" |
+| Ask bar | Top bar, right | Top row, after Forward | combobox "Ask or tell Shipyard" |
+| Project picture | Top bar | Rail, in the project switch | part of button "Project <name>" |
+| Project switch | Top bar | Rail, top | button "Project <name>" |
+| Switch to a project | Menu of the project switch | Same menu | menuitemradio "<name>" |
+| All projects | Menu of the project switch | Same menu | menuitem "Projects" |
+| Open a local folder | Menu of the project switch | Same menu | menuitem "Open a local folder" |
+| Clone a repository | Menu of the project switch | Same menu | menuitem "Clone a repository" |
+| Close project | Menu of the project switch | Same menu | menuitem "Close project" |
+| Remove from list | Menu of the project switch | Same menu | menuitem "Remove from list" |
+| Working branch | Top bar | Card of the sync mark, and the action row of Code / Now | combobox "Working branch" |
+| Sync state (link to Code / Now) | Top bar | Top row, right end: the sync mark opens a card | button "Sync state: <state>" |
+| Sync | Top bar, split button | Card of the sync mark | button "Sync" |
+| Ahead and behind counts | On Sync | On Sync, in the card | name "Sync 2 ahead 1 behind" |
+| Fetch only | Menu "More ways to sync" | Card of the sync mark | button "Fetch only" |
+| Push | Menu "More ways to sync" | Card of the sync mark | button "Push" |
+| Files | Top bar | Ask bar, under Do. Door on Code / Now | option "Files", button "Files" |
+| Terminal | Top bar | Ask bar, under Do. Action row of Code / Now | option "Terminal", button "Terminal" |
+| More (Files, Terminal under 1100 px) | Top bar | Removed: its two items are in the Ask bar | option "Files", option "Terminal" |
+| Account | Top bar | Rail, foot: the account row | button "Account <name>" |
+| Setup / Me | Account menu | Account menu, header row | menuitem "<name> <role> Change" |
+| Theme: Light, Dark, System | Account menu | Account menu, one segmented row | group "Theme", menuitemradio "Theme: Light" |
+| Open the manual for this page (F1) | Account menu | Account menu | menuitem "Manual" |
+| Keyboard shortcuts | Account menu | Account menu | menuitem "Shortcuts" |
+| What's new | Account menu | Account menu | menuitem "What is new" |
+| Replay the tour | Account menu | Account menu | menuitem "Show the tour again" |
+| Commit | Status bar | Card of the sync mark. The commit box of Code / Now stays | button "Commit" |
+| Changed files (count) | Status bar | Card of the sync mark | link "Changed files (n)" to /code/now |
+| Lines added and removed | Status bar | Card of the sync mark | link "Changes: +5 lines added, −2 removed" to /code/now |
+| Watch notice | Status bar | Card of the sync mark. Top row (hidden text) while the card is closed | status |
+| Sync failure | Status bar | Card of the sync mark. Top row (hidden text) while the card is closed. The mark says "Sync failed" | alert |
+| Retry action of the failure | Status bar | Card of the sync mark | button "<action>" |
+| Version | Status bar | Account menu, row "About Shipyard" | text "Version <n>" |
+| Health (worst finding, count) | Status bar | Account menu, last item | menuitem "Health (n)", link to the scope of the worst finding |
+
+New in the account menu: Language (one item for each language) and Check for an update. The actions of the Ask bar keep their long names ("Open the manual for this page", "Keyboard shortcuts", "Replay the tour"). The dot for unread news and the dot for working agents are gone from the rail; their spoken texts stay.
+
+### Open after look pass 1
+
+Owner decisions:
+
+- The field border `n-7` (`#D5D9E2` on white, about 1.4:1) is under 3:1 (WCAG 1.4.11). The value is from the design.
+- No Sign out action exists, so the account menu has no "Sign out" row. The design shows one.
+- The narrow bar preference has no effect now, and its row is still in Setup / Me, Look and layout: remove the row, or give it a new effect.
+- The rail counts on Flow and Code stay as neutral tags. The design shows a count on Today only.
+- The first run keeps ten roles ("Other" included); the design shows nine tiles.
+
+Look, for the later sessions:
+
+- The feature page has no `PageHeader`, so its section switch floats alone at the top right, and its title is not 44 px.
+- The `Switch` atom keeps the old geometry; the design switch (52 px by 30 px track) is not ported.
+- Dialogs keep the old look.
+- The account menu covers the foot of the rail; the design draws it in the page area beside the rail.
+- `PageHeader` and most page bodies keep their own side padding of 16 px; `main` has a small left padding so that the title is flush with the top row. A page body with no padding of its own starts 14 px left of the title.
+- The place pages still use `bg-accent-gradient`, `bg-dots` and `shadow-glow`. `ticket-card`, `run-step`, `question-card`, `view-tabs`, `split-button` and `conflict-block` have the new look through the tokens only.
+- Library keeps its back link above the page, not in `PageHeader.back`.
+
+Function and tests:
+
+- The open Ask bar is not a portal: it is an absolute layer in `[data-page-area]`, and it holds only while no parent between the bar and the page area has a position.
+- `src/lib/themes/tokens.json` does not list the new tokens, and the `radius` of a theme does not set `--radius-field`.
+- The list frames of Plan / Estimates, Plan / Timeline and the run history have a minimum height of 256 px, so that the larger title cannot shrink a table to zero (`e2e/work.spec.ts`). No shared frame part exists: a new page must do the same.
+- The account row and the mock have no person name, so the row shows "Account".
+- `pr_agent::tests::a_draft_posts_only_once_and_needs_a_click` failed one time in a full `cargo test` run under load and passed alone. No Rust file changed in this pass.
+- Not checked in a real window: the Dark, OLED and System themes of each page, and the focus return after Commit from the card of the sync mark.
+
+Docs:
+
+- The 77 pictures of `docs/assets/screenshots/` are retaken from the final tree. SCR-097 (the card of the sync mark) has no picture and no scene in `scripts/screenshots.ts` (T045).
+- The deltas of `sync` (REQ-013, REQ-017), `projects` (REQ-013), `code` (REQ-007, REQ-014) and `ux-declutter` (REQ-010, REQ-012, REQ-013) name the new homes. The delta of `ux-declutter` needs the archive of `change:update-ux-declutter` first: the capability has no base spec yet. The Purpose text of the base specs still says "status bar": the archive merges only the requirement blocks.
+- The delta of `spec:design-system#REQ-001` gives the radii, the type sizes and the elevation tokens of `src/ui/tokens/tokens.css`.
+- `q:Q-001` (Switzer) is folded with the answer "use Inter"; the delta of `design-system` replaces that answer with Geist.

@@ -10,7 +10,7 @@ Die Dateien, die Sie geändert haben, zeigen sich als Baum.
 
 1. Wählen Sie eine Datei, um zu sehen, was sich geändert hat.
 2. Merken Sie die Dateien vor, die Sie behalten wollen. Oder verwerfen Sie eine Änderung.
-3. Schreiben Sie im Commit-Feld unter den Dateien eine Zusammenfassung, fügen Sie eine Beschreibung hinzu, wenn Sie wollen, dann klicken Sie auf Commit. Ein Commit nimmt nur die vorgemerkten Dateien. Die Commit-Steuerung der Statusleiste tut dasselbe von jeder Seite aus.
+3. Schreiben Sie im Commit-Feld unter den Dateien eine Zusammenfassung, fügen Sie eine Beschreibung hinzu, wenn Sie wollen, dann klicken Sie auf Commit. Ein Commit nimmt nur die vorgemerkten Dateien. Die Schaltfläche Commit in der Karte der Sync-Markierung tut dasselbe von jeder Seite aus.
 
 - Schreib es für mich bittet den Assistenten um eine Nachricht aus den vorgemerkten Dateien. Nichts wird gesendet, bis Sie es senden.
 - Eine Gruppe ohne Dateien zeigt eine gedämpfte Zeile, etwa „Nichts vorgemerkt“.
@@ -31,14 +31,14 @@ Verlauf listet die Commits, den neuesten zuerst. Wählen Sie einen Commit, um se
 
 Branches listet die Branches auf diesem Computer und auf dem Server. Legen Sie einen Branch an, wechseln Sie zu ihm, führen Sie ihn zusammen oder löschen Sie ihn. Die App löscht nie den Branch, an dem Sie arbeiten.
 
-Die Branch-Auswahl in der oberen Leiste hat ein Filterfeld. Tippen Sie, um die Liste einzugrenzen, bewegen Sie sich mit den Pfeiltasten und drücken Sie die Eingabetaste. Ein Remote-Branch wird als neuer lokaler Branch ausgecheckt, der ihm folgt. Die Zeile Neuer Branch legt einen Branch aus dem Branch an, an dem Sie arbeiten.
+Die Branch-Auswahl, in der Karte der Sync-Markierung und auf Code / Jetzt, hat ein Filterfeld. Tippen Sie, um die Liste einzugrenzen, bewegen Sie sich mit den Pfeiltasten und drücken Sie die Eingabetaste. Ein Remote-Branch wird als neuer lokaler Branch ausgecheckt, der ihm folgt. Die Zeile Neuer Branch legt einen Branch aus dem Branch an, an dem Sie arbeiten.
 
 ## Terminal
 
-Terminal ist eine Befehlszeile im Ordner des Projekts. Die Schaltfläche Terminal in der oberen Leiste öffnet dieselbe Befehlszeile in der Terminal-Schublade, von jeder Seite aus. Wenn die Shell endet, klicken Sie auf Neu starten. Ein Link in der Ausgabe öffnet sich in Ihrem Browser.
+Terminal ist eine Befehlszeile im Ordner des Projekts. Die Schaltfläche Terminal von Code / Jetzt und die Aktion Terminal der Leiste Shipyard fragen oder beauftragen öffnen dieselbe Befehlszeile in der Terminal-Schublade, von jeder Seite aus. Wenn die Shell endet, klicken Sie auf Neu starten. Ein Link in der Ausgabe öffnet sich in Ihrem Browser.
 
 ## Synchronisieren
 
-Eine Markierung neben dem Branch, in der oberen Leiste jeder Seite, zeigt den Zustand des Repositorys: Sync fehlgeschlagen, die Zahl der geänderten Dateien, Noch nicht geteilt, zurück, voraus oder Synchron. Klicken Sie darauf, um Code / Jetzt zu öffnen.
+Eine Markierung am rechten Ende der oberen Zeile jeder Seite zeigt den Zustand des Repositorys: Sync fehlgeschlagen, die Zahl der geänderten Dateien, Noch nicht geteilt, zurück, voraus oder Synchron. Klicken Sie darauf, um eine Karte mit den geänderten Dateien, dem Arbeits-Branch und den Schaltflächen für Sync und Commit zu öffnen. Ein Link in der Karte öffnet Code / Jetzt.
 
 Synchronisieren holt die Änderungen des Teams und bringt Ihren Branch auf den neuesten Stand. Der Pfeil daneben öffnet Nur abrufen und Push. Ihre Commits an den Server zu senden ist eine eigene Aktion. Die App erzwingt nie einen Push.

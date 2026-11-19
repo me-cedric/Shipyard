@@ -10,7 +10,7 @@ Los archivos que cambiaste se muestran como árbol.
 
 1. Selecciona un archivo para ver qué cambió.
 2. Prepara los archivos que quieres conservar. O descarta un cambio.
-3. En el cuadro de commit bajo los archivos, escribe un resumen, añade una descripción si quieres, y haz clic en Commit. Un commit toma solo los archivos preparados. El control de commit de la barra de estado hace lo mismo desde cualquier página.
+3. En el cuadro de commit bajo los archivos, escribe un resumen, añade una descripción si quieres, y haz clic en Commit. Un commit toma solo los archivos preparados. El botón Commit de la tarjeta de la marca de sincronización hace lo mismo desde cualquier página.
 
 - Escríbelo por mí pide al asistente un mensaje a partir de los archivos preparados. No se envía nada hasta que lo envías.
 - Un grupo sin archivos muestra una línea discreta, como «Nada preparado».
@@ -31,14 +31,14 @@ Historial lista los commits, el más reciente primero. Selecciona un commit para
 
 Ramas lista las ramas de este ordenador y del servidor. Crea, cambia a, fusiona o elimina una rama. La aplicación nunca elimina la rama en la que trabajas.
 
-El selector de rama de la barra superior tiene un campo de filtro. Escribe para reducir la lista, muévete con las flechas y pulsa Intro. Una rama remota se extrae como una rama local nueva que la sigue. La fila Nueva rama crea una rama a partir de la rama en la que trabajas.
+El selector de rama, en la tarjeta de la marca de sincronización y en Código / Ahora, tiene un campo de filtro. Escribe para reducir la lista, muévete con las flechas y pulsa Intro. Una rama remota se extrae como una rama local nueva que la sigue. La fila Nueva rama crea una rama a partir de la rama en la que trabajas.
 
 ## Terminal
 
-Terminal es una línea de comandos en la carpeta del proyecto. El botón Terminal de la barra superior abre la misma línea de comandos en el cajón del terminal, desde cualquier página. Cuando el shell termina, haz clic en Reiniciar. Un enlace en la salida se abre en tu navegador.
+Terminal es una línea de comandos en la carpeta del proyecto. El botón Terminal de Código / Ahora y la acción Terminal de la barra Preguntar o indicar a Shipyard abren la misma línea de comandos en el cajón del terminal, desde cualquier página. Cuando el shell termina, haz clic en Reiniciar. Un enlace en la salida se abre en tu navegador.
 
 ## Sincronizar
 
-Una marca junto a la rama, en la barra superior de cada página, muestra el estado del repositorio: La sincronización falló, el número de archivos modificados, Aún no compartido, por detrás, por delante o Sincronizado. Haz clic en ella para abrir Código / Ahora.
+Una marca en el extremo derecho de la fila superior de cada página muestra el estado del repositorio: La sincronización falló, el número de archivos modificados, Aún no compartido, por detrás, por delante o Sincronizado. Haz clic en ella para abrir una tarjeta con los archivos modificados, la rama de trabajo y los botones de sincronización y de commit. Un enlace de la tarjeta abre Código / Ahora.
 
 Sincronizar trae los cambios del equipo y pone tu rama al día. La flecha unida a él abre Solo traer y Push. Enviar tus commits al servidor es una acción aparte. La aplicación nunca fuerza un push.

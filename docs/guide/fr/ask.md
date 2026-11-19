@@ -1,6 +1,6 @@
 # La barre Demander
 
-Demander ou dire à Shipyard, dans la barre du haut, est la seule barre pour une question, un lieu et une action. Appuyez sur Ctrl+K (Cmd+K sur un Mac) pour y aller. Tapez, puis utilisez les flèches et Entrée. Échap la ferme.
+Demander ou dire à Shipyard, dans la rangée du haut de chaque page, est la seule barre pour une question, un lieu et une action. Appuyez sur Ctrl+K (Cmd+K sur un Mac) pour y aller. Tapez, puis utilisez les flèches et Entrée. Échap la ferme.
 
 ## Aller à
 

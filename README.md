@@ -43,7 +43,7 @@ Shipyard is pre-release software. Installers are on [GitHub Releases](https://gi
 
 | Area | Current state |
 | --- | --- |
-| Shell | Works. Seven spaces and Settings, command palette, inspector, assistant panel, notification centre, status bar with one Commit action and one Sync action. |
+| Shell | Works. A rail with the project switch, the six places, Setup and the account menu; one top row with the bar Ask or tell Shipyard and the sync mark, whose card holds Sync and Commit; inspector, assistant panel. The shell has no top bar and no status bar. |
 | Projects | Works. Open a folder, clone, or create a project with the New project creator. A project profile hides or locks pages. |
 | Team rights | Works. Roles, levels per area, admin, join request. |
 | Design | Works. Diagrams (Excalidraw, Mermaid, BPMN, draw.io), LikeC4 architecture, decisions, API, data, flows and screens. |
@@ -421,4 +421,4 @@ Shipyard builds on these projects:
 - [agent-compass](https://github.com/me-cedric/agent-compass) for the agent contract.
 - [draw.io](https://www.drawio.com) (online embed), [Excalidraw](https://excalidraw.com), [bpmn-js](https://bpmn.io), [Mermaid](https://mermaid.js.org) and [LikeC4](https://likec4.dev) for diagrams.
 - [xyflow](https://xyflow.com) for graphs, [reveal.js](https://revealjs.com) for slides and [xterm.js](https://xtermjs.org) for the terminal.
-- [Inter](https://rsms.me/inter/) for the fallback font.
+- [Geist and Geist Mono](https://vercel.com/font) for the fonts, bundled with the app.

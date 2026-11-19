@@ -1,6 +1,6 @@
 # Projekte
 
-Projekte listet die Projekte auf diesem Computer. Klicken Sie auf den Projektnamen in der oberen Leiste, um die Seite zu öffnen. Sie zeigt das Projekt, das jetzt offen ist, die zuvor geöffneten Projekte mit ihrer Code-Plattform als Badge, und die Wege, eines zu beginnen.
+Projekte listet die Projekte auf diesem Computer. Klicken Sie auf den Projektnamen oben in der Seitenleiste, dann auf Projekte, um die Seite zu öffnen. Sie zeigt das Projekt, das jetzt offen ist, die zuvor geöffneten Projekte mit ihrer Code-Plattform als Badge, und die Wege, eines zu beginnen.
 
 Ohne offenes Projekt zeigt jeder Ort dieselbe Auswahl: Ordner öffnen, Repository klonen und Neues Projekt.
 

@@ -1,6 +1,6 @@
 # Projects
 
-Projects lists the projects on this computer. Click the project name in the top bar to open it. It shows the project that is open now, the projects opened before with their code host as a badge, and the ways to start one.
+Projects lists the projects on this computer. Click the project name at the top of the sidebar, then Projects, to open it. It shows the project that is open now, the projects opened before with their code host as a badge, and the ways to start one.
 
 With no project open, each place shows the same choice: Open a folder, Clone a repository and New project.
 

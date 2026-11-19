@@ -10,7 +10,7 @@ Inicio es el inicio guiado: cada paso de la lista Empezar, una pregunta cada vez
 
 Este proyecto contiene lo que el proyecto guarda y comparte con el equipo. Cuatro puertas abren sus páginas: Conexiones, Tickets, Extensiones y Salud de este proyecto.
 
-El formulario del proyecto contiene el nombre y el logo (el logo se muestra en la barra superior), las carpetas del proyecto, la receta predeterminada, la automatización y la importación del proyecto. Los ajustes que se cambian poco están en Avanzado. La misma página restaura los cambios apartados (stashes), muestra lo que contienen, y pone al día una rama que va por detrás del servidor.
+El formulario del proyecto contiene el nombre y el logo (el logo se muestra junto al nombre del proyecto, en lo alto de la barra lateral), las carpetas del proyecto, la receta predeterminada, la automatización y la importación del proyecto. Los ajustes que se cambian poco están en Avanzado. La misma página restaura los cambios apartados (stashes), muestra lo que contienen, y pone al día una rama que va por detrás del servidor.
 
 - Automatización: los interruptores dejan que los agentes hagan push, abran una pull request, muevan un ticket y lo comenten sin clic. Con un interruptor desactivado, cada escritura de ese tipo espera tu aprobación.
 - Permisos de una receta: «No volver a preguntar por esta receta» en una aprobación permite exactamente los tipos de sus efectos (por ejemplo `transition` y `open_pr`) solo para las ejecuciones de esa receta. Otro tipo sigue esperando. El grupo Automatización lista cada receta con un permiso: Quitar retira un tipo con Guardar, y la siguiente escritura de ese tipo te espera de nuevo. Un guardado nunca añade un permiso. Un push forzado siempre te espera. El archivo los guarda en `recipe_writes` de `.shipyard/automation.yaml`. El archivo es compartido: cada compañero necesita una versión de Shipyard que lea `recipe_writes`, si no el archivo no es válido para ese compañero y su sincronización se detiene.
@@ -95,7 +95,7 @@ Shipyard puede servir sus herramientas a un agente que inicias tú mismo. Activa
 
 ### Salud de este ordenador
 
-Salud de este ordenador lista los problemas de las herramientas de esta máquina. Cada problema tiene un botón que lo corrige. El enlace de salud de la barra de estado abre el ámbito del hallazgo más grave.
+Salud de este ordenador lista los problemas de las herramientas de esta máquina. Cada problema tiene un botón que lo corrige. La entrada Salud del menú de la cuenta abre el ámbito del hallazgo más grave.
 
 ### Registros y comentarios
 
@@ -117,4 +117,4 @@ Notificaciones: cada origen tiene su propio interruptor, activado por defecto. L
 
 ### Aspecto y disposición
 
-Aspecto y disposición contiene las fuentes, el lado de la barra y de los cajones, el color de acento, el formato de fecha, una barra superior estrecha y tu foto.
+Aspecto y disposición contiene las fuentes, el lado de la barra y de los cajones, el color de acento, el formato de fecha y tu foto.

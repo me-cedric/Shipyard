@@ -7,10 +7,11 @@ Shipyard hilft einem Team, ein Softwareprojekt auszuliefern: die Features, den P
 - Die linke Leiste enthält die sieben Orte: Heute, Ablauf, Plan, Team, Bibliothek, Code und Einrichtung. Diese Anleitung hat eine Seite für jeden Ort.
 - Die Abschnitte eines Ortes stehen oben auf der Seite, in einem Umschalter. Bibliothek hat keinen Umschalter: Sie öffnet sich mit vier Türen, und jede ihrer Seiten hat einen Link Bibliothek, der dorthin zurückführt.
 - Der Inspektor rechts zeigt das Element, das Sie auswählen.
-- Die Statusleiste unten zeigt das Projekt, den Sync-Status und die Commit-Steuerung, mit der Zahl der geänderten Dateien neben Commit.
-- Die obere Leiste enthält die Schaltfläche der Seitenleiste, Zurück und Vorwärts, den Projektnamen, den Branch mit seiner Sync-Markierung, die Leiste Shipyard fragen oder beauftragen, die Schaltflächen Dateien und Terminal und das Kontomenü.
-  - Der Projektname öffnet die Seite Projekte.
-  - Die Sync-Markierung zeigt den Zustand des Repositorys. Siehe die Seite Code, Synchronisieren.
+- Die Seitenleiste enthält auch den Projektnamen oben und Ihr Konto unten.
+  - Der Projektname öffnet ein Menü mit Ihren Projekten und der Seite Projekte.
+  - Ihr Konto öffnet das Kontomenü: das Design, die Sprache, die Anleitung, die Version von Shipyard und den Zustand.
+- Die obere Zeile jeder Seite enthält die Schaltfläche der Seitenleiste, Zurück und Vorwärts, die Leiste Shipyard fragen oder beauftragen und die Sync-Markierung. Das Fenster hat keine obere Leiste und keine Statusleiste.
+  - Die Sync-Markierung zeigt den Zustand des Repositorys. Klicken Sie darauf, um die geänderten Dateien, den Branch, Sync und Commit zu sehen. Siehe die Seite Code, Synchronisieren.
   - Shipyard fragen oder beauftragen ist die eine Leiste für eine Frage, einen Ort und eine Aktion. Siehe die Seite Die Fragen-Leiste.
   - Das Kontomenü (Ihr Bild) enthält Einrichtung / Ich, Design (Hell, Dunkel, System), Anleitung, Tastenkürzel, Was ist neu und Tour wiederholen.
 - Unter 1100 px stehen die Schaltflächen Dateien und Terminal im Menü Mehr.
@@ -71,9 +72,9 @@ Wenn Ihre Rolle ihre erste Seite nicht sieht, öffnet sich Heute. Ohne Rolle öf
 - Drücken Sie Ctrl+K (Cmd+K auf einem Mac), um zur Fragen-Leiste zu gehen. Tippen Sie den Namen einer Seite, eines Elements oder einer Aktion, dann nutzen Sie die Pfeiltasten und die Eingabetaste.
 - Drücken Sie Ctrl+1 bis Ctrl+7, um zu einem Ort zu gehen.
 - Drücken Sie F1, oder wählen Sie Anleitung im Kontomenü, oder wählen Sie Anleitung zu dieser Seite öffnen in der Fragen-Leiste, um die Hilfe zur Seite zu lesen, die Sie sehen. Die Anleitung öffnet sich auf der Seite des Ortes, beim Abschnitt, in dem Sie waren.
-- Drücken Sie Ctrl+[ und Ctrl+] (Cmd auf einem Mac), oder klicken Sie auf Zurück und Vorwärts in der oberen Leiste, um zwischen den geöffneten Seiten zu wechseln.
-- Klicken Sie auf die Schaltfläche der Seitenleiste am linken Ende der oberen Leiste, um die Seitenleiste aus- oder einzublenden.
-- Klicken Sie auf die Schaltfläche Terminal, um die Terminal-Schublade zu öffnen oder zu schließen.
+- Drücken Sie Ctrl+[ und Ctrl+] (Cmd auf einem Mac), oder klicken Sie auf Zurück und Vorwärts in der oberen Zeile, um zwischen den geöffneten Seiten zu wechseln.
+- Klicken Sie auf die Schaltfläche der Seitenleiste am linken Ende der oberen Zeile, um die Seitenleiste aus- oder einzublenden.
+- Wählen Sie Terminal oder Dateien in der Leiste Shipyard fragen oder beauftragen, um die Terminal-Schublade oder die Dateien-Schublade zu öffnen oder zu schließen.
 - Eine Adresse einer älteren Version funktioniert weiterhin: Sie öffnet die Seite, die dieselbe Funktion heute enthält.
 - Wenn ein Fehler eine Schaltfläche hat, die eine Einstellung öffnet, klicken Sie darauf. Die Seite öffnet sich in der genauen Zeile, setzt den Fokus auf ihr Bedienelement und markiert es 2 Sekunden lang.
 - Halten Sie Ctrl (Cmd auf einem Mac) und drehen Sie das Mausrad auf einem Diagramm oder einem Bild, um zu zoomen. Ziehen Sie, um es zu verschieben. Nutzen Sie Vollbild für eine große Ansicht.

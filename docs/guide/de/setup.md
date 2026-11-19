@@ -10,7 +10,7 @@ Start ist der geführte Start: jeder Schritt der Liste Erste Schritte, eine Frag
 
 Dieses Projekt enthält, was das Projekt speichert und mit dem Team teilt. Vier Türen öffnen seine Seiten: Verbindungen, Tickets, Erweiterungen und Zustand dieses Projekts.
 
-Das Projektformular enthält den Namen und das Logo (das Logo zeigt sich in der oberen Leiste), die Ordner des Projekts, das Standardrezept, die Automatisierung und den Projektimport. Selten geänderte Einstellungen stehen unter Erweitert. Dieselbe Seite stellt beiseitegelegte Änderungen (Stashes) wieder her, zeigt, was sie enthalten, und bringt einen Branch, der hinter dem Server liegt, auf den neuesten Stand.
+Das Projektformular enthält den Namen und das Logo (das Logo zeigt sich neben dem Projektnamen, oben in der Seitenleiste), die Ordner des Projekts, das Standardrezept, die Automatisierung und den Projektimport. Selten geänderte Einstellungen stehen unter Erweitert. Dieselbe Seite stellt beiseitegelegte Änderungen (Stashes) wieder her, zeigt, was sie enthalten, und bringt einen Branch, der hinter dem Server liegt, auf den neuesten Stand.
 
 - Automatisierung: Die Schalter lassen die Agenten ohne Klick pushen, einen Pull Request öffnen, ein Ticket verschieben und es kommentieren. Mit einem ausgeschalteten Schalter wartet jeder Schreibvorgang dieser Art auf Ihre Freigabe.
 - Erlaubnisse eines Rezepts: „Für dieses Rezept nicht mehr fragen“ an einer Freigabe erlaubt genau die Arten ihrer Wirkungen (zum Beispiel `transition` und `open_pr`) nur für die Läufe dieses Rezepts. Eine andere Art wartet weiterhin. Die Gruppe Automatisierung listet jedes Rezept mit einer Erlaubnis: Entfernen nimmt eine Art mit Speichern weg, und der nächste Schreibvorgang dieser Art wartet wieder auf Sie. Ein Speichern fügt nie eine Erlaubnis hinzu. Ein erzwungener Push wartet immer auf Sie. Die Datei hält sie unter `recipe_writes` in `.shipyard/automation.yaml`. Die Datei ist geteilt: Jedes Teammitglied braucht eine Version von Shipyard, die `recipe_writes` liest, sonst ist die Datei für dieses Teammitglied ungültig und sein Sync stoppt.
@@ -95,7 +95,7 @@ Shipyard kann seine Werkzeuge einem Agenten anbieten, den Sie selbst starten. Sc
 
 ### Zustand dieses Computers
 
-Zustand dieses Computers listet die Probleme der Werkzeuge auf diesem Rechner. Jedes Problem hat eine Schaltfläche, die es behebt. Der Zustands-Link der Statusleiste öffnet den Bereich des schwersten Befunds.
+Zustand dieses Computers listet die Probleme der Werkzeuge auf diesem Rechner. Jedes Problem hat eine Schaltfläche, die es behebt. Der Eintrag Zustand des Kontomenüs öffnet den Bereich des schwersten Befunds.
 
 ### Protokolle und Feedback
 
@@ -117,4 +117,4 @@ Benachrichtigungen: Jede Quelle hat ihren eigenen Schalter, standardmäßig an. 
 
 ### Aussehen und Layout
 
-Aussehen und Layout enthält die Schriften, die Seite der Leiste und der Schubladen, die Akzentfarbe, das Datumsformat, eine schmale obere Leiste und Ihr Bild.
+Aussehen und Layout enthält die Schriften, die Seite der Leiste und der Schubladen, die Akzentfarbe, das Datumsformat und Ihr Bild.

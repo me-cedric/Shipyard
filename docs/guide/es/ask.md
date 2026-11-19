@@ -1,6 +1,6 @@
 # La barra Preguntar
 
-Preguntar o indicar a Shipyard, en la barra superior, es la única barra para una pregunta, un lugar y una acción. Pulsa Ctrl+K (Cmd+K en un Mac) para ir a ella. Escribe, y usa las flechas e Intro. Escape la cierra.
+Preguntar o indicar a Shipyard, en la fila superior de cada página, es la única barra para una pregunta, un lugar y una acción. Pulsa Ctrl+K (Cmd+K en un Mac) para ir a ella. Escribe, y usa las flechas e Intro. Escape la cierra.
 
 ## Ir a
 

@@ -203,7 +203,7 @@ Feature: sync
   Scenario: Sync action and state: No second control
     Given any view of the app
     When a person looks for a sync control
-    Then only the status bar and the palette offer it
+    Then only the card of the sync mark and the Ask bar offer it
 
   @spec:sync#REQ-014
   Scenario: Failed poll: Network loss
@@ -234,7 +234,7 @@ Feature: sync
 
   @spec:sync#REQ-017
   Scenario: Interface rules: Keyboard only
-    Given the status bar
+    Given the open card of the sync mark
     When a person focuses the sync action and presses Enter
     Then a tick runs
 

@@ -2,7 +2,29 @@
 
 ADR 0014. Goal: a workspace that feels alive and premium (Cabinet, Linear, Raycast, Pace UI), and stays dense and fast. The constitution still applies: no taglines, no helper text, no secondary labels; icon and noun labels; keyboard path, focus ring, contrast; French and English.
 
+## 0. Look pass 1 (2026-11-19)
+
+Look pass 1 of `change:update-app-redesign` (`adr:0023`) set the tokens to the values of the new design. Where this section and a later section differ, this section is true.
+
+| Token | Look pass 1 |
+|---|---|
+| Surfaces | `--surface-0` is the flat page background (`#F3F4F7` in Light, `#0F1115` in Dark, black in OLED). `--surface-1` to `--surface-3` are one card colour (`#FFFFFF` in Light, `#1A1D24` in Dark). No gradient wash, no dot grid, no aurora, no grain. |
+| Elevation | `--shadow-1` for the current rail item, the Ask bar and the current switch item; `--shadow-2` for a card and a tile; `--shadow-3` for a popup. Dark has no shadow 1 and 2. |
+| Accent | One accent (`#2450D8` in Light, `#7E9BFF` in Dark), flat. `accent-tint` marks a selected option or tile. The gradient and the glow are gone: `bg-accent-gradient` resolves to the flat `primary` colour. |
+| Primary | `primary` is near-black (`#151821` in Light, `#ECEEF2` in Dark) for the primary button, the agent avatar and a done step. |
+| Attention | One attention colour (`#E8833A`) for "a person must act": the attention card, the tag "you", a meter over its budget and the count of Today (`spec:app-redesign#REQ-025`). |
+| Radius | 9 px (small), 12 px (controls), 14 px (the Ask bar, an option), 20 px (cards, tiles), full (pills). |
+| Type | Geist for text and Geist Mono for ids, numbers, keys and code, bundled with the app (`spec:design-system#REQ-003`). Body 15 px with line height 1.45. Page title 44 px, weight 600. |
+| Focus | A 2 px ring in the accent colour. |
+| Size | Each control is 44 px high or more (`--control-h`). |
+
+Shell: a flat rail (72 px collapsed, 216 px open) with the project switch at its top, the six places with their counts, and Setup and the account row at its foot. The page area starts with one top row: the rail toggle, Back, Forward, the Ask bar and the sync mark. The shell has no top bar and no status bar. `spec:shell#REQ-021` holds the rule, and `.agents/progress/app-redesign.md` holds the map of the moved controls.
+
+Shared parts of look pass 1: LinkButton, Chip, StepBar, Row, Option, Tile and BackLink are new. PageHeader has a 44 px title, no icon tile, and the section switch in its title row.
+
 ## 1. Tokens (`src/ui/tokens/tokens.css`)
+
+The table below is the v2 record. Section 0 replaces the rows Surfaces, Elevation, Accent, Radius, Type and Background.
 
 | Token | v2 |
 |---|---|
@@ -11,16 +33,18 @@ ADR 0014. Goal: a workspace that feels alive and premium (Cabinet, Linear, Rayca
 | Accent | One hue, with a gradient `--accent-gradient` (accent to accent + 40° hue) for the primary button, the active nav pill, progress and live runs, and `--accent-glow` (a 12 to 24 px blur at 25 %) for focus and live state. |
 | Status | Four status hues with a soft tinted background each (`--success-soft` and the rest) for chips and lane headers. |
 | Radius | 8 (controls), 12 (cards, panels), 16 (dialogs, hero panels), full (pills). |
-| Type | Inter (Switzer when Q-001 clears) for text; Departure Mono for ids, numbers, keys and code. Page title 20/28 semibold, section 14/20 medium, body 13/20, meta 12/16. Numbers use tabular figures. |
+| Type | Geist for text; Geist Mono for ids, numbers, keys and code (v2 used Inter and Departure Mono). Page title 20/28 semibold in v2, section 14/20 medium, body 13/20, meta 12/16. Numbers use tabular figures. |
 | Motion | `motion` springs: `snappy` (stiffness 500, damping 32) for hover and press, `smooth` (300, 30) for panels and lists, `gentle` (180, 24) for page change. List items stagger 20 ms. Everything is off with `prefers-reduced-motion`. |
 | Background | A faint grid or noise layer and a soft accent aurora at the top of the main area (CSS only, no image). |
 
 ## 2. Shell
 
+Look pass 1 replaced this shell: see section 0. The ContextBar is now the top row of the page, the sidebar is the flat rail, and the status bar is gone.
+
 - **ContextBar** (top, 44 px, always visible): project switcher with state dot, branch switcher, repo state (changes, ahead, behind) with Sync, the live factory pulse (active runs, needs-you count), search and palette trigger (⌘K), assistant (⌘J), notifications, theme. It replaces the project control in the sidebar.
 - **Sidebar**: floating panel on `--surface-1` with radius 12, the active space as an accent pill with a spring layout animation (`layoutId`), a count badge per space (needs-you, changes, open pull requests), collapse to a 56 px rail with tooltips.
 - **Tabs**: segmented control with an animated pill under the active tab.
-- **Status bar**: thinner; the sync and commit actions stay unique there.
+- **Status bar**: removed in look pass 1. The sync and commit actions are in the card of the sync mark.
 
 ## 3. Shared components
 

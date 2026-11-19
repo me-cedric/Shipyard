@@ -1,6 +1,6 @@
 # The Ask bar
 
-Ask or tell Shipyard, in the top bar, is the one bar for a question, a place and an action. Press Ctrl+K (Cmd+K on a Mac) to move to it. Type, then use the arrow keys and Enter. Escape closes it.
+Ask or tell Shipyard, in the top row of each page, is the one bar for a question, a place and an action. Press Ctrl+K (Cmd+K on a Mac) to move to it. Type, then use the arrow keys and Enter. Escape closes it.
 
 ## Go to
 

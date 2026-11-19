@@ -10,7 +10,7 @@ Start is the guided start: each step of the Get started checklist, one question 
 
 This project holds what the project stores and shares with the team. Four doors open its pages: Connections, Tickets, Extensions and Health of this project.
 
-The project form holds the name and the logo (the logo shows in the top bar), the folders of the project, the default recipe, the automation and the project import. Settings that are rarely changed sit under Advanced. The same page restores saved changes (stashes), shows what they hold, and brings a branch that lags behind the server up to date.
+The project form holds the name and the logo (the logo shows beside the project name, at the top of the sidebar), the folders of the project, the default recipe, the automation and the project import. Settings that are rarely changed sit under Advanced. The same page restores saved changes (stashes), shows what they hold, and brings a branch that lags behind the server up to date.
 
 - Automation: the switches let the agents push, open a pull request, move a ticket and comment on it with no click. With a switch off, each write of that kind waits for your approval.
 - Permissions of a recipe: "Do not ask again for this recipe" on an approval allows exactly the kinds of its effects (for example `transition` and `open_pr`) for the runs of that recipe only. Another kind still waits. The Automation group lists each recipe with a permission: Remove takes one kind away with Save, and the next write of that kind waits for you again. A save never adds a permission. A force push always waits for you. The file keeps them under `recipe_writes` in `.shipyard/automation.yaml`. The file is shared: each teammate needs a version of Shipyard that reads `recipe_writes`, else the file is not valid for that teammate and their sync stops.
@@ -95,7 +95,7 @@ Shipyard can serve its tools to an agent that you start yourself. Turn the serve
 
 ### Health of this computer
 
-Health of this computer lists the problems of the tools on this machine. Each problem has one button that fixes it. The health link of the status bar opens the scope of the worst finding.
+Health of this computer lists the problems of the tools on this machine. Each problem has one button that fixes it. The Health item of the account menu opens the scope of the worst finding.
 
 ### Logs and feedback
 
@@ -117,4 +117,4 @@ Notifications: each source has its own switch, on by default. The sources are a 
 
 ### Look and layout
 
-Look and layout holds the fonts, the side of the bar and of the drawers, the accent colour, the date format, a narrow top bar and your picture.
+Look and layout holds the fonts, the side of the bar and of the drawers, the accent colour, the date format and your picture.

@@ -1,6 +1,6 @@
 # Projets
 
-Projets liste les projets de cet ordinateur. Cliquez sur le nom du projet dans la barre du haut pour l'ouvrir. La page montre le projet ouvert, les projets ouverts avant avec leur hébergeur de code en badge, et les manières d'en commencer un.
+Projets liste les projets de cet ordinateur. Cliquez sur le nom du projet en haut de la barre latérale, puis sur Projets, pour l'ouvrir. La page montre le projet ouvert, les projets ouverts avant avec leur hébergeur de code en badge, et les manières d'en commencer un.
 
 Sans projet ouvert, chaque lieu montre le même choix : Ouvrir un dossier, Cloner un dépôt et Nouveau projet.
 

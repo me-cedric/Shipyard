@@ -1,6 +1,6 @@
 # Proyectos
 
-Proyectos lista los proyectos de este ordenador. Haz clic en el nombre del proyecto en la barra superior para abrirla. Muestra el proyecto abierto ahora, los proyectos abiertos antes con su plataforma de código como distintivo, y las maneras de empezar uno.
+Proyectos lista los proyectos de este ordenador. Haz clic en el nombre del proyecto en lo alto de la barra lateral, y luego en Proyectos, para abrirla. Muestra el proyecto abierto ahora, los proyectos abiertos antes con su plataforma de código como distintivo, y las maneras de empezar uno.
 
 Sin proyecto abierto, cada lugar muestra la misma elección: Abrir una carpeta, Clonar un repositorio y Nuevo proyecto.
 

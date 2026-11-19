@@ -1,6 +1,12 @@
 # Changelog
 
 ## [0.2.0]
+- The interface has a new look in the themes Light, Dark, OLED and System: a flat page background, one accent colour, one colour for what needs you, near-black main buttons, the fonts Geist and Geist Mono, 15 px text, and rounder controls and cards.
+- The window has no top bar and no status bar: the sidebar holds the project name at its top, the six places with their counts, Setup and your account at its foot, and each page starts with one row that holds the sidebar button, Back, Forward, the bar Ask or tell Shipyard and the sync mark.
+- The sync mark opens a card with the changed files, the lines added and removed, the working branch and the buttons Sync, Fetch only, Push and Commit; a sync failure shows there with its retry action.
+- The account menu opens from the foot of the sidebar and holds the theme, the language, the manual, the keyboard shortcuts, What's new, Replay the tour, Check for updates, the version of Shipyard and Health.
+- The open bar Ask or tell Shipyard shows as one column in the centre of the page, with the answer, Reply, Go to and Do; Files and Terminal are actions of the bar.
+- The first run and the page No project is open show alone, without the sidebar: the first run asks your role with tiles and a step bar, then how to start.
 - Each role opens on its own first page: the product owner on Flow / List, the project manager on Plan / Timeline, the business analyst on Library / Specs, the architect on Library / Decisions, the tech lead and the developer on Flow, the tester on Library / Test plans, the designer on Library / Screens and the viewer on Today; a place or a view that a role cannot open stays hidden, with its links and its actions.
 - A viewer does not see the Code place by default (the `roles:` block of the team file can give it back), a save of a member keeps the `roles:` block, and each error text says issue tracker, code host and recipe and opens the new address of its page.
 - The words are plainer in English, French, German and Spanish: Recipes for Workflows, Map for Graph, Specs for Capabilities, Project rules for Constitution, Network flows for Flows, and Flow in place of Factory.
@@ -16,7 +22,7 @@
 - Library / Reports lists each report on one page, with Export, Fill the form (Change request, Work done) or a link to the page that holds the export, and a Format choice (All, Word, Excel, Picture); the Export menu of each page stays.
 - Dashboards has Build a tile for me: type what the tile must show, set a budget and click Build; an agent that only reads the project proposes one tile, Accept adds it and Discard drops it, Stop ends the work, which also shows in Crew / Sessions, and the dashboard changes only on Accept.
 - Code has the sections Now, History, Branches and Terminal: Now shows the files to commit with a commit box, then the pull requests, and the old addresses of Local changes and Pull requests open it.
-- One mark in the top bar shows the sync state on each page (Sync failed, changed files, Not shared yet, behind, ahead or In sync) and opens Code / Now.
+- One mark at the top of each page shows the sync state (Sync failed, changed files, Not shared yet, behind, ahead or In sync).
 - Health in Flow shows for every role; a missing right turns Run and Set up off.
 - The impacts of a change open from the Checks of its feature.
 - Health of this project has "Fix all with an agent": one feature in Flow, one run with the budget and the stop of every run.

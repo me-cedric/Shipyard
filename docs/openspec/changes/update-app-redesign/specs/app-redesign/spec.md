@@ -76,7 +76,7 @@ Setup
 
 Visual language and words
 
-- REQ-025: The interface SHALL use one accent colour and one attention colour. The attention colour SHALL mean "a person must act" and nothing else. The themes Light, Dark, OLED and System SHALL stay. Light SHALL be the default for a person who has not chosen a theme. A theme that a person chose before this change SHALL stay.
+- REQ-025: The interface SHALL use one accent colour and one attention colour. The attention colour SHALL mean "a person must act" and nothing else. It SHALL show only on the attention card, on the tag "you", on a meter that is over its budget and on the count of Today. The themes Light, Dark, OLED and System SHALL stay. Light SHALL be the default for a person who has not chosen a theme. A theme that a person chose before this change SHALL stay.
 - REQ-026: Each control that a person clicks SHALL be 44 px high or more. No page SHALL scroll sideways at the minimum window size of 960 by 600.
 - REQ-027: The interface SHALL use plain words for the places and the objects, complete in English, French, German and Spanish. In English the places SHALL be Today, Flow, Plan, Crew, Library, Code and Setup, a workflow SHALL be a "recipe", and the people and the agents together SHALL be the "crew". It SHALL say "issue tracker" and "code host".
 - REQ-028: Each new shared component SHALL live in the atomic layers of `src/ui/` and SHALL show in the gallery. A page SHALL NOT define a new primitive.
@@ -122,10 +122,10 @@ New agent actions
 
 - Design source: `docs/designs/redesign/README.md` (index of the 101 screens, pictures and sources), and the private canvas <https://claude.ai/artifact/1uHi9aggUnnnUDchTWGYA2>.
 - Existing code: `src/features/`, `src/app/router.tsx`, `src/ui/`.
-- Extends: `change:update-ux-declutter` (one checklist, shared patterns). Supersedes its top bar requirements when the Ask bar ships.
+- Extends: `change:update-ux-declutter` (one checklist, shared patterns). Supersedes its top bar and status bar requirements: look pass 1 removed both bars (`spec:shell#REQ-021`).
 - Rules: `docs/openspec/constitution.md` sections 2, 3 and 4.
 - Decision: `adr:0023` (six places and one flow), accepted. It replaces `adr:0004`.
-- Other capabilities: the deltas of this change hold the requirements whose behavior changes: `spec:shell#REQ-001`, `spec:shell#REQ-005`, `spec:shell#REQ-009`, `spec:factory#REQ-027`, `spec:factory#REQ-030`, `spec:factory#REQ-038`, `spec:code#REQ-026`, `spec:code#REQ-027`, `spec:code#REQ-029`. `spec:team-rights#REQ-013` has its new first pages in `change:add-team-rights`. Each other requirement that names a page of before this change keeps its ref and its behavior at the new place of the map in `plan.md`. No requirement ref moves.
+- Other capabilities: the deltas of this change hold the requirements whose behavior changes: `spec:shell#REQ-001`, `spec:shell#REQ-005`, `spec:shell#REQ-009`, `spec:shell#REQ-012`, `spec:shell#REQ-017`, `spec:design-system#REQ-003`, `spec:factory#REQ-027`, `spec:factory#REQ-030`, `spec:factory#REQ-038`, `spec:code#REQ-026`, `spec:code#REQ-027`, `spec:code#REQ-029`. `spec:team-rights#REQ-013` has its new first pages in `change:add-team-rights`. Each other requirement that names a page of before this change keeps its ref and its behavior at the new place of the map in `plan.md`. One requirement ref moves: `spec:shell#REQ-021` (the top row and the sync mark) replaces the status bar requirement, REQ-007 of `shell`, which this change removes. The delta of `shell` also adds `spec:shell#REQ-018` to `spec:shell#REQ-020`.
 
 ## ADDED Requirements
 
@@ -436,7 +436,7 @@ Screen: SCR-061
 
 ### Requirement: REQ-025 Two colours with a meaning
 
-The interface SHALL use one accent colour and one attention colour that means "a person must act", SHALL keep the themes Light, Dark, OLED and System, and SHALL open in Light for a person who has not chosen a theme.
+The interface SHALL use one accent colour and one attention colour that means "a person must act", SHALL show the attention colour only on the attention card, on the tag "you", on a meter that is over its budget and on the count of Today, SHALL keep the themes Light, Dark, OLED and System, and SHALL open in Light for a person who has not chosen a theme.
 
 Screen: SCR-002
 
@@ -445,6 +445,13 @@ Screen: SCR-002
 - GIVEN a page with no thing that needs the person
 - WHEN the page shows
 - THEN no element uses the attention colour
+
+#### Scenario: The four uses of the attention colour
+
+- GIVEN one thing that needs the person and one feature that is over its budget
+- WHEN the person opens Today and then Crew / Spend
+- THEN the count of Today in the rail, the attention card and the tag "you" use the attention colour
+- AND the meter of the feature uses the attention colour
 
 #### Scenario: Default theme
 

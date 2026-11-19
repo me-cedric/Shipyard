@@ -169,6 +169,13 @@ Feature: app-redesign
     Then no element uses the attention colour
 
   @spec:app-redesign#REQ-025
+  Scenario: Two colours with a meaning: The four uses of the attention colour
+    Given one thing that needs the person and one feature that is over its budget
+    When the person opens Today and then Crew / Spend
+    Then the count of Today in the rail, the attention card and the tag "you" use the attention colour
+    And the meter of the feature uses the attention colour
+
+  @spec:app-redesign#REQ-025
   Scenario: Two colours with a meaning: Default theme
     Given a person who has not chosen a theme
     When the app opens

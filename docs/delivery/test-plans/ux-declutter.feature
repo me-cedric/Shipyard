@@ -81,7 +81,7 @@ Feature: ux-declutter
   @spec:ux-declutter#REQ-010
   Scenario: Avatar menu: Theme from the menu
     Given the dark theme
-    When the person picks Light in the avatar menu
+    When the person picks Light in the account menu
     Then the app shows the light theme
 
   @spec:ux-declutter#REQ-011
@@ -93,13 +93,13 @@ Feature: ux-declutter
   @spec:ux-declutter#REQ-012
   Scenario: Repository state: Changed files
     Given five changed files and two commits ahead
-    When the shell shows
-    Then Sync shows 2 ahead and the status bar shows 5 beside Commit
+    When the person opens the sync mark
+    Then Sync shows 2 ahead and the card shows 5 changed files
 
   @spec:ux-declutter#REQ-013
   Scenario: Top bar size: Count
     Given a window of 1100 px
-    When the top bar shows
+    When the top row of the page shows
     Then it holds 13 controls or fewer
 
   @spec:ux-declutter#REQ-014

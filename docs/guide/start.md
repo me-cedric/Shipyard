@@ -7,10 +7,11 @@ Shipyard helps a team deliver a software project: the features, the plan, the pe
 - The left bar holds the seven places: Today, Flow, Plan, Crew, Library, Code and Setup. This manual has one page for each place.
 - The sections of a place sit at the top of the page, in one switch. Library has no switch: it opens on four doors, and each of its pages has a Library link that goes back to them.
 - The inspector on the right shows the item that you select.
-- The status bar at the bottom shows the project, the sync state and the commit control, with the count of changed files beside Commit.
-- The top bar holds the sidebar button, Back and Forward, the project name, the branch with its sync mark, the bar Ask or tell Shipyard, the Files and Terminal buttons and the account menu.
-  - The project name opens the Projects page.
-  - The sync mark shows the state of the repository. See the page Code, Sync.
+- The sidebar also holds the project name at its top and your account at its foot.
+  - The project name opens a menu with your projects and the Projects page.
+  - Your account opens the account menu: the theme, the language, the manual, the version of Shipyard and Health.
+- The top row of each page holds the sidebar button, Back and Forward, the bar Ask or tell Shipyard and the sync mark. The window has no top bar and no status bar.
+  - The sync mark shows the state of the repository. Click it to see the changed files, the branch, Sync and Commit. See the page Code, Sync.
   - Ask or tell Shipyard is the one bar for a question, a place and an action. See the page The Ask bar.
   - The account menu (your picture) holds Setup / Me, Theme (Light, Dark, System), Manual, Shortcuts, What's new and Replay the tour.
 - Under 1100 px, the Files and Terminal buttons sit in the More menu.
@@ -71,9 +72,9 @@ When your role cannot see its first page, Today opens. With no role, Today opens
 - Press Ctrl+K (Cmd+K on a Mac) to move to the Ask bar. Type the name of a page, an item or an action, then use the arrow keys and Enter.
 - Press Ctrl+1 to Ctrl+7 to go to a place.
 - Press F1, or choose Manual in the account menu, or choose Open the manual for this page in the Ask bar, to read the help of the page that you see. The manual opens on the page of the place, at the section that you were on.
-- Press Ctrl+[ and Ctrl+] (Cmd on a Mac), or click Back and Forward in the top bar, to move between the pages that you opened.
-- Click the sidebar button at the left end of the top bar to hide or show the sidebar.
-- Click the Terminal button to open or close the terminal drawer.
+- Press Ctrl+[ and Ctrl+] (Cmd on a Mac), or click Back and Forward in the top row, to move between the pages that you opened.
+- Click the sidebar button at the left end of the top row to hide or show the sidebar.
+- Choose Terminal or Files in the bar Ask or tell Shipyard to open or close the terminal drawer or the files drawer.
 - An address of an older version still works: it opens the page that holds the same function now.
 - When an error has a button that opens a setting, click it. The page opens on the exact row, moves the focus to its control and marks it for 2 seconds.
 - Hold Ctrl (Cmd on a Mac) and turn the mouse wheel on a diagram or an image to zoom. Drag to move it. Use Full screen for a large view.

@@ -4,7 +4,7 @@
     {
       "id": "SCR-001",
       "slug": "home",
-      "title": "Today: the count of what needs the person in the title, one card with who asks, the feature and the answer, Later, the queue of the next things, Working now with the spend of today, the reminder to log time, the panels of the role, My items, Since you were away; the Ask bar in the top bar",
+      "title": "Today: the count of what needs the person in the title, one card with who asks, the feature and the answer, Later, the queue of the next things, Working now with the spend of today, the reminder to log time, the panels of the role, My items, Since you were away; the Ask bar in the top row of the page",
       "artifacts": [
         "spec:shell",
         "spec:home-today",
@@ -106,7 +106,7 @@
     {
       "id": "SCR-010",
       "slug": "top-bar",
-      "title": "Top bar: sidebar toggle, Back and Forward, the project name with the Projects page, the sync mark (branch, state of the repository, Sync with ahead and behind), the Ask bar, the Files and Terminal buttons, and the account menu",
+      "title": "Top row of the page: the rail toggle, Back and Forward, the Ask bar, and the sync mark at the right end; the shell has no top bar and no status bar",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter",
@@ -117,7 +117,7 @@
     {
       "id": "SCR-011",
       "slug": "projects",
-      "title": "Projects: the page behind the project name of the top bar, with the open project, the projects opened before, New project, Open a local folder, Clone a repository and Import a project",
+      "title": "Projects: the page behind the project switch of the rail, with the open project, the projects opened before, New project, Open a local folder, Clone a repository and Import a project",
       "artifacts": [
         "spec:projects",
         "spec:app-redesign"
@@ -290,7 +290,7 @@
     {
       "id": "SCR-027",
       "slug": "activity-panel",
-      "title": "Today / Activity: the live runs with Stop and the sessions with Stop, as a view of Today (it replaces the Activity panel of the top bar)",
+      "title": "Today / Activity: the live runs with Stop and the sessions with Stop, as a view of Today (it replaces the old Activity panel)",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter",
@@ -301,7 +301,7 @@
     {
       "id": "SCR-028",
       "slug": "account-menu",
-      "title": "Account menu: Setup / Me, Theme (Light, Dark, System), Manual, Shortcuts, What's new, Replay the tour",
+      "title": "Account menu, from the account row at the foot of the rail: the name and the role with Change (Setup / Me), Theme (Light, Dark, System), Language, the manual of the page, Keyboard shortcuts, What's new, Replay the tour, Check for updates, About Shipyard with the version, and Health with the count of its findings",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter",
@@ -312,7 +312,7 @@
     {
       "id": "SCR-029",
       "slug": "no-project",
-      "title": "No project: one page for every place with Open a folder, Clone a repository and New project",
+      "title": "No project is open: a bare page without the rail and the top row, with one card that holds New project, Clone a repository, Open a local folder and the link to the Projects page",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter",
@@ -323,7 +323,7 @@
     {
       "id": "SCR-030",
       "slug": "first-run",
-      "title": "First run: the role step with Continue, then the open-a-project step",
+      "title": "First run: a bare page without the rail and the top row, with the step bar, the role question as tiles and Continue, then the start step (open, clone, new project, the recent projects), then the clone step",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter",
@@ -367,8 +367,9 @@
     {
       "id": "SCR-036",
       "slug": "place-menu",
-      "title": "Shell: the place menu with Today, Flow, Plan, Crew, Library and Code, Setup at its foot, and one section switch at the top of the page",
+      "title": "Shell: the rail with the project switch at its top, the places Today, Flow, Plan, Crew, Library and Code with their counts, Setup and the account row at its foot; no top bar and no status bar; the page starts with the top row, and the section switch sits in the title row",
       "artifacts": [
+        "spec:shell",
         "spec:app-redesign",
         "adr:0023"
       ],
@@ -387,7 +388,7 @@
     {
       "id": "SCR-038",
       "slug": "ask-bar",
-      "title": "Ask bar, open: the answer that names each blocked feature with its action, Go to with places and search results, Do with the actions and the prompts of the page, Open the full assistant",
+      "title": "Ask bar, open: one centred column over the page, with the answer that names each blocked feature with its action, Reply, Go to with places and search results, Do with the actions and the prompts of the page, Open the full assistant",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -507,7 +508,7 @@
     {
       "id": "SCR-064",
       "slug": "code-terminal",
-      "title": "Code / Terminal: the command line of the project as a section of Code; the Terminal button of the top bar opens the same in the drawer",
+      "title": "Code / Terminal: the command line of the project as a section of Code; the Terminal action of the Ask bar and of Code / Now opens the same in the drawer",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -860,6 +861,17 @@
       "title": "Close guard: the question before the app closes while agents work, with Stop them and close and Keep them working; it also names the unsaved drafts",
       "artifacts": [
         "spec:shell",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-097",
+      "slug": "sync-card",
+      "title": "Card of the sync mark: the state of the repository, the changed files and the lines added and removed as links to Code / Now, the working branch, Sync with the ahead and behind counts, Fetch only, Push and Commit, the watch notice, and the sync failure with its retry action",
+      "artifacts": [
+        "spec:shell",
+        "spec:code",
         "spec:app-redesign",
         "adr:0023"
       ]

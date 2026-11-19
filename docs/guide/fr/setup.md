@@ -10,7 +10,7 @@ Démarrage est le démarrage guidé : chaque étape de la liste Pour commencer, 
 
 Ce projet contient ce que le projet stocke et partage avec l'équipe. Quatre portes ouvrent ses pages : Connexions, Tickets, Extensions et Santé de ce projet.
 
-Le formulaire du projet contient le nom et le logo (le logo s'affiche dans la barre du haut), les dossiers du projet, la recette par défaut, l'automatisation et l'import du projet. Les réglages rarement changés sont sous Avancé. La même page restaure les changements mis de côté (stashes), montre ce qu'ils contiennent, et met à jour une branche en retard sur le serveur.
+Le formulaire du projet contient le nom et le logo (le logo s'affiche à côté du nom du projet, en haut de la barre latérale), les dossiers du projet, la recette par défaut, l'automatisation et l'import du projet. Les réglages rarement changés sont sous Avancé. La même page restaure les changements mis de côté (stashes), montre ce qu'ils contiennent, et met à jour une branche en retard sur le serveur.
 
 - Automatisation : les interrupteurs laissent les agents pousser, ouvrir une pull request, déplacer un ticket et le commenter sans clic. Avec un interrupteur désactivé, chaque écriture de ce type attend votre approbation.
 - Permissions d'une recette : « Ne plus demander pour cette recette » sur une approbation permet exactement les types de ses effets (par exemple `transition` et `open_pr`) pour les exécutions de cette recette seulement. Un autre type attend encore. Le groupe Automatisation liste chaque recette qui a une permission : Retirer enlève un type avec Enregistrer, et la prochaine écriture de ce type vous attend à nouveau. Un enregistrement n'ajoute jamais de permission. Un push forcé vous attend toujours. Le fichier les garde sous `recipe_writes` dans `.shipyard/automation.yaml`. Le fichier est partagé : chaque coéquipier a besoin d'une version de Shipyard qui lit `recipe_writes`, sinon le fichier n'est pas valide pour ce coéquipier et sa synchronisation s'arrête.
@@ -95,7 +95,7 @@ Shipyard peut servir ses outils à un agent que vous lancez vous-même. Activez 
 
 ### Santé de cet ordinateur
 
-Santé de cet ordinateur liste les problèmes des outils de cette machine. Chaque problème a un bouton qui le corrige. Le lien de santé de la barre d'état ouvre la portée du constat le plus grave.
+Santé de cet ordinateur liste les problèmes des outils de cette machine. Chaque problème a un bouton qui le corrige. L'entrée Santé du menu du compte ouvre la portée du constat le plus grave.
 
 ### Journaux et retours
 
@@ -117,4 +117,4 @@ Notifications : chaque source a son propre interrupteur, activé par défaut. Le
 
 ### Apparence et disposition
 
-Apparence et disposition contient les polices, le côté de la barre et des tiroirs, la couleur d'accent, le format de date, une barre du haut étroite et votre image.
+Apparence et disposition contient les polices, le côté de la barre et des tiroirs, la couleur d'accent, le format de date et votre image.

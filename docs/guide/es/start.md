@@ -7,10 +7,11 @@ Shipyard ayuda a un equipo a entregar un proyecto de software: las funcionalidad
 - La barra izquierda contiene los siete lugares: Hoy, Flujo, Plan, Equipo, Biblioteca, Código y Configuración. Este manual tiene una página para cada lugar.
 - Las secciones de un lugar están arriba en la página, en un solo selector. Biblioteca no tiene selector: se abre con cuatro puertas, y cada una de sus páginas tiene un enlace Biblioteca que vuelve a ellas.
 - El inspector de la derecha muestra el elemento que seleccionas.
-- La barra de estado de abajo muestra el proyecto, el estado de la sincronización y el control de commit, con el número de archivos modificados junto a Commit.
-- La barra superior contiene el botón de la barra lateral, Atrás y Adelante, el nombre del proyecto, la rama con su marca de sincronización, la barra Preguntar o indicar a Shipyard, los botones Archivos y Terminal y el menú de la cuenta.
-  - El nombre del proyecto abre la página Proyectos.
-  - La marca de sincronización muestra el estado del repositorio. Consulta la página Código, Sincronizar.
+- La barra lateral contiene también el nombre del proyecto arriba y tu cuenta abajo.
+  - El nombre del proyecto abre un menú con tus proyectos y la página Proyectos.
+  - Tu cuenta abre el menú de la cuenta: el tema, el idioma, el manual, la versión de Shipyard y Salud.
+- La fila superior de cada página contiene el botón de la barra lateral, Atrás y Adelante, la barra Preguntar o indicar a Shipyard y la marca de sincronización. La ventana no tiene barra superior ni barra de estado.
+  - La marca de sincronización muestra el estado del repositorio. Haz clic en ella para ver los archivos modificados, la rama, la sincronización y el commit. Consulta la página Código, Sincronizar.
   - Preguntar o indicar a Shipyard es la única barra para una pregunta, un lugar y una acción. Consulta la página La barra Preguntar.
   - El menú de la cuenta (tu foto) contiene Configuración / Yo, Tema (Claro, Oscuro, Sistema), Manual, Atajos, Novedades y Repetir el recorrido.
 - Por debajo de 1100 px, los botones Archivos y Terminal están en el menú Más.
@@ -71,9 +72,9 @@ Cuando tu rol no ve su primera página, se abre Hoy. Sin rol, se abre Hoy.
 - Pulsa Ctrl+K (Cmd+K en un Mac) para ir a la barra Preguntar. Escribe el nombre de una página, un elemento o una acción, y usa las flechas e Intro.
 - Pulsa de Ctrl+1 a Ctrl+7 para ir a un lugar.
 - Pulsa F1, o elige Manual en el menú de la cuenta, o elige Abrir el manual de esta página en la barra Preguntar, para leer la ayuda de la página que ves. El manual se abre en la página del lugar, en la sección donde estabas.
-- Pulsa Ctrl+[ y Ctrl+] (Cmd en un Mac), o haz clic en Atrás y Adelante en la barra superior, para moverte entre las páginas que abriste.
-- Haz clic en el botón de la barra lateral, en el extremo izquierdo de la barra superior, para ocultar o mostrar la barra lateral.
-- Haz clic en el botón Terminal para abrir o cerrar el cajón del terminal.
+- Pulsa Ctrl+[ y Ctrl+] (Cmd en un Mac), o haz clic en Atrás y Adelante en la fila superior, para moverte entre las páginas que abriste.
+- Haz clic en el botón de la barra lateral, en el extremo izquierdo de la fila superior, para ocultar o mostrar la barra lateral.
+- Elige Terminal o Archivos en la barra Preguntar o indicar a Shipyard para abrir o cerrar el cajón del terminal o el cajón de los archivos.
 - Una dirección de una versión anterior funciona todavía: abre la página que contiene la misma función ahora.
 - Cuando un error tiene un botón que abre un ajuste, haz clic en él. La página se abre en la fila exacta, mueve el foco a su control y lo marca durante 2 segundos.
 - Mantén Ctrl (Cmd en un Mac) y gira la rueda del ratón sobre un diagrama o una imagen para hacer zoom. Arrastra para moverlo. Usa Pantalla completa para una vista grande.

@@ -7,10 +7,11 @@ Shipyard aide une équipe à livrer un projet logiciel : les fonctionnalités, l
 - La barre de gauche contient les sept lieux : Aujourd'hui, Flux, Plan, Équipe, Bibliothèque, Code et Configuration. Ce mode d'emploi a une page pour chaque lieu.
 - Les sections d'un lieu sont en haut de la page, dans un seul sélecteur. Bibliothèque n'a pas de sélecteur : elle s'ouvre sur quatre portes, et chacune de ses pages a un lien Bibliothèque qui y revient.
 - L'inspecteur à droite montre l'élément que vous sélectionnez.
-- La barre d'état en bas montre le projet, l'état de la synchronisation et la commande de commit, avec le nombre de fichiers modifiés à côté de Commit.
-- La barre du haut contient le bouton de la barre latérale, Précédent et Suivant, le nom du projet, la branche avec sa marque de synchronisation, la barre Demander ou dire à Shipyard, les boutons Fichiers et Terminal et le menu du compte.
-  - Le nom du projet ouvre la page Projets.
-  - La marque de synchronisation montre l'état du dépôt. Voir la page Code, Synchroniser.
+- La barre latérale contient aussi le nom du projet en haut et votre compte en bas.
+  - Le nom du projet ouvre un menu avec vos projets et la page Projets.
+  - Votre compte ouvre le menu du compte : le thème, la langue, le mode d'emploi, la version de Shipyard et Santé.
+- La rangée du haut de chaque page contient le bouton de la barre latérale, Précédent et Suivant, la barre Demander ou dire à Shipyard et la marque de synchronisation. La fenêtre n'a pas de barre du haut ni de barre d'état.
+  - La marque de synchronisation montre l'état du dépôt. Cliquez dessus pour voir les fichiers modifiés, la branche, la synchronisation et le commit. Voir la page Code, Synchroniser.
   - Demander ou dire à Shipyard est la seule barre pour une question, un lieu et une action. Voir la page La barre Demander.
   - Le menu du compte (votre image) contient Configuration / Moi, Thème (Clair, Sombre, Système), Mode d'emploi, Raccourcis, Nouveautés et Revoir la visite.
 - Sous 1100 px, les boutons Fichiers et Terminal sont dans le menu Plus.
@@ -71,9 +72,9 @@ Quand votre rôle ne voit pas sa première page, Aujourd'hui s'ouvre. Sans rôle
 - Appuyez sur Ctrl+K (Cmd+K sur un Mac) pour aller à la barre Demander. Tapez le nom d'une page, d'un élément ou d'une action, puis utilisez les flèches et Entrée.
 - Appuyez sur Ctrl+1 à Ctrl+7 pour aller à un lieu.
 - Appuyez sur F1, ou choisissez Mode d'emploi dans le menu du compte, ou choisissez Ouvrir le mode d'emploi de cette page dans la barre Demander, pour lire l'aide de la page que vous voyez. Le mode d'emploi s'ouvre sur la page du lieu, à la section où vous étiez.
-- Appuyez sur Ctrl+[ et Ctrl+] (Cmd sur un Mac), ou cliquez sur Précédent et Suivant dans la barre du haut, pour passer d'une page ouverte à l'autre.
-- Cliquez sur le bouton de la barre latérale, au bout gauche de la barre du haut, pour masquer ou afficher la barre latérale.
-- Cliquez sur le bouton Terminal pour ouvrir ou fermer le tiroir du terminal.
+- Appuyez sur Ctrl+[ et Ctrl+] (Cmd sur un Mac), ou cliquez sur Précédent et Suivant dans la rangée du haut, pour passer d'une page ouverte à l'autre.
+- Cliquez sur le bouton de la barre latérale, au bout gauche de la rangée du haut, pour masquer ou afficher la barre latérale.
+- Choisissez Terminal ou Fichiers dans la barre Demander ou dire à Shipyard pour ouvrir ou fermer le tiroir du terminal ou le tiroir des fichiers.
 - Une adresse d'une version plus ancienne marche encore : elle ouvre la page qui contient la même fonction aujourd'hui.
 - Quand une erreur a un bouton qui ouvre un réglage, cliquez dessus. La page s'ouvre sur la ligne exacte, place le focus sur sa commande et la marque pendant 2 secondes.
 - Maintenez Ctrl (Cmd sur un Mac) et tournez la molette sur un diagramme ou une image pour zoomer. Faites glisser pour le déplacer. Utilisez Plein écran pour une grande vue.

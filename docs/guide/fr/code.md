@@ -10,7 +10,7 @@ Les fichiers que vous avez changés s'affichent en arbre.
 
 1. Sélectionnez un fichier pour voir ce qui a changé.
 2. Indexez les fichiers à garder. Ou abandonnez un changement.
-3. Dans la zone de commit sous les fichiers, écrivez un résumé, ajoutez une description si vous le voulez, puis cliquez sur Commit. Un commit prend seulement les fichiers indexés. La commande de commit de la barre d'état fait de même depuis toute page.
+3. Dans la zone de commit sous les fichiers, écrivez un résumé, ajoutez une description si vous le voulez, puis cliquez sur Commit. Un commit prend seulement les fichiers indexés. Le bouton Commit de la carte de la marque de synchronisation fait de même depuis toute page.
 
 - Écris-le pour moi demande à l'assistant un message à partir des fichiers indexés. Rien n'est envoyé avant votre envoi.
 - Un groupe sans fichier montre une ligne discrète, comme « Rien d'indexé ».
@@ -31,14 +31,14 @@ Historique liste les commits, le plus récent d'abord. Sélectionnez un commit p
 
 Branches liste les branches de cet ordinateur et du serveur. Créez, changez de, fusionnez ou supprimez une branche. L'application ne supprime jamais la branche sur laquelle vous travaillez.
 
-Le sélecteur de branche de la barre du haut a un champ de filtre. Tapez pour réduire la liste, déplacez-vous avec les flèches et appuyez sur Entrée. Une branche distante s'extrait comme une nouvelle branche locale qui la suit. La ligne Nouvelle branche crée une branche à partir de celle sur laquelle vous travaillez.
+Le sélecteur de branche, dans la carte de la marque de synchronisation et sur Code / Maintenant, a un champ de filtre. Tapez pour réduire la liste, déplacez-vous avec les flèches et appuyez sur Entrée. Une branche distante s'extrait comme une nouvelle branche locale qui la suit. La ligne Nouvelle branche crée une branche à partir de celle sur laquelle vous travaillez.
 
 ## Terminal
 
-Terminal est une ligne de commande dans le dossier du projet. Le bouton Terminal de la barre du haut ouvre la même ligne de commande dans le tiroir du terminal, depuis toute page. Quand le shell se termine, cliquez sur Relancer. Un lien dans la sortie s'ouvre dans votre navigateur.
+Terminal est une ligne de commande dans le dossier du projet. Le bouton Terminal de Code / Maintenant et l'action Terminal de la barre Demander ou dire à Shipyard ouvrent la même ligne de commande dans le tiroir du terminal, depuis toute page. Quand le shell se termine, cliquez sur Relancer. Un lien dans la sortie s'ouvre dans votre navigateur.
 
 ## Synchroniser
 
-Une marque à côté de la branche, dans la barre du haut de chaque page, montre l'état du dépôt : Échec de la synchronisation, le nombre de fichiers modifiés, Pas encore partagé, en retard, en avance ou À jour. Cliquez dessus pour ouvrir Code / Maintenant.
+Une marque au bout droit de la rangée du haut de chaque page montre l'état du dépôt : Échec de la synchronisation, le nombre de fichiers modifiés, Pas encore partagé, en retard, en avance ou À jour. Cliquez dessus pour ouvrir une carte avec les fichiers modifiés, la branche de travail et les boutons de synchronisation et de commit. Un lien de la carte ouvre Code / Maintenant.
 
 Synchroniser prend les changements de l'équipe et met votre branche à jour. La flèche jointe ouvre Récupérer seulement et Push. Envoyer vos commits au serveur est une action à part. L'application ne force jamais un push.
