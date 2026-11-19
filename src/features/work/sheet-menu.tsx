@@ -13,15 +13,9 @@ import {
 	useProfiles,
 	useWorkActions,
 } from "@/lib/work";
-import {
-	Cog6ToothIcon,
-	LockClosedIcon,
-	LockOpenIcon,
-	PencilIcon,
-	PlusIcon,
-	TrashIcon,
-} from "@/ui/icons";
-import { MenuButton } from "@/ui/molecules/menu-button";
+import { Button } from "@/ui/atoms/button";
+import { Card } from "@/ui/molecules/card";
+import { Row } from "@/ui/molecules/row";
 import { DataTable } from "@/ui/organisms/data-table";
 
 /** A sheet name that no sheet uses: `mvp-1-copy`, then `mvp-1-copy-2`. */
@@ -31,75 +25,97 @@ export function freeSlug(slugs: string[], base: string) {
 	return slug;
 }
 
+export type SheetAction = {
+	label: string;
+	/** What the action does, for the row of the card. The first one is the name of the sheet. */
+	hint: string;
+	disabled: boolean;
+	danger?: boolean;
+	onClick: () => void;
+};
+
 /** Rename, duplicate, freeze or unfreeze, and delete a sheet. Each one is a click. */
-export function SheetMenu({
+export function useSheetActions({
 	view,
 	slugs,
 	onRename,
 	onChosen,
 	run,
 }: {
-	view: SheetView;
+	view: SheetView | undefined;
 	slugs: string[];
 	onRename: () => void;
 	onChosen: (slug: string | null) => void;
 	run: (job: () => Promise<unknown>) => Promise<boolean>;
-}) {
+}): SheetAction[] {
 	const { t } = useI18n();
 	const s = t.costing.sheet;
+	const p = t.costing.estimate;
 	const act = useWorkActions();
 	const { can } = useRights();
+	if (!view) return [];
 	const sheet = view.sheet;
 	const name = sheet.name || view.slug;
 	const frozen = sheet.frozen === true;
 	const off = !can("work.edit");
+	return [
+		{ label: s.rename, hint: name, disabled: frozen || off, onClick: onRename },
+		{
+			label: s.duplicate,
+			hint: p.sheetCopy,
+			disabled: off,
+			onClick: () =>
+				void run(async () => {
+					const slug = freeSlug(slugs, slugify(view.slug) || "sheet");
+					const { frozen: _drop, ...rest } = sheet;
+					await act.saveSheet(slug, { ...rest, name: format(s.copyName, { name }) });
+					onChosen(slug);
+				}),
+		},
+		{
+			label: frozen ? s.unfreeze : s.freeze,
+			hint: frozen ? p.sheetUnfreeze : p.sheetFreeze,
+			disabled: off,
+			onClick: () => void run(() => act.saveSheet(view.slug, { ...sheet, frozen: !frozen })),
+		},
+		{
+			label: s.delete,
+			hint: p.sheetDelete,
+			disabled: frozen || off,
+			danger: true,
+			onClick: () =>
+				void run(async () => {
+					if (!(await confirmDialog(format(s.confirmDelete, { name })))) return;
+					await act.deleteSheet(view.slug);
+					onChosen(null);
+				}),
+		},
+	];
+}
+
+/** The card "This sheet": one row for each action, and the way to the seal before Delete. */
+export function SheetCard({ actions, onSeal }: { actions: SheetAction[]; onSeal: () => void }) {
+	const { t } = useI18n();
+	const p = t.costing.estimate;
+	const row = (a: Pick<SheetAction, "label" | "hint"> & Partial<SheetAction>) => (
+		<Row key={a.label}>
+			<span className="flex-[1_1_200px] font-medium">{a.hint}</span>
+			<Button
+				disabled={a.disabled}
+				className={a.danger ? "text-danger-text" : undefined}
+				onClick={a.onClick}
+			>
+				{a.label}
+			</Button>
+		</Row>
+	);
 	return (
-		<MenuButton
-			label={s.actions}
-			iconOnly
-			icon={<Cog6ToothIcon size={14} />}
-			items={[
-				{
-					id: "rename",
-					label: s.rename,
-					icon: <PencilIcon size={14} />,
-					disabled: frozen || off,
-					onSelect: onRename,
-				},
-				{
-					id: "duplicate",
-					label: s.duplicate,
-					icon: <PlusIcon size={14} />,
-					disabled: off,
-					onSelect: () =>
-						void run(async () => {
-							const slug = freeSlug(slugs, slugify(view.slug) || "sheet");
-							const { frozen: _drop, ...rest } = sheet;
-							await act.saveSheet(slug, { ...rest, name: format(s.copyName, { name }) });
-							onChosen(slug);
-						}),
-				},
-				{
-					id: "freeze",
-					label: frozen ? s.unfreeze : s.freeze,
-					icon: frozen ? <LockOpenIcon size={14} /> : <LockClosedIcon size={14} />,
-					disabled: off,
-					onSelect: () => void run(() => act.saveSheet(view.slug, { ...sheet, frozen: !frozen })),
-				},
-				{
-					id: "delete",
-					label: s.delete,
-					icon: <TrashIcon size={14} />,
-					disabled: frozen || off,
-					onSelect: () =>
-						void run(async () => {
-							if (!(await confirmDialog(format(s.confirmDelete, { name })))) return;
-							await act.deleteSheet(view.slug);
-							onChosen(null);
-						}),
-				},
-			]}
-		/>
+		<Card className="py-2">
+			<h2 className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">{p.thisSheet}</h2>
+			{actions.slice(0, -1).map(row)}
+			{row({ label: t.work.seal.seal, hint: p.sheetSeal, onClick: onSeal })}
+			{actions.slice(-1).map(row)}
+		</Card>
 	);
 }
 

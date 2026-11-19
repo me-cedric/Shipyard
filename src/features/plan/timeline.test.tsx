@@ -8,9 +8,12 @@ import { addDays } from "@/lib/work";
 import { mountApp } from "@/test/mount";
 import { withTracker } from "@/test/tracker";
 
-const aside = async (name: string) => within(await screen.findByRole("complementary", { name }));
-const bars = () =>
-	screen.findAllByRole("button", { name: /, \d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}$/ });
+const bars = () => screen.findAllByRole("button", { name: /, \d+ \w+ to \d+ \w+$/ });
+/** The page of the dates and the days off, from its link on Timeline. */
+const openDates = async (user: ReturnType<typeof userEvent.setup>) => {
+	await user.click(screen.getByRole("link", { name: "Dates and days off" }));
+	await screen.findByRole("heading", { name: "Working days" });
+};
 // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- test input is a fixed name
 const bar = (name: string) => screen.getByRole("button", { name: new RegExp(`^${name},`) });
 
@@ -19,8 +22,8 @@ describe("Plan / Timeline and People", () => {
 		await withTracker();
 		mountApp("/plan/timeline");
 		expect(await bars()).toHaveLength(6);
-		expect(screen.getByRole("img", { name: "Today 2026-11-02" })).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "Authentication (4)" })).toBeInTheDocument();
+		expect(screen.getByRole("img", { name: "Today 2 Nov" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Authentication" })).toBeInTheDocument();
 		expect(bar("Token API")).toHaveAccessibleName(/Ada Lovelace/);
 	});
 
@@ -40,7 +43,7 @@ describe("Plan / Timeline and People", () => {
 		expect(Object.keys(decision ?? {})).toEqual(["start"]);
 		expect(decision?.start).toBe("2026-11-03");
 		expect(before?.start).toBe("2026-11-02");
-		await waitFor(() => expect(bar("Token API")).toHaveAccessibleName(/2026-11-03 to /));
+		await waitFor(() => expect(bar("Token API")).toHaveAccessibleName(/3 Nov to /));
 		// Shift moves a week.
 		fireEvent.keyDown(bar("Token API"), { key: "ArrowLeft", shiftKey: true });
 		await waitFor(() =>
@@ -48,15 +51,28 @@ describe("Plan / Timeline and People", () => {
 		);
 	});
 
-	it("chooses a member in the inspector", async () => {
+	it("opens the task of a bar on the page of the dates, and chooses a member there", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/plan/timeline");
+		const router = mountApp("/plan/timeline");
 		await bars();
 		// The seed fixes a start and names a member for this task.
 		await user.click(bar("Login form"));
-		const panel = await aside("Login form");
-		await user.click(panel.getByRole("combobox", { name: "Member" }));
+		expect(await screen.findByRole("heading", { name: "Login form" })).toBeInTheDocument();
+		// A full page of Timeline, with the task in the address and the way back.
+		expect(router.state.location.search).toMatchObject({
+			page: "dates",
+			task: "est:mvp-1#auth-web",
+		});
+		// The way back is the first link of the page: the section switch has a link of this name too.
+		expect(screen.getAllByRole("link", { name: "Timeline" })[0]).toHaveAttribute(
+			"href",
+			"/plan/timeline",
+		);
+		expect(
+			screen.getByRole("link", { name: "Send the plan to the issue tracker" }),
+		).toHaveAttribute("href", expect.stringContaining("/plan/people?page=send"));
+		await user.click(screen.getByRole("combobox", { name: "Who" }));
 		await user.click(await screen.findByRole("option", { name: "Ada Lovelace" }));
 		await waitFor(() =>
 			expect(mockState().work.decisions.tasks["est:mvp-1#auth-web"]).toEqual({
@@ -64,6 +80,20 @@ describe("Plan / Timeline and People", () => {
 				start: "2026-11-09",
 			}),
 		);
+		// The plan chooses again: the person of the decision goes, the fixed day stays.
+		await user.click(screen.getByRole("button", { name: "Choose for me" }));
+		await waitFor(() =>
+			expect(mockState().work.decisions.tasks["est:mvp-1#auth-web"]).toEqual({
+				start: "2026-11-09",
+			}),
+		);
+		await user.click(screen.getByRole("button", { name: "Clear the fixed day" }));
+		await waitFor(() =>
+			expect(mockState().work.decisions.tasks["est:mvp-1#auth-web"]).toBeUndefined(),
+		);
+		await user.click(screen.getByRole("button", { name: "Earlier" }));
+		await waitFor(() => expect(mockState().work.decisions.order).toContain("est:mvp-1#auth-web"));
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
 	it("stores a holiday in the calendar and no date in the plan", async () => {
@@ -72,11 +102,17 @@ describe("Plan / Timeline and People", () => {
 		mountApp("/plan/timeline");
 		await bars();
 		const plan = JSON.stringify(mockState().work.decisions);
-		await user.click(screen.getByRole("button", { name: "Dates and days off" }));
-		const panel = await aside("Dates and days off");
-		expect(panel.getByRole("heading", { name: "Holidays (1)" })).toBeInTheDocument();
-		fireEvent.change(panel.getByLabelText("Holiday"), { target: { value: "2026-11-04" } });
-		await user.click(panel.getByRole("button", { name: "Add holiday" }));
+		await openDates(user);
+		expect(screen.getByRole("heading", { name: "Holidays" })).toBeInTheDocument();
+		// The holiday of the seed, as a plain day, with its Remove.
+		expect(
+			screen.getByRole("button", { name: "Remove Wednesday 11 Nov 2026" }),
+		).toBeInTheDocument();
+		// The working days are chips: five are on.
+		const days = within(screen.getByRole("group", { name: "Working days" }));
+		expect(days.getAllByRole("button", { pressed: true })).toHaveLength(5);
+		fireEvent.change(screen.getByLabelText("Holiday"), { target: { value: "2026-11-04" } });
+		await user.click(screen.getByRole("button", { name: "Add a holiday" }));
 		await waitFor(() =>
 			expect(mockState().work.calendar.holidays).toEqual(["2026-11-04", "2026-11-11"]),
 		);
@@ -112,25 +148,38 @@ describe("Plan / Timeline and People", () => {
 		);
 		// Two lots book the same people on the same days.
 		expect(over.length).toBeGreaterThan(0);
-		await user.click(screen.getByRole("tab", { name: "Month" }));
-		expect(screen.getByRole("tab", { name: "Month" })).toHaveAttribute("aria-selected", "true");
-		expect(await bars()).toHaveLength(6);
 		// The view by person is the section People: the load and the warning of each person are there.
 		await router.navigate({ to: "/plan/people" });
+		const warned = await screen.findAllByRole("link", { name: /is over capacity on \d+ days/ });
+		expect(warned).toHaveLength(over.length);
+		// The load against the capacity: one total for each person, and one block for each of their weeks.
+		const weeks = [
+			...new Set(plan.load.members.flatMap((m) => m.days.map((d) => weekStart(d.day)))),
+		];
+		expect(screen.getAllByTitle(/^[\d.]+ of [\d.]+ days$/)).toHaveLength(plan.load.members.length);
 		expect(
-			await screen.findByRole("heading", { name: /^Ada Lovelace \(\d+\)$/ }),
+			screen.getAllByRole("img", { name: /^Week of .+: [\d.]+ of [\d.]+ days$/ }),
+		).toHaveLength(plan.load.members.length * weeks.length);
+		const ada = screen
+			.getByRole("link", { name: /^Ada Lovelace is over capacity/ })
+			.closest("div") as HTMLElement;
+		expect(
+			within(ada).getByRole("img", { name: "Week of 2 Nov: 10 of 5 days" }),
 		).toBeInTheDocument();
-		expect(screen.getAllByText(/is over capacity on \d+ days/)).toHaveLength(over.length);
-		// The load against the capacity: one total for each person, and one for each of their weeks.
-		const weeks = plan.load.members.flatMap((m) => [
-			...new Set(m.days.map((d) => `${m.handle} ${weekStart(d.day)}`)),
-		]);
-		expect(screen.getAllByText(/^[\d.]+ of [\d.]+ days$/)).toHaveLength(
-			plan.load.members.length + weeks.length,
+		// The scale of the blocks: a block for each month.
+		await user.click(screen.getByRole("button", { name: "Month" }));
+		expect(screen.getByRole("button", { name: "Month" })).toHaveAttribute("aria-pressed", "true");
+		expect(within(ada).getAllByRole("img", { name: / of [\d.]+ days$/ })).toHaveLength(
+			new Set(plan.load.members.flatMap((m) => m.days.map((d) => d.day.slice(0, 7)))).size,
 		);
-		const ada = screen.getByRole("heading", { name: /^Ada Lovelace/ }).closest("li") as HTMLElement;
-		expect(within(ada).getByText("Week of 11/2/2026").closest("li")).toHaveTextContent(
-			"10 of 5 days",
+		// The ways to the days off and to the hours of a person.
+		expect(screen.getByRole("link", { name: "Days off and holidays" })).toHaveAttribute(
+			"href",
+			expect.stringContaining("/plan/timeline?page=dates"),
+		);
+		expect(screen.getByRole("link", { name: "Hours for each person" })).toHaveAttribute(
+			"href",
+			expect.stringContaining("/crew/crew?member="),
 		);
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
@@ -157,7 +206,9 @@ describe("Plan / Timeline and People", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/crew"));
 		// The member opens in Crew, under the name of the member: the capacity is there to change.
 		expect(await screen.findByRole("heading", { name: name ?? "" })).toBeInTheDocument();
-		await waitFor(() => expect(screen.getByLabelText(/Capacity/)).toBeInTheDocument());
+		await waitFor(() =>
+			expect(screen.getByRole("button", { name: "Days in a week, more" })).toBeInTheDocument(),
+		);
 		// The week of the warning is there too: the load of the member on each day of it.
 		const week = await screen.findByRole("region", {
 			name: `Week of ${weekStart(first?.day ?? "")}`,
@@ -178,9 +229,8 @@ describe("Plan / Timeline and People", () => {
 		expect(plan.publicHolidays).toContain("2026-12-25");
 		mountApp("/plan/timeline");
 		await bars();
-		await user.click(screen.getByRole("button", { name: "Dates and days off" }));
-		const panel = await aside("Dates and days off");
-		await user.click(panel.getByRole("combobox", { name: "Public holidays" }));
+		await openDates(user);
+		await user.click(screen.getByRole("combobox", { name: "Public holidays" }));
 		await user.click(await screen.findByRole("option", { name: "None" }));
 		await waitFor(() => expect(mockState().work.calendar.country).toBe(""));
 		expect((await unwrap(commands.planGet("mvp-1"))).publicHolidays).toEqual([]);
@@ -217,14 +267,18 @@ describe("Plan / Timeline and People", () => {
 	it("has one primary action and is in French when the language is French", async () => {
 		mockState().prefs.lang = "fr";
 		await withTracker();
-		mountApp("/plan/timeline");
+		const router = mountApp("/plan/timeline");
+		expect(
+			await screen.findByRole("link", { name: "Dates et jours non travaillés" }),
+		).toBeInTheDocument();
+		expect(screen.getByRole("img", { name: /^Aujourd'hui 2 nov/ })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Rééquilibrer" })).toBeInTheDocument();
+		// The send is on People.
+		await router.navigate({ to: "/plan/people" });
 		expect(
 			await screen.findByRole("button", { name: "Envoyer à l'outil de suivi" }),
 		).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", { name: "Dates et jours non travaillés" }),
-		).toBeInTheDocument();
-		expect(screen.getByRole("img", { name: "Aujourd'hui 2026-11-02" })).toBeInTheDocument();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
 	// spec:app-redesign#REQ-018
@@ -237,28 +291,39 @@ describe("Plan / Timeline and People", () => {
 			.sort()
 			.at(-1);
 		expect(end).toBe("2026-11-17");
-		expect(screen.getByRole("heading", { name: "MVP 1 ends 11/17/2026" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "MVP 1 ends 17 Nov" })).toBeInTheDocument();
 		expect(screen.getByText("Tasks with no owner")).toBeInTheDocument();
 	});
 
-	it("shows three people over their capacity as one card with proposals, and applies one", async () => {
+	it("shows three people over their capacity as one row, and People applies one proposal", async () => {
 		const user = userEvent.setup();
 		await withTracker();
 		const router = mountApp("/plan/timeline");
 		await bars();
+		const banner = within(screen.getByRole("region", { name: "Capacity" }));
+		expect(
+			banner.getByRole("heading", { name: "3 people have too much work" }),
+		).toBeInTheDocument();
+		expect(banner.getByRole("button", { name: "Rebalance" })).toBeEnabled();
+		// The proposals are on People: the row has no Apply.
+		expect(screen.queryByRole("button", { name: /^Apply/ })).toBeNull();
+		// Show opens the people.
+		await user.click(banner.getByRole("link", { name: "Show" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/plan/people"));
+		expect(
+			await screen.findByRole("heading", { level: 1, name: "3 people have too much work" }),
+		).toBeInTheDocument();
 		const cards = screen.getAllByRole("article");
 		expect(cards).toHaveLength(1);
 		const card = within(cards[0] as HTMLElement);
-		expect(card.getByRole("heading", { name: "3 people have too much work" })).toBeInTheDocument();
+		expect(card.getByRole("heading", { name: "Planner proposes" })).toBeInTheDocument();
 		// The heading order is valid: a level-two heading comes before the level-three heading of the card.
 		const levels = screen.getAllByRole("heading").map((h) => Number(h.tagName.slice(1)));
 		expect(levels.slice(0, 3)).toEqual([1, 2, 3]);
 		expect(card.getAllByRole("button", { name: /^Apply: / })).toHaveLength(3);
-		expect(card.getByRole("button", { name: "Rebalance" })).toBeInTheDocument();
+		expect(card.getByRole("button", { name: "Apply all" })).toBeInTheDocument();
 		// Grace Hopper has no room on these days: the task does not go to her, it starts later.
-		await user.click(
-			card.getByRole("button", { name: "Apply: Export endpoint starts 11/13/2026" }),
-		);
+		await user.click(card.getByRole("button", { name: "Apply: Export endpoint starts 13 Nov" }));
 		await waitFor(() =>
 			expect(mockState().work.decisions.tasks["est:mvp-1#export-api"]).toEqual({
 				start: "2026-11-13",
@@ -269,30 +334,43 @@ describe("Plan / Timeline and People", () => {
 			member: "grace",
 			start: "2026-11-09",
 		});
-		await waitFor(() => expect(bar("Export endpoint")).toHaveAccessibleName(/2026-11-13 to /));
-		// Show opens the people.
-		await user.click(screen.getByRole("link", { name: "Show" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/plan/people"));
-		expect(await screen.findAllByRole("button", { name: /^Apply: / })).not.toHaveLength(0);
+		await router.navigate({ to: "/plan/timeline" });
+		await bars();
+		await waitFor(() => expect(bar("Export endpoint")).toHaveAccessibleName(/13 Nov to /));
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("applies every proposal with Rebalance", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const router = mountApp("/plan/timeline");
+		await bars();
+		const before = Object.keys(mockState().work.decisions.tasks).length;
+		await user.click(screen.getByRole("button", { name: "Rebalance" }));
+		await waitFor(() =>
+			expect(Object.keys(mockState().work.decisions.tasks).length).toBeGreaterThan(before),
+		);
+		expect(mockState().work.decisions.tasks["est:mvp-1#export-api"]).toEqual({
+			start: "2026-11-13",
+		});
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 });
 
 describe("the sheet of Plan", () => {
-	it("keeps the chosen sheet from Timeline to People, in the search key sheet", async () => {
+	it("keeps the chosen sheet from People to Timeline, in the search key sheet", async () => {
 		const user = userEvent.setup();
 		await withTracker();
 		const sheets = (await unwrap(commands.estimateList())).filter((s) => s.state === "ready");
 		const other = sheets[1];
 		if (!other) throw new Error("the mock needs two ready sheets");
-		const router = mountApp("/plan/timeline");
-		await bars();
-		await user.click(screen.getByRole("combobox", { name: "Sheet" }));
+		const router = mountApp("/plan/people");
+		await user.click(await screen.findByRole("combobox", { name: "Sheet" }));
 		await user.click(await screen.findByRole("option", { name: other.name ?? other.slug }));
 		await waitFor(() => expect(router.state.location.search).toMatchObject({ sheet: other.slug }));
 		// The section switch links with no search.
-		await router.navigate({ to: "/plan/people" });
-		expect(await screen.findByRole("combobox", { name: "Sheet" })).toHaveTextContent(
+		await router.navigate({ to: "/plan/timeline", search: { page: "dates" } as never });
+		expect(await screen.findByRole("combobox", { name: "Estimate sheet" })).toHaveTextContent(
 			other.name ?? other.slug,
 		);
 		// The next test starts on the first sheet again.

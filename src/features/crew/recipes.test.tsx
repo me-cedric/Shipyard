@@ -9,7 +9,7 @@ const text = async (id: string) => (await unwrap(commands.workflowGet(id))).text
 let router: ReturnType<typeof mountApp> | undefined;
 afterEach(() => waitFor(() => expect(router?.state.status ?? "idle").toBe("idle")));
 
-/** Opens the workflow `id` in its form. The mock holds a proposal for `bug`, so pass `discard` to drop it first. */
+/** Opens the recipe `id` as its chain of steps. The mock holds a proposal for `bug`, so pass `discard` to drop it first. */
 async function open(id: string) {
 	const user = userEvent.setup();
 	await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
@@ -23,7 +23,26 @@ async function open(id: string) {
 	return user;
 }
 
-const step = (id: string) => screen.findByRole("region", { name: `Step ${id}` });
+/** Opens the page of the step `name` from the chain of the open recipe. */
+async function openStep(user: ReturnType<typeof userEvent.setup>, name: string) {
+	const steps = await screen.findByRole("list", { name: "Steps" });
+	await user.click(await within(steps).findByRole("link", { name }));
+	await screen.findByRole("heading", { level: 1, name });
+}
+
+/** Goes back to the recipe and opens its text. */
+async function openText(user: ReturnType<typeof userEvent.setup>, id: string) {
+	// The page of a step has its own title; the way back is the link "Recipes".
+	if (!screen.queryByRole("heading", { level: 1, name: "Crew" }))
+		await user.click(screen.getByRole("link", { name: "Recipes" }));
+	await user.click(await screen.findByRole("button", { name: "Edit as text" }));
+	return (await screen.findByRole("textbox", { name: id })) as HTMLTextAreaElement;
+}
+
+const stepNames = () =>
+	within(screen.getByRole("list", { name: "Steps" }))
+		.getAllByRole("link")
+		.map((l) => l.textContent);
 
 describe("Workflows: the form", () => {
 	beforeEach(() => {
@@ -35,32 +54,26 @@ describe("Workflows: the form", () => {
 		})) as unknown as typeof window.matchMedia;
 	});
 
-	it("a change of effort shows in the text view", async () => {
+	it("a change of effort on the page of a step shows in the text", async () => {
 		const user = await open("spike");
-		const fields = within(await step("grill"));
-		await user.click(fields.getByRole("combobox", { name: "Effort" }));
-		await user.click(await screen.findByRole("option", { name: "max" }));
-		await user.click(screen.getByRole("tab", { name: "Text" }));
-		const editor = (await screen.findByRole("textbox", { name: "spike" })) as HTMLTextAreaElement;
+		await openStep(user, "Grill");
+		const who = within(screen.getByRole("region", { name: "Who" }));
+		await user.click(who.getByRole("combobox", { name: "Effort" }));
+		await user.click(await screen.findByRole("option", { name: "Max" }));
+		const editor = await openText(user, "spike");
 		await waitFor(() => expect(editor.value).toContain("effort: max"));
 		expect(editor.value.startsWith("# A spike")).toBe(true);
-		await user.click(screen.getByRole("tab", { name: "Form" }));
-		await step("grill");
+		await user.click(screen.getByRole("button", { name: "Show the steps" }));
+		await waitFor(() => expect(stepNames()).toEqual(["Grill", "Investigate", "Report"]));
 	});
 
 	it("adds a step, moves it up and saves it", async () => {
 		const user = await open("spike");
-		await user.click(await screen.findByRole("button", { name: "Add step" }));
-		const added = within(await step("step-4"));
-		await user.click(added.getByRole("button", { name: "Move up" }));
-		const order = () =>
-			screen
-				.getAllByRole("region")
-				.map((r) => r.getAttribute("aria-label"))
-				.filter((l) => l?.startsWith("Step "));
-		await waitFor(() =>
-			expect(order()).toEqual(["Step grill", "Step investigate", "Step step-4", "Step report"]),
-		);
+		await user.click(await screen.findByRole("button", { name: "Add a step" }));
+		await openStep(user, "Step 4");
+		await user.click(screen.getByRole("button", { name: "Move up" }));
+		await user.click(screen.getByRole("link", { name: "Recipes" }));
+		await waitFor(() => expect(stepNames()).toEqual(["Grill", "Investigate", "Step 4", "Report"]));
 		const save = screen.getByRole("button", { name: "Save" });
 		await waitFor(() => expect(save).toBeEnabled());
 		await user.click(save);
@@ -69,68 +82,107 @@ describe("Workflows: the form", () => {
 
 	it("an unknown need blocks the save", async () => {
 		const user = await open("spike");
-		await user.click(screen.getByRole("tab", { name: "Text" }));
-		const editor = (await screen.findByRole("textbox", { name: "spike" })) as HTMLTextAreaElement;
+		const editor = await openText(user, "spike");
 		fireEvent.change(editor, {
 			target: { value: editor.value.replace("needs: [grill]", "needs: [gone]") },
 		});
 		expect(await screen.findByRole("alert")).toHaveTextContent("needs `gone`");
 		expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
-		// The text with an issue cannot open in the form.
-		await user.click(screen.getByRole("tab", { name: "Form" }));
+		// The text with an issue cannot open as steps.
+		await user.click(screen.getByRole("button", { name: "Show the steps" }));
 		expect(screen.getByRole("textbox", { name: "spike" })).toBeInTheDocument();
 	});
 
 	it("the turn limit writes max_turns when on", async () => {
 		const user = await open("spike");
-		await user.click(await screen.findByRole("switch", { name: "Turn limit" }));
-		await user.click(screen.getByRole("tab", { name: "Text" }));
-		const editor = (await screen.findByRole("textbox", { name: "spike" })) as HTMLTextAreaElement;
+		await openStep(user, "Grill");
+		await user.click(await screen.findByRole("switch", { name: "Most turns" }));
+		const editor = await openText(user, "spike");
 		await waitFor(() => expect(editor.value).toContain("max_turns: 40"));
 	});
 
 	it("the budget is off with no budget_usd and writes it when on", async () => {
 		const user = await open("feature");
-		const budget = await screen.findByRole("switch", { name: "Budget" });
+		await openStep(user, "Grill");
+		const budget = await screen.findByRole("switch", { name: "Budget of the recipe" });
 		expect(budget).not.toBeChecked();
 		await user.click(budget);
-		await user.click(screen.getByRole("tab", { name: "Text" }));
-		const editor = (await screen.findByRole("textbox", { name: "feature" })) as HTMLTextAreaElement;
+		const editor = await openText(user, "feature");
 		await waitFor(() => expect(editor.value).toContain("budget_usd: 5"));
 	});
 
-	it("More opens the other fields", async () => {
+	it("the page of a step shows each field in its card, with no More and no id field", async () => {
 		const user = await open("spike");
-		const fields = within(await step("grill"));
-		const more = fields.getByRole("button", { name: "More" });
-		expect(more).toHaveAttribute("aria-expanded", "false");
-		await user.click(more);
-		expect(more).toHaveAttribute("aria-expanded", "true");
-		expect(fields.getByRole("spinbutton", { name: "Retries" })).toBeInTheDocument();
+		await openStep(user, "Grill");
+		for (const name of ["Who", "Limits", "People", "How it works"])
+			expect(screen.getByRole("region", { name })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "More" })).toBeNull();
+		expect(screen.queryByRole("textbox", { name: "Step id" })).toBeNull();
+		const limits = within(screen.getByRole("region", { name: "Limits" }));
+		await user.click(limits.getByRole("button", { name: "Tries after a failure, more" }));
+		const editor = await openText(user, "spike");
+		await waitFor(() => expect(editor.value).toContain("retry: 1"));
 	});
 
-	it("lists a workflow by its name with its step names, and its file actions sit in one menu", async () => {
+	// Picture 080: a step is a page with its own address, a way back and its place in the recipe.
+	it("opens a step from its address, and a new name follows into the address and the text", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		router = mountApp("/crew/recipes?recipe=feature&step=build");
+		expect(await screen.findByRole("heading", { level: 1, name: "Build" })).toBeInTheDocument();
+		expect(screen.getByText("Step 3 of the Feature recipe")).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "Recipes" })).toHaveAttribute(
+			"href",
+			"/crew/recipes?recipe=feature",
+		);
+		// The needs and the tools are chips: a chip removes its id, and Add lists the others.
+		const how = within(screen.getByRole("region", { name: "How it works" }));
+		expect(how.getByRole("button", { name: "Remove Plan" })).toBeInTheDocument();
+		const name = screen.getByRole("textbox", { name: "Name of the step" });
+		await user.clear(name);
+		await user.type(name, "Make it{Enter}");
+		expect(await screen.findByRole("heading", { level: 1, name: "Make it" })).toBeInTheDocument();
+		await waitFor(() => expect(router?.state.location.search).toMatchObject({ step: "make-it" }));
+		const editor = await openText(user, "feature");
+		await waitFor(() => expect(editor.value).toContain("id: make-it"));
+		// The step that needed it follows the new id.
+		expect(editor.value).toContain("needs: [make-it]");
+	});
+
+	it("shows the recipe as a chain: the agent, the model in words and the wait for a person", async () => {
+		await open("feature");
+		const steps = within(await screen.findByRole("list", { name: "Steps" }));
+		const plan = within(steps.getByRole("link", { name: "Plan" }).closest("li") as HTMLElement);
+		expect(plan.getByText("Planner")).toBeInTheDocument();
+		expect(plan.getByText("Strong model")).toBeInTheDocument();
+		expect(plan.getByText("Waits for a person")).toBeInTheDocument();
+		expect(plan.getByText("You review: Plan")).toBeInTheDocument();
+		// The step that opens the pull request asks first until a person says "Do not ask again".
+		const pr = within(
+			steps.getByRole("link", { name: "Pull request" }).closest("li") as HTMLElement,
+		);
+		expect(pr.getByText("Asks first")).toBeInTheDocument();
+	});
+
+	it("lists a recipe by its name with its count of steps, and its file actions are buttons", async () => {
 		const user = await open("spike");
 		const row = screen.getByRole("button", { name: /^Spike/ });
 		expect(row).toHaveAttribute("aria-current", "true");
-		for (const name of ["Grill", "Investigate", "Report"])
-			expect(within(row).getByRole("group", { name })).toBeInTheDocument();
-		expect(within(row).getByTitle("spike")).toBeInTheDocument();
-		// The id shows in the header of the editor, as text, with its copy control.
-		const header = within(screen.getByRole("region", { name: "spike" }));
-		expect(header.getByRole("heading", { name: "Spike" })).toBeInTheDocument();
-		expect(header.getByText("spike")).toBeInTheDocument();
-		// Duplicate, Rename and Delete are not buttons of the frame: they are in the menu.
-		for (const name of ["Duplicate", "Rename", "Delete"])
-			expect(within(screen.getByRole("main")).queryByRole("button", { name })).toBeNull();
-		await user.click(await screen.findByRole("button", { name: "More actions" }));
-		for (const name of ["Duplicate", "Rename", "Delete"])
-			expect(await screen.findByRole("menuitem", { name })).toBeInTheDocument();
-		await user.click(screen.getByRole("menuitem", { name: "Duplicate" }));
+		expect(row).toHaveTextContent("3 steps");
+		const card = within(await screen.findByRole("region", { name: "Spike" }));
+		expect(card.getByRole("heading", { name: "Spike" })).toBeInTheDocument();
+		for (const name of ["Rename", "Duplicate", "Delete"])
+			expect(card.getByRole("button", { name })).toBeEnabled();
+		// The id shows with the text of the file, with its copy control.
+		expect(card.queryByText("spike")).toBeNull();
+		await openText(user, "spike");
+		expect(card.getByText("spike")).toBeInTheDocument();
+		expect(card.getByRole("button", { name: "Copy ref" })).toBeInTheDocument();
+		await user.click(card.getByRole("button", { name: "Duplicate" }));
 		expect(await screen.findByRole("dialog", { name: "Duplicate" })).toBeInTheDocument();
 	});
 
-	it("shows the reason on Duplicate, Rename and Delete for a viewer, and keeps them reachable", async () => {
+	it("shows the reason on Duplicate, Rename and Delete for a viewer", async () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		mockState().person = {
 			member: "bo",
@@ -140,33 +192,37 @@ describe("Workflows: the form", () => {
 			readOnly: false,
 			rights: [],
 		};
-		const user = await open("spike");
-		await user.click(await screen.findByRole("button", { name: "More actions" }));
+		await open("spike");
+		const card = within(await screen.findByRole("region", { name: "Spike" }));
 		for (const name of ["Duplicate", "Rename", "Delete"]) {
-			const item = await screen.findByRole("menuitem", { name });
-			expect(item).toHaveAttribute("aria-disabled", "true");
-			expect(item).toHaveAccessibleDescription(
+			const button = card.getByRole("button", { name });
+			await waitFor(() => expect(button).toBeDisabled());
+			expect(button).toHaveAccessibleDescription(
 				"Needs the right project.settings (your role: Viewer)",
 			);
 		}
-		await user.keyboard("{ArrowDown}");
-		expect(screen.getByRole("menuitem", { name: "Duplicate" })).toHaveFocus();
 	});
 
 	it("delete asks first and refuses the default workflow", async () => {
 		const user = await open("feature");
-		await user.click(await screen.findByRole("button", { name: "More actions" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
+		// Another part of the app can hold a "Delete" too: the one of the recipe is in its card.
+		const card = within(await screen.findByRole("region", { name: "Feature" }));
+		await user.click(await card.findByRole("button", { name: "Delete" }));
 		expect(await unwrap(commands.workflowsList())).toHaveLength(7);
-		await user.click(screen.getByRole("button", { name: "Delete feature" }));
+		await user.click(card.getByRole("button", { name: "Delete Feature" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("default recipe");
 		expect(await unwrap(commands.workflowsList())).toHaveLength(7);
 	});
 
 	it("applies a proposal from its diff", async () => {
 		const user = await open("bug");
-		expect(await screen.findByRole("region", { name: "Proposed change" })).toBeInTheDocument();
-		await user.click(screen.getByRole("button", { name: "Apply" }));
+		const card = within(await screen.findByRole("region", { name: "Proposed change" }));
+		await user.click(card.getByRole("button", { name: "Show the change" }));
+		expect(await screen.findByRole("dialog", { name: "Proposed change" })).toHaveTextContent(
+			"budget_usd: 2",
+		);
+		await user.keyboard("{Escape}");
+		await user.click(card.getByRole("button", { name: "Apply" }));
 		await waitFor(async () => expect(await text("bug")).toContain("budget_usd: 2"));
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Apply" })).toBeNull());
 	});
@@ -212,7 +268,7 @@ describe("Workflows: the form", () => {
 			rights: [],
 		};
 		const user = await open("spike");
-		await step("grill");
+		await screen.findByRole("list", { name: "Steps" });
 		expect(screen.queryByRole("region", { name: "Writes without a question" })).toBeNull();
 		await user.click(screen.getByRole("button", { name: /^Feature/ }));
 		const remove = await screen.findByRole("button", { name: "Remove Push for feature" });

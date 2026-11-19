@@ -161,11 +161,13 @@ const crewSearch = (s: Record<string, unknown>): { view?: "live"; member?: strin
 	...(s.member != null ? { member: String(s.member) } : {}),
 });
 
-/** One optional text key of the address, such as the recipe of Recipes or the sheet of Plan. */
+/** Optional text keys of the address, such as the recipe of Recipes or the sheet of Plan. A sub-page of a section is the key `page`. */
 const textSearch =
-	<K extends string>(key: K) =>
+	<K extends string>(...keys: K[]) =>
 	(s: Record<string, unknown>): { [P in K]?: string } =>
-		(s[key] != null && s[key] !== "" ? { [key]: String(s[key]) } : {}) as { [P in K]?: string };
+		Object.fromEntries(
+			keys.filter((k) => s[k] != null && s[k] !== "").map((k) => [k, String(s[k])]),
+		) as { [P in K]?: string };
 
 const kindSearch = (s: Record<string, unknown>): { kind?: "idea" } =>
 	s.kind === "idea" ? { kind: "idea" } : {};
@@ -273,10 +275,14 @@ function placeRoute<P extends PlaceId>(place: P) {
 			// Crew shows the cards or the live work rows (`spec:app-redesign#REQ-017`).
 			...(view === "crew/crew" ? { validateSearch: crewSearch } : {}),
 			// The open recipe of Recipes, and the sheet that the sections of Plan share.
-			...(view === "crew/recipes" ? { validateSearch: textSearch("recipe") } : {}),
+			...(view === "crew/recipes" ? { validateSearch: textSearch("recipe", "step", "page") } : {}),
+			...(view === "crew/sessions" ? { validateSearch: textSearch("session", "page") } : {}),
+			...(view === "crew/spend" ? { validateSearch: textSearch("page", "run") } : {}),
+			...(view === "crew/rights" ? { validateSearch: textSearch("page", "role") } : {}),
 			...(view === "plan/timeline" || view === "plan/people" || view === "plan/estimates"
-				? { validateSearch: textSearch("sheet") }
+				? { validateSearch: textSearch("sheet", "page", "task", "tab") }
 				: {}),
+			...(view === "plan/time" ? { validateSearch: textSearch("page", "week", "member") } : {}),
 			// The bar of Pull requests (ux-declutter REQ-042): search and filter, kept in the address.
 			...(view === "code/now" ? { validateSearch: pullsSearch } : {}),
 			// An anchor of This project or of Me that moved to a sub-page opens that page.

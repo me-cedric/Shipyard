@@ -373,7 +373,8 @@ export function pickMock(): string | null {
 
 /** The file picker of the mock: the path that a test names, or a workbook. Each name is used once. */
 export function pickFileMock(): string | null {
-	const f = state.nextFile ?? "/mock/costing.xlsx";
+	// The demo workbook has one row that Shipyard refuses.
+	const f = state.nextFile ?? (demo ? "/mock/costing-bad.xlsx" : "/mock/costing.xlsx");
 	state.nextFile = undefined;
 	return f;
 }
@@ -2272,6 +2273,10 @@ const handlers: Handlers = {
 		// "Stop all agents" stops a running estimate, as `factory::set_kill_switch` does.
 		if (on) for (const stop of Object.values(estimateAgent().running)) stop();
 		return fx.killSwitchSet(state.factory, on);
+	},
+	agentsStopAll: (click) => {
+		for (const stop of Object.values(estimateAgent().running)) stop();
+		return fx.agentsStopAll(state.factory, click);
 	},
 	workflowsList: () => fx.workflowsList(need(state.factory)),
 	workflowGet: (id) => fx.workflowGet(need(state.factory), id),

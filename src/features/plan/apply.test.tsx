@@ -7,9 +7,19 @@ import { mountApp } from "@/test/mount";
 import { withTracker } from "@/test/tracker";
 import { renderApp } from "@/ui/test-utils";
 
-const openApply = async (user: ReturnType<typeof userEvent.setup>) => {
-	await user.click(await screen.findByRole("button", { name: "Send to the issue tracker" }));
-	return within(await screen.findByRole("dialog"));
+type Router = ReturnType<typeof mountApp>;
+const SEND = "/plan/people?page=send";
+/** The page of the send, read again from People: the preview is new each time. */
+const openApply = async (router: Router) => {
+	await router.navigate({ to: "/plan/people" });
+	await router.navigate({ to: "/plan/people", search: { page: "send" } as never });
+	return sendPage();
+};
+const idle = (router: Router) => waitFor(() => expect(router.state.status).toBe("idle"));
+/** The page area: the Ask bar above it has a Send of its own. */
+const sendPage = async () => {
+	await screen.findByRole("heading", { level: 1, name: "Send the plan to the issue tracker" });
+	return within(screen.getByRole("main"));
 };
 const written = () => Object.keys(mockState().work.written);
 
@@ -17,59 +27,77 @@ describe("the apply preview and apply", () => {
 	it("shows the rows to create and writes nothing before the person applies", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/plan/timeline");
-		const dialog = await openApply(user);
-		expect(await dialog.findByRole("heading", { name: "New (8)" })).toBeInTheDocument();
+		const router = mountApp("/plan/people");
+		// The send is a page of People, with the way back.
+		await user.click(await screen.findByRole("button", { name: "Send to the issue tracker" }));
+		await waitFor(() => expect(router.state.location.search).toMatchObject({ page: "send" }));
+		const dialog = await sendPage();
+		expect(await dialog.findByRole("heading", { name: "Create, 8" })).toBeInTheDocument();
+		// The way back is the first link of the page: the section switch has a link of this name too.
+		expect(dialog.getAllByRole("link", { name: "People" })[0]).toHaveAttribute(
+			"href",
+			"/plan/people",
+		);
+		expect(
+			dialog.getByRole("heading", { name: "This writes 8 tickets in the issue tracker" }),
+		).toBeInTheDocument();
 		// 2 features (epics) and 6 tasks (stories).
 		expect(dialog.getAllByText("Epic")).toHaveLength(2);
 		expect(dialog.getAllByText("Story")).toHaveLength(6);
-		await user.keyboard("{Escape}");
-		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		await user.click(dialog.getByRole("link", { name: "Cancel" }));
+		await waitFor(() => expect(router.state.location.search).not.toHaveProperty("page"));
 		expect(written()).toHaveLength(0);
+		await idle(router);
 	});
 
 	it("writes each row, shows each result, and a second apply creates no duplicate", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/plan/timeline");
-		let dialog = await openApply(user);
-		await user.click(await dialog.findByRole("button", { name: "Apply" }));
-		expect(await dialog.findByRole("heading", { name: "Written (8)" })).toBeInTheDocument();
+		const router = mountApp(SEND);
+		let dialog = await sendPage();
+		await dialog.findByRole("heading", { name: "Create, 8" });
+		await user.click(dialog.getByRole("button", { name: "Send" }));
+		expect(await dialog.findByRole("heading", { name: "Written, 8" })).toBeInTheDocument();
 		expect(written()).toHaveLength(8);
-		// The apply button gives way to the close button.
-		expect(dialog.queryByRole("button", { name: "Apply" })).toBeNull();
-		await user.keyboard("{Escape}");
-		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-		dialog = await openApply(user);
-		expect(await dialog.findByRole("heading", { name: "Stays the same (8)" })).toBeInTheDocument();
-		expect(dialog.getByRole("button", { name: "Apply" })).toBeDisabled();
+		// The send gives way to the counts of the result.
+		expect(dialog.queryByRole("button", { name: "Send" })).toBeNull();
+		expect(dialog.getByRole("heading", { name: "After the send" })).toBeInTheDocument();
+		dialog = await openApply(router);
+		expect(await dialog.findByRole("heading", { name: "No change, 8" })).toBeInTheDocument();
+		expect(dialog.getByRole("button", { name: "Send" })).toBeDisabled();
 		expect(written()).toHaveLength(8);
+		await idle(router);
 	});
 
 	it("keeps the rows that were written when one row fails, and shows the failed row", async () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mockState().work.failRows = ["est:mvp-1#auth-api"];
-		mountApp("/plan/timeline");
-		const dialog = await openApply(user);
-		await user.click(await dialog.findByRole("button", { name: "Apply" }));
-		expect(await dialog.findByRole("heading", { name: "Failed (1)" })).toBeInTheDocument();
+		mountApp(SEND);
+		const dialog = await sendPage();
+		await dialog.findByRole("heading", { name: "Create, 8" });
+		await user.click(dialog.getByRole("button", { name: "Send" }));
+		expect(await dialog.findByRole("heading", { name: "Failed, 1" })).toBeInTheDocument();
 		expect(dialog.getByText(/the issue tracker refused the change/)).toBeInTheDocument();
 		expect(written()).toContain("est:mvp-1#auth");
 		expect(written()).toContain("est:mvp-1#auth-design");
 		expect(written()).not.toContain("est:mvp-1#auth-api");
-		expect(dialog.getByRole("heading", { name: "Written (7)" })).toBeInTheDocument();
+		expect(dialog.getByRole("heading", { name: "Written, 7" })).toBeInTheDocument();
+		// The failed row goes again on a click, and the written rows stay.
+		mockState().work.failRows = [];
+		await user.click(dialog.getByRole("button", { name: "Try again" }));
+		expect(await dialog.findByRole("heading", { name: "Written, 8" })).toBeInTheDocument();
+		expect(written()).toHaveLength(8);
 	});
 
 	it("reads the effort of the sheet again: a changed task shows as an update", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/plan/timeline");
-		let dialog = await openApply(user);
-		await user.click(await dialog.findByRole("button", { name: "Apply" }));
-		await dialog.findByRole("heading", { name: "Written (8)" });
-		await user.keyboard("{Escape}");
-		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		const router = mountApp(SEND);
+		let dialog = await sendPage();
+		await dialog.findByRole("heading", { name: "Create, 8" });
+		await user.click(dialog.getByRole("button", { name: "Send" }));
+		await dialog.findByRole("heading", { name: "Written, 8" });
 		const sheet = (await unwrap(commands.estimateGet("mvp-1"))).sheet;
 		await unwrap(
 			commands.estimateSave("mvp-1", {
@@ -80,11 +108,12 @@ describe("the apply preview and apply", () => {
 				})),
 			}),
 		);
-		dialog = await openApply(user);
+		dialog = await openApply(router);
 		// The task and the test task, which is a share of the build effort.
-		expect(await dialog.findByRole("heading", { name: "Changed (2)" })).toBeInTheDocument();
+		expect(await dialog.findByRole("heading", { name: "Change, 2" })).toBeInTheDocument();
 		expect(dialog.getAllByText("Estimate")).toHaveLength(2);
-		expect(dialog.getByRole("heading", { name: "Stays the same (6)" })).toBeInTheDocument();
+		expect(dialog.getByRole("heading", { name: "No change, 6" })).toBeInTheDocument();
+		await idle(router);
 	});
 });
 
@@ -93,15 +122,13 @@ describe("the preview before the plan goes to the issue tracker", () => {
 	it("lists what it creates, what it changes and what stays, and writes nothing", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/plan/timeline");
-		let dialog = await openApply(user);
-		await dialog.findByRole("heading", { name: "New (8)" });
+		const router = mountApp(SEND);
+		let dialog = await sendPage();
+		await dialog.findByRole("heading", { name: "Create, 8" });
 		// The last row stays out of the first send: the next preview creates it.
 		await user.click(dialog.getAllByRole("checkbox")[7] as HTMLElement);
-		await user.click(dialog.getByRole("button", { name: "Apply" }));
-		await dialog.findByRole("heading", { name: "Written (7)" });
-		await user.keyboard("{Escape}");
-		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		await user.click(dialog.getByRole("button", { name: "Send" }));
+		await dialog.findByRole("heading", { name: "Written, 7" });
 		const sheet = (await unwrap(commands.estimateGet("mvp-1"))).sheet;
 		await unwrap(
 			commands.estimateSave("mvp-1", {
@@ -112,11 +139,12 @@ describe("the preview before the plan goes to the issue tracker", () => {
 				})),
 			}),
 		);
-		dialog = await openApply(user);
-		expect(await dialog.findByRole("heading", { name: "New (1)" })).toBeInTheDocument();
-		expect(dialog.getByRole("heading", { name: /^Changed \(\d\)$/ })).toBeInTheDocument();
-		expect(dialog.getByRole("heading", { name: /^Stays the same \(\d\)$/ })).toBeInTheDocument();
+		dialog = await openApply(router);
+		expect(await dialog.findByRole("heading", { name: "Create, 1" })).toBeInTheDocument();
+		expect(dialog.getByRole("heading", { name: /^Change, \d$/ })).toBeInTheDocument();
+		expect(dialog.getByRole("heading", { name: /^No change, \d$/ })).toBeInTheDocument();
 		expect(written()).toHaveLength(7);
+		await idle(router);
 	});
 });
 
@@ -124,17 +152,18 @@ describe("the review of each row before the write", () => {
 	it("writes the rows that were approved, with the title that was edited, and drops the others", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/plan/timeline");
-		const dialog = await openApply(user);
-		await dialog.findByRole("heading", { name: "New (8)" });
+		mountApp(SEND);
+		const dialog = await sendPage();
+		await dialog.findByRole("heading", { name: "Create, 8" });
 		const boxes = dialog.getAllByRole("checkbox");
 		expect(boxes).toHaveLength(8);
 		await user.click(boxes[7] as HTMLElement);
+		await user.click(dialog.getByRole("button", { name: "Edit Authentication" }));
 		const title = dialog.getByRole("textbox", { name: "Title of Authentication" });
 		await user.clear(title);
 		await user.type(title, "Sign in");
-		await user.click(dialog.getByRole("button", { name: "Apply" }));
-		expect(await dialog.findByRole("heading", { name: "Written (7)" })).toBeInTheDocument();
+		await user.click(dialog.getByRole("button", { name: "Send" }));
+		expect(await dialog.findByRole("heading", { name: "Written, 7" })).toBeInTheDocument();
 		expect(written()).toHaveLength(7);
 		expect(mockState().work.written["est:mvp-1#auth"]?.row.title).toBe("Sign in");
 		expect(dialog.queryByRole("checkbox")).toBeNull();
@@ -143,11 +172,11 @@ describe("the review of each row before the write", () => {
 	it("writes nothing when every row is dropped", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/plan/timeline");
-		const dialog = await openApply(user);
+		mountApp(SEND);
+		const dialog = await sendPage();
 		await dialog.findAllByRole("checkbox");
 		for (let i = 0; i < 8; i++) await user.click(dialog.getAllByRole("checkbox")[i] as HTMLElement);
-		expect(dialog.getByRole("button", { name: "Apply" })).toBeDisabled();
+		expect(dialog.getByRole("button", { name: "Send" })).toBeDisabled();
 		expect(written()).toHaveLength(0);
 	});
 

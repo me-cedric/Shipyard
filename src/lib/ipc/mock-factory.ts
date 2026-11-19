@@ -1224,6 +1224,15 @@ export function killSwitchSet(f: MockFactory, on: boolean): boolean {
 	return on;
 }
 
+/** "Stop all agents": cancels every run that is not final. The switch keeps its value. */
+export function agentsStopAll(f: MockFactory, click: boolean): null {
+	if (!click) throw "this change needs the click of a person";
+	const was = f.kill;
+	killSwitchSet(f, true);
+	f.kill = was;
+	return null;
+}
+
 export function questionsList(f: MockFactory, project: string | null): QuestionView_Serialize[] {
 	const runs = runsOf(f, project);
 	return f.questions

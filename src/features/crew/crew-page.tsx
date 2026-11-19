@@ -9,27 +9,29 @@ import { parseMemberWeek } from "@/features/work/week-focus";
 import { ENDED, useRoles, useRuns, useUsage, useWorkflows } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
-import { RightButton } from "@/lib/rights";
+import { useRights } from "@/lib/rights";
 import { useFormIntent, useFormIntentFor } from "@/lib/shell";
 import { useViewState } from "@/lib/shell/view-state";
 import { useWorkItems } from "@/lib/sync";
 import { usePlan, useSealState, useSheets, useTeam } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
-import { Button } from "@/ui/atoms/button";
-import { ChevronLeftIcon, LockClosedIcon, PlusIcon } from "@/ui/icons";
+import { buttonVariants } from "@/ui/atoms/button";
+import { Segmented } from "@/ui/atoms/segmented";
+import { PlusIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { SectionSwitch } from "@/ui/molecules/section-switch";
-import { atWork, LiveRows, useAgentRows } from "./live";
+import { atWork, byRun, LiveRows, useAgentRows } from "./live";
 import { MemberForm } from "./member";
 
-const CARD = "flex min-h-control flex-col gap-2 rounded-xl bg-surface-2 p-4 text-left shadow-1";
-const GRID = "grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3";
-const H2 = "text-16 font-semibold text-n-12";
-const LINK =
-	"inline-flex min-h-control items-center justify-center rounded-md border px-3 text-ui font-medium text-n-12 hover:bg-n-3";
+const CARD =
+	"flex h-full w-full flex-col items-start gap-3 rounded-lg bg-surface-2 p-5 text-left shadow-2";
+const HOVER =
+	"hover:shadow-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+const GRID = "grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3.5";
+const H2 = "text-17 font-semibold text-n-12";
+const NAME = "text-17 font-semibold text-n-12";
 
 /** The week of a capacity warning, for the member that it names. */
 type Week = { handle: string; from: string; slug: string };
@@ -46,6 +48,7 @@ export function CrewPage() {
 	// closes the member page and a link opens one person.
 	const search = useSearch({ strict: false }) as { view?: string; member?: unknown };
 	const navigate = useNavigate();
+	const { can } = useRights();
 	const live = search.view === "live";
 	const active = useActiveProject().data;
 	const team = useTeam();
@@ -100,34 +103,24 @@ export function CrewPage() {
 
 	const Icon = tabIcon("crew", "crew");
 	const icon = Icon && <Icon size={16} />;
-	const title = live ? c.atWork : t.ui.place.crew;
+	// One row for each run: the title counts what the rows show.
+	const working = byRun(agents.rows.filter(atWork));
+	const title = !live
+		? t.ui.place.crew
+		: working.length === 1
+			? c.atWorkOne
+			: format(c.atWorkCount, { count: working.length });
 	if (active === undefined || team.isLoading) return <Loading title={title} icon={icon} />;
 	if (active === null) return <NoProject title={title} icon={icon} />;
-
-	const sealed =
-		team.data?.locked && seal ? (
-			<div className="flex flex-wrap items-center gap-2">
-				<LockClosedIcon size={14} />
-				<span className="text-ui text-n-11">{t.work.team.lockedRate}</span>
-				<SealBar state={seal} />
-			</div>
-		) : null;
 
 	if (open) {
 		return (
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-				<div className="px-4 pt-3">
-					<Button className="min-h-control" onClick={() => show()}>
-						<ChevronLeftIcon size={14} />
-						{t.ui.place.crew}
-					</Button>
-				</div>
 				<MemberForm
 					key={open.handle}
 					handle={open.handle}
 					week={week?.handle === open.handle ? week : undefined}
-					icon={icon}
-					seal={sealed}
+					seal={team.data?.locked && seal ? <SealBar state={seal} /> : null}
 					// A saved or removed member replaces the entry of the form: Back does not show it again.
 					onOpen={(handle) => show(handle ?? undefined, true)}
 				/>
@@ -135,7 +128,8 @@ export function CrewPage() {
 		);
 	}
 
-	const working = agents.rows.filter(atWork);
+	const setView = (view: string) =>
+		void navigate({ to: "/crew/crew", search: (view === "live" ? { view } : {}) as never });
 	const openRuns = new Set(runs.filter((r) => !ENDED.includes(r.state)).map((r) => r.id));
 	const spent = (usage?.runs ?? []).filter((r) => openRuns.has(r.run));
 	const spend = spent.reduce((a, r) => a + (r.usd ?? 0), 0);
@@ -146,49 +140,44 @@ export function CrewPage() {
 			<PageHeader
 				icon={icon}
 				title={title}
-				count={live ? working.length : undefined}
 				action={
-					<>
-						<SectionSwitch
-							label={t.factory.runsList.view}
-							items={[
-								{ id: "cards", label: c.cards, current: !live },
-								{ id: "live", label: c.live, current: live },
-							]}
-							renderItem={(i, props) => (
-								<Link
-									to="/crew/crew"
-									search={(i.id === "live" ? { view: "live" } : {}) as never}
-									{...props}
-								>
-									{i.label}
-								</Link>
-							)}
-						/>
+					live ? (
+						// The way back to the cards. It is a choice of two views, not a second section switch.
+						<div className="shrink-0">
+							<Segmented
+								label={t.factory.runsList.view}
+								value="live"
+								onValueChange={setView}
+								items={[
+									{ value: "cards", label: c.cards },
+									{ value: "live", label: c.live },
+								]}
+							/>
+						</div>
+					) : (
 						<AgentsToggle />
-					</>
+					)
+				}
+				menu={
+					live
+						? undefined
+						: [
+								{ label: c.live, onClick: () => setView("live") },
+								{
+									label: c.addPerson,
+									icon: <PlusIcon size={14} />,
+									disabled: !can("project.settings"),
+									onClick: () => show(null),
+								},
+							]
 				}
 			/>
-			<div className="flex flex-col gap-3 px-4 pt-2 pb-4">
+			<div className="flex flex-col gap-5 px-4 pt-2 pb-4">
 				{live ? (
 					<LiveRows {...agents} />
 				) : (
 					<>
-						<div className="flex items-center justify-between gap-3">
-							<h2 className={H2}>{c.people}</h2>
-							{members.length ? (
-								<RightButton
-									id="add-member"
-									right="project.settings"
-									className="min-h-control"
-									onClick={() => show(null)}
-								>
-									<PlusIcon size={14} />
-									{t.work.team.add}
-								</RightButton>
-							) : null}
-						</div>
-						{sealed}
+						<h2 className={H2}>{c.people}</h2>
 						{team.data?.error ? (
 							<p role="alert" className="text-ui text-danger-text">
 								{team.data.error}
@@ -199,7 +188,7 @@ export function CrewPage() {
 								title={t.empty.team}
 								action={{
 									id: "add-member",
-									label: t.work.team.add,
+									label: c.addPerson,
 									icon: <PlusIcon size={14} />,
 									onClick: () => show(null),
 								}}
@@ -219,29 +208,20 @@ export function CrewPage() {
 											<button
 												type="button"
 												onClick={() => show(m.handle)}
-												className={`${CARD} w-full hover:shadow-2 focus-visible:shadow-glow`}
+												className={`${CARD} ${HOVER}`}
 											>
-												<Avatar name={m.name} className="size-10 text-13" />
-												<span className="font-medium text-n-12">{m.name}</span>
-												<span className="text-ui text-n-11">
+												<span aria-hidden="true" className="flex">
+													<Avatar name={m.name} className="size-14 text-17" />
+												</span>
+												<span className={NAME}>{m.name}</span>
+												<span className="text-n-11">
 													{items
 														.filter((i) => i.member === m.handle && i.category === "in-progress")
 														.map((i) => i.title)
 														.join(", ")}
 												</span>
-												{/* The members table of before, on the card: role, capacity, skills and day rate. */}
-												<span className="text-12 text-n-11">
-													{[
-														t.rights.role[m.role as keyof typeof t.rights.role] ?? m.role,
-														format(c.perWeek, { days: m.capacity ?? 0 }),
-														...m.skills,
-														...(m.dayRate == null ? [] : [`${t.work.team.dayRate} ${m.dayRate}`]),
-													]
-														.filter(Boolean)
-														.join(" · ")}
-												</span>
 												{days ? (
-													<Badge variant={over > 0 ? "warning" : "success"}>
+													<Badge variant={over > 0 ? "you" : "success"}>
 														{over > 0 ? format(c.overBy, { days: over }) : c.hasRoom}
 													</Badge>
 												) : null}
@@ -253,68 +233,80 @@ export function CrewPage() {
 						)}
 						<h2 className={H2}>{c.agents}</h2>
 						<ul aria-label={c.agents} className={GRID}>
+							{/* Only a role with work has a card. Each card opens the live rows. */}
 							{roles.map((role) => {
 								const mine = working.filter((r) => r.role === role.id);
+								if (mine.length === 0) return null;
 								const titles = [...new Set(mine.map((r) => r.title))];
 								return (
 									<li key={role.id}>
 										<Link
 											to="/crew/crew"
 											search={{ view: "live" } as never}
-											className={`${CARD} hover:shadow-2 focus-visible:shadow-glow`}
+											className={`${CARD} ${HOVER}`}
 										>
-											<span className="font-medium text-n-12">{nameOf(role.id)}</span>
-											<span className="text-ui text-n-11">
+											<span aria-hidden="true" className="flex">
+												<Avatar
+													agent
+													name={nameOf(role.id)}
+													className="size-14 rounded-field text-17"
+												/>
+											</span>
+											<span className={NAME}>{nameOf(role.id)}</span>
+											<span className="text-n-11">
 												{titles.length > 1
 													? format(c.more, { title: titles[0] ?? "", count: titles.length - 1 })
 													: titles[0]}
 											</span>
 											{mine.some((r) => r.session.state === "gate") ? (
-												<Badge variant="warning">{t.factory.runsList.needsYou}</Badge>
-											) : mine.length ? (
-												<Badge variant="info">
+												<Badge variant="you">{t.factory.runsList.needsYou}</Badge>
+											) : (
+												<Badge variant="accent">
 													{format(c.countAtWork, { count: mine.length })}
 												</Badge>
-											) : (
-												<Badge>{t.status.idle}</Badge>
 											)}
 										</Link>
 									</li>
 								);
 							})}
-							<li className={CARD}>
-								<span className="text-12 font-medium text-n-11">{c.spendOpen}</span>
-								<span className="text-20 font-semibold text-n-12">
+							<li className={`${CARD} justify-between`}>
+								<span className="text-13 font-semibold text-n-11">{c.spendOpen}</span>
+								<span className="text-[2.5rem] leading-tight font-semibold text-n-12">
 									{price(`$${spend.toFixed(2)}`)}
 								</span>
 								{limits.length ? (
-									<span className="text-ui text-n-11">
+									<span className="text-n-11">
 										{price(format(c.limit, { usd: `$${Math.min(...limits).toFixed(2)}` }))}
 									</span>
 								) : null}
-								<Link to="/crew/spend" className={LINK}>
+								<Link to="/crew/spend" className={`${buttonVariants()} self-stretch`}>
 									{t.factory.budgets}
 								</Link>
 							</li>
 						</ul>
 						<h2 className={H2}>{c.views.recipes}</h2>
-						<ul aria-label={c.views.recipes} className="rounded-xl bg-surface-2 px-4 shadow-1">
+						<ul aria-label={c.views.recipes} className="rounded-lg bg-surface-2 px-5 shadow-2">
 							{recipes.map((w) => (
 								<li
 									key={w.id}
-									className="flex flex-wrap items-center gap-3 border-b py-2 last:border-b-0"
+									className="flex flex-wrap items-center gap-4 border-n-6 py-4 [&+&]:border-t"
 								>
-									<span className="w-28 font-medium text-n-12">{nameOf(w.id)}</span>
-									<span className="flex flex-1 flex-wrap gap-1.5">
+									<span className="w-20 font-semibold text-n-12">{nameOf(w.id)}</span>
+									<span className="flex flex-1 basis-96 flex-wrap gap-2">
 										{w.steps.map((s) => (
-											<Badge key={s}>{nameOf(s)}</Badge>
+											<span
+												key={s}
+												className="inline-flex min-h-9 items-center rounded-sm bg-n-3 px-3.5 font-medium text-n-12"
+											>
+												{nameOf(s)}
+											</span>
 										))}
 									</span>
 									<Link
 										to="/crew/recipes"
 										search={{ recipe: w.id } as never}
 										aria-label={`${t.factory.edit} ${nameOf(w.id)}`}
-										className={LINK}
+										className={buttonVariants()}
 									>
 										{t.factory.edit}
 									</Link>

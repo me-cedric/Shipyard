@@ -11,6 +11,9 @@ const rows = async () => {
 	const table = await screen.findByRole("table", { name: "Agents at work" });
 	return within(table).getAllByRole("row").slice(1);
 };
+/** The count of rows for these sessions: one for each run. */
+const runsOf = (sessions: { run: string; key: string }[]) =>
+	new Set(sessions.map((s) => s.run || s.key)).size;
 const filter = () => within(screen.getByRole("group", { name: "Filter" }));
 const find = async (key: string) => {
 	const r = (await unwrap(commands.runsList())).find((x) => x.key === key);
@@ -20,7 +23,7 @@ const find = async (key: string) => {
 
 // spec:app-redesign#REQ-017: one row for each agent, in place of the agents map.
 describe("Crew / Live", () => {
-	it("gives six rows for six agents at work, each with its agent, its feature and what it touches", async () => {
+	it("gives one row for each run with an agent at work, with its agent, its feature and what it touches", async () => {
 		await withTracker();
 		// Seven sessions run in the demo: the step of one run ends, so six agents stay at work.
 		for (const step of mockState().factory.runs.find((r) => r.key === "ACME-6")?.steps ?? [])
@@ -29,11 +32,14 @@ describe("Crew / Live", () => {
 			(s) => s.state === "running" || s.state === "gate",
 		);
 		expect(live).toHaveLength(6);
+		// Two units of one step are one run: the run shows on one row.
+		const count = runsOf(live);
+		expect(count).toBeLessThan(6);
 		const router = mountApp("/crew/crew?view=live");
-		await waitFor(async () => expect(await rows()).toHaveLength(6));
+		await waitFor(async () => expect(await rows()).toHaveLength(count));
 		const heads = within(screen.getByRole("main")).getAllByRole("heading", { level: 1 });
 		expect(heads).toHaveLength(1);
-		expect(heads[0]).toHaveTextContent("Agents at work");
+		expect(heads[0]).toHaveTextContent(`${count} agents at work`);
 		const run = await find("ACME-10");
 		const row = (await rows()).find((r) => r.textContent?.includes(run.title));
 		if (!row) throw new Error("no row for ACME-10");
@@ -49,16 +55,17 @@ describe("Crew / Live", () => {
 			"href",
 			`/flow/feature/${encodeURIComponent("wi:ACME-10")}`,
 		);
-		// The ticket, the run and the file of its finding, each a ref with Copy ref.
-		const refs = within(touches)
-			.getAllByRole("button")
-			.map((b) => b.getAttribute("data-ask"));
-		expect(refs).toEqual([
-			"wi:ACME-10",
-			run.reference,
-			...run.findings.flatMap((f) => (f.path ? [`doc:${f.path}`] : [])),
-		]);
-		expect(refs).toHaveLength(3);
+		// The file of its finding and the files that the run changed, as short chips. No ticket id and no run id.
+		const chips = within(touches).getAllByRole("button");
+		const refs = chips.map((b) => b.getAttribute("data-ask"));
+		const files = [
+			...run.findings.flatMap((f) => (f.path ? [f.path] : [])),
+			...(await unwrap(commands.runDiff(run.id))).map((d) => d.path),
+		];
+		expect(refs).toEqual([...new Set(files)].slice(0, 6).map((f) => `doc:${f}`));
+		expect(refs.length).toBeGreaterThan(0);
+		expect(chips[0]).toHaveTextContent(files[0]?.split("/").at(-1) ?? "");
+		expect(row).not.toHaveTextContent(/wi:|run:/);
 		await idle(router);
 	});
 
@@ -67,18 +74,25 @@ describe("Crew / Live", () => {
 		await withTracker();
 		const sessions = await unwrap(commands.sessionsList());
 		const router = mountApp("/crew/crew?view=live");
-		await waitFor(async () => expect(await rows()).toHaveLength(7));
+		const atWork = sessions.filter((s) => s.state === "running" || s.state === "gate");
+		await waitFor(async () => expect(await rows()).toHaveLength(runsOf(atWork)));
+		expect(filter().getByRole("button", { name: "At work" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
 		await user.click(filter().getByRole("button", { name: "Ended" }));
 		await waitFor(async () =>
 			expect(await rows()).toHaveLength(
-				sessions.filter((s) => s.state === "done" || s.state === "failed").length,
+				runsOf(sessions.filter((s) => s.state === "done" || s.state === "failed")),
 			),
 		);
-		// One run has a finding with a path: its sessions are the rows with a file.
+		// The runs with a finding on a file or with a changed file are the rows with a file.
 		await user.click(filter().getByRole("button", { name: "Files" }));
-		await waitFor(async () =>
-			expect(await rows()).toHaveLength(sessions.filter((s) => s.key === "ACME-10").length),
-		);
+		await waitFor(async () => {
+			const all = await rows();
+			expect(all.length).toBeGreaterThan(0);
+			for (const r of all) expect(within(r).getAllByRole("cell")[2]).not.toBeEmptyDOMElement();
+		});
 		// No session touches a spec: the empty state shows in place of a table with no row.
 		await user.click(filter().getByRole("button", { name: "Specs" }));
 		expect(await screen.findByText("No sessions")).toBeInTheDocument();
@@ -112,11 +126,16 @@ describe("Crew / Live", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		const router = mountApp("/crew/crew");
-		const view = within(await screen.findByRole("navigation", { name: "View" }));
-		await user.click(view.getByRole("link", { name: "Live" }));
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Live" }));
 		await waitFor(() => expect(router.state.location.search).toEqual({ view: "live" }));
 		expect(await screen.findByRole("table", { name: "Agents at work" })).toBeInTheDocument();
-		await user.click(view.getByRole("link", { name: "Cards" }));
+		// The choice of the view is a group of two buttons, not a second section switch.
+		const main = within(screen.getByRole("main"));
+		expect(main.getAllByRole("navigation")).toHaveLength(1);
+		const view = within(main.getByRole("group", { name: "View" }));
+		expect(view.getByRole("button", { name: "Live" })).toHaveAttribute("aria-pressed", "true");
+		await user.click(view.getByRole("button", { name: "Cards" }));
 		await waitFor(() => expect(router.state.location.search).toEqual({}));
 		expect(await screen.findByRole("list", { name: "People" })).toBeInTheDocument();
 		await idle(router);
@@ -128,13 +147,18 @@ describe("Crew / Live", () => {
 		await withTracker();
 		const router = mountApp("/crew/crew?view=live");
 		const table = within(await screen.findByRole("table", { name: "Agents at work" }));
-		const [ticket] = await table.findAllByRole("button", { name: /^wi:ACME-2,/ });
-		if (!ticket) throw new Error("no ticket ref");
-		await user.click(ticket);
+		const run = await find("ACME-10");
+		const path = run.findings.find((f) => f.path)?.path;
+		if (!path) throw new Error("no finding with a file");
+		const name = path.split("/").at(-1) ?? "";
+		const [file] = await table.findAllByRole("button", { name });
+		if (!file) throw new Error("no file chip");
+		expect(file).toHaveAttribute("data-ask", `doc:${path}`);
+		await user.click(file);
 		await waitFor(() =>
-			expect(
-				screen.getAllByRole("complementary").some((a) => a.textContent?.includes("ACME-2")),
-			).toBe(true),
+			expect(screen.getAllByRole("complementary").some((a) => a.textContent?.includes(name))).toBe(
+				true,
+			),
 		);
 		await idle(router);
 	});

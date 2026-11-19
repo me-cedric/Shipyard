@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { RightButton, RightIconButton } from "@/lib/rights";
 import { type Seal, useWorkActions } from "@/lib/work";
+import { Badge } from "@/ui/atoms/badge";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { LockClosedIcon, LockOpenIcon, XMarkIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { useGuard } from "./guard";
 
@@ -102,5 +104,81 @@ function Alert({ text }: { text: string }) {
 		<p role="alert" className="text-ui text-danger-text">
 			{text}
 		</p>
+	);
+}
+
+/**
+ * The seal as a card (Plan / Estimates, Costing): the state, one passphrase field and the actions.
+ * The rules are the ones of `SealBar`. A new seal asks for the passphrase two times in the same
+ * field: a typo would lock the files for good.
+ */
+export function SealCard({ state }: { state: Seal }) {
+	const { t } = useI18n();
+	const s = t.work.seal;
+	const p = t.costing.estimate;
+	const act = useWorkActions();
+	const { error, run, setError } = useGuard();
+	const [pass, setPass] = useState("");
+	/** The first entry of a new seal, while the card asks for the second one. */
+	const [first, setFirst] = useState<string | null>(null);
+	const locked = state.sealed && !state.unlocked;
+	const mode: Mode = locked ? "unlock" : state.sealed ? "unseal" : "seal";
+	const label = first === null ? s.passphrase : s.repeat;
+	return (
+		<Card pad>
+			<form
+				className="flex flex-col gap-3"
+				onSubmit={async (e) => {
+					e.preventDefault();
+					// The passphrase leaves the field before the call: a refusal never leaves it on screen.
+					const typed = pass;
+					setPass("");
+					if (typed === "") return;
+					if (mode === "seal") {
+						if (first === null) return setFirst(typed);
+						setFirst(null);
+						if (typed !== first) return setError(s.mismatch);
+					}
+					await run(() => act[mode](typed));
+				}}
+			>
+				<div className="flex items-center gap-3">
+					<h2 className="mr-auto text-17 font-semibold">{s.seal}</h2>
+					<Badge>{locked ? t.work.estimates.locked : state.sealed ? p.open : p.notSealed}</Badge>
+				</div>
+				<SecretInput
+					label={label}
+					saved={false}
+					value={pass}
+					onChange={setPass}
+					placeholder={label}
+				/>
+				<div className="flex flex-wrap gap-2.5">
+					{state.sealed && !locked ? (
+						<RightButton
+							right="work.edit"
+							variant="primary"
+							className="flex-[1_1_100px]"
+							onClick={() => void run(act.lock)}
+						>
+							{s.lock}
+						</RightButton>
+					) : null}
+					<RightButton
+						right="work.edit"
+						type="submit"
+						variant={state.sealed && !locked ? "secondary" : "primary"}
+						className="flex-[1_1_100px]"
+						disabled={pass === ""}
+					>
+						{mode === "unseal" ? p.openSeal : s[mode]}
+					</RightButton>
+				</div>
+				{error ? <Alert text={error} /> : null}
+				<Badge variant="success" className="self-start">
+					{p.sealNote}
+				</Badge>
+			</form>
+		</Card>
 	);
 }

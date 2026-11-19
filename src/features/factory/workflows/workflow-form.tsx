@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
+import { nameOf } from "@/features/factory/runs/run-live";
 import { format, useI18n } from "@/lib/i18n";
 import type {
 	Effort,
@@ -7,14 +8,14 @@ import type {
 	WorkflowOptions,
 } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
-import { Checkbox } from "@/ui/atoms/checkbox";
+import { Chip } from "@/ui/atoms/chip";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Select, type SelectItem } from "@/ui/atoms/select";
 import { Switch } from "@/ui/atoms/switch";
-import { PlusIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
+import { MenuButton } from "@/ui/molecules/menu-button";
 import { SettingsRow } from "@/ui/molecules/settings-row";
-import { SectionCard } from "../section-card";
 
 const EFFORTS: Effort[] = ["low", "medium", "high", "xhigh", "max"];
 /** The value of a Select item that stands for no value. */
@@ -23,11 +24,76 @@ const TURNS = 40;
 /** USD when a person turns the budget on. */
 const BUDGET = 5;
 
-/** The items of a list, plus the current value when the list lacks it. */
-const items = (list: string[], current?: string): SelectItem[] =>
+/** The id that a typed name gives: "Self review" gives "self-review". */
+export const idOf = (name: string) =>
+	name
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-|-$/g, "");
+
+/** The name of a step in words. `pr` is the word for the step with the id `pr`: "Pull request", not "Pr". */
+export const stepLabel = (id: string, pr: string) => (id === "pr" ? pr : nameOf(id));
+
+/** The step at `i` with `p`. A new id follows into the needs of the other steps. */
+export function patchStep(wf: Workflow, i: number, p: Partial<Step>): Workflow {
+	const old = wf.steps[i]?.id;
+	return {
+		...wf,
+		steps: wf.steps.map((s, k) => {
+			if (k === i) return { ...s, ...p };
+			return p.id !== undefined && old && s.needs?.includes(old)
+				? { ...s, needs: s.needs.map((n) => (n === old ? (p.id as string) : n)) }
+				: s;
+		}),
+	};
+}
+
+export function moveStep(wf: Workflow, i: number, by: -1 | 1): Workflow {
+	const steps = [...wf.steps];
+	const [s] = steps.splice(i, 1);
+	if (s) steps.splice(i + by, 0, s);
+	return { ...wf, steps };
+}
+
+/** The workflow with no step at `i`. The other steps do not need it any more. */
+export function removeStep(wf: Workflow, i: number): Workflow {
+	const gone = wf.steps[i]?.id;
+	return {
+		...wf,
+		steps: wf.steps
+			.filter((_, k) => k !== i)
+			.map((s) =>
+				s.needs?.includes(gone ?? "") ? { ...s, needs: s.needs.filter((n) => n !== gone) } : s,
+			),
+	};
+}
+
+export function addStep(wf: Workflow): Workflow {
+	let n = wf.steps.length + 1;
+	while (wf.steps.some((s) => s.id === `step-${n}`)) n++;
+	return {
+		...wf,
+		steps: [
+			...wf.steps,
+			{
+				id: `step-${n}`,
+				role: "worker",
+				mode: "auto",
+				workspace: "shared",
+				gate: "none",
+				retry: 0,
+				fresh_context: false,
+			},
+		],
+	};
+}
+
+/** The items of a list in words, plus the current value when the list lacks it. */
+const items = (list: string[], current?: string, label = nameOf): SelectItem[] =>
 	[...list, ...(current && !list.includes(current) ? [current] : [])].map((v) => ({
 		value: v,
-		label: v,
+		label: label(v),
 	}));
 
 /** A number field. An empty field gives `undefined`. Its row shows the label. */
@@ -41,14 +107,60 @@ function NumberField({
 	onChange: (v: number | undefined) => void;
 }) {
 	return (
-		<Input
-			label={label}
-			type="number"
-			min="0"
-			className="min-h-control"
-			value={value ?? ""}
-			onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-		/>
+		<span className="w-28">
+			<Input
+				label={label}
+				type="number"
+				min="0"
+				step="any"
+				value={value ?? ""}
+				onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+			/>
+		</span>
+	);
+}
+
+/** A small count: less, the value, more. Under `min` the value is `undefined`. */
+function Stepper({
+	label,
+	value,
+	min = 0,
+	onChange,
+}: {
+	label: string;
+	value: number | undefined;
+	min?: number;
+	onChange: (v: number | undefined) => void;
+}) {
+	const { t } = useI18n();
+	const p = t.factory.recipePage;
+	const side = "min-h-control min-w-(--control-h) font-semibold disabled:opacity-50";
+	return (
+		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
+		<span
+			role="group"
+			aria-label={label}
+			className="inline-flex items-center rounded-md border border-n-7 bg-surface-1"
+		>
+			<button
+				type="button"
+				aria-label={format(p.less, { name: label })}
+				disabled={value === undefined}
+				onClick={() => onChange(value !== undefined && value > min ? value - 1 : undefined)}
+				className={side}
+			>
+				−
+			</button>
+			<output className="min-w-8 text-center font-semibold">{value ?? "–"}</output>
+			<button
+				type="button"
+				aria-label={format(p.more, { name: label })}
+				onClick={() => onChange((value ?? min - 1) + 1)}
+				className={side}
+			>
+				+
+			</button>
+		</span>
 	);
 }
 
@@ -67,9 +179,7 @@ function OptionalNumber({
 	return (
 		<SettingsRow label={label}>
 			{value !== null ? (
-				<span className="w-28">
-					<NumberField label={label} value={value} onChange={(v) => onChange(v ?? initial)} />
-				</span>
+				<NumberField label={label} value={value} onChange={(v) => onChange(v ?? initial)} />
 			) : null}
 			<Switch
 				iconOnly
@@ -81,407 +191,335 @@ function OptionalNumber({
 	);
 }
 
-/** A row of checkboxes, one for each id. No id, no row. */
-function Group({
+/** A time in minutes. The file holds seconds. */
+function Minutes({
 	label,
-	ids,
-	on,
+	value,
 	onChange,
 }: {
 	label: string;
-	ids: string[];
-	on: string[];
-	onChange: (next: string[]) => void;
+	value: number | undefined;
+	onChange: (seconds: number | undefined) => void;
 }) {
-	if (ids.length === 0) return null;
+	const { t } = useI18n();
 	return (
 		<SettingsRow label={label}>
-			{ids.map((id) => (
-				<Checkbox
-					key={id}
-					label={id}
-					checked={on.includes(id)}
-					onCheckedChange={(c) => onChange(c ? [...on, id] : on.filter((x) => x !== id))}
-				/>
-			))}
+			<NumberField
+				label={label}
+				value={value === undefined ? value : value / 60}
+				onChange={(v) => onChange(v === undefined ? v : Math.round(v * 60))}
+			/>
+			{t.factory.recipePage.minutes}
 		</SettingsRow>
 	);
 }
 
-/** The small title of a group of rows in a step. */
-const Title = ({ children }: { children: string }) => (
-	<h3 className="px-3 pt-3 pb-1 text-12 font-medium text-n-11">{children}</h3>
-);
-
-/** One step as a card (picture 080): who does it, the people, how it works and its limits. */
-function StepForm({
-	step,
-	index,
-	count,
-	others,
-	options,
-	more,
-	onMore,
+/** The chosen ids as chips, and Add for the others. A chip removes its id. No id, no row. */
+function Chips({
+	label,
+	all,
+	on,
 	onChange,
-	onMove,
-	onRemove,
 }: {
-	more: boolean;
-	onMore: (open: boolean) => void;
-	step: Step;
+	label: string;
+	all: string[];
+	on: string[];
+	onChange: (next: string[]) => void;
+}) {
+	const { t } = useI18n();
+	const p = t.factory.recipePage;
+	const rest = all.filter((id) => !on.includes(id));
+	if (all.length === 0 && on.length === 0) return null;
+	return (
+		<SettingsRow label={label}>
+			{on.map((id) => (
+				<Chip
+					key={id}
+					aria-label={format(p.remove, { name: nameOf(id) })}
+					onClick={() => onChange(on.filter((x) => x !== id))}
+				>
+					{nameOf(id)}
+					<span aria-hidden="true">×</span>
+				</Chip>
+			))}
+			{rest.length ? (
+				<MenuButton
+					label={p.add}
+					items={rest.map((id) => ({
+						id,
+						label: nameOf(id),
+						onSelect: () => onChange([...on, id]),
+					}))}
+				/>
+			) : null}
+		</SettingsRow>
+	);
+}
+
+/** One card of the step page: a small title and its rows. */
+function Part({ title, children }: { title: string; children: ReactNode }) {
+	return (
+		<Card role="region" aria-label={title} className="py-2">
+			<h2 className="px-6 pt-3.5 pb-1.5 text-13 font-medium text-n-11">{title}</h2>
+			{children}
+		</Card>
+	);
+}
+
+/** The name of the step in words. It gives the id when the field loses the focus or on Enter. */
+function StepName({ id, onRename }: { id: string; onRename: (id: string) => void }) {
+	const { t } = useI18n();
+	const [name, setName] = useState(nameOf(id));
+	const commit = () => {
+		const next = idOf(name);
+		if (next && name !== nameOf(id) && next !== id) onRename(next);
+		else setName(nameOf(id));
+	};
+	return (
+		<Input
+			label={t.factory.recipePage.stepName}
+			value={name}
+			onChange={(e) => setName(e.target.value)}
+			onBlur={commit}
+			onKeyDown={(e) => e.key === "Enter" && commit()}
+		/>
+	);
+}
+
+/**
+ * One step as four cards (picture 080): who does it, its limits, the people and how it works. The
+ * limits of the whole recipe sit in the same cards. Each change gives the whole next workflow.
+ */
+export function StepCards({
+	workflow,
+	index,
+	options,
+	people,
+	onChange,
+	onRenamed,
+	onRemoved,
+}: {
+	workflow: Workflow;
 	index: number;
-	count: number;
-	others: string[];
 	options: WorkflowOptions;
-	onChange: (patch: Partial<Step>) => void;
-	onMove: (by: -1 | 1) => void;
-	onRemove: () => void;
+	/** More rows of the People card. */
+	people?: ReactNode;
+	onChange: (next: Workflow) => void;
+	/** The step has a new id. */
+	onRenamed: (id: string) => void;
+	onRemoved: () => void;
 }) {
 	const { t } = useI18n();
 	const w = t.factory.wf;
+	const p = t.factory.recipePage;
+	const { steps, limits } = workflow;
+	const step = steps[index];
+	if (!step) return null;
 	const agent = !step.action;
 	const pick = (v: string) => (v === NONE ? undefined : v);
+	const set = (patch: Partial<Step>) => onChange(patchStep(workflow, index, patch));
+	const setLimits = (patch: Partial<Workflow["limits"]>) =>
+		onChange({ ...workflow, limits: { ...limits, ...patch } });
+	const tier = (v: string) => (p.tier as Record<string, string>)[v] ?? nameOf(v);
 	return (
-		<section
-			aria-label={format(w.step, { id: step.id })}
-			className="grid gap-x-4 rounded-xl bg-surface-2 p-1 shadow-1 lg:grid-cols-2"
-		>
-			<div className="flex flex-col">
-				<Title>{w.who}</Title>
-				<SettingsRow label={w.stepId}>
-					<Input
-						label={w.stepId}
-						className="min-h-control"
-						value={step.id}
-						onChange={(e) => onChange({ id: e.target.value })}
+		<div className="grid items-start gap-6 lg:grid-cols-2">
+			<Part title={w.who}>
+				{agent ? (
+					<SettingsRow label={w.agent}>
+						<Select
+							label={w.agent}
+							value={step.role ?? ""}
+							items={items(options.roles, step.role)}
+							onValueChange={(v) => set({ role: v })}
+						/>
+					</SettingsRow>
+				) : null}
+				<SettingsRow label={p.stepName}>
+					<StepName
+						key={step.id}
+						id={step.id}
+						onRename={(id) => {
+							set({ id });
+							onRenamed(id);
+						}}
 					/>
 				</SettingsRow>
-				<SettingsRow label={w.kind}>
-					<span className="w-40">
-						<Segmented
-							label={w.kind}
-							value={agent ? "agent" : "action"}
-							onValueChange={(k) =>
-								onChange(
-									k === "agent"
-										? { role: "worker", action: undefined }
-										: { action: "open_pr", role: undefined },
-								)
-							}
-							items={[
-								{ value: "agent", label: w.agent },
-								{ value: "action", label: w.action },
-							]}
-						/>
-					</span>
+				<SettingsRow label={p.does}>
+					<Segmented
+						label={p.does}
+						value={step.action ?? step.mode}
+						onValueChange={(v) =>
+							set(
+								v === "open_pr"
+									? { action: "open_pr", role: undefined }
+									: { mode: v, action: undefined, role: step.role ?? "worker" },
+							)
+						}
+						items={[
+							{ value: "plan", label: w.plan },
+							{ value: "open_pr", label: w.openPr },
+							{ value: "auto", label: w.auto },
+						]}
+					/>
 				</SettingsRow>
 				{agent ? (
 					<>
-						<SettingsRow label={w.role}>
-							<Select
-								label={w.role}
-								className="min-h-control"
-								value={step.role ?? ""}
-								items={items(options.roles, step.role)}
-								onValueChange={(v) => onChange({ role: v })}
-							/>
-						</SettingsRow>
 						<SettingsRow label={w.model}>
 							<Select
 								label={w.model}
-								className="min-h-control"
 								value={step.model ?? NONE}
-								items={[{ value: NONE, label: w.roleDefault }, ...items(options.tiers, step.model)]}
-								onValueChange={(v) => onChange({ model: pick(v) })}
+								items={[
+									{ value: NONE, label: w.roleDefault },
+									...items(options.tiers, step.model, tier),
+								]}
+								onValueChange={(v) => set({ model: pick(v) })}
 							/>
 						</SettingsRow>
 						<SettingsRow label={w.effort}>
 							<Select
 								label={w.effort}
-								className="min-h-control"
 								value={step.effort ?? NONE}
 								items={[{ value: NONE, label: w.roleDefault }, ...items(EFFORTS)]}
-								onValueChange={(v) => onChange({ effort: pick(v) as Effort | undefined })}
+								onValueChange={(v) => set({ effort: pick(v) as Effort | undefined })}
 							/>
 						</SettingsRow>
-						<SettingsRow label={w.mode}>
+						<SettingsRow label={w.skill}>
 							<Select
-								label={w.mode}
-								className="min-h-control"
-								value={step.mode}
-								items={[
-									{ value: "plan", label: w.plan },
-									{ value: "auto", label: w.auto },
-								]}
-								onValueChange={(v) => onChange({ mode: v as Step["mode"] })}
+								label={w.skill}
+								value={step.skill ?? NONE}
+								items={[{ value: NONE, label: w.none }, ...items(options.skills, step.skill)]}
+								onValueChange={(v) => set({ skill: pick(v) })}
+							/>
+						</SettingsRow>
+						<SettingsRow label={w.fresh}>
+							<Switch
+								iconOnly
+								label={w.fresh}
+								checked={step.fresh_context}
+								onCheckedChange={(on) => set({ fresh_context: on })}
 							/>
 						</SettingsRow>
 					</>
-				) : (
-					<SettingsRow label={w.action}>
-						<Select
-							label={w.action}
-							className="min-h-control"
-							value={step.action ?? "open_pr"}
-							items={[{ value: "open_pr", label: w.openPr }]}
-							onValueChange={() => {}}
-						/>
-					</SettingsRow>
-				)}
-				<Title>{w.people}</Title>
-				<SettingsRow label={w.gate}>
-					<Switch
-						iconOnly
-						label={w.gate}
-						checked={step.gate === "human"}
-						onCheckedChange={(on) => onChange({ gate: on ? "human" : "none" })}
-					/>
+				) : null}
+			</Part>
+			<Part title={w.limits}>
+				<SettingsRow label={w.retry}>
+					<Stepper label={w.retry} value={step.retry} onChange={(v) => set({ retry: v ?? 0 })} />
 				</SettingsRow>
-			</div>
-			<div className="flex flex-col">
-				<Title>{w.how}</Title>
-				<Group
-					label={w.needs}
-					ids={others}
-					on={step.needs ?? []}
-					onChange={(needs) => onChange({ needs })}
-				/>
-				{agent ? (
-					<Group
-						label={w.tools}
-						ids={[
-							...options.tools,
-							...(step.tools ?? []).filter((x) => !options.tools.includes(x)),
-						]}
-						on={step.tools ?? []}
-						onChange={(tools) => onChange({ tools })}
-					/>
-				) : null}
-				{more ? (
-					<>
-						<SettingsRow label={w.workspace}>
-							<Select
-								label={w.workspace}
-								className="min-h-control"
-								value={step.workspace}
-								items={[
-									{ value: "shared", label: w.shared },
-									{ value: "worktree", label: w.worktree },
-									{ value: "none", label: w.none },
-								]}
-								onValueChange={(v) => onChange({ workspace: v as Step["workspace"] })}
-							/>
-						</SettingsRow>
-						<SettingsRow label={w.forEach}>
-							<Input
-								label={w.forEach}
-								className="min-h-control"
-								value={step.for_each ?? ""}
-								onChange={(e) => onChange({ for_each: e.target.value || undefined })}
-							/>
-						</SettingsRow>
-						<SettingsRow label={w.maxParallel}>
-							<NumberField
-								label={w.maxParallel}
-								value={step.max_parallel}
-								onChange={(v) => onChange({ max_parallel: v })}
-							/>
-						</SettingsRow>
-						{agent ? (
-							<>
-								<SettingsRow label={w.skill}>
-									<Select
-										label={w.skill}
-										className="min-h-control"
-										value={step.skill ?? NONE}
-										items={[{ value: NONE, label: w.none }, ...items(options.skills, step.skill)]}
-										onValueChange={(v) => onChange({ skill: pick(v) })}
-									/>
-								</SettingsRow>
-								<SettingsRow label={w.fresh}>
-									<Switch
-										iconOnly
-										label={w.fresh}
-										checked={step.fresh_context}
-										onCheckedChange={(on) => onChange({ fresh_context: on })}
-									/>
-								</SettingsRow>
-							</>
-						) : null}
-					</>
-				) : null}
-				<SettingsRow label={w.place}>
-					<Button className="min-h-control" disabled={index === 0} onClick={() => onMove(-1)}>
-						{w.up}
-					</Button>
-					<Button
-						className="min-h-control"
-						disabled={index === count - 1}
-						onClick={() => onMove(1)}
-					>
-						{w.down}
-					</Button>
-				</SettingsRow>
-				{more ? (
-					<>
-						<Title>{w.limits}</Title>
-						<SettingsRow label={w.retry}>
-							<NumberField
-								label={w.retry}
-								value={step.retry}
-								onChange={(v) => onChange({ retry: v ?? 0 })}
-							/>
-						</SettingsRow>
-						<SettingsRow label={w.timeout}>
-							<NumberField
-								label={w.timeout}
-								value={step.timeout}
-								onChange={(v) => onChange({ timeout: v })}
-							/>
-						</SettingsRow>
-						<SettingsRow label={w.stepBudget}>
-							<NumberField
-								label={w.stepBudget}
-								value={step.budget}
-								onChange={(v) => onChange({ budget: v ?? null })}
-							/>
-						</SettingsRow>
-						{agent ? (
-							<SettingsRow label={w.rounds}>
-								<NumberField
-									label={w.rounds}
-									value={step.max_rounds}
-									onChange={(v) => onChange({ max_rounds: v })}
-								/>
-							</SettingsRow>
-						) : null}
-					</>
-				) : null}
-				<div className="flex flex-wrap gap-2 p-3">
-					<Button className="min-h-control" aria-expanded={more} onClick={() => onMore(!more)}>
-						{t.factory.more}
-					</Button>
-					<Button className="min-h-control text-danger-text" onClick={onRemove}>
-						{w.remove}
-					</Button>
-				</div>
-			</div>
-		</section>
-	);
-}
-
-/** The form of a workflow: the limits and each step. Each change gives the whole next workflow. */
-export function WorkflowForm({
-	workflow,
-	options,
-	onChange,
-}: {
-	workflow: Workflow;
-	options: WorkflowOptions;
-	onChange: (next: Workflow) => void;
-}) {
-	const { t } = useI18n();
-	const w = t.factory.wf;
-	const { steps, limits } = workflow;
-	// The open "More" panels, by position: a move or a removal moves them with their step.
-	const [open, setOpen] = useState<boolean[]>([]);
-	const setSteps = (next: Step[]) => onChange({ ...workflow, steps: next });
-	const patch = (i: number, p: Partial<Step>) => {
-		const old = steps[i]?.id;
-		setSteps(
-			steps.map((s, k) => {
-				if (k === i) return { ...s, ...p };
-				// A new id follows into the needs of the other steps.
-				return p.id !== undefined && old && s.needs?.includes(old)
-					? { ...s, needs: s.needs.map((n) => (n === old ? (p.id as string) : n)) }
-					: s;
-			}),
-		);
-	};
-	const move = (i: number, by: -1 | 1) => {
-		const next = [...steps];
-		const [s] = next.splice(i, 1);
-		if (s) next.splice(i + by, 0, s);
-		const o = steps.map((_, k) => !!open[k]);
-		const [f] = o.splice(i, 1);
-		o.splice(i + by, 0, !!f);
-		setOpen(o);
-		setSteps(next);
-	};
-	const remove = (i: number) => {
-		const gone = steps[i]?.id;
-		setOpen(open.filter((_, k) => k !== i));
-		setSteps(
-			steps
-				.filter((_, k) => k !== i)
-				.map((s) =>
-					s.needs?.includes(gone ?? "") ? { ...s, needs: s.needs.filter((n) => n !== gone) } : s,
-				),
-		);
-	};
-	const add = () => {
-		let n = steps.length + 1;
-		while (steps.some((s) => s.id === `step-${n}`)) n++;
-		setSteps([
-			...steps,
-			{
-				id: `step-${n}`,
-				role: "worker",
-				mode: "auto",
-				workspace: "shared",
-				gate: "none",
-				retry: 0,
-				fresh_context: false,
-			},
-		]);
-	};
-	const setLimits = (p: Partial<Workflow["limits"]>) =>
-		onChange({ ...workflow, limits: { ...limits, ...p } });
-	return (
-		<div className="flex flex-col gap-3">
-			<SectionCard title={w.limits} flush>
-				<SettingsRow label={w.stall}>
+				<Minutes label={w.timeout} value={step.timeout} onChange={(v) => set({ timeout: v })} />
+				<SettingsRow label={w.stepBudget}>
+					$
 					<NumberField
-						label={w.stall}
-						value={limits.stall_s}
-						onChange={(v) => setLimits({ stall_s: v ?? 0 })}
+						label={w.stepBudget}
+						value={step.budget}
+						onChange={(v) => set({ budget: v ?? null })}
 					/>
 				</SettingsRow>
-				<OptionalNumber
-					label={w.turnLimit}
-					value={limits.max_turns}
-					initial={TURNS}
-					onChange={(max_turns) => setLimits({ max_turns })}
-				/>
 				<OptionalNumber
 					label={w.budget}
 					value={limits.budget_usd ?? null}
 					initial={BUDGET}
 					onChange={(budget_usd) => setLimits({ budget_usd })}
 				/>
-			</SectionCard>
-			{steps.map((s, i) => (
-				<StepForm
-					// biome-ignore lint/suspicious/noArrayIndexKey: a step id changes while a person types it
-					key={i}
-					step={s}
-					index={i}
-					count={steps.length}
-					others={steps.filter((_, k) => k !== i).map((x) => x.id)}
-					options={options}
-					more={!!open[i]}
-					onMore={(on) => setOpen(steps.map((_, k) => (k === i ? on : !!open[k])))}
-					onChange={(p) => patch(i, p)}
-					onMove={(by) => move(i, by)}
-					onRemove={() => remove(i)}
+				{agent ? (
+					<SettingsRow label={w.rounds}>
+						<Stepper
+							label={w.rounds}
+							min={1}
+							value={step.max_rounds}
+							onChange={(v) => set({ max_rounds: v })}
+						/>
+					</SettingsRow>
+				) : null}
+			</Part>
+			<Part title={w.people}>
+				<SettingsRow label={w.gate}>
+					<Switch
+						iconOnly
+						label={w.gate}
+						checked={step.gate === "human"}
+						onCheckedChange={(on) => set({ gate: on ? "human" : "none" })}
+					/>
+				</SettingsRow>
+				{people}
+			</Part>
+			<Part title={w.how}>
+				<SettingsRow label={w.workspace}>
+					<Segmented
+						label={w.workspace}
+						value={step.workspace}
+						onValueChange={(v) => set({ workspace: v })}
+						items={[
+							{ value: "shared", label: w.shared },
+							{ value: "worktree", label: w.worktree },
+							{ value: "none", label: p.noFolder },
+						]}
+					/>
+				</SettingsRow>
+				<Chips
+					label={w.needs}
+					all={steps.filter((_, k) => k !== index).map((s) => s.id)}
+					on={step.needs ?? []}
+					onChange={(needs) => set({ needs })}
 				/>
-			))}
-			<div>
-				<Button className="min-h-control" onClick={add}>
-					<PlusIcon size={14} />
-					{w.addStep}
-				</Button>
-			</div>
+				<SettingsRow label={w.forEach}>
+					<Input
+						label={w.forEach}
+						value={step.for_each ?? ""}
+						onChange={(e) => set({ for_each: e.target.value || undefined })}
+					/>
+				</SettingsRow>
+				<SettingsRow label={w.maxParallel}>
+					<Stepper
+						label={w.maxParallel}
+						min={1}
+						value={step.max_parallel}
+						onChange={(v) => set({ max_parallel: v })}
+					/>
+				</SettingsRow>
+				{agent ? (
+					<Chips
+						label={w.tools}
+						all={[
+							...options.tools,
+							...(step.tools ?? []).filter((x) => !options.tools.includes(x)),
+						]}
+						on={step.tools ?? []}
+						onChange={(tools) => set({ tools })}
+					/>
+				) : null}
+				<Minutes
+					label={w.stall}
+					value={limits.stall_s}
+					onChange={(v) => setLimits({ stall_s: v ?? 0 })}
+				/>
+				<OptionalNumber
+					label={w.turnLimit}
+					value={limits.max_turns}
+					initial={TURNS}
+					onChange={(max_turns) => setLimits({ max_turns })}
+				/>
+				<SettingsRow label={w.place}>
+					<Button disabled={index === 0} onClick={() => onChange(moveStep(workflow, index, -1))}>
+						{w.up}
+					</Button>
+					<Button
+						disabled={index === steps.length - 1}
+						onClick={() => onChange(moveStep(workflow, index, 1))}
+					>
+						{w.down}
+					</Button>
+					<Button
+						className="text-danger-text"
+						onClick={() => {
+							onChange(removeStep(workflow, index));
+							onRemoved();
+						}}
+					>
+						{w.remove}
+					</Button>
+				</SettingsRow>
+			</Part>
 		</div>
 	);
 }

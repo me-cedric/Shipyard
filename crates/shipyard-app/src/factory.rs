@@ -1397,6 +1397,27 @@ pub fn set_kill_switch(s: &AppState, on: bool) -> bool {
     on
 }
 
+/// "Stop all agents" (`spec:app-redesign#REQ-016`): cancels each active run and each agent action.
+/// The agents stay on: the kill switch keeps its value, so a new run can start.
+pub fn stop_all(s: &AppState, click: bool) -> Res<()> {
+    crate::work::need_click(
+        s,
+        click,
+        crate::rights::Right::RunsStart,
+        "agents_stop_all",
+        "",
+    )?;
+    let f = &s.factory.factory;
+    let was = f.kill_switch();
+    // The switch is the one path of the engine that cancels each live run.
+    f.set_kill_switch(true);
+    f.set_kill_switch(was);
+    crate::pr_agent::stop_all();
+    crate::estimate_agent::stop_all();
+    s.factory.publish();
+    Ok(())
+}
+
 /// A run that a person moves by hand to a state that the machine allows (`delivery`: `Closed`
 /// after a close on the forge). Any other event stays with the engine.
 pub fn close(s: &AppState, run: &str) -> Res<RunState> {
@@ -2063,6 +2084,12 @@ pub async fn kill_switch_get(app: AppHandle) -> Api<bool> {
 #[specta::specta]
 pub async fn kill_switch_set(app: AppHandle, on: bool) -> Api<bool> {
     blocking(app, move |s| Ok(set_kill_switch(s, on))).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn agents_stop_all(app: AppHandle, click: bool) -> Api<()> {
+    blocking(app, move |s| stop_all(s, click)).await
 }
 
 #[tauri::command]

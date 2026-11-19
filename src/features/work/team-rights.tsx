@@ -1,13 +1,16 @@
+import { Menu } from "@base-ui/react/menu";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { type ReactNode, useState } from "react";
-import { SectionCard } from "@/features/factory/section-card";
+import { usePlainDay } from "@/features/plan/capacity";
 import { format, useI18n } from "@/lib/i18n";
 import {
 	type Access,
 	commands,
 	type JoinSent,
 	type Level,
+	type MemberRoles,
 	type Overrides_Serialize,
 	type Right,
 	type RoleAccess,
@@ -19,23 +22,32 @@ import { TEAM_ROLES } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton, rightsKey, useRights } from "@/lib/rights";
 import { type Member, useTeam, useWorkActions } from "@/lib/work";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
-import { Button } from "@/ui/atoms/button";
-import { IconButton } from "@/ui/atoms/icon-button";
+import { Button, buttonVariants } from "@/ui/atoms/button";
+import { Chip } from "@/ui/atoms/chip";
 import { Input } from "@/ui/atoms/input";
+import { LinkButton } from "@/ui/atoms/link-button";
+import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
-import { Switch } from "@/ui/atoms/switch";
 import {
-	ArrowPathIcon,
 	BookOpenIcon,
 	CheckIcon,
+	ChevronRightIcon,
 	LockClosedIcon,
 	PencilIcon,
 	XMarkIcon,
 } from "@/ui/icons";
+import { AttentionCard } from "@/ui/molecules/attention-card";
+import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { MenuList } from "@/ui/molecules/menu-button";
+import { Row } from "@/ui/molecules/row";
 import { DataTable } from "@/ui/organisms/data-table";
 import { useGuard } from "./guard";
+
+/** The team file of a project, as `TEAM_FILE` of `crates/shipyard-core/src/rights.rs`. */
+const TEAM_FILE = ".shipyard/team.yaml";
 
 /** The roles of a member as a select. A role that is not one of the nine stays selectable, as it is. */
 export function RoleSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -174,66 +186,20 @@ function Mark({ label, icon, tone }: { label: string; icon: ReactNode; tone: str
 	);
 }
 
-type LevelRow = { access: Access; name: string; onChange?: (a: Access) => void };
-
-/** One level or switch of a cell, as a mark or, in edit, as a control. */
-function LevelCell({ k, access, name, onChange }: LevelRow & { k: Area | "merge" | "approve" }) {
+/** One level or switch of a cell, as a mark. */
+function LevelCell({ k, access }: { k: Area | "merge" | "approve"; access: Access }) {
 	const { t } = useI18n();
 	const r = t.rights.team;
 	if (k === "merge" || k === "approve")
-		return onChange ? (
-			<Switch
-				iconOnly
-				label={`${name} ${r[k]}`}
-				checked={access[k]}
-				onCheckedChange={(on) => onChange({ ...access, [k]: on })}
-			/>
-		) : (
+		return (
 			<Mark
 				label={`${r[k]} ${access[k] ? t.rights.yes : t.rights.no}`}
 				icon={access[k] ? <CheckIcon size={12} /> : <XMarkIcon size={12} />}
 				tone={access[k] ? "text-success-text" : "text-n-10"}
 			/>
 		);
-	return onChange ? (
-		<Select
-			label={`${name} ${r.area[k]}`}
-			value={access[k]}
-			onValueChange={(v) => onChange({ ...access, [k]: v as Level })}
-			className="min-h-control w-28 min-w-0"
-			items={LEVELS.map((l) => ({
-				value: l,
-				label: r.level[l],
-				icon: <span className={LEVEL_LOOK[l].tone}>{LEVEL_LOOK[l].icon}</span>,
-			}))}
-		/>
-	) : (
-		<Mark label={r.level[access[k]]} {...LEVEL_LOOK[access[k]]} />
-	);
+	return <Mark label={r.level[access[k]]} {...LEVEL_LOOK[access[k]]} />;
 }
-
-/** The first column (the row header) and the ten level columns: eight areas and two switches. */
-function levelColumns<T>(
-	first: ColumnDef<T>,
-	row: (x: T) => LevelRow,
-	r: ReturnType<typeof useI18n>["t"]["rights"]["team"],
-): ColumnDef<T>[] {
-	const track = { width: "minmax(7.5rem, 1fr)", wrap: true };
-	return [
-		first,
-		...[...AREAS, "merge", "approve"].map<ColumnDef<T>>((k) => {
-			const key = k as Area | "merge" | "approve";
-			return {
-				id: key,
-				header: key === "merge" || key === "approve" ? r[key] : r.area[key],
-				cell: ({ row: x }) => <LevelCell k={key} {...row(x.original)} />,
-				meta: track,
-			};
-		}),
-	];
-}
-
-type Draft = { table: RoleAccess[]; roles: Record<string, TeamRole[]> };
 
 /** A framed table that scrolls sideways when its columns are wider than the page; the keyboard reaches it. */
 function Frame({ label, children }: { label: string; children: ReactNode }) {
@@ -244,181 +210,258 @@ function Frame({ label, children }: { label: string; children: ReactNode }) {
 			// biome-ignore lint/a11y/noNoninteractiveTabindex: the keyboard scrolls a region that is wider than the page
 			tabIndex={0}
 			aria-label={label}
-			className="overflow-auto rounded-xl bg-surface-2 text-12 shadow-1"
+			className="overflow-auto text-12"
 		>
 			<div className="flex w-max min-w-full flex-col">{children}</div>
 		</div>
 	);
 }
 
+const HEAD = "px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-10";
+const TITLE = "text-20 font-semibold text-n-12";
+
+/** The save of the roles table and of the roles of the members: one command, then a new read (REQ-019). */
+export function useRolesSave() {
+	const qc = useQueryClient();
+	const { error, run } = useGuard();
+	const view = useRights().view;
+	const table: RoleAccess[] = (view?.roles ?? []).map(({ role, access }) => ({ role, access }));
+	const save = (next: RoleAccess[], members: MemberRoles[] = []) =>
+		run(async () => {
+			try {
+				await unwrap(commands.rightsRolesSave(next, members));
+			} finally {
+				await qc.invalidateQueries();
+			}
+		});
+	return {
+		error,
+		table,
+		setAccess: (role: TeamRole, access: Access) =>
+			save(table.map((x) => (x.role === role ? { ...x, access } : x))),
+		reset: (role: TeamRole) =>
+			save(table.map((x) => (x.role === role ? { ...x, access: DEFAULTS[x.role] } : x))),
+		setRoles: (handle: string, roles: TeamRole[]) => save(table, [{ handle, roles }]),
+	};
+}
+type RolesSave = ReturnType<typeof useRolesSave>;
+
+/** The rows of the role card, in the order of the design. "Code and merge" is two rights: two rows. */
+const ROWS = [
+	"work",
+	"specs",
+	"design",
+	"runs",
+	"approve",
+	"code",
+	"merge",
+	"knowledge",
+	"costs",
+	"settings",
+] as const;
+
 /**
- * The levels of each role and of each member (REQ-005, REQ-019). Edit turns the cells into
- * controls; Save writes the `roles:` block and the roles of the members in one command.
+ * The rights of one role in plain words (REQ-005, REQ-019). A switch saves at once, with the
+ * command and the right of the older Edit mode.
  */
-export function TeamRights() {
+export function RoleCard({
+	role,
+	onRole,
+	roles,
+}: {
+	role: TeamRole;
+	onRole: (role: TeamRole) => void;
+	roles: RolesSave;
+}) {
 	const { t } = useI18n();
 	const r = t.rights.team;
-	const qc = useQueryClient();
-	const view = useRights().view;
-	const members = useTeam().data?.team.members ?? [];
-	const [draft, setDraft] = useState<Draft | null>(null);
-	const { error, run, busy } = useGuard();
-	const roles = view?.roles ?? [];
-	if (roles.length === 0) return null;
-	const table = draft?.table ?? roles;
-	const rolesFor = (m: Member) => draft?.roles[m.handle] ?? rolesOf(m);
-	const setRoles = (m: Member, next: TeamRole[]) =>
-		draft && setDraft({ ...draft, roles: { ...draft.roles, [m.handle]: next } });
-	const setAccess = (role: TeamRole, access: Access) =>
-		draft &&
-		setDraft({ ...draft, table: draft.table.map((y) => (y.role === role ? { ...y, access } : y)) });
-	const save = () =>
-		run(async () => {
-			if (!draft) return;
-			const changed = members
-				.filter((m) => draft.roles[m.handle]?.join() !== rolesOf(m).join())
-				.map((m) => ({ handle: m.handle, roles: draft.roles[m.handle] ?? [] }));
-			await unwrap(commands.rightsRolesSave(draft.table, changed));
-			await qc.invalidateQueries();
-			setDraft(null);
-		});
-	const firstTrack = { width: "minmax(12rem, 2fr)", wrap: true, rowHeader: true };
-	const roleColumns = levelColumns<RoleAccess>(
-		{
-			id: "role",
-			header: t.work.team.role,
-			meta: firstTrack,
-			cell: ({ row }) => {
-				const x = row.original;
-				const name = t.rights.role[x.role];
-				return (
-					<span className="flex items-center gap-1">
-						{name}
-						{draft ? (
-							<IconButton
-								label={format(r.reset, { role: name })}
-								className="min-h-control min-w-11"
-								onClick={() => setAccess(x.role, DEFAULTS[x.role])}
+	const off = useRights().gate("project.settings");
+	const mine = roles.table.find((x) => x.role === role);
+	if (!mine) return null;
+	const name = t.rights.role[role];
+	return (
+		<Card pad className="flex flex-[3_1_30rem] flex-col gap-3.5">
+			{/* biome-ignore lint/a11y/useSemanticElements: a group of toggles, not a form part */}
+			<div role="group" aria-label={r.roleGroup} className="flex flex-wrap gap-2">
+				{roles.table.map((x) => (
+					<Chip key={x.role} selected={x.role === role} onClick={() => onRole(x.role)}>
+						{t.rights.role[x.role]}
+					</Chip>
+				))}
+			</div>
+			<h2 className={TITLE}>{format(r.can, { role: name })}</h2>
+			<ul className="flex flex-col">
+				{ROWS.map((k) => {
+					const label = k === "merge" || k === "approve" ? r[k] : r.area[k];
+					return (
+						<li
+							key={k}
+							aria-label={label}
+							className="flex min-h-14 flex-wrap items-center gap-3 py-1 [&+&]:border-t [&+&]:border-n-6"
+						>
+							<span className="flex-[1_1_12.5rem] font-medium text-n-12">{label}</span>
+							{/* The fieldset turns the switch off without the right, with the reason. */}
+							<fieldset
+								disabled={off.disabled}
+								title={off.reason}
+								className="w-64 shrink-0 disabled:opacity-60"
 							>
-								<ArrowPathIcon size={12} />
-							</IconButton>
-						) : null}
-					</span>
-				);
-			},
-		},
-		(x) => ({
-			access: x.access,
-			name: t.rights.role[x.role],
-			onChange: draft ? (a) => setAccess(x.role, a) : undefined,
-		}),
-		r,
+								{k === "merge" || k === "approve" ? (
+									<Segmented
+										label={`${name} ${label}`}
+										value={mine.access[k] ? "yes" : "none"}
+										onValueChange={(v) =>
+											void roles.setAccess(role, { ...mine.access, [k]: v === "yes" })
+										}
+										items={[
+											{ value: "none", label: r.pick.none },
+											{ value: "yes", label: r.pick.yes },
+										]}
+									/>
+								) : (
+									<Segmented
+										label={`${name} ${label}`}
+										value={mine.access[k]}
+										onValueChange={(v) => void roles.setAccess(role, { ...mine.access, [k]: v })}
+										items={LEVELS.map((l) => ({ value: l, label: r.pick[l] }))}
+									/>
+								)}
+							</fieldset>
+						</li>
+					);
+				})}
+			</ul>
+		</Card>
 	);
-	const memberColumns = levelColumns<Member>(
+}
+
+/** The people of the team with their roles. The role button gives or takes a role, and saves at once. */
+export function PeopleCard({ roles }: { roles: RolesSave }) {
+	const { t } = useI18n();
+	const r = t.rights.team;
+	const off = useRights().gate("project.settings");
+	const members = useTeam().data?.team.members ?? [];
+	return (
+		<Card className="flex-[2_1_21rem] self-start py-2">
+			<section aria-label={r.people}>
+				<h2 className={HEAD}>{r.people}</h2>
+				{members.map((m) => {
+					const mine = rolesOf(m);
+					const names = mine.map((x) => t.rights.role[x]).join(", ") || m.role || r.pickRole;
+					return (
+						<Row key={m.handle}>
+							<Avatar name={m.name} />
+							<Link
+								to="/crew/crew"
+								search={{ member: m.handle } as never}
+								className="inline-flex min-h-control items-center font-semibold text-n-12"
+							>
+								{m.name}
+							</Link>
+							<span className="ml-auto">
+								<Menu.Root>
+									<Menu.Trigger
+										render={
+											<Button
+												aria-label={`${format(r.rolesOf, { name: m.name })}: ${names}`}
+												disabled={off.disabled}
+												reason={off.reason}
+											/>
+										}
+									>
+										{names}
+									</Menu.Trigger>
+									<MenuList
+										items={TEAM_ROLES.map((x) => ({
+											id: x,
+											label: t.rights.role[x],
+											checked: mine.includes(x),
+											onSelect: () =>
+												void roles.setRoles(
+													m.handle,
+													mine.includes(x) ? mine.filter((y) => y !== x) : [...mine, x],
+												),
+										}))}
+									/>
+								</Menu.Root>
+							</span>
+						</Row>
+					);
+				})}
+				<Row className="gap-2.5">
+					<Link to="/crew/crew" search={{ member: "" } as never} className={buttonVariants()}>
+						{r.addPerson}
+					</Link>
+					<Link
+						to="/plan/timeline"
+						search={{ page: "dates" } as never}
+						className={buttonVariants()}
+					>
+						{r.daysOff}
+					</Link>
+				</Row>
+				<Row
+					render={(props) => (
+						<Link to="/crew/rights" search={{ page: "team" } as never} {...props} />
+					)}
+				>
+					<span className="font-semibold">{r.teamLink}</span>
+					<ChevronRightIcon size={20} className="ml-auto text-n-10" />
+				</Row>
+			</section>
+		</Card>
+	);
+}
+
+/** The levels of each person: the highest of the roles, then the overrides. Read only. */
+export function MemberLevels() {
+	const { t } = useI18n();
+	const r = t.rights.team;
+	const table = useRights().view?.roles ?? [];
+	const members = useTeam().data?.team.members ?? [];
+	if (table.length === 0 || members.length === 0) return null;
+	const columns: ColumnDef<Member>[] = [
 		{
 			id: "member",
 			header: r.members,
-			meta: firstTrack,
-			cell: ({ row }) => {
-				const m = row.original;
-				const mine = rolesFor(m);
-				return (
-					<span className="flex flex-wrap items-center gap-1">
-						<span className="mr-1 whitespace-nowrap">{m.name}</span>
-						{mine.map((x) => (
-							<Badge key={x} className="gap-0.5 rounded-full">
-								{t.rights.role[x]}
-								{draft ? (
-									<IconButton
-										label={format(r.removeRole, { role: t.rights.role[x], name: m.name })}
-										className="min-h-control min-w-11"
-										onClick={() =>
-											setRoles(
-												m,
-												mine.filter((y) => y !== x),
-											)
-										}
-									>
-										<XMarkIcon size={10} />
-									</IconButton>
-								) : null}
-							</Badge>
-						))}
-						{draft ? (
-							<Select
-								label={format(r.addRole, { name: m.name })}
-								placeholder={r.pickRole}
-								value=""
-								onValueChange={(v) => setRoles(m, [...mine, v as TeamRole])}
-								className="min-h-control w-32 min-w-0"
-								items={TEAM_ROLES.filter((x) => !mine.includes(x)).map((x) => ({
-									value: x,
-									label: t.rights.role[x],
-								}))}
-							/>
-						) : null}
-					</span>
-				);
-			},
+			meta: { width: "minmax(12rem, 2fr)", wrap: true, rowHeader: true },
+			cell: ({ row }) => (
+				<span className="flex flex-wrap items-center gap-1">
+					<span className="mr-1 whitespace-nowrap">{row.original.name}</span>
+					{rolesOf(row.original).map((x) => (
+						<Badge key={x}>{t.rights.role[x]}</Badge>
+					))}
+				</span>
+			),
 		},
-		(m) => ({ access: effective(m, rolesFor(m), table), name: m.name }),
-		r,
-	);
+		...[...AREAS, "merge", "approve"].map<ColumnDef<Member>>((k) => {
+			const key = k as Area | "merge" | "approve";
+			return {
+				id: key,
+				header: key === "merge" || key === "approve" ? r[key] : r.area[key],
+				cell: ({ row: x }) => (
+					<LevelCell k={key} access={effective(x.original, rolesOf(x.original), table)} />
+				),
+				meta: { width: "minmax(7.5rem, 1fr)", wrap: true },
+			};
+		}),
+	];
 	return (
-		<section className="flex flex-col gap-3">
-			<div className="flex items-center gap-2">
-				<h2 className="flex-1 text-16 font-semibold text-n-12">{r.matrix}</h2>
-				{draft ? (
-					<>
-						<Button
-							variant="primary"
-							className="min-h-control"
-							busy={busy}
-							onClick={() => void save()}
-						>
-							{t.work.save}
-						</Button>
-						<Button variant="ghost" className="min-h-control" onClick={() => setDraft(null)}>
-							{t.sync.backlog.cancel}
-						</Button>
-					</>
-				) : (
-					<RightButton
-						right="project.settings"
-						className="min-h-control"
-						onClick={() =>
-							setDraft({
-								table: roles.map(({ role, access }) => ({ role, access })),
-								roles: Object.fromEntries(members.map((m) => [m.handle, rolesOf(m)])),
-							})
-						}
-					>
-						<PencilIcon size={14} />
-						{r.edit}
-					</RightButton>
-				)}
-			</div>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
-			<Frame label={r.matrix}>
-				<DataTable label={r.matrix} data={table} columns={roleColumns} rowId={(x) => x.role} flow />
-			</Frame>
-			{members.length ? (
-				<Frame label={r.members}>
+		<Card className="py-2">
+			<section aria-label={r.each}>
+				<h2 className={HEAD}>{r.each}</h2>
+				<Frame label={r.each}>
 					<DataTable
 						label={r.members}
 						data={members}
-						columns={memberColumns}
+						columns={columns}
 						rowId={(m) => m.handle}
 						rowLabel={(m) => `${m.handle} ${r.levels}`}
 						flow
 					/>
 				</Frame>
-			) : null}
-		</section>
+			</section>
+		</Card>
 	);
 }
 
@@ -486,6 +529,7 @@ export function JoinRequest() {
 	const [copied, setCopied] = useState(false);
 	if (person?.found !== "unknown") return null;
 	const set = (patch: Partial<typeof f>) => setF((x) => ({ ...x, ...patch }));
+	const line = sent?.entry ?? joinEntry(f);
 	const send = async () => {
 		setBusy(true);
 		setError(null);
@@ -509,73 +553,74 @@ export function JoinRequest() {
 		}
 	};
 	return (
-		<form
-			aria-label={r.askJoin}
-			className="flex flex-wrap items-end gap-3 rounded-xl bg-surface-2 p-4 shadow-1"
-			onSubmit={(e) => {
-				e.preventDefault();
-				void send();
-			}}
-		>
-			<Input
-				caption
-				label={t.work.team.name}
-				className="min-h-control"
-				value={f.name}
-				onChange={(e) => set({ name: e.target.value })}
-			/>
-			<Input
-				caption
-				label={r.emails}
-				className="min-h-control"
-				type="email"
-				value={f.email}
-				onChange={(e) => set({ email: e.target.value })}
-			/>
-			<Input
-				caption
-				label={t.work.team.accounts}
-				className="min-h-control"
-				value={f.account}
-				onChange={(e) => set({ account: e.target.value })}
-			/>
-			<Select
-				caption
-				label={r.askedRole}
-				className="min-h-control"
-				value={f.role}
-				onValueChange={(role) => set({ role })}
-				items={TEAM_ROLES.map((x) => ({ value: x, label: t.rights.role[x] }))}
-			/>
-			<Button
-				variant="primary"
-				type="submit"
-				className="min-h-control"
-				busy={busy}
-				disabled={!f.name.trim() || !/^\S+@\S+$/.test(f.email.trim())}
+		<Card pad>
+			<form
+				aria-label={r.askJoin}
+				className="flex flex-col gap-3.5"
+				onSubmit={(e) => {
+					e.preventDefault();
+					void send();
+				}}
 			>
-				{r.sendJoin}
-			</Button>
-			{sent?.url ? (
-				<Button variant="ghost" className="min-h-control" onClick={() => openUrl(sent.url ?? "")}>
-					{r.openPull}
-				</Button>
-			) : null}
-			{sent?.push ? <code className="font-mono text-12 text-n-11">{sent.push}</code> : null}
-			{(sent && !sent.url) || error ? (
-				<Button
-					variant="ghost"
-					className="min-h-control"
-					onClick={() => {
-						copyText(sent?.entry ?? joinEntry(f));
-						setCopied(true);
-					}}
-				>
-					{copied ? r.copied : r.copyEntry}
-				</Button>
-			) : null}
-			{error ? <ErrorNotice error={error} className="w-full" /> : null}
-		</form>
+				<h2 className={TITLE}>{r.askJoin}</h2>
+				<div className="flex flex-wrap items-end gap-2.5">
+					<Input
+						caption
+						label={t.work.team.name}
+						value={f.name}
+						onChange={(e) => set({ name: e.target.value })}
+					/>
+					<Input
+						caption
+						label={r.emails}
+						type="email"
+						value={f.email}
+						onChange={(e) => set({ email: e.target.value })}
+					/>
+					<Input
+						caption
+						label={t.work.team.accounts}
+						value={f.account}
+						onChange={(e) => set({ account: e.target.value })}
+					/>
+					<Select
+						caption
+						label={r.askedRole}
+						value={f.role}
+						onValueChange={(role) => set({ role })}
+						items={TEAM_ROLES.map((x) => ({ value: x, label: t.rights.role[x] }))}
+					/>
+				</div>
+				<pre className="overflow-x-auto rounded-md bg-n-3 p-4 font-mono text-13 whitespace-pre-wrap text-n-12">
+					{line}
+				</pre>
+				{sent?.push ? <code className="font-mono text-13 text-n-11">{sent.push}</code> : null}
+				<div className="flex flex-wrap gap-2.5">
+					<Button
+						onClick={() => {
+							copyText(line);
+							setCopied(true);
+						}}
+					>
+						{copied ? r.copied : r.copyEntry}
+					</Button>
+					<Button
+						variant="primary"
+						type="submit"
+						busy={busy}
+						disabled={!f.name.trim() || !/^\S+@\S+$/.test(f.email.trim())}
+					>
+						{r.sendJoin}
+					</Button>
+					{sent?.url ? (
+						<Button variant="ghost" onClick={() => openUrl(sent.url ?? "")}>
+							{r.openPull}
+						</Button>
+					) : null}
+				</div>
+				{error ? <ErrorNotice error={error} /> : null}
+			</form>
+		</Card>
 	);
 }
 
@@ -622,126 +667,163 @@ export function proposal(o: Overrides_Serialize, team: Member[]) {
 	return { members, dropped };
 }
 
-/** The one-time proposal to move the roles of this machine to the team file. */
-export function Migration() {
+/** The team file: the way to open it, and the one-time move of the roles of this machine. */
+export function TeamFileCard() {
 	const { t } = useI18n();
 	const r = t.rights.team;
 	const qc = useQueryClient();
-	const o = useActiveProject().data?.overrides;
+	const active = useActiveProject().data;
 	const team = useTeam().data?.team.members ?? [];
 	const act = useWorkActions();
 	const { error, run } = useGuard();
-	if (!o) return null;
+	if (!active) return null;
+	const o = active.overrides;
 	const p = proposal(o, team);
-	if (p.members.length === 0 && p.dropped.length === 0) return null;
 	return (
-		<SectionCard title={r.migrate} flush>
-			<ul className="flex flex-col">
-				{p.members.map((m) => (
-					<li
-						key={m.handle}
-						className="flex min-h-control items-center gap-2 border-b px-3 text-ui"
+		<Card pad>
+			<section aria-label={r.fileTitle} className="flex flex-col gap-3.5">
+				<h2 className={TITLE}>{r.fileTitle}</h2>
+				{p.members.length ? (
+					<ul aria-label={r.migrate} className="flex flex-col">
+						{p.members.map((m) => (
+							<li
+								key={m.handle}
+								className="flex min-h-control flex-wrap items-center gap-2 [&+&]:border-t [&+&]:border-n-6"
+							>
+								<span className="flex-1">{m.emails?.[0]}</span>
+								<span className="text-n-11">
+									{t.rights.role[m.role as keyof typeof t.rights.role]}
+								</span>
+								{m.rights?.length ? (
+									<span className="font-mono text-12">{m.rights.join(" ")}</span>
+								) : null}
+							</li>
+						))}
+					</ul>
+				) : null}
+				{p.dropped.length ? (
+					<p className="text-n-11">{format(r.dropped, { list: p.dropped.join(", ") })}</p>
+				) : null}
+				{error ? (
+					<p role="alert" className="text-ui text-danger-text">
+						{error}
+					</p>
+				) : null}
+				<div className="flex flex-wrap gap-2.5">
+					<Button
+						onClick={() =>
+							void run(() => unwrap(commands.openDefault(`${active.path}/${TEAM_FILE}`)))
+						}
 					>
-						<span className="flex-1">{m.emails?.[0]}</span>
-						<span className="text-n-11">{t.rights.role[m.role as keyof typeof t.rights.role]}</span>
-						{m.rights?.length ? (
-							<span className="font-mono text-12">{m.rights.join(" ")}</span>
-						) : null}
-					</li>
-				))}
-			</ul>
-			{p.dropped.length ? (
-				<p className="px-3 py-2 text-ui text-n-11">
-					{format(r.dropped, { list: p.dropped.join(", ") })}
-				</p>
-			) : null}
-			{error ? (
-				<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
-			<div className="px-3 pb-2">
-				<RightButton
-					right="project.settings"
-					variant="primary"
-					className="min-h-control"
-					onClick={() =>
-						void run(async () => {
-							if (p.members.length) await act.saveTeam({ members: [...team, ...p.members] });
-							await unwrap(
-								commands.projectOverridesSave({ ...o, assignments: null, pageModes: null }),
-							);
-							await qc.invalidateQueries();
-						})
-					}
-				>
-					{r.moveRoles}
-				</RightButton>
-			</div>
-		</SectionCard>
+						{r.openFile}
+					</Button>
+					{p.members.length || p.dropped.length ? (
+						<RightButton
+							right="project.settings"
+							onClick={() =>
+								void run(async () => {
+									if (p.members.length) await act.saveTeam({ members: [...team, ...p.members] });
+									await unwrap(
+										commands.projectOverridesSave({ ...o, assignments: null, pageModes: null }),
+									);
+									await qc.invalidateQueries();
+								})
+							}
+						>
+							{r.moveRoles}
+						</RightButton>
+					) : null}
+				</div>
+			</section>
+		</Card>
 	);
 }
 
 /** The last lines of the audit log, for a person with `project.settings`. */
-export function AuditTail() {
-	const { t, lang } = useI18n();
-	const r = t.rights.team;
+function useAudit() {
 	const { can } = useRights();
-	const lines = useQuery({
+	return useQuery({
 		queryKey: [...rightsKey, "audit"],
 		queryFn: () => unwrap(commands.rightsAuditTail()),
 		enabled: can("project.settings"),
 	}).data;
-	if (!can("project.settings") || !lines?.length) return null;
-	const time = new Intl.DateTimeFormat(lang, { dateStyle: "short", timeStyle: "medium" });
+}
+
+const JOIN_BRANCH = "shipyard/join-";
+
+/**
+ * A person asked to join (REQ-011): the request is a pull request on the team file, and its merge
+ * on the code host accepts it. No command accepts or refuses a request from here.
+ */
+export function JoinAsked() {
+	const { t } = useI18n();
+	const lines = useAudit() ?? [];
+	const members = useTeam().data?.team.members ?? [];
+	const asked = [
+		...new Set(
+			lines
+				.filter((l) => l.result === "requested" && l.target.startsWith(JOIN_BRANCH))
+				.map((l) => l.target.slice(JOIN_BRANCH.length)),
+		),
+	].filter((h) => !members.some((m) => m.handle === h));
+	return asked.map((h) => (
+		<AttentionCard
+			key={h}
+			who={t.rights.today.you}
+			title={format(t.rights.team.asks, { name: h })}
+		/>
+	));
+}
+
+/** How many changes show before "Older changes". */
+const RECENT = 5;
+
+/** The changes of rights, the newest first, in plain words. The command of a line is its tooltip. */
+export function AuditTail() {
+	const { t } = useI18n();
+	const r = t.rights.team;
+	const day = usePlainDay();
+	const lines = useAudit();
+	const members = useTeam().data?.team.members ?? [];
+	const [all, setAll] = useState(false);
+	if (!lines?.length) return null;
+	const rows = lines.toReversed();
 	return (
-		<div>
-			<Frame label={r.audit}>
-				<DataTable
-					label={r.audit}
-					data={[...lines].reverse()}
-					rowId={(l) => `${l.time}:${l.what}:${l.target}:${l.result}`}
-					flow
-					columns={[
-						{
-							id: "when",
-							header: r.auditWhen,
-							meta: { wrap: true },
-							cell: ({ row: x }) => time.format(x.original.time * 1000),
-						},
-						{
-							id: "who",
-							header: r.auditWho,
-							meta: { wrap: true },
-							cell: ({ row: x }) => x.original.member ?? t.rights.found[x.original.found],
-						},
-						{
-							id: "right",
-							header: r.auditRight,
-							meta: { wrap: true },
-							cell: ({ row: x }) => <span className="font-mono">{x.original.right}</span>,
-						},
-						{
-							id: "what",
-							header: r.auditWhat,
-							meta: { wrap: true },
-							cell: ({ row: x }) => <span className="font-mono">{x.original.what}</span>,
-						},
-						{
-							id: "target",
-							header: r.auditTarget,
-							meta: { wrap: true },
-							cell: ({ row: x }) => <span className="font-mono">{x.original.target}</span>,
-						},
-						{
-							id: "result",
-							header: r.auditResult,
-							meta: { wrap: true },
-							accessorFn: (l) => l.result,
-						},
-					]}
-				/>
-			</Frame>
-		</div>
+		<Card className="py-2">
+			<section aria-label={r.audit}>
+				<h2 className={HEAD}>{r.audit}</h2>
+				<ul>
+					{(all ? rows : rows.slice(0, RECENT)).map((l) => {
+						const join = l.result === "requested" && l.target.startsWith(JOIN_BRANCH);
+						const who = join
+							? l.target.slice(JOIN_BRANCH.length)
+							: (members.find((m) => m.handle === l.member)?.name ??
+								l.member ??
+								t.rights.found[l.found]);
+						const [k] = RIGHT_AT[l.right] ?? [];
+						const right = k === "merge" || k === "approve" ? r[k] : k ? r.area[k] : l.right;
+						const result = (r.result as Record<string, string>)[l.result] ?? l.result;
+						const key = `${l.time}:${l.what}:${l.target}:${l.result}`;
+						return (
+							<Row key={key} render={(props) => <li {...props} />}>
+								<Avatar name={who} size="s" />
+								<span title={l.what} className="flex-[1_1_15rem]">
+									<span className="font-semibold">{who}</span>{" "}
+									{join ? result : `${[right, l.target].filter(Boolean).join(", ")}: ${result}`}
+								</span>
+								<span className="text-n-10">
+									{day(new Date(l.time * 1000).toISOString().slice(0, 10))}
+								</span>
+							</Row>
+						);
+					})}
+					{rows.length > RECENT && !all ? (
+						<Row render={(props) => <li {...props} />}>
+							<LinkButton onClick={() => setAll(true)}>{r.older}</LinkButton>
+						</Row>
+					) : null}
+				</ul>
+			</section>
+		</Card>
 	);
 }

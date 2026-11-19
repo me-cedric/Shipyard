@@ -6,12 +6,25 @@ import { mountApp } from "@/test/mount";
 import { importAll, withTracker } from "@/test/tracker";
 
 const group = async (name: string) => screen.findByRole("heading", { name });
+/** The entries of the month, each with Send, Edit and Delete: a page of Time. */
+const ENTRIES = "/plan/time?page=entries";
+type Router = ReturnType<typeof mountApp>;
+const toEntries = (router: Router) =>
+	router.navigate({ to: "/plan/time", search: { page: "entries" } as never });
+const idle = (router: Router) => waitFor(() => expect(router.state.status).toBe("idle"));
+/** The form of a new entry, from the week grid. */
+const openForm = async (user: ReturnType<typeof userEvent.setup>) =>
+	user.click(await screen.findByRole("button", { name: "Add a ticket" }));
+const submit = () =>
+	screen
+		.getAllByRole("button", { name: "Add a ticket" })
+		.find((b) => b.getAttribute("type") === "submit") as HTMLElement;
 const row = (text: string) => screen.getByText(text).closest("[role=row]") as HTMLElement;
 
 describe("Plan / Time", () => {
 	it("lists the entries of the month by state", async () => {
 		await withTracker();
-		mountApp("/plan/time");
+		mountApp(ENTRIES);
 		expect(await group("To send (2)")).toBeInTheDocument();
 		expect(await group("In issue tracker (1)")).toBeInTheDocument();
 		expect(row("Token API")).toHaveTextContent("4h");
@@ -22,18 +35,20 @@ describe("Plan / Time", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		await importAll();
-		mountApp("/plan/time");
-		await user.click(await screen.findByRole("button", { name: "Entry" }));
+		const router = mountApp("/plan/time");
+		await openForm(user);
 		await user.type(screen.getByRole("textbox", { name: "Duration" }), "2h");
 		await user.type(screen.getByRole("textbox", { name: "Note" }), "Pairing");
-		await user.click(screen.getAllByRole("button", { name: "Entry" }).at(-1) as HTMLElement);
+		await user.click(submit());
 		await waitFor(() => expect(mockState().work.time.ada).toHaveLength(4));
 		expect(mockState().work.time.ada?.find((e) => e.note === "Pairing")).toMatchObject({
 			day: "2026-11-02",
 			minutes: 120,
 		});
 		expect(mockState().work.time.grace).toHaveLength(1);
+		await toEntries(router);
 		expect(await group("To send (3)")).toBeInTheDocument();
+		await idle(router);
 	});
 
 	it("offers the full key and the title of a ticket, filtered by either, and picks one with the keys", async () => {
@@ -41,7 +56,7 @@ describe("Plan / Time", () => {
 		await withTracker();
 		await importAll();
 		mountApp("/plan/time");
-		await user.click(await screen.findByRole("button", { name: "Entry" }));
+		await openForm(user);
 		const field = screen.getByRole("combobox", { name: "Ticket" });
 		await user.click(field);
 		const all = await screen.findAllByRole("option");
@@ -72,10 +87,10 @@ describe("Plan / Time", () => {
 		await withTracker();
 		await importAll();
 		mountApp("/plan/time");
-		await user.click(await screen.findByRole("button", { name: "Entry" }));
+		await openForm(user);
 		await user.type(screen.getByRole("textbox", { name: "Duration" }), "1h");
 		await user.type(screen.getByRole("combobox", { name: "Ticket" }), "ACME-1");
-		await user.click(screen.getAllByRole("button", { name: "Entry" }).at(-1) as HTMLElement);
+		await user.click(submit());
 		await waitFor(() =>
 			expect(
 				mockState().work.time.ada?.find((e) => e.ticket === "ACME-1" && e.minutes === 60)?.worklog,
@@ -133,7 +148,7 @@ describe("Plan / Time", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mockState().work.me = null;
-		mountApp("/plan/time");
+		mountApp(ENTRIES);
 		const alert = await screen.findByRole("alert");
 		expect(alert).toHaveTextContent("You are not in the team yet.");
 		expect(within(alert).getByRole("button", { name: "Open" })).toBeInTheDocument();
@@ -148,7 +163,7 @@ describe("Plan / Time", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		await importAll();
-		mountApp("/plan/time");
+		mountApp(ENTRIES);
 		await group("To send (2)");
 		expect(mockState().work.logs["ACME-1"]).toBeDefined();
 		const before = mockState().work.logs["ACME-1"]?.length ?? 0;
@@ -172,7 +187,7 @@ describe("Plan / Time", () => {
 			await gate;
 			return real(...args);
 		});
-		mountApp("/plan/time");
+		mountApp(ENTRIES);
 		await group("To send (2)");
 		const send = () => screen.getByRole("button", { name: /^Send 2026-11-03 ACME-1$/ });
 		await user.click(send());
@@ -188,7 +203,7 @@ describe("Plan / Time", () => {
 
 	it("sends nothing for an entry with no ticket", async () => {
 		await withTracker();
-		mountApp("/plan/time");
+		mountApp(ENTRIES);
 		await group("To send (2)");
 		expect(row("Stand-up and planning").querySelector("button")).toBeDisabled();
 	});
@@ -198,13 +213,13 @@ describe("Plan / Time", () => {
 		await withTracker();
 		await importAll();
 		mockState().work.loseNextAnswer = true;
-		mountApp("/plan/time");
+		mountApp(ENTRIES);
 		await group("To send (2)");
 		const before = mockState().work.logs["ACME-1"]?.length ?? 0;
 		await user.click(screen.getByRole("button", { name: /^Send 2026-11-03 ACME-1$/ }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("the answer was lost");
 		expect(mockState().work.logs["ACME-1"]).toHaveLength(before + 1);
-		await user.click(screen.getByRole("button", { name: "Read the month" }));
+		await user.click(screen.getByRole("button", { name: "Read the month from the issue tracker" }));
 		await user.click(await screen.findByRole("button", { name: /^Store receipt/ }));
 		await waitFor(() =>
 			expect(mockState().work.time.ada?.find((e) => e.id === "t2")?.worklog).toBeDefined(),
@@ -218,9 +233,9 @@ describe("Plan / Time", () => {
 		await importAll();
 		const log = mockState().work.logs["ACME-2"]?.[0];
 		if (log) log.minutes = 180;
-		mountApp("/plan/time");
+		mountApp(ENTRIES);
 		await group("In issue tracker (1)");
-		await user.click(screen.getByRole("button", { name: "Read the month" }));
+		await user.click(screen.getByRole("button", { name: "Read the month from the issue tracker" }));
 		const differs = await screen.findByRole("img", { name: "Durations differ" });
 		const tokenRow = differs.closest("[role=row]") as HTMLElement;
 		expect(tokenRow).toHaveTextContent("issue tracker 3h");
@@ -234,7 +249,7 @@ describe("Plan / Time", () => {
 	it("edits the duration and the note of an entry", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/plan/time");
+		mountApp(ENTRIES);
 		await user.click(await screen.findByRole("button", { name: /^Edit 2026-11-02 / }));
 		const duration = screen.getByRole("textbox", { name: "Duration" });
 		await user.clear(duration);
@@ -254,7 +269,7 @@ describe("Plan / Time", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mockState().work.logs["ACME-2"] = [];
-		mountApp("/plan/time");
+		mountApp(ENTRIES);
 		await user.click(await screen.findByRole("button", { name: /^Edit 2026-11-02 / }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("Not in issue tracker: worklog");
@@ -263,7 +278,7 @@ describe("Plan / Time", () => {
 	it("refuses a bad duration and keeps the entry", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/plan/time");
+		mountApp(ENTRIES);
 		await user.click(await screen.findByRole("button", { name: /^Edit 2026-11-02 / }));
 		const duration = screen.getByRole("textbox", { name: "Duration" });
 		await user.clear(duration);
@@ -276,7 +291,7 @@ describe("Plan / Time", () => {
 	it("deletes an entry after a confirm, and keeps it when the person declines", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/plan/time");
+		mountApp(ENTRIES);
 		const del = await screen.findByRole("button", { name: /^Delete 2026-11-02 / });
 		mockState().confirm = false;
 		await user.click(del);
@@ -289,32 +304,90 @@ describe("Plan / Time", () => {
 	it("is in French when the language is French", async () => {
 		mockState().prefs.lang = "fr";
 		await withTracker();
-		mountApp("/plan/time");
+		const router = mountApp("/plan/time");
+		expect(await screen.findByRole("heading", { level: 1, name: "Mon temps" })).toBeInTheDocument();
+		expect(await screen.findByRole("button", { name: "Ajouter un ticket" })).toBeInTheDocument();
+		await toEntries(router);
 		expect(await group("À envoyer (2)")).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Saisie" })).toBeInTheDocument();
+		await idle(router);
+	});
+
+	it("keeps the receipt of each lost answer with one click, and sends nothing again", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await importAll();
+		mockState().work.loseNextAnswer = true;
+		const router = mountApp(ENTRIES);
+		await group("To send (2)");
+		const before = mockState().work.logs["ACME-1"]?.length ?? 0;
+		await user.click(screen.getByRole("button", { name: /^Send 2026-11-03 ACME-1$/ }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("the answer was lost");
+		await router.navigate({ to: "/plan/time" });
+		const keep = await screen.findByRole("button", { name: "Keep a receipt" });
+		// Nothing to keep before the month is read from the issue tracker.
+		expect(keep).toBeDisabled();
+		await user.click(screen.getByRole("button", { name: "Read the month from the issue tracker" }));
+		await waitFor(() => expect(keep).toBeEnabled());
+		await user.click(keep);
+		await waitFor(() =>
+			expect(mockState().work.time.ada?.find((e) => e.id === "t2")?.worklog).toBeDefined(),
+		);
+		expect(mockState().work.logs["ACME-1"]).toHaveLength(before + 1);
+		await idle(router);
+	});
+
+	it("lists the hours of each person of the team, and opens the week of one person", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const router = mountApp("/plan/time?page=team");
+		expect(
+			await screen.findByRole("heading", { level: 1, name: "Time of the team" }),
+		).toBeInTheDocument();
+		await user.click(await screen.findByRole("link", { name: /Grace Hopper/ }));
+		await waitFor(() => expect(router.state.location.search).toEqual({ member: "grace" }));
+		expect(
+			await screen.findByRole("heading", { level: 1, name: "Time of Grace" }),
+		).toBeInTheDocument();
+		expect(screen.getByRole("combobox", { name: "Member" })).toHaveTextContent("Grace Hopper");
+		await idle(router);
 	});
 
 	// spec:app-redesign#REQ-019
 	describe("the week grid", () => {
-		const cell = (ticket: string, day: string) =>
-			screen.findByRole("textbox", { name: `Hours of ${ticket}, ${day}` });
+		/** The field of a ticket on a day. The row shows the title of the ticket; its key is the title of the name. */
+		const cell = async (ticket: string, day: string) => {
+			const name = ticket === "No ticket" ? screen.findByText(ticket) : screen.findByTitle(ticket);
+			return within((await name).closest("tr") as HTMLElement).getByRole("textbox", {
+				// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- test input is a fixed day
+				name: new RegExp(`^Hours of .+, ${day}$`),
+			});
+		};
 
 		it("shows the hours of each ticket on each day of the week, and moves by a week", async () => {
 			const user = userEvent.setup();
 			await withTracker();
 			mountApp("/plan/time");
-			const week = within(await screen.findByRole("region", { name: "Week of 11/2/2026" }));
-			expect(await cell("ACME-2", "2026-11-02")).toHaveValue("4h");
-			expect(await cell("No ticket", "2026-11-03")).toHaveValue("1h");
+			const week = within(await screen.findByRole("region", { name: "Week of 2 Nov" }));
+			expect(screen.getByRole("heading", { level: 1, name: "My time" })).toBeInTheDocument();
+			expect(await cell("ACME-2", "Monday 2 Nov")).toHaveValue("4h");
+			expect(await cell("No ticket", "Tuesday 3 Nov")).toHaveValue("1h");
+			// Five working days: the weekend has no entry, so it has no column and no control.
+			expect(week.getAllByRole("columnheader")).toHaveLength(6);
+			expect(week.queryByRole("button", { name: "Weekend" })).toBeNull();
 			// The entry that the issue tracker does not hold has the mark.
 			expect(week.getAllByRole("img", { name: "To send" })).toHaveLength(2);
-			await user.click(week.getByRole("button", { name: "Next week" }));
-			expect(await screen.findByRole("region", { name: "Week of 11/9/2026" })).toBeInTheDocument();
+			// The ways to the time of the team and to the send of the hours.
+			expect(screen.getByRole("link", { name: "Time of the team" })).toBeInTheDocument();
+			expect(
+				screen.getByRole("link", { name: /^Send the hours to the issue tracker/ }),
+			).toHaveAttribute("href", expect.stringContaining("page=entries"));
+			await user.click(screen.getByRole("button", { name: "Next week" }));
+			expect(await screen.findByRole("region", { name: "Week of 9 Nov" })).toBeInTheDocument();
 			// A week of the month before shows its month.
 			await user.click(screen.getByRole("button", { name: "Previous week" }));
 			await user.click(screen.getByRole("button", { name: "Previous week" }));
 			await user.click(screen.getByRole("button", { name: "Previous week" }));
-			expect(await screen.findByRole("region", { name: "Week of 10/19/2026" })).toBeInTheDocument();
+			expect(await screen.findByRole("region", { name: "Week of 19 Oct" })).toBeInTheDocument();
 			expect(screen.getByText("October 2026")).toBeInTheDocument();
 		});
 
@@ -323,7 +396,7 @@ describe("Plan / Time", () => {
 			await withTracker();
 			await importAll();
 			mountApp("/plan/time");
-			const first = await cell("ACME-2", "2026-11-02");
+			const first = await cell("ACME-2", "Monday 2 Nov");
 			await user.clear(first);
 			await user.type(first, "2h{Enter}");
 			await waitFor(() =>
@@ -332,7 +405,7 @@ describe("Plan / Time", () => {
 					note: "Token API",
 				}),
 			);
-			await user.type(await cell("ACME-1", "2026-11-04"), "1h30{Enter}");
+			await user.type(await cell("ACME-1", "Wednesday 4 Nov"), "1h30{Enter}");
 			await waitFor(() =>
 				expect(mockState().work.time.ada?.find((e) => e.day === "2026-11-04")).toMatchObject({
 					minutes: 90,
@@ -340,12 +413,12 @@ describe("Plan / Time", () => {
 				}),
 			);
 			mockState().confirm = false;
-			await user.clear(await cell("ACME-1", "2026-11-03"));
+			await user.clear(await cell("ACME-1", "Tuesday 3 Nov"));
 			await user.tab();
-			await waitFor(async () => expect(await cell("ACME-1", "2026-11-03")).toHaveValue("3h"));
+			await waitFor(async () => expect(await cell("ACME-1", "Tuesday 3 Nov")).toHaveValue("3h"));
 			expect(mockState().work.time.ada?.some((e) => e.id === "t2")).toBe(true);
 			mockState().confirm = true;
-			await user.clear(await cell("ACME-1", "2026-11-03"));
+			await user.clear(await cell("ACME-1", "Tuesday 3 Nov"));
 			await user.tab();
 			await waitFor(() =>
 				expect(mockState().work.time.ada?.some((e) => e.id === "t2")).toBe(false),
@@ -364,7 +437,7 @@ describe("Plan / Time", () => {
 			});
 			mountApp("/plan/time");
 			await user.click(await screen.findByRole("button", { name: "Previous week" }));
-			const field = await cell("ACME-3", "2026-10-30");
+			const field = await cell("ACME-3", "Friday 30 Oct");
 			await user.clear(field);
 			await user.type(field, "2h{Enter}");
 			await waitFor(() =>
@@ -375,13 +448,30 @@ describe("Plan / Time", () => {
 			);
 		});
 
+		it("changes the first line of the note of a row and keeps the hours", async () => {
+			const user = userEvent.setup();
+			await withTracker();
+			mountApp("/plan/time");
+			const row = (await screen.findByTitle("ACME-2")).closest("tr") as HTMLElement;
+			const note = within(row).getByRole("textbox", { name: /^Note for / });
+			expect(note).toHaveValue("Token API");
+			await user.clear(note);
+			await user.type(note, "Token API, part two{Enter}");
+			await waitFor(() =>
+				expect(mockState().work.time.ada?.find((e) => e.id === "t1")).toMatchObject({
+					minutes: 240,
+					note: "Token API, part two",
+				}),
+			);
+		});
+
 		it("refuses a bad duration in a cell and shows the stored hours again", async () => {
 			const user = userEvent.setup();
 			await withTracker();
 			mountApp("/plan/time");
-			await user.type(await cell("ACME-2", "2026-11-02"), "x{Enter}");
+			await user.type(await cell("ACME-2", "Monday 2 Nov"), "x{Enter}");
 			expect(await screen.findByRole("alert")).toHaveTextContent("Duration: 90, 1h30 or 2h");
-			expect(await cell("ACME-2", "2026-11-02")).toHaveValue("4h");
+			expect(await cell("ACME-2", "Monday 2 Nov")).toHaveValue("4h");
 			expect(mockState().work.time.ada?.find((e) => e.id === "t1")?.minutes).toBe(240);
 		});
 	});

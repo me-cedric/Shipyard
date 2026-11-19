@@ -6,9 +6,17 @@ import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 import { withTracker } from "@/test/tracker";
 
+const idle = (router: ReturnType<typeof mountApp>) =>
+	waitFor(() => expect(router.state.status).toBe("idle"));
+/** The row of a right in the role card. */
+const row = async (name: string) => within(await screen.findByRole("listitem", { name }));
+const pressed = (name: string) =>
+	screen.getAllByRole("button", { name, pressed: true }).filter((b) => b.closest("li"));
+
 // The members and their form are on Crew: `src/features/crew/crew-page.test.tsx`.
 describe("Crew / Rights: the team file", () => {
-	it("shows the rights of each role with icons, and names who the person is", async () => {
+	it("shows the rights of each role as switches, and names who the person is", async () => {
+		const user = userEvent.setup();
 		await withTracker();
 		mockState().person = {
 			member: "ada",
@@ -18,72 +26,69 @@ describe("Crew / Rights: the team file", () => {
 			readOnly: false,
 			rights: ["project.settings", "work.edit"],
 		};
-		mountApp("/crew/rights");
-		const matrix = within(await screen.findByRole("table", { name: "Rights of each role" }));
-		expect(matrix.getAllByRole("row")).toHaveLength(10);
-		const viewer = within(matrix.getByRole("row", { name: /^Viewer/ }));
+		const router = mountApp("/crew/rights?role=viewer");
+		expect(await screen.findByRole("heading", { name: "Viewer can" })).toBeInTheDocument();
 		// The viewer does not see Code and the costs by default (spec:app-redesign#REQ-006).
-		expect(viewer.getAllByRole("img", { name: "Read" })).toHaveLength(6);
-		expect(viewer.getAllByRole("img", { name: "Hidden" })).toHaveLength(2);
-		expect(viewer.getAllByRole("img", { name: /^(Merge|Approve) no$/ })).toHaveLength(2);
+		expect(pressed("See")).toHaveLength(6);
+		// Two hidden areas, and no merge and no approval.
+		expect(pressed("No")).toHaveLength(4);
+		expect((await row("Code")).getByRole("button", { name: "No" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+		await user.click(screen.getByRole("button", { name: "Developer" }));
+		expect(await screen.findByRole("heading", { name: "Developer can" })).toBeInTheDocument();
+		expect(router.state.location.search).toEqual({ role: "developer" });
 		expect(
-			within(matrix.getByRole("row", { name: /^Developer/ })).getByRole("img", {
-				name: "Approve yes",
-			}),
-		).toBeInTheDocument();
+			(await row("Approve agent actions")).getByRole("button", { name: "Yes" }),
+		).toHaveAttribute("aria-pressed", "true");
+		// A choice of a role writes nothing.
+		expect(mockState().work.team.roles).toBeUndefined();
+		await router.navigate({ to: "/crew/rights", search: { page: "team" } as never });
 		expect(await screen.findByText("You are ada (Account)")).toBeInTheDocument();
 		// a grid wider than the page scrolls sideways, and the keyboard reaches the scroll
-		const region = screen.getByRole("region", { name: "Rights of each role" });
-		expect(region).toHaveAttribute("tabindex", "0");
-		expect(region).toHaveClass("overflow-auto");
+		const region = await screen.findByRole("region", { name: "Rights of each person" });
+		const scroll = within(region).getByRole("region", { name: "Rights of each person" });
+		expect(scroll).toHaveAttribute("tabindex", "0");
+		expect(scroll).toHaveClass("overflow-auto");
+		await idle(router);
 	});
 
-	it("edits the level of a cell and saves the roles block", async () => {
+	it("changes the level of a right in place and saves the roles block", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/crew/rights");
-		await user.click(await screen.findByRole("button", { name: "Edit" }));
-		await user.click(screen.getByRole("combobox", { name: "Developer Costs" }));
-		await user.click(await screen.findByRole("option", { name: "Read" }));
-		await user.click(screen.getByRole("switch", { name: "Viewer Merge" }));
-		await user.click(screen.getByRole("button", { name: "Save" }));
+		const router = mountApp("/crew/rights?role=developer");
+		await user.click((await row("Budgets")).getByRole("button", { name: "See" }));
+		await waitFor(() =>
+			expect(mockState().work.team.roles).toEqual({ developer: { costs: "read" } }),
+		);
+		await waitFor(async () =>
+			expect((await row("Budgets")).getByRole("button", { name: "See" })).toHaveAttribute(
+				"aria-pressed",
+				"true",
+			),
+		);
+		await user.click(screen.getByRole("button", { name: "Viewer" }));
+		await user.click((await row("Merge")).getByRole("button", { name: "Yes" }));
 		await waitFor(() =>
 			expect(mockState().work.team.roles).toEqual({
 				developer: { costs: "read" },
 				viewer: { merge: true },
 			}),
 		);
-		// Back to the read view, with the new level.
-		const matrix = within(await screen.findByRole("table", { name: "Rights of each role" }));
-		expect(
-			within(matrix.getByRole("row", { name: /^Developer/ })).queryByRole("img", {
-				name: "Hidden",
-			}),
-		).toBeNull();
-		expect(screen.queryByRole("combobox", { name: "Developer Costs" })).toBeNull();
+		await idle(router);
 	});
 
 	it("resets a role to its defaults and drops its cells from the block", async () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mockState().work.team.roles = { developer: { costs: "read" } };
-		mountApp("/crew/rights");
-		await user.click(await screen.findByRole("button", { name: "Edit" }));
-		await user.click(screen.getByRole("button", { name: "Reset Developer to defaults" }));
-		await user.click(screen.getByRole("button", { name: "Save" }));
+		const router = mountApp("/crew/rights?role=developer");
+		await row("Budgets");
+		await user.click(screen.getByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Reset Developer to defaults" }));
 		await waitFor(() => expect(mockState().work.team.roles).toBeUndefined());
-	});
-
-	it("cancels an edit without a write", async () => {
-		const user = userEvent.setup();
-		await withTracker();
-		mountApp("/crew/rights");
-		await user.click(await screen.findByRole("button", { name: "Edit" }));
-		await user.click(screen.getByRole("combobox", { name: "Developer Costs" }));
-		await user.click(await screen.findByRole("option", { name: "Read" }));
-		await user.click(screen.getByRole("button", { name: "Cancel" }));
-		expect(mockState().work.team.roles).toBeUndefined();
-		expect(screen.queryByRole("combobox", { name: "Developer Costs" })).toBeNull();
+		await idle(router);
 	});
 
 	it("gives a member several roles and shows the highest levels", async () => {
@@ -91,39 +96,43 @@ describe("Crew / Rights: the team file", () => {
 		await withTracker();
 		const grace = mockState().work.team.members.find((m) => m.handle === "grace");
 		Object.assign(grace ?? {}, { role: "viewer", roles: undefined, rights: [], admin: false });
-		mountApp("/crew/rights");
-		const members = within(await screen.findByRole("table", { name: "Members" }));
-		const before = within(members.getByRole("row", { name: "grace levels" }));
+		const router = mountApp("/crew/rights?page=team");
+		const members = () => screen.findByRole("table", { name: "Members" });
+		const before = within(within(await members()).getByRole("row", { name: "grace levels" }));
 		expect(before.queryAllByRole("img", { name: "Read and write" })).toHaveLength(0);
-		await user.click(screen.getByRole("button", { name: "Edit" }));
-		await user.click(screen.getByRole("combobox", { name: "Add a role to Grace Hopper" }));
-		await user.click(await screen.findByRole("option", { name: "Developer" }));
-		// Developer adds writes at once, before the save.
-		expect(
-			within(members.getByRole("row", { name: "grace levels" })).getAllByRole("img", {
-				name: "Read and write",
-			}).length,
-		).toBeGreaterThan(3);
-		// The row holds its content: no fixed height, no absolute place.
-		const grown = members.getByRole("row", { name: "grace levels" });
-		expect(grown.style.height).toBe("");
-		expect(grown.closest("[data-index]")).toBeNull();
-		await user.click(screen.getByRole("button", { name: "Save" }));
+		await user.click(screen.getByRole("link", { name: "Rights" }));
+		await user.click(await screen.findByRole("button", { name: "Roles of Grace Hopper: Viewer" }));
+		await user.click(await screen.findByRole("menuitemcheckbox", { name: "Developer" }));
 		await waitFor(() =>
 			expect(mockState().work.team.members.find((m) => m.handle === "grace")).toMatchObject({
 				role: "viewer",
 				roles: ["viewer", "developer"],
 			}),
 		);
+		expect(
+			await screen.findByRole("button", { name: "Roles of Grace Hopper: Viewer, Developer" }),
+		).toBeInTheDocument();
 		// A member keeps one role at least: the backend refuses, and the refusal shows.
-		await user.click(screen.getByRole("button", { name: "Edit" }));
-		await user.click(screen.getByRole("button", { name: "Remove Viewer from Grace Hopper" }));
-		await user.click(screen.getByRole("button", { name: "Remove Developer from Grace Hopper" }));
-		await user.click(screen.getByRole("button", { name: "Save" }));
+		await user.click(screen.getByRole("menuitemcheckbox", { name: "Viewer" }));
+		await waitFor(() =>
+			expect(mockState().work.team.members.find((m) => m.handle === "grace")?.role).toBe(
+				"developer",
+			),
+		);
+		await user.click(screen.getByRole("menuitemcheckbox", { name: "Developer" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("grace needs one role");
+		await user.keyboard("{Escape}");
+		// Developer adds writes.
+		await router.navigate({ to: "/crew/rights", search: { page: "team" } as never });
+		const grown = within(await members()).getByRole("row", { name: "grace levels" });
+		expect(within(grown).getAllByRole("img", { name: "Read and write" }).length).toBeGreaterThan(3);
+		// The row holds its content: no fixed height, no absolute place.
+		expect(grown.style.height).toBe("");
+		expect(grown.closest("[data-index]")).toBeNull();
+		await idle(router);
 	});
 
-	it("turns Edit off without project.settings, with the reason", async () => {
+	it("turns the switches and the role buttons off without project.settings, with the reason", async () => {
 		await withTracker();
 		mockState().person = {
 			member: "ada",
@@ -133,12 +142,15 @@ describe("Crew / Rights: the team file", () => {
 			readOnly: false,
 			rights: ["work.edit"],
 		};
-		mountApp("/crew/rights");
-		const edit = await screen.findByRole("button", { name: "Edit" });
-		await waitFor(() => expect(edit).toBeDisabled());
-		expect(edit).toHaveAccessibleDescription(
-			"Needs the right project.settings (your role: Developer)",
-		);
+		const router = mountApp("/crew/rights");
+		const reason = "Needs the right project.settings (your role: Developer)";
+		const change = (await row("Specs")).getByRole("button", { name: "Change" });
+		await waitFor(() => expect(change).toBeDisabled());
+		expect(change.closest("fieldset")).toHaveAttribute("title", reason);
+		const role = screen.getByRole("button", { name: /^Roles of Grace Hopper/ });
+		expect(role).toBeDisabled();
+		expect(role).toHaveAccessibleDescription(reason);
+		await idle(router);
 	});
 
 	it("shows an unknown person the banner and sends a join request: with no code host, the branch stays local", async () => {
@@ -152,17 +164,21 @@ describe("Crew / Rights: the team file", () => {
 			readOnly: false,
 			rights: [],
 		};
-		mountApp("/crew/rights");
+		const router = mountApp("/crew/rights?page=team");
 		expect(await screen.findByText("You are not in the team file")).toBeInTheDocument();
 		const form = within(await screen.findByRole("form", { name: "Ask to join" }));
+		expect(form.getByRole("button", { name: "Copy the line" })).toBeInTheDocument();
 		await user.type(form.getByRole("textbox", { name: "Name" }), "Zed Nobody");
 		await user.type(form.getByRole("textbox", { name: "E-mails" }), "zed@example.com");
+		// The line for the team file shows before the send.
+		expect(form.getByText(/name: "Zed Nobody"/)).toBeInTheDocument();
 		await user.click(form.getByRole("button", { name: "Send the request" }));
 		expect(await form.findByText("git push origin shipyard/join-zed")).toBeInTheDocument();
 		expect(form.getByRole("button", { name: "Copied" })).toBeInTheDocument();
 		expect(
 			joinEntry({ name: "Zed Nobody", email: "zed@example.com", account: "", role: "qa" }),
 		).toContain("role: viewer");
+		await idle(router);
 	});
 
 	it("proposes the roles of this machine as members and drops them from the registry after one click", async () => {
@@ -177,15 +193,14 @@ describe("Crew / Rights: the team file", () => {
 				pageModes: { junior: { "code/terminal": "hidden" } },
 			}),
 		);
-		mountApp("/crew/rights");
+		const router = mountApp("/crew/rights?page=team");
 		const panel = within(
-			await screen.findByRole("region", {
-				name: "Move the roles of this machine to the team file",
-			}),
+			await screen.findByRole("region", { name: "Roles live in the team file" }),
 		);
-		expect(panel.getByText("eve@example.com")).toBeInTheDocument();
+		expect(panel.getByRole("button", { name: "Open the file" })).toBeInTheDocument();
+		expect(await panel.findByText("eve@example.com")).toBeInTheDocument();
 		expect(panel.getByText(/code\/terminal hidden/)).toBeInTheDocument();
-		await user.click(panel.getByRole("button", { name: "Move the roles" }));
+		await user.click(panel.getByRole("button", { name: "Move the roles to the team file" }));
 		await waitFor(() =>
 			expect(
 				mockState().work.team.members.find((m) => m.emails?.[0] === "joe@example.com"),
@@ -200,6 +215,11 @@ describe("Crew / Rights: the team file", () => {
 		await waitFor(async () =>
 			expect((await unwrap(commands.projectsActive()))?.overrides.assignments).toBeNull(),
 		);
+		// Nothing is left to move: the button goes, the way to the file stays.
+		await waitFor(() =>
+			expect(panel.queryByRole("button", { name: "Move the roles to the team file" })).toBeNull(),
+		);
+		await idle(router);
 	});
 
 	it("lists the audit tail for a person with project.settings", async () => {
@@ -215,9 +235,12 @@ describe("Crew / Rights: the team file", () => {
 				result: "refused",
 			},
 		];
-		mountApp("/crew/rights");
-		const log = within(await screen.findByRole("table", { name: "Audit" }));
-		expect(log.getByText("work_transition")).toBeInTheDocument();
-		expect(log.getByText("refused")).toBeInTheDocument();
+		const router = mountApp("/crew/rights?page=team");
+		const log = within(await screen.findByRole("region", { name: "Changes of rights" }));
+		expect(log.getByTitle("work_transition")).toHaveTextContent(
+			"Unknown Flow and tickets, ACME-1: refused",
+		);
+		expect(log.getByText("14 Nov")).toBeInTheDocument();
+		await idle(router);
 	});
 });

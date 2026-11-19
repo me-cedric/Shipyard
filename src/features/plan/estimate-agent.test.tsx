@@ -10,9 +10,11 @@ const sheet = () => JSON.stringify(mockState().work.sheets["mvp-1"]);
 const ask = () => screen.findByRole("button", { name: "Ask an agent to estimate" });
 
 async function pick(user: ReturnType<typeof userEvent.setup>) {
-	const table = await screen.findByRole("table", { name: "Backlog" });
+	// The selection is behind More.
+	await user.click(await screen.findByRole("button", { name: "More" }));
+	await user.click(await screen.findByRole("menuitem", { name: "Search and select" }));
 	for (const name of NAMES)
-		await user.click(await within(table).findByRole("checkbox", { name: `Select ${name}` }));
+		await user.click(await screen.findByRole("checkbox", { name: `Select ${name}` }));
 }
 
 describe("Plan / Estimates: ask an agent to estimate", () => {

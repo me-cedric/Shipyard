@@ -28,16 +28,8 @@ describe("Crew", () => {
 		// The ticket in progress of the person, and the load mark of the plan.
 		const ada = list.getByRole("button", { name: /^Ada Lovelace/ });
 		await waitFor(() => expect(ada).toHaveTextContent("Cache the project list"));
-		// The members table of before: the role, the capacity, the skills and the day rate of each person.
-		const ofAda = mockState().work.team.members.find((m) => m.handle === "ada");
-		expect(ada).toHaveTextContent(`${ofAda?.capacity} days a week`);
-		expect(ada).toHaveTextContent(`Day rate ${ofAda?.dayRate}`);
-		for (const skill of ofAda?.skills ?? []) expect(ada).toHaveTextContent(skill);
-		expect(list.getByRole("button", { name: /^Grace Hopper/ })).toHaveTextContent("4 days a week");
 		await waitFor(() => expect(ada).toHaveTextContent(/Over by \d+ days|Has room/));
 		const agents = within(screen.getByRole("list", { name: "Agents" }));
-		const roles = await unwrap(commands.rolesList());
-		await waitFor(() => expect(agents.getAllByRole("link")).toHaveLength(roles.length + 1));
 		// Two units build ACME-2: the role of their step has the work, and a plan waits for a person.
 		await waitFor(() =>
 			expect(agents.getByRole("link", { name: /^Worker/ })).toHaveTextContent(
@@ -49,7 +41,12 @@ describe("Crew", () => {
 			"Write the onboarding guide",
 		);
 		expect(agents.getByRole("link", { name: /^Planner/ })).toHaveTextContent("Needs you");
-		expect(agents.getByRole("link", { name: /^Docs/ })).toHaveTextContent("Idle");
+		// A role with no work has no card: each card opens the live rows, and one leads to the budgets.
+		expect(agents.queryByRole("link", { name: /^Docs/ })).toBeNull();
+		expect(agents.getByRole("link", { name: /^Planner/ })).toHaveAttribute(
+			"href",
+			"/crew/crew?view=live",
+		);
 		// The spend and the recipes lead to their sections.
 		expect(agents.getByRole("link", { name: "Budgets" })).toHaveAttribute("href", "/crew/spend");
 		// The recipe of the demo gives each run a budget: the spend card shows it as the limit.
@@ -97,7 +94,9 @@ describe("Crew", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		const router = mountApp("/crew/crew");
+		// One section switch only: the header has no second switch of views.
 		await user.click(await screen.findByRole("switch", { name: "Agents on" }));
+		expect(main().getAllByRole("navigation")).toHaveLength(1);
 		await waitFor(async () => expect(await unwrap(commands.killSwitchGet())).toBe(true));
 		expect(await main().findByRole("switch", { name: "Agents stopped" })).toBeInTheDocument();
 		await idle(router);
@@ -108,18 +107,28 @@ describe("Crew", () => {
 		await withTracker();
 		const router = mountApp("/crew/crew");
 		const panel = await openMember(user, "Grace Hopper");
-		const capacity = panel.getByRole("spinbutton", { name: "Capacity (days a week)" });
-		expect(capacity).toHaveValue(4);
-		await user.clear(capacity);
-		await user.type(capacity, "3");
+		// The members table of before, on the page of the person: the days, the skills and the day rate.
+		const days = within(panel.getByRole("group", { name: "Days in a week" }));
+		expect(days.getByRole("status")).toHaveTextContent(/^4$/);
+		const ofGrace = mockState().work.team.members.find((m) => m.handle === "grace");
+		const skills = within(panel.getByRole("group", { name: "Skills" }));
+		for (const skill of ofGrace?.skills ?? []) expect(skills.getByText(skill)).toBeInTheDocument();
+		expect(panel.getByRole("spinbutton", { name: "Day rate" })).toHaveValue(
+			ofGrace?.dayRate ?? null,
+		);
+		// A step is half a day.
+		await user.click(days.getByRole("button", { name: "Days in a week, less" }));
+		await user.click(days.getByRole("button", { name: "Days in a week, less" }));
 		await user.click(panel.getByRole("button", { name: "Save" }));
 		await waitFor(() =>
 			expect(mockState().work.team.members.find((m) => m.handle === "grace")?.capacity).toBe(3),
 		);
 		// Back to the cards, and the member opens with the new capacity.
-		await user.click(panel.getByRole("button", { name: "Crew" }));
+		await user.click(panel.getByRole("link", { name: "Crew" }));
 		const again = await openMember(user, "Grace Hopper");
-		expect(again.getByRole("spinbutton", { name: "Capacity (days a week)" })).toHaveValue(3);
+		expect(
+			within(again.getByRole("group", { name: "Days in a week" })).getByRole("status"),
+		).toHaveTextContent(/^3$/);
 		await idle(router);
 	});
 
@@ -127,9 +136,12 @@ describe("Crew", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		const router = mountApp("/crew/crew");
-		await user.click(await screen.findByRole("button", { name: "Member" }));
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Add a person" }));
 		const panel = main();
-		expect(await panel.findByRole("heading", { level: 1, name: "Member" })).toBeInTheDocument();
+		expect(
+			await panel.findByRole("heading", { level: 1, name: "Add a person" }),
+		).toBeInTheDocument();
 		await user.type(panel.getByRole("textbox", { name: "Name" }), "Barbara Liskov");
 		await user.type(panel.getByRole("textbox", { name: "Handle" }), "barbara");
 		await user.click(panel.getByRole("combobox", { name: "Role" }));
@@ -141,7 +153,7 @@ describe("Crew", () => {
 			await panel.findByRole("heading", { level: 1, name: "Barbara Liskov" }),
 		).toBeInTheDocument();
 		await user.click(panel.getByRole("button", { name: "Save" }));
-		await user.click(panel.getByRole("button", { name: "Crew" }));
+		await user.click(panel.getByRole("link", { name: "Crew" }));
 		await waitFor(async () => expect((await people()).getAllByRole("button")).toHaveLength(6));
 		expect(mockState().work.team.members).toHaveLength(6);
 		await idle(router);
@@ -175,7 +187,10 @@ describe("Crew", () => {
 		const router = mountApp("/crew/crew");
 		const panel = await openMember(user, "Ada Lovelace");
 		expect(panel.queryByRole("spinbutton", { name: "Day rate" })).toBeNull();
-		expect(panel.getByText("Passphrase missing")).toBeInTheDocument();
+		// The day rate row says Sealed; Unlock shows the passphrase field in the row.
+		const rate = within(panel.getByRole("group", { name: "Day rate" }));
+		expect(rate.getByText("Sealed")).toBeInTheDocument();
+		await user.click(rate.getByRole("button", { name: "Unlock" }));
 		const field = panel.getByLabelText("Passphrase");
 		// The field never shows what a person types.
 		expect(field).toHaveAttribute("type", "password");
@@ -198,9 +213,15 @@ describe("Crew", () => {
 		await unwrap(commands.workLock());
 		const router = mountApp("/crew/crew");
 		const panel = await openMember(user, "Ada Lovelace");
+		await user.click(panel.getByRole("button", { name: "Add" }));
 		const skills = panel.getByRole("textbox", { name: "Skills" });
 		await user.clear(skills);
 		await user.type(skills, "cobol");
+		await user.click(
+			within(panel.getByRole("group", { name: "Day rate" })).getByRole("button", {
+				name: "Unlock",
+			}),
+		);
 		await user.type(panel.getByLabelText("Passphrase"), "s3cret");
 		await user.click(panel.getByRole("button", { name: "Unlock" }));
 		expect(await panel.findByRole("spinbutton", { name: "Day rate" })).toHaveValue(520);
@@ -222,7 +243,9 @@ describe("Crew", () => {
 		expect(
 			await screen.findByRole("heading", { level: 1, name: "Grace Hopper" }),
 		).toBeInTheDocument();
-		await user.click(main().getByRole("button", { name: "Crew" }));
+		// The member page has the way back and no section switch.
+		expect(main().queryByRole("navigation")).toBeNull();
+		await user.click(main().getByRole("link", { name: "Crew" }));
 		await waitFor(() => expect(router.state.location.search).toEqual({}));
 		await openMember(user, "Ada Lovelace");
 		expect(router.state.location.search).toEqual({ member: "ada" });
@@ -238,8 +261,12 @@ describe("Crew", () => {
 		mockState().prefs.lang = "fr";
 		await withTracker();
 		const router = mountApp("/crew/crew");
-		expect(await screen.findByRole("button", { name: "Membre" })).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "Personnes" })).toBeInTheDocument();
+		const user = userEvent.setup();
+		expect(await screen.findByRole("heading", { name: "Personnes" })).toBeInTheDocument();
+		await user.click(main().getByRole("button", { name: "Plus" }));
+		expect(
+			await screen.findByRole("menuitem", { name: "Ajouter une personne" }),
+		).toBeInTheDocument();
 		await idle(router);
 	});
 
@@ -254,9 +281,16 @@ describe("Crew", () => {
 			rights: ["work.edit"],
 		};
 		const router = mountApp("/crew/crew");
-		const add = await screen.findByRole("button", { name: "Member" });
-		await waitFor(() => expect(add).toBeDisabled());
-		expect(add).toHaveAccessibleDescription(
+		const user = userEvent.setup();
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		const add = await screen.findByRole("menuitem", { name: "Add a person" });
+		expect(add).toHaveAttribute("aria-disabled", "true");
+		// The intent still opens the page of a new person: its Save is off, with the reason.
+		await user.keyboard("{Escape}");
+		await router.navigate({ to: "/crew/crew", search: { member: "" } as never });
+		const save = await main().findByRole("button", { name: "Save" });
+		expect(save).toBeDisabled();
+		expect(save).toHaveAccessibleDescription(
 			"Needs the right project.settings (your role: Developer)",
 		);
 		await idle(router);
@@ -270,8 +304,13 @@ describe("Crew", () => {
 		await user.type(panel.getByRole("textbox", { name: "E-mails" }), "grace@example.com");
 		await user.click(panel.getByRole("combobox", { name: "Role" }));
 		await user.click(await screen.findByRole("option", { name: "Architect" }));
-		expect(panel.getByRole("list", { name: "Rights" })).toHaveTextContent("code.merge");
+		// The rights of each role are on Rights: the row leads there.
+		expect(panel.getByRole("link", { name: "Rights of each role" })).toHaveAttribute(
+			"href",
+			"/crew/rights",
+		);
 		await user.click(panel.getByRole("switch", { name: "Admin" }));
+		await user.click(panel.getByRole("button", { name: "Change" }));
 		await user.type(panel.getByRole("textbox", { name: /^Right changes/ }), "-code.merge");
 		await user.click(panel.getByRole("button", { name: "Save" }));
 		await waitFor(() =>

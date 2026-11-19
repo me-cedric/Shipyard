@@ -328,6 +328,34 @@ fn cancel_the_kill_switch_and_the_plan_gate_are_one_call_each() {
 }
 
 #[test]
+fn stop_all_cancels_each_live_run_and_leaves_the_agents_on() {
+    let fx = fx(Writes::default());
+    let a = fx.start("SHIP-1");
+    assert!(stop_all(&fx.s, false).is_err(), "it needs a click");
+    assert_ne!(
+        run_get(&fx.s, &a).unwrap().unwrap().state,
+        RunState::Cancelled
+    );
+    stop_all(&fx.s, true).unwrap();
+    assert_eq!(
+        run_get(&fx.s, &a).unwrap().unwrap().state,
+        RunState::Cancelled
+    );
+    assert!(!kill_switch(&fx.s), "the agents stay on");
+    // A new run can start.
+    let b = fx.start("SHIP-2");
+    assert_ne!(
+        run_get(&fx.s, &b).unwrap().unwrap().state,
+        RunState::Cancelled
+    );
+    // Agents that are off stay off.
+    set_kill_switch(&fx.s, true);
+    stop_all(&fx.s, true).unwrap();
+    assert!(kill_switch(&fx.s));
+    set_kill_switch(&fx.s, false);
+}
+
+#[test]
 fn a_run_with_a_plan_gate_waits_for_a_click_and_a_rejection_runs_the_plan_again() {
     let fx = fx(Writes::default());
     // The feature workflow has a human gate after `plan`.

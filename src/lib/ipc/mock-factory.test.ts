@@ -399,6 +399,20 @@ describe("mock factory: run actions", () => {
 		expect(await runs()).toEqual([]);
 	});
 
+	it("stops every live run on Stop all agents, leaves the agents on and takes a new run", async () => {
+		await expect(unwrap(commands.agentsStopAll(false))).rejects.toBeTruthy();
+		const before = await runs();
+		expect(before.some((r) => r.lane !== "done" && r.state !== "Failed")).toBe(true);
+		await unwrap(commands.agentsStopAll(true));
+		expect(await unwrap(commands.killSwitchGet())).toBe(false);
+		for (const r of await runs()) {
+			const was = before.find((b) => b.id === r.id)?.state;
+			expect(r.state, r.key).toBe(was === "Failed" || was === "Done" ? was : "Cancelled");
+		}
+		const id = await unwrap(commands.runStart("ACME-3"));
+		expect((await runs()).find((r) => r.id === id)?.state).not.toBe("Cancelled");
+	});
+
 	it("cancels every live run with the kill switch, and keeps the final ones", async () => {
 		expect(await unwrap(commands.killSwitchGet())).toBe(false);
 		const before = await runs();

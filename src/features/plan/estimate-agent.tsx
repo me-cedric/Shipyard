@@ -98,19 +98,19 @@ export function EstimateAgent({
 					</Button>
 				) : null}
 			</div>
-			<ErrorNotice error={asking.failure ?? saving.failure} />
+			<ErrorNotice error={asking.failure ?? saving.failure} className="w-full" />
 			{shown.length > 0 ? (
-				<section aria-label={a.proposals} className="rounded-lg border bg-surface-1 shadow-1">
+				<section aria-label={a.proposals} className="w-full rounded-lg bg-surface-2 shadow-2">
 					<ul>
 						{shown.map(({ p, task }) => (
 							<li
 								key={p.task}
 								aria-label={task.name}
-								className="flex flex-wrap items-start gap-4 border-b p-3 last:border-b-0"
+								className="flex flex-wrap items-start gap-4 border-b border-n-6 px-6 py-4 last:border-b-0"
 							>
 								<div className="min-w-40 flex-1">
-									<p className="text-ui font-medium">{task.name}</p>
-									<ul className="list-disc pl-4 text-12 text-n-11">
+									<p className="font-semibold">{task.name}</p>
+									<ul className="list-disc pl-4 text-13 text-n-11">
 										{p.assumptions.map((x) => (
 											<li key={x}>{x}</li>
 										))}
@@ -125,8 +125,8 @@ export function EstimateAgent({
 										] as const
 									).map(([label, old, next]) => (
 										<div key={label}>
-											<dt className="text-12 text-n-11">{label}</dt>
-											<dd className="font-mono text-ui">
+											<dt className="text-13 text-n-11">{label}</dt>
+											<dd>
 												<span className="text-n-11">{days(old)}</span> →{" "}
 												<span className="font-semibold">{days(next)}</span>
 											</dd>

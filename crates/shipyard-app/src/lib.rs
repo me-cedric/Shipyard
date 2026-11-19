@@ -392,6 +392,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             factory::kill_switch_get,
             factory::run_log_degraded,
             factory::kill_switch_set,
+            factory::agents_stop_all,
             factory::workflows_list,
             factory::workflow_get,
             factory::workflow_check,

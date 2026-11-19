@@ -1,5 +1,5 @@
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { CSSProperties } from "react";
 import { useMemo, useRef, useState } from "react";
 import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
@@ -7,7 +7,7 @@ import { TicketField } from "@/features/work/ticket-field";
 import { weekStart } from "@/features/work/week-focus";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog, type TimeState } from "@/lib/ipc";
-import { useDay, usePanelSize } from "@/lib/prefs";
+import { useDay } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton, RightIconButton } from "@/lib/rights";
 import { useWorkItems } from "@/lib/sync";
@@ -24,14 +24,14 @@ import {
 	useWorkActions,
 	useWorkContext,
 } from "@/lib/work";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { Checkbox } from "@/ui/atoms/checkbox";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import {
-	ArrowPathIcon,
+	CheckIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	ClockIcon,
@@ -39,14 +39,16 @@ import {
 	PlusIcon,
 	TrashIcon,
 } from "@/ui/icons";
+import { BackLink } from "@/ui/molecules/back-link";
+import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
-import { Panel } from "@/ui/molecules/panel";
-import { Splitter } from "@/ui/molecules/splitter";
-import { StatStrip } from "@/ui/molecules/stat-strip";
+import { PageHeader } from "@/ui/molecules/page-header";
+import { Row } from "@/ui/molecules/row";
 import { DataTable } from "@/ui/organisms/data-table";
-import { ListDetail } from "@/ui/templates/list-detail";
+import { firstName, usePlainDay } from "./capacity";
+import { TimeTeam } from "./time-team";
 import { type WeekEntry, WeekGrid } from "./week-grid";
 
 const STATE_ORDER: TimeState[] = ["to-send", "in-tracker", "only-in-tracker"];
@@ -93,83 +95,13 @@ function toLine(r: TimeRow, ticket: string): Line {
 	};
 }
 
-/** The weeks of a month, Monday first: each cell is a day of the month or null. */
-export function monthWeeks(month: string): (string | null)[][] {
-	const first = `${month}-01`;
-	const cells: (string | null)[] = Array(isoWeekday(first) - 1).fill(null);
-	for (let d = first; d.startsWith(month); d = addDays(d, 1)) cells.push(d);
-	while (cells.length % 7) cells.push(null);
-	return Array.from({ length: cells.length / 7 }, (_, i) => cells.slice(i * 7, i * 7 + 7));
-}
-
-/** The logged hours of each day of the month, as a heatmap: the more hours, the stronger the accent. */
-function Heatmap({ month, lines, title }: { month: string; lines: Line[]; title: string }) {
-	const { t, lang } = useI18n();
-	const total = new Map<string, number>();
-	for (const l of lines) if (l.day) total.set(l.day, (total.get(l.day) ?? 0) + l.minutes);
-	const max = Math.max(480, ...total.values());
-	const weeks = monthWeeks(month);
-	const names = (weeks[1] ?? weeks[0] ?? []).map((d) =>
-		d
-			? new Date(`${d}T00:00:00Z`).toLocaleDateString(lang, { weekday: "narrow", timeZone: "UTC" })
-			: "",
-	);
-	return (
-		<Panel title={title} className="self-start">
-			<table className="w-full border-separate border-spacing-1 text-center">
-				<thead>
-					<tr>
-						{names.map((n, i) => (
-							// biome-ignore lint/suspicious/noArrayIndexKey: seven fixed weekdays
-							<th key={i} scope="col" className="text-11 font-medium text-n-10">
-								{n}
-							</th>
-						))}
-					</tr>
-				</thead>
-				<tbody>
-					{weeks.map((w) => (
-						<tr key={w.find(Boolean) ?? ""}>
-							{w.map((d, i) => {
-								const m = d ? (total.get(d) ?? 0) : 0;
-								return (
-									<td
-										// biome-ignore lint/suspicious/noArrayIndexKey: seven fixed weekdays
-										key={i}
-										className="h-11 rounded-md p-0 align-middle"
-										style={
-											d
-												? {
-														background: `color-mix(in oklch, var(--accent) ${m ? 18 + Math.round((m / max) * 62) : 0}%, var(--n-3))`,
-														boxShadow: m >= max ? "var(--accent-glow)" : undefined,
-													}
-												: undefined
-										}
-									>
-										{d ? (
-											<span className="flex flex-col leading-4">
-												<span className="text-11 text-n-11">{Number(d.slice(8))}</span>
-												<span className="font-mono text-11 text-n-12">
-													{m ? format(t.work.hoursShort, { hours: +(m / 60).toFixed(1) }) : ""}
-												</span>
-											</span>
-										) : null}
-									</td>
-								);
-							})}
-						</tr>
-					))}
-				</tbody>
-			</table>
-		</Panel>
-	);
-}
-
 /** Plan / Time: the entries of one member and month. A send is one click on one entry (REQ-020 to REQ-024). */
 export function PlanTime() {
 	const { t, lang } = useI18n();
 	const day = useDay();
-	const side = usePanelSize("work-time-side", 352);
+	const plain = usePlainDay();
+	const navigate = useNavigate();
+	const search: { page?: unknown; member?: unknown } = useSearch({ strict: false });
 	const e = t.work.time;
 	const active = useActiveProject().data;
 	const ctx = useWorkContext().data;
@@ -180,7 +112,10 @@ export function PlanTime() {
 	const items = useWorkItems({}).data ?? [];
 	const act = useWorkActions();
 	const { error, failure, busy, run, setError } = useGuard();
-	const [member, setMember] = useState<string | null>(null);
+	// The address holds the person: the page of the team links to the week of one person.
+	const member = typeof search.member === "string" ? search.member : null;
+	const setMember = (m: string) =>
+		void navigate({ search: (prev: object) => ({ ...prev, member: m }), replace: true } as never);
 	const [month, setMonth] = useState<string | null>(null);
 	/** The Monday of the week of the grid. Null is the week of today, or the first week of another month. */
 	const [week, setWeek] = useState<string | null>(null);
@@ -503,201 +438,300 @@ export function PlanTime() {
 			setFetched(Object.fromEntries(pulled.map((p) => [p.ticket, p.rows])));
 		});
 
-	return (
-		<ListDetail
-			title={t.tabs.work.time}
-			icon={<ClockIcon size={16} />}
-			count={lines.length}
-			action={
-				adding ? null : (
-					<RightButton
-						className="min-h-control"
-						right="work.edit"
-						variant="primary"
-						disabled={!data}
-						onClick={() => setAdding(true)}
-					>
-						<PlusIcon size={14} />
-						{e.add}
-					</RightButton>
-				)
-			}
-			toolbar={
-				<>
-					<IconButton className="size-(--control-h)" label={e.previous} onClick={() => toMonth(-1)}>
-						<ChevronLeftIcon size={14} />
-					</IconButton>
-					<span className="min-w-28 text-center text-ui font-medium">
-						{monthLabel(shownMonth, lang)}
-					</span>
-					<IconButton className="size-(--control-h)" label={e.next} onClick={() => toMonth(1)}>
-						<ChevronRightIcon size={14} />
-					</IconButton>
-					<Select
-						className="min-h-control"
-						label={e.member}
-						value={handle ?? ""}
-						onValueChange={setMember}
-						items={members.map((m) => ({ value: m.handle, label: m.name }))}
-					/>
-					<RightButton
-						className="min-h-control"
-						right="work.edit"
-						disabled={!data}
-						busy={busy}
-						onClick={() => void fetchAll()}
-					>
-						<ArrowPathIcon size={14} />
-						{t.extras.time.pullMonth}
-					</RightButton>
-					<Checkbox label={e.reduce} checked={reduce} onCheckedChange={setReduce} />
-					<span className="flex-1" />
-					{data && !data.canSend ? (
-						<span className="text-12 text-n-11">
-							{format(t.work.missing, { name: t.connections.flag.timeTracking })}
-						</span>
-					) : null}
-				</>
-			}
-		>
-			{adding ? (
-				<form
-					onSubmit={(ev) => void submit(ev)}
-					onKeyDown={(ev) => ev.key === "Escape" && setAdding(false)}
-					className="flex flex-wrap items-end gap-2 border-b px-3 py-2"
-				>
-					<Input
-						caption
-						label={e.day}
-						type="date"
-						value={form.day || ctx.today}
-						onChange={(ev) => setForm({ ...form, day: ev.target.value })}
-						className="w-36"
-						autoFocus
-					/>
-					<Input
-						caption
-						label={e.duration}
-						value={form.duration}
-						onChange={(ev) => setForm({ ...form, duration: ev.target.value })}
-						className="w-24 font-mono"
-					/>
-					<span className="min-w-64 flex-[2]">
-						<TicketField
-							label={e.ticket}
-							value={form.ticket}
-							onChange={(ticket) => setForm({ ...form, ticket })}
-							items={items}
-						/>
-					</span>
-					<span className="min-w-40 flex-1">
-						<Input
-							caption
-							label={e.note}
-							value={form.note}
-							onChange={(ev) => setForm({ ...form, note: ev.target.value })}
-						/>
-					</span>
-					<RightButton className="min-h-control" right="work.edit" type="submit" variant="primary">
-						{e.add}
-					</RightButton>
-					<Button className="min-h-control" variant="ghost" onClick={() => setAdding(false)}>
-						{t.sync.backlog.cancel}
-					</Button>
-				</form>
+	const p = t.planPlace;
+	const nameOf = (ticket: string) => items.find((i) => i.key === ticket)?.title ?? ticket;
+	/** The first line of the note of each entry of a row. The lines after it stay. */
+	const setNote = (row: WeekEntry[], text: string) =>
+		void run(async () => {
+			for (const x of row)
+				await act.updateTime(
+					handle,
+					x.day,
+					x.id,
+					x.minutes,
+					[text, ...x.note.split("\n").slice(1)].join("\n"),
+				);
+			setFetched({});
+		});
+	// The receipt of each entry whose answer was lost: the issue tracker holds the worklog already.
+	const lost = lines.filter((l) => l.lost && l.entryId);
+	const keepReceipts = () =>
+		void run(async () => {
+			for (const l of lost) await act.sendTime(handle, l.day, l.entryId ?? "", reduce);
+			setFetched({});
+		});
+	const total = new Map<string, number>();
+	for (const l of lines) if (l.day) total.set(l.day, (total.get(l.day) ?? 0) + l.minutes);
+	const monthDays: string[] = [];
+	for (let d = first; d.startsWith(shownMonth); d = addDays(d, 1)) monthDays.push(d);
+	const name = members.find((m) => m.handle === handle)?.name;
+	const entriesPage = search.page === "entries";
+
+	const memberSelect = (
+		<Select
+			label={e.member}
+			value={handle ?? ""}
+			onValueChange={setMember}
+			items={members.map((m) => ({ value: m.handle, label: m.name }))}
+		/>
+	);
+	const readMonth = (
+		<RightButton right="work.edit" disabled={!data} busy={busy} onClick={() => void fetchAll()}>
+			{p.time.readMonth}
+		</RightButton>
+	);
+	const lower = (
+		<Button aria-pressed={reduce} onClick={() => setReduce(!reduce)}>
+			{reduce ? <CheckIcon size={16} /> : null}
+			{p.time.lower}
+		</Button>
+	);
+	const stepper = (label: string, before: string, after: string, step: (by: number) => void) => (
+		<>
+			<IconButton variant="outline" label={before} onClick={() => step(-1)}>
+				<ChevronLeftIcon size={20} />
+			</IconButton>
+			<h2 className="text-20 font-semibold text-n-12">{label}</h2>
+			<IconButton variant="outline" label={after} onClick={() => step(1)}>
+				<ChevronRightIcon size={20} />
+			</IconButton>
+		</>
+	);
+	const notices = (
+		<>
+			{data && !data.canSend ? (
+				<p className="text-n-10">
+					{format(t.work.missing, { name: t.connections.flag.timeTracking })}
+				</p>
 			) : null}
 			{error && !failure ? (
-				<p role="alert" className="px-3 py-1 text-ui text-danger-text">
+				<p role="alert" className="text-ui text-danger-text">
 					{error}
 				</p>
 			) : null}
-			<ErrorNotice className="px-3 py-1" error={failure ?? (noTeam ? null : view.error)} />
+			<ErrorNotice error={failure ?? (noTeam ? null : view.error)} />
 			{noTeam ? (
-				<div className="p-4">
-					<EmptyState
-						title={t.empty.team}
-						action={{
-							label: e.addMe,
-							icon: <PlusIcon size={14} />,
-							onClick: () => void run(() => act.addMe()),
-						}}
-					/>
-				</div>
+				<EmptyState
+					title={t.empty.team}
+					action={{
+						label: e.addMe,
+						icon: <PlusIcon size={14} />,
+						onClick: () => void run(() => act.addMe()),
+					}}
+				/>
 			) : null}
-			{data ? (
-				<div className="shrink-0 px-4 pb-3">
-					<WeekGrid
-						week={shownWeek}
-						entries={weekEntries}
-						undone={undone}
-						onWeek={toWeek}
-						onChange={setCell}
-					/>
-				</div>
-			) : null}
-			{data && lines.length === 0 ? (
-				<div className="p-4">
-					<EmptyState
-						title={t.empty.time}
-						action={{ label: e.add, icon: <PlusIcon size={14} />, onClick: () => setAdding(true) }}
-					/>
-				</div>
-			) : null}
-			{data && lines.length > 0 ? (
-				<div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4">
-					<StatStrip
-						items={[
-							{
-								label: e.duration,
-								value: formatMinutes(lines.reduce((a, l) => a + l.minutes, 0)),
-								icon: <ClockIcon size={12} />,
-								tone: "accent",
-							},
-							...STATE_ORDER.map((s) => ({
-								label: e.state[s],
-								value: String(lines.filter((l) => l.state === s).length),
-								tone: (s === "to-send" ? "warning" : s === "in-tracker" ? "success" : "info") as
-									| "warning"
-									| "success"
-									| "info",
-							})),
-						]}
-					/>
-					<div
-						style={{ "--side": `${side.size}px` } as CSSProperties}
-						className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[var(--side)_1fr]"
+			{adding ? (
+				<Card pad className="shrink-0">
+					<form
+						onSubmit={(ev) => void submit(ev)}
+						onKeyDown={(ev) => ev.key === "Escape" && setAdding(false)}
+						className="flex flex-wrap items-end gap-2"
 					>
-						<div className="relative">
-							<Heatmap month={shownMonth} lines={lines} title={t.work.heatmap} />
-							<Splitter
-								label={t.work.heatmapSize}
-								value={side.size}
-								min={200}
-								max={480}
-								onChange={side.set}
-								onReset={side.reset}
-								className="-right-2 hidden xl:block"
+						<Input
+							caption
+							label={e.day}
+							type="date"
+							value={form.day || ctx.today}
+							onChange={(ev) => setForm({ ...form, day: ev.target.value })}
+							className="w-44"
+							autoFocus
+						/>
+						<Input
+							caption
+							label={e.duration}
+							value={form.duration}
+							onChange={(ev) => setForm({ ...form, duration: ev.target.value })}
+							className="w-24"
+						/>
+						<span className="min-w-64 flex-[2]">
+							<TicketField
+								label={e.ticket}
+								value={form.ticket}
+								onChange={(ticket) => setForm({ ...form, ticket })}
+								items={items}
 							/>
+						</span>
+						<span className="min-w-40 flex-1">
+							<Input
+								caption
+								label={e.note}
+								value={form.note}
+								onChange={(ev) => setForm({ ...form, note: ev.target.value })}
+							/>
+						</span>
+						<RightButton right="work.edit" type="submit" variant="primary">
+							{p.time.addTicket}
+						</RightButton>
+						<Button variant="ghost" onClick={() => setAdding(false)}>
+							{t.sync.backlog.cancel}
+						</Button>
+					</form>
+				</Card>
+			) : null}
+		</>
+	);
+
+	if (search.page === "team") return <TimeTeam month={shownMonth} />;
+	if (entriesPage)
+		return (
+			<div className="flex min-h-0 flex-1 flex-col">
+				<PageHeader
+					title={p.time.sendHours}
+					back={
+						<BackLink
+							label={p.views.time}
+							render={(props) => (
+								<Link
+									to="/plan/time"
+									search={(prev: object) => ({ ...prev, page: undefined }) as never}
+									{...props}
+								/>
+							)}
+						/>
+					}
+				/>
+				<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pt-1 pb-4">
+					<div className="flex shrink-0 flex-wrap items-center gap-4">
+						{stepper(monthLabel(shownMonth, lang), e.previous, e.next, toMonth)}
+						<span className="flex-1" />
+						{memberSelect}
+						{readMonth}
+						{lower}
+					</div>
+					{notices}
+					{data ? (
+						<div className="flex shrink-0 flex-wrap gap-3.5">
+							{[
+								{
+									label: e.duration,
+									value: formatMinutes(lines.reduce((a, l) => a + l.minutes, 0)),
+								},
+								...STATE_ORDER.map((s) => ({
+									label: e.state[s],
+									value: String(lines.filter((l) => l.state === s).length),
+								})),
+							].map((x) => (
+								<Card key={x.label} className="flex flex-[1_1_11rem] flex-col gap-1 p-5">
+									<span className="text-13 font-semibold text-n-10">{x.label}</span>
+									<span className="text-30 font-semibold text-n-12">{x.value}</span>
+								</Card>
+							))}
 						</div>
-						<Panel
-							title={t.tabs.work.time}
-							count={lines.length}
-							flush
-							className="min-h-0"
-							bodyClassName="min-h-0 flex-1"
-						>
+					) : null}
+					{data && lines.length === 0 ? (
+						<EmptyState
+							title={t.empty.time}
+							action={{
+								label: p.time.addTicket,
+								icon: <PlusIcon size={14} />,
+								onClick: () => setAdding(true),
+							}}
+						/>
+					) : null}
+					{data && lines.length > 0 ? (
+						<Card className="flex min-h-64 flex-1 flex-col overflow-hidden">
 							<DataTable
 								label={t.tabs.work.time}
 								data={lines}
 								columns={columns}
 								rowId={(r) => r.id}
+								rowHeight={52}
 								group={(r) => r.state}
 								groupLabel={(g) => e.state[g as TimeState]}
 							/>
-						</Panel>
-					</div>
+						</Card>
+					) : null}
 				</div>
-			) : null}
-		</ListDetail>
+			</div>
+		);
+
+	return (
+		<div className="flex min-h-0 flex-1 flex-col">
+			<PageHeader
+				icon={<ClockIcon size={16} />}
+				title={
+					!handle || handle === ctx.me
+						? p.time.myTime
+						: format(p.time.timeOf, { name: firstName(name ?? handle) })
+				}
+			/>
+			<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pb-4">
+				<div className="flex shrink-0 flex-wrap items-center gap-4">
+					{stepper(format(p.week, { day: plain(shownWeek) }), p.previousWeek, p.nextWeek, (by) =>
+						toWeek(addDays(shownWeek, by * 7)),
+					)}
+					<span className="flex-1" />
+					{memberSelect}
+					{readMonth}
+				</div>
+				{data ? (
+					<Card pad className="flex shrink-0 flex-wrap items-center gap-4">
+						<span className="font-semibold">{monthLabel(shownMonth, lang)}</span>
+						<div
+							role="img"
+							aria-label={t.work.heatmap}
+							className="flex flex-[1_1_20rem] flex-wrap gap-1"
+						>
+							{monthDays.map((d) => {
+								const m = total.get(d) ?? 0;
+								return (
+									<i
+										key={d}
+										title={format(p.time.dayHours, { day: plain(d), hours: formatMinutes(m) })}
+										className={`size-5 rounded-[5px] ${m >= 360 ? "bg-accent" : m > 0 ? "bg-accent/45" : "bg-n-5"}`}
+									/>
+								);
+							})}
+						</div>
+						<RightButton
+							right="work.edit"
+							disabled={lost.length === 0 || busy}
+							onClick={keepReceipts}
+						>
+							{p.time.receipt}
+						</RightButton>
+						{lower}
+					</Card>
+				) : null}
+				{notices}
+				{data ? (
+					<WeekGrid
+						week={shownWeek}
+						entries={weekEntries}
+						undone={undone}
+						nameOf={nameOf}
+						onChange={setCell}
+						onNote={setNote}
+						onAdd={() => setAdding(true)}
+					/>
+				) : null}
+				<Card className="shrink-0 py-2">
+					<Row
+						render={(props) => (
+							<Link
+								to="/plan/time"
+								search={(prev: object) => ({ ...prev, page: "team" }) as never}
+								{...props}
+							/>
+						)}
+					>
+						<span className="flex-1 font-semibold">{p.time.team}</span>
+						<ChevronRightIcon size={20} />
+					</Row>
+					<Row
+						render={(props) => (
+							<Link
+								to="/plan/time"
+								search={(prev: object) => ({ ...prev, page: "entries" }) as never}
+								{...props}
+							/>
+						)}
+					>
+						<span className="flex-1 font-semibold">{p.time.sendHours}</span>
+						<Badge>{p.time.asksFirst}</Badge>
+					</Row>
+				</Card>
+			</div>
+		</div>
 	);
 }

@@ -45,22 +45,23 @@ describe("Factory tabs", () => {
 		})) as unknown as typeof window.matchMedia;
 	});
 
-	it("Recipes: two groups with counts, from the mock", async () => {
+	it("Recipes: the list of the recipes, and the role files in More, from the mock", async () => {
+		const user = userEvent.setup();
 		await renderRecipes();
 		const wf = await unwrap(commands.workflowsList());
 		const roles = await unwrap(commands.rolesList());
-		expect(
-			await screen.findByRole("heading", { name: `Recipes (${wf.length})` }),
-		).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: `Roles (${roles.length})` })).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: /^Bug/ })).toHaveTextContent("Fix");
+		const list = within(await screen.findByRole("list", { name: "Recipes" }));
+		await waitFor(() => expect(list.getAllByRole("listitem")).toHaveLength(wf.length));
+		expect(list.getByRole("button", { name: /^Bug/ })).toHaveTextContent("4 steps");
+		await user.click(screen.getByRole("button", { name: "More" }));
+		expect(await screen.findAllByRole("menuitem", { name: /^Role: / })).toHaveLength(roles.length);
 	});
 
 	it("Workflows: a validation error shows with its line, and blocks the save", async () => {
 		const user = userEvent.setup();
 		await renderRecipes();
 		await user.click(await screen.findByRole("button", { name: /^Bug/ }));
-		await user.click(await screen.findByRole("tab", { name: "Text" }));
+		await user.click(await screen.findByRole("button", { name: "Edit as text" }));
 		const editor = await screen.findByRole("textbox", { name: "bug" });
 		fireEvent.change(editor, {
 			target: { value: (editor as HTMLTextAreaElement).value.replace("id: bug", "id: other") },
@@ -75,7 +76,7 @@ describe("Factory tabs", () => {
 		const user = userEvent.setup();
 		await renderRecipes();
 		await user.click(await screen.findByRole("button", { name: /^Bug/ }));
-		await user.click(await screen.findByRole("tab", { name: "Text" }));
+		await user.click(await screen.findByRole("button", { name: "Edit as text" }));
 		const editor = (await screen.findByRole("textbox", { name: "bug" })) as HTMLTextAreaElement;
 		const next = `${editor.value}\n# note\n`;
 		fireEvent.change(editor, { target: { value: next } });
@@ -89,7 +90,7 @@ describe("Factory tabs", () => {
 		const user = userEvent.setup();
 		await renderRecipes();
 		await user.click(await screen.findByRole("button", { name: /^Bug/ }));
-		await user.click(await screen.findByRole("tab", { name: "Text" }));
+		await user.click(await screen.findByRole("button", { name: "Edit as text" }));
 		const editor = (await screen.findByRole("textbox", { name: "bug" })) as HTMLTextAreaElement;
 		const first = `${editor.value}\n# a\n`;
 		const second = `${first}# b\n`;
@@ -126,7 +127,8 @@ describe("Factory tabs", () => {
 	it("Workflows: a role saves with roleWrite", async () => {
 		const user = userEvent.setup();
 		await renderRecipes();
-		await user.click(await screen.findByRole("button", { name: /^Scout/ }));
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Role: Scout" }));
 		const editor = (await screen.findByRole("textbox", { name: "scout" })) as HTMLTextAreaElement;
 		const next = `${editor.value}\nBe brief.\n`;
 		fireEvent.change(editor, { target: { value: next } });

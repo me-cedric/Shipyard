@@ -366,6 +366,7 @@ export const commands = {
 	/**  Why the run log file did not open, or `null`. The runs of this session are then not kept. */
 	runLogDegraded: () => typedError<string | null, AppError_Serialize>(__TAURI_INVOKE("run_log_degraded")),
 	killSwitchSet: (on: boolean) => typedError<boolean, AppError_Serialize>(__TAURI_INVOKE("kill_switch_set", { on })),
+	agentsStopAll: (click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("agents_stop_all", { click })),
 	workflowsList: () => typedError<WorkflowItem_Serialize[], AppError_Serialize>(__TAURI_INVOKE("workflows_list")),
 	workflowGet: (id: string) => typedError<WorkflowFile_Serialize, AppError_Serialize>(__TAURI_INVOKE("workflow_get", { id })),
 	workflowCheck: (id: string, text: string) => typedError<WorkflowFile_Serialize, AppError_Serialize>(__TAURI_INVOKE("workflow_check", { id, text })),
