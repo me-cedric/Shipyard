@@ -90,7 +90,8 @@ export function Link({ url, children }: { url: string; children: ReactNode }) {
 		<a
 			href={url}
 			rel="noreferrer"
-			className="text-accent-text underline"
+			// The hit box is 44 px high (`spec:app-redesign#REQ-026`): the padding of an inline box adds no height to its line.
+			className="py-3 text-accent-text underline"
 			onClick={(e) => {
 				e.preventDefault();
 				unwrap(commands.openLink(url)).catch(logError);

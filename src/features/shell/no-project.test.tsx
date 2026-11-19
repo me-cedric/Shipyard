@@ -28,8 +28,10 @@ describe("No-project page (REQ-006)", () => {
 			"button",
 		))
 			expect(b).toHaveClass("min-h-control");
+		// New project is a page with its own address, not a dialog.
 		await user.click(screen.getByRole("button", { name: "New project" }));
-		expect(await screen.findByRole("dialog")).toBeInTheDocument();
+		await waitFor(() => expect(router.state.location.pathname).toBe("/projects/new"));
+		expect(await screen.findByRole("navigation", { name: "Steps" })).toBeInTheDocument();
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 

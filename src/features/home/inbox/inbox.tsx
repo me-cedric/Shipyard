@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { type ComponentProps, useEffect, useState } from "react";
+import { type ComponentProps, type KeyboardEvent, useEffect, useState } from "react";
 import { planOf } from "@/features/factory/runs/plan";
 import { message, useGuard } from "@/features/work/guard";
 import { useRunLog } from "@/lib/factory";
@@ -12,15 +12,18 @@ import {
 	useInboxActions,
 } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
+import type { QuestionChoice } from "@/lib/ipc";
 import { showAnchor } from "@/lib/notifications/targets";
 import { RightButton, useRights } from "@/lib/rights";
 import { pullHref, useShell } from "@/lib/shell";
 import { capabilityOf, useFile, useFoldTargets, useSpecsActions, useSpecView } from "@/lib/specs";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Checkbox } from "@/ui/atoms/checkbox";
 import { Input } from "@/ui/atoms/input";
 import { ApprovalBar, approvalSentence } from "@/ui/molecules/approval-bar";
 import { Card } from "@/ui/molecules/card";
+import { Option } from "@/ui/molecules/option";
 import { QuestionCard } from "@/ui/molecules/question-card";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
@@ -78,6 +81,96 @@ export function QuestionRow({ item, noRun }: { item: QuestionItem; noRun?: boole
 			)}
 			<Failure error={error} />
 		</Card>
+	);
+}
+
+/**
+ * An open question on the card of Today (picture 001): one large button for each answer, then one
+ * row with the free answer, Later and Send. Digits pick an answer and Enter sends, as on the card of a run.
+ */
+export function OpenQuestion({ item, onLater }: { item: QuestionItem; onLater?: () => void }) {
+	const { t } = useI18n();
+	const h = t.home;
+	const act = useInboxActions();
+	const { error, run: guard } = useGuard();
+	const q = item.question;
+	const [n, setN] = useState<number | null>(q.recommended >= 1 ? q.recommended : null);
+	const [text, setText] = useState("");
+	const choice: QuestionChoice | null = text.trim()
+		? { kind: "text", text: text.trim() }
+		: n !== null
+			? { kind: "option", n }
+			: null;
+	const send = () => {
+		if (choice) void guard(() => act.answer(item.run, q.id, choice));
+	};
+	const pick = (i: number) => {
+		setN(i);
+		setText("");
+	};
+	const onKeyDown = (e: KeyboardEvent) => {
+		const field = e.target instanceof HTMLInputElement;
+		// Enter sends from an answer or from the field. On Later and Send it presses that button.
+		const answers = e.target instanceof HTMLElement && e.target.closest("[role=group]") !== null;
+		if (e.key === "Enter" && (field || answers)) {
+			e.preventDefault();
+			send();
+		} else if (!field && /^[1-9]$/.test(e.key) && Number(e.key) <= q.options.length)
+			pick(Number(e.key));
+	};
+	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: the keys of the answers work from each control of the card
+		<div onKeyDown={onKeyDown} className="flex flex-col gap-6">
+			{q.unclear ? (
+				<p
+					role="note"
+					aria-label={h.unclear}
+					className="rounded-md border border-warning px-4 py-2"
+				>
+					{q.unclear}
+				</p>
+			) : null}
+			{q.edited ? <p className="text-warning-text">{h.edited}</p> : null}
+			{/* biome-ignore lint/a11y/useSemanticElements: a fieldset draws its own frame */}
+			<div role="group" aria-label={q.question} className="flex flex-col gap-2.5">
+				{q.options.map((label, i) => (
+					<Option
+						key={label}
+						selected={n === i + 1 && !text.trim()}
+						onClick={() => pick(i + 1)}
+						trailing={
+							i + 1 === q.recommended ? <Badge variant="accent">{h.recommended}</Badge> : null
+						}
+					>
+						{label}
+					</Option>
+				))}
+			</div>
+			<div className="flex flex-wrap items-center gap-2.5">
+				{q.free_text ? (
+					<Input
+						label={h.another}
+						className="flex-[1_1_220px]"
+						value={text}
+						onChange={(e) => {
+							setText(e.target.value);
+							if (e.target.value.trim()) setN(null);
+						}}
+					/>
+				) : (
+					<span className="flex-1" />
+				)}
+				{onLater ? (
+					<Button className="min-h-control" onClick={onLater}>
+						{h.later}
+					</Button>
+				) : null}
+				<Button variant="primary" className="min-h-control" disabled={!choice} onClick={send}>
+					{h.send}
+				</Button>
+			</div>
+			<Failure error={error} />
+		</div>
 	);
 }
 

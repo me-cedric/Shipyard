@@ -144,6 +144,10 @@ export const knowledgeEs: typeof knowledgeEn = {
 		search: "Buscar en el manual",
 		results: "Resultados",
 		open: "Abrir el manual de esta página",
+		ask: "Preguntar sobre esta página",
+		askText: "Explica la página {page} del manual.",
+		handbook: "Guía del proyecto",
+		picture: "Imagen de la página {page}",
 	},
 	dashboards: {
 		title: "Paneles",

@@ -15,23 +15,47 @@ describe("Projects", () => {
 		await open("/mock/alpha");
 		await open("/mock/beta");
 		mountApp("/projects");
-		const now = within(await screen.findByRole("list", { name: "Open now" }));
+		const now = within(await screen.findByRole("list", { name: "Open" }));
 		const beta = within(now.getByRole("listitem", { name: "beta" }));
-		expect(await beta.findByText(/^Need you: \d+$/)).toBeInTheDocument();
-		expect(beta.getByText(/^Agents at work: \d+$/)).toBeInTheDocument();
-		expect(beta.getByRole("button", { name: "Close project" })).toHaveClass("min-h-control");
+		// The chips are sentences from the real counts.
+		expect(
+			await beta.findByText(/^(\d+ need you|1 needs you|Nothing needs you)$/),
+		).toBeInTheDocument();
+		expect(
+			beta.getByText(/^(\d+ agents at work|1 agent at work|No agent at work)$/),
+		).toBeInTheDocument();
+		expect(beta.getByText("Open", { selector: "span" })).toBeInTheDocument();
+		const close = beta.getByRole("button", { name: "Close project" });
+		expect(close).toHaveClass("min-h-control");
+		expect(close).toHaveTextContent(/^Close$/);
+		// The open project keeps Remove in the menu of the project switch.
+		expect(beta.queryByRole("button", { name: /^Remove/ })).toBeNull();
 		const before = within(screen.getByRole("list", { name: "Opened before" }));
 		const alpha = within(before.getByRole("listitem", { name: "alpha" }));
-		expect(alpha.getByText("2 ahead")).toBeInTheDocument();
-		// Each card names the code host of its remote, or Local.
-		expect(alpha.getByText("example.com")).toBeInTheDocument();
-		expect(beta.getByText("Local")).toBeInTheDocument();
-		expect(alpha.queryByText(/^Need you/)).toBeNull();
+		expect(alpha.queryByText(/need you|needs you/)).toBeNull();
 		expect(alpha.queryByRole("button", { name: "Close project" })).toBeNull();
-		expect(alpha.getByRole("button", { name: "Remove from list: alpha" })).toBeInTheDocument();
-		await user.click(screen.getByRole("button", { name: "Details alpha" }));
+		const remove = alpha.getByRole("button", { name: "Remove from the list: alpha" });
+		expect(remove).toHaveTextContent(/^Remove from the list$/);
+		// The card shows the name, the chips and two buttons. The rest stays behind Details.
+		expect(alpha.queryByText("2 ahead")).toBeNull();
+		expect(alpha.queryByText("example.com")).toBeNull();
+		expect(alpha.queryByText("/mock/alpha")).toBeNull();
+		expect(screen.queryByRole("button", { name: "Open remote alpha" })).toBeNull();
+		const details = screen.getByRole("button", { name: "Details alpha" });
+		expect(details).toHaveAttribute("aria-expanded", "false");
+		await user.click(details);
+		expect(details).toHaveAttribute("aria-expanded", "true");
 		expect(alpha.getByText("/mock/alpha")).toBeInTheDocument();
+		expect(alpha.getByText("2 ahead")).toBeInTheDocument();
+		expect(alpha.getByText("main")).toBeInTheDocument();
+		// The details name the code host of the remote, or Local, and the last commit with a plain date.
+		expect(alpha.getByText("example.com")).toBeInTheDocument();
+		expect(
+			alpha.getByText(/^feat: first commit · \d+ \w+ 2026|^feat: first commit · \w+ \d+, 2026/),
+		).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Open remote alpha" })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Details beta" }));
+		expect(beta.getByText("Local")).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: "Open remote beta" })).toBeNull();
 		expect(screen.getByText("Drop a folder here")).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Open alpha" }));
@@ -64,26 +88,36 @@ describe("Projects", () => {
 		await open("/mock/alpha");
 		await open("/mock/beta");
 		mountApp("/projects");
-		await user.click(await screen.findByRole("button", { name: "Remove from list: alpha" }));
+		await user.click(await screen.findByRole("button", { name: "Remove from the list: alpha" }));
 		await waitFor(() => expect(mockState().projects.map((p) => p.name)).toEqual(["beta"]));
 		await user.click(screen.getByRole("button", { name: "Close project" }));
 		await waitFor(async () => expect(await unwrap(commands.projectsActive())).toBeNull());
 	});
 
-	it("offers the four ways to start, and Import a project opens This project", async () => {
+	it("offers the four ways to start as text buttons, and Import projects opens This project", async () => {
 		const user = userEvent.setup();
 		await open("/mock/alpha");
 		const router = mountApp("/projects");
-		await screen.findByRole("list", { name: "Open now" });
-		for (const name of ["Open a local folder", "Clone a repository", "New project"])
-			expect(screen.getByRole("button", { name })).toHaveClass("min-h-control");
+		await screen.findByRole("list", { name: "Open" });
+		for (const name of ["Import projects", "Open a folder", "Clone from the code host"]) {
+			const button = screen.getByRole("button", { name });
+			expect(button).toHaveClass("min-h-control");
+			expect(button.querySelector("svg")).toBeNull();
+		}
+		expect(screen.getByRole("button", { name: "New project" })).toHaveClass(
+			"min-h-control",
+			"bg-primary",
+		);
+		// New project is a page with its own address: Back comes back to Projects.
 		await user.click(screen.getByRole("button", { name: "New project" }));
-		const creator = await screen.findByRole("dialog", { name: "New project" });
-		await user.click(within(creator).getByRole("button", { name: "Close" }));
-		await user.click(screen.getByRole("button", { name: "Clone a repository" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/projects/new"));
+		await screen.findByRole("navigation", { name: "Steps" });
+		await user.click(screen.getByRole("button", { name: "Back" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/projects"));
+		await user.click(await screen.findByRole("button", { name: "Clone from the code host" }));
 		const clone = await screen.findByRole("dialog", { name: "Clone a repository" });
 		await user.click(within(clone).getByRole("button", { name: "Close" }));
-		await user.click(screen.getByRole("button", { name: "Import a project" }));
+		await user.click(screen.getByRole("button", { name: "Import projects" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
 		expect(router.state.location.hash).toBe("section-import");
 	});
@@ -93,7 +127,7 @@ describe("Projects", () => {
 		await open("/mock/alpha");
 		mountApp("/projects");
 		mockState().nextFolder = "/mock/plain";
-		await user.click(await screen.findByRole("button", { name: "Open a local folder" }));
+		await user.click(await screen.findByRole("button", { name: "Open a folder" }));
 		expect(await screen.findByText("No Git repository in /mock/plain")).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Make it a project" }));
 		await waitFor(async () =>

@@ -142,8 +142,7 @@ export function OpenActions({ refId }: { refId: string }) {
 	};
 	return (
 		<div className="flex flex-wrap gap-2">
-			<Button variant="ghost" onClick={() => go(false)}>
-				<BookOpenIcon size={14} />
+			<Button variant="primary" className="flex-1" onClick={() => go(false)}>
 				{t.inspector.open}
 			</Button>
 			{editable ? (

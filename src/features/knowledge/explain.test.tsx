@@ -15,7 +15,7 @@ describe("Explain", () => {
 		await user.click(await graphNode(cluster?.id ?? ""));
 		await user.click(await graphNode(spec.ref));
 		const panel = await inspector();
-		await user.click(await within(panel).findByRole("button", { name: "Explain" }));
+		await user.click(await within(panel).findByRole("button", { name: "Explain with an agent" }));
 		const log = await screen.findByRole("log");
 		expect(await within(log).findByText(/part of the project graph/)).toBeInTheDocument();
 		expect(

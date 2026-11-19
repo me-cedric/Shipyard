@@ -116,7 +116,8 @@ function PlaceLayout({ place }: { place: PlaceId }) {
 						transition={SPRING.gentle}
 						className="flex min-h-0 flex-1 flex-col"
 					>
-						{view && hiddenSection(level, ...view) ? (
+						{/* The manual is help: it shows for every role. */}
+						{view && view.join("/") !== "knowledge/manual" && hiddenSection(level, ...view) ? (
 							<NoAccess space={view[0]} tab={view[1]} />
 						) : (
 							<Outlet />
@@ -373,7 +374,27 @@ function placeRoute<P extends PlaceId>(place: P) {
 				? (["connections", "agents-rules", "extensions", "health"] as const)
 				: []
 	).map((tab) => createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }));
-	return route.addChildren([index, ...sections, ...run, ...code, ...old, ...moved]);
+	// The panels of a role and the role views are pages of Today off the section switch (pictures 092 and 066).
+	const today =
+		place === "today"
+			? [
+					createRoute({
+						getParentRoute: () => route,
+						path: "panels",
+						validateSearch: textSearch("role"),
+						component: lazyRouteComponent(
+							() => import("@/features/home/role-panels"),
+							"RolePanelsPage",
+						),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "role-views",
+						component: lazyRouteComponent(() => import("@/features/home/role-views"), "RoleViews"),
+					}),
+				]
+			: [];
+	return route.addChildren([index, ...sections, ...run, ...code, ...old, ...moved, ...today]);
 }
 
 /** A bare old space opens the first page of the role when the space held it, else the place of its first tab that the role sees: `/factory` shows Flow. */
@@ -443,9 +464,36 @@ const projectsRoute = createRoute({
 	),
 });
 
+/** New project (pictures 061 and 098): a bare page with its own address. `all` shows each step on one page. */
+const NewProject = lazyRouteComponent(
+	() => import("@/features/projects/new-project/new-project-page"),
+	"NewProject",
+);
+const newProjectRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "projects/new",
+	validateSearch: (s: Record<string, unknown>): { all?: true } =>
+		s.all === true || s.all === "true" ? { all: true } : {},
+	component: () => (
+		// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable)
+		<div tabIndex={0} className="flex h-full min-h-0 flex-col overflow-auto">
+			<NewProject />
+		</div>
+	),
+});
+
+/** The Ask page, the full assistant: no place holds it, the Ask bar and the side panel open it (picture 070). */
+const askRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "ask",
+	component: lazyRouteComponent(() => import("@/features/assistant/page"), "AssistantPage"),
+});
+
 const routeTree = rootRoute.addChildren([
 	indexRoute,
 	projectsRoute,
+	askRoute,
+	newProjectRoute,
 	placeRoute("today"),
 	placeRoute("flow"),
 	placeRoute("plan"),

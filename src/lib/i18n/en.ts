@@ -102,6 +102,14 @@ export const en = {
 		notCommitted: "Not committed yet",
 		open: "Open",
 		edit: "Edit",
+		explain: "Explain with an agent",
+		linked: "Linked to",
+		copyRef: "Copy the ref",
+		state: {
+			resolved: "This item is in the project.",
+			unresolved: "The project has no item with this name yet.",
+			broken: "This link points to an item that is gone.",
+		},
 	},
 	nav: {
 		sidebar: "Sidebar",
@@ -162,7 +170,7 @@ export const en = {
 		settings: "Settings",
 	},
 	tabs: {
-		home: { today: "Today", news: "News", activity: "Activity", projects: "Projects" },
+		home: { today: "Needs you", news: "News", activity: "Activity", projects: "Projects" },
 		design: {
 			diagrams: "Diagrams",
 			architecture: "Architecture",
@@ -253,7 +261,13 @@ export const en = {
 		health: "Health",
 		version: "Version {version}",
 		lines: "Changes: {added} lines added, {removed} removed",
-		whatsNew: { title: "What's new in {version}", none: "No notes for this version." },
+		whatsNew: {
+			title: "What's new in {version}",
+			none: "No notes for this version.",
+			added: "New",
+			fixed: "Fixed",
+			all: "All versions",
+		},
 		toggleSidebar: "Toggle sidebar",
 		toggleInspector: "Toggle inspector",
 		openRef: "Open {ref}",

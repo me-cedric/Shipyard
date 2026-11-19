@@ -1,4 +1,5 @@
 import { mockIPC } from "@tauri-apps/api/mocks";
+import { seedNotices } from "@/lib/notifications/seed";
 import type {
 	Access,
 	AuditLine_Serialize,
@@ -658,6 +659,7 @@ function seedDemo(p: ProjectEntry_Serialize) {
 	};
 	importPlan(state.sync);
 	importConfirm(state.sync);
+	ai.seedDemoThread(state.assistant, p.id);
 }
 
 const outcome = (
@@ -1082,6 +1084,23 @@ const handlers: Handlers = {
 		const known = state.projects.some((p) => p.path === path);
 		const opened = activate(path, name, deriveKey(name));
 		if (path === DEMO_FOLDER && !known && opened.project) seedDemo(opened.project);
+		// The demo holds two earlier projects: the Projects page shows "Opened before".
+		if (demo && path === DEMO_FOLDER && !known)
+			for (const [id, before] of [
+				["website", "Website"],
+				["mobile", "Mobile app"],
+			] as const)
+				state.projects.push({
+					...(opened.project as ProjectEntry_Serialize),
+					id,
+					name: before,
+					key: id.toUpperCase(),
+					path: `/mock/${id}`,
+					active: false,
+					lastUsed: 1_790_000_000,
+					lastView: null,
+					overrides: { ...NO_OVERRIDES },
+				});
 		return opened;
 	},
 	projectsCreate: (path, name, key) => {
@@ -2503,6 +2522,49 @@ export function onMockTerminalOutput(listener: (id: string, data: string) => voi
 /** `demo`: the first folder that the picker returns is the demo project (`DEMO_FOLDER`). */
 export function installMockIpc(options: { demo?: boolean } = {}) {
 	demo = options.demo === true;
+	// The menu bar panel has no first run: the demo build opens the demo project for it.
+	if (demo && window.location.pathname === "/tray") handlers.projectsOpen(DEMO_FOLDER, false);
+	// Today / News of the demo build starts with four notices, three of today and one of the day before.
+	if (demo) {
+		const at = Date.now();
+		seedNotices([
+			{
+				id: "demo:finished",
+				kind: "info",
+				title: "Reviewer finished",
+				body: "Add the health dot",
+				target: { route: "/flow/flow" },
+				time: at,
+				read: false,
+			},
+			{
+				id: "demo:review",
+				kind: "needs-you",
+				title: "Grace asks for your review",
+				body: "Rework the settings page",
+				target: { route: "/code/now" },
+				time: at - 60_000,
+				read: false,
+			},
+			{
+				id: "demo:budget",
+				kind: "info",
+				title: "Builder is at 80 % of its limit",
+				body: "Add the health dot",
+				target: { route: "/crew/spend" },
+				time: at - 120_000,
+				read: false,
+			},
+			{
+				id: "demo:sync",
+				kind: "error",
+				title: "The sync with the issue tracker failed one time",
+				target: { route: "/setup/project" },
+				time: at - 24 * 3600 * 1000,
+				read: true,
+			},
+		]);
+	}
 	mockIPC((cmd, args) => {
 		const handler = (handlers as Record<string, ((...a: unknown[]) => unknown) | undefined>)[
 			camel(cmd)

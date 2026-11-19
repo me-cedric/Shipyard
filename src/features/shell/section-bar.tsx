@@ -39,7 +39,8 @@ export function SectionBar({
 	return (
 		<PageSwitchContext.Provider value={slot}>
 			{place === "library" ? (
-				slug && slug !== "home" ? (
+				// The manual is help, not a page of Library: no way back to the doors.
+				slug && slug !== "home" && slug !== "manual" ? (
 					<LibraryBack />
 				) : null
 			) : claims ? null : (

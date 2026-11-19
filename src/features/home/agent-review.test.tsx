@@ -13,10 +13,12 @@ describe("Home / Needs you: agent review", () => {
 		const router = mountApp("/home/today");
 		const queue = within(await screen.findByRole("list", { name: "Needs you" }));
 		await user.click(
-			await queue.findByRole("button", { name: (n) => n.endsWith(`#141 ${draft.title}`) }),
+			await queue.findByRole("button", {
+				name: (n) => n.endsWith(`Review the pull request ${draft.title}`),
+			}),
 		);
 		const group = within((await screen.findAllByRole("article"))[0] as HTMLElement);
-		expect(group.getByText(draft.title)).toBeVisible();
+		expect(group.getAllByText(draft.title)[0]).toBeVisible();
 		await user.click(group.getByRole("button", { name: "Open the pull request" }));
 		// The pull request page opens at the address of that pull request, with the draft on it.
 		await waitFor(() =>

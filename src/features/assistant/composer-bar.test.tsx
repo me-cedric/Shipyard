@@ -7,7 +7,7 @@ import { mountAssistant } from "./harness";
 const permission = () => screen.getByRole("combobox", { name: "Permission", hidden: true });
 const agent = (user: ReturnType<typeof userEvent.setup>) =>
 	user.click(
-		within(screen.getByRole("group", { name: "Mode" })).getByRole("button", { name: "Agent" }),
+		within(screen.getByRole("group", { name: "Mode" })).getByRole("button", { name: "Do" }),
 	);
 const chooseBypass = async (user: ReturnType<typeof userEvent.setup>) => {
 	await user.click(permission());

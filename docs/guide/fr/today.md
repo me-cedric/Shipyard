@@ -1,8 +1,8 @@
 # Aujourd'hui
 
-Aujourd'hui vous dit quoi faire maintenant. Le sélecteur en haut a trois sections : Aujourd'hui, Nouvelles et Activité. Un point sur Aujourd'hui dans le menu marque les nouvelles non lues, et une marque montre qu'une exécution ou une session travaille.
+Aujourd'hui vous dit quoi faire maintenant. Le sélecteur en haut a trois sections : À traiter, Nouvelles et Activité. Un point sur Aujourd'hui dans le menu marque les nouvelles non lues, et une marque montre qu'une exécution ou une session travaille.
 
-## Ce qui vous attend
+## À traiter
 
 Le titre donne le nombre de choses qui vous attendent. Une carte montre la première : qui demande, pour quelle fonctionnalité, et la réponse.
 

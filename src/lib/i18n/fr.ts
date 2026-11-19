@@ -103,6 +103,14 @@ export const fr: Messages = {
 		notCommitted: "Pas encore enregistré",
 		open: "Ouvrir",
 		edit: "Modifier",
+		explain: "Expliquer avec un agent",
+		linked: "Lié à",
+		copyRef: "Copier la référence",
+		state: {
+			resolved: "Cet élément est dans le projet.",
+			unresolved: "Le projet n'a pas encore d'élément avec ce nom.",
+			broken: "Ce lien pointe vers un élément qui n'existe plus.",
+		},
 	},
 	nav: {
 		sidebar: "Barre latérale",
@@ -163,7 +171,7 @@ export const fr: Messages = {
 		settings: "Réglages",
 	},
 	tabs: {
-		home: { today: "Aujourd'hui", news: "Nouvelles", activity: "Activité", projects: "Projets" },
+		home: { today: "À traiter", news: "Nouvelles", activity: "Activité", projects: "Projets" },
 		design: {
 			diagrams: "Diagrammes",
 			architecture: "Architecture",
@@ -257,6 +265,9 @@ export const fr: Messages = {
 		whatsNew: {
 			title: "Nouveautés de la version {version}",
 			none: "Aucune note pour cette version.",
+			added: "Nouveau",
+			fixed: "Corrigé",
+			all: "Toutes les versions",
 		},
 		toggleSidebar: "Basculer la barre latérale",
 		toggleInspector: "Basculer l'inspecteur",

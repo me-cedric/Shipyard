@@ -14,6 +14,9 @@ async function openPalette(user: ReturnType<typeof userEvent.setup>) {
 	return bar;
 }
 
+// The closed side panel has a control of the same name: this one is the link of the Ask bar.
+const layer = () => within(document.querySelector("[data-ask-layer]") as HTMLElement);
+
 describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 	it("lists an action for each place, with its shortcut", async () => {
 		const user = userEvent.setup();
@@ -29,7 +32,7 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 		expect(panel.getByRole("option", { name: /Toggle inspector.*Ctrl\+I$/ })).toBeVisible();
 		expect(screen.getByText("Go to")).toBeVisible();
 		expect(screen.getByText("Do")).toBeVisible();
-		expect(screen.getByRole("button", { name: "Open the full assistant" })).toBeVisible();
+		expect(layer().getByRole("button", { name: "Open the full assistant" })).toBeVisible();
 	});
 
 	it("lists a destination for each page that left the section switch", async () => {
@@ -177,7 +180,12 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 		expect(
 			within(screen.getByRole("group", { name: "Go to" })).getAllByRole("option"),
 		).not.toHaveLength(0);
-		expect(screen.getByRole("group", { name: "Do" })).toBeVisible();
+		// Do shows the usual actions, not every action.
+		expect(
+			within(screen.getByRole("group", { name: "Do" }))
+				.getAllByRole("option")
+				.map((o) => o.textContent),
+		).toEqual([expect.stringMatching(/^New feature/), expect.stringMatching(/^Sync/)]);
 		// The text stays: an answer shows for it, and the assistant does not open.
 		expect(bar).toHaveValue("what blocks the release?");
 		spy.mockRestore();
@@ -281,12 +289,17 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 	it("sends a question that holds a match word to the assistant draft with Open the full assistant", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/home/today");
+		const router = mountApp("/home/today");
 		const bar = await openPalette(user);
 		await user.type(bar, "How do I stop the dev server?{Enter}");
-		await user.click(await screen.findByRole("button", { name: "Open the full assistant" }));
+		await user.click(await layer().findByRole("button", { name: "Open the full assistant" }));
 		const draft = await screen.findByRole("textbox", { name: "Message" });
 		await waitFor(() => expect(draft).toHaveValue("How do I stop the dev server?"));
+		// The full assistant is the Ask page: the side panel leaves the frame.
+		expect(router.state.location.pathname).toBe("/ask");
+		expect(screen.getByRole("heading", { level: 1, name: "Ask" })).toBeVisible();
+		expect(screen.queryByRole("complementary", { name: "Assistant" })).toBeNull();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
 	it("covers the page area when open and gives it back on Escape", async () => {
@@ -319,7 +332,8 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 		await user.type(await screen.findByRole("textbox", { name: "Reply" }), "start it again");
 		const layer = within(document.querySelector("[data-ask-layer]") as HTMLElement);
 		await user.click(layer.getByRole("button", { name: "Send" }));
-		await waitFor(() => expect(draft).toHaveValue("start it again"));
+		// The reply goes under the question that it answers.
+		await waitFor(() => expect(draft).toHaveValue("what stopped?\n\nstart it again"));
 		expect(bar).toHaveValue("");
 	});
 

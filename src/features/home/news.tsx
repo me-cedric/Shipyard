@@ -1,31 +1,173 @@
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
+import { commands, type EventSource, unwrap } from "@/lib/ipc";
+import { logError } from "@/lib/log";
 import { type Notice, useNotifications, useOpenNotice } from "@/lib/notifications";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Leave } from "@/ui/atoms/leave";
-import { BellIcon, XMarkIcon } from "@/ui/icons";
-import { NotificationRow } from "@/ui/molecules/notification-row";
+import { LinkButton, linkClass } from "@/ui/atoms/link-button";
+import { Switch } from "@/ui/atoms/switch";
+import { XMarkIcon } from "@/ui/icons";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { Panel } from "@/ui/molecules/panel";
+import { Row } from "@/ui/molecules/row";
+
+const SURFACE = "rounded-lg bg-surface-2 py-2 shadow-2";
+const CARD_TITLE = "px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11";
+
+/** The earlier rows that show before "Older news". */
+const EARLIER = 5;
+
+/** The five sources of picture 062. Setup / Me holds the switch of each source. */
+const SOURCES: EventSource[] = [
+	"question",
+	"approval",
+	"run-ended",
+	"review-draft",
+	"sync-failure",
+];
+
+/** One news row (picture 062): who, the title, the feature and one action. Dismiss removes the row. */
+function NewsRow({ row, time, unread }: { row: Notice; time: string; unread: boolean }) {
+	const { t } = useI18n();
+	const { remove } = useNotifications();
+	const open = useOpenNotice();
+	const [more, setMore] = useState(false);
+	const main =
+		row.action ?? (row.target ? { label: t.rights.today.open, run: () => open(row) } : null);
+	return (
+		<Row className="min-h-18 py-2">
+			<article
+				aria-label={row.body ? `${row.title}: ${row.body}` : row.title}
+				className="flex min-w-0 flex-1 flex-wrap items-center gap-3"
+			>
+				{/* The row has its name: the avatar is a picture only. */}
+				<span aria-hidden="true" className="flex">
+					<Avatar agent={row.kind !== "needs-you"} name={row.title} />
+				</span>
+				<span className="flex min-w-0 flex-[1_1_220px] flex-col">
+					<span className={unread ? "font-semibold" : "font-medium"}>{row.title}</span>
+					<span className="text-n-11">
+						<span className="sr-only">{t.notifications.kind[row.kind]}. </span>
+						{[row.body, time].filter(Boolean).join(" · ")}
+					</span>
+					{row.detail ? (
+						<>
+							<pre
+								className={
+									more
+										? "max-h-40 overflow-y-auto font-mono text-13 whitespace-pre-wrap text-n-11"
+										: "line-clamp-3 font-mono text-13 whitespace-pre-wrap text-n-11"
+								}
+							>
+								{row.detail}
+							</pre>
+							<LinkButton
+								aria-expanded={more}
+								className="self-start"
+								onClick={() => setMore(!more)}
+							>
+								{t.ui.item.details}
+							</LinkButton>
+						</>
+					) : null}
+				</span>
+				{row.actions?.map((a) => (
+					<Button key={a.label} className="min-h-control" onClick={a.run}>
+						{a.label}
+					</Button>
+				))}
+				{main ? (
+					<Button className="min-h-control" onClick={main.run}>
+						{main.label}
+					</Button>
+				) : null}
+				<IconButton
+					label={t.notifications.dismiss}
+					className="size-(--control-h)"
+					onClick={() => remove(row.id)}
+				>
+					<XMarkIcon size={14} />
+				</IconButton>
+			</article>
+		</Row>
+	);
+}
+
+/** The switches of the notifications (picture 062): off adds the source to `notifyOff`, as in Setup / Me. */
+function TellMe() {
+	const { t } = useI18n();
+	const [off, setOff] = useState<EventSource[]>([]);
+	useEffect(() => {
+		unwrap(commands.prefsGet())
+			.then((p) => setOff(p.notifyOff))
+			.catch(logError);
+	}, []);
+	// One write after the other: each reads the list that the write before it stored.
+	const writes = useRef<Promise<unknown>>(Promise.resolve());
+	const toggle = (s: EventSource, on: boolean) => {
+		writes.current = writes.current
+			.then(() => unwrap(commands.prefsGet()))
+			.then((p) =>
+				unwrap(
+					commands.prefsSet({
+						notifyOff: on
+							? p.notifyOff.filter((x) => x !== s)
+							: [...p.notifyOff.filter((x) => x !== s), s],
+					}),
+				),
+			)
+			.then((p) => setOff(p.notifyOff))
+			.catch(logError);
+	};
+	const title = useId();
+	return (
+		<section aria-labelledby={title} className={SURFACE}>
+			<h2 id={title} className={CARD_TITLE}>
+				{t.home.tellMe}
+			</h2>
+			{SOURCES.map((s) => (
+				<Row key={s}>
+					<span aria-hidden="true" className="mr-auto font-semibold">
+						{t.notifications.source[s]}
+					</span>
+					<Switch
+						label={t.notifications.source[s]}
+						iconOnly
+						checked={!off.includes(s)}
+						onCheckedChange={(on) => toggle(s, on)}
+					/>
+				</Row>
+			))}
+			<Row>
+				<Link to="/setup/me" className={linkClass}>
+					{t.home.moreInSetup}
+				</Link>
+			</Row>
+		</section>
+	);
+}
 
 /**
- * Today / News: the one list of notifications, as the bell held it (spec:app-redesign#REQ-008).
- * Opening the view marks each entry as read, as opening the bell did. An entry that arrives
- * while the view is open stays unread until "Mark all as read".
+ * Today / News (picture 062): the one list of notifications, as the bell held it
+ * (spec:app-redesign#REQ-008), and the switches of what to tell. Opening the view marks each entry
+ * as read, as opening the bell did. An entry that arrives while the view is open stays unread
+ * until "Mark all as read". Clear is behind More.
  */
 export function News() {
 	const { t, lang } = useI18n();
 	const n = t.notifications;
-	const { items, unread, markRead, clear, remove } = useNotifications();
-	const open = useOpenNotice();
+	const { items, unread, markRead, clear } = useNotifications();
+	const [older, setOlder] = useState(false);
 	// The entries that were unread on arrival keep their mark for this visit.
 	const fresh = useRef(new Set(items.filter((i) => !i.read).map((i) => i.id)));
 	// biome-ignore lint/correctness/useExhaustiveDependencies: mark once, when the view opens
 	useEffect(() => markRead(), []);
 	const midnight = new Date().setHours(0, 0, 0, 0);
+	const earlier = items.filter((i) => i.time < midnight);
 	const groups: [string, Notice[], Intl.DateTimeFormat][] = [
 		[
 			t.home.newsToday,
@@ -34,69 +176,51 @@ export function News() {
 		],
 		[
 			t.home.newsEarlier,
-			items.filter((i) => i.time < midnight),
-			new Intl.DateTimeFormat(lang, { dateStyle: "short", timeStyle: "short" }),
+			older ? earlier : earlier.slice(0, EARLIER),
+			new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" }),
 		],
 	];
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
 			<PageHeader
-				icon={<BellIcon size={16} />}
 				title={items.length ? format(t.home.newsTitle, { count: items.length }) : t.tabs.home.news}
 				action={
-					<span className="flex items-center gap-2">
-						<Button className="min-h-control" disabled={unread === 0} onClick={markRead}>
-							{t.home.markAllRead}
-						</Button>
-						<Button className="min-h-control" disabled={items.length === 0} onClick={clear}>
-							{n.clear}
-						</Button>
-					</span>
+					<Button className="min-h-control" disabled={unread === 0} onClick={markRead}>
+						{t.home.markAllRead}
+					</Button>
 				}
+				menu={[{ label: n.clear, onClick: clear, disabled: items.length === 0 }]}
 			/>
-			<div className="flex flex-col gap-4 px-4">
-				{groups.map(([name, rows, time]) =>
-					rows.length ? (
-						<Panel key={name} title={name} count={rows.length} flush>
-							<AnimatePresence initial={false}>
-								{rows.map((row) => (
-									<Leave key={row.id}>
-										<NotificationRow
-											kind={row.kind}
-											kindLabel={n.kind[row.kind]}
-											title={row.title}
-											body={row.body}
-											time={time.format(row.time)}
-											unread={!row.read || fresh.current.has(row.id)}
-											wrap
-											detail={row.detail}
-											detailLabel={t.ui.item.details}
-											notice={row.action}
-											actions={row.actions}
-											action={
-												<IconButton
-													label={n.dismiss}
-													className="size-(--control-h)"
-													onClick={() => remove(row.id)}
-												>
-													<XMarkIcon size={14} />
-												</IconButton>
-											}
-											onOpen={row.target ? () => open(row) : undefined}
-										/>
-									</Leave>
-								))}
-							</AnimatePresence>
-						</Panel>
-					) : null,
-				)}
-				{items.length === 0 ? <p className="text-n-10">{n.empty}</p> : null}
-				<Link
-					to="/setup/me"
-					className="flex min-h-control items-center self-start text-ui font-medium text-accent-text hover:underline"
-				>
-					{t.home.moreInSetup}
-				</Link>
+			<div className="flex flex-wrap items-start gap-6 px-4">
+				<div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
+					{groups.map(([name, rows, time]) =>
+						rows.length ? (
+							<section key={name} aria-label={name} className={SURFACE}>
+								<h2 className={CARD_TITLE}>{name}</h2>
+								<AnimatePresence initial={false}>
+									{rows.map((row) => (
+										<Leave key={row.id} className="border-t border-n-6 first-of-type:border-t-0">
+											<NewsRow
+												row={row}
+												time={time.format(row.time)}
+												unread={!row.read || fresh.current.has(row.id)}
+											/>
+										</Leave>
+									))}
+								</AnimatePresence>
+								{name === t.home.newsEarlier && !older && earlier.length > EARLIER ? (
+									<Row className="border-t border-n-6">
+										<LinkButton onClick={() => setOlder(true)}>{t.home.olderNews}</LinkButton>
+									</Row>
+								) : null}
+							</section>
+						) : null,
+					)}
+					{items.length === 0 ? <p className="text-n-11">{n.empty}</p> : null}
+				</div>
+				<div className="flex min-w-0 flex-[2_1_300px] flex-col gap-4">
+					<TellMe />
+				</div>
 			</div>
 		</div>
 	);

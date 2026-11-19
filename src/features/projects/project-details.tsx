@@ -2,9 +2,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { PictureField } from "@/features/settings/picture-field";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, unwrap } from "@/lib/ipc";
+import { commands, type ProjectCard, unwrap } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
 import { ClipboardIcon, InformationCircleIcon } from "@/ui/icons";
@@ -67,5 +68,65 @@ export function ProjectDetails({ children }: { children?: ReactNode }) {
 			) : null}
 			{children}
 		</Panel>
+	);
+}
+
+/**
+ * What the card of a project keeps behind Details (picture 060 shows the name, the chips and two
+ * buttons): the folder, the code host, the branch with its counts, the last commit and the page of
+ * the remote.
+ */
+export function CardDetails({ p, onError }: { p: ProjectCard; onError: (e: unknown) => void }) {
+	const { t, lang } = useI18n();
+	const w = t.workspace.page;
+	return (
+		<>
+			<dl className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 text-14 text-n-11">
+				<dt>{w.folder}</dt>
+				<dd className="truncate font-mono" title={p.path}>
+					{p.path}
+				</dd>
+				<dt>{w.codeHost}</dt>
+				<dd className="truncate">{p.host ?? w.local}</dd>
+				{p.branch ? (
+					<>
+						<dt>{w.branch}</dt>
+						<dd className="flex flex-wrap items-center gap-1.5">
+							<span className="font-mono">{p.branch}</span>
+							{p.ahead > 0 ? (
+								<Badge variant="info">{format(w.ahead, { count: p.ahead })}</Badge>
+							) : null}
+							{p.behind > 0 ? (
+								<Badge variant="warning">{format(w.behind, { count: p.behind })}</Badge>
+							) : null}
+							{p.changes > 0 ? (
+								<Badge variant="accent">{format(w.changes, { count: p.changes })}</Badge>
+							) : null}
+						</dd>
+					</>
+				) : null}
+				<dt>{w.lastCommit}</dt>
+				<dd className="truncate">
+					{p.lastCommit
+						? `${p.lastCommit}${
+								p.lastCommitTime
+									? ` · ${new Date(p.lastCommitTime * 1000).toLocaleDateString(lang, { dateStyle: "long" })}`
+									: ""
+							}`
+						: w.noCommit}
+				</dd>
+			</dl>
+			{p.webUrl ? (
+				<Button
+					className="min-h-control self-start"
+					aria-label={`${w.openRemote} ${p.name}`}
+					onClick={() =>
+						void unwrap(commands.projectOpenRemote(p.id)).catch((e: unknown) => onError(e))
+					}
+				>
+					{w.openRemote}
+				</Button>
+			) : null}
+		</>
 	);
 }

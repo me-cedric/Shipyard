@@ -15,6 +15,8 @@ describe("Term", () => {
 		await userEvent.tab();
 		const word = screen.getByRole("button", { name: "code host" });
 		expect(word).toHaveFocus();
+		// spec:app-redesign#REQ-026: a button is 44 px high by the token rule; the negative margin keeps the line of the text.
+		expect(word).toHaveClass("-my-3");
 		expect(word).toHaveAccessibleDescription(glossaryEn.terms["code-host"]);
 		const popup = await screen.findByRole("dialog");
 		expect(within(popup).getByText(glossaryEn.terms["code-host"])).toBeInTheDocument();

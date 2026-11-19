@@ -1,5 +1,4 @@
 import { Today } from "@/features/home/today";
-import { Checklist } from "@/features/onboarding";
 import { FirstRun } from "@/features/projects/first-run";
 import { useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
@@ -12,5 +11,5 @@ export function HomeToday() {
 	const active = useActiveProject().data;
 	if (active === undefined)
 		return <Loading title={t.tabs.home.today} icon={<ClockIcon size={16} />} />;
-	return active ? <Today start={<Checklist onlyTodo className="mx-4 shrink-0" />} /> : <FirstRun />;
+	return active ? <Today /> : <FirstRun />;
 }

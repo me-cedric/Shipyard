@@ -326,11 +326,10 @@ const scenes: Scene[] = [
 		run: async (p) => {
 			await openProjects(p);
 			await p.getByRole("button", { name: "New project" }).click();
-			const d = p.getByRole("dialog", { name: "New project" });
-			await d.getByRole("textbox", { name: "Name" }).fill("Acme Web");
-			await d
+			await p.getByRole("textbox", { name: "Name" }).fill("Acme Web");
+			await p
 				.getByRole("navigation", { name: "Steps" })
-				.getByRole("button", { name: "Start" })
+				.getByRole("button", { name: "Kind of product" })
 				.click();
 		},
 	},
@@ -403,10 +402,9 @@ const scenes: Scene[] = [
 		run: async (p) => {
 			await p.keyboard.press("ControlOrMeta+k");
 			await p.getByRole("button", { name: "Open the full assistant" }).click();
-			await p
-				.getByRole("complementary", { name: "Assistant" })
-				.getByRole("button", { name: "Send", exact: true })
-				.waitFor();
+			// The full assistant is the Ask page.
+			await p.getByRole("heading", { level: 1, name: "Ask" }).waitFor();
+			await p.getByRole("button", { name: "Send", exact: true }).waitFor();
 		},
 	},
 	// The menu bar panel is this front end at /tray, with no shell.

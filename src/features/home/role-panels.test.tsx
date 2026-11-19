@@ -34,28 +34,32 @@ describe("Home / Today role panels (team-rights REQ-012)", () => {
 		person("po", ["work.edit"]);
 		const todo = (await unwrap(commands.syncItems({}))).filter((i) => i.category === "todo");
 		expect(todo.length).toBeGreaterThan(0);
-		mountApp("/home/today");
+		mountApp("/today/panels");
+		expect(
+			await screen.findByRole("heading", { level: 1, name: "Today, for a Product owner" }),
+		).toBeInTheDocument();
+		// The panel is a small card: the title, the count and Open.
 		const panel = within(await screen.findByRole("region", { name: "Ready items" }));
-		await waitFor(() =>
-			expect(panel.getAllByRole("listitem")).toHaveLength(Math.min(todo.length, 5)),
-		);
+		await waitFor(() => expect(panel.getByText(String(todo.length))).toBeInTheDocument());
 		expect(panel.getByRole("link", { name: "Open Flow / List" })).toBeInTheDocument();
 	});
 
 	it("shows the spend panel only with costs.view", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		person("pm", ["work.edit"]);
-		mountApp("/home/today");
-		await screen.findByRole("heading", { level: 1, name: "Today" });
+		mountApp("/today/panels");
+		await screen.findByRole("heading", { level: 1, name: "Today, for a Project manager" });
 		expect(screen.queryByRole("region", { name: "Spend this month" })).toBeNull();
 	});
 
 	it("shows no role panel to a solo person, with the picker on no role", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/home/today");
+		mountApp("/today/panels");
 		await screen.findByRole("heading", { level: 1, name: "Today" });
 		expect(screen.queryByRole("region", { name: "Ready items" })).toBeNull();
-		expect(screen.getByRole("combobox", { name: "Pick a role" })).toHaveTextContent("Pick a role");
+		const chips = within(screen.getByRole("group", { name: "Pick a role" })).getAllByRole("button");
+		expect(chips).toHaveLength(9);
+		for (const chip of chips) expect(chip).toHaveAttribute("aria-pressed", "false");
 	});
 
 	it("shows the panels of the picked role in the role picker", async () => {
@@ -63,13 +67,27 @@ describe("Home / Today role panels (team-rights REQ-012)", () => {
 		await withTracker();
 		await importAll();
 		person("developer", ["work.edit"]);
-		mountApp("/home/today");
-		const picker = await screen.findByRole("combobox", { name: "Pick a role" });
-		await waitFor(() => expect(picker).toHaveTextContent("Developer"));
-		await user.click(picker);
-		await user.click(await screen.findByRole("option", { name: "Product owner" }));
+		const router = mountApp("/today/panels");
+		const picker = within(await screen.findByRole("group", { name: "Pick a role" }));
+		await waitFor(() =>
+			expect(picker.getByRole("button", { name: "Developer" })).toHaveAttribute(
+				"aria-pressed",
+				"true",
+			),
+		);
+		expect(await screen.findByRole("region", { name: "My tickets" })).toBeInTheDocument();
+		await user.click(picker.getByRole("button", { name: "Product owner" }));
 		expect(await screen.findByRole("region", { name: "Ready items" })).toBeInTheDocument();
 		expect(screen.queryByRole("region", { name: "My tickets" })).toBeNull();
+		// The address holds the choice, and the other roles show their panels as chips.
+		expect(router.state.location.search).toEqual({ role: "po" });
+		const others = within(screen.getByRole("region", { name: "Panels of the other roles" }));
+		expect(others.getAllByText("My tickets").length).toBeGreaterThan(0);
+		expect(others.queryByText("Ready items")).toBeNull();
+		expect(screen.getByRole("link", { name: "All role views" })).toHaveAttribute(
+			"href",
+			"/today/role-views",
+		);
 	});
 });
 
@@ -79,9 +97,12 @@ describe("Role panels and area levels (app-redesign REQ-006)", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		person("viewer", ["work.edit"]);
 		mockState().person = { ...mockState().person, access: accessOf(access) } as never;
-		mountApp("/home/today");
-		await user.click(await screen.findByRole("combobox", { name: "Pick a role" }));
-		await user.click(await screen.findByRole("option", { name: "Designer" }));
+		mountApp("/today/panels");
+		await user.click(
+			within(await screen.findByRole("group", { name: "Pick a role" })).getByRole("button", {
+				name: "Designer",
+			}),
+		);
 	};
 	it("shows the panel of an area that the person can read", async () => {
 		await pickDesigner("RRRRRRRR");
@@ -101,18 +122,25 @@ describe("Inbox routing (team-rights REQ-014)", () => {
 		person("pm", ["costs.view"]);
 		mountApp("/home/today");
 		// The switch shows once the role is known, so the routing is on.
-		const everyone = await screen.findByRole("button", { name: "Everyone" });
+		// Everyone is behind More.
+		const everyone = async () => {
+			await user.click(await screen.findByRole("button", { name: "More" }));
+			return screen.findByRole("menuitemcheckbox", { name: "Everyone" });
+		};
+		await screen.findByRole("list", { name: "Needs you" });
 		const queue = () => within(screen.getByRole("list", { name: "Needs you" }));
-		expect(queue().queryByRole("button", { name: /Comment on ACME-1: the question/ })).toBeNull();
+		expect(queue().queryByRole("button", { name: /Post a comment on ACME-1/ })).toBeNull();
 		expect(screen.queryByRole("region", { name: "Post a comment on ACME-1" })).toBeNull();
-		await user.click(everyone);
+		await user.click(await everyone());
 		await user.click(
 			await within(await screen.findByRole("list", { name: "Needs you" })).findByRole("button", {
-				name: /Comment on ACME-1: the question/,
+				name: /Post a comment on ACME-1/,
 			}),
 		);
 		const on = within((await screen.findAllByRole("article"))[0] as HTMLElement);
-		expect(await on.findByText("Post a comment on ACME-1")).toBeVisible();
+		expect(
+			await on.findByRole("heading", { level: 3, name: "Post a comment on ACME-1" }),
+		).toBeVisible();
 		const approve = on.getByRole("button", { name: "Approve" });
 		// The box of the durable permission is off too.
 		expect(on.getByRole("checkbox", { name: /Do not ask again/ })).toHaveAttribute(

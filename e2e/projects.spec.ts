@@ -70,10 +70,12 @@ test("shows the open project on the Projects page and closes it there", async ({
 	});
 	await expect(page.getByRole("heading", { level: 1, name: "Projects" })).toBeVisible();
 	const open = page
-		.getByRole("list", { name: "Open now" })
+		.getByRole("list", { name: "Open", exact: true })
 		.getByRole("listitem", { name: "alpha" });
-	await expect(open.getByText(/^Need you: \d+$/)).toBeVisible();
-	await expect(open.getByText(/^Agents at work: \d+$/)).toBeVisible();
+	await expect(open.getByText(/^(\d+ need you|1 needs you|Nothing needs you)$/)).toBeVisible();
+	await expect(
+		open.getByText(/^(\d+ agents at work|1 agent at work|No agent at work)$/),
+	).toBeVisible();
 	await expect(page.getByText("Drop a folder here")).toBeVisible();
 	await open.getByRole("button", { name: "Close project" }).click();
 	await expect(page.getByRole("list", { name: "Recent projects" })).toBeVisible();

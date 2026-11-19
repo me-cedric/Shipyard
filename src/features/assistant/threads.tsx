@@ -5,11 +5,15 @@ import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { PencilIcon, PlusIcon, TrashIcon } from "@/ui/icons";
+import { Tile } from "@/ui/molecules/tile";
 import { Dialog } from "@/ui/organisms/dialog";
 import type { Assistant } from "./use-assistant";
 
-/** The threads of the project: switch, create, and rename or delete the open one. */
-export function Threads({ a }: { a: Assistant }) {
+/**
+ * The threads of the project: switch, create, and rename or delete the open one. `full` is the
+ * column of the Ask page: New thread on top, one card per thread, Rename and Delete under the open one.
+ */
+export function Threads({ a, full }: { a: Assistant; full?: boolean }) {
 	const { t } = useI18n();
 	const [renaming, setRenaming] = useState<string | null>(null);
 	const [confirm, setConfirm] = useState(false);
@@ -21,23 +25,89 @@ export function Threads({ a }: { a: Assistant }) {
 		setRenaming(null);
 		if (next) await a.rename(id, next);
 	};
+	const field = (
+		<Input
+			label={t.assistant.rename}
+			value={renaming ?? ""}
+			onChange={(e) => setRenaming(e.target.value)}
+			onKeyDown={(e) => {
+				if (e.key === "Enter") void commit();
+				if (e.key === "Escape") setRenaming(null);
+			}}
+			onBlur={() => void commit()}
+			autoFocus
+		/>
+	);
+	const dialog = (
+		<Dialog
+			open={confirm}
+			onOpenChange={setConfirm}
+			title={t.assistant.deleteThread}
+			actions={
+				<Button
+					variant="danger"
+					onClick={() => {
+						setConfirm(false);
+						if (id) void a.remove(id);
+					}}
+				>
+					<TrashIcon size={14} />
+					{t.assistant.delete}
+				</Button>
+			}
+		>
+			<p className="truncate text-ui">{title}</p>
+		</Dialog>
+	);
+	if (full)
+		return (
+			<div className="flex flex-col gap-2.5">
+				<Button variant="primary" onClick={() => void a.create()}>
+					{t.assistant.newThread}
+				</Button>
+				<ul aria-label={t.assistant.threads} className="flex flex-col gap-2.5">
+					{a.threads.map((th) => {
+						const name = th.title || t.assistant.untitled;
+						return (
+							<li key={th.id} className="flex flex-col gap-2.5">
+								{th.id === id && renaming !== null ? (
+									field
+								) : (
+									<Tile
+										label={
+											th.id !== id && a.unread(th.id)
+												? `${name} (${t.extras.assistant.unread})`
+												: name
+										}
+										selected={th.id === id}
+										aria-current={th.id === id ? "true" : undefined}
+										onClick={() => void a.select(th.id)}
+									/>
+								)}
+								{th.id === id ? (
+									<div className="flex gap-2.5">
+										<Button className="flex-1" onClick={() => setRenaming(title)}>
+											{t.assistant.rename}
+										</Button>
+										<Button className="flex-1 text-danger-text" onClick={() => setConfirm(true)}>
+											{t.assistant.delete}
+										</Button>
+									</div>
+								) : null}
+							</li>
+						);
+					})}
+				</ul>
+				{dialog}
+			</div>
+		);
 	return (
 		<div className="flex flex-col gap-1 border-b p-2">
 			<div className="flex items-center gap-1">
 				{renaming === null ? (
 					<h2 className="min-w-0 flex-1 truncate text-ui font-medium">{title}</h2>
 				) : (
-					<Input
-						label={t.assistant.rename}
-						value={renaming}
-						onChange={(e) => setRenaming(e.target.value)}
-						onKeyDown={(e) => {
-							if (e.key === "Enter") void commit();
-							if (e.key === "Escape") setRenaming(null);
-						}}
-						onBlur={() => void commit()}
-						autoFocus
-					/>
+					field
 				)}
 				<IconButton label={t.assistant.rename} disabled={!id} onClick={() => setRenaming(title)}>
 					<PencilIcon size={14} />
@@ -74,25 +144,7 @@ export function Threads({ a }: { a: Assistant }) {
 					))}
 				</ul>
 			) : null}
-			<Dialog
-				open={confirm}
-				onOpenChange={setConfirm}
-				title={t.assistant.deleteThread}
-				actions={
-					<Button
-						variant="danger"
-						onClick={() => {
-							setConfirm(false);
-							if (id) void a.remove(id);
-						}}
-					>
-						<TrashIcon size={14} />
-						{t.assistant.delete}
-					</Button>
-				}
-			>
-				<p className="truncate text-ui">{title}</p>
-			</Dialog>
+			{dialog}
 		</div>
 	);
 }

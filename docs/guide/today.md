@@ -1,8 +1,8 @@
 # Today
 
-Today tells you what to do now. The switch at the top has three sections: Today, News and Activity. A dot on Today in the menu marks unread news, and a live mark shows while a run or a session works.
+Today tells you what to do now. The switch at the top has three sections: Needs you, News and Activity. A dot on Today in the menu marks unread news, and a live mark shows while a run or a session works.
 
-## What needs you
+## Needs you
 
 The title gives the count of the things that need you. One card shows the first thing: who asks, for which feature, and the answer.
 

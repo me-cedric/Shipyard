@@ -47,6 +47,21 @@ describe("inspector (shell REQ-006)", () => {
 		expect(view.getByRole("button", { name: /^spec:auth, Spec: auth, Resolved$/ })).toBeVisible();
 	});
 
+	it("explains a link in a card: the kind, the name, what it is, the linked items, Open, Explain and Copy the ref", async () => {
+		const user = userEvent.setup();
+		mountApp("/home/today");
+		const view = await open(user, "adr:0004");
+		const aside = await inspector();
+		expect(aside).toHaveClass("fixed");
+		expect(await view.findByText("This item is in the project.")).toBeVisible();
+		expect(view.getByText("ADR")).toBeVisible();
+		expect(view.getByRole("region", { name: "Linked to" })).toBeVisible();
+		expect(view.getByRole("button", { name: "Open" })).toBeVisible();
+		expect(view.getByRole("button", { name: "Explain with an agent" })).toBeVisible();
+		await user.click(view.getByRole("button", { name: "Copy the ref" }));
+		expect(await view.findByRole("button", { name: "Copied" })).toBeVisible();
+	});
+
 	it("closes with its button and moves the focus out of the panel", async () => {
 		const user = userEvent.setup();
 		mountApp("/home/today");

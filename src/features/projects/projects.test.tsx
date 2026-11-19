@@ -140,11 +140,16 @@ describe("first run", () => {
 		mountApp("/home/today");
 		await next(user);
 		await user.click(await screen.findByRole("button", { name: "Create a project" }));
+		// All steps shows the folder and the key. The guided steps keep their defaults.
+		await user.click(await screen.findByRole("button", { name: "All steps" }));
 		expect(await screen.findByDisplayValue("/mock/Projects")).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Create" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Create the project" })).toBeDisabled();
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme Web");
-		expect(screen.getByRole("textbox", { name: "Key" })).toHaveValue("ACMEWE");
-		await user.click(screen.getByRole("button", { name: "Create" }));
+		expect(screen.getByRole("textbox", { name: "Short key for tickets" })).toHaveValue("ACMEWE");
+		await waitFor(() =>
+			expect(screen.getByRole("button", { name: "Create the project" })).toBeEnabled(),
+		);
+		await user.click(screen.getByRole("button", { name: "Create the project" }));
 		await user.click(await screen.findByRole("button", { name: "Open" }));
 		expect(
 			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
@@ -248,9 +253,11 @@ describe("project switcher", () => {
 		await user.click(await screen.findByRole("menuitem", { name: "Projects" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/projects"));
 		// The page is a lazy chunk: under the load of the full run it can take more than a second.
-		expect(
-			await screen.findByRole("heading", { level: 1, name: "Projects" }, { timeout: 5000 }),
-		).toBeInTheDocument();
+		await screen.findByRole("heading", { level: 1, name: "Projects" }, { timeout: 5000 });
+		// The heading of the loading state leaves when the cards come: read the one that stays.
+		await waitFor(() =>
+			expect(screen.getByRole("heading", { level: 1, name: "Projects" })).toBeInTheDocument(),
+		);
 		expect(screen.queryByRole("navigation", { name: "Tabs" })).toBeNull();
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});

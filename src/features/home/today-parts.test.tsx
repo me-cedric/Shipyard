@@ -13,8 +13,7 @@ import { ShellProvider } from "@/lib/shell";
 import { routers } from "@/test/routers";
 import { importAll, withTracker } from "@/test/tracker";
 import { SinceAway } from "./away";
-import { MyWork } from "./my-work";
-import { RolePanels } from "./role-panels";
+import { RolePanelsPage } from "./role-panels";
 import { TimeReminder } from "./time-reminder";
 
 /** One component alone, inside the providers and a router for its links. */
@@ -52,29 +51,49 @@ describe("Today parts (spec:app-redesign#REQ-009)", () => {
 		// A workday with no time logged.
 		vi.useFakeTimers({ toFake: ["Date"] });
 		vi.setSystemTime(new Date(2026, 9, 29, 10));
-		mount(
-			<>
-				<RolePanels />
-				<MyWork />
-				<TimeReminder />
-			</>,
-		);
+		mount(<RolePanelsPage />);
 		expect(
 			await screen.findByRole("heading", { name: "No time logged today" }),
 		).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: "Log time" })).toHaveAttribute("href", "/plan/time");
-		expect(screen.getByRole("combobox", { name: "Pick a role" })).toHaveTextContent("Tech lead");
+		expect(screen.getByRole("link", { name: "Log your time" })).toHaveAttribute(
+			"href",
+			"/plan/time",
+		);
+		expect(
+			within(screen.getByRole("group", { name: "Pick a role" })).getByRole("button", {
+				name: "Tech lead",
+			}),
+		).toHaveAttribute("aria-pressed", "true");
 		expect((await screen.findAllByRole("link", { name: /^Open / })).length).toBeGreaterThan(0);
+		expect(await screen.findByRole("region", { name: "Failing checks" })).toBeInTheDocument();
 		expect(screen.queryByRole("region", { name: "My pull requests" })).toBeNull();
-		expect(await screen.findByRole("heading", { name: /^My items/ })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "My work" })).toBeInTheDocument();
+	});
+
+	it("Today shows the time reminder as a slim card with Log", async () => {
+		await withTracker();
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(new Date(2026, 9, 29, 10));
+		mount(<TimeReminder />);
+		expect(await screen.findByText("Log your time for today")).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "Log your time" })).toHaveAttribute(
+			"href",
+			"/plan/time",
+		);
 	});
 
 	it("TimeReminder shows nothing on the weekend", async () => {
 		await withTracker();
 		vi.useFakeTimers({ toFake: ["Date"] });
 		vi.setSystemTime(new Date(2026, 9, 31, 10));
-		mount(<TimeReminder />);
+		mount(
+			<>
+				<TimeReminder />
+				<TimeReminder alert />
+			</>,
+		);
 		await waitFor(() => expect(screen.queryByText("No time logged today")).toBeNull());
+		expect(screen.queryByText("Log your time for today")).toBeNull();
 	});
 
 	it("SinceAway lists my news with one link to all news", async () => {

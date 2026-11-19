@@ -1,6 +1,6 @@
 import { Menu } from "@base-ui/react/menu";
 import type { ReactNode } from "react";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import type { RunnerOptions, ThreadSettings } from "@/lib/ipc";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Button } from "@/ui/atoms/button";
@@ -41,13 +41,16 @@ function Sub({ label, children }: { label: string; children: ReactNode }) {
 
 /**
  * One button that shows "<model> · <effort>" and opens one menu: the models of the runner of the
- * thread, an Effort submenu, and the models of the other runners.
+ * thread, an Effort submenu, and the models of the other runners. `split` gives two buttons,
+ * "Model: <name>" and "Effort: <name>", each with its own menu.
  */
 export function ModelMenu({
 	runners,
 	settings: s,
 	onChange,
+	split,
 }: {
+	split?: boolean;
 	runners: RunnerOptions[];
 	settings: ThreadSettings;
 	onChange: (patch: Partial<ThreadSettings>) => void;
@@ -56,68 +59,99 @@ export function ModelMenu({
 	const runner = runners.find((r) => r.runner === s.runner);
 	const others = runners.filter((r) => r.runner !== s.runner && r.models.length > 0);
 	const label = [s.model ?? runnerName(s.runner), s.effort].filter(Boolean).join(" · ");
-	return (
+	const models = (
+		<Menu.RadioGroup
+			aria-label={t.assistant.model}
+			value={s.model ?? DEFAULT}
+			onValueChange={(v) => onChange({ model: v === DEFAULT ? null : String(v) })}
+		>
+			<Radio value={DEFAULT}>{t.assistant.default}</Radio>
+			{(runner?.models ?? []).map((m) => (
+				<Radio key={m} value={m}>
+					{m}
+				</Radio>
+			))}
+		</Menu.RadioGroup>
+	);
+	const efforts = runner?.efforts.length ? (
+		<Menu.RadioGroup
+			aria-label={t.assistant.effort}
+			value={s.effort ?? DEFAULT}
+			onValueChange={(v) => onChange({ effort: v === DEFAULT ? null : String(v) })}
+		>
+			<Radio value={DEFAULT}>{t.assistant.default}</Radio>
+			{runner.efforts.map((e) => (
+				<Radio key={e} value={e}>
+					{e}
+				</Radio>
+			))}
+		</Menu.RadioGroup>
+	) : null;
+	const more = others.length ? (
+		<Sub label={t.assistant.moreModels}>
+			{others.map((r) => (
+				<Menu.Group key={r.runner}>
+					<Menu.GroupLabel className="flex items-center gap-1.5 px-2 py-1 text-12 text-n-10">
+						<BrandIcon name={r.runner} size={14} />
+						{runnerName(r.runner)}
+					</Menu.GroupLabel>
+					{r.models.map((m) => (
+						// A model belongs to its runner: the effort of this one does not go over.
+						<Menu.Item
+							key={m}
+							className={MENU_ITEM}
+							onClick={() => onChange({ runner: r.runner, model: m, effort: null })}
+						>
+							{m}
+						</Menu.Item>
+					))}
+				</Menu.Group>
+			))}
+		</Sub>
+	) : null;
+	const menu = (trigger: ReactNode, content: ReactNode) => (
 		<Menu.Root>
-			<Menu.Trigger render={<Button variant="ghost" className="min-w-0 max-w-full px-2" />}>
-				<BrandIcon name={s.runner} size={14} />
-				<span className="truncate">{label}</span>
-			</Menu.Trigger>
+			{trigger}
 			<Menu.Portal>
 				<Menu.Positioner side="top" align="start" sideOffset={4} className="z-50">
-					<Menu.Popup className={MENU_POPUP}>
-						<Menu.RadioGroup
-							aria-label={t.assistant.model}
-							value={s.model ?? DEFAULT}
-							onValueChange={(v) => onChange({ model: v === DEFAULT ? null : String(v) })}
-						>
-							<Radio value={DEFAULT}>{t.assistant.default}</Radio>
-							{(runner?.models ?? []).map((m) => (
-								<Radio key={m} value={m}>
-									{m}
-								</Radio>
-							))}
-						</Menu.RadioGroup>
-						{runner?.efforts.length ? (
-							<Sub label={t.assistant.effort}>
-								<Menu.RadioGroup
-									aria-label={t.assistant.effort}
-									value={s.effort ?? DEFAULT}
-									onValueChange={(v) => onChange({ effort: v === DEFAULT ? null : String(v) })}
-								>
-									<Radio value={DEFAULT}>{t.assistant.default}</Radio>
-									{runner.efforts.map((e) => (
-										<Radio key={e} value={e}>
-											{e}
-										</Radio>
-									))}
-								</Menu.RadioGroup>
-							</Sub>
-						) : null}
-						{others.length ? (
-							<Sub label={t.assistant.moreModels}>
-								{others.map((r) => (
-									<Menu.Group key={r.runner}>
-										<Menu.GroupLabel className="flex items-center gap-1.5 px-2 py-1 text-12 text-n-10">
-											<BrandIcon name={r.runner} size={14} />
-											{runnerName(r.runner)}
-										</Menu.GroupLabel>
-										{r.models.map((m) => (
-											// A model belongs to its runner: the effort of this one does not go over.
-											<Menu.Item
-												key={m}
-												className={MENU_ITEM}
-												onClick={() => onChange({ runner: r.runner, model: m, effort: null })}
-											>
-												{m}
-											</Menu.Item>
-										))}
-									</Menu.Group>
-								))}
-							</Sub>
-						) : null}
-					</Menu.Popup>
+					<Menu.Popup className={MENU_POPUP}>{content}</Menu.Popup>
 				</Menu.Positioner>
 			</Menu.Portal>
 		</Menu.Root>
+	);
+	if (split)
+		return (
+			<>
+				{menu(
+					<Menu.Trigger render={<Button className="min-w-0 max-w-full" />}>
+						<span className="truncate">
+							{format(t.assistant.page.modelIs, { name: s.model ?? runnerName(s.runner) })}
+						</span>
+					</Menu.Trigger>,
+					<>
+						{models}
+						{more}
+					</>,
+				)}
+				{efforts
+					? menu(
+							<Menu.Trigger render={<Button />}>
+								{format(t.assistant.page.effortIs, { name: s.effort ?? t.assistant.default })}
+							</Menu.Trigger>,
+							efforts,
+						)
+					: null}
+			</>
+		);
+	return menu(
+		<Menu.Trigger render={<Button variant="ghost" className="min-w-0 max-w-full px-2" />}>
+			<BrandIcon name={s.runner} size={14} />
+			<span className="truncate">{label}</span>
+		</Menu.Trigger>,
+		<>
+			{models}
+			{efforts ? <Sub label={t.assistant.effort}>{efforts}</Sub> : null}
+			{more}
+		</>,
 	);
 }

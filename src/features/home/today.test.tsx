@@ -27,13 +27,13 @@ async function mine() {
 const live = (r: { lane: string }) => r.lane === "working" || r.lane === "needs_you";
 
 describe("Home / Today", () => {
-	it("opens Home on Today, with Today, News and Activity as its tabs", async () => {
+	it("opens Home on Today, with Needs you, News and Activity as its tabs", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/home");
 		await waitFor(() => expect(router.state.location.pathname).toBe("/today/today"));
 		const tabs = within(await screen.findByRole("navigation", { name: "Tabs" }));
 		expect(tabs.getAllByRole("link").map((l) => l.textContent)).toEqual([
-			"Today",
+			"Needs you",
 			"News",
 			"Activity",
 		]);
@@ -56,6 +56,8 @@ describe("Home / Today", () => {
 		const [approval] = await unwrap(commands.approvalsList());
 		const plan = (await unwrap(commands.runsList())).find((r) => r.state === "PlanReview");
 		if (!(question && approval && plan)) throw new Error("the mock lacks a thing");
+		// The question takes a free answer: the card shows the field.
+		question.question.free_text = true;
 		vi.spyOn(commands, "questionsList").mockResolvedValue(ok([question]));
 		vi.spyOn(commands, "approvalsList").mockResolvedValue(ok([approval]));
 		vi.spyOn(commands, "messagesList").mockResolvedValue(ok([]));
@@ -68,7 +70,13 @@ describe("Home / Today", () => {
 		const on = within(await card());
 		expect(on.getByText("1 of 3")).toBeInTheDocument();
 		expect(on.getByText(question.question.question)).toBeInTheDocument();
-		expect(on.getAllByRole("radio").length).toBe(question.question.options.length);
+		// One large button for each answer, then the field, Later and Send.
+		expect(
+			within(on.getByRole("group", { name: question.question.question })).getAllByRole("button"),
+		).toHaveLength(question.question.options.length);
+		expect(on.getByRole("textbox", { name: "Another answer" })).toBeInTheDocument();
+		expect(on.getByRole("button", { name: "Later" })).toBeInTheDocument();
+		expect(on.getByRole("button", { name: "Send" })).toBeEnabled();
 		const queue = within(screen.getByRole("list", { name: "Needs you" }));
 		expect(queue.getAllByRole("listitem")).toHaveLength(2);
 		expect(queue.queryByText(question.question.question)).toBeNull();
@@ -90,7 +98,9 @@ describe("Home / Today", () => {
 		expect(await within(await card()).findByText("1 of 2")).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Later" }));
 		const on = within(await card());
-		expect(await on.findByText("Post a comment on ACME-1")).toBeInTheDocument();
+		expect(
+			await on.findByRole("heading", { level: 3, name: "Post a comment on ACME-1" }),
+		).toBeInTheDocument();
 		expect(on.getByText("1 of 2")).toBeInTheDocument();
 		await user.click(
 			within(screen.getByRole("list", { name: "Needs you" })).getByRole("button", {
@@ -142,7 +152,7 @@ describe("Home / Today", () => {
 		mountApp("/home/today");
 		const first = within(await card()).getByRole("heading", { level: 3 });
 		expect(first).not.toHaveFocus();
-		await pick(user, /Comment on ACME-1: the question/);
+		await pick(user, /Post a comment on ACME-1/);
 		const next = within(await card()).getByRole("heading", { level: 3 });
 		await waitFor(() => expect(next).toHaveFocus());
 	});
@@ -151,10 +161,12 @@ describe("Home / Today", () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/today");
-		await pick(user, /Comment on ACME-1: the question/);
+		await pick(user, /Post a comment on ACME-1/);
 		const before = (await unwrap(commands.approvalsList())).length;
 		const on = within(await card());
-		expect(await on.findByText("Post a comment on ACME-1")).toBeVisible();
+		expect(
+			await on.findByRole("heading", { level: 3, name: "Post a comment on ACME-1" }),
+		).toBeVisible();
 		await user.click(on.getByRole("button", { name: "Approve" }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.approvalsList())).length).toBe(before - 1),
@@ -167,7 +179,7 @@ describe("Home / Today", () => {
 		const approval = mockState().factory.approvals.find((a) => a.key === "ACME-1");
 		if (approval) approval.detail = "## Add export endpoint\n\nUse `GET /export`.";
 		mountApp("/home/today");
-		await pick(user, /Comment on ACME-1: the question/);
+		await pick(user, /Post a comment on ACME-1/);
 		await user.click(await screen.findByRole("button", { name: "Each step" }));
 		const bar = within(await screen.findByRole("region", { name: "Post a comment on ACME-1" }));
 		expect(await bar.findByRole("heading", { name: "Add export endpoint" })).toBeInTheDocument();
@@ -175,40 +187,54 @@ describe("Home / Today", () => {
 		expect(bar.queryByText(/##|`/)).toBeNull();
 	});
 
-	it("groups my tickets by state, with the status and Start run in each row", async () => {
+	it("counts my tickets by state in My work, and a count opens its rows with the status and Start run", async () => {
+		const user = userEvent.setup();
 		await withTracker();
 		await importAll();
 		const { items } = await mine();
-		mountApp("/home/today");
+		mountApp("/today/panels");
 		const week = Date.now() - 7 * 24 * 3600 * 1000;
 		const fresh = (i: { category: string; updated: string }) =>
 			i.category !== "done" || Number.isNaN(Date.parse(i.updated)) || Date.parse(i.updated) >= week;
+		const work = within(await screen.findByRole("region", { name: "My work" }));
 		for (const [category, name] of [
 			["in-progress", "In progress"],
 			["todo", "To do"],
 			["done", "Done in the last 7 days"],
 		] as const) {
 			const rows = items.filter((i) => i.category === category && fresh(i));
-			if (rows.length)
+			await waitFor(() =>
 				expect(
-					await screen.findByRole("heading", { name: `${name} (${rows.length})` }),
-				).toBeInTheDocument();
-			else expect(screen.queryByRole("heading", { name: new RegExp(`^${name}`) })).toBeNull();
+					work.getByRole("button", { name: new RegExp(`^${name}\\s*${rows.length}$`) }),
+				).toBeInTheDocument(),
+			);
 		}
 		const first = items.find((i) => i.category !== "done") ?? items[0];
 		if (!first) throw new Error("no ticket of the person");
+		const names = { "in-progress": "In progress", todo: "To do", done: "Done in the last 7 days" };
+		await user.click(
+			work.getByRole("button", {
+				name: new RegExp(`^${names[first.category as keyof typeof names]}\\s*\\d+$`),
+			}),
+		);
 		const row = await screen.findByRole("group", { name: first.key });
 		expect(row).toBeInTheDocument();
 		expect(screen.getByRole("combobox", { name: `Status ${first.key}` })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: `Start run ${first.key}` })).toBeInTheDocument();
 	});
 
-	it("shows no stat tiles: the spend of today always sits in the heading of Working now", async () => {
+	it("shows no stat tiles: the spend of today sits behind More of Working now", async () => {
+		const user = userEvent.setup();
 		await withTracker();
 		await importAll();
 		mountApp("/home/today");
 		expect(screen.queryByText("Active runs")).toBeNull();
 		const agents = within(await screen.findByRole("region", { name: /^Working now/ }));
+		expect(agents.getByRole("link", { name: "Open the flow" })).toHaveAttribute(
+			"href",
+			"/flow/flow",
+		);
+		await user.click(agents.getByRole("button", { name: "More: Working now" }));
 		expect(agents.getByText("Spend today")).toBeInTheDocument();
 		expect(agents.getByText(/^\$/)).toBeInTheDocument();
 	});
@@ -218,20 +244,38 @@ describe("Home / Today", () => {
 		vi.spyOn(commands, "runsList").mockResolvedValue(ok([]));
 		mountApp("/home/today");
 		const agents = within(await screen.findByRole("region", { name: "Working now" }));
-		expect(agents.getByText("Spend today")).toBeInTheDocument();
 		expect(agents.getByText("No active run")).toBeInTheDocument();
+		await userEvent.setup().click(agents.getByRole("button", { name: "More: Working now" }));
+		expect(agents.getByText("Spend today")).toBeInTheDocument();
 		vi.restoreAllMocks();
 	});
 
-	it("shows the total of my items as the count of a heading above the groups", async () => {
+	it("shows one row for each live run on my tickets, with the stage of its feature", async () => {
 		await withTracker();
 		await importAll();
-		const { items } = await mine();
-		expect(items.length).toBeGreaterThan(0);
+		const { keys } = await mine();
+		const runs = (await unwrap(commands.runsList())).filter(live).filter((r) => keys.has(r.key));
+		expect(runs.length).toBeGreaterThan(0);
 		mountApp("/home/today");
-		expect(
-			await screen.findByRole("heading", { name: `My items (${items.length})` }),
-		).toBeInTheDocument();
+		const agents = within(await screen.findByRole("region", { name: /^Working now/ }));
+		for (const r of runs)
+			expect(await agents.findByRole("link", { name: r.title })).toBeInTheDocument();
+		// The stage is a bar of five segments with a spoken text.
+		expect((await agents.findAllByRole("img", { name: /^Stages: / })).length).toBe(runs.length);
+	});
+
+	it("shows the setup card with the next step, and Continue opens the full list in Setup", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mountApp("/home/today");
+		const setup = within(await screen.findByRole("region", { name: "Get started" }));
+		expect(await setup.findByText(/^Setup, \d+ of 11$/)).toBeInTheDocument();
+		expect(setup.getByRole("link", { name: "Continue" })).toHaveAttribute("href", "/setup/start");
+		// One card, not the list.
+		expect(screen.queryByRole("list", { name: "Get started" })).toBeNull();
+		expect(screen.getByRole("link", { name: "Panels for my role" })).toHaveAttribute(
+			"href",
+			"/today/panels",
+		);
 	});
 
 	it("shows the live runs on my tickets with Stop, and no run on another ticket", async () => {
@@ -240,7 +284,11 @@ describe("Home / Today", () => {
 		const { keys } = await mine();
 		const runs = (await unwrap(commands.runsList())).filter(live);
 		mountApp("/home/today");
-		await screen.findByRole("region", { name: /^Working now/ });
+		const agents = await screen.findByRole("region", { name: /^Working now/ });
+		// Stop is behind More.
+		await userEvent
+			.setup()
+			.click(within(agents).getByRole("button", { name: "More: Working now" }));
 		for (const r of runs.filter((x) => keys.has(x.key)))
 			expect(await screen.findByRole("button", { name: `Stop ${r.key}` })).toBeInTheDocument();
 		for (const r of runs.filter((x) => !keys.has(x.key)))
@@ -251,8 +299,8 @@ describe("Home / Today", () => {
 		await withTracker();
 		await importAll();
 		mountApp("/home/today");
-		const mineHeading = await screen.findByRole("heading", { name: /^My items/ });
-		const root = mineHeading.closest("[tabindex='-1']");
+		const agents = await screen.findByRole("region", { name: /^Working now/ });
+		const root = agents.closest("[tabindex='-1']");
 		expect(root).not.toBeNull();
 		expect(root).toContainElement(await card());
 	});
@@ -272,7 +320,10 @@ describe("Home / Today", () => {
 			rights: [],
 		};
 		mountApp("/home/today");
-		await screen.findByRole("region", { name: /^Working now/ });
+		const agents = await screen.findByRole("region", { name: /^Working now/ });
+		await userEvent
+			.setup()
+			.click(within(agents).getByRole("button", { name: "More: Working now" }));
 		expect(await screen.findByRole("button", { name: `Stop ${runs[0]?.key}` })).toBeDisabled();
 	});
 
@@ -289,24 +340,23 @@ describe("Home / Today", () => {
 		const seen = Math.ceil(((sorted[0] ?? 0) + 1) / 1000);
 		const newer = events.filter((ts) => ts > seen * 1000).length;
 		mockState().prefs.todaySeen = seen;
-		mountApp("/home/today");
-		expect(
-			await screen.findByRole("heading", { name: `Since you were away (${Math.min(20, newer)})` }),
-		).toBeInTheDocument();
+		mountApp("/today/panels");
+		const away = within(await screen.findByRole("region", { name: "Since you were away" }));
+		await waitFor(() => expect(away.getAllByRole("listitem")).toHaveLength(Math.min(20, newer)));
 	});
 
 	it("moves the last visit to now, so a second visit shows no old event", async () => {
 		await withTracker();
 		await importAll();
 		mockState().prefs.todaySeen = 1;
-		const first = mountApp("/home/today");
+		const first = mountApp("/today/panels");
 		await screen.findByRole("heading", { name: /^Since you were away/ });
 		await waitFor(() => expect(mockState().prefs.todaySeen).toBeGreaterThan(1_000_000));
 		first.navigate({ to: "/home/projects" });
 		const { cleanup } = await import("@testing-library/react");
 		cleanup();
-		mountApp("/home/today");
-		await screen.findByRole("heading", { level: 1, name: "Today" });
+		mountApp("/today/panels");
+		await screen.findByRole("heading", { name: "My work" });
 		expect(screen.queryByRole("heading", { name: /^Since you were away/ })).toBeNull();
 	});
 

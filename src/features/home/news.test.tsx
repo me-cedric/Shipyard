@@ -19,7 +19,9 @@ describe("Today / News (spec:app-redesign#REQ-008)", () => {
 		await waitFor(() => expect(markAll).toBeEnabled());
 		await user.click(markAll);
 		await waitFor(() => expect(markAll).toBeDisabled());
-		await user.click(screen.getByRole("button", { name: "Clear" }));
+		// Clear is behind More.
+		await user.click(screen.getByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Clear" }));
 		expect(await screen.findByText("No notification")).toBeInTheDocument();
 		expect(screen.getByRole("heading", { level: 1, name: "News" })).toBeInTheDocument();
 	});
@@ -32,6 +34,20 @@ describe("Today / News (spec:app-redesign#REQ-008)", () => {
 		const list = within(await screen.findByRole("region", { name: /^Today/ }));
 		await user.click(await list.findByRole("button", { name: "Dismiss" }));
 		expect(await screen.findByText("No notification")).toBeInTheDocument();
+	});
+
+	it("turns a source of notifications off and on in the card Tell me when", async () => {
+		const user = userEvent.setup();
+		mountApp("/today/news");
+		const card = within(await screen.findByRole("region", { name: "Tell me when" }));
+		expect(card.getAllByRole("switch")).toHaveLength(5);
+		const sync = card.getByRole("switch", { name: "Failed sync" });
+		await waitFor(() => expect(sync).toBeChecked());
+		await user.click(sync);
+		await waitFor(() => expect(mockState().prefs.notifyOff).toEqual(["sync-failure"]));
+		expect(sync).not.toBeChecked();
+		await user.click(sync);
+		await waitFor(() => expect(mockState().prefs.notifyOff).toEqual([]));
 	});
 
 	it("opens the notification settings of Setup with one link", async () => {

@@ -7,6 +7,7 @@ import { en } from "@/lib/i18n/en";
 import { es } from "@/lib/i18n/es";
 import { fr } from "@/lib/i18n/fr";
 import { commands, unwrap } from "@/lib/ipc";
+import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 import { MANUAL, manualFor, searchManual } from "./manual";
 import { openManualFor, useManualTarget } from "./manual-target";
@@ -14,6 +15,9 @@ import { openManualFor, useManualTarget } from "./manual-target";
 const headings = (text: string) => text.match(/^#{1,3} .+$/gm) ?? [];
 
 describe("Library / Manual", () => {
+	// The target of the manual lives in the module: a test starts on the first page, not on the page of the test before.
+	beforeEach(() => openManualFor("/"));
+
 	it("ships a page for each place, for the start, the projects, the Ask bar and the themes", () => {
 		expect(MANUAL.map((p) => p.id)).toEqual([
 			"start",
@@ -141,6 +145,76 @@ describe("Library / Manual", () => {
 		const heading = await within(page).findByRole("heading", { name: section });
 		await waitFor(() => expect(scroll.mock.instances).toContain(heading));
 		Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+	});
+
+	it("shows the page in a card with its picture, the key F1 and no count or way back", async () => {
+		mountApp("/library/manual");
+		const page = await screen.findByRole("article", { name: "Getting started" });
+		expect(screen.getByRole("img", { name: "Picture of the page Getting started" })).toBeVisible();
+		const header = screen.getByRole("heading", { level: 1, name: "Manual" }).closest("div");
+		expect(within(header as HTMLElement).getByText("F1")).toBeInTheDocument();
+		expect(within(header as HTMLElement).queryByText(String(MANUAL.length))).toBeNull();
+		// The rail keeps its link to the place: the page has no way back.
+		expect(within(screen.getByRole("main")).queryByRole("link", { name: "Library" })).toBeNull();
+		expect(page).toBeInTheDocument();
+		for (const b of within(screen.getByRole("navigation", { name: "Manual pages" })).getAllByRole(
+			"button",
+		))
+			expect(b).toHaveClass("min-h-15");
+	});
+
+	it("asks the assistant about the page, opens the shortcuts and opens the handbook", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const router = mountApp("/library/manual");
+		await screen.findByRole("article", { name: "Getting started" });
+		await user.click(screen.getByRole("button", { name: "Ask about this page" }));
+		const assistant = await screen.findByRole("complementary", { name: "Assistant" });
+		await waitFor(() =>
+			expect(within(assistant).getByRole("textbox")).toHaveValue(
+				"Explain the page Getting started of the manual.",
+			),
+		);
+		await user.click(screen.getByRole("button", { name: "Shortcuts" }));
+		expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+		await user.keyboard("{Escape}");
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		await user.click(screen.getByRole("button", { name: "Handbook of the project" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/handbook"));
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("opens with F1 for a role that hides Library: the manual is help", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const view = await unwrap(commands.rightsGet());
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+			// No page of Library is left for this role, so the place hides.
+			access: {
+				...view.person.access,
+				knowledge: "none",
+				design: "none",
+				specs: "none",
+				work: "none",
+				code: "none",
+			},
+		};
+		const router = mountApp("/today/today");
+		const rail = await screen.findByRole("navigation", { name: "Sidebar" });
+		await waitFor(() => expect(within(rail).queryByRole("link", { name: /^Library/ })).toBeNull());
+		await user.keyboard("{F1}");
+		expect(await screen.findByRole("article", { name: "Today" })).toBeInTheDocument();
+		expect(router.state.location.pathname).toBe("/library/manual");
+		// The handbook is a page of Library: this role gets no button to it.
+		expect(screen.getByRole("button", { name: "Ask about this page" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Handbook of the project" })).toBeNull();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
 	it("finds the page of an address by its place", () => {

@@ -137,6 +137,10 @@ export const knowledgeEn = {
 		search: "Search the manual",
 		results: "Results",
 		open: "Open the manual for this page",
+		ask: "Ask about this page",
+		askText: "Explain the page {page} of the manual.",
+		handbook: "Handbook of the project",
+		picture: "Picture of the page {page}",
 	},
 	dashboards: {
 		title: "Dashboards",
@@ -334,6 +338,10 @@ export const knowledgeFr: typeof knowledgeEn = {
 		search: "Chercher dans le mode d'emploi",
 		results: "Résultats",
 		open: "Ouvrir le mode d'emploi de cette page",
+		ask: "Poser une question sur cette page",
+		askText: "Explique la page {page} du mode d'emploi.",
+		handbook: "Manuel du projet",
+		picture: "Image de la page {page}",
 	},
 	dashboards: {
 		title: "Tableaux de bord",

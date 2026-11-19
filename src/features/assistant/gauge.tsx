@@ -1,6 +1,7 @@
 import { format, useI18n } from "@/lib/i18n";
 import type { Gauge as GaugeData } from "@/lib/ipc";
 import { cn } from "@/lib/utils";
+import { Progress } from "@/ui/atoms/progress";
 
 /** A ring and its text value. The value reads "60 %" for assistive tools too. */
 function Meter({ label, percent, ring }: { label: string; percent: number; ring?: boolean }) {
@@ -56,5 +57,38 @@ export function GaugeView({ gauge }: { gauge: GaugeData }) {
 				<Meter key={q.label} label={`${t.assistant.quotas} ${q.label}`} percent={q.percent} />
 			))}
 		</span>
+	);
+}
+
+/** The same figures as two bars, for the Ask page: Context, then one bar for each quota window. */
+export function GaugeBars({ gauge }: { gauge: GaugeData }) {
+	const { t } = useI18n();
+	const name = "font-semibold text-13 text-n-11";
+	return (
+		<div className="flex flex-wrap items-center gap-4">
+			<span aria-hidden="true" className={name}>
+				{t.assistant.ring}
+			</span>
+			<Progress
+				className="flex-[1_1_120px]"
+				value={gauge.usedTokens}
+				max={gauge.windowTokens}
+				label={t.assistant.ring}
+				over={gauge.usedTokens >= gauge.windowTokens * 0.8}
+			/>
+			{gauge.quotas.map((q) => (
+				<span key={q.label} className="flex flex-[1_1_180px] items-center gap-4">
+					<span aria-hidden="true" className={name}>
+						{t.assistant.quotas} {q.label}
+					</span>
+					<Progress
+						value={Math.round(q.percent)}
+						max={100}
+						label={`${t.assistant.quotas} ${q.label}`}
+						over={q.percent >= 80}
+					/>
+				</span>
+			))}
+		</div>
 	);
 }

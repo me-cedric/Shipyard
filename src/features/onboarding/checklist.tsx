@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { AnimatePresence } from "motion/react";
 import { type ReactNode, useState } from "react";
 import { connectionKeys, runnerKeys } from "@/features/settings/connections/keys";
@@ -15,8 +15,9 @@ import { RightButton } from "@/lib/rights";
 import { askForm } from "@/lib/shell";
 import { useChanges } from "@/lib/specs";
 import { useWorkItems } from "@/lib/sync";
+import { cn } from "@/lib/utils";
 import { useTeam, useWorkActions } from "@/lib/work";
-import { Button } from "@/ui/atoms/button";
+import { Button, buttonVariants } from "@/ui/atoms/button";
 import { Leave } from "@/ui/atoms/leave";
 import { Progress } from "@/ui/atoms/progress";
 import { StatusDot } from "@/ui/atoms/status-dot";
@@ -457,5 +458,50 @@ export function Checklist({
 				</Leave>
 			)}
 		</AnimatePresence>
+	);
+}
+
+/**
+ * The setup card of Today (picture 001): a ring with the progress, the name of the next step and
+ * Continue, which opens the full list in Setup / Start. It goes away when nothing is to do.
+ */
+export function SetupCard() {
+	const { t } = useI18n();
+	const s = t.onboarding.setup;
+	const state = useChecklist();
+	const next = ITEMS.find((item) => state.done[item] === false);
+	// A loading item is not done.
+	const done = ITEMS.filter((item) => state.done[item] === true).length;
+	if (!next) return null;
+	const text = format(t.home.setupStep, { done, total: ITEMS.length });
+	return (
+		<section
+			aria-label={s.title}
+			className="flex items-center gap-4 rounded-lg bg-surface-2 p-5 shadow-2"
+		>
+			<svg viewBox="0 0 44 44" aria-hidden="true" className="size-13 shrink-0 -rotate-90">
+				<circle cx="22" cy="22" r="18" fill="none" strokeWidth="5" className="stroke-n-5" />
+				<circle
+					cx="22"
+					cy="22"
+					r="18"
+					fill="none"
+					strokeWidth="5"
+					strokeLinecap="round"
+					pathLength={ITEMS.length}
+					strokeDasharray={`${done} ${ITEMS.length}`}
+					className="stroke-accent"
+				/>
+			</svg>
+			<div className="flex min-w-0 flex-col">
+				<span className="font-semibold text-n-12">
+					<Terms>{s.item[next]}</Terms>
+				</span>
+				<span className="text-n-11">{text}</span>
+			</div>
+			<Link to="/setup/start" className={cn(buttonVariants(), "ml-auto min-h-control")}>
+				{t.onboarding.continue}
+			</Link>
+		</section>
 	);
 }

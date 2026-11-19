@@ -344,6 +344,30 @@ function edit(r: Rec) {
 	if (!r.files.length) r.files = [hello];
 }
 
+/**
+ * The thread of the demo project: an answer with its trace and one changed file, on Codex (the mock
+ * reports a quota for it), so that the Ask page shows each part.
+ */
+export function seedDemoThread(a: MockAssistant, project: string) {
+	create(a, { project, resolves: () => true }, "What blocks the release");
+	const r = a.threads.at(-1);
+	if (!r) return;
+	r.thread.settings.runner = "codex";
+	r.thread.settings.mode = "agent";
+	r.thread.messages.push(
+		{ ...reply("What blocks the release?"), role: "user" },
+		reply("Two features are blocked. I changed src/hello.ts in the worktree.", {
+			trace: [
+				step("Read", "docs/plan/MASTER-PLAN.md", 120),
+				step("Grep", "blocked", 80),
+				step("Edit", "src/hello.ts", 40),
+			],
+		}),
+	);
+	r.used = 120_000;
+	edit(r);
+}
+
 export function send(
 	a: MockAssistant,
 	env: Env,

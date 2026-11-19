@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useRouter, useSearch } from "@tanstack/react-router";
+import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
+import { useBare } from "@/features/shell/bare";
 import { format, useI18n } from "@/lib/i18n";
 import {
 	type Brief,
@@ -18,17 +19,34 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
+import { StepBar } from "@/ui/atoms/step-bar";
 import { TrashIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { Dialog } from "@/ui/organisms/dialog";
+import { Row } from "@/ui/molecules/row";
+import { TILE_GRID } from "@/ui/molecules/tile";
 import { useCloneFolder } from "../clone-folder";
 import { folderOf, keyOf } from "../first-run";
-import { BriefStep, ProjectStep, type RemoteKind, RemoteStep, StartStep, TeamStep } from "./steps";
+import {
+	BriefStep,
+	KindStep,
+	ProjectStep,
+	type RemoteKind,
+	RemoteStep,
+	ROWS,
+	StartStep,
+	TeamStep,
+} from "./steps";
 
-const STEPS = ["project", "brief", "team", "remote", "start"] as const;
-/** The team role that fits the role of the person in the app. */
+/** The guided way: one question for each step. */
+const GUIDED = ["name", "kind", "tools", "team", "ready"] as const;
+/** All steps: one card for each part of the plan. */
+const CARDS = ["project", "brief", "team", "remote", "start"] as const;
 /** The team role of the first member: the personal role, `developer` when none is set. */
 const TEAM_ROLE = (r: string) => (r === "none" ? "developer" : r);
+/** The 820 px column of the page. */
+const COLUMN = "w-full max-w-205";
+const QUESTION = "text-center text-44 font-semibold text-n-12 outline-none";
 
 /** What happens after Create: the run, the starter issues or nothing. */
 function Created({
@@ -113,14 +131,35 @@ function Created({
 	);
 }
 
-function Body({ onClose }: { onClose: () => void }) {
+/**
+ * New project (spec `project-creator`, pictures 061 and 098): a bare page with its own address. The
+ * guided way asks one question for each step; All steps (`?all=true`) shows each field on one page.
+ * The project is created at the last step only. The page starts afresh at each opening.
+ */
+export function NewProject() {
+	useBare();
 	const { t, lang } = useI18n();
 	const { role } = usePrefs();
 	const qc = useQueryClient();
 	const router = useRouter();
 	const [step, setStep] = useState(0);
-	// All steps on one page, for a person who knows the answers.
-	const [all, setAll] = useState(false);
+	// All steps on one page, for a person who knows the answers. The address keeps the choice.
+	const all = (useSearch({ strict: false }) as { all?: boolean }).all === true;
+	// After a change of step the keyboard focus moves to the question.
+	const question = useRef<HTMLHeadingElement>(null);
+	const moved = useRef(false);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the step and the way are the triggers
+	useEffect(() => {
+		if (moved.current) question.current?.focus();
+	}, [step, all]);
+	const setAll = (next: boolean) => {
+		moved.current = true;
+		void router.navigate({ to: "/projects/new", search: next ? { all: true } : {}, replace: true });
+	};
+	const go = (next: number) => {
+		moved.current = true;
+		setStep(next);
+	};
 	const [parent, setParent] = useCloneFolder();
 	const [name, setName] = useState("");
 	const [keyText, setKeyText] = useState<string | null>(null);
@@ -143,6 +182,8 @@ function Body({ onClose }: { onClose: () => void }) {
 	const [runError, setRunError] = useState<unknown>(null);
 	const [runStarted, setRunStarted] = useState(false);
 	const [issues, setIssues] = useState<Row_Serialize[]>([]);
+	// The first tickets that the person removed before Create.
+	const [dropped, setDropped] = useState<string[]>([]);
 
 	const options = useQuery({
 		queryKey: ["creator", "options"],
@@ -204,6 +245,7 @@ function Body({ onClose }: { onClose: () => void }) {
 	});
 	const start =
 		chosen && preview.data?.starts.includes(chosen) ? chosen : (preview.data?.starts[0] ?? "later");
+	const first = (preview.data?.issues ?? []).filter((r) => !dropped.includes(r.reference));
 
 	const create = async () => {
 		setBusy(true);
@@ -213,7 +255,7 @@ function Body({ onClose }: { onClose: () => void }) {
 			const message = outcomeError(t, r.outcome);
 			if (message) return setError(message);
 			setResult(r);
-			setIssues(preview.data?.issues ?? []);
+			setIssues(first);
 			if (start === "run")
 				try {
 					await unwrap(commands.creatorBootstrap(true));
@@ -231,12 +273,30 @@ function Body({ onClose }: { onClose: () => void }) {
 		const project = result?.outcome.project;
 		if (project) router.history.push(project.lastView ?? "/");
 		await qc.invalidateQueries();
-		onClose();
 	};
+	// The way out: the page before this one, or Projects when the app started here.
+	const leave = () =>
+		router.history.canGoBack() ? router.history.back() : void router.navigate({ to: "/projects" });
 
-	const last = step === STEPS.length - 1;
-	// Each step by its id: the guided way shows one, All steps shows the five.
-	const part: Record<(typeof STEPS)[number], () => ReactNode> = {
+	const connect = () => {
+		// The connections of This project, with the add form on the code host.
+		askForm("connection:forge");
+		router.history.push("/setup/project?page=connections");
+	};
+	const createButton = (large?: boolean) => (
+		<Button
+			variant="primary"
+			size={large ? "lg" : "md"}
+			className={large ? "min-w-55" : "min-h-control min-w-45"}
+			// The files and the starts of Create are the ones of the current answers.
+			disabled={busy || !ready || preview.isError || !preview.data || preview.isPlaceholderData}
+			onClick={() => void create()}
+		>
+			{busy ? t.creator.creating : t.creator.create}
+		</Button>
+	);
+	// Each part of the plan by its id: a card of All steps, or the body of a guided step.
+	const part: Record<(typeof CARDS)[number], () => ReactNode> = {
 		project: () =>
 			options ? (
 				<ProjectStep
@@ -284,47 +344,33 @@ function Body({ onClose }: { onClose: () => void }) {
 				setTracker={setTracker}
 				scope={scope}
 				setScope={setScope}
-				connect={() => {
-					// The connections of This project, with the add form on the code host.
-					askForm("connection:forge");
-					router.history.push("/setup/project?page=connections");
-					onClose();
-				}}
+				connect={connect}
 			/>
 		),
-		start: () => <StartStep preview={preview.data} start={start} setStart={setChosen} />,
+		start: () => (
+			<StartStep
+				preview={preview.data}
+				start={start}
+				setStart={setChosen}
+				issues={first}
+				removeIssue={(reference) => setDropped([...dropped, reference])}
+			/>
+		),
 	};
-	return (
-		<Dialog
-			full
-			open
-			onOpenChange={(o) => {
-				// A created project stays: the close button opens it. A running Create keeps the dialog.
-				if (!o && !busy) void (result ? finish() : onClose());
-			}}
-			title={t.creator.title}
-			actions={
-				result ? (
-					<Button variant="primary" className="min-h-control" onClick={() => void finish()}>
-						{t.creator.open}
-					</Button>
-				) : (
-					<Button
-						variant="primary"
-						className="min-h-control"
-						// The files and the starts of Create are the ones of the current answers.
-						disabled={
-							busy || !ready || preview.isError || !preview.data || preview.isPlaceholderData
-						}
-						onClick={() => void create()}
-					>
-						{busy ? t.creator.creating : t.creator.create}
-					</Button>
-				)
-			}
-		>
-			<div className="flex h-full min-h-0 flex-col gap-3">
-				{result ? (
+	const errors = (
+		<>
+			{preview.isError ? <ErrorNotice error={preview.error} /> : null}
+			{error ? <ErrorNotice error={error} /> : null}
+		</>
+	);
+	const page = "flex min-h-full flex-col items-center px-4 py-12";
+
+	// A created project stays: Open shows it.
+	if (result)
+		return (
+			<div className={cn(page, "justify-center gap-9")}>
+				<h1 className={QUESTION}>{result.outcome.project?.name ?? t.creator.title}</h1>
+				<Card pad className="flex w-full max-w-xl flex-col gap-4">
 					<Created
 						result={result}
 						start={start}
@@ -333,80 +379,150 @@ function Body({ onClose }: { onClose: () => void }) {
 						issues={issues}
 						setIssues={setIssues}
 					/>
-				) : (
-					<>
-						<nav aria-label={t.creator.steps} className="flex flex-wrap gap-1">
-							{STEPS.map((s, i) => (
-								<Button
-									key={s}
-									variant="ghost"
-									aria-current={!all && i === step ? "step" : undefined}
-									className="min-h-control aria-[current=step]:font-semibold"
-									onClick={() => {
-										setAll(false);
-										setStep(i);
-									}}
+					<Button variant="primary" size="lg" onClick={() => void finish()}>
+						{t.creator.open}
+					</Button>
+				</Card>
+			</div>
+		);
+
+	if (all)
+		return (
+			<div className={cn(page, "gap-5")}>
+				<h1 ref={question} tabIndex={-1} className={QUESTION}>
+					{t.creator.title}
+				</h1>
+				<StepBar
+					total={CARDS.length}
+					current={1}
+					label={t.creator.steps}
+					className="gap-2 *:w-11"
+				/>
+				<div className={cn(COLUMN, "flex flex-col gap-4")}>
+					{CARDS.map((s, i) => (
+						<Card key={s} role="region" aria-labelledby={`creator-${s}`} className={ROWS}>
+							<h2
+								id={`creator-${s}`}
+								className="flex items-center gap-3 px-6 pt-4 pb-2 text-20 font-semibold text-n-12"
+							>
+								<span
+									aria-hidden="true"
+									className="flex size-8 items-center justify-center rounded-full bg-primary text-13 text-primary-fg"
 								>
-									<span
-										aria-hidden="true"
-										className={cn(
-											"flex size-6 items-center justify-center rounded-full text-12",
-											!all && i === step
-												? "bg-accent text-accent-fg"
-												: i < step
-													? "bg-n-12 text-n-1"
-													: "border-2 border-n-8",
-										)}
-									>
-										{i + 1}
-									</span>
-									{t.creator.step[s]}
-								</Button>
-							))}
-						</nav>
-						<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-1">
-							{STEPS.map((s, i) => {
-								const body = all || i === step ? part[s]() : null;
-								return body ? (
-									<section key={s} aria-labelledby={`creator-${s}`} className="flex flex-col gap-3">
-										<h2 id={`creator-${s}`} className="text-20 font-semibold text-n-12">
-											{t.creator.step[s]}
-										</h2>
-										{body}
-									</section>
-								) : null;
-							})}
-						</div>
-						{preview.isError ? <ErrorNotice error={preview.error} /> : null}
-						{error ? <ErrorNotice error={error} /> : null}
-						<div className="flex justify-between gap-2">
-							<Button
-								variant="ghost"
-								className="min-h-control"
-								disabled={all || step === 0}
-								onClick={() => setStep(step - 1)}
+									{i + 1}
+								</span>
+								{t.creator.step[s]}
+							</h2>
+							{part[s]()}
+							{s === "start" ? <Row className="justify-end py-2">{createButton()}</Row> : null}
+						</Card>
+					))}
+					{errors}
+					<Button className="min-h-control self-start" onClick={() => setAll(false)}>
+						{t.projects.back}
+					</Button>
+				</div>
+			</div>
+		);
+
+	const id = GUIDED[step] ?? "name";
+	const ask = { ...t.creator.ask, ready: t.projects.start }[id];
+	return (
+		<div className={cn(page, "justify-center gap-9")}>
+			<nav
+				aria-label={t.creator.steps}
+				className="flex flex-wrap items-center justify-center gap-2.5"
+			>
+				{GUIDED.map((s, i) => (
+					<Fragment key={s}>
+						{i > 0 ? <span aria-hidden="true" className="h-0.5 w-7 bg-n-8" /> : null}
+						<button
+							type="button"
+							aria-current={i === step ? "step" : undefined}
+							className={cn(
+								"inline-flex min-h-control cursor-pointer items-center gap-2 font-semibold",
+								i === step ? "text-accent-text" : i < step ? "text-n-12" : "text-n-10",
+							)}
+							onClick={() => go(i)}
+						>
+							<span
+								aria-hidden="true"
+								className={cn(
+									"flex size-7 items-center justify-center rounded-full border-2 text-13",
+									i === step
+										? "border-accent bg-accent text-accent-fg"
+										: i < step
+											? "border-primary bg-primary text-primary-fg"
+											: "border-n-8 bg-surface-1",
+								)}
 							>
-								{t.projects.back}
-							</Button>
-							<Button className="min-h-control" aria-pressed={all} onClick={() => setAll(!all)}>
-								{t.workspace.moment.allSteps}
-							</Button>
-							<Button
-								className="min-h-control"
-								disabled={all || last}
-								onClick={() => setStep(step + 1)}
-							>
-								{t.creator.next}
-							</Button>
-						</div>
-					</>
+								{i + 1}
+							</span>
+							{t.creator.guided[s]}
+						</button>
+					</Fragment>
+				))}
+			</nav>
+			<h1 id="creator-question" ref={question} tabIndex={-1} className={QUESTION}>
+				{ask}
+			</h1>
+			{id === "name" ? (
+				<Card pad className="w-full max-w-130">
+					<Input
+						label={t.projects.name}
+						value={name}
+						onChange={(e) => setName(e.target.value)}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" && name.trim()) go(1);
+						}}
+						className="min-h-13 text-17"
+					/>
+				</Card>
+			) : id === "kind" ? (
+				options ? (
+					<KindStep
+						options={options}
+						stack={stack}
+						setStack={setStack}
+						className={cn(
+							TILE_GRID,
+							COLUMN,
+							"grid-cols-[repeat(auto-fill,minmax(min(240px,100%),1fr))]",
+						)}
+					/>
+				) : null
+			) : (
+				<Card role="group" aria-labelledby="creator-question" className={cn(COLUMN, ROWS)}>
+					{part[id === "tools" ? "remote" : id === "team" ? "team" : "start"]()}
+				</Card>
+			)}
+			{errors}
+			<div className="flex flex-wrap justify-center gap-2.5">
+				<Button
+					size="lg"
+					className="min-w-35"
+					onClick={() => (step === 0 ? leave() : go(step - 1))}
+				>
+					{t.projects.back}
+				</Button>
+				<Button size="lg" className="min-w-35" onClick={() => setAll(true)}>
+					{t.workspace.moment.allSteps}
+				</Button>
+				{step === GUIDED.length - 1 ? (
+					createButton(true)
+				) : (
+					<Button
+						variant="primary"
+						size="lg"
+						className="min-w-55"
+						// A project needs a name: the next steps build on it.
+						disabled={id === "name" && !name.trim()}
+						onClick={() => go(step + 1)}
+					>
+						{t.onboarding.continue}
+					</Button>
 				)}
 			</div>
-		</Dialog>
+		</div>
 	);
-}
-
-/** The project creator (spec `project-creator`). It starts afresh at each opening. */
-export function NewProjectDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-	return open ? <Body onClose={onClose} /> : null;
 }

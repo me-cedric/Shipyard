@@ -25,7 +25,7 @@ describe("assistant panel: tabs, quote, redo and file counts", () => {
 		const user = userEvent.setup();
 		await mountAssistant();
 		const pills = within(screen.getByRole("group", { name: "Mode" }));
-		await user.click(pills.getByRole("button", { name: "Agent" }));
+		await user.click(pills.getByRole("button", { name: "Do" }));
 		await user.type(input(), "Change hello{Enter}");
 		expect(await log().findByText("I changed src/hello.ts in the worktree.")).toBeInTheDocument();
 		expect(log().getByText(/1 files/)).toBeInTheDocument();

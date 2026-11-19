@@ -219,7 +219,7 @@ describe("assistant panel: modes and failures", () => {
 	it("offers edit with approval, auto, bypass and read only", async () => {
 		const user = userEvent.setup();
 		await mountAssistant();
-		await pick(user, "Mode", "Agent");
+		await pick(user, "Mode", "Do");
 		await user.click(screen.getByRole("combobox", { name: "Permission" }));
 		const levels = (await screen.findAllByRole("option")).map((o) => o.textContent);
 		expect(levels).toEqual([
@@ -233,7 +233,7 @@ describe("assistant panel: modes and failures", () => {
 	it("waits for a denied permission, grants it with one action and shows the diff", async () => {
 		const user = userEvent.setup();
 		await mountAssistant();
-		await pick(user, "Mode", "Agent");
+		await pick(user, "Mode", "Do");
 		expect(screen.getByRole("combobox", { name: "Permission" })).toBeEnabled();
 		await say(user, "deny this");
 		expect(await log().findByRole("status")).toHaveTextContent("Waiting: Bash(pnpm test)");
@@ -252,7 +252,7 @@ describe("assistant panel: modes and failures", () => {
 	it("undoes the changed files after a confirmation: the worktree goes", async () => {
 		const user = userEvent.setup();
 		await mountAssistant();
-		await pick(user, "Mode", "Agent");
+		await pick(user, "Mode", "Do");
 		await say(user, "deny this");
 		const changed = within(await screen.findByRole("region", { name: "Changed files" }));
 		const discard = vi.spyOn(commands, "assistantWorktreeDiscard");
@@ -292,7 +292,7 @@ describe("assistant panel: Explain and Send to factory", () => {
 		await mountAssistant();
 		await say(user, "Refuse this one");
 		await log().findByText("Here is the answer.");
-		await user.click(screen.getByRole("button", { name: "Send to Flow" }));
+		await user.click(screen.getByRole("button", { name: "Send to an agent" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		await dialog.findByText(/^doc:assistant\//);
 		await user.click(dialog.getByRole("button", { name: "Send" }));
@@ -317,10 +317,10 @@ describe("assistant panel: Explain and Send to factory", () => {
 	it("needs the Send button of the dialog to create the work item", async () => {
 		const user = userEvent.setup();
 		await mountAssistant();
-		expect(screen.getByRole("button", { name: "Send to Flow" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Send to an agent" })).toBeDisabled();
 		await say(user, "Plan the export");
 		await log().findByText("Here is the answer.");
-		await user.click(screen.getByRole("button", { name: "Send to Flow" }));
+		await user.click(screen.getByRole("button", { name: "Send to an agent" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		expect(await dialog.findByText(/^doc:assistant\//)).toBeInTheDocument();
 		await user.click(dialog.getByRole("button", { name: "Close" }));
@@ -332,7 +332,7 @@ describe("assistant panel: Explain and Send to factory", () => {
 		await mountAssistant();
 		await say(user, "Plan the export");
 		await log().findByText("Here is the answer.");
-		await user.click(screen.getByRole("button", { name: "Send to Flow" }));
+		await user.click(screen.getByRole("button", { name: "Send to an agent" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		await dialog.findByText(/^doc:assistant\//);
 		await user.click(dialog.getByRole("combobox", { name: "Recipe" }));

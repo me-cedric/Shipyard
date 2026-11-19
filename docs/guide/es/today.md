@@ -1,8 +1,8 @@
 # Hoy
 
-Hoy te dice qué hacer ahora. El selector de arriba tiene tres secciones: Hoy, Novedades y Actividad. Un punto en Hoy en el menú marca novedades sin leer, y una marca muestra que una ejecución o una sesión trabaja.
+Hoy te dice qué hacer ahora. El selector de arriba tiene tres secciones: Requiere tu atención, Novedades y Actividad. Un punto en Hoy en el menú marca novedades sin leer, y una marca muestra que una ejecución o una sesión trabaja.
 
-## Lo que te espera
+## Requiere tu atención
 
 El título da el número de cosas que te esperan. Una tarjeta muestra la primera: quién pregunta, para qué funcionalidad, y la respuesta.
 

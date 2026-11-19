@@ -41,6 +41,8 @@ describe("keyboard shortcuts overlay (shell REQ-005)", () => {
 		expect(await d.findByText("Ctrl+Shift+S")).toBeVisible();
 		expect(d.getByRole("button", { name: "Change Sync" })).toBeVisible();
 		expect(d.getByText("Ctrl+K")).toBeVisible();
+		// The key comes first in its row, then the name.
+		expect(d.getByText("Ctrl+K").closest("li")?.firstElementChild).toHaveTextContent("Ctrl+K");
 	});
 
 	it("rebinds an action, runs it with the new chord and stores it in the preferences", async () => {

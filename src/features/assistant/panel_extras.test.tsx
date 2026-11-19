@@ -15,7 +15,7 @@ describe("assistant panel: trace", () => {
 		const user = userEvent.setup();
 		await mountAssistant();
 		await say(user, "Where is the plan?");
-		const summary = await log().findByText(/^Trace · 3 tools · \d+ ms$/);
+		const summary = await log().findByText(/^How I found this · 3 tools · \d+ ms$/);
 		const details = summary.closest("details");
 		expect(details).not.toHaveAttribute("open");
 		await user.click(summary);
@@ -171,7 +171,7 @@ describe("assistant panel: warnings before a risky step", () => {
 		const user = userEvent.setup();
 		await mountAssistant();
 		await user.click(
-			within(screen.getByRole("group", { name: "Mode" })).getByRole("button", { name: "Agent" }),
+			within(screen.getByRole("group", { name: "Mode" })).getByRole("button", { name: "Do" }),
 		);
 		await user.click(permission());
 		await user.click(await screen.findByRole("option", { name: "Auto: accept edits" }));
@@ -225,9 +225,9 @@ describe("assistant panel: every control renders", () => {
 		const user = userEvent.setup();
 		await mountAssistant({ view: "/work/board", selected: "spec:auth#REQ-001" });
 		const mode = within(screen.getByRole("group", { name: "Mode" }));
-		for (const m of ["Ask", "Plan", "Agent"])
+		for (const m of ["Ask", "Plan", "Do"])
 			expect(mode.getByRole("button", { name: m })).toBeVisible();
-		await user.click(mode.getByRole("button", { name: "Agent" }));
+		await user.click(mode.getByRole("button", { name: "Do" }));
 		// Threads: new, rename, delete.
 		expect(screen.getByRole("button", { name: "New thread" })).toBeVisible();
 		expect(screen.getByRole("button", { name: "Rename" })).toBeVisible();
@@ -255,7 +255,7 @@ describe("assistant panel: every control renders", () => {
 		expect(await log().findByRole("status")).toHaveTextContent("Waiting: Bash(pnpm test)");
 		expect(await screen.findByRole("region", { name: "Changed files" })).toBeVisible();
 		await user.click(log().getByRole("button", { name: "Grant" }));
-		expect((await log().findAllByText(/^Trace/))[0]).toBeVisible();
+		expect((await log().findAllByText(/^How I found this/))[0]).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "New thread" }));
 		expect(await screen.findByRole("button", { name: "Delete" })).toBeVisible();
 	}, 20_000);

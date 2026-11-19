@@ -1,22 +1,32 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { emit, listen } from "@tauri-apps/api/event";
-import { useEffect, useRef } from "react";
-import { AgentsToggle } from "@/features/factory/agents-toggle";
+import { useEffect, useRef, useState } from "react";
 import { useCounts } from "@/features/shell/counts";
 import { OPEN_PATH_EVENT, OPEN_REF_EVENT, PROJECT_SWITCHED_EVENT } from "@/features/shell/events";
 import { useGuard } from "@/features/work/guard";
-import { useDailySpend, useRunActions, useRuns } from "@/lib/factory";
+import { useCodeActions } from "@/lib/code";
+import {
+	useDailySpend,
+	useFactoryWrites,
+	useKillSwitch,
+	useRunActions,
+	useRuns,
+} from "@/lib/factory";
 import { latestPerTicket, useNeedsYou } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
 import { useActiveProject, useProjects } from "@/lib/projects";
-import { clock, TICK_EVENT, useSyncState, useSyncTick } from "@/lib/sync";
+import { clock, TICK_EVENT, useSyncNow, useSyncState, useSyncTick } from "@/lib/sync";
+import { Avatar } from "@/ui/atoms/avatar";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { LiveDot } from "@/ui/atoms/live-dot";
 import { Progress } from "@/ui/atoms/progress";
 import { Select } from "@/ui/atoms/select";
 import { Skeleton } from "@/ui/atoms/skeleton";
+import { Switch } from "@/ui/atoms/switch";
+import { ChevronRightIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 
 /** The panel is 360 wide and at least 280 high: the window fits the content. */
@@ -41,7 +51,13 @@ export function TrayView() {
 		(r) => r.lane === "working" || r.lane === "needs_you",
 	);
 	const { cancel } = useRunActions();
-	const { error, run } = useGuard();
+	const { error, busy, run } = useGuard();
+	const kill = useKillSwitch().data;
+	const writes = useFactoryWrites();
+	const syncNow = useSyncNow();
+	const { pull } = useCodeActions();
+	// The chart of 7 days and the month are behind the spend figure.
+	const [chart, setChart] = useState(false);
 	// The spend of every AI tool on this computer, as Factory / Usage shows it: Shipyard runs are in it too.
 	const spend = useDailySpend(7);
 	const { monthBudget } = spend;
@@ -112,6 +128,16 @@ export function TrayView() {
 		await commands.trayOpen();
 		if (ref && isTauri()) await emit(OPEN_REF_EVENT, ref);
 	};
+	// The sync action of the main window: commit when auto-commit is on, one tick, then pull.
+	const syncAll = async () => {
+		await unwrap(commands.autoCommitRun());
+		const tick = await syncNow().then(
+			() => null,
+			(e: unknown) => e,
+		);
+		await pull();
+		if (tick) throw tick;
+	};
 	const switchTo = async (id: string) => {
 		await unwrap(commands.projectsSwitch(id));
 		// The main window runs its own switch flow, so its page and data follow the project.
@@ -122,106 +148,146 @@ export function TrayView() {
 	return (
 		<main
 			ref={panel}
-			className="max-h-screen overflow-auto rounded-xl border border-n-6 bg-surface-1/80 text-ui text-n-12"
+			className="max-h-screen overflow-auto rounded-xl border border-n-6 bg-surface-0/90 text-ui text-n-12"
 		>
-			<div ref={content} className="flex flex-col gap-3 p-3">
-				<Select
-					label={t.projects.switcher}
-					placeholder={t.projects.switcher}
-					className="w-full min-w-0 max-w-full shrink"
-					value={active?.id ?? ""}
-					onValueChange={(id) => void run(() => switchTo(id))}
-					items={projects.map((p) => ({ value: p.id, label: p.name }))}
-				/>
-				<section
-					aria-label={t.ui.spendToday}
-					className="flex flex-col gap-2 rounded-lg bg-n-2/60 p-3"
-				>
-					<div className="flex items-end justify-between gap-3">
-						<div className="flex flex-col">
-							<span className="text-12 text-n-11">{t.ui.spendToday}</span>
-							{spend.ready ? (
-								<span className="text-20 font-semibold tabular-nums">{money.format(todayUsd)}</span>
-							) : (
-								<Skeleton className="h-7 w-20" />
-							)}
-						</div>
-						<div className="flex items-baseline gap-1.5">
-							<span className="text-12 text-n-11">{u.month}</span>
-							{spend.ready ? (
-								<span className="text-ui tabular-nums">{money.format(month)}</span>
-							) : (
-								<Skeleton className="h-5 w-12" />
-							)}
-						</div>
-					</div>
-					<div aria-hidden="true" className="flex h-10 items-end gap-1">
-						{week.map((v, i) => (
-							<span
-								key={v.day}
-								title={`${v.day}: ${money.format(v.usd)}`}
-								style={{ height: `${Math.max(2, (v.usd / top) * BAR_H)}px` }}
-								className={i === 6 ? "flex-1 rounded-sm bg-accent" : "flex-1 rounded-sm bg-n-6"}
-							/>
-						))}
-					</div>
-					{monthBudget == null ? null : (
-						<Progress value={month} max={monthBudget} label={u.month} />
-					)}
-				</section>
-				{runs.length ? (
-					<section aria-label={t.shell.runs} className="flex flex-col">
-						<h2 className="flex items-center gap-2 font-medium">
-							<LiveDot />
-							{format(u.running, { count: runs.length })}
-						</h2>
-						{runs.map((r) => (
-							<div key={r.id} className="flex h-row items-center justify-between gap-2">
-								<span className="truncate">
-									{r.key} {t.factory.lane[r.lane]}
-								</span>
-								<ConfirmButton
-									variant="ghost"
-									confirm={format(t.factory.machine.confirmStop, { name: r.key })}
-									onConfirm={() => void run(() => cancel(r.id))}
-									aria-label={format(t.factory.machine.stop, { name: r.key })}
-								>
-									{t.assistant.stop}
-								</ConfirmButton>
-							</div>
-						))}
-					</section>
-				) : null}
+			<div ref={content} className="flex flex-col gap-3 p-4">
+				<div className="flex min-h-control items-center gap-2.5">
+					<span aria-hidden="true" className="size-7 shrink-0 rounded-sm bg-accent" />
+					{/* The name is the project switch. */}
+					<Select
+						label={t.projects.switcher}
+						placeholder={t.projects.switcher}
+						className="min-w-0 max-w-full shrink border-transparent bg-transparent px-1 font-semibold text-17"
+						value={active?.id ?? ""}
+						onValueChange={(id) => void run(() => switchTo(id))}
+						items={projects.map((p) => ({ value: p.id, label: p.name }))}
+					/>
+					{sync.length && (failed || last > 0) ? (
+						<Badge
+							role="status"
+							dot
+							variant={failed ? "danger" : "success"}
+							className="ml-auto shrink-0"
+						>
+							{failed ? u.syncFailed : format(u.synced, { time: clock(last, lang) })}
+						</Badge>
+					) : null}
+				</div>
 				{needsYou ? (
-					<section aria-label={t.home.needsYou}>
-						<h2 className="font-medium">
+					<Card aria-label={t.home.needsYou} role="region" className="py-1">
+						<h2 className="px-4 pt-3 pb-0.5 font-semibold text-13 text-n-11">
 							{format(needsYou === 1 ? t.home.needsOne : t.home.needsMany, {
 								count: needsYou,
 							})}
 						</h2>
 						<ul>
 							{items.map((i) => (
-								<li key={i.id}>
+								<li key={i.id} className="[&+&]:border-t [&+&]:border-n-6">
 									<button
 										type="button"
 										onClick={() => void run(() => openItem(i.ref))}
-										className="block w-full truncate rounded-md px-2 py-1 text-left hover:bg-n-3"
+										className="flex min-h-13 w-full items-center gap-3 px-4 text-left hover:bg-n-2"
 									>
-										{i.key} {i.text}
+										<Avatar name={i.by || "Shipyard"} size="s" agent={i.who === "agent"} />
+										<span className="min-w-0 flex-1 truncate font-semibold">{i.text}</span>
+										<ChevronRightIcon size={16} />
 									</button>
 								</li>
 							))}
 						</ul>
-					</section>
+					</Card>
 				) : null}
-				{timesheet ? (
-					<section
-						aria-label={t.rights.today.noTime}
-						className="flex items-center justify-between gap-2"
+				{runs.length ? (
+					<Card aria-label={t.shell.runs} role="region" className="py-1">
+						<h2 className="px-4 pt-3 pb-0.5 font-semibold text-13 text-n-11">{u.running}</h2>
+						{runs.map((r) => (
+							<div
+								key={r.id}
+								className="flex min-h-13 items-center gap-3 pr-2 pl-4 [&+&]:border-t [&+&]:border-n-6"
+							>
+								<Avatar name={r.workflow || "Shipyard"} size="s" agent />
+								<span className="min-w-0 flex-1 truncate font-semibold">{r.title || r.key}</span>
+								<ConfirmButton
+									className="px-3"
+									confirm={format(t.factory.machine.confirmStop, { name: r.title || r.key })}
+									onConfirm={() => void run(() => cancel(r.id))}
+									aria-label={format(t.factory.machine.stop, { name: r.title || r.key })}
+								>
+									{t.assistant.stop}
+								</ConfirmButton>
+							</div>
+						))}
+					</Card>
+				) : null}
+				<Card className="flex min-h-14 flex-wrap items-center gap-x-3 px-4">
+					<span className="font-semibold">{u.agents}</span>
+					<button
+						type="button"
+						aria-expanded={chart}
+						aria-label={`${t.ui.spendToday} ${spend.ready ? money.format(todayUsd) : ""}`}
+						onClick={() => setChart((v) => !v)}
+						className="inline-flex min-h-control items-center text-n-11 tabular-nums hover:text-n-12"
 					>
-						<span className="text-n-11">{t.rights.today.noTime}</span>
+						{spend.ready ? money.format(todayUsd) : <Skeleton className="h-5 w-12" />}
+					</button>
+					{kill === undefined ? null : (
+						<span className="ml-auto">
+							<Switch
+								iconOnly
+								label={kill ? t.factory.agentsStopped : t.factory.agentsOn}
+								checked={!kill}
+								onCheckedChange={(on) => void run(() => writes.killSwitch(!on))}
+								className={kill ? "border-danger bg-danger-soft" : "data-[checked]:bg-success"}
+							/>
+						</span>
+					)}
+					{chart ? (
+						<section aria-label={t.ui.spendToday} className="flex w-full flex-col gap-2 pb-4">
+							<div className="flex items-end justify-between gap-3">
+								<div className="flex flex-col">
+									<span className="text-13 text-n-11">{t.ui.spendToday}</span>
+									{spend.ready ? (
+										<span className="font-semibold text-20 tabular-nums">
+											{money.format(todayUsd)}
+										</span>
+									) : (
+										<Skeleton className="h-7 w-20" />
+									)}
+								</div>
+								<div className="flex items-baseline gap-1.5">
+									<span className="text-13 text-n-11">{u.month}</span>
+									{spend.ready ? (
+										<span className="tabular-nums">{money.format(month)}</span>
+									) : (
+										<Skeleton className="h-5 w-12" />
+									)}
+								</div>
+							</div>
+							<div aria-hidden="true" className="flex h-10 items-end gap-1">
+								{week.map((v, i) => (
+									<span
+										key={v.day}
+										title={`${v.day}: ${money.format(v.usd)}`}
+										style={{ height: `${Math.max(2, (v.usd / top) * BAR_H)}px` }}
+										className={i === 6 ? "flex-1 rounded-sm bg-accent" : "flex-1 rounded-sm bg-n-6"}
+									/>
+								))}
+							</div>
+							{monthBudget == null ? null : (
+								<Progress value={month} max={monthBudget} label={u.month} />
+							)}
+						</section>
+					) : null}
+				</Card>
+				{timesheet ? (
+					<Card
+						role="region"
+						aria-label={t.home.logToday}
+						className="flex min-h-14 items-center gap-3 pr-2 pl-4"
+					>
+						<span className="mr-auto text-n-11">{t.home.logToday}</span>
 						<Button
-							className="min-h-control"
+							className="px-3"
 							onClick={() =>
 								void run(async () => {
 									await commands.trayOpen();
@@ -229,24 +295,23 @@ export function TrayView() {
 								})
 							}
 						>
-							{t.home.timesheetOpen}
+							{t.home.log}
 						</Button>
-					</section>
+					</Card>
 				) : null}
-				<AgentsToggle />
 				{error ? (
 					<span role="alert" className="text-danger-text">
 						{error}
 					</span>
 				) : null}
-				{sync.length && (failed || last > 0) ? (
-					<span role="status" className={failed ? "text-danger-text" : "text-n-11"}>
-						{failed ? u.syncFailed : format(u.synced, { time: clock(last, lang) })}
-					</span>
-				) : null}
-				<Button variant="primary" onClick={() => void commands.trayOpen()}>
-					{u.open}
-				</Button>
+				<div className="flex gap-2.5">
+					<Button className="flex-1" busy={busy} onClick={() => void run(syncAll)}>
+						{t.shell.sync}
+					</Button>
+					<Button variant="primary" className="flex-[2]" onClick={() => void commands.trayOpen()}>
+						{u.open}
+					</Button>
+				</div>
 			</div>
 		</main>
 	);

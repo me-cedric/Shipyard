@@ -1,6 +1,6 @@
 // The logic of the working parts: the draft kept per thread, the turn that waits, the options of a
 // reply.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import {
 	commands,
 	type FileDiff,
@@ -23,6 +23,9 @@ const clamp = (w: number) => Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.round(
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export type Assistant = ReturnType<typeof useAssistant>;
+
+/** The assistant of the shell: the side panel and the Ask page show the same state. */
+export const AssistantContext = createContext<Assistant | null>(null);
 
 /** The state of the panel. The shell holds it, so a change of view keeps the thread and the draft. */
 export function useAssistant({

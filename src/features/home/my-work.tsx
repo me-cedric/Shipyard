@@ -1,3 +1,4 @@
+import { useId, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { TicketDetail } from "@/features/work/ticket-detail";
 import { useRunActions } from "@/lib/factory";
@@ -7,9 +8,7 @@ import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useWorkItems } from "@/lib/sync";
 import { memberName, useTeam, useWorkActions, useWorkContext } from "@/lib/work";
-import { Badge } from "@/ui/atoms/badge";
 import { Select } from "@/ui/atoms/select";
-import { Panel } from "@/ui/molecules/panel";
 import { TicketRow, type WorkCategory } from "@/ui/molecules/ticket-row";
 import { useMyItems } from "./stats";
 
@@ -30,8 +29,8 @@ function MyTicket({ itemKey, statuses }: { itemKey: string; statuses: string[] }
 	if (!item) return null;
 	const open = () => openDetail(item.key, <TicketDetail key={item.key} itemKey={item.key} />);
 	return (
-		<div className="border-b last:border-b-0">
-			<div className="flex items-center gap-2 pr-3">
+		<div className="border-t border-n-6">
+			<div className="flex flex-wrap items-center gap-2 pr-3 pl-3">
 				<div className="min-w-0 flex-1">
 					<TicketRow
 						itemKey={item.key}
@@ -79,11 +78,16 @@ function MyTicket({ itemKey, statuses }: { itemKey: string; statuses: string[] }
 	);
 }
 
-/** The work of the person in three groups: in progress, to do and done in 7 days (spec:app-redesign#REQ-009). A group with nothing hides. */
+/**
+ * The work of the person as three counts (picture 092): in progress, to do and done in 7 days
+ * (spec:app-redesign#REQ-009). A count opens its tickets, each with its status and Start run.
+ */
 export function MyWork() {
 	const { t } = useI18n();
 	const d = t.home.today;
 	const mine = useMyItems();
+	const [open, setOpen] = useState<string | null>(null);
+	const title = useId();
 	const statuses = [...new Set((useWorkItems({}).data ?? []).map((i) => i.status))];
 	const recent = (i: { updated: string }) => {
 		const at = Date.parse(i.updated);
@@ -95,27 +99,27 @@ export function MyWork() {
 		["done", d.done, mine.filter((i) => i.category === "done" && recent(i))],
 	];
 	return (
-		<>
-			{mine.length ? (
-				<h2
-					aria-label={format(t.count, { name: t.ui.myItems, count: mine.length })}
-					className="flex items-center gap-2 px-4 text-14 font-medium text-n-12"
-				>
-					{t.ui.myItems}
-					<Badge className="font-mono">{mine.length}</Badge>
-				</h2>
-			) : null}
-			{groups.map(([id, name, rows]) =>
-				rows.length ? (
-					<div key={id} className="px-4">
-						<Panel title={name} count={rows.length} flush>
-							{rows.map((i) => (
-								<MyTicket key={i.key} itemKey={i.key} statuses={statuses} />
-							))}
-						</Panel>
-					</div>
-				) : null,
-			)}
-		</>
+		<section aria-labelledby={title} className="rounded-lg bg-surface-2 py-2 shadow-2">
+			<h2 id={title} className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">
+				{t.home.myWork}
+			</h2>
+			{groups.map(([id, name, rows]) => (
+				<div key={id} className="border-t border-n-6 first-of-type:border-t-0">
+					<button
+						type="button"
+						aria-expanded={open === id}
+						disabled={rows.length === 0}
+						onClick={() => setOpen(open === id ? null : id)}
+						className="flex min-h-15 w-full cursor-pointer items-center gap-3 px-6 text-left text-n-12 disabled:cursor-default"
+					>
+						<span className="font-semibold">{name}</span>
+						<span className="ml-auto text-n-11">{rows.length}</span>
+					</button>
+					{open === id
+						? rows.map((i) => <MyTicket key={i.key} itemKey={i.key} statuses={statuses} />)
+						: null}
+				</div>
+			))}
+		</section>
 	);
 }

@@ -1,18 +1,20 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { SetupCard } from "@/features/onboarding/checklist";
 import { type NeedsYouItem, useNeedsYou } from "@/lib/home";
-import { format, useI18n } from "@/lib/i18n";
+import { format, type Messages, useI18n } from "@/lib/i18n";
 import { useRights } from "@/lib/rights";
+import { useShell } from "@/lib/shell";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
+import { linkClass } from "@/ui/atoms/link-button";
 import { ArrowPathIcon, ChevronRightIcon, ClockIcon } from "@/ui/icons";
-import { AttentionCard } from "@/ui/molecules/attention-card";
+import { approvalSentence } from "@/ui/molecules/approval-bar";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { MenuButton } from "@/ui/molecules/menu-button";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { SinceAway } from "./away";
-import { NeedsRow } from "./inbox/inbox";
-import { MyWork } from "./my-work";
-import { RolePanels } from "./role-panels";
+import { NeedsRow, OpenQuestion } from "./inbox/inbox";
 import { useMyItems } from "./stats";
 import { TimeReminder } from "./time-reminder";
 import { WorkingNow } from "./working-now";
@@ -23,15 +25,34 @@ function useWho() {
 	return (x: NeedsYouItem) => x.by || (x.who === "agent" ? t.home.agent : t.rights.today.you);
 }
 
+/** What the person does for a thing, in plain words: the heading of the card and the bold text of a queue row. */
+function actionOf(t: Messages, x: NeedsYouItem) {
+	const h = t.home;
+	switch (x.kind) {
+		case "approval":
+			return x.items.length === 1
+				? approvalSentence(h.approval, x.item)
+				: format(h.effectsWait, { count: x.items.length });
+		case "plan":
+			return h.act.plan;
+		case "review":
+			return h.act.review;
+		default:
+			return x.text;
+	}
+}
+
 /**
- * Today / Needs you: what to do now, one thing at a time (spec:app-redesign#REQ-007, REQ-009; adr:0023).
- * The title gives the count; the card holds the answer controls of the first thing; a short queue
- * lists the next ones. `start` shows under the header: the Get started steps of a new project.
+ * Today / Needs you: what to do now, one thing at a time (spec:app-redesign#REQ-007, REQ-009; adr:0023,
+ * picture 001). The title gives the count; the card holds the answer controls of the first thing; a
+ * short queue lists the next ones. The right column shows who works now, the next setup step, the
+ * time reminder and the way to the panels of the role.
  */
-export function Today({ start }: { start?: ReactNode }) {
+export function Today() {
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const navigate = useNavigate();
+	const { openRef } = useShell();
 	const role = useRights().role;
 	const who = useWho();
 	const [everyone, setEveryone] = useState(false);
@@ -71,6 +92,7 @@ export function Today({ start }: { start?: ReactNode }) {
 		setPicked(null);
 	};
 	const nothing = items.length === 0 && mine.length === 0 && !timesheet;
+	const toEnd = ordered.length > 1 && first ? () => toLater(first.id) : undefined;
 	return (
 		// tabIndex -1: where the focus lands when the last thing leaves (`Leave`).
 		<div ref={page} tabIndex={-1} className="flex min-h-0 flex-1 flex-col gap-4 pb-4 outline-none">
@@ -81,83 +103,127 @@ export function Today({ start }: { start?: ReactNode }) {
 						? format(ordered.length === 1 ? t.home.needsOne : t.home.needsMany, {
 								count: ordered.length,
 							})
-						: t.tabs.home.today
+						: t.ui.place.today
 				}
-				menu={[
-					{
-						label: t.home.refresh,
-						icon: <ArrowPathIcon size={12} />,
-						onClick: () => void qc.invalidateQueries(),
-					},
-				]}
 			/>
-			{start}
-			{role === null ? null : (
-				<Button
-					aria-pressed={everyone}
-					className="mx-4 min-h-control self-end"
-					onClick={() => setEveryone(!everyone)}
-				>
-					{t.rights.everyone}
-				</Button>
-			)}
-			<div className="grid gap-4 px-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-				<div className="flex min-w-0 flex-col gap-4">
+			<div className="flex flex-wrap items-start gap-7 px-4">
+				<div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
 					{first ? (
-						<AttentionCard who={who(first)} title={`${first.key} ${first.title}`}>
-							<p className="text-ui text-n-11">
-								{format(t.home.position, { n: ordered.indexOf(first) + 1, total: ordered.length })}
-							</p>
-							<NeedsRow key={first.id} item={first} onLater={() => toLater(first.id)} />
-							{/* An approval question has its own Not yet. */}
-							{ordered.length > 1 && first.kind !== "approval" ? (
-								<Button className="min-h-control self-start" onClick={() => toLater(first.id)}>
-									{t.home.later}
-								</Button>
-							) : null}
-						</AttentionCard>
+						<article className="flex min-w-0 flex-col gap-6 rounded-lg bg-surface-2 p-8 shadow-2">
+							<div className="flex flex-wrap items-center gap-3">
+								<Avatar agent={first.who === "agent"} name={who(first)} />
+								<span className="font-semibold text-n-12">{who(first)}</span>
+								{first.ref ? (
+									<button
+										type="button"
+										className="min-h-control min-w-0 cursor-pointer truncate text-n-11 hover:text-n-12"
+										onClick={() => openRef(first.ref)}
+									>
+										{first.title}
+									</button>
+								) : (
+									<span className="min-w-0 truncate text-n-11">{first.title}</span>
+								)}
+								<span className="ml-auto text-n-11">
+									{format(t.home.position, {
+										n: ordered.indexOf(first) + 1,
+										total: ordered.length,
+									})}
+								</span>
+							</div>
+							{/* tabIndex -1: the focus lands here when the card changes. */}
+							<h3
+								tabIndex={-1}
+								className="text-30 leading-tight font-semibold text-n-12 outline-none"
+							>
+								{actionOf(t, first)}
+							</h3>
+							{first.kind === "question" && first.item.question.state === "open" ? (
+								<OpenQuestion key={first.id} item={first.item} onLater={toEnd} />
+							) : (
+								<>
+									{/* The rows are cards on the feature page: here the card of Today is the one surface. */}
+									<div className="[&>div]:bg-transparent [&>div]:shadow-1">
+										<NeedsRow key={first.id} item={first} onLater={() => toLater(first.id)} />
+									</div>
+									{/* An approval question has its own Not yet. */}
+									{toEnd && first.kind !== "approval" ? (
+										<Button className="min-h-control self-start" onClick={toEnd}>
+											{t.home.later}
+										</Button>
+									) : null}
+								</>
+							)}
+						</article>
 					) : null}
 					{queue.length ? (
-						<ul aria-label={t.home.needsYou} className="rounded-xl border bg-surface-2 shadow-1">
+						<ul aria-label={t.home.needsYou} className="rounded-lg bg-surface-2 shadow-2">
 							{queue.map((x) => (
-								<li key={x.id} className="border-b last:border-b-0">
+								<li key={x.id} className="border-t border-n-6 first:border-t-0">
 									<button
 										type="button"
 										onClick={() => {
 											moved.current = true;
 											setPicked(x.id);
 										}}
-										className="flex min-h-control w-full items-center gap-3 px-4 text-left text-ui hover:bg-n-3"
+										className="flex min-h-16 w-full cursor-pointer items-center gap-3.5 px-5 py-2 text-left text-n-12"
 									>
-										<span className="font-medium">{who(x)}</span>{" "}
-										<span className="min-w-0 flex-1 truncate">{x.text}</span>{" "}
-										<span className="truncate text-n-11">
-											{x.key} {x.title}
-										</span>{" "}
-										<ChevronRightIcon size={14} />
+										<Avatar agent={x.who === "agent"} name={who(x)} />
+										<span className="min-w-0 truncate font-semibold">{actionOf(t, x)}</span>{" "}
+										<span className="min-w-0 truncate text-n-11">{x.title}</span>
+										<span className="ml-auto flex shrink-0">
+											<ChevronRightIcon size={20} />
+										</span>
 									</button>
 								</li>
 							))}
 						</ul>
 					) : null}
+					{nothing && !loading ? (
+						<EmptyState
+							title={t.empty.needsYou}
+							action={{
+								label: t.home.today.backlog,
+								onClick: () => void navigate({ to: "/flow/list" }),
+							}}
+						/>
+					) : null}
 				</div>
-				<div className="flex min-w-0 flex-col gap-4">
+				<div className="flex min-w-0 flex-[2_1_340px] flex-col gap-4">
 					<WorkingNow />
+					<SetupCard />
+					<TimeReminder />
+					<div className="flex flex-wrap items-center gap-4">
+						<Link to="/today/panels" className={linkClass}>
+							{t.home.myPanels}
+						</Link>
+						<span className="ml-auto">
+							<MenuButton
+								label={t.ui.more}
+								items={[
+									{
+										id: "refresh",
+										label: t.home.refresh,
+										icon: <ArrowPathIcon size={12} />,
+										onSelect: () => void qc.invalidateQueries(),
+									},
+									// The routing by role is on only for a person with a role.
+									...(role === null
+										? []
+										: [
+												{
+													id: "everyone",
+													label: t.rights.everyone,
+													checked: everyone,
+													onSelect: () => setEveryone(!everyone),
+												},
+											]),
+								]}
+							/>
+						</span>
+					</div>
 				</div>
 			</div>
-			<TimeReminder />
-			<RolePanels />
-			<MyWork />
-			<SinceAway />
-			{nothing && !loading ? (
-				<EmptyState
-					title={t.empty.needsYou}
-					action={{
-						label: t.home.today.backlog,
-						onClick: () => void navigate({ to: "/flow/list" }),
-					}}
-				/>
-			) : null}
 		</div>
 	);
 }

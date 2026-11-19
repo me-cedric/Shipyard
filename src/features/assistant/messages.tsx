@@ -2,6 +2,7 @@ import { format, useI18n } from "@/lib/i18n";
 import type { ChatMessage, FileDiff } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
 import { cn, formatDuration } from "@/lib/utils";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { LiveDot } from "@/ui/atoms/live-dot";
@@ -29,6 +30,9 @@ const BUBBLE = {
 		"flex max-w-[92%] flex-col gap-2 self-start rounded-2xl rounded-bl-sm border bg-surface-2 px-3 py-2 shadow-1",
 };
 
+/** The Ask page: the answer is a card with the avatar of Shipyard, as the answer of the Ask bar. */
+const CARD = "flex flex-col gap-3.5 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2";
+
 const WRITES = /edit|write|patch/i;
 
 /** The files that the tool calls changed: each target of a write tool, once. */
@@ -53,14 +57,21 @@ function Steps({ steps }: { steps: ChatMessage["trace"] }) {
 }
 
 /** One line when the turn ends. The person expands it to see each tool call. */
-function Trace({ steps }: { steps: ChatMessage["trace"] }) {
+function Trace({ steps, full }: { steps: ChatMessage["trace"]; full?: boolean }) {
 	const { t, lang } = useI18n();
 	if (!steps.length) return null;
 	const total = steps.reduce((sum, s) => sum + s.ms, 0);
 	const files = filesTouched(steps);
 	return (
 		<details className="group text-12 text-n-11">
-			<summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-full border bg-n-2 px-2 py-0.5 hover:text-n-12 [&::-webkit-details-marker]:hidden">
+			<summary
+				className={cn(
+					"inline-flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden",
+					full
+						? "min-h-control font-semibold text-accent text-ui hover:text-accent-hover"
+						: "rounded-full border bg-n-2 px-2 py-0.5 hover:text-n-12",
+				)}
+			>
 				<span
 					aria-hidden="true"
 					className="transition-transform duration-(--duration-fast) group-open:rotate-90"
@@ -101,7 +112,9 @@ function Reply({
 	insert,
 	canInsert,
 	onOpenRef,
+	full,
 }: {
+	full?: boolean;
 	m: ChatMessage;
 	last: boolean;
 	a: Assistant;
@@ -114,7 +127,7 @@ function Reply({
 	const options = last && s.state === "done" && !a.busy ? replyOptions(m.text) : [];
 	return (
 		<>
-			<Trace steps={m.trace} />
+			<Trace steps={m.trace} full={full} />
 			{parseReply(m.text).map((p, i) =>
 				p.kind === "code" ? (
 					p.lang === "mermaid" ? (
@@ -215,11 +228,22 @@ function Reply({
 	);
 }
 
-function Changed({ files, onUndo }: { files: FileDiff[]; onUndo: () => void }) {
+function Changed({
+	files,
+	onUndo,
+	full,
+}: {
+	files: FileDiff[];
+	onUndo: () => void;
+	full?: boolean;
+}) {
 	const { t } = useI18n();
 	if (!files.length) return null;
 	return (
-		<section aria-label={t.assistant.changed} className="flex flex-col gap-1 border-t pt-2">
+		<section
+			aria-label={t.assistant.changed}
+			className={full ? CARD : "flex flex-col gap-1 border-t pt-2"}
+		>
 			<h3 className="text-12 font-medium">{t.assistant.changed}</h3>
 			{files.map((f) => (
 				<details key={f.path} className="text-12">
@@ -236,7 +260,7 @@ function Changed({ files, onUndo }: { files: FileDiff[]; onUndo: () => void }) {
 				</details>
 			))}
 			<ConfirmButton
-				variant="ghost"
+				variant={full ? "secondary" : "ghost"}
 				className="min-h-control self-start"
 				confirm={t.assistant.undoConfirm}
 				onConfirm={onUndo}
@@ -253,7 +277,10 @@ export function Messages({
 	insert,
 	canInsert,
 	onOpenRef,
+	full,
 }: {
+	/** The look of the Ask page. */
+	full?: boolean;
 	a: Assistant;
 	insert: (text: string) => void;
 	canInsert: boolean;
@@ -266,16 +293,25 @@ export function Messages({
 		<div
 			role="log"
 			aria-label={t.assistant.messages}
-			className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3"
+			className={cn(
+				"flex min-h-0 flex-1 flex-col overflow-y-auto",
+				full ? "gap-4 p-1" : "gap-3 p-3",
+			)}
 		>
 			{list.map((m, i) => (
 				<article
 					// biome-ignore lint/suspicious/noArrayIndexKey: the transcript only grows
 					key={i}
 					aria-label={m.role === "user" ? t.assistant.you : t.assistant.assistant}
-					className={m.role === "user" ? BUBBLE.user : BUBBLE.assistant}
+					className={m.role === "user" ? BUBBLE.user : full ? CARD : BUBBLE.assistant}
 				>
 					<h3 className="sr-only">{m.role === "user" ? t.assistant.you : t.assistant.assistant}</h3>
+					{full && m.role !== "user" ? (
+						<div aria-hidden="true" className="flex items-center gap-3 font-semibold">
+							<Avatar name="Shipyard" agent />
+							Shipyard
+						</div>
+					) : null}
 					{m.role === "user" ? (
 						<>
 							<p className="whitespace-pre-wrap text-ui">{m.text}</p>
@@ -298,6 +334,7 @@ export function Messages({
 							insert={insert}
 							canInsert={canInsert}
 							onOpenRef={onOpenRef}
+							full={full}
 						/>
 					)}
 				</article>
@@ -323,7 +360,7 @@ export function Messages({
 					) : null}
 				</>
 			) : null}
-			<Changed files={a.changed} onUndo={() => void a.undo()} />
+			<Changed files={a.changed} onUndo={() => void a.undo()} full={full} />
 		</div>
 	);
 }

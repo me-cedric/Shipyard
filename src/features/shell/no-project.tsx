@@ -1,7 +1,6 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { CloneDialog } from "@/features/projects/clone-dialog";
-import { NewProjectDialog } from "@/features/projects/new-project/new-project-dialog";
 import { useI18n } from "@/lib/i18n";
 import { outcomeError, useActiveProject, useProjectActions } from "@/lib/projects";
 import { Button, buttonVariants } from "@/ui/atoms/button";
@@ -21,9 +20,9 @@ export function NoProject(_: { title: string; icon: ReactNode }) {
 	useBare();
 	const { t } = useI18n();
 	const { openFolder } = useProjectActions();
+	const navigate = useNavigate();
 	const [error, setError] = useState<unknown>(null);
 	const [cloning, setCloning] = useState(false);
-	const [creating, setCreating] = useState(false);
 	return (
 		<div className="flex min-h-full flex-col items-center justify-center px-4 py-12">
 			<Card
@@ -37,7 +36,7 @@ export function NoProject(_: { title: string; icon: ReactNode }) {
 					{t.workspace.moment.noProject}
 				</h1>
 				<div className="flex flex-wrap justify-center gap-3">
-					<Button onClick={() => setCreating(true)}>{t.creator.title}</Button>
+					<Button onClick={() => void navigate({ to: "/projects/new" })}>{t.creator.title}</Button>
 					<Button onClick={() => setCloning(true)}>{t.projects.clone}</Button>
 					<Button
 						onClick={() =>
@@ -55,7 +54,6 @@ export function NoProject(_: { title: string; icon: ReactNode }) {
 				{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 			</Card>
 			<CloneDialog open={cloning} onClose={() => setCloning(false)} />
-			<NewProjectDialog open={creating} onClose={() => setCreating(false)} />
 		</div>
 	);
 }

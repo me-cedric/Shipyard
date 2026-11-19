@@ -103,6 +103,14 @@ export const de: Messages = {
 		notCommitted: "Noch nicht committet",
 		open: "Öffnen",
 		edit: "Bearbeiten",
+		explain: "Mit einem Agenten erklären",
+		linked: "Verknüpft mit",
+		copyRef: "Referenz kopieren",
+		state: {
+			resolved: "Dieses Element ist im Projekt.",
+			unresolved: "Das Projekt hat noch kein Element mit diesem Namen.",
+			broken: "Dieser Link zeigt auf ein Element, das es nicht mehr gibt.",
+		},
 	},
 	nav: {
 		sidebar: "Seitenleiste",
@@ -163,7 +171,12 @@ export const de: Messages = {
 		settings: "Einstellungen",
 	},
 	tabs: {
-		home: { today: "Heute", news: "Neuigkeiten", activity: "Aktivität", projects: "Projekte" },
+		home: {
+			today: "Wartet auf Sie",
+			news: "Neuigkeiten",
+			activity: "Aktivität",
+			projects: "Projekte",
+		},
 		design: {
 			diagrams: "Diagramme",
 			architecture: "Architektur",
@@ -255,7 +268,13 @@ export const de: Messages = {
 		health: "Zustand",
 		version: "Version {version}",
 		lines: "Änderungen: {added} Zeilen hinzugefügt, {removed} entfernt",
-		whatsNew: { title: "Neu in {version}", none: "Keine Hinweise für diese Version." },
+		whatsNew: {
+			title: "Neu in {version}",
+			none: "Keine Hinweise für diese Version.",
+			added: "Neu",
+			fixed: "Behoben",
+			all: "Alle Versionen",
+		},
 		toggleSidebar: "Seitenleiste umschalten",
 		toggleInspector: "Inspektor umschalten",
 		openRef: "{ref} öffnen",

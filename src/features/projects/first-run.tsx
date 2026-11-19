@@ -32,7 +32,6 @@ import { Option } from "@/ui/molecules/option";
 import { STATE_DOT } from "@/ui/molecules/project-switcher";
 import { TILE_GRID, Tile } from "@/ui/molecules/tile";
 import { useCloneFolder } from "./clone-folder";
-import { NewProjectDialog } from "./new-project/new-project-dialog";
 import { RepoPicker } from "./repo-picker";
 
 type Step = "role" | "start" | "clone";
@@ -196,7 +195,7 @@ export function FirstRun() {
 	}, [chosen]);
 	const [url, setUrl] = useState("");
 	const [folder, setFolder] = useCloneFolder();
-	const [creating, setCreating] = useState(false);
+	const router = useRouter();
 	if (!step) return null;
 
 	return (
@@ -263,7 +262,7 @@ export function FirstRun() {
 						<Tile
 							icon={<PlusIcon size={24} />}
 							label={t.projects.create}
-							onClick={() => setCreating(true)}
+							onClick={() => router.history.push("/projects/new")}
 						/>
 					</div>
 					{recent.length ? (
@@ -316,7 +315,6 @@ export function FirstRun() {
 				</Card>
 			)}
 			<StartError start={start} />
-			<NewProjectDialog open={creating} onClose={() => setCreating(false)} />
 		</div>
 	);
 }

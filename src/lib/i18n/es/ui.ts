@@ -33,7 +33,8 @@ export const uiEs: typeof uiEn = {
 	spendToday: "Gasto de hoy",
 	tray: {
 		month: "Mes",
-		running: "{count} en curso",
+		running: "En curso",
+		agents: "Agentes",
 		synced: "Sincronizado {time}",
 		syncFailed: "Falló la sincronización",
 		open: "Abrir Shipyard",

@@ -24,7 +24,7 @@ const run = async (key: string) => {
 };
 
 describe("Home / Today, Needs you", () => {
-	it("counts what waits in the title, in one list, and shows a run chip and the key on the card", async () => {
+	it("counts what waits in the title, in one list, and shows who asks, the feature and the question on the card", async () => {
 		await renderNeedsYou();
 		const [questions, approvals, plans, messages] = await Promise.all([
 			unwrap(commands.questionsList()),
@@ -40,19 +40,23 @@ describe("Home / Today, Needs you", () => {
 		).toBeInTheDocument();
 		const waiting = await run("ACME-1");
 		const on = await card();
-		const row = await on.findByRole("region", { name: "Q-101" });
+		// The feature name opens the run. The card shows no raw id.
+		expect(await on.findByRole("button", { name: waiting.title })).toBeInTheDocument();
+		expect(on.getByText(waiting.workflow)).toBeInTheDocument();
 		expect(
-			within(row).getByRole("button", { name: new RegExp(`run:${waiting.id}`) }),
+			on.getByRole("heading", {
+				level: 3,
+				name: "Where should the user land after the session expires?",
+			}),
 		).toBeInTheDocument();
-		expect(on.getByRole("heading", { name: /^ACME-1 / })).toBeInTheDocument();
+		expect(on.queryByText(/Q-101|run:/)).toBeNull();
 	});
 
 	it("answers an open question with a digit and Enter, and the card says Answered", async () => {
 		const user = userEvent.setup();
 		await renderNeedsYou();
 		const on = await card();
-		const row = within(await on.findByRole("region", { name: "Q-101" }));
-		await user.click(row.getByRole("radio", { name: /The home page/ }));
+		await user.click(await on.findByRole("button", { name: "The home page" }));
 		await user.keyboard("{Enter}");
 		await waitFor(() => expect(on.getByText("Answered")).toBeInTheDocument());
 		const q = mockState().factory.questions.find((x) => x.q.id === "Q-101")?.q;
@@ -65,9 +69,11 @@ describe("Home / Today, Needs you", () => {
 		const before = (await unwrap(commands.approvalsList())).length;
 		const heading = await screen.findByRole("heading", { level: 1, name: /things need you$/ });
 		const count = Number(/^(\d+)/.exec(heading.textContent ?? "")?.[1]);
-		await pick(user, /Comment on ACME-1: the question/);
+		await pick(user, /Post a comment on ACME-1/);
 		const on = await card();
-		expect(await on.findByText("Post a comment on ACME-1")).toBeVisible();
+		expect(
+			await on.findByRole("heading", { level: 3, name: "Post a comment on ACME-1" }),
+		).toBeVisible();
 		await user.click(on.getByRole("button", { name: "Approve" }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.approvalsList())).length).toBe(before - 1),
@@ -82,7 +88,7 @@ describe("Home / Today, Needs you", () => {
 	it("names a force push in plain words, in the danger colour, with the command hidden", async () => {
 		const user = userEvent.setup();
 		await renderNeedsYou();
-		await pick(user, /Force push fix\/ACME-10/);
+		await pick(user, /Replace the code of ACME-10 on the server/);
 		const bar = await screen.findByRole("region", {
 			name: "Replace the code of ACME-10 on the server",
 		});
@@ -94,7 +100,7 @@ describe("Home / Today, Needs you", () => {
 	it("shows the start of the plan on the plan row, with an Open plan action", async () => {
 		const user = userEvent.setup();
 		await renderNeedsYou();
-		await pick(user, new RegExp(`${(await run("ACME-4")).title} ACME-4`));
+		await pick(user, new RegExp(`Review the plan ${(await run("ACME-4")).title}`));
 		expect(await screen.findByText(/Add the export button\./)).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Open plan" })).toBeInTheDocument();
 	});
@@ -102,7 +108,7 @@ describe("Home / Today, Needs you", () => {
 	it("approves a plan, and the run goes on", async () => {
 		const user = userEvent.setup();
 		await renderNeedsYou();
-		await pick(user, new RegExp(`${(await run("ACME-4")).title} ACME-4`));
+		await pick(user, new RegExp(`Review the plan ${(await run("ACME-4")).title}`));
 		await user.click(await screen.findByRole("button", { name: "Approve plan" }));
 		await waitFor(async () => expect((await run("ACME-4")).state).toBe("Working"));
 	});

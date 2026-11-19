@@ -1,6 +1,12 @@
-import { Outlet, useRouterState } from "@tanstack/react-router";
+import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AskOnItem, AssistantPanel, SelectionActions, useAssistant } from "@/features/assistant";
+import {
+	AskOnItem,
+	AssistantContext,
+	AssistantPanel,
+	SelectionActions,
+	useAssistant,
+} from "@/features/assistant";
 import { FileDrawer } from "@/features/code/file-drawer";
 import { TerminalDrawer } from "@/features/code/terminal-drawer";
 import { Tour } from "@/features/onboarding";
@@ -91,21 +97,25 @@ function Frame() {
 	// A detail belongs to the view that opened it: leaving the view closes it.
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	// One assistant for every space: the shell holds its state, so a change of view keeps it.
-	const chat = useAssistant({ open: assistantOpen, view: path, selected: selectedRef });
+	// The Ask page is the full assistant: it shows the same state, and the side panel leaves the frame.
+	const full = path === "/ask";
+	const chatOpen = assistantOpen || full;
+	const navigate = useNavigate();
+	const chat = useAssistant({ open: chatOpen, view: path, selected: selectedRef });
 	// The Explain action of the inspector, the palette and the menu waits for a thread.
 	const { current, busy, explain } = chat;
 	useEffect(() => {
-		if (!explainRef || !assistantOpen || !current || busy) return;
+		if (!explainRef || !chatOpen || !current || busy) return;
 		clearExplain();
 		void explain(explainRef);
-	}, [explainRef, assistantOpen, current, busy, explain, clearExplain]);
+	}, [explainRef, chatOpen, current, busy, explain, clearExplain]);
 	// A view that asks the assistant (a pull request, a conflict) leaves its text in the draft.
 	const { setDraft } = chat;
 	useEffect(() => {
-		if (prefill === null || !assistantOpen || !current) return;
+		if (prefill === null || !chatOpen || !current) return;
 		setDraft(prefill);
 		clearPrefill();
-	}, [prefill, assistantOpen, current, setDraft, clearPrefill]);
+	}, [prefill, chatOpen, current, setDraft, clearPrefill]);
 	const open = useRef(detail);
 	open.current = detail;
 	// A change of view closes the detail and drops the selection of the view that it leaves.
@@ -140,7 +150,11 @@ function Frame() {
 					)
 				}
 				sidebar={<Sidebar />}
-				main={<Outlet />}
+				main={
+					<AssistantContext.Provider value={chat}>
+						<Outlet />
+					</AssistantContext.Provider>
+				}
 				drawer={
 					project && filesOpen ? (
 						<FileDrawer key={project.id} onClose={() => setFilesOpen(false)} />
@@ -157,18 +171,23 @@ function Frame() {
 				bottomDock={terminalDock}
 				assistantSide={chat.side}
 				assistant={
-					<AssistantPanel
-						assistant={chat}
-						open={assistantOpen}
-						onClose={() => setAssistantOpen(false)}
-						onOpenRef={openRef}
-					/>
+					full ? null : (
+						<AssistantPanel
+							assistant={chat}
+							open={assistantOpen}
+							onClose={() => setAssistantOpen(false)}
+							onOpenRef={openRef}
+							onFull={() => void navigate({ to: "/ask" })}
+						/>
+					)
 				}
 				inspector={
 					<Inspector
 						open={inspectorOpen}
 						onClose={() => setInspectorOpen(false)}
 						title={detail?.title ?? t.inspector.title}
+						// A link opens as a card over the page. The detail of a view stays a side panel.
+						card={!detail && selectedRef !== null}
 					>
 						{detail ? (
 							detail.node

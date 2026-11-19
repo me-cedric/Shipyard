@@ -41,8 +41,7 @@ import { hiddenTab, tabLabel } from "./spaces";
 export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut?: string }) {
 	const { t, lang } = useI18n();
 	const { promptLang } = usePrefs();
-	const { paletteOpen, setPaletteOpen, openRef, openRefAt, ask, selectedRef, setAssistantOpen } =
-		useShell();
+	const { paletteOpen, setPaletteOpen, openRef, openRefAt, ask, selectedRef } = useShell();
 	const input = useRef<HTMLInputElement>(null);
 	// The palette shortcut and the project switcher open the panel: the focus goes to the bar.
 	useEffect(() => {
@@ -236,6 +235,20 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		},
 	];
 
+	// Under an answer the text is a question, not a label: the lists show the places that the text
+	// names, else Flow and Plan, and the usual actions.
+	const words = text
+		.toLowerCase()
+		.split(/[^\p{L}\p{N}]+/u)
+		.filter((w) => w.length > 2);
+	const short = (g: PaletteGroup): PaletteGroup => {
+		if (g.id === "do")
+			return { ...g, items: g.items.filter((i) => i.id === "new-feature" || i.id === "sync") };
+		if (g.id !== "go") return g;
+		const named = g.items.filter((i) => words.some((w) => i.label.toLowerCase().includes(w)));
+		const usual = g.items.filter((i) => i.id === "go-flow-flow" || i.id === "go-plan-timeline");
+		return { ...g, items: (named.length ? named : usual).slice(0, 4) };
+	};
 	const found = answerOf(
 		text,
 		features ?? [],
@@ -335,8 +348,9 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 					e.preventDefault();
 					const v = reply.trim();
 					if (!v) return;
-					// The reply goes to the full assistant, as the text of the bar does.
-					ask(v);
+					// The reply goes to the full assistant, under the question that it answers.
+					ask(text ? `${text}\n\n${v}` : v);
+					void navigate({ to: "/ask" });
 					setReply("");
 					setQuery("");
 					setPaletteOpen(false);
@@ -354,9 +368,9 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 			</form>
 			<LinkButton
 				onClick={() => {
-					// The text goes to the draft and opens the panel; no text only opens the panel.
+					// The text goes to the draft of the Ask page; no text only opens the page.
 					if (text) ask(text);
-					else setAssistantOpen(true);
+					void navigate({ to: "/ask" });
 					setPaletteOpen(false);
 				}}
 			>
@@ -369,7 +383,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		<CommandPalette
 			open={paletteOpen}
 			onOpenChange={setPaletteOpen}
-			groups={groups}
+			groups={found ? groups.map(short) : groups}
 			answer={answer}
 			answered={Boolean(found)}
 			text={query}

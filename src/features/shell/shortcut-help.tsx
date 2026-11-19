@@ -58,13 +58,17 @@ export function ShortcutHelp({ actions }: { actions: Action[] }) {
 		>
 			<ul className="flex max-h-96 flex-col overflow-y-auto">
 				{rows.map((a) => (
-					<li key={a.id} className="flex min-h-9 items-center gap-2 border-b px-1 last:border-b-0">
-						<span className="min-w-0 flex-1 truncate text-ui">{a.label}</span>
+					<li
+						key={a.id}
+						className="flex min-h-15 items-center gap-3 border-b border-n-6 px-1 last:border-b-0"
+					>
+						{/* The key first, then the name: the card of the design. */}
 						{editing === a.id ? (
-							<span className="text-12 text-n-11">{t.ui.shortcuts.press}</span>
+							<span className="text-13 text-n-11">{t.ui.shortcuts.press}</span>
 						) : (
 							<Kbd>{a.shortcut}</Kbd>
 						)}
+						<span className="min-w-0 flex-1 truncate font-semibold">{a.label}</span>
 						<Button
 							variant="ghost"
 							aria-label={format(t.ui.shortcuts.changeName, { name: a.label })}

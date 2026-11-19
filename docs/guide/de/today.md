@@ -1,8 +1,8 @@
 # Heute
 
-Heute sagt Ihnen, was jetzt zu tun ist. Der Umschalter oben hat drei Abschnitte: Heute, Neuigkeiten und Aktivität. Ein Punkt an Heute im Menü zeigt ungelesene Neuigkeiten, und eine Markierung zeigt, dass ein Lauf oder eine Sitzung arbeitet.
+Heute sagt Ihnen, was jetzt zu tun ist. Der Umschalter oben hat drei Abschnitte: Wartet auf Sie, Neuigkeiten und Aktivität. Ein Punkt an Heute im Menü zeigt ungelesene Neuigkeiten, und eine Markierung zeigt, dass ein Lauf oder eine Sitzung arbeitet.
 
-## Was auf Sie wartet
+## Wartet auf Sie
 
 Der Titel nennt die Zahl der Dinge, die auf Sie warten. Eine Karte zeigt das erste: wer fragt, für welches Feature, und die Antwort.
 

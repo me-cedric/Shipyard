@@ -90,8 +90,9 @@ describe("Run address", () => {
 		const user = userEvent.setup();
 		const waiting = await find("ACME-1");
 		const router = mountApp("/home/today");
-		const card = await screen.findByRole("region", { name: "Q-101" });
-		await user.click(within(card).getByRole("button", { name: new RegExp(`run:${waiting.id}`) }));
+		// The card of Today names the run by its title, which opens the run.
+		const card = await screen.findByRole("article");
+		await user.click(within(card).getByRole("button", { name: waiting.title }));
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${waiting.id}`));
 		await idle(router);
 	});
@@ -103,7 +104,7 @@ describe("Run address", () => {
 		const router = mountApp("/home/today");
 		const queue = within(await screen.findByRole("list", { name: "Needs you" }));
 		await user.click(
-			await queue.findByRole("button", { name: new RegExp(`${plan?.title} ${plan?.key}`) }),
+			await queue.findByRole("button", { name: new RegExp(`Review the plan ${plan?.title}`) }),
 		);
 		await user.click(await screen.findByRole("button", { name: "Open plan" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${plan?.id}`));

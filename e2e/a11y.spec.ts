@@ -189,7 +189,7 @@ for (const scheme of ["light", "dark"] as const) {
 		found.push(...(await scan(page, "assistant")));
 		await assistant
 			.getByRole("group", { name: "Mode" })
-			.getByRole("button", { name: "Agent" })
+			.getByRole("button", { name: "Do" })
 			.click();
 		await assistant.getByRole("combobox", { name: "Permission", exact: true }).click();
 		await expect(page.getByRole("listbox")).toBeVisible();
@@ -200,15 +200,15 @@ for (const scheme of ["light", "dark"] as const) {
 		// Each step of a new project.
 		await visit(page, "/projects");
 		await page.getByRole("button", { name: "New project" }).click();
-		const steps = page
-			.getByRole("dialog", { name: "New project" })
-			.getByRole("navigation", { name: "Steps" })
-			.getByRole("button");
+		const steps = page.getByRole("navigation", { name: "Steps" }).getByRole("button");
 		await expect(steps).toHaveCount(5);
 		for (let i = 0; i < 5; i++) {
 			await steps.nth(i).click();
 			found.push(...(await scan(page, `new project, step ${i + 1}`)));
 		}
+		await page.getByRole("button", { name: "All steps" }).click();
+		await expect(page.getByRole("heading", { level: 1, name: "New project" })).toBeVisible();
+		found.push(...(await scan(page, "new project, all steps")));
 		expect(found).toEqual([]);
 	});
 	// The manual is no tab since wave 2: the scan opens it by its address.

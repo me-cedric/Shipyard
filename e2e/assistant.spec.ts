@@ -61,7 +61,7 @@ test("waits for a permission in agent mode, then shows the changed files and the
 	page,
 }) => {
 	await openPanel(page);
-	await pick(page, "Mode", "Agent");
+	await pick(page, "Mode", "Do");
 	await say(page, "deny this edit");
 	await expect(log(page).getByRole("status")).toContainText("Waiting: Bash(pnpm test)");
 	const changed = panel(page).getByRole("region", { name: "Changed files" });
@@ -76,7 +76,7 @@ test("sends a thread to the factory as a work item with a workflow", async ({ pa
 	await openPanel(page);
 	await say(page, "Plan the export");
 	await expect(log(page).getByText("Here is the answer.")).toBeVisible();
-	await panel(page).getByRole("button", { name: "Send to Flow" }).click();
+	await panel(page).getByRole("button", { name: "Send to an agent" }).click();
 	const dialog = page.getByRole("dialog");
 	await expect(dialog.getByText(/^doc:assistant\//)).toBeVisible();
 	await dialog.getByRole("combobox", { name: "Recipe" }).click();
@@ -100,7 +100,7 @@ test("adds a ref by typing, refuses an unknown one and explains the ref", async 
 test("shows the trace, the context ring and the reply buttons", async ({ page }) => {
 	await openPanel(page);
 	await say(page, "long options");
-	const summary = log(page).getByText(/^Trace · \d+ tools · \d+ ms$/);
+	const summary = log(page).getByText(/^How I found this · \d+ tools · \d+ ms$/);
 	await expect(summary).toBeVisible();
 	const step = log(page).locator("details").first().getByRole("listitem").first();
 	await expect(step).toBeHidden();
@@ -144,7 +144,7 @@ test("inserts a runner command as typed and adds a ref found with @", async ({ p
 
 test("offers the read only level in agent mode", async ({ page }) => {
 	await openPanel(page);
-	await pick(page, "Mode", "Agent");
+	await pick(page, "Mode", "Do");
 	await panel(page).getByRole("combobox", { name: "Permission", exact: true }).click();
 	await expect(page.getByRole("option", { name: "Read only", exact: true })).toBeVisible();
 });

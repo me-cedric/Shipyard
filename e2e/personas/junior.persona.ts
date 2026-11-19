@@ -18,20 +18,25 @@ test("junior", async ({ page }) => {
 
 	await w.step("Open the first step of the path", "the step title, then the ref chip", async () => {
 		await w.click(page.getByText("Use Tauri"));
-		if (!(await page.getByRole("button", { name: "Explain", exact: true }).first().isVisible())) {
+		if (
+			!(await page
+				.getByRole("button", { name: "Explain with an agent", exact: true })
+				.first()
+				.isVisible())
+		) {
 			w.confusing(
 				"the step title looks like a link and does nothing: only the small ref chip opens the item",
 			);
 			await w.click(page.getByRole("button", { name: /adr:0001/ }));
 		}
 		await w.see(
-			page.getByRole("button", { name: "Explain", exact: true }).first(),
+			page.getByRole("button", { name: "Explain with an agent", exact: true }).first(),
 			"no Explain action on the item",
 		);
 	});
 
 	await w.step("Ask for an explanation", "Explain in the inspector", async () => {
-		await w.click(page.getByRole("button", { name: "Explain", exact: true }).first());
+		await w.click(page.getByRole("button", { name: "Explain with an agent", exact: true }).first());
 		await w.see(page.getByText("is part of the project graph"), "the assistant gives no answer");
 	});
 

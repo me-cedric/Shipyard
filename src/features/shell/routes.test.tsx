@@ -109,7 +109,7 @@ describe("role homes (shell REQ-009, team-rights REQ-013, app-redesign REQ-006)"
 		await user.keyboard("{Escape}");
 		await user.keyboard("{Control>}k{/Control}");
 		const panel = within(await screen.findByRole("listbox"));
-		expect(await panel.findByRole("option", { name: "Today / Today" })).toBeInTheDocument();
+		expect(await panel.findByRole("option", { name: "Today / Needs you" })).toBeInTheDocument();
 		expect(panel.queryByRole("option", { name: /^Code/ })).toBeNull();
 		expect(panel.queryByRole("option", { name: "Flow / Impacts" })).toBeNull();
 		await waitFor(() => expect(router.state.status).toBe("idle"));
@@ -136,7 +136,6 @@ describe("role homes (shell REQ-009, team-rights REQ-013, app-redesign REQ-006)"
 		["/crew/rights", "work"],
 		["/library/decisions", "design"],
 		["/library/questions", "specs"],
-		["/library/manual", "knowledge"],
 		["/design/screens", "design"],
 		["/setup/project", "settings"],
 		["/setup/computer", "settings"],
@@ -211,7 +210,7 @@ describe("role homes (shell REQ-009, team-rights REQ-013, app-redesign REQ-006)"
 		await sidebar();
 		await user.keyboard("{Control>}k{/Control}");
 		const panel = within(await screen.findByRole("listbox"));
-		expect(await panel.findByRole("option", { name: "Today / Today" })).toBeInTheDocument();
+		expect(await panel.findByRole("option", { name: "Today / Needs you" })).toBeInTheDocument();
 		await waitFor(() =>
 			expect(panel.queryByRole("option", { name: en.flow.newAction })).toBeNull(),
 		);
@@ -240,7 +239,7 @@ describe("role homes (shell REQ-009, team-rights REQ-013, app-redesign REQ-006)"
 		await sidebar();
 		await user.keyboard("{Control>}k{/Control}");
 		const panel = within(await screen.findByRole("listbox"));
-		expect(await panel.findByRole("option", { name: "Today / Today" })).toBeInTheDocument();
+		expect(await panel.findByRole("option", { name: "Today / Needs you" })).toBeInTheDocument();
 		// The project file loads after the list opens: wait for a door that needs no right.
 		expect(await panel.findByRole("option", { name: en.tabs.home.projects })).toBeInTheDocument();
 		await waitFor(() =>
@@ -377,12 +376,14 @@ describe("twin tabs (ux-declutter REQ-014, REQ-021)", () => {
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
-	it("shows the manual at /knowledge/manual with the back link and no section switch", async () => {
+	// The manual is help, not a page of Library: it has no way back to the doors, and it shows for
+	// a role that hides Library (`manual.test.tsx`).
+	it("shows the manual at /knowledge/manual with no back link and no section switch", async () => {
 		const router = mountApp("/knowledge/manual");
 		expect(await screen.findByRole("article", { name: "Getting started" })).toBeInTheDocument();
 		expect(
-			within(screen.getByRole("main")).getByRole("link", { name: en.library.back }),
-		).toHaveAttribute("href", "/library/home");
+			within(screen.getByRole("main")).queryByRole("link", { name: en.library.back }),
+		).toBeNull();
 		expect(screen.queryByRole("navigation", { name: "Tabs" })).toBeNull();
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});

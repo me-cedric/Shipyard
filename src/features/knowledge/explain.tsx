@@ -3,7 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { useGraphFocus } from "@/lib/knowledge";
 import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
-import { BookOpenIcon, MagnifyingGlassIcon } from "@/ui/icons";
+import { MagnifyingGlassIcon } from "@/ui/icons";
 
 /**
  * The two actions of every entity in the inspector. Explain opens the assistant with the entity as
@@ -18,10 +18,7 @@ export function KnowledgeActions({ refId }: { refId: string }) {
 	const router = useRouter({ warn: false });
 	return (
 		<div className="flex flex-wrap gap-2">
-			<Button variant="ghost" onClick={() => explain(refId)}>
-				<BookOpenIcon size={14} />
-				{t.knowledge.explain}
-			</Button>
+			<Button onClick={() => explain(refId)}>{t.inspector.explain}</Button>
 			{router ? (
 				<Button
 					variant="ghost"

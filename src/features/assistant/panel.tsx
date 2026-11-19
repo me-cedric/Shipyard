@@ -2,7 +2,13 @@ import { useEffect, useRef } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/ui/atoms/icon-button";
-import { ChevronLeftIcon, ChevronRightIcon, SparklesIcon, XMarkIcon } from "@/ui/icons";
+import {
+	ChevronLeftIcon,
+	ChevronRightIcon,
+	SparklesIcon,
+	ViewColumnsIcon,
+	XMarkIcon,
+} from "@/ui/icons";
 import { Splitter } from "@/ui/molecules/splitter";
 import { Composer } from "./composer";
 import { ContextBar } from "./context";
@@ -21,11 +27,14 @@ export function AssistantPanel({
 	open,
 	onClose,
 	onOpenRef,
+	onFull,
 }: {
 	assistant: Assistant;
 	open: boolean;
 	onClose: () => void;
 	onOpenRef: (ref: string) => void;
+	/** Opens the Ask page, the full assistant. */
+	onFull?: () => void;
 }) {
 	const { t } = useI18n();
 	const panel = useRef<HTMLElement>(null);
@@ -83,6 +92,11 @@ export function AssistantPanel({
 				>
 					{other === "left" ? <ChevronLeftIcon size={14} /> : <ChevronRightIcon size={14} />}
 				</IconButton>
+				{onFull ? (
+					<IconButton label={t.palette.openAssistant} onClick={onFull}>
+						<ViewColumnsIcon size={14} />
+					</IconButton>
+				) : null}
 				<IconButton label={t.assistant.close} onClick={onClose}>
 					<XMarkIcon size={14} />
 				</IconButton>
