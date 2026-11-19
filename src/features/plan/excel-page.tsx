@@ -147,26 +147,28 @@ export function ExcelImport({
 							{format(x.exists, { name: names.get(existing) ?? existing })}
 						</h2>
 					) : null}
-					<div className="flex flex-wrap gap-2.5 [&>*]:flex-[1_1_120px]">
-						<RightButton
-							right="work.edit"
-							variant={existing ? "secondary" : "primary"}
-							disabled={off}
-							onClick={() => void write(fresh())}
-						>
-							{x.makeNew}
-						</RightButton>
-						{existing ? (
+					{preview ? (
+						<div className="flex flex-wrap gap-2.5 [&>*]:flex-[1_1_120px]">
 							<RightButton
 								right="work.edit"
-								variant="primary"
+								variant={existing ? "secondary" : "primary"}
 								disabled={off}
-								onClick={() => void write(existing)}
+								onClick={() => void write(fresh())}
 							>
-								{x.replaceIt}
+								{x.makeNew}
 							</RightButton>
-						) : null}
-					</div>
+							{existing ? (
+								<RightButton
+									right="work.edit"
+									variant="primary"
+									disabled={off}
+									onClick={() => void write(existing)}
+								>
+									{x.replaceIt}
+								</RightButton>
+							) : null}
+						</div>
+					) : null}
 					<Button onClick={onCancel}>{t.sync.backlog.cancel}</Button>
 					{error ? (
 						<p role="alert" className="text-ui text-danger-text">

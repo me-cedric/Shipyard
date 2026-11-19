@@ -268,6 +268,7 @@ export const factoryDe: typeof factoryEn = {
 		requests: "Anfragen eines Laufs",
 		machine: "Auslastung dieses Rechners",
 		stopAll: "Alle Agenten anhalten",
+		moreRows: "{count} weitere",
 		confirmStopAll: "Alle laufenden Agenten anhalten?",
 		back: "Ausgaben",
 		howTitle: "Wie die Agenten abschneiden",

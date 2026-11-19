@@ -79,6 +79,7 @@ export const costingDe: typeof costingEn = {
 		spend: "Ausgaben",
 		howSure: "Wie sicher",
 		change: "Ändern",
+		chooseTicket: "Ticket wählen",
 		otherWork: "Andere Arbeit, keine Umsetzung",
 		onlyIf: "Das gilt nur, wenn",
 		newAssumption: "Neue Annahme",

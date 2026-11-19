@@ -79,6 +79,7 @@ export const costingEs: typeof costingEn = {
 		spend: "Gasto",
 		howSure: "Grado de certeza",
 		change: "Cambiar",
+		chooseTicket: "Elegir un ticket",
 		otherWork: "Otro trabajo, no de construcción",
 		onlyIf: "Esto es cierto solo si",
 		newAssumption: "Nueva hipótesis",

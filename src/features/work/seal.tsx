@@ -156,14 +156,9 @@ export function SealCard({ state }: { state: Seal }) {
 					value={pass}
 					onChange={(ev) => setPass(ev.target.value)}
 				/>
-				<div className="flex flex-wrap gap-2.5">
+				<div className="grid grid-cols-2 gap-2.5">
 					{state.sealed && !locked ? (
-						<RightButton
-							right="work.edit"
-							variant="primary"
-							className="flex-[1_1_100px]"
-							onClick={() => void run(act.lock)}
-						>
+						<RightButton right="work.edit" variant="primary" onClick={() => void run(act.lock)}>
 							{s.lock}
 						</RightButton>
 					) : null}
@@ -171,7 +166,6 @@ export function SealCard({ state }: { state: Seal }) {
 						right="work.edit"
 						type="submit"
 						variant={state.sealed && !locked ? "secondary" : "primary"}
-						className="flex-[1_1_100px]"
 						disabled={pass === ""}
 					>
 						{mode === "unseal" ? p.openSeal : s[mode]}

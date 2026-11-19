@@ -1,5 +1,5 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useContext, useMemo, useState } from "react";
 import { type ExportItem, useExportRun } from "@/features/reports/export-menu";
 import { PageExport, useExportItems } from "@/features/reports/page-export";
 import { NoProject } from "@/features/shell/no-project";
@@ -31,7 +31,7 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { MenuButton } from "@/ui/molecules/menu-button";
-import { PageHeader } from "@/ui/molecules/page-header";
+import { PageHeader, PageSwitchContext } from "@/ui/molecules/page-header";
 import { CostingView } from "./costing-cards";
 import { EstimateAgent } from "./estimate-agent";
 import { PersonCard, SheetsView, SplitCard } from "./estimate-cards";
@@ -95,6 +95,9 @@ export function PlanEstimates() {
 	const exportItems = useExportItems().costing;
 	const [amounts, setAmounts] = useState(false);
 	const [taskMore, setTaskMore] = useState(false);
+	const slot = useContext(PageSwitchContext);
+	// A sub-page with a back link has no section switch: it claims the switch and draws none.
+	const bare = useMemo(() => slot && { ...slot, node: null }, [slot]);
 	/** The exports of the page: the workbook of the sheet, then the standard ones. */
 	const sheetExport: ExportItem[] = slug
 		? [
@@ -110,12 +113,19 @@ export function PlanEstimates() {
 	if (active === undefined || sheets.isLoading) return <Loading title={title} icon={icon} />;
 	if (active === null) return <NoProject title={title} icon={icon} />;
 
-	const frame = (head: ReactNode, body: ReactNode) => (
-		<div className="flex min-h-0 flex-1 flex-col">
-			{head}
-			{body}
-		</div>
-	);
+	const frame = (head: ReactNode, body: ReactNode, sub = false) => {
+		const page = (
+			<div className="flex min-h-0 flex-1 flex-col">
+				{head}
+				{body}
+			</div>
+		);
+		return sub && bare ? (
+			<PageSwitchContext.Provider value={bare}>{page}</PageSwitchContext.Provider>
+		) : (
+			page
+		);
+	};
 	const back = (
 		<BackLink
 			label={title}
@@ -140,6 +150,7 @@ export function PlanEstimates() {
 		return frame(
 			<PageHeader title={e.newSheet} back={back} />,
 			body(<SheetForm slug={null} onSaved={(s) => go({ ...home, sheet: s })} />),
+			true,
 		);
 	if (list.length === 0)
 		return frame(
@@ -288,7 +299,9 @@ export function PlanEstimates() {
 			]}
 		/>,
 		<>
-			<div className={`flex shrink-0 flex-wrap items-center gap-2.5 px-4 pb-6 ${CONTROLS}`}>
+			<div
+				className={`flex shrink-0 flex-wrap items-center gap-2 px-4 pb-6 [&_button]:px-3.5 ${CONTROLS}`}
+			>
 				<span className="mr-auto">
 					<Segmented
 						label={title}

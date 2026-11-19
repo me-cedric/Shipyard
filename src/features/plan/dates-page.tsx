@@ -1,14 +1,14 @@
 import { Link } from "@tanstack/react-router";
-import { type ReactNode, useId, useState } from "react";
+import { type ReactNode, useId } from "react";
 import { useExportRun } from "@/features/reports/export-menu";
 import { useGuard } from "@/features/work/guard";
 import { HolidayCountry } from "@/features/work/holiday-country";
 import { format, useI18n } from "@/lib/i18n";
 import { RightButton, useRights } from "@/lib/rights";
+import { cn } from "@/lib/utils";
 import { type Calendar, type Decisions, isDay, usePlan, useTeam, useWorkActions } from "@/lib/work";
-import { Button } from "@/ui/atoms/button";
+import { Button, buttonVariants } from "@/ui/atoms/button";
 import { Chip } from "@/ui/atoms/chip";
-import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
 import { ChevronRightIcon } from "@/ui/icons";
@@ -32,6 +32,42 @@ export function FieldRow({ label, children }: { label: ReactNode; children: Reac
 			</span>
 			{children}
 		</Row>
+	);
+}
+
+/** A day as a button. The date field of the system lies on it and opens the date picker. */
+function DayButton({
+	label,
+	text,
+	value,
+	disabled,
+	onChange,
+}: {
+	label: string;
+	text: string;
+	value: string;
+	disabled?: boolean;
+	onChange: (value: string) => void;
+}) {
+	return (
+		<span
+			className={cn(
+				buttonVariants(),
+				"relative focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent",
+				disabled && "pointer-events-none opacity-50",
+			)}
+		>
+			{text}
+			<input
+				type="date"
+				aria-label={label}
+				disabled={disabled}
+				value={value}
+				onChange={(e) => onChange(e.target.value)}
+				onClick={(e) => e.currentTarget.showPicker?.()}
+				className="absolute inset-0 size-full cursor-pointer opacity-0"
+			/>
+		</span>
 	);
 }
 
@@ -65,6 +101,7 @@ function TaskCard({ slug, task }: { slug: string; task: string }) {
 	const members = useTeam().data?.team.members ?? [];
 	const act = useWorkActions();
 	const { error, run } = useGuard();
+	const plain = usePlainDay();
 	const bar = plan?.gantt.bars.find((b) => b.task === task);
 	if (!plan || !bar) return null;
 	const all = plan.decisions;
@@ -114,23 +151,25 @@ function TaskCard({ slug, task }: { slug: string; task: string }) {
 				</RightButton>
 			</FieldRow>
 			<FieldRow label={d.start}>
-				<Segmented
-					label={d.start}
-					value={mine.start ? "fixed" : "auto"}
-					onValueChange={(v) => edit && void patch({ start: v === "fixed" ? bar.start : "" })}
-					items={[
-						{ value: "auto", label: d.auto },
-						{ value: "fixed", label: d.fixed },
-					]}
-				/>
+				<span className="w-72 max-w-full">
+					<Segmented
+						label={d.start}
+						value={mine.start ? "fixed" : "auto"}
+						onValueChange={(v) => edit && void patch({ start: v === "fixed" ? bar.start : "" })}
+						items={[
+							{ value: "auto", label: d.auto },
+							{ value: "fixed", label: d.fixed },
+						]}
+					/>
+				</span>
 			</FieldRow>
 			<FieldRow label={d.fixedDay}>
-				<Input
+				<DayButton
 					label={d.fixedDay}
+					text={mine.start ? plain(mine.start) : d.fixedDay}
 					disabled={!edit}
-					type="date"
 					value={mine.start ?? ""}
-					onChange={(e) => isDay(e.target.value) && void patch({ start: e.target.value })}
+					onChange={(v) => isDay(v) && void patch({ start: v })}
 				/>
 				<RightButton
 					right="work.edit"
@@ -163,7 +202,6 @@ function CalendarCards({ slug }: { slug: string }) {
 	const plan = usePlan(slug).data;
 	const act = useWorkActions();
 	const { error, run } = useGuard();
-	const [day, setDay] = useState("");
 	if (!plan) return null;
 	const cal = plan.calendar;
 	const save = (next: Calendar) => run(() => act.saveCalendar(next));
@@ -218,31 +256,17 @@ function CalendarCards({ slug }: { slug: string }) {
 						</Row>
 					);
 				})}
-				<Row
-					render={(props) => (
-						<form
-							{...props}
-							onSubmit={(e) => {
-								e.preventDefault();
-								if (!isDay(day)) return;
-								void save({ ...cal, holidays: [...new Set([...cal.holidays, day])].sort() }).then(
-									() => setDay(""),
-								);
-							}}
-						/>
-					)}
-				>
+				<Row>
 					<span className="flex-1" />
-					<Input
-						className="w-44"
-						label={p.holiday}
-						type="date"
-						value={day}
-						onChange={(e) => setDay(e.target.value)}
+					<DayButton
+						label={d.addHoliday}
+						text={d.addHoliday}
+						disabled={!can("work.edit")}
+						value=""
+						onChange={(v) =>
+							isDay(v) && void save({ ...cal, holidays: [...new Set([...cal.holidays, v])].sort() })
+						}
 					/>
-					<RightButton right="work.edit" type="submit" disabled={!isDay(day)}>
-						{d.addHoliday}
-					</RightButton>
 				</Row>
 				<Alert error={error} />
 			</Card>

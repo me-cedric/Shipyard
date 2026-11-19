@@ -281,6 +281,34 @@ describe("Plan / Estimates", () => {
 		await idle(router);
 	});
 
+	it("shows the File row with Choose a file and nothing greyed out before a file is chosen", async () => {
+		await withTracker();
+		const router = mountApp("/plan/estimates?page=import");
+		const choose = await button("Choose a file");
+		expect(choose).toBeEnabled();
+		expect(screen.getByText("1. File")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Make a new sheet" })).toBeNull();
+		expect(screen.queryByRole("heading", { name: /^Rows that/ })).toBeNull();
+		expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
+		await idle(router);
+	});
+
+	it("puts Make a new sheet and Replace it side by side when the sheet exists", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().nextFile = "/mock/bad.xlsx";
+		const router = mountApp("/plan/estimates");
+		await user.click(await button("Import from Excel"));
+		const name = await screen.findByRole("textbox", { name: "Name of the sheet" });
+		await user.clear(name);
+		await user.type(name, "MVP 1");
+		const fresh = await button("Make a new sheet");
+		expect(fresh.parentElement).toBe(
+			screen.getByRole("button", { name: "Replace it" }).parentElement,
+		);
+		await idle(router);
+	});
+
 	it("imports a workbook as a new sheet, and Cancel writes nothing", async () => {
 		const user = userEvent.setup();
 		await withTracker();

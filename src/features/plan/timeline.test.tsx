@@ -111,8 +111,8 @@ describe("Plan / Timeline and People", () => {
 		// The working days are chips: five are on.
 		const days = within(screen.getByRole("group", { name: "Working days" }));
 		expect(days.getAllByRole("button", { pressed: true })).toHaveLength(5);
-		fireEvent.change(screen.getByLabelText("Holiday"), { target: { value: "2026-11-04" } });
-		await user.click(screen.getByRole("button", { name: "Add a holiday" }));
+		// One button opens the date picker: a chosen day is added at once.
+		fireEvent.change(screen.getByLabelText("Add a holiday"), { target: { value: "2026-11-04" } });
 		await waitFor(() =>
 			expect(mockState().work.calendar.holidays).toEqual(["2026-11-04", "2026-11-11"]),
 		);

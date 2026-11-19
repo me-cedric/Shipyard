@@ -3,11 +3,11 @@ import { useContext, useMemo } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
-import { useFactoryWrites, useSessions } from "@/lib/factory";
+import { useFactoryWrites, useRunActions, useSessions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type SessionView, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
-import { RightButton } from "@/lib/rights";
+import { RightButton, useRights } from "@/lib/rights";
 import { runHref } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/ui/atoms/avatar";
@@ -16,6 +16,7 @@ import { runnerName } from "@/ui/atoms/brand-icon";
 import { Button } from "@/ui/atoms/button";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
+import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader, PageSwitchContext } from "@/ui/molecules/page-header";
@@ -39,6 +40,8 @@ export function CrewSessions() {
 	const { rows } = useAgentRows();
 	const writes = useFactoryWrites();
 	const { error, run } = useGuard();
+	const act = useRunActions();
+	const { gate } = useRights();
 	const slot = useContext(PageSwitchContext);
 	// The page of the ended sessions has no section switch: it claims the switch and draws none.
 	const day = usePlainDay();
@@ -213,6 +216,19 @@ export function CrewSessions() {
 								>
 									{s.stop}
 								</RightButton>
+							) : null}
+							{shown.session.pull == null &&
+							shown.session.step !== "estimate" &&
+							shown.session.step !== "tile" &&
+							shown.session.state === "running" ? (
+								<ConfirmButton
+									className="min-h-control"
+									{...gate("runs.start")}
+									confirm={format(f.machine.confirmStop, { name: shown.session.key })}
+									onConfirm={() => void run(() => act.cancel(shown.session.run))}
+								>
+									{s.stop}
+								</ConfirmButton>
 							) : null}
 						</div>
 						<div className="flex flex-col gap-1 border-t border-primary-fg/20 px-4 py-4.5 font-mono text-primary-fg/80">

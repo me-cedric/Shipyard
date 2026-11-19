@@ -1,9 +1,11 @@
+import { Link } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { EstimateAgent } from "@/features/plan/estimate-agent";
 import { Stepper } from "@/features/plan/estimate-stepper";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { RightButton } from "@/lib/rights";
+import { useWorkItems } from "@/lib/sync";
 import { cn } from "@/lib/utils";
 import {
 	type Confidence,
@@ -20,12 +22,14 @@ import { Button } from "@/ui/atoms/button";
 import { Checkbox } from "@/ui/atoms/checkbox";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
+import { linkClass } from "@/ui/atoms/link-button";
 import { Select } from "@/ui/atoms/select";
 import { XMarkIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { useGuard } from "./guard";
 import { roleId } from "./team-rights";
+import { TicketField } from "./ticket-field";
 
 /** Each control inside is 44 px high or more (`spec:app-redesign#REQ-026`). A checkbox keeps its size. */
 export const CONTROLS =
@@ -116,6 +120,7 @@ export function TaskForm({
 		(found?.x.assumptions ?? "").split("\n").filter((x) => x.trim() !== ""),
 	);
 	const [draft, setDraft] = useState("");
+	const choices = useWorkItems({}).data ?? [];
 	const linked = view.tickets.find((x) => x.task === taskId);
 	// A three-point estimate has both ends. One end alone is not an estimate.
 	const points = mode === "days" && low !== "" && high !== "";
@@ -280,18 +285,26 @@ export function TaskForm({
 							<span className={NAME}>{e.ticket}</span>
 							{ticket && !ticketOpen ? (
 								<>
-									<span className="font-semibold">
+									<Link
+										to="/flow/list"
+										search={{ q: ticket } as never}
+										className={cn(linkClass, "self-center")}
+									>
 										{linked && ticket === found?.x.ticket ? linked.title : ticket}
-									</span>
+									</Link>
 									<Button onClick={() => setTicketOpen(true)}>{p.change}</Button>
 								</>
+							) : ticketOpen ? (
+								<span className="min-w-0 flex-[1_1_200px]">
+									<TicketField
+										label={e.ticket}
+										value={ticket}
+										onChange={setTicket}
+										items={choices}
+									/>
+								</span>
 							) : (
-								<Input
-									label={e.ticket}
-									value={ticket}
-									onChange={(ev) => setTicket(ev.target.value)}
-									className="flex-[1_1_200px]"
-								/>
+								<Button onClick={() => setTicketOpen(true)}>{p.chooseTicket}</Button>
 							)}
 						</div>
 						{linked ? (

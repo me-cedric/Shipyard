@@ -23,6 +23,9 @@ import { SpendHow } from "./spend-how";
 import { LinkRow, RowsCard, toSpend, usePrices } from "./spend-parts";
 import { SpendUsage } from "./spend-usage-page";
 
+/** The features that the main card lists before "<n> more". */
+const SHOWN = 6;
+
 /**
  * Crew / Spend (`spec:app-redesign#REQ-016`, picture 013): the spend of each feature against its
  * limit. `page=how` (picture 078) and `page=budgets` (picture 083) are pages of this section.
@@ -165,7 +168,7 @@ function SpendMain() {
 									)}
 								</div>
 								<ul aria-label={t.factory.spend} className="flex flex-col">
-									{rows.map((r) => {
+									{rows.slice(0, SHOWN).map((r) => {
 										const over = limit !== null && r.usd > limit;
 										return (
 											<li key={r.id} className="flex min-h-control items-center gap-4">
@@ -198,6 +201,16 @@ function SpendMain() {
 											</li>
 										);
 									})}
+									{rows.length > SHOWN ? (
+										<li>
+											<Link
+												{...toSpend("usage")}
+												className="flex min-h-control items-center font-semibold text-accent-text hover:underline"
+											>
+												{format(s.moreRows, { count: rows.length - SHOWN })}
+											</Link>
+										</li>
+									) : null}
 								</ul>
 							</>
 						)}

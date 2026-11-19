@@ -50,6 +50,16 @@ export function SendPage({ slug }: { slug: string }) {
 	const rows = preview.data ?? [];
 	const fields = (list: string[]) =>
 		list.map((f) => a.field[f as keyof typeof a.field] ?? f).join(", ");
+	/** A new ticket has no list of changes: it writes each field that the row fills. */
+	const changed = (d: DiffRow) =>
+		d.action === "create"
+			? [
+					"title",
+					...(d.row.description.trim() ? ["description"] : []),
+					...(d.row.days !== null ? ["estimate"] : []),
+					...(d.row.parent !== null ? ["parent"] : []),
+				]
+			: d.changes;
 	const titleOf = (d: DiffRow) => edits[d.row.reference]?.title ?? d.row.title;
 	/** The row as the person edited it. */
 	const edited = (d: DiffRow) => {
@@ -118,11 +128,9 @@ export function SendPage({ slug }: { slug: string }) {
 									) : null}
 								</>
 							) : (
-								<>
-									<span className="flex-[1_1_12rem] font-semibold">{titleOf(d)}</span>
-									<span className="text-n-10">{fields(d.changes)}</span>
-								</>
+								<span className="flex-[1_1_12rem] font-semibold">{titleOf(d)}</span>
 							)}
+							<span className="ml-auto text-n-10">{fields(changed(d))}</span>
 							<IconButton
 								label={format(p.sendPage.editRow, { name: d.row.title })}
 								aria-pressed={editing === ref}

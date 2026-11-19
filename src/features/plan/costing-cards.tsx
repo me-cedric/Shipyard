@@ -85,23 +85,23 @@ export function CostingView({
 					<div className="min-w-160">
 						{people.map((m) => {
 							const name = firstName(m.name);
-							const to = (label: string, text: string, width = "w-32") => (
+							const to = (label: string, text: string, width = "max-w-32") => (
 								<Link
 									to="/crew/crew"
 									search={{ member: m.handle } as never}
 									aria-label={`${format(label, { name })}: ${text}`}
-									className={cn(buttonVariants(), width, "truncate")}
+									className={cn(buttonVariants(), width, "min-w-0 truncate px-3.5")}
 								>
 									{text}
 								</Link>
 							);
 							return (
-								<Row key={m.handle}>
+								<Row key={m.handle} className="flex-nowrap">
 									<span className={`flex items-center gap-3 ${NAME}`}>
 										<Avatar name={m.name} />
 										{name}
 									</span>
-									<span className="w-24 text-right text-n-11">
+									<span className="w-24 shrink-0 text-right text-n-11">
 										{daysText(days.get(m.handle) ?? 0)}
 									</span>
 									{costs
@@ -113,7 +113,7 @@ export function CostingView({
 											)
 										: null}
 									{to(p.capacityOf, format(p.perWeek, { days: figure(m.capacity, lang) }))}
-									{m.skills.length > 0 ? to(p.skillsOf, m.skills.join(", "), "w-40") : null}
+									{m.skills.length > 0 ? to(p.skillsOf, m.skills.join(", "), "max-w-40") : null}
 								</Row>
 							);
 						})}

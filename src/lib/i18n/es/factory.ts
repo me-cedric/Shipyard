@@ -263,6 +263,7 @@ export const factoryEs: typeof factoryEn = {
 		requests: "Solicitudes de una ejecución",
 		machine: "Uso de este equipo",
 		stopAll: "Detener todos los agentes",
+		moreRows: "{count} más",
 		confirmStopAll: "¿Detener todos los agentes en marcha?",
 		back: "Gasto",
 		howTitle: "Cómo les va a los agentes",

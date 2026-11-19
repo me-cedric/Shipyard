@@ -35,9 +35,20 @@ export function RequestTree({
 	if (runs.length === 0) return null;
 	const name = runs.find((r) => r.run === run)?.key ?? "";
 	return (
-		<Card pad className="flex flex-[1.5_1_24rem] flex-col gap-2">
-			<div className="flex items-center gap-3">
+		<Card pad className="flex max-h-[34rem] flex-[1.5_1_24rem] flex-col gap-2 overflow-hidden">
+			<div className="flex flex-wrap items-center gap-3">
 				<h2 className="mr-auto text-13 font-semibold text-n-11">{s.requests}</h2>
+				<div className="w-44">
+					<Segmented
+						label={s.picture}
+						value={view}
+						onValueChange={setView}
+						items={[
+							{ value: "tree", label: s.tree },
+							{ value: "flame", label: s.flame },
+						]}
+					/>
+				</div>
 				<Select
 					label={f.treeRun}
 					className="min-h-control"
@@ -46,55 +57,44 @@ export function RequestTree({
 					items={runs.map((r) => ({ value: r.run, label: r.title ?? r.key }))}
 				/>
 			</div>
-			{view === "flame" ? (
-				<SpendFlame name={name} steps={tree?.steps ?? []} />
-			) : (
-				<>
-					<div className={`${BOX} font-semibold`}>
-						<span className="mr-auto">{f.run}</span>
-						<span>{money.format(tree?.usd ?? 0)}</span>
-					</div>
-					<ul className="flex flex-col gap-2">
-						{(tree?.steps ?? []).map((st) => (
-							<li key={st.step}>
-								<details open className="ml-6 flex flex-col gap-2">
-									<summary className={`${BOX} cursor-pointer`}>
-										<span className="mr-auto min-w-0 flex-1 truncate">{st.step}</span>
-										<span className="text-12 text-n-11">{st.tokens.toLocaleString()}</span>
-										<span>{money.format(st.usd ?? 0)}</span>
-									</summary>
-									<ul className="ml-6 flex flex-col gap-2">
-										{st.requests.map((r) => (
-											<li key={r.at} className={`${BOX} text-12 text-n-11`}>
-												<time className="flex-1" dateTime={new Date(r.at * 1000).toISOString()}>
-													{time.format(new Date(r.at * 1000))}
-												</time>
-												<span>
-													{f.tokensIn} {r.inputTokens.toLocaleString()}
-												</span>
-												<span>
-													{f.tokensOut} {r.outputTokens.toLocaleString()}
-												</span>
-												<span className="w-16 text-right">{money.format(r.usd ?? 0)}</span>
-											</li>
-										))}
-									</ul>
-								</details>
-							</li>
-						))}
-					</ul>
-				</>
-			)}
-			<div className="w-48 self-start">
-				<Segmented
-					label={s.picture}
-					value={view}
-					onValueChange={setView}
-					items={[
-						{ value: "tree", label: s.tree },
-						{ value: "flame", label: s.flame },
-					]}
-				/>
+			<div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
+				{view === "flame" ? (
+					<SpendFlame name={name} steps={tree?.steps ?? []} />
+				) : (
+					<>
+						<div className={`${BOX} font-semibold`}>
+							<span className="mr-auto">{f.run}</span>
+							<span>{money.format(tree?.usd ?? 0)}</span>
+						</div>
+						<ul className="flex flex-col gap-2">
+							{(tree?.steps ?? []).map((st) => (
+								<li key={st.step}>
+									<details className="ml-6 flex flex-col gap-2">
+										<summary
+											title={`${st.tokens.toLocaleString(lang)} ${f.tokens}`}
+											className={`${BOX} cursor-pointer`}
+										>
+											<span className="mr-auto min-w-0 flex-1 truncate capitalize">{st.step}</span>
+											<span>{money.format(st.usd ?? 0)}</span>
+										</summary>
+										<ul className="ml-6 mt-2 flex flex-col gap-2">
+											{st.requests.map((r) => (
+												<li
+													key={r.at}
+													title={`${f.tokensIn} ${r.inputTokens.toLocaleString(lang)}, ${f.tokensOut} ${r.outputTokens.toLocaleString(lang)}`}
+													className={`${BOX} font-mono text-12`}
+												>
+													<span className="flex-1">{time.format(new Date(r.at * 1000))}</span>
+													<span>{money.format(r.usd ?? 0)}</span>
+												</li>
+											))}
+										</ul>
+									</details>
+								</li>
+							))}
+						</ul>
+					</>
+				)}
 			</div>
 		</Card>
 	);
