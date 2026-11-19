@@ -25,6 +25,16 @@ export const featureDays = (view: SheetView) =>
 		days: f.tasks.reduce((n, x) => n + (view.days[x.id] ?? 0), 0),
 	}));
 
+/** The text of a number of days, with the singular where the language has one ("1 day"). */
+export function useDays() {
+	const { t, lang } = useI18n();
+	const p = t.costing.estimate;
+	return (n: number | null | undefined) => {
+		const one = n != null && (lang === "fr" ? n >= 0 && n < 2 : n === 1);
+		return format(one ? p.oneDay : p.daysCount, { days: figure(n, lang) });
+	};
+}
+
 /** The first name of a person. */
 export const firstName = (name: string) => name.split(/\s+/)[0] ?? name;
 
@@ -75,8 +85,9 @@ export function SplitCard({ view }: { view: SheetView }) {
 
 /** The card "By person": the days that the plan gives to each person, the most first. */
 export function PersonCard({ slug }: { slug: string }) {
-	const { t, lang } = useI18n();
+	const { t } = useI18n();
 	const p = t.costing.estimate;
+	const daysText = useDays();
 	const { members, days } = usePersonDays(slug);
 	const rows = [...days]
 		.filter(([, n]) => n > 0)
@@ -94,7 +105,7 @@ export function PersonCard({ slug }: { slug: string }) {
 				<div key={r.handle} className="flex items-center gap-3">
 					<Avatar name={r.name} />
 					<span className="font-semibold">{firstName(r.name)}</span>
-					<span className="ml-auto">{format(p.daysCount, { days: figure(r.n, lang) })}</span>
+					<span className="ml-auto">{daysText(r.n)}</span>
 				</div>
 			))}
 		</Card>
@@ -123,7 +134,7 @@ export function SheetsView({
 	const { t, lang } = useI18n();
 	const e = t.work.estimates;
 	const p = t.costing.estimate;
-	const days = (n: number | null | undefined) => format(p.daysCount, { days: figure(n, lang) });
+	const days = useDays();
 	const features = featureDays(view).sort((a, b) => b.days - a.days);
 	const max = Math.max(1, ...features.map((f) => f.days));
 	const top = Math.max(1, ...view.spread.map((m) => m.days ?? 0));

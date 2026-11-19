@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { useFactoryWrites, useMachineSpend, useMachineWrites, useUsage } from "@/lib/factory";
@@ -5,7 +6,7 @@ import { format, useI18n } from "@/lib/i18n";
 import { RightButton } from "@/lib/rights";
 import { useAutomation } from "@/lib/sync";
 import { runnerName } from "@/ui/atoms/brand-icon";
-import { Button } from "@/ui/atoms/button";
+import { Button, buttonVariants } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Card } from "@/ui/molecules/card";
@@ -87,7 +88,7 @@ export function BudgetsPage() {
 	const s = f.spendPage;
 	const m = f.machine;
 	const b = useBudgets();
-	const { prices, price, switcher } = usePrices();
+	const { prices, price, menu } = usePrices();
 	const usage = useUsage().data;
 	const spend = useMachineSpend(90);
 	const writes = useMachineWrites();
@@ -110,7 +111,7 @@ export function BudgetsPage() {
 		b.setEditing(false);
 		setMachine({ runner, amount: usd === null ? "" : String(usd) });
 	};
-	const row = (name: string, value: number | null, onEdit?: () => void) => (
+	const row = (name: string, value: number | null, onEdit?: () => void, link?: boolean) => (
 		<Row key={name}>
 			<span className="flex-1">{name}</span>
 			<span className="font-semibold">{money(value)}</span>
@@ -122,13 +123,35 @@ export function BudgetsPage() {
 				>
 					{f.edit}
 				</Button>
+			) : link ? (
+				// The limit of a feature comes from its recipe: Edit opens the recipes.
+				<Link
+					to="/crew/recipes"
+					aria-label={format(s.editLimit, { name: name.toLowerCase() })}
+					className={buttonVariants()}
+				>
+					{f.edit}
+				</Link>
 			) : null}
 		</Row>
 	);
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-			<PageHeader title={s.budgetsTitle} back={<BackToSpend />} action={switcher} />
-			<div className="flex flex-wrap items-start gap-5 px-4 pb-4">
+			<PageHeader
+				title={s.budgetsTitle}
+				back={<BackToSpend />}
+				menu={[
+					...menu,
+					{
+						label: s.addLimit,
+						onClick: () => {
+							setMachine(null);
+							b.edit("day", "");
+						},
+					},
+				]}
+			/>
+			<div className="flex flex-wrap items-stretch gap-5 px-4 pb-4">
 				<div className="flex flex-[2_1_21rem] flex-col gap-5">
 					{b.error || error ? (
 						<p role="alert" className="text-ui text-danger-text">
@@ -137,7 +160,7 @@ export function BudgetsPage() {
 					) : null}
 					<Card className="py-2" role="region" aria-label={f.budgets}>
 						<h2 className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">{s.limits}</h2>
-						{row(s.eachFeature, feature)}
+						{row(s.eachFeature, feature, undefined, true)}
 						{row(s.eachDay, of("day", "*")?.budget ?? null, () => editScope("day"))}
 						{row(s.eachMonth, month, () => editMachine(ALL, month))}
 						{row(s.eachPerson, of("member", "*")?.budget ?? null, () => editScope("member"))}
@@ -237,19 +260,6 @@ export function BudgetsPage() {
 								</RightButton>
 							</div>
 						) : null}
-						{b.editing || machine ? null : (
-							<Row>
-								<Button
-									className="min-h-control"
-									onClick={() => {
-										setMachine(null);
-										b.edit("day", "");
-									}}
-								>
-									{s.addLimit}
-								</Button>
-							</Row>
-						)}
 					</Card>
 					<RowsCard title={s.atLimit}>
 						<Row>

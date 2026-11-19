@@ -154,7 +154,10 @@ export function TimelineBars({
 					</div>
 				</div>
 				{groups.map((g) => {
-					const mine = bars.filter((b) => b.group === g);
+					// The design lists the tasks of a feature by start day.
+					const mine = bars
+						.filter((b) => b.group === g)
+						.sort((a, b) => a.start.localeCompare(b.start));
 					const end =
 						mine
 							.map((b) => b.end)

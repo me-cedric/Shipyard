@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { featureHref, needsPerson, stateText, useFeatures } from "@/features/flow/feature";
 import { factoryKeys, useRuns, useSessions } from "@/lib/factory";
+import type { Messages } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n";
 import { commands, type SessionView, unwrap } from "@/lib/ipc";
 import type { FlowFeature_Serialize as Feature } from "@/lib/ipc/bindings";
@@ -74,6 +75,14 @@ export function useAgentRows() {
 }
 
 type Filter = "work" | "ended" | "files" | "specs";
+/** A duty of the person reads "Waits for you" (picture 030); a block or a limit keeps its own words. */
+const waitText = (t: Messages, f: Feature) =>
+	f.questions > 0 ||
+	f.approvals > 0 ||
+	f.runState === "PlanReview" ||
+	f.runState === "WaitingForAnswer"
+		? t.crewPlace.waitsForYou
+		: stateText(t, f);
 const isFile = (ref: string) => ref.startsWith("doc:");
 const isSpec = (ref: string) => /^(spec|change):/.test(ref);
 const BLOCK =
@@ -157,7 +166,7 @@ export function LiveRows({ rows, ready }: { rows: AgentRow[]; ready: boolean }) 
 						<thead>
 							<tr>
 								<th className={HEAD}>{t.factory.agent}</th>
-								<th className={cn(HEAD, "px-12.5")}>{c.feature}</th>
+								<th className={cn(HEAD, "px-9")}>{c.feature}</th>
 								<th className={HEAD}>{c.touches}</th>
 							</tr>
 						</thead>
@@ -205,7 +214,7 @@ export function LiveRows({ rows, ready }: { rows: AgentRow[]; ready: boolean }) 
 														<span className="min-w-0 truncate">{r.title}</span>
 														{wait ? (
 															<Badge variant="you" className="ml-auto">
-																{stateText(t, r.feature)}
+																{waitText(t, r.feature)}
 															</Badge>
 														) : null}
 													</Link>
@@ -225,12 +234,7 @@ export function LiveRows({ rows, ready }: { rows: AgentRow[]; ready: boolean }) 
 															"copy-ref": () => copyText(ref),
 														})}
 													>
-														<Chip
-															title={ref}
-															data-ask={ref}
-															className="font-mono text-13"
-															onClick={() => openRef(ref)}
-														>
+														<Chip title={ref} data-ask={ref} onClick={() => openRef(ref)}>
 															{isFile(ref) ? ref.split("/").at(-1) : ref}
 														</Chip>
 													</ContextMenu>

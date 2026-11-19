@@ -4,7 +4,7 @@ import { memberWeek, weekStart } from "@/features/work/week-focus";
 import { format, useI18n } from "@/lib/i18n";
 import { RightButton } from "@/lib/rights";
 import { askForm } from "@/lib/shell";
-import { memberName, useTeam, useWorkContext } from "@/lib/work";
+import { addDays, memberName, useTeam, useWorkContext } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
@@ -45,18 +45,24 @@ export function People() {
 	/** The block of a day: the day, its week or its month. */
 	const period = (d: string) =>
 		zoom === "day" ? d : zoom === "week" ? weekStart(d) : d.slice(0, 7);
-	const periods = [...new Set(plan.load.members.flatMap((m) => m.days.map((d) => period(d.day))))]
-		.sort()
-		.map((key) => ({
-			key,
-			name:
-				zoom === "month"
-					? new Date(`${key}-01T00:00:00Z`).toLocaleDateString(lang, {
-							month: "short",
-							timeZone: "UTC",
-						})
-					: day(key),
-		}));
+	const keys = [
+		...new Set(plan.load.members.flatMap((m) => m.days.map((d) => period(d.day)))),
+	].sort();
+	const real = keys.length;
+	// Four weeks or more, as the design shows. The added weeks are empty and carry no label.
+	while (zoom === "week" && keys.length > 0 && keys.length < 4)
+		keys.push(addDays(keys[keys.length - 1] as string, 7));
+	const periods = keys.map((key, i) => ({
+		pad: i >= real,
+		key,
+		name:
+			zoom === "month"
+				? new Date(`${key}-01T00:00:00Z`).toLocaleDateString(lang, {
+						month: "short",
+						timeZone: "UTC",
+					})
+				: day(key),
+	}));
 	const columns = { gridTemplateColumns: `repeat(${periods.length}, minmax(2.5rem, 1fr))` };
 
 	return (
@@ -103,7 +109,7 @@ export function People() {
 				<Card className="flex-[3_1_32rem] overflow-x-auto px-6 py-2">
 					<h2 className="sr-only">{c.capacity}</h2>
 					<div className="min-w-140">
-						<div className="flex min-h-control items-center gap-3">
+						<div className="flex min-h-control items-center gap-3 border-b border-n-6">
 							<span className="w-50 shrink-0" />
 							<div className="grid flex-1 gap-2" style={columns}>
 								{periods.map((x) => (
@@ -113,73 +119,81 @@ export function People() {
 								))}
 							</div>
 						</div>
-						{plan.load.members.map((m) => {
-							const name = memberName(members, m.handle);
-							const first = overDays(m.days)[0];
-							const total = format(p.load, {
-								used: sum(m.days.map((d) => d.used)),
-								capacity: sum(m.days.map((d) => d.capacity)),
-							});
-							return (
-								<div
-									key={m.handle}
-									className="flex min-h-18 items-center gap-3 [&+&]:border-t [&+&]:border-n-6"
-								>
-									<span
-										className="flex w-50 shrink-0 items-center gap-3 font-semibold"
-										title={total}
+						{[...plan.load.members]
+							.sort((a, b) =>
+								firstName(memberName(members, a.handle)).localeCompare(
+									firstName(memberName(members, b.handle)),
+								),
+							)
+							.map((m) => {
+								const name = memberName(members, m.handle);
+								const first = overDays(m.days)[0];
+								const total = format(p.load, {
+									used: sum(m.days.map((d) => d.used)),
+									capacity: sum(m.days.map((d) => d.capacity)),
+								});
+								return (
+									<div
+										key={m.handle}
+										className="flex min-h-18 items-center gap-3 [&+&]:border-t [&+&]:border-n-6"
 									>
-										<Avatar name={name} />
-										{first ? (
-											// The link opens the member in Crew on the week of the first day over: the capacity is set there.
-											<Link
-												to="/crew/crew"
-												onClick={() =>
-													askForm(`member:${memberWeek(m.handle, weekStart(first.day), slug)}`)
-												}
-												aria-label={format(c.over, { name, count: overDays(m.days).length })}
-												className="flex min-h-control items-center text-n-12"
-											>
-												{firstName(name)}
-											</Link>
-										) : (
-											firstName(name)
-										)}
-									</span>
-									<div className="grid flex-1 gap-2" style={columns}>
-										{periods.map((x) => {
-											const days = m.days.filter((d) => period(d.day) === x.key);
-											const used = sum(days.map((d) => d.used));
-											const capacity = sum(days.map((d) => d.capacity));
-											const isOver = overDays(days).length > 0;
-											const label = format(p.people.loadOf, {
-												period: zoom === "week" ? format(p.week, { day: x.name }) : x.name,
-												load: format(p.load, { used, capacity }),
-											});
-											return (
-												<div
-													key={x.key}
-													role="img"
-													aria-label={label}
-													title={label}
-													className={`flex h-10 items-end overflow-hidden rounded-[10px] ${isOver ? "bg-attention-subtle" : "bg-n-3"}`}
+										<span
+											className="flex w-50 shrink-0 items-center gap-3 font-semibold"
+											title={total}
+										>
+											<Avatar name={name} />
+											{first ? (
+												// The link opens the member in Crew on the week of the first day over: the capacity is set there.
+												<Link
+													to="/crew/crew"
+													onClick={() =>
+														askForm(`member:${memberWeek(m.handle, weekStart(first.day), slug)}`)
+													}
+													aria-label={format(c.over, { name, count: overDays(m.days).length })}
+													className="flex min-h-control items-center text-n-12"
 												>
-													<i
-														className={`block w-full ${isOver ? "bg-attention-strong" : "bg-accent/45"}`}
-														style={{
-															height: `${Math.min(1, used / Math.max(capacity, 1e-9)) * 100}%`,
-														}}
-													/>
-												</div>
-											);
-										})}
+													{firstName(name)}
+												</Link>
+											) : (
+												firstName(name)
+											)}
+										</span>
+										<div className="grid flex-1 gap-2" style={columns}>
+											{periods.map((x) => {
+												if (x.pad)
+													return <div key={x.key} className="h-10 rounded-[10px] bg-n-3" />;
+												const days = m.days.filter((d) => period(d.day) === x.key);
+												const used = sum(days.map((d) => d.used));
+												const capacity = sum(days.map((d) => d.capacity));
+												const isOver = overDays(days).length > 0;
+												const label = format(p.people.loadOf, {
+													period: zoom === "week" ? format(p.week, { day: x.name }) : x.name,
+													load: format(p.load, { used, capacity }),
+												});
+												return (
+													<div
+														key={x.key}
+														role="img"
+														aria-label={label}
+														title={label}
+														className={`flex h-10 items-end overflow-hidden rounded-[10px] ${isOver ? "bg-attention-subtle" : "bg-n-3"}`}
+													>
+														<i
+															className={`block w-full ${isOver ? "bg-attention-strong" : "bg-accent/45"}`}
+															style={{
+																height: `${Math.min(1, used / Math.max(capacity, 1e-9)) * 100}%`,
+															}}
+														/>
+													</div>
+												);
+											})}
+										</div>
 									</div>
-								</div>
-							);
-						})}
+								);
+							})}
 					</div>
 				</Card>
-				<div className="flex min-w-0 flex-[2_1_19rem] flex-col gap-6">
+				<div className="flex min-w-0 flex-[2_1_19rem] flex-col gap-3.5">
 					{proposed.list.length > 0 ? (
 						<AttentionCard who={p.planner} title={p.people.proposes}>
 							{proposed.list.map((x) => (

@@ -2,13 +2,13 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useViewState } from "@/lib/shell/view-state";
-import { Switch } from "@/ui/atoms/switch";
 import { ChevronRightIcon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
+import type { PageMenuItem } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 
-/** The switch of Spend: a shared screen keeps the amounts private. It holds on every page of Spend. */
+/** The prices of Spend: a shared screen keeps the amounts private. The item of the More menu holds on every page of Spend. */
 export function usePrices() {
 	const { t } = useI18n();
 	const [prices, setPrices] = useViewState("usage-prices", true);
@@ -21,14 +21,17 @@ export function usePrices() {
 				<span className="sr-only">{t.extras.usage.hidden}</span>
 			</span>
 		);
-	const switcher = (
-		<Switch label={t.extras.usage.showPrices} checked={prices} onCheckedChange={setPrices} />
-	);
-	return { prices, price, switcher };
+	const menu: PageMenuItem[] = [
+		{
+			label: prices ? t.factory.spendPage.hidePrices : t.extras.usage.showPrices,
+			onClick: () => setPrices(!prices),
+		},
+	];
+	return { prices, price, menu };
 }
 
 /** Where a sub-page of Spend goes. */
-export type SpendPage = "how" | "budgets";
+export type SpendPage = "how" | "budgets" | "usage";
 export const toSpend = (page?: SpendPage, run?: string) => ({
 	to: "/crew/spend" as const,
 	search: { ...(page ? { page } : {}), ...(run ? { run } : {}) } as never,

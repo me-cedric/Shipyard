@@ -98,7 +98,7 @@ describe("Plan / Time", () => {
 		);
 	});
 
-	it("opens the crew with the Member button focused when the person is not in the team", async () => {
+	it("opens the form of a new person with its first field focused when the person is not in the team", async () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mockState().work.me = null;
@@ -106,7 +106,9 @@ describe("Plan / Time", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent("You are not in the team yet.");
 		await user.click(screen.getByRole("button", { name: "Open" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/crew"));
-		await waitFor(() => expect(screen.getByRole("button", { name: "Member" })).toHaveFocus());
+		// The person lands on the form to add themself.
+		await waitFor(() => expect(router.state.location.search).toEqual({ member: "" }));
+		await waitFor(() => expect(screen.getByRole("textbox", { name: "Name" })).toHaveFocus());
 	});
 
 	it("offers one action when there is no team, and it adds the signed-in person", async () => {

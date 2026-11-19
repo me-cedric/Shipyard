@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { format, useI18n } from "@/lib/i18n";
 import type {
@@ -15,7 +15,6 @@ import { Select, type SelectItem } from "@/ui/atoms/select";
 import { Switch } from "@/ui/atoms/switch";
 import { Card } from "@/ui/molecules/card";
 import { MenuButton } from "@/ui/molecules/menu-button";
-import { SettingsRow } from "@/ui/molecules/settings-row";
 
 const EFFORTS: Effort[] = ["low", "medium", "high", "xhigh", "max"];
 /** The value of a Select item that stands for no value. */
@@ -23,6 +22,29 @@ const NONE = "-";
 const TURNS = 40;
 /** USD when a person turns the budget on. */
 const BUDGET = 5;
+
+/** A row of a card of the step page (picture 080): the label, then its control at its natural width on the right. */
+export function Fr({ label, children }: { label: ReactNode; children: ReactNode }) {
+	const id = useId();
+	return (
+		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
+		<div
+			role="group"
+			aria-labelledby={id}
+			className="flex min-h-15 flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-n-5 px-6 py-2 first:border-t-0"
+		>
+			<span id={id} className="min-w-32 flex-[1_1_12rem] font-medium text-n-12">
+				{label}
+			</span>
+			<div className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2">
+				{children}
+			</div>
+		</div>
+	);
+}
+
+/** A segmented control that is wide enough for its words. */
+const WIDE = "w-[min(100%,30rem)]";
 
 /** The id that a typed name gives: "Self review" gives "self-review". */
 export const idOf = (name: string) =>
@@ -177,7 +199,7 @@ function OptionalNumber({
 	onChange: (v: number | null) => void;
 }) {
 	return (
-		<SettingsRow label={label}>
+		<Fr label={label}>
 			{value !== null ? (
 				<NumberField label={label} value={value} onChange={(v) => onChange(v ?? initial)} />
 			) : null}
@@ -187,7 +209,7 @@ function OptionalNumber({
 				checked={value !== null}
 				onCheckedChange={(on) => onChange(on ? initial : null)}
 			/>
-		</SettingsRow>
+		</Fr>
 	);
 }
 
@@ -203,14 +225,14 @@ function Minutes({
 }) {
 	const { t } = useI18n();
 	return (
-		<SettingsRow label={label}>
+		<Fr label={label}>
 			<NumberField
 				label={label}
 				value={value === undefined ? value : value / 60}
 				onChange={(v) => onChange(v === undefined ? v : Math.round(v * 60))}
 			/>
 			{t.factory.recipePage.minutes}
-		</SettingsRow>
+		</Fr>
 	);
 }
 
@@ -231,7 +253,7 @@ function Chips({
 	const rest = all.filter((id) => !on.includes(id));
 	if (all.length === 0 && on.length === 0) return null;
 	return (
-		<SettingsRow label={label}>
+		<Fr label={label}>
 			{on.map((id) => (
 				<Chip
 					key={id}
@@ -252,7 +274,7 @@ function Chips({
 					}))}
 				/>
 			) : null}
-		</SettingsRow>
+		</Fr>
 	);
 }
 
@@ -277,6 +299,7 @@ function StepName({ id, onRename }: { id: string; onRename: (id: string) => void
 	};
 	return (
 		<Input
+			className="w-56"
 			label={t.factory.recipePage.stepName}
 			value={name}
 			onChange={(e) => setName(e.target.value)}
@@ -325,16 +348,16 @@ export function StepCards({
 		<div className="grid items-start gap-6 lg:grid-cols-2">
 			<Part title={w.who}>
 				{agent ? (
-					<SettingsRow label={w.agent}>
+					<Fr label={w.agent}>
 						<Select
 							label={w.agent}
 							value={step.role ?? ""}
 							items={items(options.roles, step.role)}
 							onValueChange={(v) => set({ role: v })}
 						/>
-					</SettingsRow>
+					</Fr>
 				) : null}
-				<SettingsRow label={p.stepName}>
+				<Fr label={p.stepName}>
 					<StepName
 						key={step.id}
 						id={step.id}
@@ -343,28 +366,30 @@ export function StepCards({
 							onRenamed(id);
 						}}
 					/>
-				</SettingsRow>
-				<SettingsRow label={p.does}>
-					<Segmented
-						label={p.does}
-						value={step.action ?? step.mode}
-						onValueChange={(v) =>
-							set(
-								v === "open_pr"
-									? { action: "open_pr", role: undefined }
-									: { mode: v, action: undefined, role: step.role ?? "worker" },
-							)
-						}
-						items={[
-							{ value: "plan", label: w.plan },
-							{ value: "open_pr", label: w.openPr },
-							{ value: "auto", label: w.auto },
-						]}
-					/>
-				</SettingsRow>
+				</Fr>
+				<Fr label={p.does}>
+					<div className={WIDE}>
+						<Segmented
+							label={p.does}
+							value={step.action ?? step.mode}
+							onValueChange={(v) =>
+								set(
+									v === "open_pr"
+										? { action: "open_pr", role: undefined }
+										: { mode: v, action: undefined, role: step.role ?? "worker" },
+								)
+							}
+							items={[
+								{ value: "plan", label: w.plan },
+								{ value: "open_pr", label: w.openPr },
+								{ value: "auto", label: w.auto },
+							]}
+						/>
+					</div>
+				</Fr>
 				{agent ? (
 					<>
-						<SettingsRow label={w.model}>
+						<Fr label={w.model}>
 							<Select
 								label={w.model}
 								value={step.model ?? NONE}
@@ -374,47 +399,47 @@ export function StepCards({
 								]}
 								onValueChange={(v) => set({ model: pick(v) })}
 							/>
-						</SettingsRow>
-						<SettingsRow label={w.effort}>
+						</Fr>
+						<Fr label={w.effort}>
 							<Select
 								label={w.effort}
 								value={step.effort ?? NONE}
 								items={[{ value: NONE, label: w.roleDefault }, ...items(EFFORTS)]}
 								onValueChange={(v) => set({ effort: pick(v) as Effort | undefined })}
 							/>
-						</SettingsRow>
-						<SettingsRow label={w.skill}>
+						</Fr>
+						<Fr label={w.skill}>
 							<Select
 								label={w.skill}
 								value={step.skill ?? NONE}
 								items={[{ value: NONE, label: w.none }, ...items(options.skills, step.skill)]}
 								onValueChange={(v) => set({ skill: pick(v) })}
 							/>
-						</SettingsRow>
-						<SettingsRow label={w.fresh}>
+						</Fr>
+						<Fr label={w.fresh}>
 							<Switch
 								iconOnly
 								label={w.fresh}
 								checked={step.fresh_context}
 								onCheckedChange={(on) => set({ fresh_context: on })}
 							/>
-						</SettingsRow>
+						</Fr>
 					</>
 				) : null}
 			</Part>
 			<Part title={w.limits}>
-				<SettingsRow label={w.retry}>
+				<Fr label={w.retry}>
 					<Stepper label={w.retry} value={step.retry} onChange={(v) => set({ retry: v ?? 0 })} />
-				</SettingsRow>
+				</Fr>
 				<Minutes label={w.timeout} value={step.timeout} onChange={(v) => set({ timeout: v })} />
-				<SettingsRow label={w.stepBudget}>
+				<Fr label={w.stepBudget}>
 					$
 					<NumberField
 						label={w.stepBudget}
 						value={step.budget}
 						onChange={(v) => set({ budget: v ?? null })}
 					/>
-				</SettingsRow>
+				</Fr>
 				<OptionalNumber
 					label={w.budget}
 					value={limits.budget_usd ?? null}
@@ -422,61 +447,64 @@ export function StepCards({
 					onChange={(budget_usd) => setLimits({ budget_usd })}
 				/>
 				{agent ? (
-					<SettingsRow label={w.rounds}>
+					<Fr label={w.rounds}>
 						<Stepper
 							label={w.rounds}
 							min={1}
 							value={step.max_rounds}
 							onChange={(v) => set({ max_rounds: v })}
 						/>
-					</SettingsRow>
+					</Fr>
 				) : null}
 			</Part>
 			<Part title={w.people}>
-				<SettingsRow label={w.gate}>
+				<Fr label={w.gate}>
 					<Switch
 						iconOnly
 						label={w.gate}
 						checked={step.gate === "human"}
 						onCheckedChange={(on) => set({ gate: on ? "human" : "none" })}
 					/>
-				</SettingsRow>
+				</Fr>
 				{people}
 			</Part>
 			<Part title={w.how}>
-				<SettingsRow label={w.workspace}>
-					<Segmented
-						label={w.workspace}
-						value={step.workspace}
-						onValueChange={(v) => set({ workspace: v })}
-						items={[
-							{ value: "shared", label: w.shared },
-							{ value: "worktree", label: w.worktree },
-							{ value: "none", label: p.noFolder },
-						]}
-					/>
-				</SettingsRow>
+				<Fr label={w.workspace}>
+					<div className={WIDE}>
+						<Segmented
+							label={w.workspace}
+							value={step.workspace}
+							onValueChange={(v) => set({ workspace: v })}
+							items={[
+								{ value: "shared", label: w.shared },
+								{ value: "worktree", label: w.worktree },
+								{ value: "none", label: p.noFolder },
+							]}
+						/>
+					</div>
+				</Fr>
 				<Chips
 					label={w.needs}
 					all={steps.filter((_, k) => k !== index).map((s) => s.id)}
 					on={step.needs ?? []}
 					onChange={(needs) => set({ needs })}
 				/>
-				<SettingsRow label={w.forEach}>
+				<Fr label={w.forEach}>
 					<Input
+						className="w-56"
 						label={w.forEach}
 						value={step.for_each ?? ""}
 						onChange={(e) => set({ for_each: e.target.value || undefined })}
 					/>
-				</SettingsRow>
-				<SettingsRow label={w.maxParallel}>
+				</Fr>
+				<Fr label={w.maxParallel}>
 					<Stepper
 						label={w.maxParallel}
 						min={1}
 						value={step.max_parallel}
 						onChange={(v) => set({ max_parallel: v })}
 					/>
-				</SettingsRow>
+				</Fr>
 				{agent ? (
 					<Chips
 						label={w.tools}
@@ -499,7 +527,7 @@ export function StepCards({
 					initial={TURNS}
 					onChange={(max_turns) => setLimits({ max_turns })}
 				/>
-				<SettingsRow label={w.place}>
+				<Fr label={w.place}>
 					<Button disabled={index === 0} onClick={() => onChange(moveStep(workflow, index, -1))}>
 						{w.up}
 					</Button>
@@ -518,7 +546,7 @@ export function StepCards({
 					>
 						{w.remove}
 					</Button>
-				</SettingsRow>
+				</Fr>
 			</Part>
 		</div>
 	);

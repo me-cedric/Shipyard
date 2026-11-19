@@ -182,7 +182,7 @@ describe("Factory tabs", () => {
 
 	it("Usage: three groups with counts on How agents do", async () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
-		const router = mountApp("/crew/spend?page=how");
+		const router = mountApp("/crew/spend?page=usage");
 		const u = await unwrap(commands.usageGet());
 		for (const [name, n] of [
 			["Per run", u.runs.length],
@@ -203,7 +203,9 @@ describe("Factory tabs", () => {
 		const u = await unwrap(commands.usageGet());
 		const day = u.days[0]?.key ?? "";
 		const router = mountApp("/crew/spend?page=budgets");
-		await user.click(await screen.findByRole("button", { name: "Add a limit" }));
+		// Add a limit is in the More menu of the page.
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Add a limit" }));
 		await user.type(screen.getByRole("textbox", { name: "Day or member" }), day);
 		await user.type(screen.getByRole("spinbutton", { name: "Budget (USD)" }), "3");
 		await user.click(screen.getByRole("button", { name: "Set budget" }));

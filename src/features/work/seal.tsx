@@ -4,6 +4,7 @@ import { RightButton, RightIconButton } from "@/lib/rights";
 import { type Seal, useWorkActions } from "@/lib/work";
 import { Badge } from "@/ui/atoms/badge";
 import { IconButton } from "@/ui/atoms/icon-button";
+import { Input } from "@/ui/atoms/input";
 import { LockClosedIcon, LockOpenIcon, XMarkIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { SecretInput } from "@/ui/molecules/secret-input";
@@ -146,12 +147,14 @@ export function SealCard({ state }: { state: Seal }) {
 					<h2 className="mr-auto text-17 font-semibold">{s.seal}</h2>
 					<Badge>{locked ? t.work.estimates.locked : state.sealed ? p.open : p.notSealed}</Badge>
 				</div>
-				<SecretInput
+				<Input
+					caption
 					label={label}
-					saved={false}
+					type="password"
+					autoComplete="off"
+					spellCheck={false}
 					value={pass}
-					onChange={setPass}
-					placeholder={label}
+					onChange={(ev) => setPass(ev.target.value)}
 				/>
 				<div className="flex flex-wrap gap-2.5">
 					{state.sealed && !locked ? (

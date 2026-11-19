@@ -36,6 +36,7 @@ import { code } from "@/ui/molecules/syntax";
 import { Dialog } from "@/ui/organisms/dialog";
 import { AUTOSAVE_MS } from "@/ui/organisms/editor-frame";
 import { RecipeLeave } from "./recipe-leave";
+import { MayWrite } from "./recipes-permissions";
 
 export type Pick = { kind: "workflow" | "role"; id: string };
 /** The keys of the address that the page of one recipe sets. `undefined` removes a key. */
@@ -149,7 +150,8 @@ function Chain({ workflow, alone }: { workflow: Workflow; alone: boolean }) {
 					<li key={s.id} className="flex flex-col">
 						{i > 0 ? line : null}
 						<div className={STEP}>
-							<Avatar agent name={s.role ? nameOf(s.role) : name} />
+							{/* One letter, as in the design: the first word of the name. */}
+							<Avatar agent name={(s.role ? nameOf(s.role) : name).split(/\s+/)[0] ?? name} />
 							<Link
 								to="."
 								{...to({ step: s.id })}
@@ -170,7 +172,7 @@ function Chain({ workflow, alone }: { workflow: Workflow; alone: boolean }) {
 								{line}
 								<div className={cn(STEP, "bg-attention-subtle")}>
 									<Avatar name={p.you} />
-									<b className={STEP_NAME}>{format(p.review, { name })}</b>
+									<b className={STEP_NAME}>{format(p.review, { name: name.toLowerCase() })}</b>
 									<Badge variant="you">{t.factory.wf.gate}</Badge>
 								</div>
 							</>
@@ -367,11 +369,14 @@ export function RecipeFile({
 						index={index}
 						options={options}
 						people={
-							<Row>
-								<Link to="/settings/project" hash="automation" className={linkClass}>
-									{p.rules}
-								</Link>
-							</Row>
+							<>
+								{open.action === "open_pr" ? <MayWrite recipe={id} /> : null}
+								<Row>
+									<Link to="/settings/project" hash="automation" className={linkClass}>
+										{p.rules}
+									</Link>
+								</Row>
+							</>
 						}
 						onChange={change}
 						onRenamed={(next) => go({ step: next }, true)}

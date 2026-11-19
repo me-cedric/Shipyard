@@ -7,15 +7,19 @@ import { Segmented } from "@/ui/atoms/segmented";
 import { Card } from "@/ui/molecules/card";
 
 type By = "day" | "runner" | "model" | "project";
-const KEY = { day: "byDay", runner: "byRunner", model: "byModel", project: "byProject" } as const;
 const DAY = 86_400_000;
 const BARS = 7;
 
 /** The spend of this computer in the last 30 days, grouped (picture 083). */
 export function SpendChart({ prices }: { prices: boolean }) {
 	const { t, lang } = useI18n();
-	const m = t.factory.machine;
 	const s = t.factory.spendPage;
+	const names = {
+		day: s.groupDay,
+		runner: t.factory.runner,
+		model: t.factory.model,
+		project: s.groupProject,
+	};
 	const [by, setBy] = useState<By>("day");
 	const spend = useMachineSpend(90);
 	const since = new Date(Date.now() - 29 * DAY).toISOString().slice(0, 10);
@@ -50,21 +54,24 @@ export function SpendChart({ prices }: { prices: boolean }) {
 						label={s.groupBy}
 						value={by}
 						onValueChange={setBy}
-						items={(Object.keys(KEY) as By[]).map((b) => ({ value: b, label: m[KEY[b]] }))}
+						items={(Object.keys(names) as By[]).map((b) => ({ value: b, label: names[b] }))}
 					/>
 				</div>
 			</div>
-			<div role="img" aria-label={s.spendBy} className="flex h-50 items-end gap-3 pt-2.5">
+			<div role="img" aria-label={s.spendBy} className="flex h-50 items-end gap-3 pt-6">
 				{lines.map((l) => (
 					<div
 						key={l.name}
 						title={`${label(l.name)}: ${amount(l.usd)}`}
 						style={{ height: `${Math.max(2, (l.usd / max) * 100)}%` }}
-						className="min-w-0 flex-1 rounded-t-md bg-accent"
+						className="min-w-0 flex-1 rounded-t-md bg-accent/45"
 					/>
 				))}
 			</div>
-			<div aria-hidden="true" className="flex justify-between gap-3 text-13 text-n-11">
+			<div
+				aria-hidden="true"
+				className="flex justify-between gap-3 text-13 font-semibold text-n-12"
+			>
 				{lines.map((l) => (
 					<span
 						key={l.name}

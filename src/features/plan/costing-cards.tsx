@@ -1,19 +1,19 @@
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
 import { SealCard } from "@/features/work/seal";
 import { ProfileTable } from "@/features/work/sheet-menu";
 import { useUsage } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import type { Totals } from "@/lib/ipc";
 import { RightButton, useRights } from "@/lib/rights";
+import { cn } from "@/lib/utils";
 import { figure, money, type Portfolio, type Seal, type SheetView } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
-import { Button, buttonVariants } from "@/ui/atoms/button";
+import { buttonVariants } from "@/ui/atoms/button";
 import { Card } from "@/ui/molecules/card";
 import { Row } from "@/ui/molecules/row";
 import { DataTable } from "@/ui/organisms/data-table";
-import { firstName, usePersonDays } from "./estimate-cards";
+import { firstName, useDays, usePersonDays } from "./estimate-cards";
 
 const NAME = "flex-[1_1_200px] font-medium";
 const TABLE = "flex min-h-48 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1";
@@ -31,6 +31,7 @@ export function CostingView({
 	seal,
 	portfolio,
 	names,
+	amounts: more,
 	onSheet,
 }: {
 	view: SheetView;
@@ -38,6 +39,8 @@ export function CostingView({
 	portfolio: Portfolio | undefined;
 	/** The name of each sheet, by slug. */
 	names: Map<string, string>;
+	/** The tables of the other amounts show (the item "More amounts" of the menu of the page). */
+	amounts: boolean;
 	/** Opens the page that edits the margin and the currency. */
 	onSheet: () => void;
 }) {
@@ -47,19 +50,20 @@ export function CostingView({
 	const costs = useRights().can("costs.view");
 	const { members, days } = usePersonDays(view.slug);
 	const usage = useUsage().data;
-	const [more, setMore] = useState(false);
+	const daysText = useDays();
 	const { sheet, totals } = view;
 	const currency = sheet.currency ?? "EUR";
 	const frozen = sheet.frozen === true;
 	const cash = (n: number | null | undefined) => money(costs ? n : null, currency, lang);
 	// A sheet whose roles all lack a rate costs nothing only because no rate shows: say so, not 0.
+	const unrated = costs && totals.unrated.length > 0 && !totals.cost;
 	const priced = (n: number | null) =>
-		!costs ? "—" : totals.unrated.length && !totals.cost ? e.unrated : money(n, currency, lang);
+		!costs ? "—" : unrated ? e.unrated : money(n, currency, lang);
 	const rate =
 		!costs || sheet.marginRate == null ? "—" : `${figure(sheet.marginRate * 100, lang)} %`;
 	const spend = (usage?.days ?? []).reduce((n, d) => n + (d.usd ?? 0), 0);
 	const people = [...members].sort((a, b) => (days.get(b.handle) ?? 0) - (days.get(a.handle) ?? 0));
-	const amounts = (["cost", "price", "margin"] as const).map(
+	const amountColumns = (["cost", "price", "margin"] as const).map(
 		(k): ColumnDef<Lot> => ({
 			id: k,
 			header: k === "margin" ? e.marginAmount : e[k],
@@ -81,12 +85,12 @@ export function CostingView({
 					<div className="min-w-160">
 						{people.map((m) => {
 							const name = firstName(m.name);
-							const to = (label: string, text: string) => (
+							const to = (label: string, text: string, width = "w-32") => (
 								<Link
 									to="/crew/crew"
 									search={{ member: m.handle } as never}
 									aria-label={`${format(label, { name })}: ${text}`}
-									className={buttonVariants()}
+									className={cn(buttonVariants(), width, "truncate")}
 								>
 									{text}
 								</Link>
@@ -97,8 +101,8 @@ export function CostingView({
 										<Avatar name={m.name} />
 										{name}
 									</span>
-									<span className="text-n-11">
-										{format(p.daysCount, { days: figure(days.get(m.handle) ?? 0, lang) })}
+									<span className="w-24 text-right text-n-11">
+										{daysText(days.get(m.handle) ?? 0)}
 									</span>
 									{costs
 										? to(
@@ -109,7 +113,7 @@ export function CostingView({
 											)
 										: null}
 									{to(p.capacityOf, format(p.perWeek, { days: figure(m.capacity, lang) }))}
-									{m.skills.length > 0 ? to(p.skillsOf, m.skills.join(", ")) : null}
+									{m.skills.length > 0 ? to(p.skillsOf, m.skills.join(", "), "w-40") : null}
 								</Row>
 							);
 						})}
@@ -125,9 +129,6 @@ export function CostingView({
 						</Row>
 					</div>
 				</Card>
-				<Button className="self-start" aria-expanded={more} onClick={() => setMore(!more)}>
-					{p.moreAmounts}
-				</Button>
 				{more ? (
 					<>
 						<div className={TABLE}>
@@ -171,7 +172,7 @@ export function CostingView({
 											cell: ({ row }) => row.original.name,
 										},
 										dayCol(),
-										...amounts,
+										...amountColumns,
 									]}
 									rowId={(r) => r.name}
 									footer={[
@@ -192,11 +193,18 @@ export function CostingView({
 				<Card className="py-2">
 					<Row>
 						<span className={NAME}>{e.cost}</span>
-						<span className="text-17 font-semibold">{priced(totals.cost)}</span>
+						{unrated ? (
+							// The rates are set in Crew.
+							<Link to="/crew/crew" className="text-17 font-semibold text-accent-text underline">
+								{e.unrated}
+							</Link>
+						) : (
+							<span className="text-17 font-semibold">{priced(totals.cost)}</span>
+						)}
 					</Row>
 					<Row>
 						<span className={NAME}>{e.marginAmount}</span>
-						<span className="text-n-11">{priced(totals.margin)}</span>
+						{unrated ? null : <span className="text-n-11">{priced(totals.margin)}</span>}
 						<RightButton
 							right="work.edit"
 							disabled={frozen}
@@ -221,15 +229,6 @@ export function CostingView({
 							{currency}
 						</RightButton>
 					</Row>
-					{costs && totals.unrated.length > 0 ? (
-						<Row>
-							{/* The rates are set in Crew. */}
-							<Link to="/crew/crew" className="text-accent-text underline">
-								{e.unrated}
-							</Link>
-							<span className="text-n-11">{totals.unrated.join(", ")}</span>
-						</Row>
-					) : null}
 				</Card>
 				{seal ? <SealCard state={seal} /> : null}
 			</div>

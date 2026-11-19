@@ -5,6 +5,12 @@ import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { clearViewState, setViewProject } from "@/lib/shell/view-state";
 import { mountApp } from "@/test/mount";
 
+/** The prices item of the More menu of the page. */
+const togglePrices = async (user: ReturnType<typeof userEvent.setup>) => {
+	await user.click(screen.getByRole("button", { name: "More" }));
+	await user.click(await screen.findByRole("menuitem", { name: /prices$/ }));
+};
+
 const idle = (router: ReturnType<typeof mountApp>) =>
 	waitFor(() => expect(router.state.status).toBe("idle"));
 
@@ -18,12 +24,14 @@ describe("Crew / Spend / How agents do", () => {
 		const u = await unwrap(commands.usageGet());
 		const run = u.runs.find((r) => r.iterations > 0);
 		if (!run) throw new Error("no run");
-		const router = mountApp("/crew/spend?page=how");
+		const router = mountApp("/crew/spend?page=usage");
 		const table = await screen.findByRole("table", { name: "Usage" });
 		expect(within(table).getByRole("columnheader", { name: "Iterations" })).toBeInTheDocument();
-		expect(screen.getByRole("switch", { name: "Show prices" })).toBeChecked();
+		await user.click(screen.getByRole("button", { name: "More" }));
+		expect(await screen.findByRole("menuitem", { name: "Hide prices" })).toBeInTheDocument();
+		await user.keyboard("{Escape}");
 		expect(within(table).getAllByText(`$${(run.usd ?? 0).toFixed(2)}`).length).toBeGreaterThan(0);
-		await user.click(screen.getByRole("switch", { name: "Show prices" }));
+		await togglePrices(user);
 		expect(within(table).queryByText(`$${(run.usd ?? 0).toFixed(2)}`)).toBeNull();
 		await idle(router);
 	});
@@ -32,16 +40,18 @@ describe("Crew / Spend / How agents do", () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		setViewProject("demo");
-		const first = mountApp("/crew/spend?page=how");
+		const first = mountApp("/crew/spend?page=usage");
 		await screen.findByRole("table", { name: "Usage" });
-		await user.click(screen.getByRole("switch", { name: "Show prices" }));
+		await togglePrices(user);
 		expect(screen.getByText("Tokens today")).toBeInTheDocument();
 		expect(screen.getByText("Runs")).toBeInTheDocument();
 		expect(screen.queryByText("Spend today")).toBeNull();
 		// The switch holds on the other pages of Spend.
 		await first.navigate({ to: "/crew/spend", search: {} as never });
 		expect((await screen.findAllByText("Hidden")).length).toBeGreaterThan(0);
-		expect(screen.getByRole("switch", { name: "Show prices" })).not.toBeChecked();
+		await user.click(screen.getByRole("button", { name: "More" }));
+		expect(await screen.findByRole("menuitem", { name: "Show prices" })).toBeInTheDocument();
+		await user.keyboard("{Escape}");
 		await idle(first);
 		setViewProject("");
 	});
@@ -50,7 +60,7 @@ describe("Crew / Spend / How agents do", () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		vi.spyOn(commands, "usageGet").mockReturnValue(new Promise(() => {}));
 		vi.spyOn(commands, "machineSpend").mockReturnValue(new Promise(() => {}));
-		mountApp("/crew/spend?page=how");
+		mountApp("/crew/spend?page=usage");
 		expect((await screen.findAllByRole("status", { name: "Loading" })).length).toBeGreaterThan(0);
 		expect(screen.queryByText("$0.00")).toBeNull();
 		expect(screen.queryByRole("table", { name: "Usage" })).toBeNull();
@@ -76,11 +86,11 @@ describe("Crew / Spend / How agents do", () => {
 				budgets: [],
 			},
 		});
-		const router = mountApp("/crew/spend?page=how");
+		const router = mountApp("/crew/spend?page=usage");
 		await screen.findByRole("table", { name: "Usage" });
 		await screen.findByRole("table", { name: /computer|machine/i });
 		expect(screen.getAllByText("$12.34").length).toBeGreaterThan(0);
-		await user.click(screen.getByRole("switch", { name: "Show prices" }));
+		await togglePrices(user);
 		expect(screen.queryByText("$12.34")).toBeNull();
 		expect(screen.getByText("Tokens this month")).toBeInTheDocument();
 		vi.restoreAllMocks();
@@ -94,12 +104,13 @@ describe("Crew / Spend / How agents do", () => {
 			r.state = states[i] ?? "Working";
 		});
 		const router = mountApp("/crew/spend?page=how");
-		await screen.findByRole("table", { name: "Usage" });
 		const strip = await screen.findByRole("img", { name: "Outcome of the last 4 runs" });
 		expect(strip.children).toHaveLength(4);
-		expect((await screen.findAllByText("50 %")).length).toBeGreaterThan(1);
-		expect(screen.getByText("2/4")).toBeInTheDocument();
+		expect(await screen.findByText("50 %")).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "The runs" })).toHaveAttribute("href", "/flow/done");
+		// The tiles are on the usage page, from More.
+		await router.navigate({ to: "/crew/spend", search: { page: "usage" } as never });
+		expect(await screen.findByText("2/4")).toBeInTheDocument();
 		await idle(router);
 	});
 

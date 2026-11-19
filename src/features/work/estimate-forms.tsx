@@ -21,11 +21,11 @@ import { Checkbox } from "@/ui/atoms/checkbox";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
-import { Textarea } from "@/ui/atoms/textarea";
 import { XMarkIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { useGuard } from "./guard";
+import { roleId } from "./team-rights";
 
 /** Each control inside is 44 px high or more (`spec:app-redesign#REQ-026`). A checkbox keeps its size. */
 export const CONTROLS =
@@ -64,6 +64,7 @@ export function TaskForm({
 	view,
 	taskId,
 	side,
+	more,
 	onSaved,
 	onRemoved,
 }: {
@@ -72,6 +73,8 @@ export function TaskForm({
 	/** Null for a new task. */
 	taskId: string | null;
 	side?: ReactNode;
+	/** The card with the name, the effort and Remove of a task shows (the menu of the page). A new task shows it always. */
+	more?: boolean;
 	onSaved: (taskId: string) => void;
 	onRemoved: () => void;
 }) {
@@ -81,6 +84,7 @@ export function TaskForm({
 	const p = t.costing.estimate;
 	const a = t.costing.agent;
 	const sheet = view.sheet;
+	const roleName = (id: string) => (t.rights.role as Record<string, string>)[roleId(id)] ?? id;
 	const members = useTeam().data?.team.members ?? [];
 	const roles = [
 		...new Set([
@@ -240,7 +244,8 @@ export function TaskForm({
 									label={e.role}
 									value={role}
 									onValueChange={setRole}
-									items={roles.map((r) => ({ value: r, label: r }))}
+									className="font-semibold [&_svg]:hidden"
+									items={roles.map((r) => ({ value: r, label: roleName(r) }))}
 								/>
 							) : (
 								// No team and no task yet: no role to choose from.
@@ -255,6 +260,7 @@ export function TaskForm({
 							<Select
 								label={e.feature}
 								value={feature}
+								className="font-semibold [&_svg]:hidden"
 								onValueChange={setFeature}
 								items={[
 									...sheet.features.map((f) => ({ value: f.id, label: f.name })),
@@ -308,17 +314,22 @@ export function TaskForm({
 						) : null}
 						<div className={FIELD}>
 							<span className={NAME}>{e.note}</span>
-							<Textarea
+							<Input
 								label={e.note}
-								rows={1}
 								value={note}
 								onChange={(ev) => setNote(ev.target.value)}
-								className="min-h-control flex-[1_1_200px]"
+								className="flex-[1_1_200px]"
 							/>
 						</div>
 						{mode === "days" ? (
-							<div className="flex min-h-control items-center">
-								<Checkbox label={p.otherWork} checked={other} onCheckedChange={setOther} />
+							<div className="flex min-h-control items-center gap-3">
+								<span className="mr-auto font-semibold">{p.otherWork}</span>
+								<Checkbox
+									label={p.otherWork}
+									hideLabel
+									checked={other}
+									onCheckedChange={setOther}
+								/>
 							</div>
 						) : null}
 						<Alert text={error} />
@@ -383,45 +394,47 @@ export function TaskForm({
 			</div>
 			<div className="flex min-w-0 flex-[2_1_300px] flex-col gap-4">
 				{side}
-				<Card pad className="flex flex-col gap-3">
-					<h2 className="text-13 font-semibold text-n-11">{t.ui.more}</h2>
-					{found ? nameField : null}
-					<div className={FIELD}>
-						<span className={NAME}>{e.effort}</span>
-						<Select
-							label={e.effort}
-							value={mode}
-							onValueChange={(v) => setMode(v as "days" | "percent")}
-							items={[
-								{ value: "days", label: e.days },
-								{ value: "percent", label: e.percent },
-							]}
-						/>
-					</div>
-					{found ? (
-						<RightButton
-							right="work.edit"
-							className="self-start text-danger-text"
-							disabled={frozen}
-							onClick={() =>
-								void run(async () => {
-									if (!(await confirmDialog(format(e.confirmRemove, { name: found.x.name }))))
-										return;
-									await act.saveSheet(slug, {
-										...sheet,
-										features: sheet.features.map((f) => ({
-											...f,
-											tasks: f.tasks.filter((x) => x.id !== found.x.id),
-										})),
-									});
-									onRemoved();
-								})
-							}
-						>
-							{t.work.remove}
-						</RightButton>
-					) : null}
-				</Card>
+				{found && !more ? null : (
+					<Card pad className="flex flex-col gap-3">
+						<h2 className="text-13 font-semibold text-n-11">{t.ui.more}</h2>
+						{found ? nameField : null}
+						<div className={FIELD}>
+							<span className={NAME}>{e.effort}</span>
+							<Select
+								label={e.effort}
+								value={mode}
+								onValueChange={(v) => setMode(v as "days" | "percent")}
+								items={[
+									{ value: "days", label: e.days },
+									{ value: "percent", label: e.percent },
+								]}
+							/>
+						</div>
+						{found ? (
+							<RightButton
+								right="work.edit"
+								className="self-start text-danger-text"
+								disabled={frozen}
+								onClick={() =>
+									void run(async () => {
+										if (!(await confirmDialog(format(e.confirmRemove, { name: found.x.name }))))
+											return;
+										await act.saveSheet(slug, {
+											...sheet,
+											features: sheet.features.map((f) => ({
+												...f,
+												tasks: f.tasks.filter((x) => x.id !== found.x.id),
+											})),
+										});
+										onRemoved();
+									})
+								}
+							>
+								{t.work.remove}
+							</RightButton>
+						) : null}
+					</Card>
+				)}
 			</div>
 		</div>
 	);

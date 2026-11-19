@@ -40,6 +40,9 @@ export const crewEn = {
 	sealed: "Sealed",
 	away: "Away",
 	removeAway: "Remove the days off",
+	accounts: "Accounts in the issue tracker",
+	waitsForYou: "Waits for you",
+	stepNames: { pr: "Pull request" } as Record<string, string>,
 	addAway: "Add days off",
 };
 
@@ -84,5 +87,8 @@ export const crewFr: typeof crewEn = {
 	sealed: "Scellé",
 	away: "Absence",
 	removeAway: "Retirer les jours d'absence",
+	accounts: "Comptes dans l'outil de suivi",
+	waitsForYou: "Vous attend",
+	stepNames: { pr: "Pull request" } as Record<string, string>,
 	addAway: "Ajouter des jours d'absence",
 };

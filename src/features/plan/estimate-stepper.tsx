@@ -54,7 +54,7 @@ export function Stepper({
 					value={value}
 					disabled={disabled}
 					onChange={(ev) => onType(ev.target.value)}
-					className="min-h-control w-14 [appearance:textfield] bg-transparent text-center font-semibold text-n-12 [&::-webkit-inner-spin-button]:appearance-none"
+					className="min-h-control w-10 [appearance:textfield] bg-transparent text-center font-semibold text-n-12 [&::-webkit-inner-spin-button]:appearance-none"
 				/>
 			) : (
 				<output className="min-w-7 text-center font-semibold whitespace-nowrap">{value}</output>

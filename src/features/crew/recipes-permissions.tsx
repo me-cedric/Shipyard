@@ -1,10 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { SectionCard } from "@/features/factory/section-card";
+import { Fr } from "@/features/factory/workflows/workflow-form";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap, type WriteKind } from "@/lib/ipc";
 import { useRights } from "@/lib/rights";
 import { syncKeys, useAutomation } from "@/lib/sync";
+import { Segmented } from "@/ui/atoms/segmented";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SettingsRow } from "@/ui/molecules/settings-row";
@@ -59,5 +61,57 @@ export function RecipePermissions({ recipe }: { recipe: string }) {
 			))}
 			<ErrorNotice error={failure} className="px-3 py-1" />
 		</SectionCard>
+	);
+}
+
+/**
+ * "May write" of a step that opens a pull request (picture 080): Asks first, or Alone once a person
+ * answered "Do not ask again". A save only narrows the list, so a recipe that asks first shows the
+ * state, and a recipe that writes alone can go back to Asks first (`open_pr` leaves `recipe_writes`).
+ */
+export function MayWrite({ recipe }: { recipe: string }) {
+	const { t } = useI18n();
+	const p = t.factory.recipePage;
+	const qc = useQueryClient();
+	const view = useAutomation().data;
+	const { failure, run } = useGuard();
+	const { can } = useRights();
+	if (!view || view.file === "invalid") return null;
+	const all = view.automation.recipe_writes ?? {};
+	const kinds = all[recipe] ?? [];
+	const alone = kinds.includes("open_pr");
+	const askFirst = () =>
+		void run(async () => {
+			await unwrap(
+				commands.syncAutomationSave({
+					...view.automation,
+					recipe_writes: Object.fromEntries(
+						Object.entries({ ...all, [recipe]: kinds.filter((k) => k !== "open_pr") }).filter(
+							([, left]) => left.length,
+						),
+					),
+				}),
+			);
+			await qc.invalidateQueries({ queryKey: syncKeys.all });
+		});
+	return (
+		<Fr label={p.mayWrite}>
+			{alone && can("project.settings") ? (
+				<div className="w-[min(100%,20rem)]">
+					<Segmented
+						label={p.mayWrite}
+						value="alone"
+						onValueChange={(v) => v === "first" && askFirst()}
+						items={[
+							{ value: "first", label: p.asksFirst },
+							{ value: "alone", label: p.alone },
+						]}
+					/>
+				</div>
+			) : (
+				<span className="font-semibold">{alone ? p.alone : p.asksFirst}</span>
+			)}
+			<ErrorNotice error={failure} />
+		</Fr>
 	);
 }

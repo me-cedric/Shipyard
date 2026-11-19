@@ -22,7 +22,7 @@ import { PageHeader, PageSwitchContext } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { usePlainDay } from "../plan/capacity";
 import { type AgentRow, useAgentRows } from "./live";
-import { EndedCard, MachineRows, OrcaCard, SIDE_HEAD } from "./sessions-side";
+import { EndedCard, MachineRows, modelName, OrcaCard, SIDE_HEAD } from "./sessions-side";
 
 const live = (r: AgentRow) => r.session.state === "running" || r.session.state === "gate";
 const idOf = (s: SessionView) => `${s.run}/${s.step}`;
@@ -48,16 +48,21 @@ export function CrewSessions() {
 	const name = (r: AgentRow) =>
 		r.session.step === "estimate"
 			? format(s.estimate, { name: r.session.key })
-			: r.session.pull != null
-				? format(s.review, { number: r.session.pull })
-				: r.title;
+			: r.session.step === "tile"
+				? format(s.tile, { name: r.session.key })
+				: r.session.pull != null
+					? format(s.review, { number: r.session.pull })
+					: r.title;
 	const detail = (r: AgentRow) =>
-		[runnerName(r.session.runner), r.session.model].filter(Boolean).join(", ");
+		[runnerName(r.session.runner), modelName(r.session.model)].filter(Boolean).join(", ");
 	const open = (r: SessionView) => {
 		if (r.step === "estimate")
 			void navigate({ to: "/plan/estimates", search: { sheet: r.key } as never });
+		else if (r.step === "tile") void navigate({ to: "/library/dashboards" });
 		else if (r.pull == null) void navigate(runHref(r.run, r.step));
 	};
+	// A review session has no page of its own here: its pull request opens from Code.
+	const opens = (r: SessionView) => r.step !== "review" || r.pull == null;
 	const stop = (r: SessionView) =>
 		void run(async () => {
 			if (r.pull != null) return writes.reviewStop(r.pull);
@@ -130,8 +135,8 @@ export function CrewSessions() {
 					{error}
 				</p>
 			) : null}
-			<div className="flex flex-wrap items-stretch gap-4 px-4 pb-4">
-				<div className="flex min-w-0 flex-[2_1_21rem] flex-col gap-4">
+			<div className="flex flex-wrap items-stretch gap-6 px-4 pb-4">
+				<div className="flex min-w-0 flex-[2_1_21rem] flex-col gap-4 self-start">
 					{none ? (
 						<EmptyState
 							title={t.empty.sessions}
@@ -139,12 +144,12 @@ export function CrewSessions() {
 						/>
 					) : null}
 					<Card className="py-2">
-						<section aria-label={s.here}>
+						<section aria-label={s.here} className="max-h-[26rem] overflow-y-auto">
 							<h2 className={SIDE_HEAD}>{s.here}</h2>
 							{here.map((r) => (
 								<Row
 									key={r.id}
-									className={cn("min-h-18 w-full py-2", r === shown && "bg-accent-subtle")}
+									className={cn("min-h-18 w-full py-2", r === shown && "bg-accent-subtle/40")}
 									render={(props) => (
 										<button
 											type="button"
@@ -181,7 +186,7 @@ export function CrewSessions() {
 				{shown ? (
 					<section
 						aria-label={format(s.output, { name: name(shown) })}
-						className="flex min-h-80 min-w-0 flex-[3_1_28rem] flex-col overflow-hidden rounded-xl bg-primary text-primary-fg"
+						className="flex min-h-140 min-w-0 flex-[3_1_28rem] flex-col overflow-hidden rounded-xl bg-primary text-primary-fg"
 					>
 						<div className="flex flex-wrap items-center gap-3 px-4 py-3.5">
 							<Avatar
@@ -191,9 +196,13 @@ export function CrewSessions() {
 							/>
 							<h2 className="font-semibold">{name(shown)}</h2>
 							<span className="flex-1" />
-							<Button className="min-h-control" onClick={() => open(shown.session)}>
-								{t.common.open}
-							</Button>
+							<Badge className="bg-primary-fg/15 text-primary-fg">{s.readOnly}</Badge>
+							{/* Open shows the page of the work. Taking over the terminal of an agent has no command. */}
+							{opens(shown.session) ? (
+								<Button className="min-h-control" onClick={() => open(shown.session)}>
+									{t.inspector.open}
+								</Button>
+							) : null}
 							{(shown.session.pull != null || shown.session.step === "estimate") &&
 							shown.session.state === "running" ? (
 								<RightButton
@@ -206,7 +215,7 @@ export function CrewSessions() {
 								</RightButton>
 							) : null}
 						</div>
-						<div className="flex flex-col gap-1 border-t border-primary-fg/20 px-4 py-4.5 text-primary-fg/80">
+						<div className="flex flex-col gap-1 border-t border-primary-fg/20 px-4 py-4.5 font-mono text-primary-fg/80">
 							<p>{format(s.tokens, { count: shown.session.tokens.toLocaleString(lang) })}</p>
 							{shown.session.costUsd === null ? null : (
 								<p>{`$${shown.session.costUsd.toFixed(2)}`}</p>

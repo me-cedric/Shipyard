@@ -1,4 +1,4 @@
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { DEFAULT_BUDGET, doStop, stopAction } from "@/features/flow/stop-action";
 import { NoProject } from "@/features/shell/no-project";
@@ -9,7 +9,7 @@ import type { RunView } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { useRights } from "@/lib/rights";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/atoms/button";
+import { Button, buttonVariants } from "@/ui/atoms/button";
 import { AttentionCard } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
@@ -21,6 +21,7 @@ import { BudgetsPage, useBudgets } from "./budgets";
 import { WARN_AT } from "./spend-const";
 import { SpendHow } from "./spend-how";
 import { LinkRow, RowsCard, toSpend, usePrices } from "./spend-parts";
+import { SpendUsage } from "./spend-usage-page";
 
 /**
  * Crew / Spend (`spec:app-redesign#REQ-016`, picture 013): the spend of each feature against its
@@ -35,6 +36,7 @@ export function Spend() {
 	if (search.page === "how")
 		return <SpendHow run={typeof search.run === "string" ? search.run : null} />;
 	if (search.page === "budgets") return <BudgetsPage />;
+	if (search.page === "usage") return <SpendUsage />;
 	return <SpendMain />;
 }
 
@@ -114,7 +116,7 @@ function SpendMain() {
 	const usage = useUsage();
 	const runs = useRuns().data ?? [];
 	const b = useBudgets();
-	const { prices, price, switcher } = usePrices();
+	const { prices, price, menu } = usePrices();
 	const titles = new Map(runs.map((r) => [r.id, r.title]));
 	const rows = (usage.data?.runs ?? [])
 		.map((r) => ({ id: r.run, name: titles.get(r.run) ?? r.key, usd: r.usd ?? 0 }))
@@ -129,7 +131,7 @@ function SpendMain() {
 	const empty = rows.length === 0 && !usage.isPending;
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-			<PageHeader title={t.ui.place.crew} action={switcher} />
+			<PageHeader title={t.ui.place.crew} menu={menu} />
 			{empty ? (
 				<div className="px-4 pb-4">
 					<EmptyState
@@ -174,7 +176,7 @@ function SpendMain() {
 														(prices ? money(r.usd) : t.extras.usage.hidden) +
 														(over ? `, ${s.over}` : "")
 													}
-													className="relative h-3.5 min-w-0 flex-1 rounded-full bg-n-5"
+													className="relative h-3.5 min-w-0 flex-1 rounded-full bg-n-4"
 												>
 													<div
 														style={{ width: `${(r.usd / scale) * 100}%` }}
@@ -209,6 +211,14 @@ function SpendMain() {
 								<Row>
 									<span className="flex-1 font-semibold">{s.eachFeature}</span>
 									<span>{price(money(limit))}</span>
+									{/* The limit of a feature comes from its recipe: Edit opens the recipes. */}
+									<Link
+										to="/crew/recipes"
+										aria-label={format(s.editLimit, { name: s.eachFeature.toLowerCase() })}
+										className={buttonVariants()}
+									>
+										{t.factory.edit}
+									</Link>
 								</Row>
 							)}
 							<Row>

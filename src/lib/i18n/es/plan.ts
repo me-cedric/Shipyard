@@ -35,6 +35,7 @@ export const planEs: typeof planEn = {
 		clearFixed: "Borrar el día fijo",
 		calendarOf: "Calendario del plan",
 		sheet: "Hoja de estimación",
+		holidaysOf: "Festivos de",
 		addHoliday: "Añadir un festivo",
 		removeDay: "Quitar el {day}",
 		share: "Compartir",

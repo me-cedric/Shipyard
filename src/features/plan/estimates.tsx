@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
-import { PageExport } from "@/features/reports/page-export";
+import { type ExportItem, useExportRun } from "@/features/reports/export-menu";
+import { PageExport, useExportItems } from "@/features/reports/page-export";
 import { NoProject } from "@/features/shell/no-project";
 import { EstimateBacklog, EstimateBulk } from "@/features/work/estimate-backlog";
 import { CONTROLS, SheetForm, TaskForm } from "@/features/work/estimate-forms";
@@ -10,7 +11,7 @@ import { SheetCard, useSheetActions } from "@/features/work/sheet-menu";
 import { format, useI18n } from "@/lib/i18n";
 import { pickWorkbook } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
-import { RightButton } from "@/lib/rights";
+import { RightButton, useRights } from "@/lib/rights";
 import { useViewState } from "@/lib/shell/view-state";
 import {
 	figure,
@@ -24,20 +25,22 @@ import {
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Segmented } from "@/ui/atoms/segmented";
-import { Select } from "@/ui/atoms/select";
 import { CurrencyIcon, PlusIcon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
+import { MenuButton } from "@/ui/molecules/menu-button";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { CostingView } from "./costing-cards";
 import { EstimateAgent } from "./estimate-agent";
 import { PersonCard, SheetsView, SplitCard } from "./estimate-cards";
 import { ExcelImport } from "./excel-page";
 
-const VIEWS = ["tasks", "summary", "spread", "portfolio", "costing"] as const;
-type View = (typeof VIEWS)[number];
+type View = "tasks" | "summary" | "spread" | "portfolio" | "costing";
+const VIEWS: readonly View[] = ["tasks", "summary", "spread", "portfolio", "costing"];
+/** The address of the page of days (`tab=sheets`) opens the Summary. */
+const ALIAS: Record<string, View> = { sheets: "summary" };
 type Search = { sheet?: unknown; page?: unknown; task?: unknown; tab?: unknown };
 
 /**
@@ -74,7 +77,10 @@ export function PlanEstimates() {
 	);
 	const sheet = current.data;
 	const locked = seal ? seal.sealed && !seal.unlocked : false;
-	const view: View = VIEWS.find((v) => v === search.tab) ?? "tasks";
+	const view: View =
+		VIEWS.find((v) => v === search.tab) ??
+		(typeof search.tab === "string" ? ALIAS[search.tab] : undefined) ??
+		"tasks";
 	const names = new Map(list.map((s) => [s.slug, s.name ?? s.slug]));
 	const actions = useSheetActions({
 		view: sheet,
@@ -83,6 +89,22 @@ export function PlanEstimates() {
 		onChosen: (next) => go({ ...home, sheet: next ?? undefined }),
 		run,
 	});
+
+	const { can } = useRights();
+	const exportRun = useExportRun();
+	const exportItems = useExportItems().costing;
+	const [amounts, setAmounts] = useState(false);
+	const [taskMore, setTaskMore] = useState(false);
+	/** The exports of the page: the workbook of the sheet, then the standard ones. */
+	const sheetExport: ExportItem[] = slug
+		? [
+				{
+					id: "sheet",
+					label: t.reports.sheet,
+					save: { name: slug, ext: "xlsx", job: (path) => act.exportExcel(slug, path) },
+				},
+			]
+		: [];
 
 	const icon = <CurrencyIcon size={16} />;
 	if (active === undefined || sheets.isLoading) return <Loading title={title} icon={icon} />;
@@ -172,7 +194,11 @@ export function PlanEstimates() {
 	if (sub && slug && sheet) {
 		const task = sheet.sheet.features.flatMap((f) => f.tasks).find((x) => x.id === taskId);
 		return frame(
-			<PageHeader title={task?.name ?? p.newTask} back={back} />,
+			<PageHeader
+				title={task?.name ?? p.newTask}
+				back={back}
+				menu={task ? [{ label: p.taskMore, onClick: () => setTaskMore(!taskMore) }] : undefined}
+			/>,
 			body(
 				<>
 					<ErrorNotice error={failure} className="pb-2" />
@@ -181,6 +207,7 @@ export function PlanEstimates() {
 						slug={slug}
 						view={sheet}
 						taskId={taskId}
+						more={taskMore}
 						onSaved={() => go(home)}
 						onRemoved={() => go(home)}
 						side={
@@ -197,6 +224,22 @@ export function PlanEstimates() {
 
 	const item = list.find((s) => s.slug === slug);
 	const frozen = sheet?.sheet.frozen === true;
+	const newSheet = () => go({ page: "new-sheet" });
+	// The seal buttons wait for the sheet, so they keep their place once the page shows them.
+	const seals =
+		view === "costing" || !sheet ? null : (
+			<>
+				<Button onClick={() => go({ tab: "costing" })}>{p.openSeal}</Button>
+				<Button variant="primary" onClick={() => go({ tab: "costing" })}>
+					{t.work.seal.seal}
+				</Button>
+			</>
+		);
+	const lots = list.map((s) => ({
+		id: s.slug,
+		label: s.name ?? s.slug,
+		onSelect: () => go({ sheet: s.slug }),
+	}));
 	return frame(
 		<PageHeader
 			title={
@@ -212,6 +255,35 @@ export function PlanEstimates() {
 			chips={frozen ? <Badge variant="info">{t.costing.sheet.frozen}</Badge> : null}
 			menu={[
 				{ label: p.tools, onClick: () => setTools(!tools) },
+				// A control that the design of the page does not show waits here.
+				...(view === "tasks"
+					? [
+							{
+								label: p.addTask,
+								disabled: frozen || !can("work.edit"),
+								onClick: () => go({ page: "task" }),
+							},
+							...(sheet ? [...sheetExport, ...exportItems] : []).map((x) => ({
+								label: `${t.reports.export}: ${x.label}`,
+								onClick: () => void exportRun.pick(x),
+							})),
+						]
+					: []),
+				...(view === "costing"
+					? [
+							{ label: p.moreAmounts, onClick: () => setAmounts(!amounts) },
+							{ label: e.newSheet, disabled: !can("work.edit"), onClick: newSheet },
+							{
+								label: p.importExcel,
+								disabled: !can("work.edit"),
+								onClick: () => void importExcel(),
+							},
+							...lots.map((l) => ({
+								label: format(p.lot, { name: l.label }),
+								onClick: l.onSelect,
+							})),
+						]
+					: []),
 				...actions.map((a) => ({ label: a.label, disabled: a.disabled, onClick: a.onClick })),
 			]}
 		/>,
@@ -231,50 +303,29 @@ export function PlanEstimates() {
 						]}
 					/>
 				</span>
-				<Select
-					label={e.sheet}
-					value={slug ?? ""}
-					onValueChange={(sheet) => go({ sheet })}
-					items={list.map((s) => ({ value: s.slug, label: s.name ?? s.slug }))}
-				/>
-				<RightButton right="work.edit" onClick={() => go({ page: "new-sheet" })}>
-					{e.newSheet}
-				</RightButton>
-				<RightButton right="work.edit" onClick={() => void importExcel()}>
-					{p.importExcel}
-				</RightButton>
-				<PageExport
-					page="costing"
-					disabled={!sheet}
-					extra={
-						slug
-							? [
-									{
-										id: "sheet",
-										label: t.reports.sheet,
-										save: {
-											name: slug,
-											ext: "xlsx",
-											job: (path) => act.exportExcel(slug, path),
-										},
-									},
-								]
-							: []
-					}
-				/>
-				{/* The seal is one card, in Costing. */}
 				{view === "costing" ? null : (
-					<Button
-						variant={seal?.sealed ? "secondary" : "primary"}
-						onClick={() => go({ tab: "costing" })}
-					>
-						{seal?.sealed ? p.openSeal : t.work.seal.seal}
-					</Button>
+					<>
+						<MenuButton label={format(p.lot, { name: names.get(slug ?? "") ?? "" })} items={lots} />
+						<RightButton right="work.edit" onClick={newSheet}>
+							{e.newSheet}
+						</RightButton>
+						<RightButton right="work.edit" onClick={() => void importExcel()}>
+							{p.importExcel}
+						</RightButton>
+					</>
+				)}
+				{view === "tasks" ? null : (
+					<PageExport page="costing" disabled={!sheet} extra={sheetExport} />
 				)}
 				{view === "tasks" && slug && sheet ? (
-					<EstimateAgent slug={slug} view={sheet} ids={[...picked]} />
-				) : null}
+					<EstimateAgent slug={slug} view={sheet} ids={[...picked]} onPick={() => setTools(true)}>
+						{seals}
+					</EstimateAgent>
+				) : (
+					seals
+				)}
 			</div>
+			<div className="flex flex-wrap items-center gap-2 px-4 empty:hidden">{exportRun.status}</div>
 			<ErrorNotice error={failure} className="px-4 py-1" />
 			{item?.state === "invalid" ? (
 				<p role="alert" className="px-4 py-1 text-ui text-danger-text">
@@ -291,7 +342,7 @@ export function PlanEstimates() {
 								tools={tools}
 								picked={picked}
 								onPicked={setPicked}
-								onOpen={(id) => go(id ? { task: id } : { page: "task" })}
+								onOpen={(id) => go({ task: id })}
 								className="min-w-0 flex-[3_1_520px]"
 							/>
 							<div className="flex min-w-0 flex-[2_1_300px] flex-col gap-6">
@@ -306,6 +357,7 @@ export function PlanEstimates() {
 							seal={seal}
 							portfolio={portfolio}
 							names={names}
+							amounts={amounts}
 							onSheet={() => go({ page: "sheet" })}
 						/>
 					) : (

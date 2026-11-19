@@ -49,15 +49,25 @@ import { useGuard } from "./guard";
 /** The team file of a project, as `TEAM_FILE` of `crates/shipyard-core/src/rights.rs`. */
 const TEAM_FILE = ".shipyard/team.yaml";
 
+/** The short role ids that the plan and the team file also use, with the role that they name. */
+const ROLE_ALIAS: Record<string, string> = {
+	dev: "developer",
+	lead: "techlead",
+	design: "designer",
+	analyst: "ba",
+};
+/** A role id as a role of the list: "dev" is "developer". An id that is no role stays as it is. */
+export const roleId = (id: string) => ROLE_ALIAS[id] ?? id;
+
 /** The roles of a member as a select. A role that is not one of the nine stays selectable, as it is. */
 export function RoleSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
 	const { t } = useI18n();
-	const known = (TEAM_ROLES as string[]).includes(value);
+	const known = (TEAM_ROLES as string[]).includes(roleId(value));
 	return (
 		<Select
 			caption
 			label={t.work.team.role}
-			value={value}
+			value={roleId(value)}
 			onValueChange={onChange}
 			placeholder={t.rights.team.pickRole}
 			className="min-h-control"
@@ -135,7 +145,7 @@ const RIGHT_AT: Record<Right, [keyof Access, Level]> = {
 
 const isRole = (r: string): r is TeamRole => (TEAM_ROLES as string[]).includes(r);
 /** The known roles of a member, the first one first. */
-const rolesOf = (m: Member) => [...new Set([m.role, ...(m.roles ?? [])])].filter(isRole);
+const rolesOf = (m: Member) => [...new Set([roleId(m.role), ...(m.roles ?? [])])].filter(isRole);
 
 /** The levels of a member: the highest of the roles, then the overrides. An admin has all. */
 function effective(m: Member, roles: TeamRole[], table: RoleAccess[]): Access {
@@ -218,7 +228,7 @@ function Frame({ label, children }: { label: string; children: ReactNode }) {
 }
 
 const HEAD = "px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-10";
-const TITLE = "text-20 font-semibold text-n-12";
+const TITLE = "text-30 font-bold text-n-12";
 
 /** The save of the roles table and of the roles of the members: one command, then a new read (REQ-019). */
 export function useRolesSave() {
@@ -304,7 +314,7 @@ export function RoleCard({
 							<fieldset
 								disabled={off.disabled}
 								title={off.reason}
-								className="w-64 shrink-0 disabled:opacity-60"
+								className="w-48 shrink-0 disabled:opacity-60"
 							>
 								{k === "merge" || k === "approve" ? (
 									<Segmented

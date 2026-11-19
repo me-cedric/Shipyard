@@ -6,7 +6,7 @@ import { Select } from "@/ui/atoms/select";
 import { Card } from "@/ui/molecules/card";
 import { SpendFlame } from "./spend-flame";
 
-type Run = { run: string; key: string };
+type Run = { run: string; key: string; title?: string };
 
 const BOX = "flex items-center gap-3 rounded-md bg-n-3 px-4 py-3";
 
@@ -43,7 +43,7 @@ export function RequestTree({
 					className="min-h-control"
 					value={run ?? ""}
 					onValueChange={(v) => (onRun ? onRun(v) : setMine(v))}
-					items={runs.map((r) => ({ value: r.run, label: r.key }))}
+					items={runs.map((r) => ({ value: r.run, label: r.title ?? r.key }))}
 				/>
 			</div>
 			{view === "flame" ? (

@@ -144,12 +144,25 @@ describe("Run address", () => {
 	it("opens the run from a Sessions row, at its unit", async () => {
 		await open();
 		const user = userEvent.setup();
-		const first = (await unwrap(commands.sessionsList())).find((s) => s.pull == null);
+		const first = (await unwrap(commands.sessionsList())).find(
+			(s) => s.pull == null && (s.state === "running" || s.state === "gate"),
+		);
 		const router = mountApp("/factory/sessions");
-		const row = (await screen.findAllByText(first?.key ?? ""))[0]?.closest(
-			'[role="row"]',
-		) as HTMLElement;
+		// A row picks the session; Open in its panel opens the run at its unit.
+		const here = await screen.findByRole("region", { name: "On this machine" });
+		// The row names the feature: the title of the run of the session.
+		const title = (await find(first?.key ?? "")).title;
+		// The rows come in as the sessions and the runs load.
+		const row = await waitFor(() => {
+			const b = within(here)
+				.getAllByRole("button")
+				.find((x) => x.textContent?.includes(title));
+			if (!b) throw new Error("no row");
+			return b;
+		});
 		await user.click(row);
+		const panel = await screen.findByRole("region", { name: `Live output of ${title}` });
+		await user.click(await within(panel).findByRole("button", { name: "Open" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${first?.run}`));
 		expect(router.state.location.search).toEqual({ unit: first?.step });
 		await idle(router);
@@ -159,7 +172,7 @@ describe("Run address", () => {
 		await open();
 		const user = userEvent.setup();
 		const run = await find("ACME-2");
-		const router = mountApp("/factory/usage");
+		const router = mountApp("/factory/usage?page=usage");
 		const row = (await screen.findAllByText("ACME-2"))[0]?.closest('[role="row"]') as HTMLElement;
 		await user.click(row);
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
@@ -170,7 +183,7 @@ describe("Run address", () => {
 		await open();
 		const user = userEvent.setup();
 		const run = await find("ACME-2");
-		const router = mountApp("/factory/usage");
+		const router = mountApp("/factory/usage?page=usage");
 		const row = (await screen.findAllByText("ACME-2"))[0]?.closest('[role="row"]') as HTMLElement;
 		expect(row).toHaveTextContent(run.title);
 		expect(row).not.toHaveTextContent("run:");

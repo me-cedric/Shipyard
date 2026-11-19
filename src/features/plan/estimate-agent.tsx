@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
@@ -30,11 +30,20 @@ export function EstimateAgent({
 	slug,
 	view,
 	ids,
+	onPick,
+	children,
 }: {
 	slug: string;
 	view: SheetView;
 	/** The selected tasks. */
 	ids: string[];
+	/**
+	 * Lets a person choose tasks. With it, the action looks on while no task is selected: a press
+	 * opens the choice and says what to do. Without it, no task selected turns the action off.
+	 */
+	onPick?: () => void;
+	/** Buttons that sit after the action in the same row. */
+	children?: ReactNode;
 }) {
 	const { t, lang } = useI18n();
 	const a = t.costing.agent;
@@ -44,21 +53,28 @@ export function EstimateAgent({
 	const asking = useGuard();
 	const saving = useGuard();
 	const [proposals, setProposals] = useState<EstimateProposal[]>([]);
+	const [hint, setHint] = useState(false);
 	const sheet = view.sheet;
 	const tasks = new Map(sheet.features.flatMap((f) => f.tasks.map((x) => [x.id, x] as const)));
 	const off = seal?.sealed
 		? a.sealed
 		: sheet.frozen
 			? t.costing.sheet.frozen
-			: ids.length === 0
+			: ids.length === 0 && !onPick
 				? a.select
 				: undefined;
 	const drop = (id: string) => setProposals((all) => all.filter((p) => p.task !== id));
-	const ask = () =>
-		asking.run(async () => {
+	const ask = () => {
+		if (ids.length === 0) {
+			setHint(true);
+			return onPick?.();
+		}
+		setHint(false);
+		return asking.run(async () => {
 			const next = await unwrap(commands.estimateAgentStart(slug, ids, true));
 			setProposals((all) => [...all.filter((p) => !ids.includes(p.task)), ...next]);
 		});
+	};
 	const accept = (p: EstimateProposal) =>
 		saving.run(async () => {
 			// The sheet of the file, not the one of this render: an earlier accept can be in it.
@@ -98,6 +114,12 @@ export function EstimateAgent({
 					</Button>
 				) : null}
 			</div>
+			{children}
+			{hint && ids.length === 0 && off === undefined ? (
+				<p role="status" className="w-full text-ui text-n-11">
+					{a.select}
+				</p>
+			) : null}
 			<ErrorNotice error={asking.failure ?? saving.failure} className="w-full" />
 			{shown.length > 0 ? (
 				<section aria-label={a.proposals} className="w-full rounded-lg bg-surface-2 shadow-2">

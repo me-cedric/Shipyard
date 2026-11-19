@@ -40,7 +40,7 @@ describe("Crew", () => {
 		expect(agents.getByRole("link", { name: /^Planner/ })).toHaveTextContent(
 			"Write the onboarding guide",
 		);
-		expect(agents.getByRole("link", { name: /^Planner/ })).toHaveTextContent("Needs you");
+		expect(agents.getByRole("link", { name: /^Planner/ })).toHaveTextContent("Waits for you");
 		// A role with no work has no card: each card opens the live rows, and one leads to the budgets.
 		expect(agents.queryByRole("link", { name: /^Docs/ })).toBeNull();
 		expect(agents.getByRole("link", { name: /^Planner/ })).toHaveAttribute(
@@ -81,7 +81,9 @@ describe("Crew", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		const router = mountApp("/crew/spend");
-		await user.click(await screen.findByRole("switch", { name: "Show prices" }));
+		// The switch moved to the More menu of Spend.
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: /prices$/ }));
 		await router.navigate({ to: "/crew/crew" });
 		const card = (await screen.findByText("Spend on open work")).closest("li");
 		if (!card) throw new Error("no spend card");

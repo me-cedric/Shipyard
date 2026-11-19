@@ -9,7 +9,7 @@ import { useRights } from "@/lib/rights";
 import { useTeam } from "@/lib/work";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { TeamPage } from "./team-page";
+import { LevelsPage, TeamPage } from "./team-page";
 
 const isRole = (r: unknown): r is TeamRole => (TEAM_ROLES as unknown[]).includes(r);
 
@@ -28,6 +28,7 @@ export function Rights() {
 	if (active === undefined || team.isLoading) return <Loading title={t.ui.place.crew} />;
 	if (active === null) return <NoProject title={t.ui.place.crew} icon={null} />;
 	if (search.page === "team") return <TeamPage />;
+	if (search.page === "levels") return <LevelsPage />;
 	const role = isRole(search.role) ? search.role : isRole(own) ? own : "developer";
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">

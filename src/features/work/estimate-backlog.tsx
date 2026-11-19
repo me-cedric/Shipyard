@@ -1,4 +1,5 @@
 import { type PointerEvent, useMemo, useRef } from "react";
+import { useDays } from "@/features/plan/estimate-cards";
 import { Stepper } from "@/features/plan/estimate-stepper";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
@@ -122,13 +123,13 @@ export function EstimateBacklog({
 	tools: boolean;
 	picked: Set<string>;
 	onPicked: (picked: Set<string>) => void;
-	/** Opens the page of a task. Null is a new task. */
-	onOpen: (taskId: string | null) => void;
+	/** Opens the page of a task. */
+	onOpen: (taskId: string) => void;
 	className?: string;
 }) {
 	const { t, lang } = useI18n();
 	const c = t.costing;
-	const p = c.estimate;
+	const daysText = useDays();
 	const act = useWorkActions();
 	const { failure, run, busy } = useGuard();
 	const sheet = view.sheet;
@@ -225,12 +226,7 @@ export function EstimateBacklog({
 								<div className="flex items-baseline gap-2.5 pt-1 pb-1.5">
 									<h2 className="text-17 font-semibold">{f.name}</h2>
 									<span className="text-n-11">
-										{format(p.daysCount, {
-											days: figure(
-												f.tasks.reduce((n, x) => n + dayOf(x.id), 0),
-												lang,
-											),
-										})}
+										{daysText(f.tasks.reduce((n, x) => n + dayOf(x.id), 0))}
 									</span>
 								</div>
 								{f.tasks
@@ -268,7 +264,7 @@ export function EstimateBacklog({
 											</LinkButton>
 											<span
 												role="img"
-												aria-label={format(p.daysCount, { days: figure(dayOf(task.id), lang) })}
+												aria-label={daysText(dayOf(task.id))}
 												className="min-w-0 flex-1"
 											>
 												<span
@@ -293,15 +289,6 @@ export function EstimateBacklog({
 						))}
 				</div>
 			</div>
-			<RightButton
-				right="work.edit"
-				variant="ghost"
-				className="mt-2 self-start text-accent"
-				disabled={frozen}
-				onClick={() => onOpen(null)}
-			>
-				{p.addTask}
-			</RightButton>
 		</Card>
 	);
 }

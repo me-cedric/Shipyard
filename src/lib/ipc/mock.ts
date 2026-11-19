@@ -663,6 +663,37 @@ function seedDemo(p: ProjectEntry_Serialize) {
 	importPlan(state.sync);
 	importConfirm(state.sync);
 	ai.seedDemoThread(state.assistant, p.id);
+	// A join request and two changes of rights, for the team page.
+	const at = 1_794_000_000;
+	state.audit = [
+		{
+			time: at,
+			member: "ada",
+			found: "email",
+			right: "project.settings",
+			what: "rights_roles_save",
+			target: "",
+			result: "allowed",
+		},
+		{
+			time: at + 86_400,
+			member: "ada",
+			found: "email",
+			right: "work.edit",
+			what: "work_transition",
+			target: "ACME-2",
+			result: "allowed",
+		},
+		{
+			time: at + 172_800,
+			member: null,
+			found: "unknown",
+			right: "project.settings",
+			what: "work_team_join",
+			target: "shipyard/join-zed",
+			result: "requested",
+		},
+	];
 }
 
 const outcome = (

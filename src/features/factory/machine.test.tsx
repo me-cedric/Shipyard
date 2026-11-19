@@ -62,7 +62,7 @@ describe("Factory / machine-wide AI sessions and spend", () => {
 	it("Usage: a chart by day and spend by runner on How agents do", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
-		const router = mountApp("/crew/spend?page=how");
+		const router = mountApp("/crew/spend?page=usage");
 		expect(await screen.findByRole("img", { name: "Spend by day" })).toBeInTheDocument();
 		const table = await screen.findByRole("table", { name: "This computer" });
 		expect(within(table).getByText("Claude Code")).toBeInTheDocument();

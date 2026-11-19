@@ -46,6 +46,7 @@ describe("Crew / Rights: the team file", () => {
 		expect(mockState().work.team.roles).toBeUndefined();
 		await router.navigate({ to: "/crew/rights", search: { page: "team" } as never });
 		expect(await screen.findByText("You are ada (Account)")).toBeInTheDocument();
+		await router.navigate({ to: "/crew/rights", search: { page: "levels" } as never });
 		// a grid wider than the page scrolls sideways, and the keyboard reaches the scroll
 		const scroll = await screen.findByRole("region", { name: "Rights of each person" });
 		expect(scroll).toHaveAttribute("tabindex", "0");
@@ -95,11 +96,11 @@ describe("Crew / Rights: the team file", () => {
 		await withTracker();
 		const grace = mockState().work.team.members.find((m) => m.handle === "grace");
 		Object.assign(grace ?? {}, { role: "viewer", roles: undefined, rights: [], admin: false });
-		const router = mountApp("/crew/rights?page=team");
+		const router = mountApp("/crew/rights?page=levels");
 		const members = () => screen.findByRole("table", { name: "Members" });
 		const before = within(within(await members()).getByRole("row", { name: "grace levels" }));
 		expect(before.queryAllByRole("img", { name: "Read and write" })).toHaveLength(0);
-		await user.click(screen.getByRole("link", { name: "Rights" }));
+		await router.navigate({ to: "/crew/rights" });
 		await user.click(await screen.findByRole("button", { name: "Roles of Grace Hopper: Viewer" }));
 		await user.click(await screen.findByRole("menuitemcheckbox", { name: "Developer" }));
 		await waitFor(() =>
@@ -122,7 +123,7 @@ describe("Crew / Rights: the team file", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent("grace needs one role");
 		await user.keyboard("{Escape}");
 		// Developer adds writes.
-		await router.navigate({ to: "/crew/rights", search: { page: "team" } as never });
+		await router.navigate({ to: "/crew/rights", search: { page: "levels" } as never });
 		const grown = within(await members()).getByRole("row", { name: "grace levels" });
 		expect(within(grown).getAllByRole("img", { name: "Read and write" }).length).toBeGreaterThan(3);
 		// The row holds its content: no fixed height, no absolute place.

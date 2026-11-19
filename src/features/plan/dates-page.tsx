@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { useExportRun } from "@/features/reports/export-menu";
 import { useGuard } from "@/features/work/guard";
 import { HolidayCountry } from "@/features/work/holiday-country";
@@ -16,11 +16,24 @@ import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
-import { SettingsRow } from "@/ui/molecules/settings-row";
 import { usePlainDay } from "./capacity";
 import { usePlanTitle, usePngItem } from "./timeline-export";
 
 const HEAD = "px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-10";
+
+/** A value row of the design: a medium label on the left, compact controls on the right. */
+export function FieldRow({ label, children }: { label: ReactNode; children: ReactNode }) {
+	const id = useId();
+	return (
+		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
+		<Row className="py-2" render={(props) => <div role="group" aria-labelledby={id} {...props} />}>
+			<span id={id} className="min-w-32 flex-1 font-medium">
+				{label}
+			</span>
+			{children}
+		</Row>
+	);
+}
 
 function Alert({ error }: { error: string | null }) {
 	return error ? (
@@ -82,7 +95,7 @@ function TaskCard({ slug, task }: { slug: string; task: string }) {
 	return (
 		<Card className="py-2">
 			<h2 className="px-6 pt-4 pb-2 text-20 font-semibold text-n-12">{bar.name}</h2>
-			<SettingsRow label={d.who}>
+			<FieldRow label={d.who}>
 				<Select
 					label={d.who}
 					disabled={!edit}
@@ -99,8 +112,8 @@ function TaskCard({ slug, task }: { slug: string; task: string }) {
 				>
 					{d.chooseForMe}
 				</RightButton>
-			</SettingsRow>
-			<SettingsRow label={d.start}>
+			</FieldRow>
+			<FieldRow label={d.start}>
 				<Segmented
 					label={d.start}
 					value={mine.start ? "fixed" : "auto"}
@@ -110,8 +123,8 @@ function TaskCard({ slug, task }: { slug: string; task: string }) {
 						{ value: "fixed", label: d.fixed },
 					]}
 				/>
-			</SettingsRow>
-			<SettingsRow label={d.fixedDay}>
+			</FieldRow>
+			<FieldRow label={d.fixedDay}>
 				<Input
 					label={d.fixedDay}
 					disabled={!edit}
@@ -126,15 +139,15 @@ function TaskCard({ slug, task }: { slug: string; task: string }) {
 				>
 					{d.clearFixed}
 				</RightButton>
-			</SettingsRow>
-			<SettingsRow label={p.order}>
+			</FieldRow>
+			<FieldRow label={p.order}>
 				<RightButton right="work.edit" onClick={() => void shift(-1)}>
 					{p.earlier}
 				</RightButton>
 				<RightButton right="work.edit" onClick={() => void shift(1)}>
 					{p.later}
 				</RightButton>
-			</SettingsRow>
+			</FieldRow>
 			<Alert error={error} />
 		</Card>
 	);
@@ -186,7 +199,7 @@ function CalendarCards({ slug }: { slug: string }) {
 			</Card>
 			<Card className="py-2">
 				<h2 className={HEAD}>{p.holidays}</h2>
-				<HolidayCountry row />
+				<HolidayCountry row label={d.holidaysOf} />
 				{cal.holidays.map((h) => {
 					const name = `${weekday(h, "long")} ${plain(h)} ${h.slice(0, 4)}`;
 					return (
@@ -245,10 +258,10 @@ function ShareCard({ slug }: { slug: string }) {
 	return (
 		<Card className="py-2">
 			<h2 className={HEAD}>{d.share}</h2>
-			<SettingsRow label={d.picture}>
+			<FieldRow label={d.picture}>
 				<Button onClick={() => void pick(png)}>{d.exportPicture}</Button>
 				{status}
-			</SettingsRow>
+			</FieldRow>
 			<Row
 				render={(props) => <Link to="/plan/people" search={{ page: "send" } as never} {...props} />}
 			>
@@ -298,14 +311,14 @@ export function DatesPage({
 						{task ? <TaskCard key={task} slug={slug} task={task} /> : null}
 						<Card className="py-2">
 							<h2 className={HEAD}>{d.calendarOf}</h2>
-							<SettingsRow label={d.sheet}>
+							<FieldRow label={d.sheet}>
 								<Select
 									label={d.sheet}
 									value={slug}
 									onValueChange={onSheet}
 									items={sheets.map((s) => ({ value: s.slug, label: s.name ?? s.slug }))}
 								/>
-							</SettingsRow>
+							</FieldRow>
 						</Card>
 					</>,
 				)}

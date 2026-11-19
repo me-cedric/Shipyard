@@ -28,7 +28,7 @@ import { ChangeDialog, IdDialog, type Pick, RecipeFile, type RecipeSearch } from
 import { RecipePermissions } from "./recipes-permissions";
 
 /** A change that an agent proposes to a recipe: Show the change, Discard and Apply (picture 027). */
-function Proposal({ proposal }: { proposal: WorkflowProposal }) {
+function Proposal({ proposal, here }: { proposal: WorkflowProposal; here: boolean }) {
 	const { t } = useI18n();
 	const w = t.factory.wf;
 	const p = t.factory.recipePage;
@@ -37,7 +37,10 @@ function Proposal({ proposal }: { proposal: WorkflowProposal }) {
 	const [open, setOpen] = useState(false);
 	return (
 		<section aria-label={w.proposal}>
-			<AttentionCard who={t.factory.agent} title={p.proposes}>
+			<AttentionCard
+				who={t.factory.agent}
+				title={here ? p.proposes : format(p.proposesFor, { name: nameOf(proposal.id) })}
+			>
 				<Button onClick={() => setOpen(true)}>{p.showChange}</Button>
 				<div className="flex flex-wrap gap-2.5">
 					<RightButton
@@ -122,7 +125,9 @@ export function Recipes() {
 			.map((x) => ({ id: x.id, steps: 0, bad: false })),
 	];
 	const recipe = current?.kind === "workflow" ? current.id : null;
-	const proposal = proposals.find((x) => x.id === recipe);
+	const own = proposals.find((x) => x.id === recipe);
+	// The card shows the proposal of the open recipe, else the first proposal of the list.
+	const proposal = own ?? proposals[0];
 	const proposalOnly = !!recipe && !workflows.some((w) => w.id === recipe);
 	// The page of a step (picture 080) takes the whole page: the title row and the list go out.
 	const stepOpen = typeof search.step === "string" && current?.kind === "workflow" && !proposalOnly;
@@ -147,7 +152,10 @@ export function Recipes() {
 			>
 				{stepOpen ? null : (
 					<div className="flex min-w-0 flex-[1_1_220px] flex-col gap-2.5">
-						<ul aria-label={t.crewPlace.views.recipes} className="flex flex-col gap-2.5">
+						<ul
+							aria-label={t.crewPlace.views.recipes}
+							className="flex max-h-[calc(100vh-30rem)] min-h-36 flex-col gap-2.5 overflow-y-auto p-1 -m-1"
+						>
 							{rows.map((r) => {
 								const on = recipe === r.id;
 								return (
@@ -179,26 +187,25 @@ export function Recipes() {
 								);
 							})}
 						</ul>
-						<RightButton right="project.settings" onClick={() => setAdding(true)}>
+						<RightButton
+							right="project.settings"
+							className="shrink-0"
+							onClick={() => setAdding(true)}
+						>
 							{f.wf.new}
 						</RightButton>
-						{proposal ? <Proposal key={proposal.id} proposal={proposal} /> : null}
+						{proposal ? <Proposal key={proposal.id} proposal={proposal} here={!!own} /> : null}
 					</div>
 				)}
 				<div className={stepOpen ? "contents" : "flex min-w-0 flex-[3_1_520px] flex-col gap-4"}>
-					{proposal && proposalOnly ? (
+					{own && proposalOnly ? (
 						// A proposal for a new id has no file yet: its text shows in place of the steps.
-						<Card
-							pad
-							role="region"
-							aria-label={nameOf(proposal.id)}
-							className="flex flex-col gap-4"
-						>
-							<h2 className="text-30 font-semibold text-n-12">{nameOf(proposal.id)}</h2>
+						<Card pad role="region" aria-label={nameOf(own.id)} className="flex flex-col gap-4">
+							<h2 className="text-30 font-semibold text-n-12">{nameOf(own.id)}</h2>
 							<DiffView
 								label={f.diff}
-								path={`${proposal.id}.yaml`}
-								text={lineDiff("", proposal.text)}
+								path={`${own.id}.yaml`}
+								text={lineDiff("", own.text)}
 								binaryLabel=""
 								truncatedLabel=""
 							/>

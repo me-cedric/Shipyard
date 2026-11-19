@@ -172,7 +172,7 @@ export function CrewPage() {
 							]
 				}
 			/>
-			<div className="flex flex-col gap-5 px-4 pt-2 pb-4">
+			<div className="flex flex-col gap-6 px-4 pt-2 pb-4">
 				{live ? (
 					<LiveRows {...agents} />
 				) : (
@@ -214,7 +214,7 @@ export function CrewPage() {
 													<Avatar name={m.name} className="size-14 text-17" />
 												</span>
 												<span className={NAME}>{m.name}</span>
-												<span className="text-n-11">
+												<span className="min-h-[1.45em] text-n-11">
 													{items
 														.filter((i) => i.member === m.handle && i.category === "in-progress")
 														.map((i) => i.title)
@@ -259,7 +259,7 @@ export function CrewPage() {
 													: titles[0]}
 											</span>
 											{mine.some((r) => r.session.state === "gate") ? (
-												<Badge variant="you">{t.factory.runsList.needsYou}</Badge>
+												<Badge variant="you">{c.waitsForYou}</Badge>
 											) : (
 												<Badge variant="accent">
 													{format(c.countAtWork, { count: mine.length })}
@@ -298,7 +298,7 @@ export function CrewPage() {
 												key={s}
 												className="inline-flex min-h-9 items-center rounded-sm bg-n-3 px-3.5 font-medium text-n-12"
 											>
-												{nameOf(s)}
+												{c.stepNames[s] ?? nameOf(s)}
 											</span>
 										))}
 									</span>

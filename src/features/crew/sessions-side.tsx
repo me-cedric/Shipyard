@@ -16,6 +16,9 @@ import { Row } from "@/ui/molecules/row";
 
 const HEAD = "px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11";
 const SHAPE = { working: "accent", idle: "warning", done: "neutral", unknown: "neutral" } as const;
+/** A model id in plain words: "claude-opus-4" reads "opus". */
+export const modelName = (m?: string | null) =>
+	(m ?? "").replace(/^claude-/, "").replace(/-[\d.-]+$/, "");
 const known = (s: string): s is keyof typeof SHAPE => s in SHAPE;
 
 /** The AI sessions of this computer, started by Shipyard or not, each with its stop. Rows of the card "On this machine". */
@@ -38,7 +41,7 @@ export function MachineRows() {
 					<span className="flex min-w-0 flex-1 flex-col">
 						<span className="truncate font-semibold">{s.title || s.project}</span>
 						<span className="truncate text-n-11">
-							{[runnerName(s.runner), s.model].filter(Boolean).join(", ")}
+							{[runnerName(s.runner), modelName(s.model)].filter(Boolean).join(", ")}
 						</span>
 					</span>
 					<Badge variant={s.state === "working" ? "accent" : "neutral"}>

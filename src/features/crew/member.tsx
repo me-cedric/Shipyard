@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { type ReactNode, useContext, useId, useLayoutEffect, useState } from "react";
 import { useGuard } from "@/features/work/guard";
+import { roleId } from "@/features/work/team-rights";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { formatDay, TEAM_ROLES, usePrefs } from "@/lib/prefs";
@@ -257,7 +258,7 @@ export function MemberForm({
 					<div className={COL}>
 						<section aria-label={c.who} className={CARD}>
 							<h2 className={H2}>{c.who}</h2>
-							<SettingsRow label={m.name}>
+							<SettingsRow id={index < 0 ? "add-member" : undefined} label={m.name}>
 								<Input
 									label={m.name}
 									form={id}
@@ -277,11 +278,12 @@ export function MemberForm({
 								{/* The select of `RoleSelect`, with no caption: the row has the label. */}
 								<Select
 									label={m.role}
-									value={draft.role}
+									value={roleId(draft.role)}
+									className="w-auto!"
 									onValueChange={(role) => set({ role })}
 									placeholder={t.rights.team.pickRole}
 									items={[
-										...(draft.role && !(TEAM_ROLES as string[]).includes(draft.role)
+										...(draft.role && !(TEAM_ROLES as string[]).includes(roleId(draft.role))
 											? [{ value: draft.role, label: draft.role }]
 											: []),
 										...TEAM_ROLES.map((r) => ({ value: r, label: t.rights.role[r] })),
@@ -304,9 +306,9 @@ export function MemberForm({
 									onChange={(e) => setEmails(e.target.value)}
 								/>
 							</SettingsRow>
-							<SettingsRow label={m.accounts}>
+							<SettingsRow label={c.accounts}>
 								<Input
-									label={m.accounts}
+									label={c.accounts}
 									form={id}
 									value={accounts}
 									onChange={(e) => setAccounts(e.target.value)}

@@ -66,7 +66,8 @@ describe("Crew / Rights", () => {
 		await user.click(people.getByRole("link", { name: "Team file, requests and log" }));
 		expect(await screen.findByRole("heading", { level: 1, name: "Team" })).toBeInTheDocument();
 		expect(router.state.location.search).toEqual({ page: "team" });
-		await user.click(screen.getByRole("link", { name: "Rights" }));
+		// The back link and the section tab both lead to Rights.
+		await user.click(screen.getAllByRole("link", { name: "Rights" })[0] as HTMLElement);
 		expect(await screen.findByRole("heading", { level: 1, name: "Crew" })).toBeInTheDocument();
 		await idle(router);
 	});

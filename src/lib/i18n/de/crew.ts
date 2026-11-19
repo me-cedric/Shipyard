@@ -41,5 +41,8 @@ export const crewDe: typeof crewEn = {
 	sealed: "Versiegelt",
 	away: "Abwesend",
 	removeAway: "Freie Tage entfernen",
+	accounts: "Konten im Ticketsystem",
+	waitsForYou: "Wartet auf Sie",
+	stepNames: { pr: "Pull Request" } as Record<string, string>,
 	addAway: "Freie Tage hinzufügen",
 };

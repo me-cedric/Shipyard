@@ -237,7 +237,7 @@ export function SendPage({ slug }: { slug: string }) {
 							{error ?? failed}
 						</p>
 					) : null}
-					{results ? (
+					{
 						<Card className="py-2">
 							<h2 className={HEAD}>{p.sendPage.after}</h2>
 							<Row>{count(a.group.written, good.length, "success")}</Row>
@@ -257,7 +257,7 @@ export function SendPage({ slug }: { slug: string }) {
 							</Row>
 							<Row>{count(a.skipped, notSent.length)}</Row>
 						</Card>
-					) : null}
+					}
 				</div>
 			</div>
 		</div>

@@ -35,6 +35,7 @@ export const planDe: typeof planEn = {
 		clearFixed: "Festen Tag löschen",
 		calendarOf: "Kalender des Plans",
 		sheet: "Schätzblatt",
+		holidaysOf: "Feiertage von",
 		addHoliday: "Feiertag hinzufügen",
 		removeDay: "{day} entfernen",
 		share: "Teilen",

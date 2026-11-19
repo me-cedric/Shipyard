@@ -156,7 +156,7 @@ describe("Workflows: the form", () => {
 		expect(plan.getByText("Planner")).toBeInTheDocument();
 		expect(plan.getByText("Strong model")).toBeInTheDocument();
 		expect(plan.getByText("Waits for a person")).toBeInTheDocument();
-		expect(plan.getByText("You review: Plan")).toBeInTheDocument();
+		expect(plan.getByText("You review the plan")).toBeInTheDocument();
 		// The step that opens the pull request asks first until a person says "Do not ask again".
 		const pr = within(
 			steps.getByRole("link", { name: "Pull request" }).closest("li") as HTMLElement,
@@ -226,6 +226,26 @@ describe("Workflows: the form", () => {
 		await waitFor(async () => expect(await text("bug")).toContain("budget_usd: 2"));
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Apply" })).toBeNull());
 	});
+	it("shows the proposal card under the list on another recipe, named for its recipe", async () => {
+		await open("feature");
+		const card = within(await screen.findByRole("region", { name: "Proposed change" }));
+		expect(card.getByRole("heading", { name: "An agent proposes a change to Bug" })).toBeVisible();
+		expect(screen.getByRole("button", { name: "New recipe" })).toBeVisible();
+	});
+
+	it("May write of the pull request step shows Asks first, or Alone with a way back to Asks first", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		mockState().sync.file = "valid";
+		mockState().sync.automation.recipe_writes = { feature: ["open_pr"] };
+		const user = await open("feature");
+		await openStep(user, "Pull request");
+		await user.click(await screen.findByRole("button", { name: "Asks first" }));
+		await waitFor(() => expect(mockState().sync.automation.recipe_writes).toBeUndefined());
+		// Asks first is the state: it shows as a word, with no way to widen it here.
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Alone" })).toBeNull());
+		expect(screen.getByText("Asks first")).toBeInTheDocument();
+	});
+
 	// spec:app-redesign#REQ-016: the permissions of "Do not ask again" are a part of the recipe.
 	it("shows the permissions of a recipe and removes one", async () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));

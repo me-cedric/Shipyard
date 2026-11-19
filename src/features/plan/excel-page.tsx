@@ -83,6 +83,7 @@ export function ExcelImport({
 								<span className={NAME}>{x.lot}</span>
 								<Select
 									label={x.lotLabel}
+									className="font-semibold [&_svg]:hidden"
 									value={preview.scope ?? ""}
 									onValueChange={(scope) =>
 										void run(async () =>

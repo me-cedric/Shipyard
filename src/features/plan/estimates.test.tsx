@@ -33,9 +33,9 @@ describe("Plan / Estimates", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		const router = mountApp("/plan/estimates");
-		await user.click(await screen.findByRole("combobox", { name: "Sheet" }));
-		expect(await screen.findByRole("option", { name: "MVP 1" })).toBeInTheDocument();
-		expect(screen.getByRole("option", { name: "MVP 2" })).toBeInTheDocument();
+		await user.click(await button("Lot: MVP 1"));
+		expect(await screen.findByRole("menuitem", { name: "MVP 1" })).toBeInTheDocument();
+		expect(screen.getByRole("menuitem", { name: "MVP 2" })).toBeInTheDocument();
 		await idle(router);
 	});
 
@@ -61,6 +61,25 @@ describe("Plan / Estimates", () => {
 		expect(test).toHaveTextContent("25 %");
 		// The cards of the right column.
 		expect(screen.getByRole("heading", { name: "Split" })).toBeInTheDocument();
+		await idle(router);
+	});
+
+	it("shows Summary, Spread and Portfolio on one page, with Export and the seal in the row", async () => {
+		await withTracker();
+		const router = mountApp("/plan/estimates?tab=sheets");
+		for (const name of ["Summary", "Spread", "Portfolio"])
+			expect(await screen.findByRole("heading", { name })).toBeInTheDocument();
+		for (const name of ["Export", "Open the seal", "Seal"])
+			expect(screen.getByRole("button", { name })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Add a task" })).toBeNull();
+		await idle(router);
+	});
+
+	it("says 1 day, not 1 days", async () => {
+		await withTracker();
+		const router = mountApp("/plan/estimates");
+		expect(await screen.findByText("1 day")).toBeInTheDocument();
+		expect(screen.queryByText("1 days")).toBeNull();
 		await idle(router);
 	});
 
@@ -117,7 +136,7 @@ describe("Plan / Estimates", () => {
 		expect(screen.getByRole("link", { name: /^Day rate of Ada: .* a day$/ })).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "Spend" })).toHaveAttribute("href", "/crew/spend");
 
-		await user.click(screen.getByRole("button", { name: "More amounts" }));
+		await more(user, "More amounts");
 		const spread = await screen.findByRole("table", { name: "Spread" });
 		const total = within(spread).getAllByRole("row").at(-1) as HTMLElement;
 		expect(total).toHaveTextContent(cost);
@@ -286,8 +305,7 @@ describe("Plan / Estimates", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		const router = mountApp("/plan/estimates");
-		await user.click(await button("Export"));
-		await user.click(await screen.findByRole("menuitem", { name: "Sheet workbook" }));
+		await more(user, "Export: Sheet workbook");
 		await waitFor(() =>
 			expect(mockState().work.exports).toEqual([{ slug: "mvp-1", path: "/mock/mvp-1.xlsx" }]),
 		);
@@ -329,7 +347,7 @@ describe("Plan / Estimates", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		const router = mountApp("/plan/estimates");
-		await user.click(await button("Add a task"));
+		await more(user, "Add a task");
 		expect(await screen.findByRole("heading", { level: 1, name: "New task" })).toBeInTheDocument();
 		expect(router.state.location.search).toMatchObject({ page: "task" });
 		await user.type(screen.getByRole("textbox", { name: "Task" }), "Load test");
@@ -344,6 +362,9 @@ describe("Plan / Estimates", () => {
 			expect(task("quality-load-test")).toMatchObject({ name: "Load test", percent: 10 }),
 		);
 		await user.click(await button("Load test"));
+		// The name, the effort and Remove of a task are behind More.
+		expect(screen.queryByRole("button", { name: "Remove" })).toBeNull();
+		await more(user, "Name, effort and remove");
 		mockState().confirm = false;
 		await user.click(await button("Remove"));
 		expect(task("quality-load-test")).toBeDefined();
@@ -412,7 +433,12 @@ describe("Plan / Estimates", () => {
 		await more(user, "Freeze");
 		await waitFor(() => expect(mockState().work.sheets["mvp-1-copy"]?.frozen).toBe(true));
 		expect(await screen.findByText("Frozen")).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Add a task" })).toBeDisabled();
+		await user.click(await button("More"));
+		expect(await screen.findByRole("menuitem", { name: "Add a task" })).toHaveAttribute(
+			"aria-disabled",
+			"true",
+		);
+		await user.keyboard("{Escape}");
 		await expect(
 			unwrap(commands.estimateSave("mvp-1-copy", { name: "Changed", features: [], frozen: true })),
 		).rejects.toThrow(/frozen/);
@@ -460,7 +486,7 @@ describe("Plan / Estimates", () => {
 		if (ada)
 			mockState().work.team.members.push({ ...ada, name: "Linus", handle: "linus", trackers: [] });
 		const router = mountApp("/plan/estimates?tab=costing");
-		await user.click(await button("More amounts"));
+		await more(user, "More amounts");
 		const lot = await screen.findByRole("table", { name: "By profile" });
 		const dev = (await within(lot).findByText("dev")).closest("[role=row]") as HTMLElement;
 		const [mine] = await unwrap(commands.estimateProfiles("mvp-1"));
@@ -487,14 +513,12 @@ describe("Plan / Estimates", () => {
 			"Seal",
 			"New sheet",
 			"Import from Excel",
-			"Export",
-			"Add a task",
 			"Summary",
 			"Export endpoint",
 			"Export endpoint, less",
 		])
 			tall(screen.getByRole("button", { name }));
-		tall(screen.getByRole("combobox", { name: "Sheet" }));
+		tall(screen.getByRole("button", { name: "Lot: MVP 1" }));
 		await more(user, "Search and select");
 		tall(await screen.findByRole("textbox", { name: "Search" }));
 		await user.click(await screen.findByRole("checkbox", { name: "Select Token API" }));
@@ -514,12 +538,14 @@ describe("Plan / Estimates", () => {
 	});
 
 	it("is in French when the language is French", async () => {
+		const user = userEvent.setup();
 		mockState().prefs.lang = "fr";
 		await withTracker();
 		const router = mountApp("/plan/estimates");
 		expect(await button("Synthèse")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Importer depuis Excel" })).toBeInTheDocument();
-		expect(await button("Ajouter une tâche")).toBeInTheDocument();
+		await user.click(await button("Plus"));
+		expect(await screen.findByRole("menuitem", { name: "Ajouter une tâche" })).toBeInTheDocument();
 		await idle(router);
 	});
 });

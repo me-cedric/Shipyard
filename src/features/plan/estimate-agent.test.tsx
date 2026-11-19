@@ -22,9 +22,13 @@ describe("Plan / Estimates: ask an agent to estimate", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		const router = mountApp("/plan/estimates");
-		// No task is selected: the action is off.
-		expect(await ask()).toBeDisabled();
-		await pick(user);
+		// No task is selected: the action looks on. A press opens the choice and says what to do.
+		expect(await ask()).toBeEnabled();
+		await user.click(await ask());
+		expect(await screen.findByText("Select tasks first")).toBeInTheDocument();
+		for (const name of NAMES)
+			await user.click(await screen.findByRole("checkbox", { name: `Select ${name}` }));
+		expect(screen.queryByText("Select tasks first")).toBeNull();
 		const before = sheet();
 		await user.click(await ask());
 		const list = within(await screen.findByRole("region", { name: "Proposals of the agent" }));
