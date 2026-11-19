@@ -62,12 +62,12 @@ export function TileCard({
 				off && "opacity-60",
 			)}
 		>
-			<header className="flex shrink-0 flex-wrap items-center gap-2">
+			<header className="flex shrink-0 items-center gap-2">
 				{lead}
 				<h2
 					className={cn(
-						"min-w-24 flex-1 text-n-12",
-						edit ? "break-words text-14 font-semibold" : "truncate text-17 font-semibold",
+						"min-w-0 flex-1 truncate text-n-12",
+						edit ? "text-14 font-semibold" : "text-17 font-semibold",
 					)}
 				>
 					{title}

@@ -109,7 +109,7 @@ function Face({ a }: { a: Artifact | undefined }) {
 			<span
 				aria-hidden="true"
 				className={`${box} [&_[role=img]]:h-28 [&_[role=img]]:min-h-0 [&_[role=img]]:overflow-hidden [&_[role=img]]:border-0 [&_[role=img]]:bg-transparent [&_[role=img]]:p-0 [&_svg]:max-h-28${
-					format === "mermaid" ? " [&_svg]:h-28! [&_svg]:w-auto! [&_svg]:max-w-none!" : ""
+					format === "mermaid" ? " [&_svg]:h-full! [&_svg]:w-full! [&_svg]:max-w-none!" : ""
 				}`}
 			>
 				{format === "mermaid" ? (

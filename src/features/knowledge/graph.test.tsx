@@ -22,10 +22,10 @@ describe("Library / Map", () => {
 		await mountMap();
 		const g = await graph();
 		const specs = g.nodes.filter((n) => n.kind === "spec");
-		const group = await region("Spec");
-		expect(group.getAllByRole("button")).toHaveLength(Math.min(specs.length, 6));
-		if (specs.length > 6) {
-			await user.click(group.getByRole("button", { name: `Spec: ${specs.length - 5} more` }));
+		const group = await region("Specs");
+		expect(group.getAllByRole("button")).toHaveLength(Math.min(specs.length, 5));
+		if (specs.length > 5) {
+			await user.click(group.getByRole("button", { name: `Specs: ${specs.length - 4} more` }));
 			expect(group.getAllByRole("button")).toHaveLength(specs.length);
 		}
 		expect(screen.queryByTestId(/^rf__node-/)).toBeNull();

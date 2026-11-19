@@ -16,7 +16,7 @@ import { Row } from "@/ui/molecules/row";
 import { folderClusters } from "./graph-clusters";
 
 /** The chips of a group before "N more". */
-const FIRST = 5;
+const FIRST = 4;
 const GROUP = "flex flex-col gap-3.5 rounded-[24px] bg-n-4 p-5";
 const WHITE = "bg-surface-2";
 const LINKED = "outline-2 outline-accent";
@@ -40,6 +40,7 @@ export function KnowledgeMap({
 	const k = t.knowledge;
 	const { openRef, explain } = useShell();
 	const kindNames = t.refKind as Record<string, string>;
+	const groupNames = t.refGroup as Record<string, string>;
 	const [picked, setPicked] = useState<string | null>(null);
 	const [open, setOpen] = useState<string[]>([]);
 	const nodes = only ? graph.nodes.filter((n) => n[only]) : graph.nodes;
@@ -58,7 +59,7 @@ export function KnowledgeMap({
 			<PageColumns>
 				<DetailColumn className="grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-4">
 					{[...groups].map(([kind, members]) => {
-						const name = kindNames[kind] ?? kind;
+						const name = groupNames[kind] ?? kindNames[kind] ?? kind;
 						const all = open.includes(kind) || members.length <= FIRST + 1;
 						// The chosen item and its links always show, also past the first chips.
 						const shown = all
