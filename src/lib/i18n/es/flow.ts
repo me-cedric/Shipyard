@@ -1,6 +1,20 @@
 import type { flowEn } from "../flow";
+import { boardEs } from "../flow-look/board";
+import { briefEs } from "../flow-look/brief";
+import { checksEs } from "../flow-look/checks";
+import { createEs } from "../flow-look/create";
+import { pageEs } from "../flow-look/page";
+import { pullEs } from "../flow-look/pull";
 
 export const flowEs: typeof flowEn = {
+	look: {
+		board: boardEs,
+		page: pageEs,
+		brief: briefEs,
+		checks: checksEs,
+		pull: pullEs,
+		create: createEs,
+	},
 	newAction: "Nueva funcionalidad",
 	views: { flow: "Flujo", list: "Lista", done: "Hecho", health: "Salud" },
 	health: {
