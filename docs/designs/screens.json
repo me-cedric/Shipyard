@@ -4,7 +4,7 @@
     {
       "id": "SCR-001",
       "slug": "home",
-      "title": "Today: the count of what needs the person in the title, one card with who asks, the feature and the answer, Later, the queue of the next things, Working now with the spend of today, the reminder to log time, the panels of the role, My work, Since you were away; the Ask bar in the top bar",
+      "title": "Today: the count of what needs the person in the title, one card with who asks, the feature and the answer, Later, the queue of the next things, Working now with the spend of today, the reminder to log time, the panels of the role, My items, Since you were away; the Ask bar in the top bar",
       "artifacts": [
         "spec:shell",
         "spec:home-today",
@@ -132,7 +132,8 @@
         "spec:shell",
         "spec:ux-declutter",
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/menu-bar-panel.png"
     },
     {
       "id": "SCR-013",
@@ -142,7 +143,8 @@
         "spec:knowledge",
         "adr:0016",
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/knowledge-slides.png"
     },
     {
       "id": "SCR-014",
@@ -151,7 +153,8 @@
       "artifacts": [
         "spec:assistant",
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/assistant-composer.png"
     },
     {
       "id": "SCR-015",
@@ -183,7 +186,8 @@
         "spec:onboarding",
         "spec:ux-declutter",
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/settings-permissions.png"
     },
     {
       "id": "SCR-018",
@@ -226,7 +230,8 @@
       "artifacts": [
         "spec:languages",
         "adr:0021"
-      ]
+      ],
+      "file": "docs/assets/screenshots/settings-me-languages.png"
     },
     {
       "id": "SCR-021",
@@ -290,7 +295,8 @@
         "spec:shell",
         "spec:ux-declutter",
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/activity-panel.png"
     },
     {
       "id": "SCR-028",
@@ -300,7 +306,8 @@
         "spec:shell",
         "spec:ux-declutter",
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/account-menu.png"
     },
     {
       "id": "SCR-029",
@@ -310,7 +317,8 @@
         "spec:shell",
         "spec:ux-declutter",
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/no-project.png"
     },
     {
       "id": "SCR-030",
@@ -320,7 +328,8 @@
         "spec:shell",
         "spec:ux-declutter",
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/first-run.png"
     },
     {
       "id": "SCR-033",
@@ -412,7 +421,8 @@
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/crew.png"
     },
     {
       "id": "SCR-042",
@@ -421,7 +431,8 @@
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/plan-people.png"
     },
     {
       "id": "SCR-043",
@@ -430,7 +441,8 @@
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/plan-estimates.png"
     },
     {
       "id": "SCR-044",
@@ -530,7 +542,8 @@
         "spec:work",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/plan-time.png"
     },
     {
       "id": "SCR-068",
@@ -540,7 +553,8 @@
         "spec:factory",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/crew-sessions.png"
     },
     {
       "id": "SCR-069",
@@ -550,7 +564,8 @@
         "spec:design",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-diagrams.png"
     },
     {
       "id": "SCR-070",
@@ -560,7 +575,8 @@
         "spec:design",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-decisions.png"
     },
     {
       "id": "SCR-071",
@@ -570,7 +586,8 @@
         "spec:design",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-api.png"
     },
     {
       "id": "SCR-072",
@@ -580,7 +597,8 @@
         "spec:design",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-data.png"
     },
     {
       "id": "SCR-073",
@@ -590,7 +608,8 @@
         "spec:design",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-network-flows.png"
     },
     {
       "id": "SCR-074",
@@ -600,7 +619,8 @@
         "spec:design",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-screens.png"
     },
     {
       "id": "SCR-075",
@@ -610,7 +630,8 @@
         "spec:specs",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-specs.png"
     },
     {
       "id": "SCR-076",
@@ -620,7 +641,8 @@
         "spec:specs",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-test-plans.png"
     },
     {
       "id": "SCR-077",
@@ -630,7 +652,8 @@
         "spec:specs",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-project-rules.png"
     },
     {
       "id": "SCR-078",
@@ -640,7 +663,8 @@
         "spec:knowledge",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-map.png"
     },
     {
       "id": "SCR-079",
@@ -650,7 +674,8 @@
         "spec:knowledge",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-handbook.png"
     },
     {
       "id": "SCR-080",
@@ -660,7 +685,8 @@
         "spec:knowledge",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-manual.png"
     },
     {
       "id": "SCR-081",
@@ -670,7 +696,8 @@
         "spec:knowledge",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-documents.png"
     },
     {
       "id": "SCR-082",
@@ -680,7 +707,8 @@
         "spec:knowledge",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/library-dashboards.png"
     },
     {
       "id": "SCR-083",
@@ -690,7 +718,8 @@
         "spec:code",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/code-history.png"
     },
     {
       "id": "SCR-084",
@@ -700,7 +729,8 @@
         "spec:code",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/code-branches.png"
     },
     {
       "id": "SCR-085",
@@ -711,7 +741,8 @@
         "spec:work",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/feature-brief.png"
     },
     {
       "id": "SCR-086",
@@ -721,7 +752,8 @@
         "spec:design",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/feature-design.png"
     },
     {
       "id": "SCR-087",
@@ -731,7 +763,8 @@
         "spec:code",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/feature-checks.png"
     },
     {
       "id": "SCR-088",
@@ -741,7 +774,8 @@
         "spec:factory",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/feature-chat.png"
     },
     {
       "id": "SCR-089",
@@ -751,7 +785,8 @@
         "spec:projects",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/setup-tickets.png"
     },
     {
       "id": "SCR-090",
@@ -761,7 +796,8 @@
         "spec:extensions",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/setup-extensions.png"
     },
     {
       "id": "SCR-091",
@@ -771,7 +807,8 @@
         "spec:projects",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/setup-project-health.png"
     },
     {
       "id": "SCR-092",
@@ -781,7 +818,8 @@
         "spec:extensions",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/setup-agents-rules.png"
     },
     {
       "id": "SCR-093",
@@ -791,7 +829,8 @@
         "spec:connections",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/setup-outside-agents.png"
     },
     {
       "id": "SCR-094",
@@ -801,7 +840,8 @@
         "spec:projects",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/setup-computer-health.png"
     },
     {
       "id": "SCR-095",
@@ -811,7 +851,8 @@
         "spec:shell",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/setup-logs.png"
     },
     {
       "id": "SCR-096",

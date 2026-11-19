@@ -1,6 +1,7 @@
 // Regenerates docs/assets/screenshots/*.png from the browser mock (mock IPC, no Rust).
 // Usage: pnpm build (with VITE_MOCK_DEMO=0), pnpm preview --port 4180, then `node scripts/screenshots.ts [name...]`.
-// Each scene opens a fresh page at 1600x1000, scale 2, reduced motion, dark theme unless the name says light.
+// Each scene opens a fresh page at 1600x1000, scale 2, reduced motion, dark theme unless the scene is light.
+// A scene name is the slug of its entry in docs/designs/screens.json, or the older file name that a doc cites.
 import { chromium, type Page } from "@playwright/test";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:4180";
@@ -94,7 +95,27 @@ const comment = async (p: Page, line: number, text: string) => {
 	await p.getByRole("button", { name: "Add review comment" }).click();
 };
 
-type Scene = { name: string; light?: boolean; run: (p: Page) => Promise<void> };
+// A section by its address, with no reload: the mock keeps the project and the theme in memory.
+const go = async (p: Page, path: string) => {
+	// A string: the Node type check has no DOM names.
+	await p.evaluate(
+		`history.pushState({}, "", ${JSON.stringify(path)}); dispatchEvent(new PopStateEvent("popstate"))`,
+	);
+	await p.waitForURL(`**${path}`);
+	await p.getByRole("heading", { level: 1 }).first().waitFor();
+};
+// A section of the page of one feature of Flow.
+const openFeature = async (p: Page, feature: RegExp, section: string) => {
+	await open(p, "Flow");
+	await p.getByRole("main").getByRole("button", { name: feature }).first().click();
+	await p
+		.getByRole("navigation", { name: "Sections" })
+		.getByRole("button", { name: section })
+		.click();
+};
+
+// `fresh` skips the first run: the scene starts with no role and no project, in the light theme.
+type Scene = { name: string; light?: boolean; fresh?: boolean; run: (p: Page) => Promise<void> };
 const scenes: Scene[] = [
 	{ name: "home", run: async () => {} },
 	{ name: "home-light", light: true, run: async () => {} },
@@ -150,14 +171,7 @@ const scenes: Scene[] = [
 	{ name: "specs", run: (p) => open(p, "Questions") },
 	// The old names stay for the docs that cite them: the plan, and the member page of the team.
 	{ name: "work", run: openTimeline },
-	{
-		name: "team",
-		run: async (p) => {
-			await open(p, "Crew");
-			await p.getByRole("list", { name: "People" }).getByRole("button").first().click();
-			await p.getByRole("spinbutton", { name: "Capacity (days a week)" }).waitFor();
-		},
-	},
+	{ name: "team", run: (p) => go(p, "/crew/rights") },
 	{
 		name: "crew",
 		run: async (p) => {
@@ -165,8 +179,6 @@ const scenes: Scene[] = [
 			await p.getByRole("list", { name: "People" }).waitFor();
 		},
 	},
-	{ name: "crew-live", run: openLive },
-	{ name: "plan-timeline", run: openTimeline },
 	{
 		name: "plan-people",
 		run: async (p) => {
@@ -186,7 +198,7 @@ const scenes: Scene[] = [
 	{
 		name: "new-feature",
 		run: async (p) => {
-			await p.goto("/flow/new");
+			await go(p, "/flow/new");
 			await p.getByRole("heading", { name: "What do you want to build?" }).waitFor();
 		},
 	},
@@ -322,6 +334,101 @@ const scenes: Scene[] = [
 				.click();
 		},
 	},
+	// One scene for each section that opens by its address.
+	...Object.entries({
+		"plan-time": "/plan/time",
+		"crew-sessions": "/crew/sessions",
+		"activity-panel": "/today/activity",
+		"knowledge-slides": "/library/slides",
+		"library-diagrams": "/library/diagrams",
+		"library-decisions": "/library/decisions",
+		"library-api": "/library/api",
+		"library-data": "/library/data",
+		"library-network-flows": "/library/flows",
+		"library-screens": "/library/screens",
+		"library-specs": "/library/capabilities",
+		"library-test-plans": "/library/test-plans",
+		"library-project-rules": "/library/constitution",
+		"library-map": "/library/graph",
+		"library-handbook": "/library/handbook",
+		"library-manual": "/library/manual",
+		"library-documents": "/library/documents",
+		"library-dashboards": "/library/dashboards",
+		"code-history": "/code/history",
+		"code-branches": "/code/branches",
+	}).map(([name, path]): Scene => ({ name, run: (p) => go(p, path) })),
+	// The mock has a spec on add-auth and a conversation on the pull request of the empty token.
+	{ name: "feature-brief", run: (p) => openFeature(p, /add-auth/, "Brief") },
+	// shortcut: no feature of the mock cites a design, so the picture shows the empty state.
+	{ name: "feature-design", run: (p) => openFeature(p, /Add export endpoint/, "Design") },
+	{ name: "feature-checks", run: (p) => openFeature(p, /Add export endpoint/, "Checks") },
+	{ name: "feature-chat", run: (p) => openFeature(p, /refuse an empty token/, "Chat") },
+	{ name: "setup-tickets", run: (p) => openDoor(p, "This project", "Tickets") },
+	{ name: "setup-extensions", run: (p) => openDoor(p, "This project", "Extensions") },
+	{
+		name: "setup-project-health",
+		run: (p) => openDoor(p, "This project", "Health of this project"),
+	},
+	{ name: "setup-agents-rules", run: (p) => openDoor(p, "This computer", "Agents and rules") },
+	{ name: "setup-outside-agents", run: (p) => openDoor(p, "This computer", "Outside agents") },
+	{
+		name: "setup-computer-health",
+		run: (p) => openDoor(p, "This computer", "Health of this computer"),
+	},
+	{ name: "setup-logs", run: (p) => openDoor(p, "This computer", "Logs and feedback") },
+	{
+		name: "settings-permissions",
+		run: async (p) => {
+			await open(p, "This computer");
+			await p.locator("#section-permissions").scrollIntoViewIfNeeded();
+		},
+	},
+	{
+		name: "settings-me-languages",
+		run: async (p) => {
+			await open(p, "Me");
+			await p.getByRole("combobox", { name: "Language", exact: true }).click();
+			await p.getByRole("option", { name: "French" }).waitFor();
+		},
+	},
+	{
+		name: "account-menu",
+		run: async (p) => {
+			await p.getByRole("button", { name: "Account" }).click();
+			await p.getByRole("menu").waitFor();
+		},
+	},
+	{
+		name: "assistant-composer",
+		run: async (p) => {
+			await p.keyboard.press("ControlOrMeta+k");
+			await p.getByRole("button", { name: "Open the full assistant" }).click();
+			await p
+				.getByRole("complementary", { name: "Assistant" })
+				.getByRole("button", { name: "Send", exact: true })
+				.waitFor();
+		},
+	},
+	// The menu bar panel is this front end at /tray, with no shell.
+	{ name: "menu-bar-panel", run: (p) => p.goto("/tray").then(() => {}) },
+	{
+		name: "first-run",
+		fresh: true,
+		run: async (p) => {
+			await p.goto("/home/today");
+			await p.getByRole("button", { name: "Continue" }).waitFor();
+		},
+	},
+	{
+		name: "no-project",
+		fresh: true,
+		run: async (p) => {
+			await p.goto("/home/today");
+			await p.getByRole("button", { name: "Continue" }).click();
+			await p.goto("/flow/flow");
+			await p.getByRole("heading", { level: 2, name: /project/i }).waitFor();
+		},
+	},
 ];
 
 const browser = await chromium.launch();
@@ -332,11 +439,11 @@ for (const s of scenes) {
 		viewport: { width: 1600, height: 1000 },
 		deviceScaleFactor: 2,
 		reducedMotion: "reduce",
-		colorScheme: s.light ? "light" : "dark",
+		colorScheme: s.light || s.fresh ? "light" : "dark",
 	});
 	const page = await ctx.newPage();
-	await openProject(page);
-	if (!s.light) {
+	if (!s.fresh) await openProject(page);
+	if (!s.light && !s.fresh) {
 		// Light is the default theme: a dark scene picks Dark from the palette.
 		await page.keyboard.press("ControlOrMeta+k");
 		await page.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("Theme: Dark");
@@ -347,6 +454,14 @@ for (const s of scenes) {
 	await s.run(page);
 	await page.mouse.move(800, 990); // no hover state
 	await page.waitForTimeout(800); // fades and charts settle
+	// A page that failed must not become a picture.
+	if (
+		await page
+			.getByRole("alert")
+			.filter({ hasText: /went wrong|not found/i })
+			.count()
+	)
+		throw new Error(`${s.name}: the page shows an error`);
 	await page.screenshot({ path: `${OUT}/${s.name}.png` });
 	console.log(s.name);
 	await ctx.close();
