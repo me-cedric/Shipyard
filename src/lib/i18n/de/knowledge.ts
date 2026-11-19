@@ -60,6 +60,8 @@ export const knowledgeDe: typeof knowledgeEn = {
 		edit: "Bearbeiten",
 		contents: "Inhalt",
 		backlinks: "Seiten, die hierher verweisen",
+		askUpdateLabel: "Einen Agenten um die Aktualisierung bitten",
+		askUpdate: "Aktualisiere die Seite {path}, damit sie richtig und aktuell ist.",
 	},
 	documents: {
 		title: "Dokumente",
@@ -68,6 +70,11 @@ export const knowledgeDe: typeof knowledgeEn = {
 		format: { md: "Markdown", docx: "Word" },
 		file: "Datei",
 		name: "Name des Dokuments",
+		planner: "Der Planer kann dieses Dokument nutzen",
+		toSlides: "In Folien umwandeln",
+		toSpec: "In eine Spezifikation umwandeln",
+		toSlidesAsk: "Wandle das Dokument {path} in Folien um.",
+		toSpecAsk: "Wandle das Dokument {path} in eine Spezifikation um.",
 		dossier: "Architekturdossier",
 		functional: "Fachdokumentation",
 		sheet: "Qualitätsblatt",
@@ -125,12 +132,14 @@ export const knowledgeDe: typeof knowledgeEn = {
 		price: "Preis",
 		total: "Gesamt",
 		unrated: "für einige Rollen fehlt ein Satz",
+		fromDocument: "Folien aus einem Dokument erstellen",
 		askNew:
 			'Folge dem Skill slide-deck in .agents/skills/slide-deck/SKILL.md. Schreibe die neue Präsentation {path} mit dem Titel "{name}". Frage mich zuerst nach Inhalt und Stil.',
 		askConvert:
 			"Folge dem Skill slide-deck in .agents/skills/slide-deck/SKILL.md. Schreibe die Markdown-Präsentation {from} als HTML-Präsentation {to} neu. Behalte jede Folie und ihren Text.",
 	},
 	learn: {
+		heading: "Dieses Projekt lernen",
 		title: "Lernen",
 		path: "Pfad",
 		glossary: "Glossar",
@@ -232,6 +241,9 @@ export const knowledgeDe: typeof knowledgeEn = {
 		width: "Breite",
 		height: "Höhe",
 		save: "Speichern",
+		exportReport: "Den Bericht exportieren",
+		buildDashboard: "Ein Dashboard für mich bauen",
+		buildDashboardAsk: "Baue ein Dashboard, das zeigt, was ich verfolgen muss.",
 		create: "Neues Dashboard",
 		template: {
 			pm: "Projektleitung",

@@ -100,6 +100,8 @@ describe("Knowledge / Documents", () => {
 	it("searches the text of the documents and opens the hit", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Search in the text" }));
 		await user.type(await screen.findByRole("searchbox", { name: "Search in the text" }), "scope");
 		const hits = await screen.findByRole("list", { name: "Results" });
 		await user.click(within(hits).getByRole("button", { name: /Client brief/ }));

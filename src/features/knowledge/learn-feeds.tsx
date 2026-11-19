@@ -6,7 +6,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { RightButton, RightIconButton } from "@/lib/rights";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
-import { ArrowPathIcon, PlusIcon, XMarkIcon } from "@/ui/icons";
+import { ArrowPathIcon, XMarkIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 
@@ -75,28 +75,6 @@ export function LearnFeeds() {
 				</IconButton>
 			}
 		>
-			<form
-				className="flex items-end gap-2"
-				onSubmit={(e) => {
-					e.preventDefault();
-					void run(async () => {
-						await unwrap(commands.learningFeedAdd(url.trim(), true));
-						setUrl("");
-						await reload();
-					});
-				}}
-			>
-				<Input
-					label={k.feedAddress}
-					type="url"
-					value={url}
-					onChange={(e) => setUrl(e.target.value)}
-				/>
-				<RightButton right="knowledge.edit" type="submit" disabled={!url.trim()}>
-					<PlusIcon size={14} />
-					{k.subscribe}
-				</RightButton>
-			</form>
 			<ErrorNotice error={failure} />
 			{rows.map((f) => {
 				const name = f.feed.title || f.url;
@@ -128,7 +106,7 @@ export function LearnFeeds() {
 										<button
 											type="button"
 											onClick={() => openAddress(item.link)}
-											className="truncate rounded-sm text-left text-ui text-n-12 hover:underline"
+											className="truncate rounded-sm text-left text-ui font-semibold text-accent"
 										>
 											{item.title}
 										</button>
@@ -147,6 +125,27 @@ export function LearnFeeds() {
 					</section>
 				);
 			})}
+			<form
+				className="flex items-end gap-2"
+				onSubmit={(e) => {
+					e.preventDefault();
+					void run(async () => {
+						await unwrap(commands.learningFeedAdd(url.trim(), true));
+						setUrl("");
+						await reload();
+					});
+				}}
+			>
+				<Input
+					label={k.feedAddress}
+					type="url"
+					value={url}
+					onChange={(e) => setUrl(e.target.value)}
+				/>
+				<RightButton right="knowledge.edit" type="submit" disabled={!url.trim()}>
+					{k.subscribe}
+				</RightButton>
+			</form>
 		</LearnCard>
 	);
 }

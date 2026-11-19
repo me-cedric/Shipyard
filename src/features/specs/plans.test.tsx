@@ -96,16 +96,15 @@ describe("Library / Test plans", () => {
 		expect(screen.queryByRole("button", { name: "Read" })).toBeNull();
 	});
 
-	it("shows the tags of a scenario on its card, with the tags of its feature", async () => {
+	it("shows a scenario card with its steps and no tag chips", async () => {
 		files()[PLAN] = {
 			text: "@smoke\nFeature: Login\n\n  @spec:auth#REQ-001\n  Scenario: A session starts\n    Given a person\n    Then it works\n\n  Scenario: Other\n    Then it works\n",
 			stamp: "s1",
 		};
 		await renderSpecs(<TestPlans />);
 		const read = within(await screen.findByRole("article", { name: "Login" }));
-		expect(read.getAllByText("smoke")).toHaveLength(2);
-		// The tag of a requirement shows the name of the requirement.
-		expect(await read.findByText("Keep a session")).toBeVisible();
+		expect(await read.findByText("A session starts")).toBeVisible();
+		expect(read.queryByText("smoke")).toBeNull();
 	});
 
 	it("shows the text at each click on an error line, and keeps the stored Read choice", async () => {

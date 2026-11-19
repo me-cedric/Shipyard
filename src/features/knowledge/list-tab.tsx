@@ -7,7 +7,7 @@ import {
 	PageColumns,
 } from "@/features/library/page-parts";
 import { NoProject } from "@/features/shell/no-project";
-import { format, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import type { PageEntry } from "@/lib/ipc";
 import { slug, useCreateDoc } from "@/lib/knowledge";
 import { copyText, useAsk, useMenus, useRename, useTrash } from "@/lib/menus";
@@ -100,6 +100,7 @@ export function ListTab({
 	template,
 	create,
 	menu: pageMenu,
+	extra,
 	notice,
 	thumb,
 	pills,
@@ -123,6 +124,8 @@ export function ListTab({
 	template?: (name: string) => string;
 	/** Replaces the new file from `template`: the primary action does this with the name. */
 	create?: (name: string) => void;
+	/** Secondary header actions, before the primary one. */
+	extra?: ReactNode;
 	/** Actions of the page for the "More" menu, before the actions of the open file. */
 	menu?: PageMenuItem[];
 	/** The result of a secondary action. */
@@ -193,7 +196,11 @@ export function ListTab({
 					title={r.path}
 					aria-current={r.path === selected ? "true" : undefined}
 					onClick={() => pick(r.path)}
-					className={cn(PAGE, sub && "pl-10.5", r.path === selected && "bg-accent-tint")}
+					className={cn(
+						PAGE,
+						sub && "pl-10.5",
+						r.path === selected && "bg-accent-tint text-accent",
+					)}
 				>
 					{sub ? null : <DocumentTextIcon size={20} />}
 					<span className="min-w-0 flex-1 truncate">{r.title}</span>
@@ -214,6 +221,7 @@ export function ListTab({
 							value={filter.text}
 							onChange={(e) => filter.setText(e.target.value)}
 						/>
+						{extra}
 						<RightButton
 							right="knowledge.edit"
 							variant="primary"
@@ -253,7 +261,7 @@ export function ListTab({
 												<section aria-label={dir}>
 													<h2 className={cn(PAGE, "hover:bg-transparent")}>
 														<FolderOpenIcon size={20} />
-														{format(t.count, { name: dir, count: list.length })}
+														{dir}
 													</h2>
 													<ul className="flex flex-col gap-0.5">
 														{list.map((r) => line(r, true))}

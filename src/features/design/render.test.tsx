@@ -286,6 +286,9 @@ describe("Design / Architecture", () => {
 		await user.click(await row("system"));
 		const view = await screen.findByRole("img", { name: "Model" });
 		await waitFor(() => expect(view).toHaveTextContent("shipyard = system"));
+		// A model opens on both sides, as the design shows.
+		expect(screen.getByRole("textbox", { name: "Model text" })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Picture" }));
 		expect(screen.queryByRole("textbox", { name: "Model text" })).toBeNull();
 		await user.click(screen.getByRole("button", { name: "Text" }));
 		expect(screen.getByRole("textbox", { name: "Model text" })).toHaveValue(
@@ -317,7 +320,7 @@ describe("Design / Architecture", () => {
 		await waitFor(() => expect(view).toHaveTextContent("shipyard = system"));
 		await user.type(text, "{Control>}{End}{/Control}\nBAD line");
 		const alert = await screen.findByRole("alert");
-		expect(alert).toHaveTextContent(/Line 14/);
+		expect(alert).toHaveTextContent(/Line 15/);
 		expect(alert).toHaveTextContent("Unexpected token");
 		expect(screen.getByTestId("error-line")).toBeInTheDocument();
 		// The render still shows the last good text.

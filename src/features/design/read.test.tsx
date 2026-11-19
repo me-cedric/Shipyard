@@ -56,13 +56,13 @@ describe("Design / Decisions", () => {
 		expect(await row(/Ship a browser mock/)).toHaveTextContent("Accepted");
 	});
 
-	it("marks the reason as required, keeps both buttons off until it has text, then refuses", async () => {
+	it("marks the reason as required, refuses an empty one with an error line, then refuses", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Decisions />);
 		const box = await screen.findByRole("textbox", { name: "Reason" });
 		expect(box).toHaveAttribute("aria-required", "true");
-		expect(screen.getByRole("button", { name: "Refuse" })).toBeDisabled();
-		expect(screen.getByRole("button", { name: "Accept" })).toBeDisabled();
+		await user.click(screen.getByRole("button", { name: "Accept" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("Write a reason first");
 		expect(files()[ADR3]?.text).toContain("status: proposed");
 		await user.type(box, "Too early");
 		await user.click(screen.getByRole("button", { name: "Refuse" }));
@@ -71,13 +71,21 @@ describe("Design / Decisions", () => {
 
 	it("marks a decision that no spec cites, and a menu action keeps only those", async () => {
 		const user = userEvent.setup();
+		// The demo decisions are all cited: this one is the only one that no spec uses.
+		files()["docs/decisions/0005-use-queues.md"] = {
+			text: "---\nstatus: accepted\ndate: 2026-10-30\ndecision-makers: [ada]\n---\n# Use queues\n## Context and problem statement\n\nWhy.\n",
+			stamp: "1",
+		};
 		await mountDesign(<Decisions />);
 		const list = await screen.findByRole("list", { name: "Decisions" });
 		const all = within(list).getAllByRole("listitem").length;
-		const marked = within(list)
-			.getAllByRole("listitem")
-			.filter((li) => li.textContent?.includes("No spec uses it"));
-		expect(marked.length).toBeGreaterThan(0);
+		const marking = () =>
+			within(list)
+				.getAllByRole("listitem")
+				.filter((li) => li.textContent?.includes("No spec uses it"));
+		// The graph loads after the list.
+		await waitFor(() => expect(marking().length).toBeGreaterThan(0));
+		const marked = marking();
 		expect(marked.length).toBeLessThan(all);
 		await user.click(screen.getByRole("button", { name: "More" }));
 		await user.click(
@@ -181,7 +189,8 @@ describe("Design / API", () => {
 			await within(await screen.findByRole("dialog")).findByRole("button", { name: "Close" }),
 		);
 		expect(await screen.findByRole("alert")).toHaveTextContent("Cancelled");
-		expect(screen.queryByRole("status")).toBeNull();
+		// The answer box stays empty until a response comes.
+		expect(screen.getByRole("status")).toBeEmptyDOMElement();
 	});
 
 	it("shows the failure and no response when the call fails", async () => {
@@ -193,7 +202,8 @@ describe("Design / API", () => {
 		await user.type(screen.getByRole("textbox", { name: "Path" }), "no-slash");
 		await user.click(screen.getByRole("button", { name: "Send" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("Failed");
-		expect(screen.queryByRole("status")).toBeNull();
+		// The answer box stays empty until a response comes.
+		expect(screen.getByRole("status")).toBeEmptyDOMElement();
 	});
 
 	it("shows the error and no endpoint for a contract that is not valid", async () => {
@@ -258,7 +268,9 @@ describe("Design / Flows", () => {
 	it("rejects a row with a missing field, names it and writes nothing", async () => {
 		const user = userEvent.setup();
 		await matrix();
-		await user.click(await screen.findByRole("button", { name: "Add a flow" }));
+		// "Add a flow" sits in the "More" menu of the matrix page.
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Add a flow" }));
 		await user.type(screen.getByRole("textbox", { name: "Source" }), "10.1.0.0/24");
 		await user.type(screen.getByRole("textbox", { name: "Destination" }), "10.2.0.0/24");
 		await user.type(screen.getByRole("textbox", { name: "VLAN or VNET" }), "VLAN 30");
@@ -270,7 +282,9 @@ describe("Design / Flows", () => {
 	it("adds, edits and removes a row from its menu", async () => {
 		const user = userEvent.setup();
 		await matrix();
-		await user.click(await screen.findByRole("button", { name: "Add a flow" }));
+		// "Add a flow" sits in the "More" menu of the matrix page.
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Add a flow" }));
 		await user.type(screen.getByRole("textbox", { name: "Source" }), "10.1.0.0/24");
 		await user.type(screen.getByRole("textbox", { name: "Destination" }), "10.2.0.0/24");
 		await user.type(screen.getByRole("textbox", { name: "VLAN or VNET" }), "VLAN 30");

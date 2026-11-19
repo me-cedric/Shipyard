@@ -128,6 +128,7 @@ function CoveragePage() {
 					: s.verdict[v];
 	return (
 		<LibraryPage
+			className="pt-3"
 			title={p.whatTested}
 			back={
 				<BackLink
@@ -135,17 +136,15 @@ function CoveragePage() {
 					render={(props) => <Link to="/library/test-plans" {...props} />}
 				/>
 			}
-			chips={
-				last ? (
-					<span className="text-n-11">
-						{format(s.lastRun, {
-							date: new Date(last).toLocaleDateString(code, { dateStyle: "long" }),
-						})}
-					</span>
-				) : undefined
-			}
 			action={
 				<>
+					{last ? (
+						<span className="text-n-11">
+							{format(s.lastRun, {
+								date: new Date(last).toLocaleDateString(code, { dateStyle: "long" }),
+							})}
+						</span>
+					) : null}
 					{missing.length ? (
 						<RightButton
 							right="specs.edit"
@@ -168,7 +167,12 @@ function CoveragePage() {
 		>
 			<fieldset aria-label={p.show} className="flex flex-wrap gap-2">
 				{(["all", "fail", "not-covered", "partial", "blocked"] as const).map((v) => (
-					<Chip key={v} selected={filter === v} onClick={() => setFilter(v)}>
+					<Chip
+						key={v}
+						selected={filter === v}
+						onClick={() => setFilter(v)}
+						className={filter === v ? undefined : "bg-surface-2"}
+					>
 						{v === "all" ? s.filter.all : label(v)}
 					</Chip>
 				))}
@@ -180,7 +184,7 @@ function CoveragePage() {
 					return (
 						<Card key={v} className="py-2">
 							<section aria-label={label(v)}>
-								<h2 className="flex items-center gap-2.5 px-6 pt-3.5 pb-1.5 font-semibold text-n-12">
+								<h2 className="flex items-center gap-2.5 px-6 pt-3.5 pb-1.5 text-20 font-semibold text-n-12">
 									{label(v)}
 									<Badge variant={v === "pass" || v === "fail" ? TONE[v] : "neutral"}>
 										{rows.length}

@@ -39,9 +39,12 @@ describe("Specs / Questions", () => {
 		const kinds = within(screen.getByRole("group", { name: "Kind" }));
 		await user.click(kinds.getByRole("button", { name: "Questions" }));
 		await waitFor(async () => expect(await rows()).toHaveLength(1));
-		expect(screen.getByRole("button", { name: Q035 }).closest("article")).toHaveTextContent(
-			"Ada Lovelace",
+		// The card shows the first name beside an avatar that holds the full name.
+		const card = within(
+			screen.getByRole("button", { name: Q035 }).closest("article") as HTMLElement,
 		);
+		expect(card.getByRole("img", { name: "Ada Lovelace" })).toBeVisible();
+		expect(card.getByText("Ada")).toBeVisible();
 		await user.click(kinds.getByRole("button", { name: "All" }));
 		await pick(user, "Owner", "All owners");
 		await pick(user, "Status", "All statuses");
@@ -184,7 +187,9 @@ describe("Specs / Questions", () => {
 		await renderSpecs(<Questions />);
 		const name = "Answer: Claim stamps need an issue tracker comment write";
 		const send = await screen.findByRole("button", { name });
-		expect(send).toBeDisabled();
+		// An empty answer is refused with a line, not by a disabled button.
+		await user.click(send);
+		expect(await screen.findByRole("alert")).toHaveTextContent("Write an answer first.");
 		await user.type(screen.getByRole("textbox", { name }), "Use labels");
 		await user.click(send);
 		await waitFor(() => expect(files()[`${QDIR}/Q-020.md`]?.text).toContain("status: answered"));
@@ -214,7 +219,9 @@ describe("Specs / Questions", () => {
 		await user.click(screen.getByRole("button", { name: "Mine" }));
 		await waitFor(async () => expect(await rows()).toHaveLength(3));
 		// A row with no spec has no "Add the answer to the spec".
-		expect(screen.queryByRole("button", { name: /^Add the answer to the spec/ })).toBeNull();
+		expect(
+			screen.queryByRole("button", { name: /^Add the answer to the spec: One issue tracker/ }),
+		).toBeNull();
 	});
 
 	it("folds an answer after a preview and one click, with no new section", async () => {

@@ -1,3 +1,4 @@
+import { Menu } from "@base-ui/react/menu";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
@@ -16,6 +17,7 @@ import { usePrefs } from "@/lib/prefs";
 import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
@@ -23,7 +25,7 @@ import { Segmented } from "@/ui/atoms/segmented";
 import { Card } from "@/ui/molecules/card";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { ContextMenu } from "@/ui/molecules/context-menu";
-import { MenuButton } from "@/ui/molecules/menu-button";
+import { MenuList } from "@/ui/molecules/menu-button";
 import { SideSwitch, useSides } from "@/ui/molecules/pane-toggle";
 import { Row } from "@/ui/molecules/row";
 import { mermaid } from "@/ui/molecules/syntax";
@@ -51,7 +53,7 @@ import {
 } from "./parts";
 
 const EXT = { excalidraw: "excalidraw", mermaid: "mmd", drawio: "drawio", bpmn: "bpmn" } as const;
-const FORMATS = ["excalidraw", "mermaid", "drawio", "bpmn"] as const;
+const FORMATS = ["excalidraw", "drawio", "mermaid", "bpmn"] as const;
 const isBoard = (f: string): f is BoardFormat => (FORMATS as readonly string[]).includes(f);
 
 /** The colour of the ghost of a format in the grid. */
@@ -252,7 +254,7 @@ function Picked({
 		<>
 			<Card pad className="flex flex-col gap-3.5">
 				<Badge className="self-start">{name}</Badge>
-				<h2 className="text-20 font-semibold break-words">{a.title}</h2>
+				<h2 className="text-30 font-semibold break-words">{a.title}</h2>
 				<div className="flex flex-wrap gap-2.5">
 					<Button variant="primary" className="flex-[1_1_110px]" onClick={onOpen}>
 						{p.open}
@@ -272,16 +274,20 @@ function Picked({
 					<h2 className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">{p.actions}</h2>
 					{from ? (
 						<Row>
-							<span className="font-semibold">{t.design.convert}</span>
+							<span className="font-semibold">{p.changeFormat}</span>
 							<span className="ml-auto">
-								<MenuButton
-									label={t.design.convert}
-									items={FORMATS.filter((f) => f !== from).map((f) => ({
-										id: f,
-										label: t.design.formats[f],
-										onSelect: () => void convert(f),
-									}))}
-								/>
+								<Menu.Root>
+									<Menu.Trigger render={<Button aria-label={`${p.changeFormat}: ${name}`} />}>
+										{name}
+									</Menu.Trigger>
+									<MenuList
+										items={FORMATS.filter((f) => f !== from).map((f) => ({
+											id: f,
+											label: t.design.formats[f],
+											onSelect: () => void convert(f),
+										}))}
+									/>
+								</Menu.Root>
 							</span>
 						</Row>
 					) : null}
@@ -308,6 +314,7 @@ function Picked({
 						)}
 					>
 						{p.ask}
+						<Avatar agent size="s" name={p.assistant} className="ml-auto" />
 					</Row>
 				</section>
 			</Card>
@@ -378,18 +385,20 @@ export function Diagrams() {
 				action={
 					arts.length ? (
 						<>
-							<Segmented
-								label={t.editing.view.label}
-								value={view}
-								onValueChange={(v) => {
-									setView(v);
-									setOpen(null);
-								}}
-								items={[
-									{ value: "grid", label: t.design.view.grid },
-									{ value: "list", label: t.design.view.list },
-								]}
-							/>
+							<div className="w-48">
+								<Segmented
+									label={t.editing.view.label}
+									value={view}
+									onValueChange={(v) => {
+										setView(v);
+										setOpen(null);
+									}}
+									items={[
+										{ value: "grid", label: t.design.view.grid },
+										{ value: "list", label: t.design.view.list },
+									]}
+								/>
+							</div>
 							<Button variant="primary" onClick={() => ask(p.drawPrompt)}>
 								{p.draw}
 							</Button>

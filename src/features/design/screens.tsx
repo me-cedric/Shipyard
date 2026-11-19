@@ -9,6 +9,7 @@ import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
+import { LinkIcon } from "@/ui/icons";
 import { AttentionCard } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { CodeEditor } from "@/ui/molecules/code-editor";
@@ -170,7 +171,7 @@ function ScreenTile({
 				selected && "bg-accent-tint outline-2 outline-accent",
 			)}
 		>
-			<span className="flex h-[170px] w-full items-center justify-center overflow-hidden rounded-md border border-dashed border-n-7 bg-n-3">
+			<span className="flex h-[170px] w-full items-center justify-center overflow-hidden rounded-[14px] border border-dashed border-n-8 bg-n-2">
 				{screen.file && /\.(png|jpe?g|gif|webp|svg)$/i.test(screen.file) ? (
 					<Preview path={screen.file} label={screen.title} plain />
 				) : null}
@@ -259,13 +260,18 @@ function FigmaBanner() {
 	}).data;
 	if (connected !== false || hidden) return null;
 	return (
-		<AttentionCard who={p.waits} title={p.figmaOff}>
-			<div className="flex flex-wrap gap-2.5">
-				<Button onClick={() => setHidden(true)}>{p.notNow}</Button>
-				<Button variant="primary" onClick={() => setConnect(true)}>
-					{p.connectFigma}
-				</Button>
-			</div>
+		<AttentionCard
+			head={
+				<div className="flex flex-wrap items-center gap-4">
+					<LinkIcon size={28} aria-hidden="true" />
+					<h2 className="min-w-60 flex-1 text-20 font-semibold">{p.figmaOff}</h2>
+					<Button onClick={() => setHidden(true)}>{p.notNow}</Button>
+					<Button variant="primary" onClick={() => setConnect(true)}>
+						{p.connectFigma}
+					</Button>
+				</div>
+			}
+		>
 			{connect ? <FigmaPanel /> : null}
 		</AttentionCard>
 	);
@@ -337,7 +343,9 @@ export function Screens() {
 		},
 		p.addScreen,
 	);
-	const open = screens.find((s) => `screen:${s.slug}` === page.selected);
+	// The detail opens on a pick, not before: the cards show none selected at first.
+	const [opened, setOpened] = useState<string | null>(null);
+	const open = screens.find((s) => `screen:${s.slug}` === opened);
 	return (
 		<DesignGate title={t.tabs.design.screens}>
 			<LibraryPage
@@ -390,8 +398,11 @@ export function Screens() {
 											<ContextMenu items={item ? page.menuOf(item) : []}>
 												<ScreenTile
 													screen={s}
-													selected={ref === page.selected}
-													onPick={() => page.pick(ref)}
+													selected={ref === opened}
+													onPick={() => {
+														setOpened(ref);
+														page.pick(ref);
+													}}
 												/>
 											</ContextMenu>
 										</li>

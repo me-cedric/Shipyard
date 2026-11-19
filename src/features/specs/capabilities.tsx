@@ -21,6 +21,7 @@ import {
 	artifactPath,
 	type Change,
 	capabilityOf,
+	openItems,
 	useCapabilities,
 	useChanges,
 	useFile,
@@ -41,9 +42,10 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { markdown } from "@/ui/molecules/syntax";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
+import { Dialog } from "@/ui/organisms/dialog";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { useGuard } from "./guard";
-import { STATE_TONE, VerdictBadge, worst } from "./parts";
+import { SmallChevron, STATE_TONE, VerdictBadge, worst } from "./parts";
 
 const FILES = ["spec", "plan", "checklist", "tasks"] as const;
 type View = "read" | "text" | "files";
@@ -222,22 +224,20 @@ function CheckCard({ spec }: { spec: Spec }) {
 		.reduce((n, a) => n + a.findings.length, 0);
 	return (
 		<LinkedCard title={p.check}>
-			{spec.changes.length ? (
-				<Row>
-					<span className="min-w-0 font-semibold">{p.syntax}</span>
-					{!checked ? (
-						<Badge className="ml-auto">{p.notChecked}</Badge>
-					) : problems ? (
-						<Badge variant="you" className="ml-auto">
-							{format(p.problems, { count: problems })}
-						</Badge>
-					) : (
-						<Badge variant="success" className="ml-auto">
-							{p.noErrors}
-						</Badge>
-					)}
-				</Row>
-			) : null}
+			<Row>
+				<span className="min-w-0 font-semibold">{p.syntax}</span>
+				{!checked ? (
+					<Badge className="ml-auto">{p.notChecked}</Badge>
+				) : problems ? (
+					<Badge variant="you" className="ml-auto">
+						{format(p.problems, { count: problems })}
+					</Badge>
+				) : (
+					<Badge variant="success" className="ml-auto">
+						{p.noErrors}
+					</Badge>
+				)}
+			</Row>
 			<Row>
 				<span className="min-w-0 font-semibold">{p.links}</span>
 				{!broken ? (
@@ -270,6 +270,81 @@ function CheckCard({ spec }: { spec: Spec }) {
 	);
 }
 
+/** The changes in progress of the open spec, and the finished ones to archive. */
+function InProgressCard({ changes }: { changes: Change[] }) {
+	const { t } = useI18n();
+	const s = t.specs;
+	const act = useSpecsActions();
+	const { error, run } = useGuard();
+	// A change that asks first: the open items that its archive refused with.
+	const [pending, setPending] = useState<{ id: string; items: string[] } | null>(null);
+	const finished = changes.filter((c) => c.artifacts.every((a) => a.status === "done"));
+	const archive = (id: string, confirmed: boolean) =>
+		run(async () => {
+			try {
+				await act.archive(id, confirmed);
+				setPending(null);
+			} catch (e) {
+				const items = openItems(e instanceof Error ? e.message : String(e));
+				if (!items) throw e;
+				setPending({ id, items });
+			}
+		});
+	return (
+		<LinkedCard title={s.page.inProgress}>
+			{changes.map((c) => (
+				<LinkedRow
+					key={c.id}
+					label={c.title}
+					trailing={<SmallChevron />}
+					render={(props) => (
+						<Link
+							to="/flow/feature/$featureId"
+							params={{ featureId: `change:${c.id}` }}
+							{...props}
+						/>
+					)}
+				/>
+			))}
+			{finished.length ? (
+				<Row>
+					<span className="min-w-0 text-n-11">{s.page.finished}</span>
+					<RightButton
+						right="specs.edit"
+						className="ml-auto"
+						onClick={() => void archive(finished[0]?.id ?? "", false)}
+					>
+						{s.archive.open}
+					</RightButton>
+				</Row>
+			) : null}
+			<ErrorNotice error={error} className="px-6 pb-3" />
+			{pending ? (
+				<Dialog
+					open
+					onOpenChange={(o) => !o && setPending(null)}
+					title={s.archive.title}
+					actions={
+						<RightButton
+							right="specs.edit"
+							variant="primary"
+							onClick={() => void archive(pending.id, true)}
+						>
+							{s.archive.confirm}
+						</RightButton>
+					}
+				>
+					<ul aria-label={s.archive.items} className="flex flex-col gap-1 text-ui">
+						{pending.items.map((i) => (
+							<li key={i}>{i}</li>
+						))}
+					</ul>
+				</Dialog>
+			) : null}
+		</LinkedCard>
+	);
+}
+
 /** The cards under the open spec: its changes in progress, its test plans and questions, the check. */
 function SpecLinks({ spec }: { spec: Spec }) {
 	const { t } = useI18n();
@@ -283,23 +358,7 @@ function SpecLinks({ spec }: { spec: Spec }) {
 	const state = p.state as Record<string, string>;
 	return (
 		<>
-			{spec.changes.length ? (
-				<LinkedCard title={p.inProgress}>
-					{spec.changes.map((c) => (
-						<LinkedRow
-							key={c.id}
-							label={c.title}
-							render={(props) => (
-								<Link
-									to="/flow/feature/$featureId"
-									params={{ featureId: `change:${c.id}` }}
-									{...props}
-								/>
-							)}
-						/>
-					))}
-				</LinkedCard>
-			) : null}
+			{spec.changes.length ? <InProgressCard changes={spec.changes} /> : null}
 			{plans.length + questions.length ? (
 				<LinkedCard title={p.linked}>
 					{plans.map((pl) => (
@@ -365,6 +424,7 @@ function SpecsPage() {
 	return (
 		<LibraryPage
 			title={t.tabs.specs.capabilities}
+			className="pt-3"
 			action={
 				<>
 					<Button onClick={() => ask(p.checkCodePrompt)}>{p.checkCode}</Button>

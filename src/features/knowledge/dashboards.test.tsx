@@ -203,8 +203,10 @@ describe("Knowledge / Dashboards", () => {
 	it("creates a dashboard from a template", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("dashboards");
-		await user.click(await screen.findByRole("button", { name: "New dashboard" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Project manager" }));
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(
+			await screen.findByRole("menuitem", { name: "New dashboard: Project manager" }),
+		);
 		await waitFor(async () =>
 			expect((await unwrap(commands.dashboardGetOne("pm"))).value.tiles.map((x) => x.kind)).toEqual(
 				["tracker-open", "tracker-status", "tracker-assignee", "estimates", "questions", "work"],

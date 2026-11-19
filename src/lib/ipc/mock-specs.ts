@@ -403,7 +403,7 @@ export function seedSpecs(): MockSpecs {
 			["spec:billing#REQ-002", "A receipt is sent"],
 		]),
 		...Object.fromEntries([
-			question("Q-012", "question", "answered", "ada", "Which issue tracker first?"),
+			question("Q-012", "question", "answered", "ada", "Which issue tracker first?", "spec:auth"),
 			question(
 				"Q-020",
 				"risk",

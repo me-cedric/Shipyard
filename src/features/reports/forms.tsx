@@ -26,7 +26,8 @@ import { Row } from "@/ui/molecules/row";
 import { SavedActions } from "./export-menu";
 import { useReports } from "./reports-page";
 
-const FIELD = "w-auto flex-[1_1_200px]";
+const FIELD = "w-56 flex-none";
+const SHORT = "w-44 flex-none";
 
 /** One row of a form: the name of the field, then its control. */
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -54,6 +55,7 @@ function Sheet({
 	const { t } = useI18n();
 	const [written, setWritten] = useState<string[]>([]);
 	const [failure, setFailure] = useState<unknown>(null);
+	const [missing, setMissing] = useState(false);
 	const [busy, setBusy] = useState(false);
 	return (
 		<>
@@ -63,8 +65,10 @@ function Sheet({
 					<Button
 						variant="primary"
 						busy={busy}
-						disabled={!ready}
 						onClick={() => {
+							// A required field that is empty gives an error line, not a dead button.
+							setMissing(!ready);
+							if (!ready) return;
 							setFailure(null);
 							setBusy(true);
 							run()
@@ -77,6 +81,11 @@ function Sheet({
 					</Button>
 				</Field>
 			</Card>
+			{missing ? (
+				<p role="alert" className="text-ui text-danger-text">
+					{t.reports.form.required}
+				</p>
+			) : null}
 			<ErrorNotice error={failure} />
 			{written.map((path) => (
 				<Card key={path} pad className="flex flex-wrap items-center gap-3">
@@ -129,7 +138,7 @@ function ChangeRequest() {
 			<Field label={f.base}>
 				<Input
 					label={f.base}
-					className={FIELD}
+					className={SHORT}
 					value={base}
 					onChange={(e) => setBase(e.target.value)}
 				/>
@@ -137,7 +146,7 @@ function ChangeRequest() {
 			<Field label={f.head}>
 				<Input
 					label={f.head}
-					className={FIELD}
+					className={SHORT}
 					value={head}
 					onChange={(e) => setHead(e.target.value)}
 				/>
@@ -200,7 +209,7 @@ function WorkDone() {
 			<Field label={f.base}>
 				<Input
 					label={f.base}
-					className={FIELD}
+					className={SHORT}
 					value={base}
 					onChange={(e) => setBase(e.target.value)}
 				/>
@@ -208,7 +217,7 @@ function WorkDone() {
 			<Field label={f.head}>
 				<Input
 					label={f.head}
-					className={FIELD}
+					className={SHORT}
 					value={head}
 					onChange={(e) => setHead(e.target.value)}
 				/>

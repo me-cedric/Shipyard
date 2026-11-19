@@ -42,6 +42,7 @@ export const reportsDe: typeof reportsEn = {
 		base: "Von Version",
 		head: "Bis Version",
 		approvers: "Personen, die freigeben",
+		required: "Fülle jedes Feld aus, bevor du den Bericht schreibst.",
 		add: "Hinzufügen",
 		from: "Von",
 		to: "Bis",

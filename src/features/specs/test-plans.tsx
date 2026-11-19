@@ -18,18 +18,27 @@ import {
 } from "@/lib/specs";
 import { Badge } from "@/ui/atoms/badge";
 import { Button, buttonVariants } from "@/ui/atoms/button";
-import { ChevronRightIcon, PlusIcon } from "@/ui/icons";
+import { PlusIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { gherkin } from "@/ui/molecules/code-editor";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { MenuButton } from "@/ui/molecules/menu-button";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { Row } from "@/ui/molecules/row";
 import { caretToEnd } from "./constitution";
 import { FileEditor } from "./file-editor";
 import { useGuard } from "./guard";
 import { NameDialog } from "./name-dialog";
-import { capOf, missingTests, ROW_BUTTON, VerdictBadge, worst } from "./parts";
+import {
+	capOf,
+	MoreDots,
+	missingTests,
+	ROW_BUTTON,
+	SmallChevron,
+	VerdictBadge,
+	worst,
+} from "./parts";
 
 const DIR = "docs/delivery/test-plans";
 const SCOPE = "specs:test-plans";
@@ -125,8 +134,6 @@ function PlanView({
 	const caps = new Set(plan.refs.filter((r) => r.startsWith("spec:")).map(capOf));
 	const mine = reqs.filter((r) => caps.has(r.capability));
 	const missing = missingTests(mine);
-	const name = (tag: string) =>
-		reqs.find((r) => `@${r.reference}` === tag)?.title ?? tag.replace(/^@/, "");
 	const first = plan.errors[0];
 
 	const page = (text: string): ReactNode => {
@@ -154,13 +161,6 @@ function PlanView({
 								{t.knowledge.handbook.edit}
 							</Button>
 						</div>
-						{sc.tags.length ? (
-							<p className="flex flex-wrap gap-1.5">
-								{sc.tags.map((tag) => (
-									<Badge key={tag}>{name(tag)}</Badge>
-								))}
-							</p>
-						) : null}
 						<ul className="flex flex-col gap-3">
 							{sc.steps.map(([word, rest], j) => (
 								// biome-ignore lint/suspicious/noArrayIndexKey: the steps have no id and keep their order
@@ -190,6 +190,7 @@ function PlanView({
 			frame={({ modes, editing, edit, body }) => (
 				<LibraryPage
 					title={format(p.testPlan, { name: plan.title })}
+					className="pt-3"
 					action={
 						<>
 							{modes}
@@ -226,20 +227,35 @@ function PlanView({
 							</Button>
 						</>
 					}
-					menu={[
-						{ label: s.newPlan, onClick: onNew, disabled: gate("specs.edit").disabled },
-						{ label: p.copyRef, onClick: () => void copyText(planRef(plan.path)) },
-						{ label: p.copyFile, onClick: () => void copyText(plan.path) },
-					]}
 				>
-					<Badge
-						dot
-						variant={plan.errors.length ? "you" : "success"}
-						className="self-start"
-						role="status"
-					>
-						{plan.errors.length ? format(p.textErrors, { count: plan.errors.length }) : p.textClean}
-					</Badge>
+					{/* The More button sits here, not in the header row: the header row has no room for it. */}
+					<div className="flex items-center gap-2">
+						<Badge dot variant={plan.errors.length ? "you" : "success"} role="status">
+							{plan.errors.length
+								? format(p.textErrors, { count: plan.errors.length })
+								: p.textClean}
+						</Badge>
+						<span className="flex-1" />
+						<MenuButton
+							iconOnly
+							label={t.ui.more}
+							icon={<MoreDots />}
+							items={[
+								{
+									id: "new",
+									label: s.newPlan,
+									onSelect: onNew,
+									disabled: gate("specs.edit").disabled,
+								},
+								{
+									id: "ref",
+									label: p.copyRef,
+									onSelect: () => void copyText(planRef(plan.path)),
+								},
+								{ id: "file", label: p.copyFile, onSelect: () => void copyText(plan.path) },
+							]}
+						/>
+					</div>
 					<ErrorNotice error={failure} />
 					<PageColumns>
 						<div ref={host} className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
@@ -277,7 +293,9 @@ function PlanView({
 												)}
 											>
 												<span className="min-w-0 font-semibold">{o.title}</span>
-												<ChevronRightIcon size={20} className="ml-auto" />
+												<span className="ml-auto flex">
+													<SmallChevron />
+												</span>
 											</Row>
 										))}
 								</LinkedCard>

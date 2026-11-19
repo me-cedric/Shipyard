@@ -116,11 +116,8 @@ describe("Library / Map", () => {
 	it("lists the items as a table with the view Table", async () => {
 		const user = userEvent.setup();
 		await mountMap();
-		await user.click(
-			within(await screen.findByRole("group", { name: "View" })).getByRole("button", {
-				name: "Table",
-			}),
-		);
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Table" }));
 		expect(await screen.findByRole("table", { name: "Table view" })).toBeInTheDocument();
 	});
 });

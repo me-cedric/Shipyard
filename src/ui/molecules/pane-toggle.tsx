@@ -18,8 +18,8 @@ const SIDES: Record<Choice, Sides> = {
  * an error with a line: when it starts, the text shows until the person picks a side. The stored
  * choice does not change.
  */
-export function useSides(id: string, needText = false) {
-	const [stored, set] = useViewState<Sides>(`sides:${id}`, SIDES.preview);
+export function useSides(id: string, needText = false, first: Choice = "preview") {
+	const [stored, set] = useViewState<Sides>(`sides:${id}`, SIDES[first]);
 	const [forced, setForced] = useState(needText);
 	const [was, setWas] = useState(needText);
 	if (needText !== was) {

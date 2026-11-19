@@ -9,6 +9,7 @@ import {
 } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
 import { RightButton } from "@/lib/rights";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Chip } from "@/ui/atoms/chip";
@@ -72,6 +73,7 @@ function Body({
 	const { sides, choose } = useSides(
 		`design-${p.kind}`,
 		created || file.conflict || error?.line != null,
+		p.kind === "model" ? "both" : "preview",
 	);
 	const { area, edit } = useEdit(() => sides.editor || choose("both"));
 	const item = { ref: a.reference, title: a.title, path: a.path };
@@ -151,18 +153,34 @@ export function ReaderPage(p: Props) {
 	const files = (
 		<fieldset
 			aria-label={p.chips ? t.design.page.models : t.design.page.files}
-			className="m-0 flex min-w-0 flex-wrap gap-2 border-0 p-0"
+			className={cn("m-0 flex min-w-0 gap-2 border-0 p-0", p.chips ? "flex-wrap" : "flex-col")}
 		>
 			{items.map((i) => (
 				<ContextMenu key={i.ref} items={page.menuOf(i)}>
-					<Chip selected={i.ref === page.selected} onClick={() => page.pick(i.ref)}>
-						{i.title}
-						{i.issue ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
-					</Chip>
+					{p.chips ? (
+						<Chip selected={i.ref === page.selected} onClick={() => page.pick(i.ref)}>
+							{i.title}
+							{i.issue ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
+						</Chip>
+					) : (
+						<Button
+							aria-pressed={i.ref === page.selected}
+							className={cn("w-full font-mono", i.ref === page.selected && "border-accent")}
+							onClick={() => page.pick(i.ref)}
+						>
+							{i.path ? fileName(i.path) : i.title}
+							{i.issue ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
+						</Button>
+					)}
 				</ContextMenu>
 			))}
 			{p.chips ? (
-				<RightButton right="design.edit" variant="ghost" onClick={() => page.add()}>
+				<RightButton
+					right="design.edit"
+					variant="ghost"
+					className="rounded-sm bg-n-3 px-3.5 font-medium"
+					onClick={() => page.add()}
+				>
 					{p.newLabel}
 				</RightButton>
 			) : null}

@@ -13,8 +13,8 @@ const card = () => screen.getByRole("region", { name: "Getting started" });
 describe("Knowledge / Handbook", () => {
 	it("shows the pages as a tree, one group for each folder with a count", async () => {
 		await mountKnowledge("handbook");
-		expect(await screen.findByRole("heading", { name: "architecture (1)" })).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "operations (1)" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "architecture" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "operations" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Getting started" })).toBeInTheDocument();
 	});
 

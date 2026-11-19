@@ -1,5 +1,6 @@
 import { mockIPC } from "@tauri-apps/api/mocks";
 import { seedNotices } from "@/lib/notifications/seed";
+import { writeView } from "@/lib/shell/view-state";
 import type {
 	Access,
 	AuditLine_Serialize,
@@ -694,6 +695,9 @@ function seedDemo(p: ProjectEntry_Serialize) {
 			result: "requested",
 		},
 	];
+	// The Pinned and Opened last cards of Library show only with data.
+	writeView(p.id, "library/pins", ["constitution"]);
+	writeView(p.id, "library/recent", ["capabilities", "architecture"]);
 }
 
 const outcome = (

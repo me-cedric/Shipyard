@@ -1,6 +1,7 @@
 import { useI18n } from "@/lib/i18n";
 import type { Requirement } from "@/lib/specs";
 import { Badge } from "@/ui/atoms/badge";
+import { ChevronRightIcon } from "@/ui/icons";
 
 export const ORDER = ["fail", "blocked", "partial", "not-covered", "pass"] as const;
 export type Verdict = (typeof ORDER)[number];
@@ -44,3 +45,15 @@ export const missingTests = (reqs: Requirement[]) => [
 
 /** The row of a card as a button. */
 export const ROW_BUTTON = "w-full cursor-pointer text-left hover:bg-n-2";
+
+/** The small chevron at the end of a link row: lighter than the default one. */
+export const SmallChevron = () => <ChevronRightIcon size={14} />;
+
+/** The three dots of a More button. */
+export const MoreDots = () => (
+	<svg aria-hidden="true" viewBox="0 0 16 16" className="size-4" fill="currentColor">
+		<circle cx="3" cy="8" r="1.25" />
+		<circle cx="8" cy="8" r="1.25" />
+		<circle cx="13" cy="8" r="1.25" />
+	</svg>
+);

@@ -325,35 +325,52 @@ function List({
 						<table className="w-full min-w-[640px] border-collapse text-left">
 							<thead>
 								<tr>
-									{[p.flowFrom, p.flowTo, p.why].map((h) => (
-										<th key={h} scope="col" className="h-11 text-13 font-normal text-n-11">
-											{h}
-										</th>
-									))}
+									<th scope="col" className="h-11 text-13 font-normal text-n-11">
+										{p.flowFrom}
+									</th>
+									<td className="w-10" />
+									<th scope="col" className="h-11 text-13 font-normal text-n-11">
+										{p.flowTo}
+									</th>
+									<td className="w-10" />
+									<th scope="col" className="h-11 text-13 font-normal text-n-11">
+										{p.why}
+									</th>
 								</tr>
 							</thead>
 							<tbody>
-								{rows.map((r) => (
-									<tr key={r.id} className="border-t border-n-6">
-										{ends(r).map((name, i) => (
-											// biome-ignore lint/suspicious/noArrayIndexKey: the two ends of one flow, in order.
-											<td key={i} className="py-3 pr-8">
+								{rows.map((r) => {
+									const [from, to] = ends(r);
+									return (
+										<tr key={r.id}>
+											<td className="py-1.5">
+												<span className="flex min-h-control items-center rounded-md bg-n-3 px-3.5 font-semibold">
+													{from}
+												</span>
+											</td>
+											<td aria-hidden="true" className="px-0">
+												<span className="block h-0.5 bg-accent" />
+											</td>
+											<td className="py-1.5">
 												<span
 													className={cn(
 														"flex min-h-control items-center rounded-md bg-n-3 px-3.5 font-semibold",
 														// An address, not a name.
-														!(i ? r.destinationName : r.sourceName) && "font-mono",
+														!r.destinationName && "font-mono",
 													)}
 												>
-													{name}
+													{to}
 												</span>
 											</td>
-										))}
-										<td className="py-3">
-											{r.note || r.name || [r.protocol, r.port].filter(Boolean).join(" ")}
-										</td>
-									</tr>
-								))}
+											<td aria-hidden="true" className="px-0">
+												<span className="block h-0.5 bg-accent" />
+											</td>
+											<td className="py-1.5">
+												{r.note || r.name || [r.protocol, r.port].filter(Boolean).join(" ")}
+											</td>
+										</tr>
+									);
+								})}
 							</tbody>
 						</table>
 					</Card>
@@ -369,7 +386,7 @@ function List({
 						>
 							<span />
 							{tos.map((h) => (
-								<span key={h} className="truncate font-mono text-13 text-n-11">
+								<span key={h} className="break-all font-mono text-13 text-n-11">
 									{h}
 								</span>
 							))}
@@ -432,7 +449,7 @@ export function Flows() {
 	);
 }
 
-function Matrix({ a, frame, startAdd }: { a: Artifact; frame: Frame; startAdd: boolean }) {
+function Matrix({ a, frame, signal }: { a: Artifact; frame: Frame; signal: number }) {
 	const { t } = useI18n();
 	const f = t.design.flows;
 	const p = t.design.page;
@@ -440,7 +457,7 @@ function Matrix({ a, frame, startAdd }: { a: Artifact; frame: Frame; startAdd: b
 	if (bad) return null;
 	return (
 		<FlowMatrix
-			startAdd={startAdd}
+			addSignal={signal}
 			chipLabels={{ allow: p.allowed, deny: p.denied }}
 			rows={rows.map((r) => ({
 				id: String(r.id),
@@ -492,7 +509,10 @@ function Matrix({ a, frame, startAdd }: { a: Artifact; frame: Frame; startAdd: b
 export function FlowMatrixPage() {
 	const { t } = useI18n();
 	const { page, a, chips } = useTables();
-	const startAdd = useRouterState({ select: (s) => s.location.hash === "add" });
+	const hashAdd = useRouterState({ select: (s) => s.location.hash === "add" });
+	// The hash "add" opens the editor once; the menu item opens it again.
+	const [adds, setAdds] = useState(0);
+	const signal = adds + (hashAdd ? 1 : 0);
 	return (
 		<DesignGate title={t.design.page.matrix}>
 			<LibraryPage
@@ -504,6 +524,9 @@ export function FlowMatrixPage() {
 					/>
 				}
 				action={a ? <PageExport page="flows" /> : undefined}
+				menu={
+					a ? [{ label: t.design.page.addFlow, onClick: () => setAdds((n) => n + 1) }] : undefined
+				}
 			>
 				{page.dialogs}
 				{chips}
@@ -513,7 +536,7 @@ export function FlowMatrixPage() {
 						{(frame) => (
 							<>
 								{frame.alerts}
-								<Matrix a={a} frame={frame} startAdd={startAdd} />
+								<Matrix a={a} frame={frame} signal={signal} />
 							</>
 						)}
 					</FileFrame>

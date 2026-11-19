@@ -1,10 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { useRef } from "react";
+import { nameOf } from "@/features/factory/runs/run-live";
 import { LibraryPage, LinkedCard, PageColumns, SideCards } from "@/features/library/page-parts";
 import { WithProject } from "@/features/shell/no-project";
+import { useRoles } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { copyText } from "@/lib/menus";
 import { useRights } from "@/lib/rights";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { linkClass } from "@/ui/atoms/link-button";
@@ -72,6 +75,23 @@ function WhoChanges() {
 	);
 }
 
+/** The agent roles of Crew: each one reads the rules before it works. */
+function WhoFollows() {
+	const { t } = useI18n();
+	const roles = useRoles().data ?? [];
+	if (!roles.length) return null;
+	return (
+		<LinkedCard title={t.specs.page.whoFollows}>
+			{roles.map((r) => (
+				<Row key={r.id}>
+					<Avatar name={nameOf(r.id)} agent />
+					<span className="min-w-0 font-semibold">{nameOf(r.id)}</span>
+				</Row>
+			))}
+		</LinkedCard>
+	);
+}
+
 /** Library / Project rules: one numbered card for each rule of the document (REQ-014). */
 export function Constitution() {
 	const { t } = useI18n();
@@ -111,6 +131,7 @@ export function Constitution() {
 				frame={({ modes, editing, edit, body }) => (
 					<LibraryPage
 						title={title}
+						className="pt-3"
 						action={
 							<>
 								{modes}
@@ -143,6 +164,7 @@ export function Constitution() {
 							</div>
 							<SideCards className="flex-[2_1_300px]">
 								<WhoChanges />
+								<WhoFollows />
 							</SideCards>
 						</PageColumns>
 					</LibraryPage>

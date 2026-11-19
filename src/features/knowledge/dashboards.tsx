@@ -32,7 +32,6 @@ import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
-import { MenuButton } from "@/ui/molecules/menu-button";
 import { TileCard } from "@/ui/organisms/tile-card";
 import { isTrackerTile, layout, TEMPLATES, useTrackerTile } from "./dashboards-tracker";
 import { PinnedTiles } from "./pinned";
@@ -285,6 +284,7 @@ let last: string | null = null;
 /** One dashboard in read mode: the person filter, Edit and the tiles. */
 function DashboardView({ slug }: { slug: string }) {
 	const k = useI18n().t.knowledge.dashboards;
+	const { ask } = useShell();
 	const { view, error } = useDashboard(slug);
 	const members = useTeam().data?.team.members ?? [];
 	const [person, setPerson] = useState(EVERYONE);
@@ -319,8 +319,22 @@ function DashboardView({ slug }: { slug: string }) {
 						{k.edit}
 					</Link>
 				)}
+				<Link to="/library/reports" className={cn(buttonVariants(), "min-h-control")}>
+					{k.exportReport}
+				</Link>
+				<Button
+					variant="primary"
+					className="min-h-control"
+					onClick={() => ask(k.buildDashboardAsk)}
+				>
+					{k.buildDashboard}
+				</Button>
 			</div>
-			<ul aria-label={`${k.tiles} (${dash.tiles.length})`} className="grid gap-4" style={GRID}>
+			<ul
+				aria-label={`${k.tiles} (${dash.tiles.length})`}
+				className="grid auto-rows-[80px] gap-4"
+				style={GRID}
+			>
 				{dash.tiles.map((x) => (
 					<li key={x.id} className="min-w-0" style={cell(x)}>
 						<Tile
@@ -367,6 +381,10 @@ export function Dashboards() {
 	return (
 		<LibraryPage
 			title={k.title}
+			menu={(Object.keys(TEMPLATES) as (keyof typeof TEMPLATES)[]).map((id) => ({
+				label: `${k.create}: ${k.template[id]}`,
+				onClick: () => void create(id, k.template[id], TEMPLATES[id]),
+			}))}
 			action={
 				<>
 					{entries.length > 1 && slug ? (
@@ -379,14 +397,6 @@ export function Dashboards() {
 							/>
 						</div>
 					) : null}
-					<MenuButton
-						label={k.create}
-						items={(Object.keys(TEMPLATES) as (keyof typeof TEMPLATES)[]).map((id) => ({
-							id,
-							label: k.template[id],
-							onSelect: () => void create(id, k.template[id], TEMPLATES[id]),
-						}))}
-					/>
 				</>
 			}
 		>
@@ -422,7 +432,7 @@ export function Dashboards() {
 const GRIP = (
 	<span
 		aria-hidden="true"
-		className="flex size-11 cursor-grab items-center justify-center text-n-10"
+		className="flex size-11 shrink-0 cursor-grab items-center justify-center rounded-md border border-n-7 text-n-10"
 	>
 		<svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="currentColor">
 			{[7, 12, 17].flatMap((y) =>
@@ -579,7 +589,7 @@ export function DashboardEdit() {
 			) : null}
 			<ul
 				aria-label={`${k.tiles} (${dash.tiles.length})`}
-				className="grid gap-4"
+				className="grid auto-rows-[80px] gap-4"
 				onDragOver={(e) => {
 					if (drag.current) e.preventDefault();
 				}}

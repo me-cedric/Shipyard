@@ -151,7 +151,7 @@ function PathForm({
  * The learning paths of the team: courses, certifications and readings, the experts who can help,
  * and the steps that each person finished. A tick, a save and a delete each need a click.
  */
-export function LearnPaths() {
+export function LearnPaths({ part }: { part: "paths" | "team" }) {
 	const { t } = useI18n();
 	const k = t.knowledge.learn;
 	const qc = useQueryClient();
@@ -177,6 +177,41 @@ export function LearnPaths() {
 			qc.setQueryData(learningKey, await job());
 		});
 
+	if (part === "team")
+		return (
+			<>
+				{paths.length && people.length ? (
+					<LearnCard title={k.team}>
+						<DataTable
+							label={k.team}
+							data={people}
+							rowId={(m) => m.handle}
+							columns={[
+								{
+									id: "person",
+									header: k.person,
+									accessorFn: (m) => m.name,
+									meta: { rowHeader: true, wrap: true },
+								},
+								...paths.map<ColumnDef<(typeof people)[number]>>((p) => ({
+									id: p.id,
+									header: p.title,
+									cell: ({ row }) => (
+										<span className="font-mono text-12 text-n-11">
+											{
+												p.steps.filter((s) => doneBy(row.original.handle).includes(stepKey(p, s)))
+													.length
+											}
+											/{p.steps.length}
+										</span>
+									),
+								})),
+							]}
+						/>
+					</LearnCard>
+				) : null}
+			</>
+		);
 	return (
 		<>
 			<LearnCard
@@ -301,36 +336,6 @@ export function LearnPaths() {
 					);
 				})}
 			</LearnCard>
-			{paths.length && people.length ? (
-				<LearnCard title={k.team}>
-					<DataTable
-						label={k.team}
-						data={people}
-						rowId={(m) => m.handle}
-						columns={[
-							{
-								id: "person",
-								header: k.person,
-								accessorFn: (m) => m.name,
-								meta: { rowHeader: true, wrap: true },
-							},
-							...paths.map<ColumnDef<(typeof people)[number]>>((p) => ({
-								id: p.id,
-								header: p.title,
-								cell: ({ row }) => (
-									<span className="font-mono text-12 text-n-11">
-										{
-											p.steps.filter((s) => doneBy(row.original.handle).includes(stepKey(p, s)))
-												.length
-										}
-										/{p.steps.length}
-									</span>
-								),
-							})),
-						]}
-					/>
-				</LearnCard>
-			) : null}
 		</>
 	);
 }

@@ -252,6 +252,7 @@ export function UsedBy({ refId }: { refId: string }) {
 							key={b.source}
 							label={name}
 							leading={leading}
+							trailing={<span />}
 							render={(p) => <Link to={page} onClick={() => openRef(b.source)} {...p} />}
 						/>
 					) : (
@@ -259,6 +260,7 @@ export function UsedBy({ refId }: { refId: string }) {
 							key={b.source}
 							label={name}
 							leading={leading}
+							trailing={<span />}
 							render={(p) => <button type="button" onClick={() => openRef(b.source)} {...p} />}
 						/>
 					);
@@ -318,7 +320,7 @@ export function Empty({ label, onAdd }: { label: string; onAdd: () => void }) {
 export function Canvas({ className, children }: { className?: string; children: ReactNode }) {
 	return (
 		<section
-			className={`relative flex min-h-[560px] min-w-0 flex-[3_1_420px] flex-col rounded-[24px] bg-n-4 p-4 ${className ?? ""}`}
+			className={`relative flex min-h-[560px] min-w-0 ${className ?? "flex-[3_1_420px]"} flex-col rounded-[24px] bg-n-4 p-4`}
 		>
 			{children}
 		</section>

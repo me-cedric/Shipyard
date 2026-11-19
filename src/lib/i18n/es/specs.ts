@@ -110,6 +110,7 @@ export const specsEs: typeof specsEn = {
 		filters: "Filtros",
 		addRule: "Añadir una regla",
 		whoChanges: "Quién puede cambiar las reglas",
+		whoFollows: "Quién sigue las reglas",
 		canChange: "Puede cambiar",
 		canRead: "Puede leer",
 		otherRoles: "Todos los demás roles",
@@ -121,6 +122,7 @@ export const specsEs: typeof specsEn = {
 		fromCodePrompt:
 			"Escribe una especificación desde el código de este proyecto: busca una parte del código que ninguna especificación cubre y redacta sus requisitos como un cambio nuevo.",
 		inProgress: "Cambios en curso",
+		finished: "Cambios terminados",
 		linked: "Vinculados",
 		testPlan: "Plan de pruebas: {name}",
 		check: "Comprobar las especificaciones",
@@ -160,6 +162,7 @@ export const specsEs: typeof specsEn = {
 		foldLong: "Añadir la respuesta a la especificación",
 		editItem: "Editar: {name}",
 		answerTo: "Responder: {name}",
+		answerRequired: "Escriba primero una respuesta.",
 		whatTested: "Qué está probado",
 		addScenario: "Añadir un escenario",
 		writeForMe: "Escribir los escenarios por mí",

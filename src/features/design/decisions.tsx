@@ -1,9 +1,10 @@
 import { type ReactNode, useState } from "react";
 import { type Adr, useDesignActions, useDesignList } from "@/lib/design";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useGraph } from "@/lib/knowledge";
 import { RightButton } from "@/lib/rights";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Input } from "@/ui/atoms/input";
 import { AttentionCard } from "@/ui/molecules/attention-card";
@@ -24,7 +25,7 @@ const STATUSES = ["proposed", "accepted", "rejected", "deprecated", "superseded"
 
 /**
  * The answer to a proposed decision (REQ-010): a reason, then Refuse or Accept. Both need the
- * reason: the field is marked as required and both buttons stay off until it has text.
+ * reason: the field is marked as required and a click on an empty field shows an error line.
  * `DesignAdrDecision` of the shared parts has the field above the buttons; the design has one row.
  */
 function Answer({
@@ -37,31 +38,53 @@ function Answer({
 	const { t } = useI18n();
 	const p = t.design.page;
 	const [reason, setReason] = useState("");
+	const [missing, setMissing] = useState(false);
 	const r = reason.trim();
+	const decide = (d: "accept" | "reject") => {
+		setMissing(!r);
+		if (r) onDecide(d, r);
+	};
 	return (
-		<div className="flex flex-wrap gap-2.5">
-			<div className="min-w-48 flex-1">
-				<Input
-					label={p.reason}
-					placeholder={p.reason}
-					aria-required="true"
-					value={reason}
-					onChange={(e) => setReason(e.target.value)}
-				/>
+		<>
+			<div className="flex flex-wrap gap-2.5">
+				<div className="min-w-48 flex-1">
+					<Input
+						label={p.reason}
+						aria-required="true"
+						aria-invalid={missing || undefined}
+						value={reason}
+						onChange={(e) => {
+							setReason(e.target.value);
+							setMissing(false);
+						}}
+					/>
+				</div>
+				<RightButton right="design.edit" disabled={busy} onClick={() => decide("reject")}>
+					{p.refuse}
+				</RightButton>
+				<RightButton
+					right="design.edit"
+					variant="primary"
+					disabled={busy}
+					onClick={() => decide("accept")}
+				>
+					{t.design.decisions.accept}
+				</RightButton>
 			</div>
-			<RightButton right="design.edit" disabled={busy || !r} onClick={() => onDecide("reject", r)}>
-				{p.refuse}
-			</RightButton>
-			<RightButton
-				right="design.edit"
-				variant="primary"
-				disabled={busy || !r}
-				onClick={() => onDecide("accept", r)}
-			>
-				{t.design.decisions.accept}
-			</RightButton>
-		</div>
+			{missing ? (
+				<p role="alert" className="text-ui text-danger-text">
+					{p.reasonNeeded}
+				</p>
+			) : null}
+		</>
 	);
+}
+
+/** The first name of `decision-makers` in the front matter, or null. */
+function proposer(text: string): string | null {
+	const m = /^decision-makers:\s*\[?\s*([^,\]\n]+)/m.exec(text);
+	const name = m?.[1]?.trim().replace(/^["']|["']$/g, "");
+	return name ? name.charAt(0).toUpperCase() + name.slice(1) : null;
 }
 
 /**
@@ -75,26 +98,32 @@ function Decision({ adr, frame }: { adr: Adr; frame: Frame }) {
 	const { file } = frame;
 	const [view, setView] = useState<"form" | "text">("form");
 	const [editing, setEditing] = useState(false);
+	const who = adr.status === "proposed" ? proposer(file.text) : null;
+	const headRow = (
+		<div className="flex flex-wrap items-center gap-2.5">
+			{who ? (
+				<>
+					<Avatar name={who} />
+					<span className="font-semibold">{format(t.design.page.proposes, { name: who })}</span>
+				</>
+			) : null}
+			<span className="mr-auto" />
+			<SectionSwitch
+				label={e.view.label}
+				items={[
+					{ id: "form", label: e.view.form, current: view === "form" },
+					{ id: "text", label: e.view.text, current: view === "text" },
+				]}
+				onSelect={(id) => setView(id as typeof view)}
+			/>
+			<RightButton right="design.edit" aria-pressed={editing} onClick={() => setEditing((v) => !v)}>
+				{t.design.page.edit}
+			</RightButton>
+			{editing || view === "text" || file.dirty ? frame.save : null}
+		</div>
+	);
 	const body = (
 		<>
-			<div className="flex flex-wrap items-center gap-2.5">
-				<SectionSwitch
-					label={e.view.label}
-					items={[
-						{ id: "form", label: e.view.form, current: view === "form" },
-						{ id: "text", label: e.view.text, current: view === "text" },
-					]}
-					onSelect={(id) => setView(id as typeof view)}
-				/>
-				<RightButton
-					right="design.edit"
-					aria-pressed={editing}
-					onClick={() => setEditing((v) => !v)}
-				>
-					{t.design.page.edit}
-				</RightButton>
-				{editing || view === "text" || file.dirty ? frame.save : null}
-			</div>
 			{frame.alerts}
 			{view === "text" ? (
 				<div className="flex min-h-80 flex-col *:flex-1">
@@ -121,7 +150,7 @@ function Decision({ adr, frame }: { adr: Adr; frame: Frame }) {
 						aria-label={s.heading}
 						className="flex flex-col gap-1.5 rounded-[14px] bg-n-3 p-4 text-17"
 					>
-						<h3 className="text-13 text-n-11">{s.heading}</h3>
+						<h3 className="text-13 font-semibold text-n-12">{s.heading}</h3>
 						<p className="whitespace-pre-wrap">{s.body.trim()}</p>
 					</section>
 				))
@@ -140,12 +169,13 @@ function Decision({ adr, frame }: { adr: Adr; frame: Frame }) {
 		</>
 	);
 	return adr.status === "proposed" ? (
-		<AttentionCard who={t.design.page.waits} title={adr.title}>
+		<AttentionCard head={headRow} title={adr.title} titleClass="text-30 font-semibold">
 			{body}
 		</AttentionCard>
 	) : (
 		<Card pad className="flex flex-col gap-3.5">
-			<h2 className="text-20 font-semibold">{adr.title}</h2>
+			{headRow}
+			<h2 className="text-30 font-semibold text-n-12">{adr.title}</h2>
 			{body}
 		</Card>
 	);

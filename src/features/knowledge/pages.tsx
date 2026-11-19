@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useId, useState } from "react";
 import { LinkedCard, LinkedRow } from "@/features/library/page-parts";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import { DOC_DIR, useDocFile, useDocList } from "@/lib/knowledge";
 import { copyText } from "@/lib/menus";
 import { useBacklinks } from "@/lib/refs";
@@ -33,6 +33,25 @@ const DOTS = (
 		<circle cx="13" cy="8" r="1.25" />
 	</svg>
 );
+
+const QUESTION = (
+	<svg
+		aria-hidden="true"
+		viewBox="0 0 24 24"
+		className="size-5"
+		fill="none"
+		stroke="currentColor"
+		strokeWidth="1.5"
+		strokeLinecap="round"
+		strokeLinejoin="round"
+	>
+		<circle cx="12" cy="12" r="9" />
+		<path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1.2-1.5 2.3M12 17v.5" />
+	</svg>
+);
+
+/** The text of a page without its first heading: the card shows that title already. */
+const withoutTitle = (text: string) => text.replace(/^\s*# [^\n]*\n+/, "");
 
 /** The header of the card of an open file: the name, then the controls, then the "More" menu. */
 export function CardHeader({
@@ -67,6 +86,7 @@ export function PageCard({
 	title,
 	more,
 	contents,
+	footer,
 }: {
 	path: string;
 	title: string;
@@ -74,6 +94,8 @@ export function PageCard({
 	more?: MenuButtonItem[];
 	/** The read view has a table of contents. */
 	contents?: boolean;
+	/** A row under the page, behind a divider. */
+	footer?: React.ReactNode;
 }) {
 	const { t } = useI18n();
 	const e = t.knowledge.editor;
@@ -97,9 +119,10 @@ export function PageCard({
 		return () => clearTimeout(id);
 	}, [canSave, file.error, save]);
 	useDraftCount(file.dirty || file.conflict);
+	const body = withoutTitle(file.text);
 	const toc =
 		contents && !sides.editor
-			? blocks(file.text).flatMap((b, i) =>
+			? blocks(body).flatMap((b, i) =>
 					b.type === "h" && b.level > 1 ? [{ i, level: b.level, text: b.text }] : [],
 				)
 			: [];
@@ -191,7 +214,7 @@ export function PageCard({
 				<div className="flex flex-col gap-6 @4xl:flex-row">
 					<div className="min-w-0 max-w-[70ch] flex-1">
 						<MarkdownView
-							source={file.text}
+							source={body}
 							label={title}
 							anchor={anchor}
 							reading
@@ -230,6 +253,11 @@ export function PageCard({
 					{file.error}
 				</p>
 			) : null}
+			{footer ? (
+				<div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-n-5 pt-4">
+					{footer}
+				</div>
+			) : null}
 		</section>
 	);
 }
@@ -245,7 +273,7 @@ function HandbookSide({ path }: { path?: string }) {
 		<>
 			<Card className="py-2">
 				<Row render={(p) => <Link to="/library/manual" {...p} />}>
-					<BookOpenIcon size={20} />
+					{QUESTION}
 					<span className="min-w-0 font-semibold">{k.manual}</span>
 					<Badge className="ml-auto">F1</Badge>
 				</Row>
@@ -268,6 +296,25 @@ function HandbookSide({ path }: { path?: string }) {
 	);
 }
 
+/** A page of the handbook with the row that asks an agent to update it. */
+function HandbookCard({ path, title }: { path: string; title: string }) {
+	const { t } = useI18n();
+	const { ask } = useShell();
+	const k = t.knowledge.handbook;
+	return (
+		<PageCard
+			path={path}
+			title={title}
+			contents
+			footer={
+				<Button className="min-h-control" onClick={() => ask(format(k.askUpdate, { path }))}>
+					{k.askUpdateLabel}
+				</Button>
+			}
+		/>
+	);
+}
+
 /** Library / Handbook: the Markdown pages of the repository as a page tree (REQ-010). */
 export function Handbook() {
 	const { t } = useI18n();
@@ -286,7 +333,7 @@ export function Handbook() {
 			tree
 			side={(open) => <HandbookSide path={open?.path} />}
 		>
-			{(row) => <PageCard path={row.path} title={row.title} contents />}
+			{(row) => <HandbookCard path={row.path} title={row.title} />}
 		</ListTab>
 	);
 }

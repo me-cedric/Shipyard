@@ -16,6 +16,7 @@ import { RightButton } from "@/lib/rights";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { ChevronRightIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { ContextMenu } from "@/ui/molecules/context-menu";
@@ -137,7 +138,7 @@ function EndpointCard({ op }: { op: ApiOp }) {
 					<Badge variant={tone(op.method)}>{op.method}</Badge>
 					<span className="font-mono text-17 font-semibold break-all">{op.path}</span>
 				</div>
-				{op.summary ? <h2 className="text-20 font-semibold">{op.summary}</h2> : null}
+				{op.summary ? <h2 className="text-30 font-semibold">{op.summary}</h2> : null}
 				{op.parameters.length ? (
 					<section aria-label={l.parameters} className={block}>
 						<h3 className="text-13 text-n-11">{l.parameters}</h3>
@@ -356,10 +357,16 @@ export function Api() {
 														/>
 													)}
 												>
-													<span className="min-w-0 font-semibold">{x.title}</span>
-													<span className="ml-auto flex gap-1.5">
+													<span className="min-w-0 break-all font-mono font-semibold">
+														{fileName(x.path)}
+														<span className="sr-only">
+															{x.title}
+															{x.version ? `, ${x.version}` : ""}
+														</span>
+													</span>
+													<span className="ml-auto flex items-center gap-1.5">
 														{x.issue ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
-														{x.version ? <Badge>{x.version}</Badge> : null}
+														<ChevronRightIcon size={16} />
 													</span>
 												</Row>
 											</ContextMenu>

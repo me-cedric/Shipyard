@@ -28,12 +28,14 @@ function Tables({ frame, shown, files }: ReaderView) {
 	const p = t.design.page;
 	const model = useRender(frame.file.text, load, frame.onError);
 	const [query, setQuery] = useState("");
-	const [picked, setPicked] = useState<string | null>(null);
+	const [pick, setPicked] = useState<string | null | undefined>(undefined);
 	const tables = model?.tables ?? [];
+	// The first table is open until the person picks another, or closes it.
+	const picked = pick === undefined ? (tables[0]?.name ?? null) : pick;
 	const q = query.trim().toLowerCase();
 	return (
 		<>
-			<ListColumn>
+			<ListColumn className="flex-[1_1_220px]">
 				<Input
 					label={p.findTable}
 					placeholder={p.findTable}
@@ -62,9 +64,9 @@ function Tables({ frame, shown, files }: ReaderView) {
 				{files}
 			</ListColumn>
 			{shown ? (
-				<Canvas>
+				<Canvas className="flex-[3_1_520px]">
 					<ZoomFrame label={t.design.data.view} className="h-full min-h-[520px] flex-1">
-						<div className="grid w-[840px] grid-cols-3 items-start gap-7 p-6">
+						<div className="grid h-[520px] w-[840px] grid-cols-3 content-start items-start gap-7 p-6">
 							{tables.map((x) => (
 								<section
 									key={x.name}
@@ -83,17 +85,12 @@ function Tables({ frame, shown, files }: ReaderView) {
 											return (
 												<li
 													key={f.name}
-													className="flex min-h-10 items-center gap-2 px-4 [&+&]:border-t [&+&]:border-n-6"
+													title={f.notNull ? `${f.type}, ${t.design.data.notNull}` : f.type}
+													className="flex min-h-11 items-center gap-2 px-4 [&+&]:border-t [&+&]:border-n-6"
 												>
 													{f.pk ? <Badge variant="accent">{p.key}</Badge> : null}
 													{ref ? <Badge title={`${ref.from} → ${ref.to}`}>{p.link}</Badge> : null}
 													<span className="font-mono">{f.name}</span>
-													<span
-														className="ml-auto text-13 text-n-11"
-														title={f.notNull ? t.design.data.notNull : undefined}
-													>
-														{f.type}
-													</span>
 												</li>
 											);
 										})}

@@ -117,7 +117,7 @@ export const slug = (stem: string) =>
 // ---------------------------------------------------------------- seed
 
 const ADR = (status: string, date: string, title: string, comment?: string) =>
-	`---\nstatus: ${status}\ndate: ${date}\ndecision-makers: [ada]\n${comment ? `comment: ${JSON.stringify(comment)}\n` : ""}---\n# ${title}\n## Context and problem statement\n\n${title}.\n\n## Decision outcome\n\nSee the design doc.\n`;
+	`---\nstatus: ${status}\ndate: ${date}\ndecision-makers: [ada]\n${comment ? `comment: ${JSON.stringify(comment)}\n` : ""}---\n# ${title}\n## Context and problem statement\n\n${title}.\n\n## Decision outcome\n\nSee the design doc.\n\n## Consequences\n\nThe team keeps one source of truth.\n`;
 
 const CONTRACT = `openapi: 3.0.3
 info:
@@ -136,6 +136,10 @@ paths:
     get:
       tags: [orders]
       summary: List the orders
+      parameters:
+        - name: format
+          in: query
+          schema: { type: string }
       responses:
         "200":
           description: The orders
@@ -302,13 +306,26 @@ model {
 views {
   view index { include * }
 }
+//
 `;
 
 const DESIGN_DOC = `# Design
 
-The context is in diagram:context and the model:system model. The sync follows adr:0004.
+The context is in diagram:context and the model:system model. The sync follows adr:0004. The mock follows adr:0003.
 The contract is api:orders and the store is data:shop. The network rules are in flow:network.
 The first screen is screen:home.
+
+## Tokens
+
+\`\`\`css
+:root {
+  --color-primary: #2450d8;
+  --color-ink: #151821;
+  --color-line: #e3e6ec;
+  --text-title: 28px;
+  --text-body: 17px;
+}
+\`\`\`
 `;
 
 const SCREEN_FILE = JSON.stringify({

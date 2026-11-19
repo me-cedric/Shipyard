@@ -16,7 +16,7 @@ import { folderClusters } from "./graph-clusters";
 
 /** The chips of a group before "N more". */
 const FIRST = 5;
-const GROUP = "flex flex-col gap-3.5 rounded-3xl bg-n-4 p-5";
+const GROUP = "flex flex-col gap-3.5 rounded-[24px] bg-n-4 p-5";
 const WHITE = "bg-surface-2";
 const LINKED = "outline-2 outline-accent";
 
@@ -65,7 +65,7 @@ export function KnowledgeMap({
 				</fieldset>
 			) : null}
 			<PageColumns>
-				<DetailColumn className="grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))]">
+				<DetailColumn className="grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-4">
 					{[...groups].map(([kind, members]) => {
 						const name = kindNames[kind] ?? kind;
 						const all = open.includes(kind) || members.length <= FIRST + 1;
@@ -107,7 +107,7 @@ export function KnowledgeMap({
 					})}
 				</DetailColumn>
 				{chosen ? (
-					<SideCards>
+					<SideCards className="flex-[2_1_300px]">
 						<Card pad className="flex flex-col gap-3.5">
 							<section aria-label={k.graph.chosen} className="flex flex-col gap-3.5">
 								<Badge variant="accent" className="self-start">
@@ -166,7 +166,6 @@ export function CodeMap({
 }) {
 	const k = useI18n().t.knowledge;
 	const { openRef, explain } = useShell();
-	const focus = useCodeFocus(file).data;
 	const [folder, setFolder] = useState<string | null>(null);
 	const [symbol, setSymbol] = useState<string | null>(null);
 	const folders = folderClusters(graph.nodes);
@@ -174,17 +173,22 @@ export function CodeMap({
 		folders.find((f) => f.key === folder) ??
 		folders.find((f) => f.members.some((m) => m.ref === file)) ??
 		folders[0];
+	// The first file of the open folder shows when none is chosen: the detail column is never empty.
+	const current = file ?? at?.members[0]?.ref ?? null;
+	const focus = useCodeFocus(current).data;
 	const symbols = (focus?.nodes ?? []).filter((n) => n.kind === "symbol");
-	const chosen = symbols.find((n) => n.ref === symbol);
+	const chosen =
+		symbols.find((n) => n.ref === symbol) ??
+		(symbol ? undefined : symbols.find((n) => n.location === current));
 	const pick = (id: string) => {
 		const home = symbols.find((n) => n.ref === id)?.location;
-		if (home && home !== file) onFile(home);
+		if (home && home !== current) onFile(home);
 		setSymbol(id);
 	};
 	/** The symbols on the other end of the calls of the chosen symbol. */
 	const ends = (from: "source" | "target", to: "source" | "target") =>
 		(focus?.edges ?? [])
-			.filter((e) => e[from] === symbol)
+			.filter((e) => e[from] === chosen?.ref)
 			.flatMap((e) => symbols.find((n) => n.ref === e[to]) ?? []);
 	const calls = (title: string, list: typeof symbols) =>
 		list.length ? (
@@ -202,7 +206,7 @@ export function CodeMap({
 				))}
 			</LinkedCard>
 		) : null;
-	const target = chosen ?? graph.nodes.find((n) => n.ref === file);
+	const target = chosen ?? graph.nodes.find((n) => n.ref === current);
 	return (
 		<PageColumns>
 			<DetailColumn>
@@ -211,7 +215,7 @@ export function CodeMap({
 						<h2 className="text-17 font-semibold text-n-12">{at.key}</h2>
 						<div className="flex flex-wrap items-start gap-3">
 							{at.members.map((m) =>
-								m.ref === file ? (
+								m.ref === current ? (
 									<Card key={m.ref} className="flex flex-[1_1_240px] flex-col gap-2.5 p-4">
 										<span className="break-all font-mono text-14 font-semibold">{m.ref}</span>
 										<fieldset
@@ -219,11 +223,11 @@ export function CodeMap({
 											className="m-0 flex flex-wrap gap-2 border-0 p-0"
 										>
 											{symbols
-												.filter((n) => n.location === file)
+												.filter((n) => n.location === current)
 												.map((n) => (
 													<Chip
 														key={n.ref}
-														selected={n.ref === symbol}
+														selected={n.ref === chosen?.ref}
 														className="font-mono text-14"
 														onClick={() => setSymbol(n.ref)}
 													>
@@ -258,7 +262,11 @@ export function CodeMap({
 								type="button"
 								aria-label={`${k.graph.folder} ${f.key}`}
 								className="flex min-h-control cursor-pointer flex-col gap-3 rounded-lg bg-n-4 p-4.5 text-left text-n-12"
-								onClick={() => setFolder(f.key)}
+								onClick={() => {
+									setFolder(f.key);
+									setSymbol(null);
+									onFile(null);
+								}}
 							>
 								<span className="break-all text-17 font-semibold">{f.key}</span>
 								<span className="text-n-10">
@@ -269,7 +277,7 @@ export function CodeMap({
 				</div>
 			</DetailColumn>
 			{target ? (
-				<SideCards>
+				<SideCards className="flex-[2_1_300px]">
 					<Card pad>
 						<section aria-label={k.graph.chosen} className="flex flex-col gap-3.5">
 							<Badge variant="accent" className="self-start">

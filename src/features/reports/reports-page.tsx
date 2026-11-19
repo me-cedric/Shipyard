@@ -138,7 +138,7 @@ export function Reports() {
 			}
 		>
 			<div className="flex flex-wrap items-center gap-2 empty:hidden">{status}</div>
-			<ul className="grid grid-cols-[repeat(auto-fill,minmax(min(200px,100%),1fr))] gap-3.5">
+			<ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(200px,100%),1fr))] gap-3.5">
 				{reports
 					.filter((x) => !x.forYou && (shown === "all" || x.format === shown))
 					.map(({ item, name, page }) => (

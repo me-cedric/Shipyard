@@ -17,14 +17,23 @@ export const ATTENTION_FILL = "bg-attention-strong";
  */
 export function AttentionCard({
 	who,
+	head,
 	title,
+	titleClass = "text-20 font-semibold",
+	className = "",
 	icon,
 	action,
 	children,
 }: {
 	/** The tag of the card. The row layout has none. */
 	who?: string;
-	title: string;
+	/** A header row in place of the `who` tag, for a card that names a person or has controls. */
+	head?: ReactNode;
+	/** Left out when `head` holds the title. */
+	title?: string;
+	titleClass?: string;
+	/** Layout classes of the card, such as `h-full` in a grid of equal cards. */
+	className?: string;
 	/** The row layout: the picture at the start. */
 	icon?: ReactNode;
 	/** The row layout: the one action at the end. */
@@ -35,28 +44,31 @@ export function AttentionCard({
 	const row = icon !== undefined || action !== undefined;
 	return (
 		<article
-			className={
+			className={cn(
 				row
 					? "flex min-w-0 flex-wrap items-center gap-4 rounded-lg bg-surface-2 px-6 py-4 shadow-2 outline-2 outline-attention"
-					: "flex min-w-0 flex-col gap-3 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2 outline-2 outline-attention"
-			}
+					: "flex min-w-0 flex-col gap-3 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2 outline-2 outline-attention",
+				className,
+			)}
 		>
-			{!row && who ? (
-				<Badge variant="you" className="self-start">
-					{who}
-				</Badge>
-			) : null}
+			{row
+				? null
+				: (head ??
+					(who ? (
+						<Badge variant="you" className="self-start">
+							{who}
+						</Badge>
+					) : null))}
 			{icon}
 			{/* tabIndex -1: the focus lands here when the card changes. */}
-			<h3
-				tabIndex={-1}
-				className={cn(
-					"text-20 font-semibold text-n-12 outline-none",
-					row && "min-w-0 flex-[1_1_180px]",
-				)}
-			>
-				{title}
-			</h3>
+			{title ? (
+				<h3
+					tabIndex={-1}
+					className={cn(titleClass, "text-n-12 outline-none", row && "min-w-0 flex-[1_1_180px]")}
+				>
+					{title}
+				</h3>
+			) : null}
 			{action}
 			{children}
 		</article>

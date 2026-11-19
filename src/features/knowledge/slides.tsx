@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { convertFileSrc, isTauri } from "@tauri-apps/api/core";
 import { type KeyboardEvent, lazy, Suspense, useEffect, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
@@ -7,7 +8,7 @@ import { saveAs } from "@/lib/ipc/dialog";
 import { DOC_DIR, slug, useDeckList, useSlideTheme } from "@/lib/knowledge";
 import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/atoms/button";
+import { Button, buttonVariants } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import {
 	ChevronLeftIcon,
@@ -433,6 +434,11 @@ export function Slides() {
 				)
 			}
 			pills={(row) => <DeckCount path={row.path} />}
+			extra={
+				<Link to="/library/documents" className={buttonVariants()}>
+					{k.fromDocument}
+				</Link>
+			}
 		>
 			{(row) =>
 				isHtml(row.path) ? (

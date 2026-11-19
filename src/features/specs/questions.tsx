@@ -63,6 +63,7 @@ function OpenCard({
 	const act = useSpecsActions();
 	const { failure, run } = useGuard();
 	const [answer, setAnswer] = useState("");
+	const [empty, setEmpty] = useState(false);
 	const q = entry.question;
 	const kinds = p.kindOne as Record<string, string>;
 	// The answer is the last line of the text, as the form of the question writes it.
@@ -77,26 +78,40 @@ function OpenCard({
 			);
 			if (w.conflict) throw new Error(s.conflict);
 		});
+	const first = (who || t.review.question.noOwner).split(" ")[0] ?? "";
 	return (
-		<AttentionCard who={who || t.review.question.noOwner} title={q.title}>
-			<div className="flex flex-wrap items-center gap-2">
-				<Badge>{kinds[q.kind] ?? q.kind}</Badge>
-				{entry.issues.length ? (
-					<StatusDot status="warning" label={entry.issues.join(", ")} />
-				) : null}
-				<Button
-					className="ml-auto"
+		<AttentionCard
+			className="h-full"
+			head={
+				<div className="flex items-center gap-2">
+					<Avatar name={who || t.review.question.noOwner} size="s" />
+					<span className="min-w-0 truncate font-semibold">{first}</span>
+					{entry.issues.length ? (
+						<StatusDot status="warning" label={entry.issues.join(", ")} />
+					) : null}
+					<Badge className="ml-auto">{kinds[q.kind] ?? q.kind}</Badge>
+				</div>
+			}
+		>
+			{/* The title opens the form of the item: the card has no Edit button. */}
+			<h3 className="text-20 font-semibold text-n-12">
+				<button
+					type="button"
 					aria-label={format(p.editItem, { name: q.title })}
 					onClick={onEdit}
+					className="cursor-pointer text-left hover:underline"
 				>
-					{t.knowledge.handbook.edit}
-				</Button>
-			</div>
+					{q.title}
+				</button>
+			</h3>
 			<form
-				className="flex flex-wrap items-center gap-2.5"
+				className="mt-auto flex flex-wrap items-center gap-2.5"
 				onSubmit={(e) => {
 					e.preventDefault();
-					if (answer.trim()) void save();
+					if (answer.trim()) {
+						setEmpty(false);
+						void save();
+					} else setEmpty(true);
 				}}
 			>
 				<div className="min-w-0 flex-[1_1_200px]">
@@ -111,12 +126,16 @@ function OpenCard({
 					right="specs.edit"
 					type="submit"
 					variant="primary"
-					disabled={answer.trim() === ""}
 					aria-label={format(p.answerTo, { name: q.title })}
 				>
 					{s.answer}
 				</RightButton>
 			</form>
+			{empty ? (
+				<p role="alert" className="text-ui text-danger-text">
+					{p.answerRequired}
+				</p>
+			) : null}
 			<ErrorNotice error={failure} />
 		</AttentionCard>
 	);
@@ -162,6 +181,7 @@ function Register() {
 	const create = () => setEdit("new");
 	return (
 		<LibraryPage
+			className="pt-3"
 			title={
 				waiting === 0
 					? t.tabs.specs.questions
@@ -181,7 +201,12 @@ function Register() {
 		>
 			<fieldset aria-label={s.kind} className="flex flex-wrap gap-2">
 				{[ALL, ...CHIPS, ...KINDS.filter((k) => !CHIPS.includes(k)), MINE].map((k) => (
-					<Chip key={k} selected={chip === k} onClick={() => setChip(k)}>
+					<Chip
+						key={k}
+						selected={chip === k}
+						onClick={() => setChip(k)}
+						className={chip === k ? undefined : "bg-surface-2"}
+					>
 						{k === ALL ? t.specs.filter.all : k === MINE ? p.mine : (kinds[k] ?? k)}
 					</Chip>
 				))}
@@ -223,10 +248,10 @@ function Register() {
 			{open.length ? (
 				<ul
 					aria-label={t.tabs.specs.questions}
-					className="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] items-start gap-6"
+					className="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] items-stretch gap-6"
 				>
 					{open.map((e) => (
-						<li key={e.path} className="flex min-w-0 flex-col">
+						<li key={e.path} className="flex min-w-0 flex-col [&>article]:flex-1">
 							<OpenCard
 								entry={e}
 								who={memberName(members, e.question.owner)}

@@ -112,7 +112,10 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 			"/library/reports",
 		);
 		const write = screen.getByRole("button", { name: "Write the report" });
-		expect(write).toBeDisabled();
+		expect(write).toBeEnabled();
+		await user.click(write);
+		expect(await screen.findByRole("alert")).toHaveTextContent("Fill in each field");
+		expect(mockState().reports.changeRequests).toEqual([]);
 		await user.type(screen.getByRole("textbox", { name: "Title" }), "Add billing");
 		expect(screen.getByRole("textbox", { name: "From version" })).toHaveValue("main");
 		expect(screen.getByRole("textbox", { name: "To version" })).toHaveValue("HEAD");

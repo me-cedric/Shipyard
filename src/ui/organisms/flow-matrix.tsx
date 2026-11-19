@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { Menu } from "@base-ui/react/menu";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "../atoms/badge";
 import { Button } from "../atoms/button";
@@ -7,7 +8,7 @@ import { IconButton } from "../atoms/icon-button";
 import { Input } from "../atoms/input";
 import { Select } from "../atoms/select";
 import { CheckIcon, XMarkIcon } from "../icons";
-import { MenuButton } from "../molecules/menu-button";
+import { MenuList } from "../molecules/menu-button";
 import {
 	ALL,
 	distinct,
@@ -25,8 +26,8 @@ const NO_BRICK = "-";
 export type FlowError = { id: string; field: FlowField; message: string };
 
 /** Allow and deny as tinted chips. Another action stays neutral. */
-const TINT: Record<string, "success" | "danger"> = { allow: "success", deny: "danger" };
-const CELL = "px-3 py-2 align-middle";
+const TINT: Record<string, "success" | "you"> = { allow: "success", deny: "you" };
+const CELL = "px-3 py-1.5 align-middle";
 
 /** The columns in order. The extra ones show when `labels` names them. */
 const ORDER: FlowField[] = [
@@ -68,8 +69,14 @@ export function FlowMatrix({
 	labels,
 	bricks,
 	startAdd,
+	addSignal,
 	chipLabels,
 }: {
+	/**
+	 * The page owns the "Add" control (its menu): each new number opens the editor of a new row, and
+	 * the matrix draws no add button.
+	 */
+	addSignal?: number;
 	/** The names of the filter chips by action value, when they differ from the names in a row. */
 	chipLabels?: Record<string, string>;
 	/** The editor of a new row is open at the start. */
@@ -133,6 +140,12 @@ export function FlowMatrix({
 		setDraft(from);
 		setEditing(id);
 	};
+	useEffect(() => {
+		if (addSignal) {
+			setDraft(EMPTY);
+			setEditing("");
+		}
+	}, [addSignal]);
 	const save = () => {
 		const keep = editing === "" ? onAdd(draft) : onEdit(editing ?? "", draft);
 		if (keep !== false) setEditing(null);
@@ -189,7 +202,7 @@ export function FlowMatrix({
 	const end = (name: string | undefined, address: string) => (
 		<td className={CELL}>
 			{name ? <span className="block font-semibold">{name}</span> : null}
-			<span className={cn("block font-mono", name ? "text-13 text-n-11" : "font-semibold")}>
+			<span className={cn("block", name ? "font-mono text-13 text-n-11" : "font-semibold")}>
 				{address}
 			</span>
 		</td>
@@ -240,9 +253,11 @@ export function FlowMatrix({
 					value={filter.protocol}
 					onValueChange={(protocol) => setFilter({ ...filter, protocol })}
 				/>
-				<Button variant="primary" className="ml-auto" onClick={() => start("", EMPTY)}>
-					{labels.add}
-				</Button>
+				{addSignal === undefined ? (
+					<Button variant="primary" className="ml-auto" onClick={() => start("", EMPTY)}>
+						{labels.add}
+					</Button>
+				) : null}
 			</search>
 			<div className="overflow-x-auto rounded-lg bg-surface-2 px-6 py-2 shadow-2">
 				<table className="w-full min-w-[760px] border-collapse text-left">
@@ -262,7 +277,7 @@ export function FlowMatrix({
 							editing === r.id ? (
 								editor(r.id)
 							) : (
-								<tr key={r.id} className="border-t border-n-6">
+								<tr key={r.id}>
 									{end(r.sourceName, r.source)}
 									{end(r.destinationName, r.destination)}
 									<td className={CELL}>
@@ -278,13 +293,19 @@ export function FlowMatrix({
 									</td>
 									{cols === 8 ? <td className={CELL}>{r.name}</td> : null}
 									<td className="py-1 text-right">
-										<MenuButton
-											iconOnly
-											label={(labels.rowMenu ?? "{name}").replace(
-												"{name}",
-												`${r.sourceName || r.source} ${r.destinationName || r.destination}`,
-											)}
-											icon={
+										<Menu.Root>
+											<Menu.Trigger
+												render={
+													<Button
+														variant="ghost"
+														className="-my-2 px-0"
+														aria-label={(labels.rowMenu ?? "{name}").replace(
+															"{name}",
+															`${r.sourceName || r.source} ${r.destinationName || r.destination}`,
+														)}
+													/>
+												}
+											>
 												<svg
 													aria-hidden="true"
 													viewBox="0 0 16 16"
@@ -295,17 +316,19 @@ export function FlowMatrix({
 													<circle cx="8" cy="8" r="1.25" />
 													<circle cx="13" cy="8" r="1.25" />
 												</svg>
-											}
-											items={[
-												{ id: "edit", label: labels.edit, onSelect: () => start(r.id, r) },
-												{
-													id: "remove",
-													label: labels.remove,
-													danger: true,
-													onSelect: () => onRemove(r.id),
-												},
-											]}
-										/>
+											</Menu.Trigger>
+											<MenuList
+												items={[
+													{ id: "edit", label: labels.edit, onSelect: () => start(r.id, r) },
+													{
+														id: "remove",
+														label: labels.remove,
+														danger: true,
+														onSelect: () => onRemove(r.id),
+													},
+												]}
+											/>
+										</Menu.Root>
 									</td>
 								</tr>
 							),

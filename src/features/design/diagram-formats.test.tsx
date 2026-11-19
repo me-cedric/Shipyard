@@ -33,7 +33,7 @@ describe("Design / Diagrams formats", () => {
 		await user.click(
 			await within(await screen.findByRole("main")).findByRole("button", { name: "Open" }),
 		);
-		await user.click(await screen.findByRole("button", { name: "Convert to" }));
+		await user.click(await screen.findByRole("button", { name: /Change the format/ }));
 		await user.click(await screen.findByRole("menuitem", { name: "Mermaid" }));
 		await waitFor(() => expect(files()["docs/diagrams/flow.mmd"]?.text).toContain("flowchart LR"));
 		expect(files()["docs/diagrams/flow.bpmn"]).toBeDefined();

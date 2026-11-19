@@ -63,7 +63,7 @@ export function Learn() {
 		openRef(ref);
 	};
 	return (
-		<LibraryPage title={k.title}>
+		<LibraryPage title={k.heading}>
 			{learn && path.length === 0 && glossary.length === 0 ? (
 				<EmptyState
 					title={t.empty.feeds}
@@ -75,7 +75,7 @@ export function Learn() {
 				/>
 			) : (
 				<PageColumns>
-					<DetailColumn>
+					<DetailColumn className="flex-[3_1_480px]">
 						<Card pad className="flex flex-col gap-4">
 							<div className="flex flex-wrap items-center gap-3.5">
 								<span className="text-17 font-semibold text-n-12">
@@ -93,13 +93,16 @@ export function Learn() {
 									const ok = done.includes(s.ref);
 									const now = s.ref === current;
 									return (
-										<li key={s.ref} className="flex min-h-14 flex-wrap items-center gap-3.5">
+										<li
+											key={s.ref}
+											className="relative flex min-h-14 flex-wrap items-center gap-3.5 after:absolute after:top-11 after:left-[15px] after:h-6 after:w-0.5 after:bg-n-6 last:after:hidden"
+										>
 											<span
 												aria-hidden="true"
 												className={cn(
 													"flex size-8 shrink-0 items-center justify-center rounded-full border-2 font-semibold text-14",
 													now
-														? "border-accent bg-accent text-accent-fg"
+														? "border-accent bg-accent text-accent-fg ring-4 ring-accent-tint"
 														: ok
 															? "border-transparent bg-success-soft text-success-text"
 															: "border-n-7 bg-surface-1 text-n-12",
@@ -112,7 +115,7 @@ export function Learn() {
 												type="button"
 												onClick={() => open(s.ref)}
 												className={cn(
-													"min-h-control min-w-0 flex-1 text-left text-17 hover:underline",
+													"min-h-control min-w-0 flex-1 text-left text-17",
 													now ? "font-semibold" : "font-medium",
 												)}
 											>
@@ -133,9 +136,9 @@ export function Learn() {
 								})}
 							</ol>
 						</Card>
-						<LearnPaths />
+						<LearnPaths part="paths" />
 					</DetailColumn>
-					<SideCards>
+					<SideCards className="flex-[2_1_320px]">
 						<LearnCard title={k.glossary}>
 							<ul aria-label={k.glossary} className="flex flex-col gap-3.5">
 								{glossary.map((g) => (
@@ -153,6 +156,7 @@ export function Learn() {
 								))}
 							</ul>
 						</LearnCard>
+						<LearnPaths part="team" />
 						<LearnFeeds />
 					</SideCards>
 				</PageColumns>

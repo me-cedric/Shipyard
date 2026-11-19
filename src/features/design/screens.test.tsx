@@ -151,6 +151,8 @@ describe("Design / Screens", () => {
 
 	it("says no tokens yet, and adds a starter block to the doc text for the person to save", async () => {
 		const user = userEvent.setup();
+		// The demo doc has tokens: this project has none.
+		files()[DOC] = { text: "# Design\n", stamp: "1" };
 		await mountDesign(<Screens />);
 		await openTokens(user);
 		const region = within(await screen.findByRole("region", { name: "Tokens" }));
