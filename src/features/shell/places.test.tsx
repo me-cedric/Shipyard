@@ -222,7 +222,8 @@ describe("old addresses (app-redesign REQ-002, adr:0023 point 9)", () => {
 
 	// Wave 6: each address that moved opens its new page, with search and hash (`spec:app-redesign#REQ-022`, `#REQ-024`).
 	it.each([
-		["/code/changes", "/code/now"],
+		// The files to commit are a page of Code with its own address (look pass 2).
+		["/code/changes", "/code/changes"],
 		["/code/pull-requests?q=fix&filter=needs#top", "/code/now?q=fix&filter=needs#top"],
 		["/today/projects", "/projects"],
 		["/home/projects#p", "/projects#p"],

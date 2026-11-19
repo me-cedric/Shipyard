@@ -36,16 +36,14 @@ describe("Code: origin and publish", () => {
 			"acme/app",
 		);
 		await user.click(screen.getByRole("button", { name: "Publish to the code host" }));
-		expect(await screen.findByText("https://github.com/acme/app.git")).toBeInTheDocument();
+		expect(await screen.findByDisplayValue("https://github.com/acme/app.git")).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "Open acme/app" })).toBeInTheDocument();
 		expect(mockState().deliveryActions.origin?.connection).toBe("github");
 		// A project with an origin changes it. An address with a password is refused.
-		await user.click(screen.getByRole("button", { name: "Change remote" }));
-		await user.type(
-			screen.getByRole("textbox", { name: "Remote address" }),
-			"https://me:tok@github.com/acme/other.git",
-		);
-		await user.click(screen.getByRole("button", { name: "Save remote" }));
+		const address = screen.getByRole("textbox", { name: "Code host address" });
+		await user.clear(address);
+		await user.type(address, "https://me:tok@github.com/acme/other.git");
+		await user.click(screen.getByRole("button", { name: "Save" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("Use an https address");
 		expect(mockState().deliveryActions.origin?.url).toBe("https://github.com/acme/app.git");
 	}, 20_000);

@@ -8,7 +8,7 @@ Démarrage est le démarrage guidé : chaque étape de la liste Pour commencer, 
 
 ## Ce projet
 
-Ce projet contient ce que le projet stocke et partage avec l'équipe. Quatre portes ouvrent ses pages : Connexions, Tickets, Extensions et Santé de ce projet.
+Ce projet contient ce que le projet stocke et partage avec l'équipe. Quatre pastilles ouvrent ses pages : Détails, Ce que les agents font seuls, Automatisation et Extensions. Connexions, Tickets et Santé de ce projet s'ouvrent depuis Détails.
 
 Le formulaire du projet contient le nom et le logo (le logo s'affiche à côté du nom du projet, en haut de la barre latérale), les dossiers du projet, la recette par défaut, l'automatisation et l'import du projet. Les réglages rarement changés sont sous Avancé. La même page restaure les changements mis de côté (stashes), montre ce qu'ils contiennent, et met à jour une branche en retard sur le serveur.
 
@@ -53,7 +53,7 @@ Tout corriger avec un agent crée une fonctionnalité dans Flux avec les constat
 
 ## Cet ordinateur
 
-Cet ordinateur contient ce que cette machine stocke : les outils d'IA, les fournisseurs de modèles, les serveurs MCP, les certificats et les autorisations du système avec Revoir la visite (voir Démarrer, Autorisations). Quatre portes ouvrent ses pages : Agents et règles, Agents extérieurs, Santé de cet ordinateur et Journaux et retours.
+Cet ordinateur contient ce que cette machine stocke : les outils d'IA, les fournisseurs de modèles, les serveurs MCP, les certificats et les autorisations du système avec Revoir la visite (voir Démarrer, Autorisations). Trois pastilles ouvrent ses pages : Outils d'IA et connexions, Modèles et règles et Santé. Partager Shipyard avec d'autres outils et Journaux et retours s'ouvrent depuis des lignes.
 
 - Serveurs MCP : les outils que les agents peuvent appeler. Ils sont groupés par catégorie. Cliquez sur Ajouter l'ensemble recommandé pour activer les serveurs qui conviennent au projet. Cliquez sur Tester sur un serveur, ou sur Tout tester, pour voir si chacun marche et combien d'outils il donne. Chaque serveur a une Liste permise : Tous les outils, Lecture seule (les outils que le serveur marque en lecture seule, sinon aucun) ou Personnalisée, où vous cochez les outils. Un outil hors de la liste est masqué aux agents et refusé à l'appel.
 - Serveur MCP personnalisé : choisissez Personnalisé dans Ajouter, ou collez le JSON (`mcpServers`) d'un serveur dans Coller du JSON. Une valeur secrète va dans le trousseau, pas dans un fichier. Un secret dans les arguments est refusé : déplacez-le dans les variables.

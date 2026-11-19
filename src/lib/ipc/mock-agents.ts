@@ -263,3 +263,26 @@ export async function mcpStart(m: MockAgents, id: string): Promise<null> {
 }
 
 export const mcpState = (m: MockAgents, id: string): McpState => mcpServer(m, id).state;
+
+/**
+ * The demo build: a local model provider that passed its test, and two MCP servers that are on, one
+ * running and one stopped, so that the cards of This computer show their rows. The demo project
+ * calls it once (`seedDemo`).
+ */
+export function seedAgentsDemo(m: MockAgents) {
+	if (m.providers.length === 0)
+		m.providers.push({
+			id: "provider-local-model",
+			name: "Local model",
+			url: "http://127.0.0.1:11434/v1",
+			model: "llama3",
+			secret: false,
+			state: "passed",
+		});
+	for (const id of ["figma", "context7"]) {
+		const s = m.mcp.find((x) => x.id === id);
+		if (s) s.enabled = true;
+	}
+	const running = m.mcp.find((x) => x.id === "context7");
+	if (running) running.state = { state: "running" } as McpState;
+}

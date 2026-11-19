@@ -1,19 +1,18 @@
 import { useState } from "react";
+import { SetupCard } from "@/features/settings/parts";
 import { useI18n } from "@/lib/i18n";
 import { commands, type FeedbackKind, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
-import { Select } from "@/ui/atoms/select";
+import { Segmented } from "@/ui/atoms/segmented";
 import { Textarea } from "@/ui/atoms/textarea";
-import { ChatBubbleIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { Panel } from "@/ui/molecules/panel";
 
 const KINDS: FeedbackKind[] = ["bug", "idea"];
 
 /**
- * Settings / Health: open a prefilled issue of the Shipyard repository in the browser. The app
- * sends nothing: the person submits it there.
+ * Setup / Logs and feedback: open a prefilled issue of the Shipyard repository in the browser, or
+ * a prefilled mail. The app sends nothing: the person submits it there.
  */
 export function HealthFeedback() {
 	const { t } = useI18n();
@@ -31,24 +30,36 @@ export function HealthFeedback() {
 		}
 	};
 	return (
-		<Panel id="doctor-feedback" title={d.title} icon={<ChatBubbleIcon size={14} />}>
-			<div className="flex flex-col gap-2 p-3">
-				<div className="flex gap-2">
-					<Select
+		<SetupCard id="doctor-feedback" title={d.title}>
+			<div className="flex flex-col gap-3 px-6 pt-1.5 pb-4">
+				<span className="inline-flex self-start">
+					<Segmented
 						label={d.kind}
 						value={kind}
+						onValueChange={setKind}
 						items={KINDS.map((v) => ({ value: v, label: d[v] }))}
-						onValueChange={(v) => setKind(v as FeedbackKind)}
 					/>
-					<Input label={d.subject} value={title} onChange={(e) => setTitle(e.target.value)} />
-				</div>
+				</span>
+				<Input
+					label={d.subject}
+					placeholder={d.subject}
+					value={title}
+					onChange={(e) => setTitle(e.target.value)}
+				/>
 				<Textarea
 					label={d.details}
-					rows={3}
+					placeholder={d.details}
+					rows={4}
 					value={details}
 					onChange={(e) => setDetails(e.target.value)}
 				/>
-				<div className="flex gap-2">
+				<div className="flex flex-wrap justify-end gap-2.5">
+					<Button
+						disabled={!title.trim()}
+						onClick={() => void send(() => unwrap(commands.feedbackMail(title, details, true)))}
+					>
+						{t.extras.feedbackMail}
+					</Button>
 					<Button
 						variant="primary"
 						disabled={!title.trim()}
@@ -58,15 +69,9 @@ export function HealthFeedback() {
 					>
 						{d.open}
 					</Button>
-					<Button
-						disabled={!title.trim()}
-						onClick={() => void send(() => unwrap(commands.feedbackMail(title, details, true)))}
-					>
-						{t.extras.feedbackMail}
-					</Button>
 				</div>
 				{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 			</div>
-		</Panel>
+		</SetupCard>
 	);
 }

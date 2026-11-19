@@ -20,12 +20,12 @@ export function McpTestResult({ name, result }: { name: string; result: McpTest 
 	const { t } = useI18n();
 	const m = t.extensions.mcp;
 	return result.ok ? (
-		<p role="status" className="flex items-center gap-1 px-3 pb-2 text-12 text-success-text">
+		<p role="status" className="flex items-center gap-1 px-6 pb-2 text-12 text-success-text">
 			<CheckIcon size={12} />
 			{format(m.passed, { name, count: result.tools.length })}
 		</p>
 	) : (
-		<div role="status" className="flex flex-col gap-1 px-3 pb-2">
+		<div role="status" className="flex flex-col gap-1 px-6 pb-2">
 			<span className="text-12 text-danger-text">{format(m.failed, { name })}</span>
 			<ErrorNotice error={result.error} />
 		</div>

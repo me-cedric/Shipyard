@@ -61,6 +61,8 @@ describe("Exports and the terminal (W11)", () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/code/history");
+		// The export is behind More in the detail of the commit.
+		await user.click(await screen.findByRole("button", { name: "More" }));
 		await user.click(await screen.findByRole("button", { name: "Export" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Work done" }));
 		expect(await screen.findByRole("heading", { level: 1, name: "Work done" })).toBeVisible();

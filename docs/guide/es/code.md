@@ -4,13 +4,12 @@ Código trabaja en el repositorio git del proyecto. No necesitas conocer los com
 
 ## Ahora
 
-Ahora muestra los archivos para el commit, y luego las pull requests.
+Ahora es un resumen corto: los archivos para el commit y las pull requests abiertas, una fila hacia la salud del producto y las acciones Rama de trabajo, Terminal, Archivos y Abrir pull request.
 
-Los archivos que cambiaste se muestran como árbol.
+La tarjeta de los archivos para el commit muestra los tres primeros archivos con las líneas añadidas y quitadas, un enlace a los demás archivos, un mensaje de commit, Escríbelo por mí y Commit. El enlace abre la página de los cambios locales.
 
-1. Selecciona un archivo para ver qué cambió.
-2. Prepara los archivos que quieres conservar. O descarta un cambio.
-3. En el cuadro de commit bajo los archivos, escribe un resumen, añade una descripción si quieres, y haz clic en Commit. Un commit toma solo los archivos preparados. El botón Commit de la tarjeta de la marca de sincronización hace lo mismo desde cualquier página.
+1. Marca los archivos que quieres conservar en una lista plana. Elegir todo y No elegir nada marcan toda la lista. O descarta un cambio.
+2. Escribe el mensaje de commit, añade una descripción si quieres, y haz clic en Commit. Un commit toma solo los archivos marcados. El botón Commit de la tarjeta de la marca de sincronización hace lo mismo desde cualquier página.
 
 - Escríbelo por mí pide al asistente un mensaje a partir de los archivos preparados. No se envía nada hasta que lo envías.
 - Un grupo sin archivos muestra una línea discreta, como «Nada preparado».

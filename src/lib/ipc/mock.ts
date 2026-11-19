@@ -41,6 +41,7 @@ import {
 	providerEdit,
 	providerTest,
 	seedAgents,
+	seedAgentsDemo,
 } from "./mock-agents";
 import * as ai from "./mock-assistant";
 import * as bs from "./mock-bootstrap";
@@ -77,9 +78,11 @@ import {
 	codeUnstage,
 	codeWatchIntervalSet,
 	conflictToFactory,
+	DEMO_REVIEW_FINDING,
 	filesAction,
 	type MockCode,
 	seedCode,
+	seedDemoCode,
 } from "./mock-code";
 import * as cp from "./mock-code-prs";
 import * as cs from "./mock-compass-setup";
@@ -449,12 +452,29 @@ function review(): rv.MockReview {
 
 function code(): MockCode {
 	if (!active()) throw "no active project";
-	state.code ??= seedCode();
+	state.code ??= active()?.path === DEMO_FOLDER ? seedDemoCode() : seedCode();
 	return state.code;
 }
 
 function agentPr(): ap.MockAgentPr {
-	state.agentPr ??= ap.seedAgentPr();
+	if (!state.agentPr) {
+		state.agentPr = ap.seedAgentPr();
+		// The demo shows one waiting review comment on an open pull request.
+		const open =
+			active()?.path === DEMO_FOLDER ? prs().pulls.find((x) => x.number === 144) : undefined;
+		if (open)
+			state.agentPr.reviews[`${open.number}-${open.headSha}`] = {
+				number: open.number,
+				title: open.title,
+				headSha: open.headSha,
+				summary: "One line needs a second look.",
+				verdict: "comment",
+				findings: [{ ...DEMO_REVIEW_FINDING }],
+				dropped: 0,
+				posted: false,
+				auto: false,
+			};
+	}
 	state.agentPr.stopped = fx.killSwitchGet(state.factory);
 	return state.agentPr;
 }
@@ -698,6 +718,7 @@ function seedDemo(p: ProjectEntry_Serialize) {
 	// The Pinned and Opened last cards of Library show only with data.
 	writeView(p.id, "library/pins", ["constitution"]);
 	writeView(p.id, "library/recent", ["capabilities", "architecture"]);
+	seedAgentsDemo(state.agents);
 }
 
 const outcome = (

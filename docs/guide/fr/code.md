@@ -4,13 +4,12 @@ Code travaille sur le dépôt git du projet. Vous n'avez pas besoin de connaîtr
 
 ## Maintenant
 
-Maintenant montre les fichiers à committer, puis les pull requests.
+Maintenant est un court résumé : les fichiers à committer et les pull requests ouvertes, une ligne vers la santé du produit, et les actions Branche de travail, Terminal, Fichiers et Ouvrir une pull request.
 
-Les fichiers que vous avez changés s'affichent en arbre.
+La carte des fichiers à committer montre les trois premiers fichiers avec les lignes ajoutées et retirées, un lien vers les autres fichiers, un seul message de commit, Écrivez-le pour moi et Commit. Le lien ouvre la page des changements locaux.
 
-1. Sélectionnez un fichier pour voir ce qui a changé.
-2. Indexez les fichiers à garder. Ou abandonnez un changement.
-3. Dans la zone de commit sous les fichiers, écrivez un résumé, ajoutez une description si vous le voulez, puis cliquez sur Commit. Un commit prend seulement les fichiers indexés. Le bouton Commit de la carte de la marque de synchronisation fait de même depuis toute page.
+1. Cochez les fichiers à garder dans une liste plate. Tout choisir et Ne rien choisir cochent toute la liste. Ou abandonnez un changement.
+2. Écrivez le message de commit, ajoutez une description si vous le voulez, puis cliquez sur Commit. Un commit prend seulement les fichiers cochés. Le bouton Commit de la carte de la marque de synchronisation fait de même depuis toute page.
 
 - Écris-le pour moi demande à l'assistant un message à partir des fichiers indexés. Rien n'est envoyé avant votre envoi.
 - Un groupe sans fichier montre une ligne discrète, comme « Rien d'indexé ».

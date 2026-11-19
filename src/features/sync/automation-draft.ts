@@ -21,6 +21,18 @@ export const RUN_STATES = [
 	"Cancelled",
 ] as const;
 
+/** The eight steps that a person sees, each with the run states that it stands for. */
+export const STEPS = [
+	["waits", ["Queued", "Claimed", "RetryQueued"]],
+	["plan", ["Planning", "PlanReview"]],
+	["build", ["Working", "SelfReview"]],
+	["review", ["PROpen", "ChangesRequested"]],
+	["person", ["WaitingForAnswer"]],
+	["blocked", ["Blocked"]],
+	["done", ["Merged", "Done"]],
+	["stopped", ["Paused", "Failed", "Cancelled"]],
+] as const;
+
 /** What the fields hold while a person types: text, so a half-typed number stays as it is. */
 export type Draft = {
 	interval: string;

@@ -43,9 +43,7 @@ describe("Settings / Connections / MCP servers: categories, recommended set and 
 	it("filters the servers to add by category", async () => {
 		const user = userEvent.setup();
 		mountApp("/setup/computer");
-		await user.click(await screen.findByRole("button", { name: "Connection" }));
-		await user.click(screen.getByRole("combobox", { name: "Type" }));
-		await user.click(await screen.findByRole("option", { name: "MCP server" }));
+		await user.click(await screen.findByRole("button", { name: "Add a server" }));
 		await user.click(screen.getByRole("combobox", { name: "Category" }));
 		await user.click(await screen.findByRole("option", { name: "Design" }));
 		await user.click(screen.getByRole("combobox", { name: "Server" }));

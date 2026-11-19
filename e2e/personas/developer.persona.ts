@@ -85,10 +85,11 @@ test("developer", async ({ page }) => {
 
 	await w.step(
 		"Stage and commit my changes",
-		"Code, Now, Stage, the sync mark, Commit",
+		"Code, Now, more files, Choose all, the sync mark, Commit",
 		async () => {
 			await w.go("Code", "Now");
-			await w.click(page.getByRole("button", { name: "Stage (4)" }));
+			await w.click(page.getByRole("link", { name: /\d+ more files?/ }));
+			await w.click(page.getByRole("button", { name: "Choose all" }));
 			// Commit of the old status bar is in the card of the sync mark.
 			await w.click(page.getByRole("banner").getByRole("button", { name: /^Sync state/ }));
 			await w.click(

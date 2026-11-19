@@ -88,10 +88,11 @@ function PlaceLayout({ place }: { place: PlaceId }) {
 	// A run has its own address under Flow, with the view Flow selected (ux-declutter REQ-027).
 	const part = path.split("/")[2];
 	// A pull request has its address under Code, with Now selected (`spec:app-redesign#REQ-022`).
+	// The files to commit are a page of Code too (`/code/changes`).
 	const slug =
 		place === "flow" && (part === "runs" || part === "feature")
 			? "flow"
-			: place === "code" && part === "pull-requests"
+			: place === "code" && (part === "pull-requests" || part === "changes")
 				? "now"
 				: part;
 	// New feature makes a ticket or a spec change: it shows with the List.
@@ -357,8 +358,17 @@ function placeRoute<P extends PlaceId>(place: P) {
 							"PullAddress",
 						),
 					}),
-					// Changes and Pull requests are Now (`spec:app-redesign#REQ-022`): the search of the pull requests stays.
-					...(["quality", "impacts", "changes", "pull-requests"] as const).map((tab) =>
+					// The files to commit: a page of Code with a back link (look pass 2).
+					createRoute({
+						getParentRoute: () => route,
+						path: "changes",
+						component: lazyRouteComponent(
+							() => import("@/features/code/local-changes"),
+							"LocalChanges",
+						),
+					}),
+					// Pull requests is Now (`spec:app-redesign#REQ-022`): the search of the pull requests stays.
+					...(["quality", "impacts", "pull-requests"] as const).map((tab) =>
 						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),
 					),
 				]

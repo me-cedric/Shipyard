@@ -1,6 +1,6 @@
 import { en } from "@/lib/i18n/en";
 import { defaultAutomation } from "@/lib/ipc/mock-sync";
-import { fromDraft, RUN_STATES, toDraft } from "./automation-draft";
+import { fromDraft, RUN_STATES, STEPS, toDraft } from "./automation-draft";
 
 describe("the automation draft", () => {
 	it("round-trips the defaults with no extra key", () => {
@@ -61,5 +61,11 @@ describe("the automation draft", () => {
 		expect(fromDraft({ ...d, perStatus: "To Do=x" }, en)).toEqual({
 			error: "Per status: name=number, name=number",
 		});
+	});
+
+	it("maps each internal state onto exactly one of the eight steps", () => {
+		expect(STEPS).toHaveLength(8);
+		const states: string[] = STEPS.flatMap(([, list]) => [...list]);
+		expect([...states].sort()).toEqual([...RUN_STATES].sort());
 	});
 });

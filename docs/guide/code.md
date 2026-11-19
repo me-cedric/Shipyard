@@ -4,13 +4,12 @@ Code works on the git repository of the project. You do not need to know git com
 
 ## Now
 
-Now shows the files to commit, then the pull requests.
+Now is a short summary: the files to commit and the open pull requests, a row to the health of the product, and the actions Working branch, Terminal, Files and Open pull request.
 
-The files that you changed show as a tree.
+The card of the files to commit shows the first three files with the lines added and removed, a link to the other files, one commit message, Write it for me and Commit. The link opens the page of the local changes.
 
-1. Select a file to see what changed.
-2. Stage the files to keep. Or discard a change.
-3. In the commit box under the files, write a summary, add a description if you want one, then click Commit. A commit takes the staged files only. The Commit button in the card of the sync mark does the same from any page.
+1. Tick the files to keep in one flat list. Choose all and Choose none tick the whole list. Or discard a change.
+2. Write the commit message, add a description if you want one, then click Commit. A commit takes the ticked files only. The Commit button in the card of the sync mark does the same from any page.
 
 - Write it for me asks the assistant for a message from the staged files. Nothing is sent until you send it.
 - A group with no files shows one muted line, such as "Nothing staged".

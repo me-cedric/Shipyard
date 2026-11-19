@@ -17,13 +17,16 @@ function hosted(space: SpaceId, tab: string) {
 	return place === "flow" || place === "crew" ? ({ place, slug } as const) : undefined;
 }
 
-/** The page that wave 6 gives to an old tab: its title, and the section that has its icon. */
+/** The page that wave 6 gives to an old tab: its title, and the section that has its icon. The title of each scope of Setup is "Setup" (look pass 2). */
 const MOVED: Record<string, readonly [string, SectionSpace, string]> = {
-	"code/changes": [en.ui.place.code, "code", "now"],
+	"code/changes": ["\\d+ files? to commit", "code", "now"],
 	"code/pull-requests": [en.ui.place.code, "code", "now"],
-	"settings/project": [en.tabs.setup.project, "setup", "project"],
-	"settings/connections": [en.tabs.setup.computer, "setup", "computer"],
-	"settings/me": [en.tabs.setup.me, "setup", "me"],
+	"settings/project": [en.ui.place.setup, "setup", "project"],
+	"settings/connections": [en.ui.place.setup, "setup", "computer"],
+	"settings/me": [en.ui.place.setup, "setup", "me"],
+	"settings/agents-rules": [en.ui.place.setup, "setup", "computer"],
+	"settings/extensions": [en.ui.place.setup, "setup", "project"],
+	"settings/health": [en.ui.place.setup, "setup", "project"],
 };
 
 /** The title of a hosted or moved tab. The agents map of before is the live view of Crew. */
@@ -39,7 +42,14 @@ const placeTitle = (space: SpaceId, tab: string) => {
 async function expectHeader(space: SpaceId, tab: string, title: string) {
 	const router = mountApp(`/${space}/${tab}`);
 	await waitFor(() => expect(router.state.status).toBe("idle"));
-	await waitFor(() => expect(within(screen.getByRole("main")).queryByRole("status")).toBeNull());
+	// A stepper shows its value in an output: it is a status role, and no loader.
+	await waitFor(() =>
+		expect(
+			within(screen.getByRole("main"))
+				.queryAllByRole("status")
+				.filter((el) => el.tagName !== "OUTPUT"),
+		).toEqual([]),
+	);
 	// The first run draws nothing before the prefs and the list of projects load.
 	const heads = await within(screen.getByRole("main")).findAllByRole("heading", { level: 1 });
 	expect(heads).toHaveLength(1);

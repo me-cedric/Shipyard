@@ -172,7 +172,9 @@ export function TicketDetail({
 								) : null}
 							</div>
 							{markReason === d.noLabel ? (
-								<SettingLink target="/setup/project#pickup-label">{markReason}</SettingLink>
+								<SettingLink target="/setup/project?page=automation#pickup-label">
+									{markReason}
+								</SettingLink>
 							) : markReason ? (
 								<p className="text-12 text-n-11">{markReason}</p>
 							) : null}

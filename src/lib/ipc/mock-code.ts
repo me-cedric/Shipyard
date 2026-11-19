@@ -114,6 +114,40 @@ export function seedCode(): MockCode {
 	};
 }
 
+/**
+ * The demo working copy of Code / Now and Code / local changes: the four changed files of a fresh
+ * one, one more file in conflict and one saved set put aside. `mock.ts` seeds it for the demo project.
+ */
+export function seedDemoCode(): MockCode {
+	const c = seedCode();
+	c.conflicts = [
+		{
+			path: "src/lib/format.ts",
+			text: true,
+			segments: [
+				{ kind: "text", text: "export const a = 1;\n" },
+				{ kind: "block", ours: "export const b = 2;\n", base: "", theirs: "export const b = 3;\n" },
+			],
+		},
+	];
+	c.stashes = [
+		{
+			id: "d".repeat(40),
+			message: "Sign-in work in progress",
+			files: { "src/app.ts": { head: "a\nb\nc\n", index: "a\nb\nc\n", work: "a\nB\nc\n" } },
+		},
+	];
+	return c;
+}
+
+/** The comment of the automatic review on a changed file of the demo working copy, for the mock of the agent reviews. */
+export const DEMO_REVIEW_FINDING = {
+	severity: "P1",
+	path: "src/app.ts",
+	line: 2,
+	text: "This line changes the result and no test covers it. Add one.",
+} as const;
+
 /** The lines of a text. A missing text has none. */
 const lines = (t: string | null) => (t === null ? [] : t.replace(/\n$/, "").split("\n"));
 

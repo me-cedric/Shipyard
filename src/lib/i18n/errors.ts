@@ -462,7 +462,7 @@ const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {
 	device_not_set: { kind: "setting", target: "/setup/project?page=connections#connections" },
 	token_refused: { kind: "setting", target: "/setup/project?page=connections#connections" },
 	scope_missing: { kind: "setting", target: "/setup/project#tracker-scope" },
-	pickup_off: { kind: "setting", target: "/setup/project#pickup-label" },
+	pickup_off: { kind: "setting", target: "/setup/project?page=automation#pickup-label" },
 	ticket_not_in_mirror: { kind: "sync", target: "" },
 	node_missing: { kind: "install", target: "node" },
 	merge_draft: { kind: "open", target: "/code/now" },

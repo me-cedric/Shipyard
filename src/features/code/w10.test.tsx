@@ -76,8 +76,8 @@ describe("Code, W10", () => {
 		side?.touches.push("src/app.ts");
 		code.branches.main?.touches.push("src/app.ts");
 		await unwrap(commands.codeBranchMerge("feat/auth/login"));
-		mountApp("/code/now");
-		await user.click(await screen.findByRole("button", { name: "Hand to agent" }));
+		mountApp("/code/changes");
+		await user.click(await screen.findByRole("button", { name: "Solve with an agent" }));
 		expect(await draft(/Resolve the merge conflicts in src\/app\.ts/)).toBeVisible();
 	}, 20_000);
 

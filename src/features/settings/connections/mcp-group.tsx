@@ -5,32 +5,29 @@ import { commands, type McpServer, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
+import { LinkButton } from "@/ui/atoms/link-button";
 import { Select } from "@/ui/atoms/select";
-import type { Status } from "@/ui/atoms/status-dot";
 import { Textarea } from "@/ui/atoms/textarea";
 import {
 	ArrowDownTrayIcon,
 	Cog6ToothIcon,
 	PlayIcon,
 	PlusIcon,
-	PuzzlePieceIcon,
 	StopIcon,
 	XMarkIcon,
 } from "@/ui/icons";
-import { ConnectionRow } from "@/ui/molecules/connection-row";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Row } from "@/ui/molecules/row";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { SettingsRow } from "@/ui/molecules/settings-row";
+import { SetupCard, StatePill } from "../parts";
+import { Fold, LINE } from "./fold";
 import { mcpKeys, message, useMcpServers } from "./keys";
 import { McpAllow } from "./mcp-allow";
 import { McpGroupTools, McpTestResult, useCategoryName, useMcpTest } from "./mcp-tools";
 
-const STATE_SHAPE: Record<McpServer["state"]["state"], Status> = {
-	stopped: "idle",
-	starting: "active",
-	running: "success",
-	failed: "danger",
-};
+/** The pill of each live state: on, to fix or off. */
+const STATE_PILL = { stopped: "off", starting: "off", running: "ready", failed: "fix" } as const;
 
 const CUSTOM = "custom";
 const ALL = "all";
@@ -62,7 +59,7 @@ function Fields({
 				</SettingsRow>
 			))}
 			{children}
-			<div className="flex gap-2 px-3 py-2">
+			<div className="flex gap-2 px-6 py-2">
 				<Button variant="primary" onClick={() => void onSave(values)}>
 					{t.connections.save}
 				</Button>
@@ -111,55 +108,66 @@ function McpRow({
 	const start = () => run(() => unwrap(commands.mcpStart(s.id)));
 
 	return (
-		<ConnectionRow
-			status={STATE_SHAPE[s.state.state]}
-			statusLabel={t.connections.mcp.state[s.state.state]}
-			name={s.label}
-			product={s.custom ? t.connections.mcp.custom : undefined}
-			actions={
+		<Fold
+			aria-label={s.label}
+			label={
 				<>
-					{live ? (
-						<IconButton
-							label={t.connections.mcp.stop}
-							disabled={s.state.state === "starting"}
-							onClick={() => run(() => unwrap(commands.mcpStop(s.id)))}
-						>
-							<StopIcon size={14} />
-						</IconButton>
-					) : (
-						<IconButton
-							label={t.connections.mcp.start}
-							disabled={busy || s.missing.length > 0}
-							onClick={start}
-						>
-							<PlayIcon size={14} />
-						</IconButton>
-					)}
-					<Button
-						variant="ghost"
-						aria-label={format(t.extensions.mcp.testName, { name: s.label })}
-						disabled={check.busy || s.state.state === "starting"}
-						onClick={() => void check.test()}
-					>
-						{t.extensions.mcp.test}
-					</Button>
-					{s.fields.length > 0 ? (
-						<IconButton
-							label={t.connections.edit}
-							disabled={formOpen && panel !== "edit"}
-							onClick={() => show("edit")}
-						>
-							<Cog6ToothIcon size={14} />
-						</IconButton>
+					{s.label}
+					{s.custom ? (
+						<span className="pl-2 font-normal text-n-11">{t.connections.mcp.custom}</span>
 					) : null}
-					<IconButton label={t.connections.remove} onClick={() => show("remove")}>
-						<XMarkIcon size={14} />
-					</IconButton>
 				</>
 			}
+			state={
+				<StatePill state={STATE_PILL[s.state.state]}>
+					{t.connections.mcp.state[s.state.state]}
+				</StatePill>
+			}
 		>
+			<div className="flex flex-wrap items-center gap-2 px-6 pb-2">
+				{live ? (
+					<IconButton
+						label={t.connections.mcp.stop}
+						variant="outline"
+						disabled={s.state.state === "starting"}
+						onClick={() => run(() => unwrap(commands.mcpStop(s.id)))}
+					>
+						<StopIcon size={14} />
+					</IconButton>
+				) : (
+					<IconButton
+						label={t.connections.mcp.start}
+						variant="outline"
+						disabled={busy || s.missing.length > 0}
+						onClick={start}
+					>
+						<PlayIcon size={14} />
+					</IconButton>
+				)}
+				<Button
+					variant="secondary"
+					aria-label={format(t.extensions.mcp.testName, { name: s.label })}
+					disabled={check.busy || s.state.state === "starting"}
+					onClick={() => void check.test()}
+				>
+					{t.extensions.mcp.test}
+				</Button>
+				{s.fields.length > 0 ? (
+					<IconButton
+						label={t.connections.edit}
+						variant="outline"
+						disabled={formOpen && panel !== "edit"}
+						onClick={() => show("edit")}
+					>
+						<Cog6ToothIcon size={14} />
+					</IconButton>
+				) : null}
+				<IconButton label={t.connections.remove} variant="outline" onClick={() => show("remove")}>
+					<XMarkIcon size={14} />
+				</IconButton>
+			</div>
 			{s.missing.map((d) => (
-				<p key={d.command} className="flex items-center gap-2 px-3 pb-2 text-ui text-warning-text">
+				<p key={d.command} className="flex items-center gap-2 px-6 pb-2 text-ui text-warning-text">
 					{format(t.connections.mcp.missing, { name: d.label })}
 					{d.installable ? (
 						<IconButton
@@ -177,7 +185,7 @@ function McpRow({
 			{s.state.state === "failed" || error ? (
 				<ErrorNotice
 					error={error ?? (s.state.state === "failed" ? s.state.reason : "")}
-					className="px-3 pb-2"
+					className="px-6 pb-2"
 				/>
 			) : null}
 			{panel === "edit" ? (
@@ -194,7 +202,7 @@ function McpRow({
 				/>
 			) : null}
 			{panel === "remove" ? (
-				<div className="flex gap-2 px-3 pb-2">
+				<div className="flex gap-2 px-6 pb-2">
 					<Button
 						variant="danger"
 						onClick={() =>
@@ -208,7 +216,7 @@ function McpRow({
 					</Button>
 				</div>
 			) : null}
-		</ConnectionRow>
+		</Fold>
 	);
 }
 
@@ -223,6 +231,7 @@ export function McpGroup({
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const [error, setError] = useState<unknown>(null);
+	const [adding, setAdding] = useState(false);
 	const all = useMcpServers().data ?? [];
 	const rows = all.filter((s) => s.enabled);
 	const categoryName = useCategoryName();
@@ -235,28 +244,18 @@ export function McpGroup({
 		if (failed?.status === "rejected") setError(message(failed.reason));
 		await qc.invalidateQueries({ queryKey: mcpKeys.list });
 	};
+	const add = (next: boolean) => {
+		setAdding(next);
+		onForm(next);
+	};
 	return (
-		<section aria-labelledby="connections-mcp" className="flex flex-col gap-2">
-			<div className="flex items-center justify-between px-1">
-				<h2
-					id="connections-mcp"
-					className="flex items-center gap-2 py-1 text-12 font-medium text-n-11"
-				>
-					<span aria-hidden="true" className="flex">
-						<PuzzlePieceIcon size={14} />
-					</span>
-					{format(t.count, { name: t.connections.group.mcp, count: rows.length })}
-				</h2>
-				<Button variant="ghost" disabled={startable.length === 0} onClick={() => void startAll()}>
-					<PlayIcon size={14} />
-					{t.connections.mcp.startAll}
-				</Button>
-			</div>
-			<McpGroupTools rows={all} />
-			{error ? <ErrorNotice error={error} className="px-3 text-ui text-danger-text" /> : null}
+		<SetupCard id="connections-mcp" title={t.connections.group.mcp}>
+			{error ? <ErrorNotice error={error} className="px-6 text-ui text-danger-text" /> : null}
 			{categories.map((c) => (
-				<section key={c} aria-label={categoryName(c)} className="flex flex-col gap-2">
-					<h3 className="px-1 text-12 text-n-11">{categoryName(c)}</h3>
+				<section key={c} aria-label={categoryName(c)} className={LINE}>
+					{categories.length > 1 ? (
+						<h3 className="px-6 pt-2 text-12 text-n-11">{categoryName(c)}</h3>
+					) : null}
 					{rows
 						.filter((s) => s.category === c)
 						.map((s) => (
@@ -264,7 +263,33 @@ export function McpGroup({
 						))}
 				</section>
 			))}
-		</section>
+			{adding ? (
+				<div className={LINE}>
+					<McpAddForm onDone={() => add(false)} />
+				</div>
+			) : (
+				<Row>
+					<LinkButton disabled={formOpen} onClick={() => add(true)}>
+						{t.personal.setup.addServer}
+					</LinkButton>
+				</Row>
+			)}
+			<Fold label={t.ui.more}>
+				<div className="flex flex-col gap-2 px-6">
+					<McpGroupTools rows={all} />
+					<div>
+						<Button
+							variant="ghost"
+							disabled={startable.length === 0}
+							onClick={() => void startAll()}
+						>
+							<PlayIcon size={14} />
+							{t.connections.mcp.startAll}
+						</Button>
+					</div>
+				</div>
+			</Fold>
+		</SetupCard>
 	);
 }
 
@@ -356,7 +381,7 @@ export function McpAddForm({ onDone }: { onDone: () => void }) {
 		});
 
 	return (
-		<div className="flex flex-col border-b">
+		<div className="flex flex-col">
 			{categories.length ? (
 				<SettingsRow label={t.extensions.mcp.category}>
 					<Select
@@ -437,7 +462,7 @@ export function McpAddForm({ onDone }: { onDone: () => void }) {
 							/>
 						</SettingsRow>
 					))}
-					<div className="flex gap-2 px-3 py-2">
+					<div className="flex gap-2 px-6 py-2">
 						<IconButton
 							label={f.variable}
 							onClick={() => setVars([...vars, { key: "", value: "" }])}
@@ -445,7 +470,7 @@ export function McpAddForm({ onDone }: { onDone: () => void }) {
 							<PlusIcon size={14} />
 						</IconButton>
 					</div>
-					<div className="flex gap-2 px-3 pb-2">
+					<div className="flex gap-2 px-6 pb-2">
 						<Button
 							variant="primary"
 							disabled={!name.trim() || !command.trim()}
@@ -469,7 +494,7 @@ export function McpAddForm({ onDone }: { onDone: () => void }) {
 						</Button>
 					</SettingsRow>
 					{preview ? (
-						<div className="flex flex-col gap-1 px-3 pb-2">
+						<div className="flex flex-col gap-1 px-6 pb-2">
 							{preview.map((r) => (
 								<code key={r.name} className="break-all font-mono text-12">
 									{r.name}: {r.line}
@@ -484,8 +509,8 @@ export function McpAddForm({ onDone }: { onDone: () => void }) {
 					) : null}
 				</>
 			)}
-			{error ? <ErrorNotice error={error} className="px-3 pb-2 text-ui text-danger-text" /> : null}
-			<div className="px-3 pb-2">
+			{error ? <ErrorNotice error={error} className="px-6 pb-2 text-ui text-danger-text" /> : null}
+			<div className="px-6 pb-2">
 				<Button variant="ghost" onClick={onDone}>
 					{t.connections.cancel}
 				</Button>

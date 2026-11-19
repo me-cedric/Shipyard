@@ -448,6 +448,18 @@ Screen: SCR-061
 - WHEN the person opens Setup
 - THEN the guided start shows the issue tracker step, and the connection lives under This project only
 
+#### Scenario: Pages from pills and rows
+
+- GIVEN the scope This project
+- WHEN the person opens Setup
+- THEN the pills are Details, Agents may do alone, Automation and Extensions, and Tickets, Plugins and rule packs and the health of the project open from a row or a link, with a back link (`adr:0023`)
+
+#### Scenario: A missing required tool
+
+- GIVEN a required program is missing on this computer
+- WHEN the person opens the health of this computer
+- THEN the title counts it as a problem and the page offers Fix it
+
 ### Requirement: REQ-025 Two colours with a meaning
 
 The interface SHALL use one accent colour and one attention colour that means "a person must act", SHALL show the attention colour only on the attention card, on the tag "you", on a meter that is over its budget and on the count of Today, SHALL keep the themes Light, Dark, OLED and System, and SHALL open in Light for a person who has not chosen a theme.

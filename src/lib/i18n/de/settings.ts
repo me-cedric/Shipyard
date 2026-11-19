@@ -8,6 +8,22 @@ export const settingsDe: typeof settingsEn = {
 		logs: "Protokolle und Feedback",
 		look: "Aussehen und Layout",
 	},
+	pills: {
+		details: "Details",
+		alone: "Was Agenten allein tun dürfen",
+		automation: "Automatisierung",
+		extensions: "Erweiterungen",
+		connections: "KI-Tools und Verbindungen",
+		models: "Modelle und Regeln",
+		health: "Zustand",
+	},
+	parts: {
+		less: "Weniger: {name}",
+		more: "Mehr: {name}",
+		ready: "Bereit",
+		fix: "Zu beheben",
+		off: "Aus",
+	},
 	tiers: {
 		name: "Modellstufen",
 		top: "Oberste",

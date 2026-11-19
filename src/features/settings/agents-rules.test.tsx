@@ -38,12 +38,17 @@ const groups = async (name: string) => {
 };
 const has = (g: HTMLElement) => g.querySelector("[role=combobox], input") !== null;
 const row = async (name: string) => (await groups(name)).find((g) => !has(g)) as HTMLElement;
-const tier = async (name: string) => (await groups(name)).find(has) as HTMLElement;
+// The tier controls have their own names ("Claude Code Top"): the whole page holds them. The
+// default tool shows in the card, the others under "Other AI tools".
+const tier = async (_name: string) => {
+	await screen.findByRole("combobox", { name: "Claude Code Top" });
+	return screen.getByRole("main");
+};
 
 describe("Settings / Agents and rules: model tiers", () => {
 	it("shows the five runners: a picker for a detected tool, free text for the others", async () => {
 		mountApp("/setup/computer?page=models");
-		expect(await screen.findByRole("heading", { name: "Model tiers (5)" })).toBeInTheDocument();
+		expect(await screen.findByRole("region", { name: "Models: Claude Code" })).toBeInTheDocument();
 		const claude = await tier("Claude Code");
 		expect(
 			await within(claude).findByRole("combobox", { name: "Claude Code Top" }),
@@ -153,7 +158,7 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 		const codex = await row("Codex");
 		expect(within(codex).getAllByText("Signed out").length).toBeGreaterThan(0);
 		expect(within(codex).getByRole("button", { name: "Sign in" })).toBeInTheDocument();
-		expect(within(codex).getByRole("button", { name: "Use a code instead" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Use a code instead" })).toBeInTheDocument();
 		// A missing tool offers its install.
 		const gemini = await row("Gemini CLI");
 		expect(within(gemini).getByRole("button", { name: "Install Gemini CLI" })).toBeInTheDocument();
@@ -198,18 +203,17 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 		const user = userEvent.setup();
 		const save = vi.spyOn(commands, "runnerCodexApiKey");
 		mountApp("/setup/computer?page=models");
-		const codex = await row("Codex");
-		await user.click(within(codex).getByRole("button", { name: "Use an API key" }));
-		const field = within(codex).getByLabelText("Codex API key");
+		await user.click(await screen.findByRole("button", { name: "Use an API key" }));
+		const field = screen.getByLabelText("Codex API key");
 		expect(field).toHaveAttribute("type", "password");
 		await user.type(field, "sk-secret-1");
-		await user.click(within(codex).getByRole("button", { name: "Save" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(save).toHaveBeenCalledWith("sk-secret-1", true));
-		await waitFor(() => expect(within(codex).queryByLabelText("Codex API key")).toBeNull());
+		await waitFor(() => expect(screen.queryByLabelText("Codex API key")).toBeNull());
 		expect(document.body.innerHTML).not.toContain("sk-secret-1");
 		// The form opens again with an empty field.
-		await user.click(within(codex).getByRole("button", { name: "Use an API key" }));
-		expect(within(codex).getByLabelText("Codex API key")).toHaveValue("");
+		await user.click(await screen.findByRole("button", { name: "Use an API key" }));
+		expect(screen.getByLabelText("Codex API key")).toHaveValue("");
 		save.mockRestore();
 	});
 
@@ -219,12 +223,11 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 			.spyOn(commands, "runnerCodexApiKey")
 			.mockResolvedValueOnce({ status: "error", error: "The key is not valid." } as never);
 		mountApp("/setup/computer?page=models");
-		const codex = await row("Codex");
-		await user.click(within(codex).getByRole("button", { name: "Use an API key" }));
-		await user.type(within(codex).getByLabelText("Codex API key"), "sk-bad-2");
-		await user.click(within(codex).getByRole("button", { name: "Save" }));
+		await user.click(await screen.findByRole("button", { name: "Use an API key" }));
+		await user.type(screen.getByLabelText("Codex API key"), "sk-bad-2");
+		await user.click(screen.getByRole("button", { name: "Save" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("Check the fields, then try again.");
-		expect(within(codex).getByLabelText("Codex API key")).toHaveValue("");
+		expect(screen.getByLabelText("Codex API key")).toHaveValue("");
 		expect(document.body.innerHTML).not.toContain("sk-bad-2");
 		save.mockRestore();
 	});

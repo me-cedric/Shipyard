@@ -11,7 +11,7 @@ describe("Settings / Health / bootstrap, skills, console and feedback", () => {
 
 	it("previews the files of the bootstrap form, then writes the new ones after a click", async () => {
 		const user = userEvent.setup();
-		mountApp("/setup/project?page=health");
+		mountApp("/setup/project?page=extensions");
 		const create = await screen.findByRole("button", { name: "Create files" });
 		expect(create).toBeDisabled();
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Demo");
@@ -47,8 +47,9 @@ describe("Settings / Health / bootstrap, skills, console and feedback", () => {
 		mountApp("/setup/computer?page=logs");
 		const log = await screen.findByRole("list", { name: "Debug console" });
 		expect(await within(log).findAllByRole("listitem")).toHaveLength(3);
-		await user.click(screen.getByRole("combobox", { name: "Level" }));
-		await user.click(await screen.findByRole("option", { name: "Error" }));
+		await user.click(
+			within(screen.getByRole("group", { name: "Level" })).getByRole("button", { name: "Error" }),
+		);
 		await waitFor(() => expect(within(log).getAllByRole("listitem")).toHaveLength(1));
 		expect(within(log).getByText(/port 47821/)).toBeInTheDocument();
 	});

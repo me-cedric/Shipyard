@@ -3,28 +3,43 @@ import userEvent from "@testing-library/user-event";
 import { openSync } from "@/features/shell/test-open";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
+import { seedAgentPr } from "@/lib/ipc/mock-agent-pr";
 import { seedCode } from "@/lib/ipc/mock-code";
+import { seedPrs } from "@/lib/ipc/mock-code-prs";
 import { mountApp } from "@/test/mount";
 
 const open = () => unwrap(commands.projectsOpen("/mock/alpha", false));
 const main = () => screen.getByRole("main");
-const group = (name: string) => screen.findByRole("heading", { name });
+/** The title of the page of the local changes counts the files to commit. */
+const title = (name: string) => screen.findByRole("heading", { name });
 // The commit action of the old status bar is in the card of the sync mark.
 const commitOfCard = async (user: Parameters<typeof openSync>[0]) =>
 	(await openSync(user)).getByRole("button", { name: "Commit" });
-const unstaged = () => within(screen.getByRole("region", { name: "Unstaged" }));
+const list = () => within(screen.getByRole("list", { name: "Files" }));
+const box = () => within(screen.getByRole("form", { name: "Commit" }));
 
 async function changes() {
 	await open();
-	mountApp("/code/now");
-	await group("Staged (1)");
+	mountApp("/code/changes");
+	await title("4 files to commit");
 }
 
-describe("Code / Now, the files to commit", () => {
+describe("Code / the files to commit", () => {
+	it("shows one flat list: a checkbox per file, its path and the lines added and removed", async () => {
+		await changes();
+		for (const path of ["docs/guide.md", "README.md", "src/app.ts", "src/lib/util.ts"])
+			expect(list().getByRole("checkbox", { name: `Select ${path}` })).toBeInTheDocument();
+		// util.ts has a staged and an unstaged change: its box is half checked.
+		expect(list().getByRole("checkbox", { name: "Select src/lib/util.ts" })).toBePartiallyChecked();
+		expect(list().getByRole("checkbox", { name: "Select src/app.ts" })).not.toBeChecked();
+		expect(list().getByText("Untracked")).toBeInTheDocument();
+		expect(screen.queryByRole("heading", { name: /^Staged/ })).toBeNull();
+	});
+
 	it("offers the actions of a file in its context menu and stages it", async () => {
 		const user = userEvent.setup();
 		await changes();
-		fireEvent.contextMenu(unstaged().getByRole("button", { name: "app.ts" }));
+		fireEvent.contextMenu(list().getByRole("button", { name: "src/app.ts" }));
 		const menu = await screen.findByRole("menu");
 		expect(
 			within(menu)
@@ -32,106 +47,140 @@ describe("Code / Now, the files to commit", () => {
 				.map((i) => i.textContent),
 		).toEqual(["Stage", "Discard", "Copy path"]);
 		await user.click(within(menu).getByRole("menuitem", { name: "Stage" }));
-		await group("Staged (2)");
-		expect(await group("Unstaged (3)")).toBeInTheDocument();
+		await waitFor(() =>
+			expect(list().getByRole("checkbox", { name: "Select src/app.ts" })).toBeChecked(),
+		);
 	});
 
-	it("shows one muted line in a group with no files", async () => {
-		const user = userEvent.setup();
+	it("has one primary action in the commit box: Commit, with the count of the files", async () => {
 		await changes();
-		expect(screen.queryByText("Nothing staged")).toBeNull();
-		const staged = within(screen.getByRole("region", { name: "Staged" }));
-		await user.click(staged.getByRole("button", { name: /^Unstage/ }));
-		await group("Staged (0)");
-		expect(
-			within(screen.getByRole("region", { name: "Staged" })).getByText("Nothing staged"),
-		).toBeInTheDocument();
-	});
-
-	it("shows the groups with counts and the changed files as a folder tree", async () => {
-		await changes();
-		expect(await group("Unstaged (4)")).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "Stashes (0)" })).toBeInTheDocument();
-		for (const name of ["docs", "src", "lib", "app.ts", "util.ts", "guide.md", "README.md"])
-			expect(unstaged().getByRole("button", { name })).toBeInTheDocument();
-		// Each file mark has a letter and a name for assistive technology.
-		expect(within(main()).getAllByRole("img", { name: "Modified" }).length).toBeGreaterThan(0);
-		expect(within(main()).getByRole("img", { name: "Untracked" })).toHaveTextContent("U");
-	});
-
-	it("has two primary actions in the files to commit: Stage and Commit", async () => {
-		await changes();
-		const primary = within(screen.getByRole("region", { name: "5 files to commit" }))
+		const primary = within(main())
 			.getAllByRole("button")
 			.filter((b) => b.className.includes("bg-primary"));
-		expect(primary.map((b) => b.textContent)).toEqual(["Stage (4)", "Commit"]);
+		expect(primary.map((b) => b.textContent)).toEqual(["Commit 1 file"]);
 	});
 
 	it("shows two separate diffs for a file with a staged and an unstaged change", async () => {
 		const user = userEvent.setup();
 		await changes();
-		await user.click(unstaged().getByRole("button", { name: "util.ts" }));
+		await user.click(list().getByRole("button", { name: "src/lib/util.ts" }));
 		const diffs = await screen.findAllByRole("region", { name: /^Diff of src\/lib\/util\.ts/ });
 		expect(diffs).toHaveLength(2);
 		expect(diffs[0]).toHaveTextContent("y");
 		expect(diffs[1]).toHaveTextContent("z");
 		// A file with one kind of change shows one diff.
-		await user.click(unstaged().getByRole("button", { name: "guide.md" }));
+		await user.click(list().getByRole("button", { name: "docs/guide.md" }));
 		expect(await screen.findAllByRole("region", { name: /^Diff of docs\/guide\.md/ })).toHaveLength(
 			1,
 		);
 		expect(screen.queryByRole("region", { name: /^Diff of src\/lib\/util\.ts/ })).toBeNull();
 	});
 
-	it("stages the checked files, then all of a group", async () => {
+	it("chooses a file, then all of them, and takes them back", async () => {
 		const user = userEvent.setup();
 		await changes();
-		await user.click(unstaged().getByRole("checkbox", { name: "Select src/app.ts" }));
-		await user.click(screen.getByRole("button", { name: "Stage (1)" }));
-		await group("Staged (2)");
-		expect(await group("Unstaged (3)")).toBeInTheDocument();
-		await user.click(screen.getByRole("button", { name: "Stage (3)" }));
-		await group("Staged (4)");
-		expect(await group("Unstaged (0)")).toBeInTheDocument();
-		await user.click(screen.getByRole("button", { name: "Unstage (4)" }));
-		await group("Staged (0)");
-	});
-
-	it("stages a whole folder from its checkbox", async () => {
-		const user = userEvent.setup();
-		await changes();
-		await user.click(unstaged().getByRole("checkbox", { name: "Select src" }));
-		await user.click(screen.getByRole("button", { name: "Stage (2)" }));
-		await group("Staged (2)");
+		await user.click(list().getByRole("checkbox", { name: "Select src/app.ts" }));
+		await waitFor(() =>
+			expect(list().getByRole("checkbox", { name: "Select src/app.ts" })).toBeChecked(),
+		);
 		expect(mockState().code?.files["src/app.ts"]?.index).toBe("a\nB\nc\n");
+		await user.click(screen.getByRole("button", { name: "Choose all" }));
+		expect(await screen.findByRole("button", { name: "Commit 4 files" })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Choose none" }));
+		expect(await screen.findByRole("button", { name: "Commit" })).toBeDisabled();
 	});
 
 	it("discards only after a confirmation that names the paths and their count", async () => {
 		const user = userEvent.setup();
 		await changes();
-		await user.click(screen.getByRole("checkbox", { name: "Select README.md" }));
+		await user.click(list().getByRole("button", { name: "README.md" }));
 		mockState().confirm = false;
-		await user.click(screen.getByRole("button", { name: "Discard (1)" }));
+		await user.click(screen.getByRole("button", { name: "Discard" }));
 		await waitFor(() => expect(mockState().confirm).toBe(false));
 		expect(mockState().code?.files["README.md"]).toBeDefined();
 		mockState().confirm = true;
-		await user.click(screen.getByRole("button", { name: "Discard (1)" }));
-		await group("Unstaged (3)");
+		await user.click(screen.getByRole("button", { name: "Discard" }));
+		await title("3 files to commit");
 		expect(mockState().code?.files["README.md"]).toBeUndefined();
 	});
 
-	it("stashes the working copy and applies and drops the stash", async () => {
+	it("puts the changes aside, restores them and deletes the saved set", async () => {
 		const user = userEvent.setup();
 		await changes();
+		await user.click(screen.getByRole("button", { name: "Put my changes aside" }));
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "wip auth");
-		await user.click(screen.getByRole("button", { name: "Stash" }));
-		await group("Stashes (1)");
-		expect(await group("Unstaged (0)")).toBeInTheDocument();
-		expect(screen.getByRole("group", { name: "wip auth" })).toBeInTheDocument();
-		await user.click(screen.getByRole("button", { name: "Apply" }));
-		await group("Unstaged (4)");
-		await user.click(screen.getByRole("button", { name: "Drop" }));
-		await group("Stashes (0)");
+		await user.click(screen.getByRole("button", { name: "Put my changes aside" }));
+		expect(await screen.findByRole("group", { name: "wip auth" })).toBeInTheDocument();
+		await title("Nothing to commit");
+		await user.click(screen.getByRole("button", { name: "Restore" }));
+		await title("4 files to commit");
+		await user.click(
+			within(screen.getByRole("group", { name: "wip auth" })).getByRole("button", {
+				name: "Delete",
+			}),
+		);
+		await waitFor(() => expect(screen.queryByRole("group", { name: "wip auth" })).toBeNull());
+	});
+
+	it("refuses a wrong type, then commits the chosen files with a description", async () => {
+		const user = userEvent.setup();
+		await changes();
+		expect(box().queryByRole("textbox", { name: "Description" })).toBeNull();
+		await user.type(box().getByRole("textbox", { name: "Commit message" }), "wip: tidy");
+		await user.click(box().getByRole("button", { name: "Commit 1 file" }));
+		expect(await box().findByRole("alert")).toHaveTextContent(
+			"feat, fix, chore, docs, refactor, test",
+		);
+		expect(mockState().code?.branches.main?.log).toHaveLength(3);
+		const summary = box().getByRole("textbox", { name: "Commit message" });
+		await user.clear(summary);
+		await user.type(summary, "fix(auth): refuse nothing");
+		await user.click(box().getByRole("button", { name: "Add a description" }));
+		await user.type(box().getByRole("textbox", { name: "Description" }), "the why");
+		await user.click(box().getByRole("button", { name: "Commit 1 file" }));
+		await waitFor(() => expect(mockState().code?.branches.main?.log).toHaveLength(4));
+		const code = mockState().code;
+		const sha = code?.branches.main?.log[0] ?? "";
+		expect(code?.commits[sha]?.info.description).toBe("the why");
+		// The unstaged part of util.ts stays: the commit button goes off.
+		expect(await screen.findByRole("button", { name: "Commit" })).toBeDisabled();
+	});
+
+	it("shows the comment of a waiting review under the file, and hides it once solved", async () => {
+		const user = userEvent.setup();
+		await open();
+		const pull = seedPrs().pulls.find((r) => r.state === "open");
+		if (!pull) throw new Error("no open pull request");
+		const agent = seedAgentPr();
+		agent.reviews[`${pull.number}-${pull.headSha}`] = {
+			number: pull.number,
+			title: pull.title,
+			headSha: pull.headSha,
+			summary: "",
+			verdict: "comment",
+			findings: [{ severity: "P1", path: "docs/guide.md", line: 1, text: "Add a test." }],
+			dropped: 0,
+			posted: false,
+			auto: false,
+		};
+		mockState().agentPr = agent;
+		mockState().prs = seedPrs();
+		mountApp("/code/changes");
+		const comment = await screen.findByRole("region", { name: "Review comment on line 1" });
+		expect(within(comment).getByText(/Add a test\./)).toBeInTheDocument();
+		expect(within(comment).getByRole("textbox", { name: "Reply" })).toBeInTheDocument();
+		expect(within(comment).getByRole("button", { name: "Apply the fix" })).toBeInTheDocument();
+		await user.click(within(comment).getByRole("button", { name: "Solved" }));
+		await waitFor(() =>
+			expect(screen.queryByRole("region", { name: "Review comment on line 1" })).toBeNull(),
+		);
+	});
+
+	it("holds the Write it for me, Auto-commit and Auto-review controls of the commit box", async () => {
+		await changes();
+		expect(box().getByRole("button", { name: "Write it for me" })).toBeEnabled();
+		expect(box().getByRole("switch", { name: "Auto-commit" })).toBeInTheDocument();
+		expect(box().getByRole("switch", { name: /Auto-review|Agent review/ })).toBeInTheDocument();
 	});
 
 	it("resolves each conflict block with a choice and leaves no conflict", async () => {
@@ -150,9 +199,8 @@ describe("Code / Now, the files to commit", () => {
 			},
 		];
 		mockState().code = code;
-		mountApp("/code/now");
-		await group("Conflicts (1)");
-		await user.click(within(main()).getByRole("button", { name: "app.ts" }));
+		mountApp("/code/changes");
+		await user.click(await screen.findByRole("button", { name: "Solve it myself" }));
 		const resolve = await screen.findByRole("button", { name: "Resolve" });
 		expect(resolve).toBeDisabled();
 		const one = screen.getByRole("group", { name: "Block 1" });
@@ -164,7 +212,9 @@ describe("Code / Now, the files to commit", () => {
 			"true",
 		);
 		await user.click(resolve);
-		await waitFor(() => expect(screen.queryByRole("heading", { name: /^Conflicts/ })).toBeNull());
+		await waitFor(() =>
+			expect(screen.queryByRole("button", { name: "Solve it myself" })).toBeNull(),
+		);
 		expect(mockState().code?.files["src/app.ts"]?.work).toBe("top\nt1\no2\n");
 	});
 
@@ -184,9 +234,8 @@ describe("Code / Now, the files to commit", () => {
 			},
 		];
 		mockState().code = code;
-		mountApp("/code/now");
-		await group("Conflicts (1)");
-		await user.click(within(main()).getByRole("button", { name: "app.ts" }));
+		mountApp("/code/changes");
+		await user.click(await screen.findByRole("button", { name: "Solve it myself" }));
 		expect(await screen.findByText("0 of 2 chosen")).toBeInTheDocument();
 		await user.click(
 			within(screen.getByRole("group", { name: "Block 1" })).getByRole("button", {
@@ -212,7 +261,9 @@ describe("Code / Now, the files to commit", () => {
 		await user.clear(result);
 		await user.type(result, "typed");
 		await user.click(screen.getByRole("button", { name: "Save result" }));
-		await waitFor(() => expect(screen.queryByRole("heading", { name: /^Conflicts/ })).toBeNull());
+		await waitFor(() =>
+			expect(screen.queryByRole("button", { name: "Solve it myself" })).toBeNull(),
+		);
 		expect(mockState().code?.files["src/app.ts"]?.work).toBe("typed");
 	}, 20_000);
 
@@ -222,12 +273,13 @@ describe("Code / Now, the files to commit", () => {
 		const code = seedCode();
 		code.conflicts = [{ path: "logo.png", text: false, segments: [] }];
 		mockState().code = code;
-		mountApp("/code/now");
-		await group("Conflicts (1)");
-		await user.click(within(main()).getByRole("button", { name: "logo.png" }));
+		mountApp("/code/changes");
+		await user.click(await screen.findByRole("button", { name: "Solve it myself" }));
 		expect(screen.queryByRole("button", { name: "Resolve" })).toBeNull();
 		await user.click(await screen.findByRole("button", { name: "Take theirs" }));
-		await waitFor(() => expect(screen.queryByRole("heading", { name: /^Conflicts/ })).toBeNull());
+		await waitFor(() =>
+			expect(screen.queryByRole("button", { name: "Solve it myself" })).toBeNull(),
+		);
 	});
 
 	it("hands the conflicted files to a factory run and shows the new item", async () => {
@@ -236,7 +288,7 @@ describe("Code / Now, the files to commit", () => {
 		const code = seedCode();
 		code.conflicts = [{ path: "x.txt", text: false, segments: [] }];
 		mockState().code = code;
-		mountApp("/code/now");
+		mountApp("/code/changes");
 		// The assistant panel has a "Send to Flow" of its own: this one is on the page.
 		const main = within(await screen.findByRole("main"));
 		await user.click(await main.findByRole("button", { name: "Send to Flow" }));
@@ -259,11 +311,10 @@ describe("the commit action of the sync mark", () => {
 		await open();
 		await unwrap(commands.codeUnstage(["src/lib/util.ts"]));
 		mountApp("/code/now");
-		await group("Staged (0)");
+		await screen.findByRole("region", { name: "4 files to commit" });
 		expect(await commitOfCard(user)).toBeDisabled();
 		await user.keyboard("{Escape}");
-		await user.click(unstaged().getByRole("checkbox", { name: "Select src/app.ts" }));
-		await user.click(screen.getByRole("button", { name: "Stage (1)" }));
+		await unwrap(commands.codeStage(["src/app.ts"]));
 		const commit = await commitOfCard(user);
 		await waitFor(() => expect(commit).toBeEnabled());
 	});
@@ -274,7 +325,7 @@ describe("the commit action of the sync mark", () => {
 		code.conflicts = [{ path: "x.txt", text: false, segments: [] }];
 		mockState().code = code;
 		mountApp("/code/now");
-		await group("Conflicts (1)");
+		await screen.findByRole("region", { name: "5 files to commit" });
 		expect(await commitOfCard(userEvent.setup())).toBeDisabled();
 	});
 
@@ -303,8 +354,7 @@ describe("the commit action of the sync mark", () => {
 		const sha = code?.branches.main?.log[0] ?? "";
 		expect(code?.commits[sha]?.info.description).toBe("the why");
 		// The unstaged part of util.ts stays unstaged, and the commit button goes off.
-		await group("Staged (0)");
-		expect(await group("Unstaged (4)")).toBeInTheDocument();
+		await waitFor(() => expect(mockState().code?.files["src/lib/util.ts"]?.head).toBe("x\ny\n"));
 		expect(await commitOfCard(user)).toBeDisabled();
 	});
 });

@@ -1,10 +1,12 @@
-import { type ReactNode, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { type ReactNode, useId, useState } from "react";
+import { AutoCommit } from "@/features/settings/project/auto-commit";
+import { AutoReview } from "@/features/settings/project/auto-review";
 import {
 	type Changes as ChangesData,
 	type ConflictFile,
 	canCommit,
 	type DiffSide,
-	type FileChange,
 	useChanges,
 	useCodeActions,
 	useConflicts,
@@ -13,183 +15,205 @@ import {
 } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
-import { copyText, type Handlers, useMenus } from "@/lib/menus";
+import { copyText, useMenus } from "@/lib/menus";
 import { usePrefs } from "@/lib/prefs";
 import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
+import { Checkbox } from "@/ui/atoms/checkbox";
 import { Input } from "@/ui/atoms/input";
+import { LinkButton, linkClass } from "@/ui/atoms/link-button";
 import { Textarea } from "@/ui/atoms/textarea";
+import { Card } from "@/ui/molecules/card";
 import { ConflictBlock, type ConflictChoice } from "@/ui/molecules/conflict-block";
-import type { MenuItem } from "@/ui/molecules/context-menu";
-import { DiffView } from "@/ui/molecules/diff-view";
+import { ContextMenu } from "@/ui/molecules/context-menu";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { FileRow } from "@/ui/molecules/file-row";
-import { Panel } from "@/ui/molecules/panel";
-import { SettingsRow } from "@/ui/molecules/settings-row";
-import { SplitPane } from "@/ui/molecules/split-pane";
+import { Row } from "@/ui/molecules/row";
+import { LocalReview } from "./agent-review";
 import { ConflictAgent } from "./conflict-agent";
 import { OpenInEditor } from "./open-in-editor";
 import { Preview } from "./preview";
 import { GateNotice } from "./push-target";
-import { treeRows } from "./tree";
+import { type FlatRow, flatRows } from "./tree";
 import { useRun } from "./use-run";
+import { diffCounts, PlainDiff } from "./viewer";
 
-type Group = "conflicts" | "staged" | "unstaged";
-
-/** One group of the working copy: a heading with its count, its actions and the folder tree. */
-function FileGroup({
-	group,
-	files,
-	selected,
-	onSelect,
-	actions,
-	menu,
-}: {
-	group: Group;
-	files: FileChange[];
-	selected: string | null;
-	onSelect: (path: string) => void;
-	/** The buttons of the group. They act on the checked files, or on all of them. */
-	actions?: (paths: string[], files: FileChange[]) => ReactNode;
-	/** The context menu of a file. */
-	menu?: (file: FileChange) => MenuItem[];
-}) {
+/** The files to commit, in the words of the title: "5 files to commit", "1 file to commit", "Nothing to commit". */
+export function useFilesTitle(count: number) {
 	const { t } = useI18n();
-	const [checked, setChecked] = useState<string[]>([]);
-	const live = checked.filter((p) => files.some((f) => f.path === p));
-	const targets = live.length ? live : files.map((f) => f.path);
-	const toggle = (paths: string[], on: boolean) =>
-		setChecked((c) => (on ? [...new Set([...c, ...paths])] : c.filter((p) => !paths.includes(p))));
+	return count === 0
+		? t.forge.now.clean
+		: count === 1
+			? t.forge.now.file
+			: format(t.forge.now.files, { count });
+}
+
+/** The lines that the changes of one file add and remove, in green and red. A conflicted file shows the pill. */
+function Counts({ row }: { row: FlatRow }) {
+	const { t } = useI18n();
+	const staged = useDiff(row.path, "staged", row.staged).data;
+	const unstaged = useDiff(row.path, "unstaged", row.unstaged).data;
+	if (row.conflict) return <Badge variant="you">{t.forge.now.conflict}</Badge>;
+	const parts = [staged, unstaged].map((d) => diffCounts(d?.text ?? ""));
+	const added = parts.reduce((n, p) => n + p.added, 0);
+	const removed = parts.reduce((n, p) => n + p.removed, 0);
 	return (
-		<Panel
-			title={t.code[group]}
-			count={files.length}
-			tone={group === "conflicts" ? "danger" : group === "staged" ? "success" : undefined}
-			toolbar={files.length ? actions?.(targets, files) : null}
-			flush
-			className="shrink-0"
-			bodyClassName="py-1"
-		>
-			{files.length === 0 ? (
-				<p className="px-3 py-1 text-ui text-n-11">
-					{group === "staged" ? t.code.noneStaged : t.code.noneUnstaged}
-				</p>
-			) : null}
-			{treeRows(files).map((r) =>
-				r.kind === "folder" ? (
-					<FileRow
-						key={`d:${r.path}`}
-						name={r.name}
-						depth={r.depth}
-						check={{
-							checked: r.files.every((p) => live.includes(p)),
-							label: format(t.code.select, { name: r.path }),
-							onChange: (on) => toggle(r.files, on),
-						}}
-					/>
-				) : (
-					<FileRow
-						key={`f:${r.path}`}
-						name={r.name}
-						depth={r.depth}
-						state={r.file.state}
-						stateLabel={t.code.state[r.file.state]}
-						selected={selected === r.path}
-						onSelect={() => onSelect(r.path)}
-						menu={menu?.(r.file)}
-						check={{
-							checked: live.includes(r.path),
-							label: format(t.code.select, { name: r.path }),
-							onChange: (on) => toggle([r.path], on),
-						}}
-					/>
-				),
-			)}
-		</Panel>
+		<>
+			{row.file.state === "modified" ? null : <Badge>{t.code.state[row.file.state]}</Badge>}
+			{added ? <span className="font-semibold text-success-text">+{added}</span> : null}
+			{removed ? <span className="font-semibold text-danger-text">−{removed}</span> : null}
+		</>
 	);
 }
 
-/** The stashes and the button that makes one (REQ-006). */
+/**
+ * The summary of the files to commit on Code / Now: the first three files as links to the page of the
+ * local changes, the link to the others, and the commit box on one line.
+ */
+export function FilesCard() {
+	const { t } = useI18n();
+	const head = useId();
+	const changes = useChanges(true).data;
+	const rows = changes ? flatRows(changes) : [];
+	const [, setPath] = useTabSelection("code:changes");
+	const title = useFilesTitle(rows.length);
+	if (!changes) return null;
+	const more = rows.length - 3;
+	return (
+		<section
+			aria-labelledby={head}
+			className="min-w-0 flex-[1_1_380px] rounded-lg bg-surface-2 pb-5 shadow-2"
+		>
+			<h2 id={head} className="px-6 pt-5.5 pb-2 text-17 font-semibold text-n-12">
+				{title}
+			</h2>
+			{rows.slice(0, 3).map((r) => (
+				<Row
+					key={r.path}
+					render={(row) => (
+						<Link
+							to="/code/changes"
+							onClick={() => setPath(r.path)}
+							{...row}
+							className={cn(row.className, "hover:bg-n-3")}
+						/>
+					)}
+				>
+					<span className="mr-auto min-w-0 font-mono text-14 break-all">{r.path}</span>
+					<Counts row={r} />
+				</Row>
+			))}
+			{more > 0 ? (
+				<Row>
+					<Link to="/code/changes" className={linkClass}>
+						{more === 1 ? t.forge.now.moreOne : format(t.forge.now.more, { count: more })}
+					</Link>
+				</Row>
+			) : null}
+			<div className="flex flex-col gap-2 px-6 pt-4">
+				<GateNotice push={false} />
+				<CommitBox changes={changes} compact />
+			</div>
+		</section>
+	);
+}
+
+/** The saved sets of changes ("Put aside") and the button that makes one (REQ-006). */
 function Stashes({ dirty, run }: { dirty: boolean; run: (job: () => Promise<unknown>) => void }) {
 	const { t } = useI18n();
+	const n = t.forge.now;
+	const head = useId();
 	const stashes = useStashes().data ?? [];
 	const { stash, applyStash, dropStash } = useCodeActions();
+	// The first click asks for the name; the second one puts the changes aside.
+	const [naming, setNaming] = useState(false);
 	const [name, setName] = useState("");
 	return (
-		<Panel
-			title={t.code.stashes}
-			count={stashes.length}
-			flush
-			className="shrink-0"
-			bodyClassName="py-2"
-		>
-			<div className="flex items-center gap-2 px-3 pb-1">
-				<Input label={t.code.stashName} value={name} onChange={(e) => setName(e.target.value)} />
+		<Card pad className="flex flex-col gap-3">
+			<section aria-labelledby={head} className="contents">
+				<h2 id={head} className="text-13 font-semibold text-n-11">
+					{n.aside}
+				</h2>
+				{stashes.map((s) => (
+					// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
+					<div
+						key={s.id}
+						role="group"
+						aria-label={s.message}
+						className="flex flex-wrap items-center gap-2.5"
+					>
+						<span className="min-w-0 flex-[1_1_140px] font-semibold break-words">{s.message}</span>
+						<RightButton right="code.write" onClick={() => run(() => applyStash(s.index))}>
+							{n.restore}
+						</RightButton>
+						<RightButton
+							right="code.write"
+							className="text-danger-text"
+							onClick={() =>
+								run(async () => {
+									if (await confirmDialog(format(t.code.confirmDrop, { name: s.message })))
+										await dropStash(s.id);
+								})
+							}
+						>
+							{n.remove}
+						</RightButton>
+					</div>
+				))}
+				{naming ? (
+					<Input
+						label={t.code.stashName}
+						autoFocus
+						value={name}
+						onChange={(e) => setName(e.target.value)}
+					/>
+				) : null}
 				<RightButton
 					right="code.write"
 					disabled={!dirty}
+					aria-expanded={naming}
 					onClick={() =>
-						run(async () => {
-							await stash(name.trim() || null);
-							setName("");
-						})
+						naming
+							? run(async () => {
+									await stash(name.trim() || null);
+									setName("");
+									setNaming(false);
+								})
+							: setNaming(true)
 					}
 				>
-					{t.code.stash}
+					{n.putAside}
 				</RightButton>
-			</div>
-			{stashes.map((s) => (
-				<SettingsRow key={s.id} label={s.message}>
-					<RightButton
-						right="code.write"
-						variant="ghost"
-						onClick={() => run(() => applyStash(s.index))}
-					>
-						{t.code.apply}
-					</RightButton>
-					<RightButton
-						right="code.write"
-						variant="ghost"
-						onClick={() =>
-							run(async () => {
-								if (await confirmDialog(format(t.code.confirmDrop, { name: s.message })))
-									await dropStash(s.id);
-							})
-						}
-					>
-						{t.code.drop}
-					</RightButton>
-				</SettingsRow>
-			))}
-		</Panel>
+			</section>
+		</Card>
 	);
 }
 
-/** The diff of one side of a file. */
-function DiffPane({ path, side }: { path: string; side: DiffSide }) {
+/** The diff of one side of a file. A file with a staged and an unstaged change names each side. */
+function DiffPane({ path, side, both }: { path: string; side: DiffSide; both: boolean }) {
 	const { t } = useI18n();
 	const diff = useDiff(path, side).data;
 	if (!diff) return null;
+	const name = t.code[side === "staged" ? "staged" : "unstaged"];
 	return (
-		<div>
-			<h2 className="sticky top-0 z-10 flex h-10 items-center gap-2 border-b bg-surface-1 px-3 text-12 font-medium text-n-11">
-				<span className="truncate font-mono text-n-12">{path}</span>
-				<Badge variant={side === "staged" ? "success" : "neutral"}>
-					{t.code[side === "staged" ? "staged" : "unstaged"]}
-				</Badge>
-			</h2>
+		<div className="border-t border-n-6">
+			{both ? (
+				<p className="px-6 pt-3">
+					<Badge variant={side === "staged" ? "success" : "neutral"}>{name}</Badge>
+				</p>
+			) : null}
 			{diff.text ? (
-				<DiffView
+				<PlainDiff
 					text={diff.text}
 					path={path}
 					binary={diff.binary}
 					truncated={diff.truncated}
 					// The staged and the unstaged diff of one file are two regions: the side tells them apart.
-					label={`${format(t.code.diff, { path })} ${t.code[side === "staged" ? "staged" : "unstaged"]}`}
+					label={`${format(t.code.diff, { path })} ${name}`}
 					binaryLabel={t.code.binary}
 					truncatedLabel={t.code.truncated}
 				/>
@@ -323,28 +347,62 @@ export function ConflictPane({
 	);
 }
 
-const inGroups = (c: ChangesData, path: string) => ({
-	staged: c.staged.some((f) => f.path === path),
-	unstaged: [...c.unstaged, ...c.untracked].some((f) => f.path === path),
-	conflict: c.conflicted.some((f) => f.path === path),
-});
-
 /**
- * The commit box of Code / Now (`spec:app-redesign#REQ-022`): the message, the description and the one
- * commit. "Write it for me" leaves the staged files in the draft of the assistant.
+ * The commit box (`spec:app-redesign#REQ-022`): the message and the one commit. "Write it for me"
+ * leaves the staged files in the draft of the assistant. `compact` is the one line of Code / Now; the
+ * page of the local changes adds the description, behind its button, and the two automatic choices.
  */
-function CommitBox({ changes }: { changes: ChangesData }) {
+export function CommitBox({ changes, compact }: { changes: ChangesData; compact?: boolean }) {
 	const { t } = useI18n();
+	const n = t.forge.now;
 	const { commit } = useCodeActions();
 	const { ask } = useShell();
 	const { profile } = usePrefs();
 	const { failure, busy, run } = useRun();
 	const [summary, setSummary] = useState("");
 	const [description, setDescription] = useState("");
+	const [describing, setDescribing] = useState(false);
+	const count = changes.staged.length;
+	const write = (
+		<Button
+			className={compact ? undefined : "flex-[1_1_130px]"}
+			disabled={count === 0}
+			onClick={() =>
+				ask(format(n.writePrompt, { files: changes.staged.map((f) => f.path).join(", ") }))
+			}
+		>
+			{n.write}
+		</Button>
+	);
+	const submit = (
+		<RightButton
+			type="submit"
+			right="code.write"
+			variant="primary"
+			className={compact ? undefined : "flex-[1_1_130px]"}
+			busy={busy}
+			// A read only profile makes no commit, and a conflict or an empty stage refuses it.
+			disabled={!canCommit(changes) || profile.readOnly}
+		>
+			{compact || count === 0
+				? t.shell.commit
+				: count === 1
+					? n.commitFile
+					: format(n.commitFiles, { count })}
+		</RightButton>
+	);
+	const message = (
+		<Input
+			label={n.message}
+			className={compact ? "flex-[1_1_200px]" : undefined}
+			value={summary}
+			onChange={(e) => setSummary(e.target.value)}
+		/>
+	);
 	return (
 		<form
 			aria-label={t.shell.commit}
-			className="flex shrink-0 flex-col gap-2 rounded-lg border bg-surface-1 p-3 shadow-1"
+			className="flex flex-col gap-3"
 			onSubmit={(e) => {
 				e.preventDefault();
 				void run(async () => {
@@ -354,180 +412,202 @@ function CommitBox({ changes }: { changes: ChangesData }) {
 				});
 			}}
 		>
-			<Input
-				label={t.code.summary}
-				className="min-h-control"
-				value={summary}
-				onChange={(e) => setSummary(e.target.value)}
-			/>
-			<Textarea
-				label={t.code.description}
-				value={description}
-				onChange={(e) => setDescription(e.target.value)}
-			/>
+			{compact ? (
+				<div className="flex flex-wrap gap-2.5">
+					{message}
+					{write}
+					{submit}
+				</div>
+			) : (
+				<>
+					{message}
+					{describing ? (
+						<Textarea
+							label={t.code.description}
+							value={description}
+							onChange={(e) => setDescription(e.target.value)}
+						/>
+					) : (
+						<LinkButton onClick={() => setDescribing(true)}>{n.describe}</LinkButton>
+					)}
+				</>
+			)}
 			<ErrorNotice error={failure} />
-			<div className="flex flex-wrap gap-2">
-				<Button
-					className="min-h-control flex-1"
-					disabled={changes.staged.length === 0}
-					onClick={() =>
-						ask(
-							format(t.forge.now.writePrompt, {
-								files: changes.staged.map((f) => f.path).join(", "),
-							}),
-						)
-					}
-				>
-					{t.forge.now.write}
-				</Button>
-				<RightButton
-					type="submit"
-					right="code.write"
-					variant="primary"
-					className="min-h-control flex-1"
-					busy={busy}
-					// A read only profile makes no commit, and a conflict or an empty stage refuses it.
-					disabled={!canCommit(changes) || profile.readOnly}
-				>
-					{t.shell.commit}
-				</RightButton>
-			</div>
+			{compact ? null : (
+				<>
+					<div className="flex flex-wrap gap-2.5">
+						{write}
+						{submit}
+					</div>
+					<div className="flex flex-col border-t border-n-6 pt-2">
+						<AutoCommit />
+						<AutoReview />
+					</div>
+				</>
+			)}
 		</form>
 	);
 }
 
-/** The files to commit of Code / Now: the groups, the commit box, the stashes and the diff of one file. */
-export function WorkingCopy() {
+/**
+ * The local changes (`/code/changes`): the conflict banner, one flat list with a checkbox per file (a
+ * checked file goes into the commit), the commit box, the changes put aside and the diff of one file.
+ */
+export function WorkingCopy({ changes }: { changes: ChangesData }) {
 	const { t } = useI18n();
-	const changes = useChanges(true).data;
+	const n = t.forge.now;
 	const conflicts = useConflicts().data ?? [];
 	const { stage, unstage, discard } = useCodeActions();
 	const menu = useMenus();
 	const { error, run: runJob } = useRun();
+	const rows = flatRows(changes);
 	// The first changed file opens by default, and the choice stays with the tab.
 	const [path, setPath] = useTabSelection(
 		"code:changes",
-		changes
-			? [...changes.conflicted, ...changes.staged, ...changes.unstaged, ...changes.untracked].map(
-					(f) => f.path,
-				)
-			: [],
+		rows.map((r) => r.path),
 	);
 	const { setFilesOpen } = useShell();
 	const { gate } = useRights();
+	const write = gate("code.write");
 	const run = (job: () => Promise<unknown>) => void runJob(job);
-	if (!changes) return null;
-	const unstaged = [...changes.unstaged, ...changes.untracked];
-	const here = path ? inGroups(changes, path) : null;
+	const here = rows.find((r) => r.path === path);
 	const conflict = path ? conflicts.find((c) => c.path === path) : undefined;
+	// A conflicted file is solved first: it is never chosen.
+	const free = rows.filter((r) => !r.conflict);
+	const all = free.length > 0 && free.every((r) => r.staged && !r.unstaged);
 
-	const discardGroup = async (paths: string[], files: FileChange[]) => {
-		const list = paths.join(", ");
-		if (!(await confirmDialog(format(t.code.confirmDiscard, { count: paths.length, paths: list }))))
-			return;
-		const untracked = files.some((f) => paths.includes(f.path) && f.state === "untracked");
-		await discard(paths, untracked);
+	/** Discards the changes of one file, the chosen part too, after a confirmation that names it. */
+	const discardFile = async (r: FlatRow) => {
+		if (!(await confirmDialog(format(t.code.confirmDiscard, { count: 1, paths: r.path })))) return;
+		if (r.staged) await unstage([r.path]);
+		// A new file leaves the working copy: nothing of it is in the last commit.
+		const fresh = r.file.state === "untracked" || r.file.state === "added";
+		await discard([r.path], fresh);
 	};
 
-	// The same actions as the group buttons, for one file. Without `code.write` they show, off.
-	const fileMenu = (file: FileChange, own: Handlers) =>
-		menu("file", {
-			...own,
-			"copy-path": () => copyText(file.path),
-		}).map((item) => (item.id in own ? { ...item, ...gate("code.write") } : item));
+	// The same actions as the checkbox and the Discard button, for one file. Without `code.write` they show, off.
+	const fileMenu = (r: FlatRow): ReactNode => {
+		const own = r.conflict
+			? {}
+			: {
+					...(r.unstaged ? { stage: () => run(() => stage([r.path])) } : {}),
+					...(r.staged ? { unstage: () => run(() => unstage([r.path])) } : {}),
+					discard: () => run(() => discardFile(r)),
+				};
+		const items = menu("file", { ...own, "copy-path": () => copyText(r.path) }).map((item) =>
+			item.id in own ? { ...item, ...write } : item,
+		);
+		return (
+			<ContextMenu items={items}>
+				<button
+					type="button"
+					aria-current={r.path === path ? "true" : undefined}
+					onClick={() => setPath(r.path)}
+					className="mr-auto min-h-control min-w-0 flex-1 text-left font-mono text-14 break-all"
+				>
+					{r.file.old_path ? `${r.file.old_path} → ` : ""}
+					{r.path}
+				</button>
+			</ContextMenu>
+		);
+	};
 
-	const count = changes.staged.length + unstaged.length + changes.conflicted.length;
 	return (
-		<section aria-labelledby="code-now-files" className="flex flex-col gap-3">
-			<h2 id="code-now-files" className="text-16 font-semibold text-n-12">
-				{count === 0
-					? t.forge.now.clean
-					: count === 1
-						? t.forge.now.file
-						: format(t.forge.now.files, { count })}
-			</h2>
-			{/* The list sets the height, so the commit box is never cut; the diff keeps a fixed height and stays in view. */}
-			<div className="flex items-start gap-3">
-				<SplitPane id="code-changes-width" label={t.forge.resize.changes} fallback={384}>
-					<div className="flex shrink-0 flex-col gap-3 overflow-y-auto">
-						<GateNotice push={false} />
-						{changes.conflicted.length ? <ConflictAgent /> : null}
-						{changes.conflicted.length ? (
-							<FileGroup
-								group="conflicts"
-								files={changes.conflicted}
-								selected={path}
-								onSelect={setPath}
-								menu={(f) => menu("file", { "copy-path": () => copyText(f.path) })}
-							/>
-						) : null}
-						<FileGroup
-							group="staged"
-							files={changes.staged}
-							selected={path}
-							onSelect={setPath}
-							menu={(f) => fileMenu(f, { unstage: () => run(() => unstage([f.path])) })}
-							actions={(paths) => (
+		<div className="flex flex-col gap-6">
+			<ConflictAgent onSolve={setPath} />
+			<div className="flex flex-wrap items-start gap-6">
+				<div className="flex min-w-0 flex-[2_1_320px] flex-col gap-4">
+					{rows.length ? (
+						<Card className="py-2">
+							<ul aria-label={t.code.files}>
+								{rows.map((r) => (
+									<li
+										key={r.path}
+										className={cn(
+											"flex min-h-13 items-center gap-3 px-5 [&+&]:border-t [&+&]:border-n-6",
+											r.path === path && "bg-accent-tint",
+										)}
+									>
+										<Checkbox
+											label={format(t.code.select, { name: r.path })}
+											hideLabel
+											checked={r.staged && !r.unstaged}
+											indeterminate={r.staged && r.unstaged}
+											disabled={r.conflict || write.disabled}
+											onCheckedChange={(on) =>
+												run(() => (on ? stage([r.path]) : unstage([r.path])))
+											}
+										/>
+										{fileMenu(r)}
+										<Counts row={r} />
+									</li>
+								))}
+							</ul>
+							<div className="flex flex-wrap gap-2.5 px-5 pt-3 pb-2">
 								<RightButton
 									right="code.write"
-									variant="ghost"
-									onClick={() => run(() => unstage(paths))}
+									disabled={free.length === 0}
+									onClick={() =>
+										run(() =>
+											all ? unstage(free.map((r) => r.path)) : stage(free.map((r) => r.path)),
+										)
+									}
 								>
-									{format(t.count, { name: t.code.unstage, count: paths.length })}
+									{all ? n.chooseNone : n.chooseAll}
 								</RightButton>
-							)}
-						/>
-						<FileGroup
-							group="unstaged"
-							files={unstaged}
-							selected={path}
-							onSelect={setPath}
-							menu={(f) =>
-								fileMenu(f, {
-									stage: () => run(() => stage([f.path])),
-									discard: () => run(() => discardGroup([f.path], [f])),
-								})
-							}
-							actions={(paths, files) => (
-								<>
-									<RightButton
-										right="code.write"
-										variant="ghost"
-										onClick={() => run(() => discardGroup(paths, files))}
-									>
-										{format(t.count, { name: t.code.discard, count: paths.length })}
-									</RightButton>
-									<RightButton
-										right="code.write"
-										variant="primary"
-										onClick={() => run(() => stage(paths))}
-									>
-										{format(t.count, { name: t.code.stage, count: paths.length })}
-									</RightButton>
-								</>
-							)}
-						/>
+								<RightButton
+									right="code.write"
+									className="text-danger-text"
+									disabled={!here || here.conflict}
+									onClick={() => here && run(() => discardFile(here))}
+								>
+									{t.code.discard}
+								</RightButton>
+							</div>
+						</Card>
+					) : null}
+					<Card pad className="flex flex-col gap-3">
+						<GateNotice push={false} />
 						<CommitBox changes={changes} />
-						<Stashes dirty={changes.staged.length + unstaged.length > 0} run={run} />
-						{error ? (
-							<p role="alert" className="px-3 py-2 text-ui text-danger-text">
-								{error}
-							</p>
-						) : null}
-					</div>
-				</SplitPane>
-				<div className="sticky top-0 h-[36rem] min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
-					{conflict ? <ConflictPane key={conflict.path} file={conflict} run={run} /> : null}
-					{path && here?.staged ? <DiffPane path={path} side="staged" /> : null}
-					{path && here?.unstaged ? <DiffPane path={path} side="unstaged" /> : null}
-					{path ? null : (
+					</Card>
+					<Stashes dirty={free.length > 0} run={run} />
+					{error ? (
+						<p role="alert" className="px-3 py-2 text-ui text-danger-text">
+							{error}
+						</p>
+					) : null}
+				</div>
+				<Card className="flex-[3_1_480px] overflow-hidden">
+					{here ? (
+						<>
+							{/* A conflicted file has its own header, with its path and its actions. */}
+							{conflict ? (
+								<ConflictPane key={conflict.path} file={conflict} run={run} />
+							) : (
+								<Row>
+									<h2 className="min-w-0 font-mono text-14 font-semibold break-all">{here.path}</h2>
+									<Counts row={here} />
+									<span className="ml-auto flex flex-wrap items-center gap-2">
+										<OpenInEditor path={here.path} />
+									</span>
+								</Row>
+							)}
+							{here.staged ? (
+								<DiffPane path={here.path} side="staged" both={here.unstaged} />
+							) : null}
+							{here.unstaged ? (
+								<DiffPane path={here.path} side="unstaged" both={here.staged} />
+							) : null}
+							<LocalReview path={here.path} />
+						</>
+					) : (
 						<EmptyState
 							title={t.empty.file}
 							action={{ label: t.panels.files.toggle, onClick: () => setFilesOpen(true) }}
 						/>
 					)}
-				</div>
+				</Card>
 			</div>
-		</section>
+		</div>
 	);
 }

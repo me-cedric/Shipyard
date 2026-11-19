@@ -5,7 +5,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { askForm } from "@/lib/shell";
 import { mountApp } from "@/test/mount";
-import { setupAddress } from "./setup-address";
+import { oldPageAnchor, setupAddress } from "./setup-address";
 
 const open = () => unwrap(commands.projectsOpen("/mock/alpha", false));
 const seed = () =>
@@ -19,11 +19,6 @@ const seed = () =>
 		}),
 	);
 const main = () => screen.findByRole("main");
-/** A link of the section list of the page that shows now. */
-const section = (name: string | RegExp) =>
-	waitFor(() =>
-		within(screen.getByRole("navigation", { name: "Sections" })).getByRole("link", { name }),
-	);
 /** The open project gives the person the level `none` in the settings area. */
 async function noSettings() {
 	await open();
@@ -54,10 +49,13 @@ describe("Setup scopes (spec:app-redesign#REQ-024)", () => {
 
 	it("shows the AI tools, the MCP servers and the permissions under This computer, and no issue tracker", async () => {
 		await seed();
-		mountApp("/setup/computer");
+		const router = mountApp("/setup/computer");
 		expect(await screen.findByRole("heading", { name: /^AI tools/ })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: /^MCP servers/ })).toBeInTheDocument();
-		expect(await screen.findByRole("region", { name: /^Permissions/ })).toBeInTheDocument();
+		router.history.push("/setup/computer?page=logs");
+		expect(
+			await screen.findByRole("region", { name: "What the system allows" }),
+		).toBeInTheDocument();
 		expect(screen.queryByRole("heading", { name: /^Issue trackers/ })).not.toBeInTheDocument();
 		expect(screen.queryByRole("group", { name: "Acme" })).not.toBeInTheDocument();
 	});
@@ -73,8 +71,13 @@ describe("Setup scopes (spec:app-redesign#REQ-024)", () => {
 		expect(await types()).toEqual(["Issue tracker", "Code host"]);
 		await user.keyboard("{Escape}");
 		project.history.push("/setup/computer");
-		await user.click(await within(await main()).findByRole("button", { name: "Connection" }));
-		expect(await types()).toEqual(["MCP server", "Model provider"]);
+		expect(
+			await within(await main()).findByRole("button", { name: "Add a provider" }),
+		).toBeInTheDocument();
+		expect(within(await main()).getByRole("button", { name: "Add a server" })).toBeInTheDocument();
+		expect(
+			within(await main()).queryByRole("button", { name: "Connection" }),
+		).not.toBeInTheDocument();
 	});
 
 	it("sends a link that asks for the connection form from This computer to This project", async () => {
@@ -84,49 +87,80 @@ describe("Setup scopes (spec:app-redesign#REQ-024)", () => {
 		expect(await screen.findByRole("combobox", { name: "Type" })).toHaveTextContent("Code host");
 	});
 
-	it("opens a sub-page from its door and comes back with the back link", async () => {
+	it("opens a page from its pill or its row and comes back with the back link", async () => {
 		const user = userEvent.setup();
 		await open();
 		const router = mountApp("/setup/project");
-		const doors = await screen.findByRole("navigation", { name: "This project" });
-		// The door of the tickets waits for the project file.
-		await within(doors).findByRole("link", { name: "Tickets" });
+		// The title stays Setup, and the pills of the scope are links.
+		expect(await screen.findByRole("heading", { level: 1, name: "Setup" })).toBeInTheDocument();
+		const pills = await screen.findByRole("navigation", { name: "This project" });
 		expect(
-			within(doors)
+			within(pills)
 				.getAllByRole("link")
 				.map((a) => a.textContent?.trim()),
-		).toEqual(["Connections", "Tickets", "Extensions", "Health of this project"]);
-		await user.click(within(doors).getByRole("link", { name: "Health of this project" }));
+		).toEqual(["Details", "Agents may do alone", "Automation", "Extensions"]);
+		expect(within(pills).getByRole("link", { name: "Details" })).toHaveAttribute(
+			"aria-current",
+			"page",
+		);
+		// A page with no pill has a row. The row of the tickets waits for the project file.
+		await user.click(await screen.findByRole("link", { name: "Health of this project" }));
 		await waitFor(() => expect(router.state.location.href).toBe("/setup/project?page=health"));
 		expect(
-			await screen.findByRole("heading", { level: 1, name: "Health of this project" }),
+			await screen.findByRole("region", { name: "Broken links between specs and docs" }),
 		).toBeInTheDocument();
-		// The sub-page replaces the scope: one place for each setting.
-		expect(screen.queryByRole("combobox", { name: "Issue tracker" })).not.toBeInTheDocument();
-		await user.click(screen.getByRole("button", { name: "This project" }));
+		expect(screen.queryByRole("navigation", { name: "This project" })).not.toBeInTheDocument();
+		await user.click(screen.getByRole("link", { name: "Details" }));
 		await waitFor(() => expect(router.state.location.href).toBe("/setup/project"));
-		expect(await screen.findByRole("combobox", { name: "Issue tracker" })).toBeInTheDocument();
+		expect(await screen.findByRole("region", { name: "Project" })).toBeInTheDocument();
+		await user.click(
+			within(await screen.findByRole("navigation", { name: "This project" })).getByRole("link", {
+				name: "Extensions",
+			}),
+		);
+		await waitFor(() => expect(router.state.location.href).toBe("/setup/project?page=extensions"));
+		await waitFor(() =>
+			expect(
+				within(screen.getByRole("navigation", { name: "This project" })).getByRole("link", {
+					name: "Extensions",
+				}),
+			).toHaveAttribute("aria-current", "page"),
+		);
+	});
+
+	it("opens the first page for its own id, and keeps an unknown id in the address", async () => {
+		await open();
+		const router = mountApp("/setup/project?page=details#pickup-label");
+		await waitFor(() => expect(router.state.location.href).toBe("/setup/project#pickup-label"));
+		router.history.push("/setup/computer?page=connections");
+		await waitFor(() => expect(router.state.location.href).toBe("/setup/computer"));
+		// A page can register when its data loads: the scope does not send its id away.
+		router.history.push("/setup/me?page=none");
+		expect(await screen.findByRole("group", { name: "Theme" })).toBeInTheDocument();
+		expect(router.state.location.href).toBe("/setup/me?page=none");
 	});
 
 	it("splits the health: the findings of the project, the tools of the computer, the logs apart", async () => {
 		await open();
 		const router = mountApp("/setup/project?page=health");
-		expect(await screen.findByRole("region", { name: /^Broken refs/ })).toBeInTheDocument();
-		expect(screen.getByRole("region", { name: "Findings over time" })).toBeInTheDocument();
-		expect(screen.queryByRole("region", { name: "Base" })).not.toBeInTheDocument();
-		router.history.push("/setup/computer?page=health");
-		expect(await screen.findByRole("region", { name: "Base" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("region", { name: "Broken links between specs and docs" }),
+		).toBeInTheDocument();
 		expect(screen.queryByRole("region", { name: "Findings over time" })).not.toBeInTheDocument();
-		expect(screen.queryByRole("region", { name: /^Broken refs/ })).not.toBeInTheDocument();
+		router.history.push("/setup/computer?page=health");
+		expect(await screen.findByRole("heading", { level: 1, name: "1 problem" })).toBeInTheDocument();
+		expect(
+			screen.queryByRole("region", { name: "Broken links between specs and docs" }),
+		).not.toBeInTheDocument();
 		router.history.push("/setup/computer?page=logs");
-		expect(await screen.findByRole("region", { name: /^Debug console/ })).toBeInTheDocument();
-		expect(screen.queryByRole("region", { name: "Base" })).not.toBeInTheDocument();
+		expect(await screen.findByRole("region", { name: "Findings over time" })).toBeInTheDocument();
+		expect(screen.queryByRole("heading", { name: "1 problem" })).not.toBeInTheDocument();
 	});
 
 	it("keeps the person under Me, with the look and the fonts behind one door", async () => {
 		const user = userEvent.setup();
 		mountApp("/setup/me");
-		expect(await screen.findByRole("combobox", { name: "Theme" })).toBeInTheDocument();
+		expect(await screen.findByRole("group", { name: "Theme" })).toBeInTheDocument();
 		expect(screen.getByRole("combobox", { name: "Role" })).toBeInTheDocument();
 		expect(screen.getByRole("region", { name: /^Notifications/ })).toBeInTheDocument();
 		// The permissions are of this computer, and the start list is on Start.
@@ -140,36 +174,39 @@ describe("Setup scopes (spec:app-redesign#REQ-024)", () => {
 	it("keeps the permissions and the tour under Me for a role that does not see This computer", async () => {
 		await noSettings();
 		const router = mountApp("/setup/me#section-permissions");
-		expect(await screen.findByRole("region", { name: /^Permissions/ })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("region", { name: "What the system allows" }),
+		).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: en.onboarding.replay })).toBeInTheDocument();
-		expect(await section(/^Permissions/)).toBeInTheDocument();
 		expect(router.state.location.pathname).toBe("/setup/me");
 	});
 
 	it("sends a link to the permissions under Me to This computer for a role that sees it", async () => {
 		const router = mountApp("/setup/me#permission-notifications");
 		await waitFor(() =>
-			expect(router.state.location.href).toBe("/setup/computer#permission-notifications"),
+			expect(router.state.location.href).toBe("/setup/computer?page=logs#permission-notifications"),
 		);
-		expect(await screen.findByRole("region", { name: /^Permissions/ })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("region", { name: "What the system allows" }),
+		).toBeInTheDocument();
 	});
 
-	it("keeps the section list of each scope, and the count of This computer", async () => {
+	it("keeps the cards of each scope, and the count of This computer", async () => {
 		await open();
 		await seed();
 		const router = mountApp("/setup/computer");
-		for (const name of [en.settings.certs.title, en.connections.group.mcp, /^Permissions/])
-			expect(await section(name)).toBeInTheDocument();
-		const title = screen.getByRole("heading", { level: 1, name: "This computer" });
+		for (const name of [en.personal.setup.security, en.connections.group.mcp])
+			expect(await screen.findByRole("region", { name })).toBeInTheDocument();
+		const title = screen.getByRole("heading", { level: 1, name: "Setup" });
 		await waitFor(() => expect(title.nextElementSibling).toHaveTextContent(/^\d+$/));
 		router.history.push("/setup/project");
-		expect(await section(en.projects.paths)).toBeInTheDocument();
+		expect(await screen.findByRole("region", { name: "Project" })).toBeInTheDocument();
 		router.history.push("/setup/project?page=connections");
 		const accounts = await screen.findByRole("heading", { level: 1, name: "Connections" });
 		expect(accounts.nextElementSibling).toHaveTextContent("1");
-		expect(await section(en.connections.group.tracker)).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: /^Issue trackers/ })).toBeInTheDocument();
 		router.history.push("/setup/me");
-		expect(await section(en.notifications.title)).toBeInTheDocument();
+		expect(await screen.findByRole("region", { name: en.notifications.title })).toBeInTheDocument();
 	});
 });
 
@@ -177,7 +214,7 @@ describe("setupAddress", () => {
 	it.each([
 		["project", "", "/setup/project"],
 		["project", "#issue-tracker", "/setup/project#issue-tracker"],
-		["project", "#pickup-label", "/setup/project#pickup-label"],
+		["project", "#pickup-label", "/setup/project?page=automation#pickup-label"],
 		["project", "#section-tickets", "/setup/project?page=tickets#section-tickets"],
 		["connections", "", "/setup/computer"],
 		["connections", "#connections", "/setup/project?page=connections#connections"],
@@ -198,5 +235,11 @@ describe("setupAddress", () => {
 		["team", "", undefined],
 	])("%s%s opens %s", (tab, hash, to) => {
 		expect(setupAddress(tab, hash)).toBe(to);
+	});
+
+	it("names the card of the first page for a page id of before", () => {
+		expect(oldPageAnchor("project", "connections")).toBe("connections");
+		expect(oldPageAnchor("project", "tickets")).toBeUndefined();
+		expect(oldPageAnchor("computer", "connections")).toBeUndefined();
 	});
 });

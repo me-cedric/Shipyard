@@ -21,7 +21,7 @@ const needs = (right: string) => `Needs the right ${right} (your role: Viewer)`;
 
 /** Each case: a route, the name of one write control and the right that the backend asks for. */
 const CASES = [
-	["Code", "/code/branches", "Branch", "code.write"],
+	["Code", "/code/branches", "New branch", "code.write"],
 	["Factory", "/factory/runs", "Start run", "runs.start"],
 	["Specs", "/specs/changes", "New change", "specs.edit"],
 	["Knowledge", "/knowledge/handbook", "New page", "knowledge.edit"],

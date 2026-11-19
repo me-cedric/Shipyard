@@ -16,6 +16,8 @@ const LOGS = "/setup/computer?page=logs";
 /** The anchors that left the page of their old tab, as `tab#anchor`. */
 const ANCHOR: Record<string, string> = {
 	"project#section-tickets": "/setup/project?page=tickets",
+	"project#pickup-label": "/setup/project?page=automation",
+	"health#doctor-bootstrap": "/setup/project?page=extensions",
 	"connections#connections": ACCOUNTS,
 	"connections#connections-tracker": ACCOUNTS,
 	"connections#connections-forge": ACCOUNTS,
@@ -59,3 +61,17 @@ export function setupAddress(tab: string, hash = ""): string | undefined {
 	const to = ANCHOR[`${tab}#${id}`] ?? TAB[tab];
 	return to && id ? `${to}#${id}` : to;
 }
+
+/** The page ids of before look pass 2 that are a card of the first page of their scope now, as `scope/id`: the anchor of the card. */
+const OLD_PAGE: Record<string, string> = {
+	// The issue tracker and the code host are cards of Details.
+	"project/connections": "connections",
+};
+
+/**
+ * The anchor on the first page of a scope for a page id of before: `oldPageAnchor("project",
+ * "connections")` is `connections`, and undefined for another id. `SetupScope` uses it when no page of
+ * the scope has the id, so `/setup/project?page=connections` keeps its page until Details holds the cards.
+ */
+export const oldPageAnchor = (scope: string, id: string): string | undefined =>
+	OLD_PAGE[`${scope}/${id}`];

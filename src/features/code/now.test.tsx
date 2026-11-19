@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
+import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 
 const idle = (router: ReturnType<typeof mountApp>) =>
@@ -9,30 +10,38 @@ const idle = (router: ReturnType<typeof mountApp>) =>
 async function now() {
 	await unwrap(commands.projectsOpen("/mock/alpha", false));
 	const router = mountApp("/code/now");
-	const files = await screen.findByRole("region", { name: "5 files to commit" });
+	const files = await screen.findByRole("region", { name: "4 files to commit" });
 	return { router, files };
 }
 
 // spec:app-redesign#REQ-022, scenario Now.
 describe("Code / Now", () => {
-	it("shows the changed files with the commit box, and the open pull requests", async () => {
+	it("shows three files with their counts, the link to the others and the commit box", async () => {
 		const { router, files } = await now();
-		for (const name of ["app.ts", "util.ts", "guide.md", "README.md"])
-			expect(within(files).getAllByRole("button", { name }).length).toBeGreaterThan(0);
+		for (const path of ["docs/guide.md", "README.md", "src/app.ts"])
+			expect(within(files).getByRole("link", { name: new RegExp(path) })).toHaveAttribute(
+				"href",
+				"/code/changes",
+			);
+		expect(within(files).getByRole("link", { name: "1 more file" })).toHaveAttribute(
+			"href",
+			"/code/changes",
+		);
 		const box = within(files).getByRole("form", { name: "Commit" });
-		expect(within(box).getByRole("textbox", { name: "Summary" })).toBeInTheDocument();
+		expect(within(box).getByRole("textbox", { name: "Commit message" })).toBeInTheDocument();
 		expect(within(box).getByRole("button", { name: "Write it for me" })).toBeEnabled();
 		expect(within(box).getByRole("button", { name: "Commit" })).toBeEnabled();
+		await idle(router);
+	});
+
+	it("shows the open pull requests, one state each, with the link to the full list", async () => {
+		const { router } = await now();
 		const open = (await unwrap(commands.pullsList())).filter((r) => r.state === "open");
 		expect(open.length).toBeGreaterThan(0);
-		const pulls = screen.getByRole("region", { name: "Pull requests" });
-		expect(
-			await within(pulls).findByRole("heading", { name: `Open (${open.length})` }),
-		).toBeInTheDocument();
+		const pulls = await screen.findByRole("region", { name: "Pull requests" });
 		for (const r of open)
-			expect(
-				within(pulls).getByRole("link", { name: (n) => n.startsWith(`#${r.number}${r.title}`) }),
-			).toBeVisible();
+			expect(within(pulls).getByRole("link", { name: (n) => n.includes(r.title) })).toBeVisible();
+		expect(within(pulls).getByRole("button", { name: "Merged and closed" })).toBeInTheDocument();
 		await idle(router);
 	});
 
@@ -40,17 +49,18 @@ describe("Code / Now", () => {
 		const user = userEvent.setup();
 		const { router, files } = await now();
 		const box = within(files).getByRole("form", { name: "Commit" });
-		await user.type(within(box).getByRole("textbox", { name: "Summary" }), "nonsense");
+		await user.type(within(box).getByRole("textbox", { name: "Commit message" }), "nonsense");
 		await user.click(within(box).getByRole("button", { name: "Commit" }));
 		// A refused commit keeps the text and shows the reason.
 		expect(await within(box).findByRole("alert")).toBeInTheDocument();
-		const summary = within(box).getByRole("textbox", { name: "Summary" });
+		const summary = within(box).getByRole("textbox", { name: "Commit message" });
 		await user.clear(summary);
 		await user.type(summary, "feat(app): add the page");
 		await user.click(within(box).getByRole("button", { name: "Commit" }));
-		expect(await screen.findByRole("region", { name: "4 files to commit" })).toBeInTheDocument();
-		expect(screen.getByRole("textbox", { name: "Summary" })).toHaveValue("");
-		expect(screen.getByRole("heading", { name: "Staged (0)" })).toBeInTheDocument();
+		await waitFor(() =>
+			expect(screen.getByRole("textbox", { name: "Commit message" })).toHaveValue(""),
+		);
+		expect(mockState().code?.branches.main?.log).toHaveLength(4);
 		await idle(router);
 	});
 
@@ -78,7 +88,7 @@ describe("Code / Now", () => {
 	it("opens the product health and the files of the project from their doors", async () => {
 		const user = userEvent.setup();
 		const { router } = await now();
-		expect(screen.getByRole("link", { name: "Product health" })).toHaveAttribute(
+		expect(screen.getByRole("link", { name: "Open Product health" })).toHaveAttribute(
 			"href",
 			"/flow/health",
 		);

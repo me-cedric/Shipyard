@@ -4,13 +4,12 @@ Code arbeitet am git-Repository des Projekts. Sie müssen keine git-Befehle kenn
 
 ## Jetzt
 
-Jetzt zeigt die Dateien für den Commit, dann die Pull Requests.
+Jetzt ist eine kurze Übersicht: die Dateien für den Commit und die offenen Pull Requests, eine Zeile zum Zustand des Produkts und die Aktionen Arbeitszweig, Terminal, Dateien und Pull Request öffnen.
 
-Die Dateien, die Sie geändert haben, zeigen sich als Baum.
+Die Karte der Dateien für den Commit zeigt die ersten drei Dateien mit den hinzugefügten und entfernten Zeilen, einen Link zu den anderen Dateien, eine Commit-Nachricht, Für mich schreiben und Commit. Der Link öffnet die Seite der lokalen Änderungen.
 
-1. Wählen Sie eine Datei, um zu sehen, was sich geändert hat.
-2. Merken Sie die Dateien vor, die Sie behalten wollen. Oder verwerfen Sie eine Änderung.
-3. Schreiben Sie im Commit-Feld unter den Dateien eine Zusammenfassung, fügen Sie eine Beschreibung hinzu, wenn Sie wollen, dann klicken Sie auf Commit. Ein Commit nimmt nur die vorgemerkten Dateien. Die Schaltfläche Commit in der Karte der Sync-Markierung tut dasselbe von jeder Seite aus.
+1. Haken Sie die Dateien, die Sie behalten wollen, in einer flachen Liste an. Alle wählen und Keine wählen haken die ganze Liste an. Oder verwerfen Sie eine Änderung.
+2. Schreiben Sie die Commit-Nachricht, fügen Sie eine Beschreibung hinzu, wenn Sie wollen, dann klicken Sie auf Commit. Ein Commit nimmt nur die angehakten Dateien. Die Schaltfläche Commit in der Karte der Sync-Markierung tut dasselbe von jeder Seite aus.
 
 - Schreib es für mich bittet den Assistenten um eine Nachricht aus den vorgemerkten Dateien. Nichts wird gesendet, bis Sie es senden.
 - Eine Gruppe ohne Dateien zeigt eine gedämpfte Zeile, etwa „Nichts vorgemerkt“.

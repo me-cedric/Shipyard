@@ -48,8 +48,8 @@ export const onboardingEn = {
 			permissions: "Permissions",
 			decision: "First decision",
 			spec: "First spec",
-			assign: "First assigned ticket",
-			run: "First run",
+			assign: "First ticket for a person",
+			run: "First work by an agent",
 		},
 		action: {
 			project: "New project",
@@ -173,8 +173,8 @@ export const onboardingFr: typeof onboardingEn = {
 			permissions: "Autorisations",
 			decision: "Première décision",
 			spec: "Première spec",
-			assign: "Premier ticket attribué",
-			run: "Premier run",
+			assign: "Premier ticket pour une personne",
+			run: "Premier travail d'un agent",
 		},
 		action: {
 			project: "Nouveau projet",

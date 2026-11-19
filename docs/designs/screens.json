@@ -85,7 +85,7 @@
     {
       "id": "SCR-008",
       "slug": "code",
-      "title": "Code / Now: the files to commit with the commit box (Summary, Description, Write it for me, Commit), then the pull requests with a search, the filter All and Needs review, the open ones first and Merged and closed behind one button; two doors open the product health and the files",
+      "title": "Code / Now: two cards, the files to commit with one commit message, Write it for me and Commit, and the open pull requests with one state and Merge; Merged and closed opens the full list; a row to the health of the product; Working branch, Terminal, Files and Open pull request",
       "artifacts": [
         "spec:code",
         "spec:ux-declutter",
@@ -487,7 +487,7 @@
     {
       "id": "SCR-061",
       "slug": "setup-start",
-      "title": "Setup / Start: the guided start with each step of Get started, one question at a time with Skip, and three doors to This project, This computer and Me, each with one state line",
+      "title": "Setup / Start: the steps with a divider, one question of 30 px, product tiles for the issue tracker and the code host, Skip and Connect, and three scope cards: This project, This computer, Me",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -497,7 +497,7 @@
     {
       "id": "SCR-062",
       "slug": "setup-computer",
-      "title": "Setup / This computer: the doors Agents and rules, Outside agents, Health of this computer and Logs and feedback, above the AI tools, the model providers, the MCP servers, the certificates and the permissions",
+      "title": "Setup / This computer: the cards AI tools, Model providers, MCP servers, Outside agents and Security, and Repair next to the section switch",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -507,7 +507,7 @@
     {
       "id": "SCR-063",
       "slug": "setup-me",
-      "title": "Setup / Me: the theme, the language, the role, the terminal, the default agent and the notifications, with one door to Look and layout",
+      "title": "Setup / Me: the theme tiles, the person with the role, the language, the look, the notifications in four groups, the updates and the tools; Look and layout opens its own page",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -517,7 +517,7 @@
     {
       "id": "SCR-064",
       "slug": "code-terminal",
-      "title": "Code / Terminal: the command line of the project as a section of Code; the Terminal action of the Ask bar and of Code / Now opens the same in the drawer",
+      "title": "Code / Terminal: a Files card with Find a file, the changed files and the file actions, and a dark terminal card with tabs, Clear, Close the tab and a command bar with Run and Ask an agent to run it",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -723,7 +723,7 @@
     {
       "id": "SCR-083",
       "slug": "code-history",
-      "title": "Code / History: the commits of the working branch with branch and tag labels and the picture of each author",
+      "title": "Code / History: the commits of the working branch in one card with Older commits, a detail side with the feature, the files and the first diff, a branch button, the switch Commits and Tags, and a search; the labels, the short id and Export are behind More",
       "artifacts": [
         "spec:code",
         "spec:app-redesign",
@@ -734,7 +734,7 @@
     {
       "id": "SCR-084",
       "slug": "code-branches",
-      "title": "Code / Branches: the local and remote branches with their actions",
+      "title": "Code / Branches: one card for each branch with its Ahead and Behind bars and its actions, New branch, Push, Fetch and Sync, the code host address card; Rebase, Force publish and Remote branches are in More",
       "artifacts": [
         "spec:code",
         "spec:app-redesign",
@@ -790,7 +790,7 @@
     {
       "id": "SCR-089",
       "slug": "setup-tickets",
-      "title": "Setup / This project, Tickets: the ticket settings of the project",
+      "title": "Setup / This project, Tickets: the kinds of ticket, what holds what, the unit of size with the hours in a day, the statuses of the mirror, and a More card",
       "artifacts": [
         "spec:projects",
         "spec:app-redesign",
@@ -801,7 +801,7 @@
     {
       "id": "SCR-090",
       "slug": "setup-extensions",
-      "title": "Setup / This project, Extensions: the extensions of the project",
+      "title": "Setup / This project, Extensions: Add a plugin, Installed plugins, Skills, Child projects, the rules setup for a new project and a row to Plugins and rule packs",
       "artifacts": [
         "spec:extensions",
         "spec:app-redesign",
@@ -812,7 +812,7 @@
     {
       "id": "SCR-091",
       "slug": "setup-project-health",
-      "title": "Setup / This project, Health of this project: the findings of the project and Fix all with an agent",
+      "title": "Setup / This project, Health of this project: one sentence for the title, Check again and Fix all with an agent, one card for each group of findings, and the Also card",
       "artifacts": [
         "spec:projects",
         "spec:app-redesign",
@@ -823,7 +823,7 @@
     {
       "id": "SCR-092",
       "slug": "setup-agents-rules",
-      "title": "Setup / This computer, Agents and rules: the AI tools, the model tiers and the rules",
+      "title": "Setup / This computer, Models and rules: the sign-in of the AI tools, the three model tiers and the prompt language, the agent roles and the working rules of the agents",
       "artifacts": [
         "spec:extensions",
         "spec:app-redesign",
@@ -834,7 +834,7 @@
     {
       "id": "SCR-093",
       "slug": "setup-outside-agents",
-      "title": "Setup / This computer, Outside agents: what an agent outside Shipyard can read and do",
+      "title": "Setup / This computer, Share Shipyard with other tools: the AI tools that can use Shipyard, what they may use, the address of Shipyard with Copy, and Import of servers from another tool",
       "artifacts": [
         "spec:connections",
         "spec:app-redesign",
@@ -845,7 +845,7 @@
     {
       "id": "SCR-094",
       "slug": "setup-computer-health",
-      "title": "Setup / This computer, Health of this computer: the programs that Shipyard needs, with their state",
+      "title": "Setup / This computer, Health of this computer: the number of problems as the title, a banner for a missing program with Fix it, the five areas, the version and the Toolchain behind Details",
       "artifacts": [
         "spec:projects",
         "spec:app-redesign",
@@ -856,7 +856,7 @@
     {
       "id": "SCR-095",
       "slug": "setup-logs",
-      "title": "Setup / This computer, Logs and feedback: the logs of the app and the feedback form",
+      "title": "Setup / This computer, Logs and feedback: the console with a level switch, the findings over time, the personas for prices, what the system allows and the feedback form",
       "artifacts": [
         "spec:shell",
         "spec:app-redesign",
@@ -1170,6 +1170,55 @@
         "adr:0023"
       ],
       "file": "docs/assets/screenshots/library-report-work-done.png"
+    },
+    {
+      "id": "SCR-180",
+      "slug": "code-changes",
+      "title": "Code / local changes: the page of the files to commit with one flat list, a conflict banner, one commit message with an optional description, the put-aside sets, and a diff side with the review comment",
+      "artifacts": [
+        "spec:code",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-181",
+      "slug": "setup-project",
+      "title": "Setup / This project: the cards Issue tracker, Code host and Figma, the Project card, the Tickets card, a More card, what agents may do alone, Automation and the health row",
+      "artifacts": [
+        "spec:projects",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-182",
+      "slug": "setup-automation",
+      "title": "Setup / This project, Automation: the main switch, the pickup rows, the steppers, the steps of the status mapping, what agents may write and the limits of spend",
+      "artifacts": [
+        "spec:sync",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-183",
+      "slug": "setup-look",
+      "title": "Setup / Me, Look and layout: the colours, the layout side, motion and focus, the text and the fonts, and the things of this computer",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-184",
+      "slug": "setup-plugins",
+      "title": "Setup / This project, Plugins and rule packs: the check before a plugin applies, the rule packs, Make a plugin from this project and Send to the child projects",
+      "artifacts": [
+        "spec:extensions",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
     }
   ]
 }

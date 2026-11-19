@@ -8,7 +8,7 @@ Start is the guided start: each step of the Get started checklist, one question 
 
 ## This project
 
-This project holds what the project stores and shares with the team. Four doors open its pages: Connections, Tickets, Extensions and Health of this project.
+This project holds what the project stores and shares with the team. Four pills open its pages: Details, Agents may do alone, Automation and Extensions. Connections, Tickets and Health of this project open from Details.
 
 The project form holds the name and the logo (the logo shows beside the project name, at the top of the sidebar), the folders of the project, the default recipe, the automation and the project import. Settings that are rarely changed sit under Advanced. The same page restores saved changes (stashes), shows what they hold, and brings a branch that lags behind the server up to date.
 
@@ -53,7 +53,7 @@ Fix all with an agent makes one feature in Flow with the findings in its Brief, 
 
 ## This computer
 
-This computer holds what this machine stores: the AI tools, the model providers, the MCP servers, the certificates and the permissions of the system with Replay the tour (see Getting started, Permissions). Four doors open its pages: Agents and rules, Outside agents, Health of this computer and Logs and feedback.
+This computer holds what this machine stores: the AI tools, the model providers, the MCP servers, the certificates and the permissions of the system with Replay the tour (see Getting started, Permissions). Three pills open its pages: AI tools and connections, Models and rules and Health. Share Shipyard with other tools and Logs and feedback open from rows.
 
 - MCP servers: the tools that agents can call. They are grouped by category. Click Add the recommended set to turn on the servers that suit the project. Click Test on a server, or Test all, to see if each one works and how many tools it gives. Each server has an Allow list: All tools, Read only (the tools that the server marks as read only, else none) or Custom, where you tick the tools. A tool that is not on the list is hidden from the agents and refused when called.
 - Custom MCP server: choose Custom in Add, or paste the JSON (`mcpServers`) of a server in Paste JSON. A secret value goes to the keychain, not to a file. A secret in the arguments is refused: move it to the variables.

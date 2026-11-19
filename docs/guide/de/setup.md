@@ -8,7 +8,7 @@ Start ist der geführte Start: jeder Schritt der Liste Erste Schritte, eine Frag
 
 ## Dieses Projekt
 
-Dieses Projekt enthält, was das Projekt speichert und mit dem Team teilt. Vier Türen öffnen seine Seiten: Verbindungen, Tickets, Erweiterungen und Zustand dieses Projekts.
+Dieses Projekt enthält, was das Projekt speichert und mit dem Team teilt. Vier Reiter öffnen seine Seiten: Details, Was Agenten allein tun, Automatisierung und Erweiterungen. Verbindungen, Tickets und Zustand dieses Projekts öffnen sich von Details aus.
 
 Das Projektformular enthält den Namen und das Logo (das Logo zeigt sich neben dem Projektnamen, oben in der Seitenleiste), die Ordner des Projekts, das Standardrezept, die Automatisierung und den Projektimport. Selten geänderte Einstellungen stehen unter Erweitert. Dieselbe Seite stellt beiseitegelegte Änderungen (Stashes) wieder her, zeigt, was sie enthalten, und bringt einen Branch, der hinter dem Server liegt, auf den neuesten Stand.
 
@@ -53,7 +53,7 @@ Alles mit einem Agenten beheben legt ein Feature in Ablauf mit den Befunden in s
 
 ## Dieser Computer
 
-Dieser Computer enthält, was dieser Rechner speichert: die KI-Tools, die Modellanbieter, die MCP-Server, die Zertifikate und die Berechtigungen des Systems mit Tour wiederholen (siehe Erste Schritte, Berechtigungen). Vier Türen öffnen seine Seiten: Agenten und Regeln, Externe Agenten, Zustand dieses Computers und Protokolle und Feedback.
+Dieser Computer enthält, was dieser Rechner speichert: die KI-Tools, die Modellanbieter, die MCP-Server, die Zertifikate und die Berechtigungen des Systems mit Tour wiederholen (siehe Erste Schritte, Berechtigungen). Drei Reiter öffnen seine Seiten: KI-Tools und Verbindungen, Modelle und Regeln und Zustand. Shipyard mit anderen Tools teilen und Protokolle und Feedback öffnen sich über Zeilen.
 
 - MCP-Server: die Werkzeuge, die Agenten aufrufen können. Sie sind nach Kategorie gruppiert. Klicken Sie auf Empfohlenen Satz hinzufügen, um die Server einzuschalten, die zum Projekt passen. Klicken Sie bei einem Server auf Testen, oder auf Alle testen, um zu sehen, ob jeder funktioniert und wie viele Werkzeuge er gibt. Jeder Server hat eine Erlaubnisliste: Alle Werkzeuge, Nur Lesen (die Werkzeuge, die der Server als nur lesend markiert, sonst keine) oder Eigene, wo Sie die Werkzeuge anhaken. Ein Werkzeug, das nicht auf der Liste steht, ist vor den Agenten verborgen und wird beim Aufruf abgelehnt.
 - Eigener MCP-Server: Wählen Sie Eigene in Hinzufügen, oder fügen Sie das JSON (`mcpServers`) eines Servers in JSON einfügen ein. Ein geheimer Wert geht in den Schlüsselbund, nicht in eine Datei. Ein Geheimnis in den Argumenten wird abgelehnt: Verschieben Sie es in die Variablen.

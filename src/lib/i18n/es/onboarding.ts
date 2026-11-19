@@ -49,8 +49,8 @@ export const onboardingEs: typeof onboardingEn = {
 			permissions: "Permisos",
 			decision: "Primera decisión",
 			spec: "Primera especificación",
-			assign: "Primer ticket asignado",
-			run: "Primera ejecución",
+			assign: "Primer ticket para una persona",
+			run: "Primer trabajo de un agente",
 		},
 		action: {
 			project: "Nuevo proyecto",

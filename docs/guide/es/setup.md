@@ -8,7 +8,7 @@ Inicio es el inicio guiado: cada paso de la lista Empezar, una pregunta cada vez
 
 ## Este proyecto
 
-Este proyecto contiene lo que el proyecto guarda y comparte con el equipo. Cuatro puertas abren sus páginas: Conexiones, Tickets, Extensiones y Salud de este proyecto.
+Este proyecto contiene lo que el proyecto guarda y comparte con el equipo. Cuatro pestañas abren sus páginas: Detalles, Lo que los agentes hacen solos, Automatización y Extensiones. Conexiones, Tickets y Salud de este proyecto se abren desde Detalles.
 
 El formulario del proyecto contiene el nombre y el logo (el logo se muestra junto al nombre del proyecto, en lo alto de la barra lateral), las carpetas del proyecto, la receta predeterminada, la automatización y la importación del proyecto. Los ajustes que se cambian poco están en Avanzado. La misma página restaura los cambios apartados (stashes), muestra lo que contienen, y pone al día una rama que va por detrás del servidor.
 
@@ -53,7 +53,7 @@ Corregir todo con un agente crea una funcionalidad en Flujo con los hallazgos en
 
 ## Este ordenador
 
-Este ordenador contiene lo que esta máquina guarda: las herramientas de IA, los proveedores de modelos, los servidores MCP, los certificados y los permisos del sistema con Repetir el recorrido (consulta Primeros pasos, Permisos). Cuatro puertas abren sus páginas: Agentes y reglas, Agentes externos, Salud de este ordenador y Registros y comentarios.
+Este ordenador contiene lo que esta máquina guarda: las herramientas de IA, los proveedores de modelos, los servidores MCP, los certificados y los permisos del sistema con Repetir el recorrido (consulta Primeros pasos, Permisos). Tres pestañas abren sus páginas: Herramientas de IA y conexiones, Modelos y reglas y Salud. Compartir Shipyard con otras herramientas y Registros y comentarios se abren desde filas.
 
 - Servidores MCP: las herramientas que los agentes pueden llamar. Están agrupados por categoría. Haz clic en Añadir el conjunto recomendado para activar los servidores que convienen al proyecto. Haz clic en Probar en un servidor, o en Probar todo, para ver si cada uno funciona y cuántas herramientas da. Cada servidor tiene una Lista de permitidas: Todas las herramientas, Solo lectura (las herramientas que el servidor marca como de solo lectura, si no ninguna) o Personalizada, donde marcas las herramientas. Una herramienta que no está en la lista queda oculta para los agentes y se rechaza al llamarla.
 - Servidor MCP personalizado: elige Personalizado en Añadir, o pega el JSON (`mcpServers`) de un servidor en Pegar JSON. Un valor secreto va al llavero, no a un archivo. Un secreto en los argumentos se rechaza: muévelo a las variables.

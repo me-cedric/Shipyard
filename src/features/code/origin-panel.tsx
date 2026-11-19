@@ -6,12 +6,14 @@ import { commands, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
+import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Link } from "@/ui/organisms/markdown-view";
 
 /**
- * The origin of the project. A local project publishes to a forge in one click: the repository is
- * created, set as the origin and pushed. A project with an origin shows it and can change it.
+ * The address of the project on the code host, as a card. The field holds the address; Save sets it.
+ * A local project also publishes to a code host in one click: the repository is created, set as
+ * the origin and pushed.
  */
 export function OriginPanel() {
 	const { t } = useI18n();
@@ -25,57 +27,28 @@ export function OriginPanel() {
 		}).data?.filter((c) => c.group === "forge") ?? [];
 	const [forge, setForge] = useState("");
 	const [name, setName] = useState("");
-	const [address, setAddress] = useState("");
-	const [changing, setChanging] = useState(false);
+	// Null until the person types: the field then shows the address of today.
+	const [typed, setTyped] = useState<string | null>(null);
 	const [error, setError] = useState<unknown>(null);
 	const run = async (job: () => Promise<unknown>) => {
 		try {
 			setError(null);
 			await job();
 			setName("");
-			setAddress("");
-			setChanging(false);
+			setTyped(null);
 		} catch (e) {
 			setError(e);
 		}
 	};
 	if (origin === undefined) return null;
 	const chosen = forge || forges[0]?.id || "";
-	const remote = (
-		<form
-			className="flex items-center gap-2"
-			onSubmit={(e) => {
-				e.preventDefault();
-				void run(() => setRemote(address));
-			}}
-		>
-			<Input
-				label={o.address}
-				className="w-72"
-				value={address}
-				onChange={(e) => setAddress(e.target.value)}
-			/>
-			<Button type="submit" disabled={!address.trim()}>
-				{o.setRemote}
-			</Button>
-		</form>
-	);
+	const address = typed ?? origin?.url ?? "";
 	return (
-		<div className="flex flex-col gap-2 px-4 pb-2">
-			<h2 className="text-ui font-medium">{o.title}</h2>
-			{origin ? (
-				<div className="flex flex-wrap items-center gap-2 text-ui">
-					<span className="font-mono">{origin.url}</span>
-					{origin.webUrl ? (
-						<Link url={origin.webUrl}>{format(o.openPage, { slug: origin.slug ?? "" })}</Link>
-					) : null}
-					<Button variant="ghost" aria-pressed={changing} onClick={() => setChanging(!changing)}>
-						{o.changeRemote}
-					</Button>
-				</div>
-			) : forges.length > 0 ? (
+		<Card pad className="mx-4 mb-10 flex flex-col gap-3">
+			<h2 className="text-13 font-semibold text-n-11">{t.forge.branches.address}</h2>
+			{!origin && forges.length > 0 ? (
 				<form
-					className="flex flex-wrap items-center gap-2"
+					className="flex flex-wrap items-center gap-2.5"
 					onSubmit={(e) => {
 						e.preventDefault();
 						void run(() => publish(chosen, name));
@@ -90,7 +63,7 @@ export function OriginPanel() {
 					/>
 					<Input
 						label={o.name}
-						className="w-56"
+						className="flex-[1_1_200px]"
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 					/>
@@ -99,9 +72,27 @@ export function OriginPanel() {
 					</Button>
 				</form>
 			) : null}
-			{!origin && forges.length === 0 ? remote : null}
-			{origin && changing ? remote : null}
+			<form
+				className="flex flex-wrap items-center gap-2.5"
+				onSubmit={(e) => {
+					e.preventDefault();
+					void run(() => setRemote(address));
+				}}
+			>
+				<Input
+					label={t.forge.branches.address}
+					className="flex-[1_1_200px] font-mono text-13"
+					value={address}
+					onChange={(e) => setTyped(e.target.value)}
+				/>
+				<Button type="submit" disabled={!address.trim() || address === origin?.url}>
+					{t.forge.branches.save}
+				</Button>
+			</form>
+			{origin?.webUrl ? (
+				<Link url={origin.webUrl}>{format(o.openPage, { slug: origin.slug ?? "" })}</Link>
+			) : null}
 			<ErrorNotice error={error} />
-		</div>
+		</Card>
 	);
 }

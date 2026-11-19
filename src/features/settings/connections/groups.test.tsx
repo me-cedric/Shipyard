@@ -10,20 +10,24 @@ const row = (name: string) => screen.findByRole("group", { name });
 
 /** Opens the add form on a type. */
 async function addOf(user: ReturnType<typeof userEvent.setup>, type: string) {
-	await user.click(await screen.findByRole("button", { name: "Connection" }));
-	await user.click(screen.getByRole("combobox", { name: "Type" }));
-	await user.click(await screen.findByRole("option", { name: type }));
+	await user.click(
+		await screen.findByRole("button", {
+			name: type === "MCP server" ? "Add a server" : "Add a provider",
+		}),
+	);
 }
 
 describe("Settings / Connections / Runners", () => {
 	it("shows each runner as detected with its version, or missing", async () => {
 		mountApp("/setup/computer");
 		const claude = await row("Claude Code");
-		expect(within(claude).getByRole("img", { name: "Detected" })).toBeInTheDocument();
-		expect(within(claude).getByTitle("2.1.0")).toBeInTheDocument();
+		expect(within(claude).getByText("Ready")).toBeInTheDocument();
+		// The version is under Advanced.
+		expect(screen.getByText("Claude Code: 2.1.0")).toBeInTheDocument();
 		const gemini = await row("Gemini CLI");
-		expect(within(gemini).getByRole("img", { name: "Missing" })).toBeInTheDocument();
-		expect(await screen.findByRole("heading", { name: "AI tools (5)" })).toBeInTheDocument();
+		expect(within(gemini).getByRole("button", { name: "Install Gemini CLI" })).toBeInTheDocument();
+		expect(within(gemini).queryByText("Ready")).toBeNull();
+		expect(await screen.findByRole("region", { name: "AI tools" })).toBeInTheDocument();
 	});
 
 	it("installs a missing runner on one click", async () => {
@@ -33,13 +37,10 @@ describe("Settings / Connections / Runners", () => {
 		expect(within(await row("Claude Code")).queryByRole("button", { name: /Install/ })).toBeNull();
 		await user.click(within(gemini).getByRole("button", { name: "Install Gemini CLI" }));
 		// nothing installs before the confirm, which names the tool
-		expect(within(gemini).getByRole("img", { name: "Missing" })).toBeInTheDocument();
 		await user.click(
 			await within(gemini).findByRole("button", { name: /to install Gemini CLI\?$/ }),
 		);
-		await waitFor(() =>
-			expect(within(gemini).getByRole("img", { name: "Detected" })).toBeInTheDocument(),
-		);
+		await waitFor(() => expect(within(gemini).getByText("Ready")).toBeInTheDocument());
 		expect(within(gemini).queryByRole("button", { name: /Install/ })).toBeNull();
 	});
 });
@@ -57,20 +58,16 @@ describe("Settings / Connections / MCP servers", () => {
 		await user.click(screen.getByRole("button", { name: "Save" }));
 
 		const figma = await row("Figma");
-		expect(await screen.findByRole("heading", { name: "MCP servers (1)" })).toBeInTheDocument();
-		expect(within(figma).getByRole("img", { name: "Stopped" })).toBeInTheDocument();
+		expect(await screen.findByRole("region", { name: "MCP servers" })).toBeInTheDocument();
+		expect(within(figma).getByText("Stopped")).toBeInTheDocument();
 		expect(mockState().secrets["figma/token"]).toBe(KEY);
 		expect(document.body.textContent).not.toContain(KEY);
 
 		await user.click(within(figma).getByRole("button", { name: "Start" }));
-		await waitFor(() =>
-			expect(within(figma).getByRole("img", { name: "Running" })).toBeInTheDocument(),
-		);
+		await waitFor(() => expect(within(figma).getByText("Running")).toBeInTheDocument());
 		expect(within(figma).queryByRole("alert")).toBeNull();
 		await user.click(within(figma).getByRole("button", { name: "Stop" }));
-		await waitFor(() =>
-			expect(within(figma).getByRole("img", { name: "Stopped" })).toBeInTheDocument(),
-		);
+		await waitFor(() => expect(within(figma).getByText("Stopped")).toBeInTheDocument());
 		// The saved secret shows as a mask, never as a value.
 		await user.click(within(figma).getByRole("button", { name: "Edit" }));
 		const saved = screen.getByLabelText("Figma API token", { selector: "input" });
@@ -98,13 +95,9 @@ describe("Settings / Connections / MCP servers", () => {
 		mountApp("/setup/computer");
 		await user.click(await screen.findByRole("button", { name: "Start all" }));
 		const figma = await row("Figma");
-		await waitFor(() =>
-			expect(within(figma).getByRole("img", { name: "Running" })).toBeInTheDocument(),
-		);
+		await waitFor(() => expect(within(figma).getByText("Running")).toBeInTheDocument());
 		// SonarQube lacks Docker: it stays stopped.
-		expect(
-			within(await row("SonarQube")).getByRole("img", { name: "Stopped" }),
-		).toBeInTheDocument();
+		expect(within(await row("SonarQube")).getByText("Stopped")).toBeInTheDocument();
 	});
 
 	it("adds a custom server and names the missing command", async () => {
@@ -117,7 +110,7 @@ describe("Settings / Connections / MCP servers", () => {
 		await user.type(screen.getByRole("textbox", { name: "Command or address" }), "ghost-tool");
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		const ghost = await row("Ghost");
-		expect(within(ghost).getByTitle("Custom")).toBeInTheDocument();
+		expect(within(ghost).getByText("Custom")).toBeInTheDocument();
 		expect(within(ghost).getByText("Missing: ghost-tool")).toBeInTheDocument();
 	});
 
@@ -172,10 +165,11 @@ describe("Settings / Connections / Model providers", () => {
 		await user.click(screen.getByRole("button", { name: "Save" }));
 
 		const lm = await row("Local LM");
-		expect(await screen.findByRole("heading", { name: "Model providers (1)" })).toBeInTheDocument();
+		expect(await screen.findByRole("region", { name: "Model providers" })).toBeInTheDocument();
 		expect(mockState().secrets["provider-local-lm"]).toBe(KEY);
 		expect(document.body.textContent).not.toContain(KEY);
 
+		await user.click(within(lm).getByRole("button", { name: "Edit" }));
 		await user.click(within(lm).getByRole("button", { name: "Test" }));
 		expect(await within(lm).findByRole("status")).toHaveTextContent("Passed: Local LM");
 
@@ -210,13 +204,11 @@ describe("Settings / Connections groups in French", () => {
 		await unwrap(commands.prefsSet({ lang: "fr" }));
 		await unwrap(commands.mcpEnable("figma", true));
 		mountApp("/setup/computer");
-		expect(await screen.findByRole("heading", { name: "Serveurs MCP (1)" })).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "Outils d’IA (5)" })).toBeInTheDocument();
+		expect(await screen.findByRole("region", { name: "Serveurs MCP" })).toBeInTheDocument();
+		expect(await screen.findByRole("region", { name: "Outils d’IA" })).toBeInTheDocument();
 		const figma = await row("Figma");
-		expect(within(figma).getByRole("img", { name: "Arrêté" })).toBeInTheDocument();
+		expect(within(figma).getByText("Arrêté")).toBeInTheDocument();
 		expect(within(figma).getByRole("button", { name: "Démarrer" })).toBeInTheDocument();
-		expect(
-			within(await row("Claude Code")).getByRole("img", { name: "Détecté" }),
-		).toBeInTheDocument();
+		expect(within(await row("Claude Code")).getByText("Prêt")).toBeInTheDocument();
 	});
 });

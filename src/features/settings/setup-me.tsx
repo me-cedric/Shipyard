@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { usePermissionsPlace } from "@/features/onboarding";
 import { useI18n } from "@/lib/i18n";
 import { useRightsView } from "@/lib/rights";
-import { SwatchIcon } from "@/ui/icons";
+import { LookPage } from "./look-rows";
 import { Me } from "./me";
 import { SetupScope } from "./setup-scope";
 
@@ -33,12 +33,13 @@ export function SetupMe() {
 				{
 					id: "look",
 					label: t.settings.pages.look,
-					icon: <SwatchIcon size={24} />,
-					view: <Me part="look" />,
+					linked: true,
+					bare: true,
+					view: <LookPage />,
 				},
 			]}
 		>
-			<Me part="main" permissions={place === "/setup/me"} />
+			<Me permissions={place === "/setup/me"} />
 		</SetupScope>
 	);
 }

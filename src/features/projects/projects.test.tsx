@@ -510,7 +510,7 @@ describe("Settings / Project", () => {
 		await waitFor(() => expect(document.documentElement.dataset.theme).toBe("dark"));
 		expect(screen.getAllByRole("img", { name: "Set by the project" }).length).toBeGreaterThan(0);
 		router.history.push("/setup/me");
-		await screen.findByRole("combobox", { name: "Language" });
+		await screen.findByRole("group", { name: "Language" });
 		expect(screen.getAllByRole("img", { name: "Set by the project" })).toHaveLength(1);
 		expect(mockState().prefs.theme).toBe("light");
 	});
@@ -561,17 +561,22 @@ describe("Settings / Project, project import", () => {
 });
 
 describe("Settings / Health", () => {
-	it("lists the groups of the project with a count, the group of this computer apart, and one fix for each finding", async () => {
+	it("lists the groups of the project with a count, the problems of this computer apart, and one fix for each finding", async () => {
 		await open();
 		const router = mountApp("/setup/computer?page=health");
-		expect(await screen.findByRole("heading", { name: "Tools (0)" })).toBeInTheDocument();
-		expect(screen.queryByRole("heading", { name: /^Compliance/ })).not.toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "1 problem" })).toBeInTheDocument();
+		expect(screen.queryByRole("region", { name: "Rules and skills of the agents" })).toBeNull();
 		router.history.push("/setup/project?page=health");
-		const compliance = await screen.findByRole("heading", { name: "Compliance (1)" });
-		expect(compliance).toBeInTheDocument();
-		expect(screen.queryByRole("heading", { name: /^Tools \(/ })).not.toBeInTheDocument();
-		for (const name of ["Broken refs (1)", "Generated files (0)"])
-			expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("region", { name: "Rules and skills of the agents" }),
+		).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "2 things to fix in this project" })).toBeVisible();
+		expect(screen.queryByRole("region", { name: "Tools of this computer" })).toBeNull();
+		for (const name of ["Broken links between specs and docs"])
+			expect(screen.getByRole("region", { name })).toBeInTheDocument();
+		// A group with no finding has no card.
+		expect(screen.queryByRole("region", { name: "Files that tools generate" })).toBeNull();
+		expect(screen.getAllByText("1 to fix")).toHaveLength(2);
 		expect(screen.getByText("Broken ref adr:0009")).toBeInTheDocument();
 		expect(screen.getAllByRole("button", { name: /^(Write|Open|Recheck)$/ })).toHaveLength(2);
 	});
@@ -585,35 +590,36 @@ describe("Settings / Health", () => {
 		expect(mockState().fixed).toEqual([]);
 		await user.click(screen.getByRole("button", { name: "Confirm" }));
 		await waitFor(() => expect(mockState().fixed).toEqual(["ignore-missing"]));
-		await screen.findByRole("heading", { name: "Compliance (0)" });
+		await screen.findByRole("heading", { name: "1 thing to fix in this project" });
+		expect(screen.queryByRole("region", { name: "Rules and skills of the agents" })).toBeNull();
 	});
 
-	it("shows ghost rows and the ok shape for a healthy project", async () => {
+	it("says that nothing is to fix in a healthy project", async () => {
 		await open();
 		mockState().fixed = ["ignore-missing", "ref-broken:adr:0009>spec:auth"];
 		mountApp("/setup/project?page=health");
-		const main = await screen.findByRole("main");
-		expect(await within(main).findByRole("img", { name: "Success" })).toBeInTheDocument();
-		// No fix button of a finding: the bootstrap, console and feedback panels have their own.
 		expect(
-			within(main).queryAllByRole("button", { name: /^(Write|Open|Apply|Recheck)$/ }),
+			await screen.findByRole("heading", { name: "Nothing to fix in this project" }),
+		).toBeInTheDocument();
+		// No fix button of a finding: the skills and the linked projects have their own.
+		expect(
+			within(screen.getByRole("main")).queryAllByRole("button", {
+				name: /^(Write|Open|Apply|Recheck)$/,
+			}),
 		).toHaveLength(0);
 	});
 
-	it("links each health page to the findings of the other scope, with their count", async () => {
+	it("links the health of the project to the health of the product and of this computer", async () => {
 		const user = userEvent.setup();
 		await open();
-		const router = mountApp("/setup/computer?page=health");
-		await user.click(await screen.findByRole("link", { name: "Health of this project (2)" }));
-		await waitFor(() => expect(router.state.location.href).toBe("/setup/project?page=health"));
-		// This computer has no finding: no link.
-		expect(await screen.findByRole("heading", { name: "Compliance (1)" })).toBeInTheDocument();
-		expect(
-			screen.queryByRole("link", { name: /^Health of this computer/ }),
-		).not.toBeInTheDocument();
+		const router = mountApp("/setup/project?page=health");
+		const also = within(await screen.findByRole("region", { name: "Also" }));
+		await user.click(also.getByRole("link", { name: "Health of this computer" }));
+		await waitFor(() => expect(router.state.location.href).toBe("/setup/computer?page=health"));
+		expect(await screen.findByRole("heading", { name: "1 problem" })).toBeInTheDocument();
 	});
 
-	it("shows on the health of the project that a tool of this computer has a finding", async () => {
+	it("shows on the health of this computer that a tool of this computer has a finding", async () => {
 		await open();
 		const run = vi.spyOn(commands, "healthRun").mockResolvedValue({
 			status: "ok",
@@ -629,10 +635,15 @@ describe("Settings / Health", () => {
 				},
 			],
 		} as Awaited<ReturnType<typeof commands.healthRun>>);
-		mountApp("/setup/project?page=health");
+		const router = mountApp("/setup/computer?page=health");
+		// The missing pnpm and the finding of git: two problems.
+		expect(await screen.findByRole("heading", { name: "2 problems" })).toBeInTheDocument();
+		expect(screen.getByRole("region", { name: "Tools of this computer" })).toBeInTheDocument();
+		// The project does not count it.
+		router.history.push("/setup/project?page=health");
 		expect(
-			await screen.findByRole("link", { name: "Health of this computer (1)" }),
-		).toHaveAttribute("href", "/setup/computer?page=health");
+			await screen.findByRole("heading", { name: "Nothing to fix in this project" }),
+		).toBeInTheDocument();
 		run.mockRestore();
 	});
 
@@ -643,14 +654,18 @@ describe("Settings / Health", () => {
 		const link = await (await openAccount(user)).findByRole("menuitem", { name: /Health \(2\)/ });
 		expect(within(link).getByRole("img", { name: "Warning" })).toBeInTheDocument();
 		await user.click(link);
-		expect(await screen.findByRole("heading", { name: "Compliance (1)" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("region", { name: "Rules and skills of the agents" }),
+		).toBeInTheDocument();
 	});
 
 	it("reads French", async () => {
 		await open();
 		mockState().prefs.lang = "fr";
 		mountApp("/setup/project?page=health");
-		expect(await screen.findByRole("heading", { name: "Conformité (1)" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("region", { name: "Règles et compétences des agents" }),
+		).toBeInTheDocument();
 		expect(screen.getByText("Référence rompue adr:0009")).toBeInTheDocument();
 	});
 });
@@ -681,20 +696,20 @@ describe("Settings / Project, delivery files", () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/setup/project?page=tickets");
-		const section = within(await screen.findByRole("region", { name: "Tickets" }));
-		const story = section.getByRole("textbox", { name: "Story type" });
+		const kinds = within(await screen.findByRole("region", { name: "Kinds of ticket" }));
+		await user.click(kinds.getByRole("button", { name: "Story" }));
+		const story = kinds.getByRole("textbox", { name: "Story type" });
 		await user.clear(story);
 		await user.type(story, "Récit");
-		const hours = section.getByRole("spinbutton", { name: "Hours per day" });
-		await user.clear(hours);
-		await user.type(hours, "0");
-		await user.click(section.getByRole("button", { name: "Save" }));
-		expect(await section.findByRole("alert")).toHaveTextContent("between 1 and 24");
-		await user.clear(hours);
-		await user.type(hours, "8");
-		await user.click(section.getByRole("button", { name: "Save" }));
+		// The stepper stops at the bounds of 1 and 24 hours: 0 cannot be set.
+		const less = screen.getByRole("button", { name: "Less: Hours in a day" });
+		for (let i = 0; i < 8; i++) await user.click(less);
+		expect(less).toBeDisabled();
+		await user.click(screen.getByRole("button", { name: "More: Hours in a day" }));
+		await user.click(screen.getByRole("button", { name: "More: Hours in a day" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().delivery.tickets.story).toBe("Récit"));
-		expect(mockState().delivery.tickets.hoursPerDay).toBe(8);
+		expect(mockState().delivery.tickets.hoursPerDay).toBe(3);
 	});
 
 	it("shows the folder and the remote, and saves how often the app looks at the remote", async () => {

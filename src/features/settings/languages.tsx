@@ -12,37 +12,19 @@ import {
 import { logError } from "@/lib/log";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
-import { Select } from "@/ui/atoms/select";
-import { Switch } from "@/ui/atoms/switch";
-import { ArrowDownTrayIcon, LanguageIcon, TrashIcon } from "@/ui/icons";
+import { Segmented } from "@/ui/atoms/segmented";
+import { ArrowDownTrayIcon, TrashIcon } from "@/ui/icons";
 import { Dialog } from "@/ui/organisms/dialog";
+import { Fold } from "./connections/fold";
+import { SetupRow, Toggle } from "./parts";
 
 const PACK = "pack:";
 
-/** The built-in languages, then each installed language pack (spec `languages`, REQ-001, REQ-006). */
-export function LanguageSelect() {
-	const { t, lang, pack, packs, setLang, setPack } = useI18n();
-	return (
-		<Select
-			label={t.prefs.language}
-			value={pack ? PACK + pack : lang}
-			onValueChange={(v) => {
-				if (v.startsWith(PACK)) setPack(v.slice(PACK.length));
-				else setLang(LANGS.find((l) => l === v) ?? "en");
-			}}
-			items={[
-				...LANGS.map((l) => ({ value: l, label: t.lang[l] })),
-				...packs.map((p) => ({ value: PACK + p.code, label: p.name })),
-			]}
-		/>
-	);
-}
-
 type Pending = { pack: LanguagePack } | { faults: string };
 
-/** Settings / Me: import with a check, export the English base, remove, mark (REQ-005 to REQ-008). */
-export function useLanguageRows() {
-	const { t, pack, packs, setPacks, setPack, setLang, marked, setMarked } = useI18n();
+/** Import with a check, export the English base, remove, mark (REQ-005 to REQ-008). */
+export function useLanguageFiles() {
+	const { t, pack, setPacks, setPack, setLang } = useI18n();
 	const p = t.prefs;
 	const [pending, setPending] = useState<Pending | null>(null);
 
@@ -102,53 +84,60 @@ export function useLanguageRows() {
 		</Dialog>
 	);
 
-	return [
-		{
-			id: "language-files",
-			icon: <LanguageIcon size={14} />,
-			label: p.languageFiles,
-			control: (
-				<span className="flex items-center gap-2">
-					<Button variant="ghost" onClick={() => importPack().catch(logError)}>
-						{p.importLanguage}
-					</Button>
-					<Button variant="ghost" onClick={() => exportBase().catch(logError)}>
+	return { importPack, exportBase, remove, dialog };
+}
+
+/** The built-in languages and each installed pack as one choice, then the import of a pack. The files are under a row. */
+export function LanguageRows() {
+	const { t, lang, pack, packs, setLang, setPack, marked, setMarked } = useI18n();
+	const p = t.prefs;
+	const { importPack, exportBase, remove, dialog } = useLanguageFiles();
+	const items = [
+		...LANGS.map((l) => ({ value: l as string, label: t.lang[l] })),
+		...packs.map((x) => ({ value: PACK + x.code, label: x.name })),
+	];
+	return (
+		<>
+			<div className="flex min-h-15 flex-wrap items-center gap-3 px-6 py-2.5">
+				<div className="min-w-0 flex-[1_1_20rem]">
+					<Segmented
+						label={p.language}
+						value={pack ? PACK + pack : lang}
+						onValueChange={(v) => {
+							if (v.startsWith(PACK)) setPack(v.slice(PACK.length));
+							else setLang(LANGS.find((l) => l === v) ?? "en");
+						}}
+						items={items}
+					/>
+				</div>
+				<Button variant="secondary" onClick={() => importPack().catch(logError)}>
+					{t.personal.setup.importLanguage}
+				</Button>
+			</div>
+			<Fold label={p.languageFiles}>
+				<SetupRow label={p.exportLanguage}>
+					<Button variant="secondary" onClick={() => exportBase().catch(logError)}>
 						<ArrowDownTrayIcon size={14} />
 						{p.exportLanguage}
 					</Button>
-					{dialog}
-				</span>
-			),
-		},
-		...(pack
-			? [
-					{
-						id: "language-marks",
-						icon: <LanguageIcon size={14} />,
-						label: p.markUntranslated,
-						control: (
-							<Switch
-								label={p.markUntranslated}
-								iconOnly
-								checked={marked}
-								onCheckedChange={setMarked}
-							/>
-						),
-					},
-				]
-			: []),
-		...packs.map((x) => ({
-			id: `language-${x.code}`,
-			icon: <LanguageIcon size={14} />,
-			label: x.name,
-			control: (
-				<IconButton
-					label={format(p.removeLanguage, { name: x.name })}
-					onClick={() => remove(x.code).catch(logError)}
-				>
-					<TrashIcon size={14} />
-				</IconButton>
-			),
-		})),
-	];
+				</SetupRow>
+				{pack ? (
+					<SetupRow label={p.markUntranslated}>
+						<Toggle label={p.markUntranslated} checked={marked} onCheckedChange={setMarked} />
+					</SetupRow>
+				) : null}
+				{packs.map((x) => (
+					<SetupRow key={x.code} label={x.name}>
+						<IconButton
+							label={format(p.removeLanguage, { name: x.name })}
+							onClick={() => remove(x.code).catch(logError)}
+						>
+							<TrashIcon size={14} />
+						</IconButton>
+					</SetupRow>
+				))}
+			</Fold>
+			{dialog}
+		</>
+	);
 }

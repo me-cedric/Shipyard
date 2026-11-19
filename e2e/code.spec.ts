@@ -16,40 +16,34 @@ async function openCode(page: Page, tab: string) {
 	await page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: tab }).click();
 }
 
-const unstaged = (page: Page) => page.getByRole("region", { name: "Unstaged" });
+const files = (page: Page) => page.getByRole("list", { name: "Files" });
+const commitBox = (page: Page) => page.getByRole("form", { name: "Commit" });
 const heading = (page: Page, name: string) => page.getByRole("heading", { name });
 // A section of the feature page, from its switch. A pull request opens on Changes.
 const section = (page: Page, name: string) =>
 	page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name }).click();
+// Code Now shows the open pull requests only: "Merged and closed" opens the full list.
+const fullList = (page: Page) => page.getByRole("button", { name: "Merged and closed" }).click();
 
-test("stages a file, commits it from the card of the sync mark and finds it in History", async ({
-	page,
-}) => {
+test("chooses a file, commits it from /code/changes and finds it in History", async ({ page }) => {
 	await openCode(page, "Now");
-	await expect(heading(page, "Staged (1)")).toBeVisible();
+	await visit(page, "/code/changes");
+	await expect(heading(page, "4 files to commit")).toBeVisible();
 	const commit = (await openSync(page)).getByRole("button", { name: "Commit" });
 	await expect(commit).toBeEnabled();
 	await page.keyboard.press("Escape");
 
-	await unstaged(page).getByRole("checkbox", { name: "Select docs/guide.md" }).click();
-	await page.getByRole("button", { name: "Stage (1)", exact: true }).click();
-	await expect(heading(page, "Staged (2)")).toBeVisible();
+	await files(page).getByRole("checkbox", { name: "Select docs/guide.md" }).click();
+	const box = commitBox(page);
+	await box.getByRole("textbox", { name: "Commit message" }).fill("wip: guide");
+	await box.getByRole("button", { name: "Commit 2 files" }).click();
+	await expect(box.getByRole("alert")).toContainText("feat, fix, chore, docs, refactor, test");
 
-	await openSync(page);
-	await commit.click();
-	const dialog = page.getByRole("dialog", { name: "Commit" });
-	await dialog.getByRole("textbox", { name: "Summary" }).fill("wip: guide");
-	await dialog.getByRole("button", { name: "Commit" }).click();
-	await expect(dialog.getByRole("alert")).toContainText("feat, fix, chore, docs, refactor, test");
-
-	await dialog.getByRole("textbox", { name: "Summary" }).fill("docs(guide): update the guide");
-	await dialog.getByRole("textbox", { name: "Description" }).fill("why");
-	await page.keyboard.press("ControlOrMeta+Enter");
-	await expect(dialog).toBeHidden();
-	await expect(heading(page, "Staged (0)")).toBeVisible();
-	await openSync(page);
-	await expect(commit).toBeDisabled();
-	await page.keyboard.press("Escape");
+	await box.getByRole("textbox", { name: "Commit message" }).fill("docs(guide): update the guide");
+	await box.getByRole("button", { name: "Add a description" }).click();
+	await box.getByRole("textbox", { name: "Description" }).fill("why");
+	await box.getByRole("button", { name: "Commit 2 files" }).click();
+	await expect(heading(page, "3 files to commit")).toBeVisible();
 
 	await page
 		.getByRole("navigation", { name: "Tabs" })
@@ -70,9 +64,11 @@ test("refuses a switch that would overwrite a change, then switches after a disc
 	await expect(page.getByRole("alert")).toContainText("src/app.ts");
 	await expect(selector).toHaveText("main");
 
-	await unstaged(page).getByRole("checkbox", { name: "Select src/app.ts" }).click();
-	await page.getByRole("button", { name: "Discard (1)" }).click();
-	await expect(heading(page, "Unstaged (3)")).toBeVisible();
+	await visit(page, "/code/changes");
+	await files(page).getByRole("button", { name: "src/app.ts" }).click();
+	await page.getByRole("button", { name: "Discard" }).click();
+	await expect(heading(page, "3 files to commit")).toBeVisible();
+	await visit(page, "/code/now");
 
 	await selector.click();
 	await page.getByRole("option", { name: "feat/auth/login" }).click();
@@ -81,49 +77,46 @@ test("refuses a switch that would overwrite a change, then switches after a disc
 
 test("creates a branch in Code / Branches with the type, area and subject", async ({ page }) => {
 	await openCode(page, "Branches");
+	await page.getByRole("button", { name: "New branch" }).click();
 	await page.getByRole("combobox", { name: "Type" }).click();
 	await page.getByRole("option", { name: "fix" }).click();
 	await page.getByRole("textbox", { name: "Area" }).fill("auth");
 	await page.getByRole("textbox", { name: "Subject" }).fill("login-timeout");
-	await page.getByRole("button", { name: "Branch" }).click();
+	await page.getByRole("button", { name: "Create the branch" }).click();
 	// The working branch is in the card of the sync mark.
 	await expect((await openSync(page)).getByRole("combobox", { name: "Working branch" })).toHaveText(
 		"fix/auth/login-timeout",
 	);
 	await page.keyboard.press("Escape");
-	await expect(heading(page, "Local (3)")).toBeVisible();
+	await expect(page.getByRole("group", { name: "fix/auth/login-timeout" })).toBeVisible();
 });
 
-test("merges a branch with one click in Code / Branches", async ({ page }) => {
+test("shows a merged branch with Switch and Delete only, and puts the changes aside", async ({
+	page,
+}) => {
+	// A merged branch has no Merge button: the unit test seeds an unmerged one (branches.test.tsx).
 	await openCode(page, "Branches");
 	const row = page.getByRole("group", { name: "feat/auth/login" });
-	await row.getByRole("button", { name: "Merge feat/auth/login" }).click();
-	await expect(page.getByRole("alert")).toContainText("uncommitted changes");
-
-	await page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Now" }).click();
-	await page
-		.getByRole("region", { name: "Stashes" })
-		.getByRole("button", { name: "Stash" })
-		.click();
-	await expect(heading(page, "Stashes (1)")).toBeVisible();
-	await page
-		.getByRole("navigation", { name: "Tabs" })
-		.getByRole("link", { name: "Branches" })
-		.click();
-	await row.getByRole("button", { name: "Merge feat/auth/login" }).click();
-	await expect(page.getByText("Already up to date")).toBeVisible();
+	await expect(row.getByRole("button", { name: "Switch" })).toBeVisible();
+	await expect(row.getByRole("button", { name: "Merge feat/auth/login" })).toHaveCount(0);
+	await visit(page, "/code/changes");
+	await page.getByRole("button", { name: "Put my changes aside" }).click();
+	await page.getByRole("textbox", { name: "Name" }).fill("wip auth");
+	await page.getByRole("button", { name: "Put my changes aside" }).click();
+	await expect(page.getByRole("group", { name: "wip auth" })).toBeVisible();
 });
 
 test("rebases a branch in Code / Branches and asks before a force publish", async ({ page }) => {
 	await openCode(page, "Branches");
-	const row = page.getByRole("group", { name: "feat/auth/login" });
-	await row.getByRole("button", { name: "Rebase onto feat/auth/login" }).click();
+	await page.getByRole("button", { name: "More" }).click();
+	await page.getByRole("menuitem", { name: "Rebase onto feat/auth/login" }).click();
 	await expect(page.getByRole("alert")).toContainText("uncommitted changes");
 
 	// A force publish needs a second click on the button that names what it does.
-	await page.getByRole("button", { name: "Force publish" }).click();
+	await page.getByRole("button", { name: "More" }).click();
+	await page.getByRole("menuitem", { name: "Force publish" }).click();
 	await expect(page.getByRole("button", { name: "Replace the remote branch" })).toBeVisible();
-	await expect(page.getByRole("button", { name: "Force publish" })).toHaveCount(0);
+	await expect(page.getByRole("menuitem", { name: "Force publish" })).toHaveCount(0);
 });
 
 // The list holds the factory pull requests (#40 to #47) and the forge mock ones (#141 to #143).
@@ -133,6 +126,7 @@ const pull = (page: Page, n: number) => page.getByRole("link", { name: new RegEx
 
 test("lists the pull requests by state, opens one and comments", async ({ page }) => {
 	await openCode(page, "Now");
+	await fullList(page);
 	await expect(heading(page, "Open (9)")).toBeVisible();
 	await page.getByRole("button", { name: "Merged and closed" }).click();
 	await expect(heading(page, "Merged (1)")).toBeVisible();
@@ -172,6 +166,7 @@ test("lists the pull requests by state, opens one and comments", async ({ page }
 
 test("approves a pull request from Submit review", async ({ page }) => {
 	await openCode(page, "Now");
+	await fullList(page);
 	await pull(page, 141).click();
 	// The write box of Chat has Submit review (the review bar has it while a comment waits).
 	await section(page, "Chat");
@@ -189,6 +184,7 @@ test("approves a pull request from Submit review", async ({ page }) => {
 
 test("goes Back from a pull request to the list with its search kept", async ({ page }) => {
 	await openCode(page, "Now");
+	await fullList(page);
 	await page.getByRole("searchbox", { name: "Search pull requests" }).fill("token");
 	await pull(page, 142).click();
 	await page.getByRole("link", { name: "Back" }).click();
@@ -198,6 +194,7 @@ test("goes Back from a pull request to the list with its search kept", async ({ 
 
 test("marks a draft ready", async ({ page }) => {
 	await openCode(page, "Now");
+	await fullList(page);
 	await pull(page, 143).click();
 	const merge = page.getByRole("button", { name: "Merge", exact: true });
 	await expect(merge).toBeDisabled();
@@ -208,6 +205,7 @@ test("marks a draft ready", async ({ page }) => {
 
 test("merges only after the confirm click", async ({ page }) => {
 	await openCode(page, "Now");
+	await fullList(page);
 	await pull(page, 142).click();
 	const merge = page.getByRole("button", { name: "Merge", exact: true });
 	await merge.click();
@@ -224,6 +222,7 @@ test("merges only after the confirm click", async ({ page }) => {
 
 test("opens a file of a pull request in the viewer", async ({ page }) => {
 	await openCode(page, "Now");
+	await fullList(page);
 	await pull(page, 142).click();
 	await section(page, "Changes");
 	await page.getByRole("button", { name: "Expand all" }).click();
@@ -245,6 +244,7 @@ const plusOf = async (page: Page, line: number) => {
 
 test("comments on a line of a pull request: pending first, then one at once", async ({ page }) => {
 	await openCode(page, "Now");
+	await fullList(page);
 	await pull(page, 142).click();
 	await section(page, "Changes");
 	// The file has one thread, so its row says so while it is closed.
@@ -280,7 +280,9 @@ test("analyzes a branch in Impacts and shows the plan and the digest", async ({ 
 test("echoes a line in the terminal", async ({ page }) => {
 	// Terminal is a section of Code (spec:app-redesign#REQ-022).
 	await openCode(page, "Terminal");
-	const terminal = page.getByRole("region", { name: "Terminal", exact: true });
+	const terminal = page
+		.getByRole("tabpanel", { name: "Terminal" })
+		.getByRole("region", { name: "Terminal", exact: true });
 	await expect(terminal).toContainText("/project $");
 	await terminal.locator(".xterm-helper-textarea").focus();
 	await page.keyboard.type("echo hello");

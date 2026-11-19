@@ -22,13 +22,26 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 	it("saves the accent, the sides, the narrow bar, all pages, the date format and the close push", async () => {
 		const user = userEvent.setup();
 		mountApp("/setup/me?page=look");
-		await choose(user, "Accent colour", "Green");
+		await user.click(await screen.findByRole("button", { name: "Green" }));
 		await waitFor(() => expect(mockState().prefs.accent).toBe("green"));
 		expect(document.documentElement.dataset.accent).toBe("green");
-		await choose(user, "Accent colour", "Theme colour");
+		await user.click(screen.getByRole("button", { name: "Theme colour" }));
 		await waitFor(() => expect(mockState().prefs.accent).toBeNull());
-		await choose(user, "Navigation side", "Right");
-		await choose(user, "Drawer side", "Right");
+		await user.click(
+			within(
+				screen.getAllByRole("group", { name: "Menu of places" }).at(-1) as HTMLElement,
+			).getByRole("button", {
+				name: "Right",
+			}),
+		);
+		await user.click(
+			within(screen.getAllByRole("group", { name: "Side panel" }).at(-1) as HTMLElement).getByRole(
+				"button",
+				{
+					name: "Right",
+				},
+			),
+		);
 		await user.click(screen.getByRole("switch", { name: "Narrow top bar" }));
 		await user.click(screen.getByRole("switch", { name: "Show all pages" }));
 		await user.click(
@@ -57,9 +70,9 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 		await waitFor(() =>
 			expect([root.motion, root.focusRing, root.focusWidth]).toEqual(["system", "keyboard", "2"]),
 		);
-		await choose(user, "Motion", "Reduce");
-		await choose(user, "Focus ring", "Always");
-		await choose(user, "Focus ring width", "3 px");
+		await user.click(await screen.findByRole("switch", { name: "Motion" }));
+		await user.click(screen.getByRole("switch", { name: "Focus ring" }));
+		await user.click(screen.getByRole("button", { name: "More: Focus ring width" }));
 		await waitFor(() =>
 			expect([
 				mockState().prefs.motion,
@@ -73,22 +86,25 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 
 	it("saves the text size and writes it on the root element", async () => {
 		const user = userEvent.setup();
-		mountApp("/setup/me?page=look");
-		await choose(user, "Text size", "18 px");
+		mountApp("/setup/me");
+		const more = await screen.findByRole("button", { name: "More: Text size" });
+		await user.click(more);
+		await user.click(more);
 		await waitFor(() => expect(mockState().prefs.uiScale).toBe(18));
 		expect(document.documentElement.style.fontSize).toBe("18px");
 	});
 
 	it("sets and removes the picture of the person and shows the data folder", async () => {
 		const user = userEvent.setup();
-		mountApp("/setup/me?page=look");
+		const router = mountApp("/setup/me");
 		mockState().nextFile = "/Users/ada/me.png";
 		await user.click(await screen.findByRole("button", { name: "Choose a picture" }));
 		expect(await screen.findAllByRole("img", { name: "Your picture" })).not.toHaveLength(0);
 		expect(mockState().extras.pictures.avatar?.mime).toBe("image/png");
 		await user.click(screen.getByRole("button", { name: "Remove the picture" }));
 		await waitFor(() => expect(mockState().extras.pictures.avatar).toBeUndefined());
-		expect(screen.getByText(/dev\.shipyard\.app/)).toBeInTheDocument();
+		router.history.push("/setup/me?page=look");
+		expect(await screen.findByText(/dev\.shipyard\.app/)).toBeInTheDocument();
 		await expect(unwrap(commands.pictureSet("avatar", "/Users/ada/me.svg", true))).rejects.toThrow(
 			"Choose a PNG or JPEG picture",
 		);

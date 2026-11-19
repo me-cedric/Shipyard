@@ -13,8 +13,6 @@ describe("Settings / Agents and rules: compass", () => {
 			expect(await screen.findByRole("heading", { name })).toBeInTheDocument();
 		expect(screen.getByText("Compass 1.0.1")).toBeInTheDocument();
 		expect(screen.getByText("Stack react-web")).toBeInTheDocument();
-		// The model tiers group stays.
-		expect(await screen.findByRole("heading", { name: "Model tiers (5)" })).toBeInTheDocument();
 	});
 
 	it("shows the risk and the write capability of a skill and marks the skills that suit the stack", async () => {
@@ -83,9 +81,10 @@ describe("Settings / Agents and rules: compass", () => {
 describe("Settings / Extensions", () => {
 	it("shows the three catalog groups, and a deploy shows its files first", async () => {
 		const user = userEvent.setup();
-		await mountTab("extensions");
-		for (const name of ["Dev containers (1)", "Agents (1)", "DevOps and security (1)"])
-			expect(await screen.findByRole("heading", { name })).toBeInTheDocument();
+		await mountTab("plugins");
+		// The three catalog groups are the rule packs of the page, one toggle for each.
+		for (const name of ["node", "openspec-guidance", "scan"])
+			expect(await screen.findByRole("switch", { name: `Enable ${name}` })).toBeInTheDocument();
 		await user.click(await screen.findByRole("button", { name: "node" }));
 		const panel = await screen.findByRole("complementary", { name: "node" });
 		await within(panel).findByText(".devcontainer/devcontainer.json");
@@ -98,13 +97,13 @@ describe("Settings / Extensions", () => {
 
 	it("reviews a plugin and writes only the accepted items", async () => {
 		const user = userEvent.setup();
-		await mountTab("extensions");
+		await mountTab("plugins");
 		await user.type(
 			await screen.findByRole("textbox", { name: "Plugin archive path" }),
 			PLUGIN_PATH,
 		);
 		await user.click(screen.getByRole("button", { name: "Review" }));
-		expect(await screen.findByRole("heading", { name: "New (4)" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Adds (4)" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Refused (1)" })).toBeInTheDocument();
 		expect(mockState().extensions.files).not.toContain("docs/team.md");
 		await user.click(screen.getByRole("checkbox", { name: "Accept AGENTS.md" }));
@@ -116,7 +115,7 @@ describe("Settings / Extensions", () => {
 
 	it("shows the reason when the archive is bad", async () => {
 		const user = userEvent.setup();
-		await mountTab("extensions");
+		await mountTab("plugins");
 		await user.type(
 			await screen.findByRole("textbox", { name: "Plugin archive path" }),
 			"/x/bad.zip",
@@ -125,11 +124,11 @@ describe("Settings / Extensions", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent("not a valid zip archive");
 	});
 
-	it("lists the child projects with n of m, clones, and deploys on a branch after a click", async () => {
+	it("lists the child projects with n of m, adds and clones one", async () => {
 		const user = userEvent.setup();
 		await mountTab("extensions");
-		expect(await screen.findByRole("heading", { name: "Child projects (1)" })).toBeInTheDocument();
-		expect(screen.getByText("4 of 5")).toBeInTheDocument();
+		expect(await screen.findByRole("region", { name: "Child projects" })).toBeInTheDocument();
+		expect(await screen.findByText("4 of 5")).toBeInTheDocument();
 		await user.type(screen.getByRole("textbox", { name: "Child project name" }), "Billing");
 		await user.type(
 			screen.getByRole("textbox", { name: "Repository address" }),
@@ -138,7 +137,12 @@ describe("Settings / Extensions", () => {
 		await user.click(screen.getByRole("button", { name: "Add" }));
 		await user.click(await screen.findByRole("button", { name: "Clone Billing" }));
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Clone Billing" })).toBeNull());
-		await user.click(screen.getByRole("checkbox", { name: "Select API gateway" }));
+	});
+
+	it("sends the parent items to the chosen child projects on a branch after a click", async () => {
+		const user = userEvent.setup();
+		await mountTab("plugins");
+		await user.click(await screen.findByRole("checkbox", { name: "Select API gateway" }));
 		await user.click(screen.getByRole("button", { name: "Deploy to 1" }));
 		expect(await screen.findByText(/shipyard\/extensions-1/)).toBeInTheDocument();
 		expect(mockState().extensions.children[0]?.has).toContain("pattern:small-steps");

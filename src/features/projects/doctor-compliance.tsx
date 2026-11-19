@@ -190,7 +190,7 @@ export function HealthActions() {
 }
 
 /**
- * Settings / Health: each compass skill is applied, stale or missing, with its fix, and the
+ * Setup / Health of this project: each compass skill is applied, stale or missing, with its fix, and the
  * linked child projects take what the parent holds. Nothing is pushed.
  */
 export function DoctorCompliance() {
@@ -220,7 +220,7 @@ export function DoctorCompliance() {
 	};
 	const skills = (compass.data?.entries ?? []).filter((e) => e.kind === "skill");
 	const linked = (children.data ?? []).filter((c) => c.cloned);
-	if (!compass.data && linked.length === 0) return <HealthActions />;
+	if (!compass.data && linked.length === 0) return null;
 	const fix = (e: Entry) =>
 		attempt(async () => {
 			if (e.state === "stale") await unwrap(commands.compassUpgrade([key(e)]));
@@ -229,7 +229,6 @@ export function DoctorCompliance() {
 	const bad = skills.filter((e) => e.state !== "current").length;
 	return (
 		<>
-			<HealthActions />
 			{compass.data ? (
 				<Panel
 					id="doctor-skills"

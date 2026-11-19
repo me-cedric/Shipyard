@@ -74,11 +74,6 @@ const openProjects = async (p: Page) => {
 	await p.getByRole("menuitem", { name: "Projects" }).click();
 	await p.getByRole("heading", { level: 1, name: "Projects" }).waitFor();
 };
-// A page behind a door of a scope of Setup.
-const openDoor = async (p: Page, scope: string, door: string) => {
-	await open(p, scope);
-	await p.getByRole("navigation", { name: scope }).getByRole("link", { name: door }).click();
-};
 const openProject = async (p: Page) => {
 	await p.goto("/home/today");
 	await p.getByRole("button", { name: "Continue" }).click();
@@ -329,7 +324,7 @@ const scenes: Scene[] = [
 		},
 	},
 	{ name: "knowledge", run: (p) => go(p, "/library/learn") },
-	{ name: "settings-connections", run: (p) => openDoor(p, "This project", "Connections") },
+	{ name: "settings-connections", run: (p) => go(p, "/setup/project?page=connections") },
 	{ name: "settings-project", run: (p) => open(p, "This project") },
 	{ name: "setup-start", run: (p) => open(p, "Start") },
 	{ name: "setup-computer", run: (p) => open(p, "This computer") },
@@ -445,19 +440,23 @@ const scenes: Scene[] = [
 	{ name: "feature-design", run: (p) => openFeature(p, /Add export endpoint/, "Design") },
 	{ name: "feature-checks", run: (p) => openFeature(p, /Add export endpoint/, "Checks") },
 	{ name: "feature-chat", run: (p) => openFeature(p, /refuse an empty token/, "Chat") },
-	{ name: "setup-tickets", run: (p) => openDoor(p, "This project", "Tickets") },
-	{ name: "setup-extensions", run: (p) => openDoor(p, "This project", "Extensions") },
+	{ name: "setup-tickets", run: (p) => go(p, "/setup/project?page=tickets") },
+	{ name: "setup-extensions", run: (p) => go(p, "/setup/project?page=extensions") },
+	{ name: "setup-automation", run: (p) => go(p, "/setup/project?page=automation") },
+	{ name: "setup-plugins", run: (p) => go(p, "/setup/project?page=plugins") },
+	{ name: "setup-look", run: (p) => go(p, "/setup/me?page=look") },
+	{ name: "code-changes", run: (p) => go(p, "/code/changes") },
 	{
 		name: "setup-project-health",
-		run: (p) => openDoor(p, "This project", "Health of this project"),
+		run: (p) => go(p, "/setup/project?page=health"),
 	},
-	{ name: "setup-agents-rules", run: (p) => openDoor(p, "This computer", "Agents and rules") },
-	{ name: "setup-outside-agents", run: (p) => openDoor(p, "This computer", "Outside agents") },
+	{ name: "setup-agents-rules", run: (p) => go(p, "/setup/computer?page=models") },
+	{ name: "setup-outside-agents", run: (p) => go(p, "/setup/computer?page=share") },
 	{
 		name: "setup-computer-health",
-		run: (p) => openDoor(p, "This computer", "Health of this computer"),
+		run: (p) => go(p, "/setup/computer?page=health"),
 	},
-	{ name: "setup-logs", run: (p) => openDoor(p, "This computer", "Logs and feedback") },
+	{ name: "setup-logs", run: (p) => go(p, "/setup/computer?page=logs") },
 	{
 		name: "settings-permissions",
 		run: async (p) => {

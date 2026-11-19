@@ -4,6 +4,9 @@ import { commands, isTauri, type TerminalOutput, toFailure, unwrap } from "@/lib
 import { CODE_FONTS } from "@/lib/prefs";
 
 type Output = TerminalOutput;
+
+/** What a page can do with a running shell: type a command line into it and clear the screen. */
+export type ShellHandle = { run: (line: string) => void; clear: () => void };
 // The page load that ran before this one may have left shells: close them once, before the first open.
 let cleared: Promise<unknown> | undefined;
 const closeOldShells = () => {
@@ -49,6 +52,8 @@ export function useTerminal(
 	endedLine: string,
 	/** A command line that runs once, when the shell starts. */
 	startup?: string,
+	/** Filled while the shell runs. */
+	handle?: RefObject<ShellHandle | null>,
 ) {
 	const [ended, setEnded] = useState(false);
 	const [round, setRound] = useState(0);
@@ -114,7 +119,14 @@ export function useTerminal(
 				const resize = () => fit.fit();
 				const watch = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
 				watch?.observe(node);
+				if (handle) {
+					handle.current = {
+						run: (line) => void commands.terminalWrite(id, `${line}\r`),
+						clear: () => term.clear(),
+					};
+				}
 				teardown = () => {
+					if (handle) handle.current = null;
 					watch?.disconnect();
 					links.dispose();
 					data.dispose();

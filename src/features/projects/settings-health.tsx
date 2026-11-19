@@ -1,38 +1,29 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { type ReactNode, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
+import { useState } from "react";
+import { openManualFor } from "@/features/knowledge/manual-target";
+import { Column, Columns, SetupCard, SetupRow, StatePill } from "@/features/settings/parts";
+import { ButtonLink, Fold } from "@/features/settings/project/fold";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, type Finding_Serialize, type Group, type Severity, unwrap } from "@/lib/ipc";
+import { commands, type Finding_Serialize, type Group, unwrap } from "@/lib/ipc";
 import { projectKeys, useHealth, worstStatus } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
-import { Ring } from "@/ui/atoms/ring";
-import { StatusDot } from "@/ui/atoms/status-dot";
-import {
-	ClockIcon,
-	CommandLineIcon,
-	DocumentTextIcon,
-	LinkIcon,
-	ShieldCheckIcon,
-	SparklesIcon,
-} from "@/ui/icons";
+import { useUpdateCheck } from "@/lib/updates";
+import { openWhatsNew, useWhatsNew } from "@/lib/updates/whats-new";
+import { Badge } from "@/ui/atoms/badge";
+import { Button } from "@/ui/atoms/button";
+import { Chip } from "@/ui/atoms/chip";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FindingRow } from "@/ui/molecules/finding-row";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
-import { SectionNav } from "@/ui/molecules/section-nav";
-import { StatStrip } from "@/ui/molecules/stat-strip";
-import { SETTINGS_PAGE } from "@/ui/templates/settings";
-import { DoctorBootstrap } from "./doctor-bootstrap";
-import { DoctorCompliance } from "./doctor-compliance";
-import { DoctorLedger } from "./doctor-ledger";
-import { DoctorTools } from "./doctor-tools";
+import { DoctorCompliance, HealthActions } from "./doctor-compliance";
+import { DoctorTools, useToolchain } from "./doctor-tools";
 
-const GROUPS: Group[] = ["compliance", "tools", "refs", "generated"];
-/** The findings that this computer causes: a tool that is missing or old. The others are of the project. */
-const ofComputer = (g: Group) => g === "tools";
+/** The groups of findings of the project. The tools are of this computer. */
+const GROUPS: Group[] = ["compliance", "refs", "generated"];
 
 type Preview = { path: string; content: string };
 
@@ -101,132 +92,247 @@ function Finding({ finding }: { finding: Finding_Serialize }) {
 	);
 }
 
-const ICON: Record<Group, ReactNode> = {
-	compliance: <ShieldCheckIcon size={14} />,
-	tools: <CommandLineIcon size={14} />,
-	refs: <LinkIcon size={14} />,
-	generated: <DocumentTextIcon size={14} />,
-};
-const SEVERITIES: Severity[] = ["error", "warning", "info"];
-const TONE = { error: "danger", warning: "warning", info: "info" } as const;
+const SHOWN = 1;
+
+/** A card of the findings of one group: the first one, "Show all" for the rest. */
+function GroupCard({ group, rows }: { group: Group; rows: Finding_Serialize[] }) {
+	const { t } = useI18n();
+	const h = t.doctor.health;
+	const [all, setAll] = useState(false);
+	const shown = all ? rows : rows.slice(0, SHOWN);
+	return (
+		<SetupCard
+			id={`health-${group}`}
+			title={h.group[group]}
+			attention
+			action={<Badge variant="warning">{format(h.toFix, { count: rows.length })}</Badge>}
+		>
+			{shown.map((f) => (
+				<Finding key={f.id} finding={f} />
+			))}
+			{rows.length > SHOWN ? (
+				<div className="px-6 pt-1 pb-2">
+					<Chip selected={all} onClick={() => setAll(!all)}>
+						{all ? h.showFewer : h.showAll}
+					</Chip>
+				</div>
+			) : null}
+		</SetupCard>
+	);
+}
 
 /**
- * Health: a score ring (the groups with no finding), the count of each severity, then
- * four groups with a count each, and one fix action for each finding. A scope of Setup shows its
- * part (`spec:app-redesign#REQ-024`): the findings and the files of the project under This project,
- * the tools under This computer.
+ * Setup / Health of this project: a sentence that counts what to fix, with "Check again" and "Fix all
+ * with an agent" at its right, a card for each group of findings, and the card "Also".
  */
-export function Health({ scope }: { scope: "project" | "computer" }) {
+function ProjectHealth() {
 	const { t } = useI18n();
-	const s = t.settings.health;
+	const h = t.doctor.health;
 	const health = useHealth();
 	const all = health.data;
-	const groups = GROUPS.filter((g) => ofComputer(g) === (scope === "computer"));
+	if (all === undefined) return <Loading title={t.settings.pages.projectHealth} />;
+	const findings = all.filter((f) => GROUPS.includes(f.group));
+	const heading =
+		findings.length === 0
+			? h.fixNone
+			: findings.length === 1
+				? h.fixOne
+				: format(h.fixCount, { count: findings.length });
+	return (
+		<div className="flex flex-col gap-4 px-4 pb-10">
+			<div className="flex flex-wrap items-center gap-3">
+				<h2 className="min-w-0 flex-[1_1_16rem] text-20 font-semibold text-n-12">{heading}</h2>
+				<HealthActions />
+			</div>
+			{GROUPS.map((g) => {
+				const rows = findings.filter((f) => f.group === g);
+				return rows.length ? <GroupCard key={g} group={g} rows={rows} /> : null;
+			})}
+			<SetupCard title={h.also}>
+				<SetupRow label={h.product} href="/flow/health" />
+				<SetupRow label={h.computer} href="/setup/computer?page=health" />
+			</SetupCard>
+			<SetupCard>
+				<Fold id="doctor-skills" label={t.doctor.skills.title} value={h.showAll}>
+					<DoctorCompliance />
+				</Fold>
+			</SetupCard>
+		</div>
+	);
+}
+
+/** An area of this computer: its name and its state, as a link to where it opens. */
+function Area({
+	href,
+	label,
+	state,
+	children,
+}: {
+	href: string;
+	label: string;
+	state: "ready" | "fix" | "off";
+	children: string;
+}) {
+	const router = useRouter();
+	return (
+		<a
+			href={href}
+			onClick={(e) => {
+				e.preventDefault();
+				router.history.push(href);
+			}}
+			className={`flex min-h-24 min-w-0 flex-[1_1_160px] flex-col items-start justify-between gap-3 rounded-lg bg-surface-2 p-4 shadow-2 hover:bg-n-3 ${state === "fix" ? "outline-2 outline-attention" : ""}`}
+		>
+			<span className="font-semibold text-n-12">{label}</span>
+			<StatePill state={state}>{children}</StatePill>
+		</a>
+	);
+}
+
+/**
+ * Setup / Health of this computer: the count of problems as the title, a banner for each required tool
+ * that is missing, the five areas, the toolchain behind the Tools area, and the version and help cards.
+ */
+function ComputerHealth() {
+	const { t } = useI18n();
+	const h = t.doctor.health;
+	const router = useRouter();
+	const { problems, busy, error, install } = useToolchain();
+	const health = useHealth();
+	const { current } = useWhatsNew();
+	const checkUpdate = useUpdateCheck();
+	const { setShortcutsOpen } = useShell();
+	const skills = useQuery({
+		queryKey: ["doctor", "skills"],
+		queryFn: () => unwrap(commands.compassGet()),
+	}).data;
+	const staleSkills = (skills?.entries ?? []).filter(
+		(e) => e.kind === "skill" && e.state !== "current",
+	).length;
+	if (health.data === undefined) return <Loading title={t.settings.pages.computerHealth} />;
+	// A finding of a missing tool names its tool: the banner of the tool already says it.
+	const named = new Set(problems.map((p) => p.id));
+	const others = health.data.filter((f) => f.group === "tools" && !named.has(f.detail ?? ""));
+	const count = problems.length + others.length;
 	const title =
-		scope === "project" ? t.settings.pages.projectHealth : t.settings.pages.computerHealth;
-	if (all === undefined) return <Loading title={title} icon={<ShieldCheckIcon size={16} />} />;
-	const findings = all.filter((f) => groups.includes(f.group));
-	// The status bar counts each finding: a scope links to the ones of the other scope.
-	const others = all.length - findings.length;
-	const other = scope === "project" ? "computer" : "project";
-	const project = scope !== "computer";
-	const computer = scope !== "project";
-	// The section list shows the sections that are on the page.
-	const sections = [
-		...groups.map((g) => ({ id: `health-${g}`, label: t.health.group[g], icon: ICON[g] })),
-		...(computer
-			? [{ id: "tools", label: t.settings.tools.title, icon: <CommandLineIcon size={14} /> }]
-			: []),
-		...(project
-			? [
-					{
-						id: "doctor-skills",
-						label: t.doctor.skills.title,
-						icon: <ShieldCheckIcon size={14} />,
-					},
-					{
-						id: "doctor-bootstrap",
-						label: t.doctor.bootstrap.title,
-						icon: <SparklesIcon size={14} />,
-					},
-					{ id: "doctor-ledger", label: t.settings.ledger.title, icon: <ClockIcon size={14} /> },
-				]
-			: []),
-	];
-	const clean = groups.filter((g) => !findings.some((f) => f.group === g)).length;
+		count === 0 ? h.problemNone : count === 1 ? h.problemOne : format(h.problems, { count });
+	const toolsMissing = problems.length;
 	return (
 		<div className="flex flex-col">
-			<PageHeader
-				icon={<ShieldCheckIcon size={16} />}
-				title={title}
-				count={findings.length}
-				action={
-					others ? (
-						<Link
-							to={`/setup/${other}`}
-							// shortcut: one cast, as the status bar. The section routes do not know `page`.
-							search={{ page: "health" } as never}
-							className="inline-flex min-h-control items-center rounded-md px-2 text-14 text-accent-text underline"
+			<PageHeader title={title} />
+			<div className="flex flex-col gap-4 px-4 pb-10">
+				{problems.map((p) => (
+					<section
+						key={p.id}
+						aria-label={format(h.toolMissing, { name: p.id })}
+						className="flex flex-wrap items-center gap-3 rounded-lg bg-surface-2 p-4 shadow-2 outline-2 outline-attention"
+					>
+						<span
+							aria-hidden="true"
+							className="flex size-8 items-center justify-center rounded-full bg-warning-soft font-semibold text-warning-text"
 						>
-							{format(t.count, { name: t.settings.pages[`${other}Health`], count: others })}
-						</Link>
-					) : null
-				}
-			/>
-			<SectionNav label={t.ui.sections} items={sections} />
-			<div className={SETTINGS_PAGE}>
-				<div className="flex flex-wrap items-stretch gap-3">
-					<div className="flex items-center gap-3 rounded-lg border bg-surface-2 px-4 py-3 shadow-1">
-						<Ring value={clean} max={groups.length} label={s.score} className="size-14">
-							{clean}/{groups.length}
-						</Ring>
-						<span className="text-12 text-n-11">{s.score}</span>
-					</div>
-					<StatStrip
-						className="min-w-0 flex-1 lg:grid-cols-3"
-						items={SEVERITIES.map((v) => ({
-							label: s[v],
-							value: String(findings.filter((f) => f.severity === v).length),
-							tone: TONE[v],
-						}))}
-					/>
+							!
+						</span>
+						<span className="min-w-0 flex-[1_1_14rem] font-semibold text-n-12">
+							{format(h.toolMissing, { name: p.id })}
+						</span>
+						<ButtonLink href="/setup/computer?page=health#tools">{h.details}</ButtonLink>
+						<Button
+							variant="primary"
+							busy={busy === p.id}
+							disabled={busy !== null || !p.canInstall}
+							reason={p.canInstall ? undefined : t.settings.tools.missing}
+							onClick={() => void install(p)}
+						>
+							{h.fixIt}
+						</Button>
+					</section>
+				))}
+				{others.length ? (
+					<SetupCard attention title={h.group.tools}>
+						{others.map((f) => (
+							<Finding key={f.id} finding={f} />
+						))}
+					</SetupCard>
+				) : null}
+				{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
+				<div className="flex flex-wrap gap-4">
+					<Area
+						href="/setup/computer?page=health#tools"
+						label={h.tools}
+						state={toolsMissing ? "fix" : "ready"}
+					>
+						{toolsMissing ? format(h.missingN, { count: toolsMissing }) : h.ready}
+					</Area>
+					<Area
+						href="/setup/computer?page=models"
+						label={h.skills}
+						state={staleSkills ? "fix" : "ready"}
+					>
+						{staleSkills ? format(h.toFix, { count: staleSkills }) : h.ready}
+					</Area>
+					<Area href="/setup/start" label={h.firstSetup} state="ready">
+						{h.done}
+					</Area>
+					<Area href="/setup/computer?page=logs#doctor-ledger" label={h.ledger} state="ready">
+						{h.ready}
+					</Area>
+					<Area href="/setup/computer?page=logs" label={h.console} state="off">
+						{h.open}
+					</Area>
 				</div>
-				{findings.length === 0 ? (
-					// Ghost rows are for loading only: a clean project says so in one line.
-					<p className="flex items-center gap-2 text-ui text-n-11">
-						<StatusDot status="success" />
-						{s.clean}
-					</p>
-				) : null}
-				{groups.map((g) => {
-					const rows = findings.filter((f) => f.group === g);
-					const worst = worstStatus(rows.map((f) => f.severity));
-					return (
-						<Panel
-							key={g}
-							id={`health-${g}`}
-							title={t.health.group[g]}
-							count={rows.length}
-							icon={ICON[g]}
-							tone={rows.length ? (worst === "danger" ? "danger" : worst) : undefined}
-							flush
-						>
-							{rows.map((f) => (
-								<Finding key={f.id} finding={f} />
-							))}
-						</Panel>
-					);
-				})}
-				{computer ? <DoctorTools /> : null}
-				{project ? (
-					<>
-						<DoctorCompliance />
-						<DoctorBootstrap />
-						{/* The ledger counts each finding, also the ones of this computer. */}
-						<DoctorLedger findings={all} />
-					</>
-				) : null}
+				<Columns className="px-0 pb-0">
+					<Column>
+						<SetupCard>
+							<SetupRow label={`${h.version} ${current}`.trim()}>
+								<Button variant="secondary" onClick={() => void checkUpdate(true)}>
+									{h.checkUpdate}
+								</Button>
+							</SetupRow>
+							<SetupRow label={h.whatsNew}>
+								<Button variant="secondary" onClick={openWhatsNew}>
+									{h.open}
+								</Button>
+							</SetupRow>
+							<SetupRow label={t.settings.pages.logs} href="/setup/computer?page=logs" />
+						</SetupCard>
+					</Column>
+					<Column>
+						<SetupCard>
+							<div className="flex flex-wrap gap-3 px-6 py-3">
+								<Button
+									variant="secondary"
+									onClick={() => router.history.push("/setup/computer?page=logs#doctor-feedback")}
+								>
+									{h.feedback}
+								</Button>
+								<Button variant="secondary" onClick={() => setShortcutsOpen(true)}>
+									{h.shortcuts}
+								</Button>
+								<Button
+									variant="secondary"
+									onClick={() => {
+										openManualFor(router.state.location.pathname);
+										router.history.push("/library/manual");
+									}}
+								>
+									{h.manual}
+								</Button>
+							</div>
+						</SetupCard>
+						<SetupCard>
+							<Fold id="tools" label={t.settings.tools.title} value={h.details}>
+								<DoctorTools />
+							</Fold>
+						</SetupCard>
+					</Column>
+				</Columns>
 			</div>
 		</div>
 	);
+}
+
+/** Setup / Health: the part of the project under This project, the part of this machine under This computer. */
+export function Health({ scope }: { scope: "project" | "computer" }) {
+	return scope === "project" ? <ProjectHealth /> : <ComputerHealth />;
 }

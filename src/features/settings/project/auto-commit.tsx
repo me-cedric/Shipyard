@@ -3,8 +3,7 @@ import { useGuard } from "@/features/work/guard";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useRights } from "@/lib/rights";
-import { Switch } from "@/ui/atoms/switch";
-import { SettingsRow } from "@/ui/molecules/settings-row";
+import { SetupRow, Toggle } from "../parts";
 
 const key = ["auto-commit"] as const;
 
@@ -20,12 +19,11 @@ export function AutoCommit() {
 	const on = useQuery({ queryKey: key, queryFn: () => unwrap(commands.autoCommitGet()) });
 	return (
 		<>
-			<SettingsRow label={t.ui.autoCommit}>
-				<Switch
+			<SetupRow label={t.ui.autoCommit}>
+				<Toggle
 					label={t.ui.autoCommit}
 					// Off only takes a write away: it needs no right.
 					{...(on.data === true ? {} : gate("code.write"))}
-					iconOnly
 					checked={on.data === true}
 					onCheckedChange={(next) =>
 						void run(async () => {
@@ -33,9 +31,9 @@ export function AutoCommit() {
 						})
 					}
 				/>
-			</SettingsRow>
+			</SetupRow>
 			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
+				<p role="alert" className="px-6 pb-2 text-ui text-danger-text">
 					{error}
 				</p>
 			) : null}

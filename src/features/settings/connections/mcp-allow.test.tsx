@@ -53,7 +53,7 @@ describe("Settings / Connections / MCP servers: allow list", () => {
 		const ctx = await screen.findByRole("group", { name: "Context7" });
 		await within(ctx).findByRole("checkbox", { name: "get-library-docs" });
 		router.history.push("/setup/me");
-		await screen.findByRole("combobox", { name: "Theme" });
+		await screen.findByRole("group", { name: "Theme" });
 		router.history.push("/setup/computer");
 		const again = await screen.findByRole("group", { name: "Context7" });
 		expect(

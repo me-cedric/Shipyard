@@ -48,7 +48,7 @@ test("asks for a permission from the tour and shows the list in Setup / This com
 	await page.keyboard.press("Escape");
 	await expect(openDialogs(page)).toHaveCount(0);
 
-	await page.goto("/setup/computer");
+	await page.goto("/setup/computer?page=logs");
 	const files = page.getByRole("group", { name: "Documents, Desktop and Downloads" });
 	await expect(files.getByRole("button", { name: "Allow" })).toBeVisible();
 	await page.getByRole("button", { name: "Replay the tour" }).click();

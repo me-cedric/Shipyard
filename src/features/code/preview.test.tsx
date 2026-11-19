@@ -13,7 +13,7 @@ async function pick(name: string) {
 	code.files["old.png"] = { head: "a", index: "b", work: "b" };
 	code.files["a.bin"] = { head: null, index: null, work: "xyz" };
 	mockState().code = code;
-	mountApp("/code/now");
+	mountApp("/code/changes");
 	await user.click(await screen.findByRole("button", { name }));
 }
 

@@ -1,21 +1,24 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRouter } from "@tanstack/react-router";
+import { type ReactNode, useState } from "react";
 import { useGuard } from "@/features/work/guard";
-import { format, useI18n } from "@/lib/i18n";
+import { format, LANGS, useI18n } from "@/lib/i18n";
 import { commands, type RunnerTiers_Serialize, unwrap } from "@/lib/ipc";
+import { usePrefs } from "@/lib/prefs";
+import { useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
+import { Avatar } from "@/ui/atoms/avatar";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Button } from "@/ui/atoms/button";
 import { Caption, Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
-import { CommandLineIcon, CpuChipIcon } from "@/ui/icons";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
-import { ConnectionRow } from "@/ui/molecules/connection-row";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { Panel } from "@/ui/molecules/panel";
+import { Row } from "@/ui/molecules/row";
 import { SettingsRow } from "@/ui/molecules/settings-row";
+import { Fold } from "./connections/fold";
 import { runnerKeys } from "./connections/keys";
-import { Compass } from "./extensions/compass";
+import { Column, Columns, SetupCard, SetupRow, StatePill, Toggle } from "./parts";
 import { ProviderRows } from "./provider-rows";
 
 const TIERS = ["top", "mid", "small"] as const;
@@ -30,7 +33,16 @@ const AUTO = "auto";
  * no model, or one that is not installed, keeps a free text field. A choice saves at once, a typed
  * model when the field loses focus.
  */
-function TierRow({ row, detected }: { row: RunnerTiers_Serialize; detected: boolean }) {
+function TierRow({
+	row,
+	detected,
+	split,
+}: {
+	row: RunnerTiers_Serialize;
+	detected: boolean;
+	/** One row of the card for each tier, in place of one row for the tool. */
+	split?: boolean;
+}) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const { error, run } = useGuard();
@@ -57,78 +69,96 @@ function TierRow({ row, detected }: { row: RunnerTiers_Serialize; detected: bool
 		void save(next);
 	};
 	const listed = detected && (catalog?.models.length ?? 0) > 0;
+	/** The model of a tier, and its effort when the model accepts one. */
+	const cell = (tier: (typeof TIERS)[number]) => {
+		const name = `${runnerName(row.runner)} ${t.settings.tiers[tier]}`;
+		const ids = catalog?.models.map((m) => m.id) ?? [];
+		const efforts = listed ? levels(draft[tier]) : [];
+		// A level saved before, that the tool no longer accepts: shown, never passed on.
+		const saved = draft[EFFORT[tier]];
+		const unknown = listed && saved !== "" && !efforts.includes(saved);
+		return (
+			<>
+				{listed ? (
+					<span className="flex flex-col gap-1">
+						<Select
+							label={name}
+							className="w-full"
+							value={draft[tier] || AUTO}
+							onValueChange={(v) => pick(tier, v === AUTO ? "" : v)}
+							items={[
+								{ value: AUTO, label: t.settings.tiers.default },
+								// A model saved before the list, or typed by hand, stays pickable.
+								...(draft[tier] && !ids.includes(draft[tier])
+									? [{ value: draft[tier], label: draft[tier] }]
+									: []),
+								...ids.map((id) => ({ value: id, label: id })),
+							]}
+						/>
+						{efforts.length > 0 || unknown ? (
+							<Select
+								label={`${name} ${t.settings.tiers.effort}`}
+								className="w-full"
+								value={draft[EFFORT[tier]] || AUTO}
+								onValueChange={(v) => {
+									const next = { ...draft, [EFFORT[tier]]: v === AUTO ? "" : v };
+									setDraft(next);
+									void save(next);
+								}}
+								items={[
+									{ value: AUTO, label: t.settings.tiers.default },
+									...(unknown
+										? [
+												{
+													value: saved,
+													label: format(t.settings.tiers.unsupported, { level: saved }),
+												},
+											]
+										: []),
+									...efforts.map((e) => ({ value: e, label: e })),
+								]}
+							/>
+						) : null}
+					</span>
+				) : (
+					<Input
+						label={name}
+						value={draft[tier]}
+						onChange={(e) => setDraft({ ...draft, [tier]: e.target.value })}
+						onBlur={() => draft[tier] !== row[tier] && void save(draft)}
+					/>
+				)}
+			</>
+		);
+	};
+	const alert = error ? (
+		<p role="alert" className="px-6 text-ui text-danger-text">
+			{error}
+		</p>
+	) : null;
+	if (split)
+		return (
+			<>
+				{TIERS.map((tier) => (
+					<SetupRow key={tier} label={t.personal.setup.tier[tier]}>
+						{cell(tier)}
+					</SetupRow>
+				))}
+				{alert}
+			</>
+		);
 	return (
 		<>
 			<SettingsRow label={runnerName(row.runner)} icon={<BrandIcon name={row.runner} size={14} />}>
 				<div className="grid w-full grid-cols-3 gap-2">
-					{TIERS.map((tier) => {
-						const name = `${runnerName(row.runner)} ${t.settings.tiers[tier]}`;
-						const ids = catalog?.models.map((m) => m.id) ?? [];
-						const efforts = listed ? levels(draft[tier]) : [];
-						// A level saved before, that the tool no longer accepts: shown, never passed on.
-						const saved = draft[EFFORT[tier]];
-						const unknown = listed && saved !== "" && !efforts.includes(saved);
-						return (
-							<Caption key={tier} label={t.settings.tiers[tier]}>
-								{listed ? (
-									<span className="flex flex-col gap-1">
-										<Select
-											label={name}
-											className="w-full"
-											value={draft[tier] || AUTO}
-											onValueChange={(v) => pick(tier, v === AUTO ? "" : v)}
-											items={[
-												{ value: AUTO, label: t.settings.tiers.default },
-												// A model saved before the list, or typed by hand, stays pickable.
-												...(draft[tier] && !ids.includes(draft[tier])
-													? [{ value: draft[tier], label: draft[tier] }]
-													: []),
-												...ids.map((id) => ({ value: id, label: id })),
-											]}
-										/>
-										{efforts.length > 0 || unknown ? (
-											<Select
-												label={`${name} ${t.settings.tiers.effort}`}
-												className="w-full"
-												value={draft[EFFORT[tier]] || AUTO}
-												onValueChange={(v) => {
-													const next = { ...draft, [EFFORT[tier]]: v === AUTO ? "" : v };
-													setDraft(next);
-													void save(next);
-												}}
-												items={[
-													{ value: AUTO, label: t.settings.tiers.default },
-													...(unknown
-														? [
-																{
-																	value: saved,
-																	label: format(t.settings.tiers.unsupported, { level: saved }),
-																},
-															]
-														: []),
-													...efforts.map((e) => ({ value: e, label: e })),
-												]}
-											/>
-										) : null}
-									</span>
-								) : (
-									<Input
-										label={name}
-										value={draft[tier]}
-										onChange={(e) => setDraft({ ...draft, [tier]: e.target.value })}
-										onBlur={() => draft[tier] !== row[tier] && void save(draft)}
-									/>
-								)}
-							</Caption>
-						);
-					})}
+					{TIERS.map((tier) => (
+						<Caption key={tier} label={t.settings.tiers[tier]}>
+							{cell(tier)}
+						</Caption>
+					))}
 				</div>
 			</SettingsRow>
-			{error ? (
-				<p role="alert" className="px-3 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{alert}
 		</>
 	);
 }
@@ -180,7 +210,7 @@ function ToolRows() {
 		});
 	const rows = runners.data ?? [];
 	return (
-		<Panel id="tools" title={s.name} count={rows.length} icon={<CommandLineIcon size={14} />} flush>
+		<SetupCard id="tools" title={t.personal.setup.toolSignIn}>
 			{rows.map((r) => {
 				const missing = r.state === "missing";
 				const label = missing
@@ -188,104 +218,217 @@ function ToolRows() {
 					: waiting === r.id && r.auth === "signedOut"
 						? s.waiting
 						: s[r.auth];
+				const out = !missing && r.auth !== "signedIn";
 				return (
-					<ConnectionRow
-						key={r.id}
-						status={
-							missing || r.auth === "notChecked"
-								? "idle"
-								: r.auth === "signedIn"
-									? "info"
-									: "warning"
-						}
-						statusLabel={label}
-						name={r.label}
-						product={r.version ?? undefined}
-						actions={
-							missing ? (
+					<div key={r.id} className="contents">
+						<SetupRow label={<span title={r.version ?? undefined}>{r.label}</span>}>
+							<StatePill
+								state={
+									missing
+										? "off"
+										: r.auth === "signedIn"
+											? "ready"
+											: out && r.auth === "signedOut"
+												? "fix"
+												: "off"
+								}
+							>
+								{label}
+							</StatePill>
+							{missing ? (
 								<ConfirmButton
 									busy={busy}
+									aria-label={format(t.settings.tools.install, { name: r.label })}
 									confirm={format(t.onboarding.setup.action.installConfirm, {
 										name: r.label,
 										command: r.install,
 									})}
 									onConfirm={() => void install(r.id)}
 								>
-									{format(t.settings.tools.install, { name: r.label })}
+									{t.personal.setup.install}
 								</ConfirmButton>
-							) : r.auth === "signedIn" ? null : (
-								<>
-									<Button onClick={() => void signIn(r.id, false)}>{s.action}</Button>
-									{r.id === "codex" ? (
-										<>
-											<Button onClick={() => void signIn(r.id, true)}>{s.code}</Button>
-											<Button aria-expanded={keyForm} onClick={() => setKeyForm(!keyForm)}>
-												{s.apiKey}
-											</Button>
-										</>
-									) : null}
-								</>
-							)
-						}
-					>
-						{r.id === "codex" && keyForm ? (
-							<form
-								className="flex flex-wrap items-end gap-2 border-t px-3 py-2"
-								onSubmit={(e) => {
-									e.preventDefault();
-									void saveKey();
-								}}
-							>
-								<Input
-									autoFocus
-									label={s.apiKeyField}
-									type="password"
-									autoComplete="off"
-									value={key}
-									onChange={(e) => setKey(e.target.value)}
-									className="w-72"
-								/>
-								<Button type="submit" variant="primary" disabled={!key.trim()}>
-									{s.save}
+							) : out ? (
+								<Button variant="primary" onClick={() => void signIn(r.id, false)}>
+									{s.action}
 								</Button>
-							</form>
+							) : null}
+						</SetupRow>
+						{r.id === "codex" && out ? (
+							<Fold aria-label={`${r.label}: ${t.ui.more}`} label={t.ui.more}>
+								<div className="flex flex-wrap gap-2 px-6 pb-2">
+									<Button onClick={() => void signIn(r.id, true)}>{s.code}</Button>
+									<Button aria-expanded={keyForm} onClick={() => setKeyForm(!keyForm)}>
+										{s.apiKey}
+									</Button>
+								</div>
+								{keyForm ? (
+									<form
+										className="flex flex-wrap items-end gap-2 px-6 py-2"
+										onSubmit={(e) => {
+											e.preventDefault();
+											void saveKey();
+										}}
+									>
+										<Input
+											autoFocus
+											label={s.apiKeyField}
+											type="password"
+											autoComplete="off"
+											value={key}
+											onChange={(e) => setKey(e.target.value)}
+											className="w-72"
+										/>
+										<Button type="submit" variant="primary" disabled={!key.trim()}>
+											{s.save}
+										</Button>
+									</form>
+								) : null}
+							</Fold>
 						) : null}
-					</ConnectionRow>
+					</div>
 				);
 			})}
-			<ProviderRows />
-			<ErrorNotice error={failure} className="px-3" />
-		</Panel>
+			<ErrorNotice error={failure} className="px-6" />
+			<Fold label={t.connections.group.provider}>
+				<div className="flex flex-col gap-2 px-6">
+					<ProviderRows />
+				</div>
+			</Fold>
+		</SetupCard>
 	);
 }
 
-/** Settings / Agents and rules: the compass part, then the model of each tier of each runner (factory REQ-012). */
-export function AgentsRules() {
+const compassKey = ["compass"] as const;
+
+/** The models of the default AI tool, one row for each tier, and the language of the prompts. The other tools are under a row that opens. */
+function ModelsCard() {
 	const { t } = useI18n();
+	const p = t.personal.setup;
+	const { defaultAgent, promptLang, setPrefs } = usePrefs();
 	const tiers = useQuery({ queryKey: tiersKey, queryFn: () => unwrap(commands.tiersGet()) });
 	const runners = useQuery({
 		queryKey: runnerKeys.list,
 		queryFn: () => unwrap(commands.runnersList()),
 	});
+	const detected = (id: string) => runners.data?.find((r) => r.id === id)?.state === "detected";
+	const rows = tiers.data ?? [];
+	const main =
+		rows.find((r) => r.runner === defaultAgent) ?? rows.find((r) => detected(r.runner)) ?? rows[0];
+	const others = rows.filter((r) => r !== main);
 	return (
-		<Compass>
-			<ToolRows />
-			<Panel
-				id="tiers"
-				title={t.settings.tiers.name}
-				count={tiers.data?.length ?? 0}
-				icon={<CpuChipIcon size={14} />}
-				flush
-			>
-				{(tiers.data ?? []).map((row) => (
-					// The saved row keys the draft: a refused edit keeps the typed text until the person fixes it.
-					<TierRow
-						key={row.runner}
-						row={row}
-						detected={runners.data?.find((r) => r.id === row.runner)?.state === "detected"}
+		<SetupCard id="tiers" title={main ? `${p.models}: ${runnerName(main.runner)}` : p.models}>
+			{/* The saved row keys the draft: a refused edit keeps the typed text until the person fixes it. */}
+			{main ? (
+				<TierRow key={main.runner} row={main} detected={detected(main.runner)} split />
+			) : null}
+			<SetupRow label={t.prefs.promptLang}>
+				<Select
+					label={t.prefs.promptLang}
+					value={promptLang || "follow"}
+					onValueChange={(v) => setPrefs({ promptLang: v === "follow" ? "" : v })}
+					items={[
+						{ value: "follow", label: t.prefs.promptFollow },
+						...LANGS.map((l) => ({ value: l, label: t.lang[l] })),
+					]}
+				/>
+			</SetupRow>
+			{others.length ? (
+				<Fold label={p.otherTools}>
+					{others.map((row) => (
+						<TierRow key={row.runner} row={row} detected={detected(row.runner)} />
+					))}
+				</Fold>
+			) : null}
+		</SetupCard>
+	);
+}
+
+/** The roles that the agents of the project load, each with its letter. */
+function RolesCard() {
+	const { t } = useI18n();
+	const roles = useQuery({
+		queryKey: ["roles-skills"],
+		queryFn: () => unwrap(commands.rolesSkillsGet()),
+	});
+	const rows = (roles.data ?? []).filter((r) => r.kind === "role");
+	if (!rows.length) return null;
+	return (
+		<SetupCard id="compass-roles" title={t.personal.setup.roles}>
+			{rows.map((r) => (
+				<Row key={r.name}>
+					<Avatar agent name={r.name} />
+					<span className="min-w-0 font-semibold">{r.name}</span>
+				</Row>
+			))}
+		</SetupCard>
+	);
+}
+
+/**
+ * The working rules of the agents: one switch for each pattern of the project. On writes the
+ * rule into the project, off removes it. The lists with every action are the text view.
+ */
+function RulesCard({ children }: { children: ReactNode }) {
+	const { t } = useI18n();
+	const qc = useQueryClient();
+	const { error, run } = useGuard();
+	const gate = useRights().gate("project.settings");
+	const compass = useQuery({ queryKey: compassKey, queryFn: () => unwrap(commands.compassGet()) });
+	const rules = (compass.data?.entries ?? []).filter((e) => e.kind === "pattern");
+	const set = (id: string, on: boolean) =>
+		run(async () => {
+			if (on) await unwrap(commands.compassApply([`pattern:${id}`]));
+			else await unwrap(commands.compassRemove("pattern", id, true));
+			await qc.invalidateQueries({ queryKey: compassKey });
+		});
+	return (
+		<SetupCard id="compass-pattern" title={t.personal.setup.rules}>
+			{rules.map((e) => (
+				<SetupRow key={e.id} label={e.title}>
+					<Toggle
+						label={e.title}
+						checked={e.state !== "absent"}
+						disabled={gate.disabled}
+						reason={gate.reason}
+						onCheckedChange={(on) => void set(e.id, on)}
 					/>
-				))}
-			</Panel>
-		</Compass>
+				</SetupRow>
+			))}
+			{error ? (
+				<p role="alert" className="px-6 text-ui text-danger-text">
+					{error}
+				</p>
+			) : null}
+			<Row className="gap-2.5">{children}</Row>
+		</SetupCard>
+	);
+}
+
+/**
+ * Setup / This computer / Models and rules: the sign-in of each AI tool and the model of each
+ * tier (factory REQ-012), then the roles and the working rules of the agents. The compass lists
+ * with every action are the page "Rules as text".
+ */
+export function AgentsRules() {
+	const { t } = useI18n();
+	const router = useRouter();
+	return (
+		<Columns>
+			<Column>
+				<ToolRows />
+				<ModelsCard />
+			</Column>
+			<Column>
+				<RolesCard />
+				<RulesCard>
+					<Button
+						variant="secondary"
+						onClick={() => router.history.push("/setup/computer?page=rules")}
+					>
+						{t.personal.setup.editText}
+					</Button>
+				</RulesCard>
+			</Column>
+		</Columns>
 	);
 }

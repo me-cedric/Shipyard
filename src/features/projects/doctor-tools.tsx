@@ -12,16 +12,15 @@ import { Panel } from "@/ui/molecules/panel";
 const GROUPS = ["base", "forge", "agent", "scanner"] as const;
 export const toolsKey = ["doctor", "tools"] as const;
 
-/** Settings / Health: the tools Shipyard works with. A missing tool installs after one click. */
-export function DoctorTools() {
-	const { t } = useI18n();
-	const d = t.settings.tools;
+/** The group of a tool that every project needs. A missing one is a problem of this computer. */
+const REQUIRED = "base";
+
+/** The toolchain of this computer, and the install of one tool after a click. */
+export function useToolchain() {
 	const qc = useQueryClient();
 	const tools = useQuery({ queryKey: toolsKey, queryFn: () => unwrap(commands.doctorTools()) });
 	const [busy, setBusy] = useState<string | null>(null);
 	const [error, setError] = useState<unknown>(null);
-	const list = tools.data;
-	if (!list) return null;
 	const install = async (tool: ToolCheck) => {
 		setBusy(tool.id);
 		setError(null);
@@ -34,10 +33,27 @@ export function DoctorTools() {
 			setBusy(null);
 		}
 	};
+	const list = tools.data;
+	return {
+		list,
+		/** The required tools that this machine lacks. Each one is a problem. */
+		problems: (list ?? []).filter((x) => !x.installed && x.group === REQUIRED),
+		busy,
+		error,
+		install,
+	};
+}
+
+/** Setup / Health of this computer: the tools Shipyard works with. A missing tool installs after one click. */
+export function DoctorTools() {
+	const { t } = useI18n();
+	const d = t.settings.tools;
+	const { list, busy, error, install } = useToolchain();
+	if (!list) return null;
 	const missing = list.filter((x) => !x.installed).length;
 	return (
 		<Panel
-			id="tools"
+			id="toolchain"
 			title={d.title}
 			count={missing}
 			icon={<CommandLineIcon size={14} />}

@@ -17,10 +17,22 @@ import {
 	codeWatchIntervalSet,
 	conflictToFactory,
 	seedCode,
+	seedDemoCode,
 	unifiedDiff,
 } from "./mock-code";
 
 describe("the Code mock", () => {
+	it("seeds a demo working copy of five changed files, one in conflict, and one set put aside", () => {
+		const c = seedDemoCode();
+		const s = codeStatus(c);
+		const paths = new Set(
+			[...s.staged, ...s.unstaged, ...s.untracked, ...s.conflicted].map((f) => f.path),
+		);
+		expect(paths.size).toBe(5);
+		expect(s.conflicted.map((f) => f.path)).toEqual(["src/lib/format.ts"]);
+		expect(c.stashes).toHaveLength(1);
+	});
+
 	it("keeps a file in both groups when it has a staged and a later unstaged change", () => {
 		const c = seedCode();
 		const s = codeStatus(c);

@@ -1,21 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
+import { KINDS } from "@/features/settings/connections/connection-form";
 import { runnerKeys } from "@/features/settings/connections/keys";
+import { StatePill } from "@/features/settings/parts";
+import { usePicture } from "@/features/settings/picture-field";
 import { hiddenSection } from "@/features/shell/places";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, unwrap } from "@/lib/ipc";
+import { type ConnectionGroup, commands, unwrap } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
-import { useRights } from "@/lib/rights";
+import { useRights, useRightsView } from "@/lib/rights";
 import { cn } from "@/lib/utils";
+import { useTeam } from "@/lib/work";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
-import { CheckIcon, Cog6ToothIcon, CpuChipIcon, FolderOpenIcon, UserCircleIcon } from "@/ui/icons";
-import { Door } from "@/ui/molecules/door";
+import { CheckIcon, Cog6ToothIcon, CpuChipIcon, FolderOpenIcon } from "@/ui/icons";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Terms } from "@/ui/molecules/term";
 import { ChecklistControl, ITEMS, type ItemId, useChecklist } from "./checklist";
 
-/** A door to a scope of Setup, with its one state line. */
+/** The card of a scope of Setup: an outline icon, the name and its state as a pill. */
 function Scope({
 	to,
 	label,
@@ -25,19 +29,49 @@ function Scope({
 	to: string;
 	label: string;
 	icon: ReactNode;
-	state: string;
+	state: ReactNode;
 }) {
 	return (
-		<Door
-			label={label}
-			icon={icon}
-			render={(p) => (
-				<Link to={to} className={p.className}>
-					{p.children}
-					<span className="text-14 text-n-11">{state}</span>
-				</Link>
-			)}
-		/>
+		<Link
+			to={to}
+			className="flex min-w-0 flex-col gap-3 rounded-lg bg-surface-2 p-6 text-n-12 shadow-2 hover:bg-n-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+		>
+			<span aria-hidden="true" className="flex">
+				{icon}
+			</span>
+			<span className="text-20 font-semibold">{label}</span>
+			<span className="self-start">{state}</span>
+		</Link>
+	);
+}
+
+/** The products that a step of the issue tracker or the code host offers, as large choices. */
+function Kinds({ group }: { group: ConnectionGroup }) {
+	const { t } = useI18n();
+	const [kind, setKind] = useState<string>(KINDS[group][0] ?? "");
+	const names = t.connections.kind[group] as Record<string, string>;
+	return (
+		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
+		<div
+			role="group"
+			aria-label={t.connections.field.kind}
+			className="grid grid-cols-[repeat(auto-fill,minmax(min(150px,100%),1fr))] gap-3"
+		>
+			{KINDS[group].map((k) => (
+				<button
+					key={k}
+					type="button"
+					aria-pressed={kind === k}
+					onClick={() => setKind(k)}
+					className={cn(
+						"flex min-h-22 cursor-pointer items-center justify-center rounded-lg border border-n-7 bg-surface-1 px-3 text-17 font-semibold text-n-12",
+						kind === k && "bg-accent-tint outline-2 outline-accent",
+					)}
+				>
+					{names[k] ?? k}
+				</button>
+			))}
+		</div>
 	);
 }
 
@@ -52,6 +86,10 @@ export function SetupStart() {
 	const state = useChecklist();
 	const { role } = usePrefs();
 	const { level } = useRights();
+	const avatar = usePicture("avatar").data;
+	const handle = useRightsView().data?.person.member;
+	const name =
+		useTeam().data?.team.members.find((m) => m.handle === handle)?.name ?? t.shell.account;
 	// A role does not see the door of a scope that it cannot open (`spec:app-redesign#REQ-006`).
 	const sees = (scope: string) => !hiddenSection(level, "setup", scope);
 	const runners = useQuery({
@@ -69,8 +107,11 @@ export function SetupStart() {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
 			<PageHeader icon={<Cog6ToothIcon size={16} />} title={t.ui.place.setup} />
-			<div className="mx-4 grid gap-6 rounded-xl bg-surface-2 p-4 shadow-1 md:grid-cols-[18rem_1fr]">
-				<ol aria-label={s.title} className="flex flex-col">
+			<div className="mx-4 flex flex-wrap rounded-lg bg-surface-2 shadow-2">
+				<ol
+					aria-label={s.title}
+					className="flex min-w-0 flex-[1_1_220px] flex-col gap-0.5 border-r border-n-6 p-6"
+				>
 					{ITEMS.map((id, i) => {
 						const done = state.done[id] === true;
 						return (
@@ -79,20 +120,20 @@ export function SetupStart() {
 									type="button"
 									aria-current={id === open ? "step" : undefined}
 									onClick={() => setChosen(id)}
-									className="flex min-h-control w-full items-center gap-3 rounded-md px-2 text-left text-14 text-n-11 hover:bg-n-3 aria-[current=step]:font-semibold aria-[current=step]:text-n-12"
+									className="flex min-h-control w-full cursor-pointer items-center gap-3 rounded-md px-2 text-left text-n-12 hover:bg-n-3 aria-[current=step]:font-semibold"
 								>
 									<span
 										aria-hidden="true"
 										className={cn(
-											"flex size-6 shrink-0 items-center justify-center rounded-full text-12",
+											"flex size-7 shrink-0 items-center justify-center rounded-full text-13 font-semibold",
 											done
 												? "bg-n-12 text-n-1"
 												: id === open
-													? "bg-accent text-accent-fg"
+													? "bg-accent text-accent-fg outline-4 outline-accent-subtle"
 													: "border-2 border-n-8",
 										)}
 									>
-										{done ? <CheckIcon size={12} /> : i + 1}
+										{done ? <CheckIcon size={14} /> : i + 1}
 									</span>
 									{s.item[id]}
 									{done ? <span className="sr-only">{s.done}</span> : null}
@@ -101,11 +142,15 @@ export function SetupStart() {
 						);
 					})}
 				</ol>
-				<section aria-labelledby="setup-step" className="flex flex-col gap-4">
-					<h2 id="setup-step" className="text-20 font-semibold text-n-12">
+				<section
+					aria-labelledby="setup-step"
+					className="flex min-w-0 flex-[3_1_420px] flex-col gap-6 p-8"
+				>
+					<h2 id="setup-step" className="text-30 leading-tight font-semibold text-n-12">
 						<Terms>{s.question[open]}</Terms>
 					</h2>
-					<div className="flex flex-wrap items-center justify-end gap-2">
+					{open === "tracker" || open === "forge" ? <Kinds group={open} /> : null}
+					<div className="flex flex-wrap items-center justify-end gap-2.5">
 						{next ? (
 							<Button className="min-h-control" onClick={() => setChosen(next)}>
 								{s.skip}
@@ -115,18 +160,22 @@ export function SetupStart() {
 					</div>
 				</section>
 			</div>
-			<div className="mx-4 grid gap-4 sm:grid-cols-3">
+			<div className="mx-4 grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-4">
 				{sees("project") ? (
 					<Scope
 						to="/setup/project"
 						label={s.scope.project}
-						icon={<FolderOpenIcon size={20} />}
+						icon={<FolderOpenIcon size={28} />}
 						state={
-							state.done.project === false
-								? s.state.noProject
-								: toConnect
-									? format(s.state.connections, { count: toConnect })
-									: s.state.connected
+							state.done.project === false ? (
+								<StatePill state="fix">{s.state.noProject}</StatePill>
+							) : toConnect ? (
+								<StatePill state="fix">
+									{format(s.state.connections, { count: toConnect })}
+								</StatePill>
+							) : (
+								<StatePill state="ready">{s.state.connected}</StatePill>
+							)
 						}
 					/>
 				) : null}
@@ -134,15 +183,19 @@ export function SetupStart() {
 					<Scope
 						to="/setup/computer"
 						label={s.scope.computer}
-						icon={<CpuChipIcon size={20} />}
-						state={format(s.state.tools, { count: ready })}
+						icon={<CpuChipIcon size={28} />}
+						state={
+							<StatePill state={ready ? "ready" : "fix"}>
+								{format(s.state.tools, { count: ready })}
+							</StatePill>
+						}
 					/>
 				) : null}
 				<Scope
 					to="/setup/me"
 					label={s.scope.me}
-					icon={<UserCircleIcon size={20} />}
-					state={`${t.role[role]}, ${t.lang[lang]}`}
+					icon={<Avatar name={name} src={avatar ?? undefined} />}
+					state={<StatePill state="off">{`${t.role[role]}, ${t.lang[lang]}`}</StatePill>}
 				/>
 			</div>
 		</div>

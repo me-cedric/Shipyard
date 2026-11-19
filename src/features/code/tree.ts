@@ -46,3 +46,37 @@ export function treeRows(files: FileChange[]): TreeRow[] {
 	walk(root, "", 0);
 	return rows;
 }
+
+/** One changed file of the flat list: where its changes are. */
+export type FlatRow = {
+	path: string;
+	file: FileChange;
+	staged: boolean;
+	unstaged: boolean;
+	conflict: boolean;
+};
+
+/** The changed files as one flat list, one row per path, sorted by path. A file with a staged and an unstaged change is one row. */
+export function flatRows(c: {
+	staged: FileChange[];
+	unstaged: FileChange[];
+	untracked: FileChange[];
+	conflicted: FileChange[];
+}): FlatRow[] {
+	const rows = new Map<string, FlatRow>();
+	const add = (file: FileChange, where: "staged" | "unstaged" | "conflict") => {
+		const row = rows.get(file.path) ?? {
+			path: file.path,
+			file,
+			staged: false,
+			unstaged: false,
+			conflict: false,
+		};
+		row[where] = true;
+		rows.set(file.path, row);
+	};
+	for (const f of c.conflicted) add(f, "conflict");
+	for (const f of c.staged) add(f, "staged");
+	for (const f of [...c.unstaged, ...c.untracked]) add(f, "unstaged");
+	return [...rows.values()].sort((a, b) => a.path.localeCompare(b.path));
+}

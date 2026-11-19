@@ -55,6 +55,20 @@ describe("Setup / Start", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
 	});
 
+	it("offers the products of the issue tracker as large choices on its step", async () => {
+		const user = userEvent.setup();
+		await noTracker();
+		mountApp("/setup/start");
+		const kinds = within(await screen.findByRole("group", { name: "Product" }));
+		expect(kinds.getAllByRole("button").map((b) => b.textContent)).toContain("Linear");
+		await user.click(kinds.getByRole("button", { name: "Linear" }));
+		expect(kinds.getByRole("button", { name: "Linear" })).toHaveAttribute("aria-pressed", "true");
+		expect(kinds.getByRole("button", { name: "Jira Cloud" })).toHaveAttribute(
+			"aria-pressed",
+			"false",
+		);
+	});
+
 	it("skips to the next step that is to do, and a click on an item opens it", async () => {
 		const user = userEvent.setup();
 		await noTracker();
@@ -112,7 +126,9 @@ describe("Setup / Start", () => {
 		await user.click(list.getByRole("button", { name: new RegExp(s.item.permissions) }));
 		await user.click(screen.getByRole("button", { name: s.action.permissions }));
 		await waitFor(() => expect(router.state.location.href).toBe("/setup/me#section-permissions"));
-		expect(await screen.findByRole("region", { name: /^Permissions/ })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("region", { name: /^What the system allows/ }),
+		).toBeInTheDocument();
 	});
 
 	it("speaks French", async () => {

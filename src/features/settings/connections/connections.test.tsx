@@ -50,22 +50,21 @@ describe("Settings / Connections", () => {
 		const add = await within(main).findByRole("button", { name: "Connection" });
 		expect(add.className).toContain("bg-primary");
 		expect(within(main).getByText("No connections")).toBeInTheDocument();
-		// The runners are detected, not added: they come first under This computer. The MCP servers
-		// (with the recommended set) and the certificates wait in Advanced.
+		// The AI tools and the providers are in the first column, the MCP servers, the outside agents
+		// and the security in the second.
 		router.history.push("/setup/computer");
-		await within(main).findByRole("heading", { name: "Certificates" });
-		// The permissions of this computer come after the groups.
+		await within(main).findByRole("group", { name: "Certificates" });
 		expect(
 			within(main)
 				.getAllByRole("heading", { level: 2 })
 				.map((h) => h.textContent)
-				.slice(0, 3),
-		).toEqual(["AI tools (5)", "MCP servers (0)", "Certificates"]);
+				.slice(0, 5),
+		).toEqual(["AI tools", "Model providers", "MCP servers", "Outside agents", "Security"]);
 		expect(within(main).getByText("Advanced").closest("details")).not.toHaveAttribute("open");
 		// The server for outside agents has its own page.
 		router.history.push("/setup/computer?page=share");
 		expect(
-			await within(main).findByRole("heading", { level: 2, name: "Outside agents" }),
+			await within(main).findByRole("region", { name: "Address of Shipyard" }),
 		).toBeInTheDocument();
 	});
 

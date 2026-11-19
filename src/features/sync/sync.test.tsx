@@ -48,7 +48,7 @@ describe("the sync action and the connection state rows", () => {
 
 	it("focuses the pickup label field when the address names its anchor", async () => {
 		await withTracker();
-		mountApp("/settings/project#pickup-label");
+		mountApp("/setup/project?page=automation#pickup-label");
 		await waitFor(() => expect(screen.getByRole("textbox", { name: "Label" })).toHaveFocus());
 	});
 
@@ -84,10 +84,13 @@ describe("the sync action and the connection state rows", () => {
 describe("Settings / Project, group Automation", () => {
 	it("starts from the defaults with the write switches on", async () => {
 		await withTracker();
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=automation");
 		expect(await screen.findByRole("spinbutton", { name: "Interval (s)" })).toHaveValue(60);
 		expect(screen.getByRole("textbox", { name: "Label" })).toHaveValue("shipyard");
-		expect(screen.getByRole("spinbutton", { name: "Global" })).toHaveValue(2);
+		const less = screen.getByRole("button", { name: "Less: On this computer" });
+		expect(within(less.parentElement as HTMLElement).getByText("2")).toBeVisible();
+		// The main switch is on while the limit of this computer is above zero.
+		expect(screen.getByRole("switch", { name: "Agents pick up tickets alone" })).toBeChecked();
 		for (const name of ["Push", "Pull request", "Ticket transition", "Ticket comment"])
 			expect(screen.getByRole("switch", { name })).toBeChecked();
 		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
@@ -96,7 +99,7 @@ describe("Settings / Project, group Automation", () => {
 	it("refuses an interval under 30 s and keeps the old file", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=automation");
 		const interval = await screen.findByRole("spinbutton", { name: "Interval (s)" });
 		await user.clear(interval);
 		await user.type(interval, "10");
@@ -108,7 +111,7 @@ describe("Settings / Project, group Automation", () => {
 	it("saves the pickup filter, the limits, the mapping and a write switch", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=automation");
 		const interval = await screen.findByRole("spinbutton", { name: "Interval (s)" });
 		await user.clear(interval);
 		await user.type(interval, "45");
@@ -124,7 +127,8 @@ describe("Settings / Project, group Automation", () => {
 		expect(a.interval).toBe(45);
 		expect(a.pickup).toEqual({ label: "agent", statuses: ["To Do", "Ready"] });
 		expect(a.concurrency).toEqual({ global: 2, per_status: { "To Do": 1 } });
-		expect(a.status_map).toEqual({ Done: { status: "Closed" } });
+		// The step Done stands for the two states Merged and Done.
+		expect(a.status_map).toEqual({ Done: { status: "Closed" }, Merged: { status: "Closed" } });
 		expect(a.writes).toEqual({
 			push: true,
 			pull_request: true,
@@ -138,7 +142,7 @@ describe("Settings / Project, group Automation", () => {
 	it("names a per-status value that is not name=number", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=automation");
 		await user.type(await screen.findByRole("textbox", { name: "Per status" }), "To Do");
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("Per status: name=number");
@@ -149,7 +153,7 @@ describe("Settings / Project, group Automation", () => {
 		await withTracker();
 		mockState().sync.file = "valid";
 		mockState().sync.automation.recipe_writes = { feature: ["transition", "open_pr"] };
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=automation");
 		const interval = await screen.findByRole("spinbutton", { name: "Interval (s)" });
 		await user.clear(interval);
 		await user.type(interval, "45");
@@ -174,7 +178,7 @@ describe("Settings / Project, group Automation", () => {
 
 	it("shows no recipe permission list when none exists", async () => {
 		await withTracker();
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=automation");
 		await screen.findByRole("spinbutton", { name: "Interval (s)" });
 		expect(screen.queryByText("Allowed for a recipe")).toBeNull();
 		expect(screen.queryByRole("button", { name: /^Remove .+ for / })).toBeNull();
@@ -183,7 +187,7 @@ describe("Settings / Project, group Automation", () => {
 	it("is in French when the language is French", async () => {
 		mockState().prefs.lang = "fr";
 		await withTracker();
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=automation");
 		expect(await screen.findByRole("spinbutton", { name: "Intervalle (s)" })).toBeInTheDocument();
 		expect(screen.getByRole("switch", { name: "Commentaire du ticket" })).toBeInTheDocument();
 		expect(screen.getByRole("textbox", { name: "Terminé, Statut" })).toBeInTheDocument();

@@ -90,7 +90,7 @@ export function McpAllow({
 					</span>
 				</SettingsRow>
 			) : null}
-			<ErrorNotice error={error ?? listed.error} className="px-3 pb-2" />
+			<ErrorNotice error={error ?? listed.error} className="px-6 pb-2" />
 		</>
 	);
 }

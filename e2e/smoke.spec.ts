@@ -52,15 +52,16 @@ test("runs an action from the Ask bar with the keyboard", async ({ page }) => {
 
 test("switches the theme in Setup / Me", async ({ page }) => {
 	await page.goto("/setup/me");
-	await page.getByRole("combobox", { name: "Theme" }).click();
-	await page.getByRole("option", { name: "Dark", exact: true }).click();
+	await page
+		.getByRole("group", { name: "Theme" })
+		.getByRole("button", { name: "Dark", exact: true })
+		.click();
 	await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
 
 test("switches the language to French", async ({ page }) => {
 	await page.goto("/setup/me");
-	await page.getByRole("combobox", { name: "Language", exact: true }).click();
-	await page.getByRole("option", { name: "French" }).click();
+	await page.getByRole("button", { name: "French", exact: true }).click();
 	await expect(
 		page
 			.getByRole("navigation", { name: "Barre latérale" })
@@ -74,8 +75,7 @@ for (const [option, sidebar, home, lang] of [
 ]) {
 	test(`switches the language to ${option}`, async ({ page }) => {
 		await page.goto("/setup/me");
-		await page.getByRole("combobox", { name: "Language", exact: true }).click();
-		await page.getByRole("option", { name: option }).click();
+		await page.getByRole("button", { name: option, exact: true }).click();
 		await expect(
 			page.getByRole("navigation", { name: sidebar }).getByRole("link", { name: home }),
 		).toBeVisible();

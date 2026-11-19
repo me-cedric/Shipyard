@@ -62,6 +62,12 @@
 - Crew is rebuilt to the design with its sub-pages: Live, one person, Recipes with a page for each step, Sessions with its ended sessions, Rights with the team file, and Spend with How agents do and Budgets; the Agents on switch is in the header of Crew, Stop all agents is on Spend and stops each running agent while the agents stay on, and the moved controls are in the More menu of each page.
 - Plan is rebuilt to the design with its sub-pages: Dates and days off, Send to the issue tracker, the estimate sheets, Costing, one estimate and the import from Excel; each sub-page has its own address and a back link, and the section switch shows once on the main pages only.
 - Crew / Sessions shows each kind of agent session (run, review, estimate and tile build) and gives each one its own Stop; Stop all agents stops them all and leaves the agents on.
+- Code Now is a short summary: the files to commit with one commit message and the open pull requests with one state each; the local changes have their own page with one flat file list, one commit message, put-aside sets and a diff with the review comment.
+- The History, Branches and Terminal pages of Code are rebuilt: History shows the commits in one card with a detail side, Branches shows one card for each branch with its Ahead and Behind bars, and Terminal has a Files card, tabs and a command bar with Ask an agent to run it.
+- Setup / This project is rebuilt as cards: the issue tracker, the code host and Figma, the project, the tickets, what agents may do alone and Automation; Automation, Tickets, Extensions and the health of the project have their own pages.
+- A new page, Plugins and rule packs, opens from Extensions: it checks a plugin before it applies, lists the rule packs and sends a plugin to the child projects.
+- Setup / This computer, Models and rules, Share Shipyard with other tools, Logs and feedback, Me and Look and layout are rebuilt as cards, and the Setup start has product tiles and three scope cards; the step labels are First ticket for a person and First work by an agent.
+- The health of this computer counts a missing required program as a problem and offers Fix it.
 
 ## [0.1.0]
 - Resume takes the limits that the workflow has now, so a budget that you removed no longer stops a run, and Resume with an empty amount works again.

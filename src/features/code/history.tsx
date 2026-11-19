@@ -1,82 +1,128 @@
-import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useId, useRef, useState } from "react";
+import { featureHref, useFeatures } from "@/features/flow/feature";
 import { PageExport } from "@/features/reports/page-export";
-import { useAvatars, useCommitDetail, useCommitDiff, useLog } from "@/lib/code";
+import {
+	useAvatars,
+	useBlame,
+	useCommitDetail,
+	useCommitDiff,
+	useEditors,
+	useLog,
+} from "@/lib/code";
 import { graph } from "@/lib/code/graph";
 import { format, useI18n } from "@/lib/i18n";
+import { commands, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
+import { RightButton } from "@/lib/rights";
+import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
+import { cn } from "@/lib/utils";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { ClockIcon, DocumentTextIcon } from "@/ui/icons";
-import { CommitRow } from "@/ui/molecules/commit-row";
+import { Input } from "@/ui/atoms/input";
+import { LinkButton, linkClass } from "@/ui/atoms/link-button";
+import { Segmented } from "@/ui/atoms/segmented";
+import { Card } from "@/ui/molecules/card";
+import { ContextMenu } from "@/ui/molecules/context-menu";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { EmptyState } from "@/ui/molecules/empty-state";
-import { FileRow } from "@/ui/molecules/file-row";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { Panel } from "@/ui/molecules/panel";
+import { Row } from "@/ui/molecules/row";
 import { SplitPane } from "@/ui/molecules/split-pane";
+import { BranchSelector } from "./branch-selector";
+import { featureOf } from "./branches-feature";
 import { withProject } from "./project-gate";
 
 /** One colour per lane of the graph, in turn. */
 const LANE = ["bg-accent", "bg-success", "bg-warning", "bg-info", "bg-danger"];
 const lane = (i: number) => LANE[i % LANE.length];
 const STEP = 14;
+const LABEL = { branch: "accent", remote: "neutral", tag: "warning" } as const;
 
-/** One commit: its info, its changed files and the diff of one file at a time (REQ-010). */
+/**
+ * One commit: who and when, the message, its feature and its changed files. A file opens its diff
+ * (REQ-010). The buttons open a file in the editor, show who changed each line and hand the undo
+ * to the assistant. The labels, the short id and the export are behind More.
+ */
 function Detail({ sha }: { sha: string }) {
 	const { t, lang } = useI18n();
+	const h = t.forge.history;
 	const menu = useMenus();
+	const { ask } = useShell();
+	const moreId = useId();
 	const detail = useCommitDetail(sha).data;
 	const avatars = useAvatars(detail ? [detail.info.author_email] : []);
-	const [file, setFile] = useState<string | null>(null);
-	const current =
-		file && detail?.files.some((f) => f.path === file) ? file : detail?.files[0]?.path;
-	const diff = useCommitDiff(detail ? sha : null, current ?? null).data;
+	const features = useFeatures().data ?? [];
+	const editor = useEditors().data?.[0];
+	// The first file opens with the commit; a click on the open file closes it.
+	const [file, setFile] = useState<string | null | undefined>(undefined);
+	const [blaming, setBlaming] = useState(false);
+	const [more, setMore] = useState(false);
+	const [error, setError] = useState<unknown>(null);
+	const picked = file === undefined ? detail?.files[0]?.path : file;
+	const open = picked && detail?.files.some((f) => f.path === picked) ? picked : null;
+	// The buttons act on the open file, else on the first file of the commit.
+	const target = open ?? detail?.files[0]?.path ?? null;
+	const diff = useCommitDiff(detail && open ? sha : null, open).data;
+	const blame = useBlame(target ?? "", blaming && target !== null);
 	if (!detail) return null;
 	const { info } = detail;
+	const feature = featureOf(
+		`${info.summary} ${info.labels.map((l) => l.name).join(" ")}`,
+		features,
+	);
 	return (
-		<div className="flex flex-col gap-3 p-3">
-			<div className="flex flex-col gap-2 rounded-lg border bg-surface-2 p-3 shadow-1">
-				<h2 className="text-16 font-semibold text-n-12">{info.summary}</h2>
-				{info.description ? (
-					<p className="text-ui whitespace-pre-wrap text-n-12">{info.description}</p>
-				) : null}
-				<p className="flex flex-wrap items-center gap-2 text-12 text-n-11">
-					<Avatar
-						name={info.author_name}
-						src={avatars[info.author_email.trim().toLowerCase()]}
-						className="size-5"
-					/>
-					{info.author_name}
-					<Badge className="font-mono">{info.short}</Badge>
-					<span className="flex items-center gap-1">
-						<ClockIcon size={12} />
+		<div className="flex min-w-0 flex-1 flex-col gap-4">
+			<Card pad className="flex flex-col gap-3">
+				<div className="flex items-center gap-3">
+					<Avatar name={info.author_name} src={avatars[info.author_email.trim().toLowerCase()]} />
+					<span className="min-w-0 truncate font-semibold">{info.author_name}</span>
+					<span className="ml-auto shrink-0 text-n-11">
 						{new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" }).format(
 							info.time * 1000,
 						)}
 					</span>
-				</p>
-			</div>
-			<Panel
-				title={t.code.files}
-				count={detail.files.length}
-				icon={<DocumentTextIcon size={14} />}
-				flush
-			>
-				{detail.files.map((f) => (
-					<FileRow
-						key={f.path}
-						name={f.path}
-						state={f.state}
-						stateLabel={t.code.state[f.state]}
-						selected={f.path === current}
-						onSelect={() => setFile(f.path)}
-						menu={menu("file", { "copy-path": () => copyText(f.path) })}
-					/>
-				))}
-			</Panel>
+				</div>
+				<h2 className="text-20 font-semibold text-n-12">{info.summary}</h2>
+				{info.description ? (
+					<p className="whitespace-pre-wrap text-n-12">{info.description}</p>
+				) : null}
+				{feature ? (
+					<Link {...featureHref(feature)} className={linkClass}>
+						{format(h.feature, { title: feature.title })}
+					</Link>
+				) : null}
+			</Card>
+			<Card className="py-2">
+				<section aria-label={t.code.files}>
+					<h2 className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">
+						{detail.files.length === 1 ? h.file : format(h.files, { count: detail.files.length })}
+					</h2>
+					{detail.files.map((f) => (
+						<ContextMenu key={f.path} items={menu("file", { "copy-path": () => copyText(f.path) })}>
+							<Row
+								render={(props) => (
+									<button
+										type="button"
+										aria-expanded={f.path === open}
+										onClick={() => setFile(f.path === open ? null : f.path)}
+										{...props}
+										className={cn(props.className, "w-full text-left hover:bg-n-2")}
+									/>
+								)}
+							>
+								<span className="mr-auto min-w-0 truncate font-mono text-13">{f.path}</span>
+								<span className="shrink-0 text-13 font-semibold text-n-11">
+									{t.code.state[f.state]}
+								</span>
+							</Row>
+						</ContextMenu>
+					))}
+				</section>
+			</Card>
 			{diff ? (
 				<DiffView
 					text={diff.text}
@@ -88,26 +134,99 @@ function Detail({ sha }: { sha: string }) {
 					truncatedLabel={t.code.truncated}
 				/>
 			) : null}
+			<div className="flex flex-wrap gap-2.5 *:flex-[1_1_220px] [&_button]:w-full">
+				{editor && target ? (
+					<Button
+						onClick={() => {
+							setError(null);
+							unwrap(commands.editorOpen(editor.id, target, null)).catch(setError);
+						}}
+					>
+						{h.openEditor}
+					</Button>
+				) : null}
+				{target ? (
+					<Button aria-pressed={blaming} onClick={() => setBlaming(!blaming)}>
+						{h.blame}
+					</Button>
+				) : null}
+				<RightButton
+					right="code.write"
+					className="border-danger-subtle text-danger-text"
+					onClick={() => ask(format(h.undoAsk, { short: info.short, summary: info.summary }))}
+				>
+					{h.undo}
+				</RightButton>
+			</div>
+			<ErrorNotice error={error ?? blame.error} className="text-danger-text" />
+			{blaming && blame.data && target ? (
+				<Card className="py-2">
+					<ol
+						aria-label={format(h.blameOf, { path: target })}
+						className="max-h-64 overflow-auto px-6 text-13"
+					>
+						{blame.data.map((b) => (
+							<li key={b.line} className="flex gap-3 py-0.5">
+								<span className="w-8 shrink-0 text-right font-mono text-n-11">{b.line}</span>
+								<span className="min-w-0 flex-1 truncate">{b.author}</span>
+								{b.time ? (
+									<span className="shrink-0 text-n-11">
+										{new Intl.DateTimeFormat(lang, { dateStyle: "medium" }).format(b.time * 1000)}
+									</span>
+								) : null}
+							</li>
+						))}
+					</ol>
+				</Card>
+			) : null}
+			<LinkButton aria-expanded={more} aria-controls={moreId} onClick={() => setMore(!more)}>
+				{t.ui.more}
+			</LinkButton>
+			{more ? (
+				<div id={moreId} className="flex flex-wrap items-center gap-2">
+					<Badge className="font-mono">{info.short}</Badge>
+					{info.labels.map((l) => (
+						<Badge key={`${l.kind}:${l.name}`} variant={LABEL[l.kind]}>
+							{l.name}
+						</Badge>
+					))}
+					<PageExport page="workDone" />
+				</div>
+			) : null}
 		</div>
 	);
 }
 
 function HistoryView() {
 	const { t, lang } = useI18n();
+	const h = t.forge.history;
 	const menu = useMenus();
 	const navigate = useNavigate();
 	const log = useLog();
 	const end = useRef<HTMLDivElement>(null);
 	const { hasNextPage, isFetchingNextPage, fetchNextPage } = log;
-	const commits = log.data?.pages.flatMap((p) => p.commits) ?? [];
+	const [show, setShow] = useState<"commits" | "tags">("commits");
+	const [query, setQuery] = useState("");
+	const all = log.data?.pages.flatMap((p) => p.commits) ?? [];
+	const needle = query.trim().toLowerCase();
+	// The search and the Tags choice narrow the commits that are loaded. "Older commits" loads more.
+	const commits = all.filter(
+		(c) =>
+			(show === "commits" || c.labels.some((l) => l.kind === "tag")) &&
+			(!needle ||
+				[c.summary, c.author_name, c.short].some((x) => x.toLowerCase().includes(needle))),
+	);
 	// The newest commit opens by default, and the choice stays with the tab.
 	const [sha, setSha] = useTabSelection(
 		"code:history",
 		commits.map((c) => c.sha),
 	);
 	const avatars = useAvatars(commits.map((c) => c.author_email));
-	const rows = graph(commits);
+	const rows = graph(all);
+	const rowOf = new Map(all.map((c, n) => [c.sha, rows[n]]));
 	const lanes = Math.max(1, ...rows.map((r) => r.width));
+	// The rail of the graph shows for a history with side lines, on the whole list only.
+	const rail = lanes > 1 && commits.length === all.length;
 
 	// Older commits load when the end of the list scrolls into view. The button does the same by keyboard.
 	useEffect(() => {
@@ -120,73 +239,110 @@ function HistoryView() {
 		return () => watch.disconnect();
 	}, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-	const date = new Intl.DateTimeFormat(lang, { dateStyle: "medium" });
+	const date = new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" });
 	return (
-		<div className="flex min-h-0 flex-1 flex-col">
-			<PageHeader
-				icon={<ClockIcon size={16} />}
-				title={t.tabs.code.history}
-				count={commits.length}
-				action={<PageExport page="workDone" />}
-			/>
-			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-1 pb-4">
-				<SplitPane id="code-history-width" label={t.forge.resize.history} fallback={544}>
-					<div className="shrink-0 overflow-y-auto rounded-lg border bg-surface-1 py-1 shadow-1">
-						{commits.map((c, n) => (
-							<div key={c.sha} className="flex items-stretch">
-								<span
-									aria-hidden="true"
-									data-lane={rows[n]?.lane}
-									className="relative shrink-0"
-									style={{ width: lanes * STEP + 12 }}
-								>
-									{rows[n]?.through.map((i) => (
-										<span
-											key={i}
-											className={`absolute inset-y-0 w-0.5 opacity-60 ${lane(i)}`}
-											style={{ left: i * STEP + 11 }}
-										/>
-									))}
+		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+			<PageHeader title={t.tabs.code.history} />
+			<div className="flex flex-wrap items-center gap-4 px-4 pb-6">
+				<BranchSelector />
+				<div className="shrink-0">
+					<Segmented
+						label={h.show}
+						value={show}
+						onValueChange={setShow}
+						items={[
+							{ value: "commits", label: h.commits },
+							{ value: "tags", label: h.tags },
+						]}
+					/>
+				</div>
+				<Input
+					label={h.search}
+					type="search"
+					className="max-w-105 flex-[1_1_200px]"
+					value={query}
+					onChange={(e) => setQuery(e.target.value)}
+				/>
+			</div>
+			<div className="flex items-start gap-6 px-4 pb-10">
+				<SplitPane id="code-history-width" label={t.forge.resize.history} fallback={688} max={1000}>
+					<Card className="py-2">
+						{commits.map((c) => {
+							const row = rowOf.get(c.sha);
+							const tags = c.labels.filter((l) => l.kind === "tag");
+							return (
+								<div key={c.sha} className="flex items-stretch [&+&]:border-t [&+&]:border-n-6">
 									<span
-										className={`absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full ring-2 ring-surface-1 ${lane(rows[n]?.lane ?? 0)}`}
-										style={{ left: (rows[n]?.lane ?? 0) * STEP + 7 }}
-									/>
-								</span>
-								<div className="min-w-0 flex-1">
-									<CommitRow
-										short={c.short}
-										summary={c.summary}
-										author={c.author_name}
-										avatar={avatars[c.author_email.trim().toLowerCase()]}
-										date={date.format(c.time * 1000)}
-										labels={c.labels}
-										selected={c.sha === sha}
-										onSelect={() => setSha(c.sha)}
-										menu={menu("commit", {
+										aria-hidden="true"
+										data-lane={row?.lane}
+										hidden={!rail}
+										className="relative shrink-0"
+										style={{ width: lanes * STEP + 12 }}
+									>
+										{row?.through.map((i) => (
+											<span
+												key={i}
+												className={`absolute inset-y-0 w-0.5 opacity-60 ${lane(i)}`}
+												style={{ left: i * STEP + 11 }}
+											/>
+										))}
+										<span
+											className={`absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full ring-2 ring-surface-2 ${lane(row?.lane ?? 0)}`}
+											style={{ left: (row?.lane ?? 0) * STEP + 7 }}
+										/>
+									</span>
+									<ContextMenu
+										items={menu("commit", {
 											open: () => setSha(c.sha),
 											"copy-sha": () => copyText(c.sha),
 										})}
-									/>
+									>
+										<button
+											type="button"
+											aria-pressed={c.sha === sha}
+											onClick={() => setSha(c.sha)}
+											className="flex min-h-17 min-w-0 flex-1 flex-wrap items-center gap-3 px-6 py-2 text-left hover:bg-n-2 aria-pressed:bg-accent-soft"
+										>
+											<Avatar
+												name={c.author_name}
+												src={avatars[c.author_email.trim().toLowerCase()]}
+											/>
+											<span className="flex min-w-0 flex-[1_1_200px] flex-col">
+												<span className="truncate font-semibold">{c.summary}</span>
+												<span className="truncate text-n-11">
+													{format(h.by, {
+														author: c.author_name,
+														time: date.format(c.time * 1000),
+													})}
+												</span>
+											</span>
+											{tags.map((l) => (
+												<Badge key={l.name} variant="warning">
+													{l.name}
+												</Badge>
+											))}
+											{c.sha === sha ? <Badge variant="accent">{h.shown}</Badge> : null}
+										</button>
+									</ContextMenu>
 								</div>
-							</div>
-						))}
+							);
+						})}
+						{commits.length === 0 && log.data ? (
+							<p className="px-6 py-4 text-n-11">{h.none}</p>
+						) : null}
 						{hasNextPage ? (
-							<div ref={end} className="p-2">
-								<Button
-									variant="ghost"
-									disabled={isFetchingNextPage}
-									onClick={() => void fetchNextPage()}
-								>
-									{t.code.older}
-								</Button>
+							<div ref={end} className="border-t border-n-6 px-6 py-2">
+								<LinkButton disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+									{h.older}
+								</LinkButton>
 							</div>
 						) : null}
-					</div>
+					</Card>
 				</SplitPane>
-				<div className="min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
-					{sha ? (
-						<Detail sha={sha} />
-					) : (
+				{sha ? (
+					<Detail key={sha} sha={sha} />
+				) : (
+					<div className="min-w-0 flex-1">
 						<EmptyState
 							title={t.empty.commit}
 							action={{
@@ -194,8 +350,8 @@ function HistoryView() {
 								onClick: () => void navigate({ to: "/code/now" }),
 							}}
 						/>
-					)}
-				</div>
+					</div>
+				)}
 			</div>
 		</div>
 	);

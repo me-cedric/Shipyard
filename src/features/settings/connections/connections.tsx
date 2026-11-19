@@ -26,7 +26,6 @@ import { StatusDot } from "@/ui/atoms/status-dot";
 import {
 	ArrowPathIcon,
 	ArrowsRightLeftIcon,
-	ChevronRightIcon,
 	CodeBracketIcon,
 	Cog6ToothIcon,
 	CpuChipIcon,
@@ -49,11 +48,13 @@ import { SectionNav } from "@/ui/molecules/section-nav";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { SyncStatus } from "@/ui/molecules/sync-status";
 import { SETTINGS_PAGE } from "@/ui/templates/settings";
+import { Column, Columns } from "../parts";
 import { CertsGroup } from "./certs-group";
 import { ADD_TYPES, type AddType, ConnectionForm, GROUPS } from "./connection-form";
 import { GitlabTools } from "./gitlab-tools";
 import { connectionKeys, message, useMcpServers, useProviders } from "./keys";
 import { McpAddForm, McpGroup } from "./mcp-group";
+import { OutsideCard } from "./mcp-outside-group";
 import { ProviderForm, ProvidersGroup } from "./providers-group";
 import { Repair } from "./repair";
 import { RunnersGroup } from "./runners-group";
@@ -387,7 +388,7 @@ const OTHER_TYPES = ADD_TYPES.filter((v) => v !== "tracker" && v !== "forge");
  * part (`spec:app-redesign#REQ-024`): the issue trackers and the code hosts under This project, the
  * AI tools, the providers, the MCP servers and the certificates under This computer.
  */
-export function Connections({ scope }: { scope: "project" | "computer" }) {
+function Scoped({ scope }: { scope: "project" | "computer" }) {
 	const { t } = useI18n();
 	const router = useRouter();
 	const ofProject = scope !== "computer";
@@ -505,7 +506,6 @@ export function Connections({ scope }: { scope: "project" | "computer" }) {
 						<EmptyState title={t.empty.connections} action={add} />
 					</div>
 				) : null}
-				{ofComputer ? <RunnersGroup /> : null}
 				{adding ? (
 					<div className="rounded-lg border bg-surface-1 shadow-1">
 						<AddForm
@@ -548,26 +548,42 @@ export function Connections({ scope }: { scope: "project" | "computer" }) {
 						</section>
 					);
 				})}
-				{ofComputer ? (
-					<>
-						<ProvidersGroup formOpen={formOpen} onForm={setEditing} />
-						<details className="group flex flex-col gap-5">
-							<summary className="flex h-row w-fit cursor-pointer items-center gap-1.5 px-1 text-12 font-medium text-n-11 select-none hover:text-n-12">
-								<ChevronRightIcon
-									size={12}
-									className="transition-transform duration-(--duration-fast) group-open:rotate-90"
-								/>
-								{t.connections.advanced}
-							</summary>
-							<div className="flex flex-col gap-5 pt-3">
-								<McpGroup formOpen={formOpen} onForm={setEditing} />
-								{/* The outside agents have their own page, Share. */}
-								<CertsGroup />
-							</div>
-						</details>
-					</>
-				) : null}
 			</div>
 		</div>
 	);
+}
+
+/**
+ * This computer: the AI tools and the model providers, then the MCP servers, the outside agents
+ * and the security. One form is open at a time.
+ */
+function Computer() {
+	const router = useRouter();
+	const [editing, setEditing] = useState(false);
+	// The form of an issue tracker or a code host is under This project: a link of before that
+	// lands on This computer goes there with its question.
+	const toProject = (form: string) => () => {
+		askForm(form);
+		router.history.replace("/setup/project?page=connections");
+	};
+	useFormIntent("connection", toProject("connection"));
+	useFormIntent("connection:forge", toProject("connection:forge"));
+	return (
+		<Columns>
+			<Column>
+				<RunnersGroup />
+				<ProvidersGroup formOpen={editing} onForm={setEditing} />
+			</Column>
+			<Column>
+				<McpGroup formOpen={editing} onForm={setEditing} />
+				<OutsideCard />
+				<CertsGroup />
+			</Column>
+		</Columns>
+	);
+}
+
+/** The connections of a scope of Setup (`spec:app-redesign#REQ-024`). */
+export function Connections({ scope }: { scope: "project" | "computer" }) {
+	return scope === "computer" ? <Computer /> : <Scoped scope={scope} />;
 }

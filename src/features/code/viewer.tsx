@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useBlame } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
+import { CodeLine } from "@/ui/molecules/code-editor";
+import { parseDiff } from "@/ui/molecules/diff-view";
 import { Dialog } from "@/ui/organisms/dialog";
 import { FileViewer } from "@/ui/organisms/file-viewer";
 import { OpenInEditor } from "./open-in-editor";
@@ -66,5 +69,66 @@ export function FileDialog({
 				</ol>
 			) : null}
 		</Dialog>
+	);
+}
+
+/** The lines that a diff adds and removes. */
+export function diffCounts(text: string) {
+	const lines = parseDiff(text);
+	return {
+		added: lines.filter((l) => l.kind === "add").length,
+		removed: lines.filter((l) => l.kind === "del").length,
+	};
+}
+
+/**
+ * The diff of a local change as plain numbered lines: one number column, an added line in green, a
+ * removed line in red. The hunk headers do not show.
+ */
+export function PlainDiff({
+	text,
+	path,
+	label,
+	binary,
+	truncated,
+	binaryLabel,
+	truncatedLabel,
+}: {
+	text: string;
+	path: string;
+	label: string;
+	binary?: boolean;
+	truncated?: boolean;
+	binaryLabel: string;
+	truncatedLabel: string;
+}) {
+	return (
+		<section aria-label={label} className="overflow-x-auto py-3.5 font-mono text-14 leading-[1.7]">
+			{binary ? <p className="px-6 text-n-11">{binaryLabel}</p> : null}
+			{parseDiff(text).map((l, i) =>
+				l.kind === "hunk" ? null : (
+					<div
+						// biome-ignore lint/suspicious/noArrayIndexKey: the lines of a diff never reorder
+						key={i}
+						data-kind={l.kind}
+						className={cn(
+							"flex px-6 whitespace-pre",
+							l.kind === "add"
+								? "bg-success-subtle text-success-text"
+								: l.kind === "del"
+									? "bg-danger-subtle text-danger-text"
+									: "text-n-11",
+						)}
+					>
+						<span aria-hidden="true" className="w-8 shrink-0 tabular-nums select-none">
+							{l.new ?? l.old}
+						</span>
+						<span className="sr-only">{l.kind === "add" ? "+" : l.kind === "del" ? "−" : ""}</span>
+						<CodeLine text={l.text} lang={path} />
+					</div>
+				),
+			)}
+			{truncated ? <p className="px-6 text-n-11">{truncatedLabel}</p> : null}
+		</section>
 	);
 }

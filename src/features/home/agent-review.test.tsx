@@ -35,7 +35,12 @@ describe("Home / Needs you: agent review", () => {
 		expect(await screen.findByRole("heading", { name: /Agent review \(2\)/ })).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Post review" }));
 		expect(await screen.findByText("Posted")).toBeVisible();
-		await waitFor(async () => expect(await unwrap(commands.prReviewWaiting())).toEqual([]));
+		// The demo keeps one other draft waiting (the review comment of Code / local changes).
+		await waitFor(async () =>
+			expect((await unwrap(commands.prReviewWaiting())).filter((w) => w.number === 141)).toEqual(
+				[],
+			),
+		);
 	});
 
 	it("shows no review when no draft waits", async () => {

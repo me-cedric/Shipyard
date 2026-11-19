@@ -5,10 +5,11 @@ import { PLUGIN_PATH } from "@/lib/ipc/mock-extensions";
 import { mountTab } from "./harness";
 
 async function applyPlugin(user: ReturnType<typeof userEvent.setup>) {
-	await mountTab("extensions");
+	const router = await mountTab("plugins");
 	await user.type(await screen.findByRole("textbox", { name: "Plugin archive path" }), PLUGIN_PATH);
 	await user.click(screen.getByRole("button", { name: "Review" }));
 	await user.click(await screen.findByRole("button", { name: "Apply plugin (4)" }));
+	router.history.push("/setup/project?page=extensions");
 }
 
 describe("Settings / Extensions: plugin settings and deploy", () => {

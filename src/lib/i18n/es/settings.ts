@@ -8,6 +8,22 @@ export const settingsEs: typeof settingsEn = {
 		logs: "Registros y comentarios",
 		look: "Aspecto y disposición",
 	},
+	pills: {
+		details: "Detalles",
+		alone: "Lo que los agentes hacen solos",
+		automation: "Automatización",
+		extensions: "Extensiones",
+		connections: "Herramientas de IA y conexiones",
+		models: "Modelos y reglas",
+		health: "Salud",
+	},
+	parts: {
+		less: "Menos: {name}",
+		more: "Más: {name}",
+		ready: "Listo",
+		fix: "Por corregir",
+		off: "Desactivado",
+	},
 	tiers: {
 		name: "Niveles de modelo",
 		top: "Superior",
