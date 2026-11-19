@@ -168,7 +168,7 @@ export function ProjectsPage() {
 				icon={<FolderOpenIcon size={16} />}
 				title={title}
 				action={
-					<span className="flex flex-wrap gap-2">
+					<span className="flex flex-wrap gap-4">
 						{active ? (
 							<Button
 								className="min-h-control"
@@ -204,7 +204,7 @@ export function ProjectsPage() {
 					</ul>
 				) : null}
 				{before.length ? (
-					<section aria-labelledby="projects-before" className="flex flex-col gap-2">
+					<section aria-labelledby="projects-before" className="flex flex-col gap-6.5">
 						<h2 id="projects-before" className="text-17 font-semibold text-n-12">
 							{w.before}
 						</h2>

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useId, useState } from "react";
+import { useId } from "react";
 import { STAGES, stateText, useFeatures } from "@/features/flow/feature";
 import { doStop, type StopAction, stopAction } from "@/features/flow/stop-action";
 import { useGuard } from "@/features/work/guard";
@@ -9,13 +9,14 @@ import type { RunView_Serialize } from "@/lib/ipc";
 import { RightButton, useRights } from "@/lib/rights";
 import { runHref, useShell } from "@/lib/shell";
 import { Avatar } from "@/ui/atoms/avatar";
-import { LinkButton, linkClass } from "@/ui/atoms/link-button";
+import { linkClass } from "@/ui/atoms/link-button";
 import { StepBar } from "@/ui/atoms/step-bar";
+import { StopIcon } from "@/ui/icons";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { Row } from "@/ui/molecules/row";
 import { useMyItems } from "./stats";
 
-/** The one main action of a stopped run, in one click (`spec:app-redesign#REQ-014`). A reply has its question card. */
+/** The one main action of a stopped run, in one click (`spec:app-redesign#REQ-014`). It takes the place of the act text of the row. A reply has its question card. */
 function StopButton({
 	run,
 	guard,
@@ -39,8 +40,8 @@ function StopButton({
 	return (
 		<RightButton
 			right="runs.start"
-			variant="primary"
-			className="min-h-control"
+			variant="ghost"
+			className="ml-auto min-h-control text-accent"
 			aria-label={`${label[action]} ${run.key}`}
 			onClick={() =>
 				void guard(() => doStop(act, run, action, { open: (id) => openRef(`run:${id}`) }))
@@ -53,8 +54,8 @@ function StopButton({
 
 /**
  * The live runs of the person (spec:app-redesign#REQ-007, picture 001): one row for each agent that
- * works, with the feature, the stage and the current act, then the link to the flow. More holds
- * the spend of today and the stop of each run.
+ * works, with the feature, the stage and the current act (the main action when the run stopped),
+ * the stop of the run, then the link to the flow and the spend of today.
  */
 export function WorkingNow() {
 	const { t, lang } = useI18n();
@@ -68,11 +69,10 @@ export function WorkingNow() {
 	const { error, run } = useGuard();
 	// Every AI tool on this computer, as the menu bar panel shows it.
 	const spend = useDailySpend(14);
-	const [more, setMore] = useState(false);
 	const title = useId();
 	return (
 		<section aria-labelledby={title} className="rounded-lg bg-surface-2 py-2 shadow-2">
-			<h3 id={title} className="px-5 pt-3.5 pb-1.5 font-semibold text-n-12">
+			<h3 id={title} className="px-5 pt-3.5 pb-1.5 text-17 font-semibold text-n-12">
 				{t.home.workingNow}
 			</h3>
 			{live.length === 0 ? <p className="px-5 py-3 text-n-11">{t.shell.runsNone}</p> : null}
@@ -93,21 +93,24 @@ export function WorkingNow() {
 								label={`${t.ui.flow.label}: ${t.ui.flow[stage]}`}
 							/>
 						</span>
-						<span className="ml-auto text-n-11">
-							{feature ? stateText(t, feature) : t.factory.state[r.state]}
-						</span>
-						{stopAction(r) ? <StopButton run={r} guard={run} /> : null}
-						{more ? (
-							<ConfirmButton
-								variant="ghost"
-								className="min-h-control"
-								{...stopGate}
-								confirm={format(t.factory.machine.confirmStop, { name: r.key })}
-								onConfirm={() => void run(() => cancel(r.id))}
-							>
-								{format(t.factory.machine.stop, { name: r.key })}
-							</ConfirmButton>
-						) : null}
+						{/* A stopped run shows its main action in place of the act text. */}
+						{stopAction(r) && stopAction(r) !== "reply" ? (
+							<StopButton run={r} guard={run} />
+						) : (
+							<span className="ml-auto text-n-11">
+								{feature ? stateText(t, feature) : t.factory.state[r.state]}
+							</span>
+						)}
+						<ConfirmButton
+							variant="ghost"
+							className="px-0"
+							{...stopGate}
+							aria-label={format(t.factory.machine.stop, { name: r.key })}
+							confirm={format(t.factory.machine.confirmStop, { name: r.key })}
+							onConfirm={() => void run(() => cancel(r.id))}
+						>
+							<StopIcon size={14} />
+						</ConfirmButton>
 					</Row>
 				);
 			})}
@@ -115,17 +118,7 @@ export function WorkingNow() {
 				<Link to="/flow/flow" className={linkClass}>
 					{t.home.openFlow}
 				</Link>
-				<LinkButton
-					aria-expanded={more}
-					aria-label={`${t.ui.more}: ${t.home.workingNow}`}
-					className="ml-auto text-n-11"
-					onClick={() => setMore(!more)}
-				>
-					{t.ui.more}
-				</LinkButton>
-			</div>
-			{more ? (
-				<p className="flex min-h-control items-center justify-between gap-4 px-5 text-n-11">
+				<p className="ml-auto flex items-center gap-3 text-n-11">
 					{t.ui.spendToday}
 					<span className="font-mono text-n-12">
 						{new Intl.NumberFormat(lang, { style: "currency", currency: "USD" }).format(
@@ -133,7 +126,7 @@ export function WorkingNow() {
 						)}
 					</span>
 				</p>
-			) : null}
+			</div>
 			{error ? (
 				<p role="alert" className="px-5 pb-2 text-danger-text">
 					{error}

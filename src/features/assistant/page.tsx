@@ -135,12 +135,11 @@ export function AssistantPage() {
 					</Button>
 				}
 			/>
-			{/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable) */}
-			<div tabIndex={0} className="flex min-h-0 flex-1 flex-wrap gap-6 overflow-auto px-4 pb-6">
-				<div className="flex flex-[1_1_220px] flex-col">
+			<div className="grid min-h-0 flex-1 grid-cols-[minmax(200px,1fr)_minmax(0,3fr)_minmax(260px,1.5fr)] gap-6 px-4 pb-6">
+				<div className="min-h-0 overflow-y-auto">
 					<Threads a={a} full />
 				</div>
-				<div className="flex min-h-96 min-w-0 flex-[3_1_460px] flex-col gap-4">
+				<div className="flex min-h-0 min-w-0 flex-col gap-4">
 					<Messages
 						a={a}
 						full
@@ -164,7 +163,7 @@ export function AssistantPage() {
 						<Composer a={a} inputRef={input} full onOpenRef={openRef} />
 					)}
 				</div>
-				<div className="flex min-w-0 flex-[1.5_1_280px] flex-col gap-4">
+				<div className="flex min-h-0 min-w-0 flex-col gap-4 overflow-y-auto">
 					<SelectionCard a={a} />
 					<May a={a} />
 					{a.current?.thread.settings.runner === "codex" ? <CodexTrust card /> : null}

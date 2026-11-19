@@ -25,6 +25,7 @@ import {
 	ArrowPathIcon,
 	BellIcon,
 	CheckIcon,
+	ClockIcon,
 	Cog6ToothIcon,
 	ComputerDesktopIcon,
 	HomeIcon,
@@ -429,6 +430,13 @@ function Molecules() {
 					<AttentionCard who="Ana" title="Approve the plan">
 						<Button>{t.common.open}</Button>
 					</AttentionCard>
+				</div>
+				<div className="w-96">
+					<AttentionCard
+						icon={<ClockIcon size={16} />}
+						title="No time logged today"
+						action={<Button variant="primary">{t.common.open}</Button>}
+					/>
 				</div>
 			</Row>
 			<Row name="SectionSwitch">

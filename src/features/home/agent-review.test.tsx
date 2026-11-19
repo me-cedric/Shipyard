@@ -12,6 +12,8 @@ describe("Home / Needs you: agent review", () => {
 		const draft = await unwrap(commands.prReviewStart(141, true));
 		const router = mountApp("/home/today");
 		const queue = within(await screen.findByRole("list", { name: "Needs you" }));
+		// The queue shows three things: "N more" shows the rest in place.
+		await user.click(await queue.findByRole("button", { name: /^\d+ more$/ }));
 		await user.click(
 			await queue.findByRole("button", {
 				name: (n) => n.endsWith(`Review the pull request ${draft.title}`),

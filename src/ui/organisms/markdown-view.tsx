@@ -68,13 +68,14 @@ export function blocks(source: string): Block[] {
 	return out.filter((b) => b.type !== "p" || b.text);
 }
 
-function Ref({ refId }: { refId: string }) {
+function Ref({ refId, onOpen }: { refId: string; onOpen?: (ref: string) => void }) {
 	const resolved = useResolvedRef(refId).data;
 	return (
 		<RefChip
 			refId={refId}
 			state={resolved?.state ?? "unresolved"}
 			title={resolved?.title ?? undefined}
+			onOpen={onOpen}
 		/>
 	);
 }
@@ -105,11 +106,19 @@ export function Link({ url, children }: { url: string; children: ReactNode }) {
 const EMPHASIS = /(\*\*[^*]+\*\*|`[^`]+`)/;
 
 /** `**bold**` and `code` spans, then refs and links inside the rest. */
-function Inline({ text, kinds }: { text: string; kinds: RegExp | null }) {
+function Inline({
+	text,
+	kinds,
+	onOpen,
+}: {
+	text: string;
+	kinds: RegExp | null;
+	onOpen?: (ref: string) => void;
+}) {
 	return (
 		<>
 			{text.split(EMPHASIS).map((part, i) => {
-				if (i % 2 === 0) return <Plain key={at(i)} text={part} kinds={kinds} />;
+				if (i % 2 === 0) return <Plain key={at(i)} text={part} kinds={kinds} onOpen={onOpen} />;
 				if (part.startsWith("`"))
 					return (
 						<code key={at(i)} className="rounded bg-n-3 px-1 font-mono text-12 break-words">
@@ -118,7 +127,7 @@ function Inline({ text, kinds }: { text: string; kinds: RegExp | null }) {
 					);
 				return (
 					<strong key={at(i)} className="font-semibold">
-						<Inline text={part.slice(2, -2)} kinds={kinds} />
+						<Inline text={part.slice(2, -2)} kinds={kinds} onOpen={onOpen} />
 					</strong>
 				);
 			})}
@@ -127,7 +136,15 @@ function Inline({ text, kinds }: { text: string; kinds: RegExp | null }) {
 }
 
 /** A ref in the text shows as a RefChip, a link as a link. The kinds are the ones that the app names. */
-function Plain({ text, kinds }: { text: string; kinds: RegExp | null }) {
+function Plain({
+	text,
+	kinds,
+	onOpen,
+}: {
+	text: string;
+	kinds: RegExp | null;
+	onOpen?: (ref: string) => void;
+}) {
 	// The split keeps the two groups of a link: text, label, address, text, ...
 	const parts = text.split(new RegExp(LINK.source, "g"));
 	return (
@@ -141,7 +158,11 @@ function Plain({ text, kinds }: { text: string; kinds: RegExp | null }) {
 					);
 				if (i % 3 === 2) return null;
 				return (kinds ? part.split(kinds) : [part]).map((p, j) =>
-					j % 2 ? <Ref key={at(i, j)} refId={p} /> : <Fragment key={at(i, j)}>{p}</Fragment>,
+					j % 2 ? (
+						<Ref key={at(i, j)} refId={p} onOpen={onOpen} />
+					) : (
+						<Fragment key={at(i, j)}>{p}</Fragment>
+					),
 				);
 			})}
 		</>
@@ -201,6 +222,7 @@ export function MarkdownView({
 	anchor,
 	reading,
 	refs = true,
+	onOpenRef,
 }: {
 	source: string;
 	label: string;
@@ -208,6 +230,8 @@ export function MarkdownView({
 	reading?: boolean;
 	/** False keeps a ref as plain text: the assistant lists its refs apart. */
 	refs?: boolean;
+	/** A click on a ref in the text opens its card. Without it the chip only shows. */
+	onOpenRef?: (ref: string) => void;
 }) {
 	const { t } = useI18n();
 	const hits = useHitQuery();
@@ -219,7 +243,9 @@ export function MarkdownView({
 		[reading, hits, source],
 	);
 	const kinds = new RegExp(`\\b((?:${Object.keys(t.refKind).join("|")}):[\\w./#@-]*[\\w/#])`);
-	const inline = (text: string): ReactNode => <Inline text={text} kinds={refs ? kinds : null} />;
+	const inline = (text: string): ReactNode => (
+		<Inline text={text} kinds={refs ? kinds : null} onOpen={onOpenRef} />
+	);
 	return (
 		<article
 			ref={root}

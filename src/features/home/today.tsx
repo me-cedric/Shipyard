@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { SetupCard } from "@/features/onboarding/checklist";
 import { type NeedsYouItem, useNeedsYou } from "@/lib/home";
 import { format, type Messages, useI18n } from "@/lib/i18n";
+import { usePrefs } from "@/lib/prefs";
 import { useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { Avatar } from "@/ui/atoms/avatar";
@@ -15,9 +16,13 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { NeedsRow, OpenQuestion } from "./inbox/inbox";
+import { PlanCards } from "./role-panels";
 import { useMyItems } from "./stats";
 import { TimeReminder } from "./time-reminder";
 import { WorkingNow } from "./working-now";
+
+/** The things that the queue shows before "N more". */
+const QUEUE = 3;
 
 /** The agent or the person who asks, as the card and the queue name it. */
 function useWho() {
@@ -59,6 +64,9 @@ export function Today() {
 	const { items, loading, timesheet } = useNeedsYou(everyone);
 	const [later, setLater] = useState<string[]>([]);
 	const [picked, setPicked] = useState<string | null>(null);
+	// The queue shows the next three things; "N more" shows the rest in place.
+	const [rest, setRest] = useState(false);
+	const { teamRole } = usePrefs();
 	const mine = useMyItems();
 	// Later moves a thing to the end of the queue for this visit; a click on the queue picks one.
 	const ordered = [
@@ -158,7 +166,7 @@ export function Today() {
 					) : null}
 					{queue.length ? (
 						<ul aria-label={t.home.needsYou} className="rounded-lg bg-surface-2 shadow-2">
-							{queue.map((x) => (
+							{(rest ? queue : queue.slice(0, QUEUE)).map((x) => (
 								<li key={x.id} className="border-t border-n-6 first:border-t-0">
 									<button
 										type="button"
@@ -177,6 +185,17 @@ export function Today() {
 									</button>
 								</li>
 							))}
+							{!rest && queue.length > QUEUE ? (
+								<li className="border-t border-n-6">
+									<button
+										type="button"
+										onClick={() => setRest(true)}
+										className="flex min-h-control w-full cursor-pointer items-center px-5 font-semibold text-accent"
+									>
+										{format(t.home.queueMore, { count: queue.length - QUEUE })}
+									</button>
+								</li>
+							) : null}
 						</ul>
 					) : null}
 					{nothing && !loading ? (
@@ -190,6 +209,8 @@ export function Today() {
 					) : null}
 				</div>
 				<div className="flex min-w-0 flex-[2_1_340px] flex-col gap-4">
+					{/* The cards of a product owner come first (picture 065). */}
+					{teamRole === "po" ? <PlanCards className="flex flex-col" /> : null}
 					<WorkingNow />
 					<SetupCard />
 					<TimeReminder />

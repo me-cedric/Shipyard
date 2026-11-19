@@ -12,10 +12,11 @@ test("approvals wait for a click, and the runs show the review, CI and merge sta
 	await expect(title).toHaveText(/^\d+ things need you$/);
 	const before = Number((await title.textContent())?.match(/^\d+/)?.[0]);
 	// Today shows one thing on its card: a click on the queue picks the force push.
-	await page
-		.getByRole("list", { name: "Needs you" })
-		.getByRole("button", { name: /Force push fix\/ACME-10/ })
-		.click();
+	const queue = page.getByRole("list", { name: "Needs you" });
+	// The queue shows three things: "N more" shows the rest in place.
+	const more = queue.getByRole("button", { name: /^\d+ more$/ });
+	if ((await more.count()) > 0) await more.click();
+	await queue.getByRole("button", { name: /Force push fix\/ACME-10/ }).click();
 
 	// The force push waits: nothing sends it until one click.
 	const force = page.getByRole("region", { name: "Replace the code of ACME-10 on the server" });

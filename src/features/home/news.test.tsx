@@ -41,7 +41,7 @@ describe("Today / News (spec:app-redesign#REQ-008)", () => {
 		mountApp("/today/news");
 		const card = within(await screen.findByRole("region", { name: "Tell me when" }));
 		expect(card.getAllByRole("switch")).toHaveLength(5);
-		const sync = card.getByRole("switch", { name: "Failed sync" });
+		const sync = card.getByRole("switch", { name: "The sync has a problem" });
 		await waitFor(() => expect(sync).toBeChecked());
 		await user.click(sync);
 		await waitFor(() => expect(mockState().prefs.notifyOff).toEqual(["sync-failure"]));

@@ -95,9 +95,16 @@ describe("Ask page, the full assistant", () => {
 		const log = within(screen.getByRole("log", { name: "Messages" }));
 		expect(await log.findByText("I changed src/hello.ts in the worktree.")).toBeVisible();
 		expect(log.getByText(/^How I found this/)).toBeVisible();
-		expect(
-			within(log.getByRole("region", { name: "Changed files" })).getByText("Undo"),
-		).toBeVisible();
+		// The file box sits inside the answer card: the name opens the full diff, the count of added lines shows.
+		const files = within(log.getByRole("region", { name: "Changed files" }));
+		expect(files.getByText("Undo")).toBeVisible();
+		expect(files.getByText(/^\+\d+$/)).toBeVisible();
+		expect(screen.getByRole("textbox", { name: "Message" })).toHaveAttribute(
+			"placeholder",
+			"Message",
+		);
+		await user.click(files.getByRole("button", { name: "src/hello.ts" }));
+		expect(files.getByRole("region", { name: "Diff of src/hello.ts" })).toBeVisible();
 		expect(toAgent()).toBeEnabled();
 		const side = within(screen.getByRole("group", { name: "Side" }));
 		await user.click(side.getByRole("button", { name: "Left" }));

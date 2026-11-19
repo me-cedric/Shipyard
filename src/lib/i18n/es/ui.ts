@@ -38,6 +38,7 @@ export const uiEs: typeof uiEn = {
 		synced: "Sincronizado {time}",
 		syncFailed: "Falló la sincronización",
 		open: "Abrir Shipyard",
+		all: "Ver todo ({count})",
 	},
 	welcome: "Te damos la bienvenida",
 	menu: {

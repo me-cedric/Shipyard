@@ -494,9 +494,7 @@ export function SetupCard() {
 				/>
 			</svg>
 			<div className="flex min-w-0 flex-col">
-				<span className="font-semibold text-n-12">
-					<Terms>{s.item[next]}</Terms>
-				</span>
+				<span className="font-semibold text-n-12">{s.item[next]}</span>
 				<span className="text-n-11">{text}</span>
 			</div>
 			<Link to="/setup/start" className={cn(buttonVariants(), "ml-auto min-h-control")}>

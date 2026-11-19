@@ -1,3 +1,4 @@
+import { type ReactNode, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import type { ChatMessage, FileDiff } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
@@ -29,6 +30,10 @@ const BUBBLE = {
 	assistant:
 		"flex max-w-[92%] flex-col gap-2 self-start rounded-2xl rounded-bl-sm border bg-surface-2 px-3 py-2 shadow-1",
 };
+
+/** The actions under a message of the Ask page show on hover and on focus; the keyboard reaches them. */
+const QUIET =
+	"opacity-0 transition-opacity duration-(--duration-fast) motion-reduce:transition-none group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100";
 
 /** The Ask page: the answer is a card with the avatar of Shipyard, as the answer of the Ask bar. */
 const CARD = "flex flex-col gap-3.5 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2";
@@ -179,7 +184,7 @@ function Reply({
 				</ul>
 			) : null}
 			{s.state === "done" && m.text ? (
-				<div className="-mb-1 flex gap-0.5">
+				<div className={cn("-mb-1 flex gap-0.5", full && QUIET)}>
 					<Button
 						variant="ghost"
 						className="h-6 px-1.5 text-12 text-n-11"
@@ -228,22 +233,92 @@ function Reply({
 	);
 }
 
+/** The added lines of a diff, without the marker. */
+const added = (text: string) =>
+	text
+		.split("\n")
+		.filter((l) => l.startsWith("+") && !l.startsWith("+++"))
+		.map((l) => l.slice(1));
+
+/** One changed file: its name, the count and a preview of the added lines. The name opens the full diff. */
+function FileBox({ f, undo }: { f: FileDiff; undo?: ReactNode }) {
+	const { t } = useI18n();
+	const [open, setOpen] = useState(false);
+	const lines = added(f.text);
+	return (
+		<div className="flex flex-col gap-2 rounded-md bg-n-2 p-4">
+			<div className="flex items-center gap-3">
+				<button
+					type="button"
+					aria-expanded={open}
+					onClick={() => setOpen(!open)}
+					className="min-h-control min-w-0 flex-1 truncate text-left font-mono text-12"
+				>
+					{f.path}
+				</button>
+				{lines.length ? (
+					<span className="font-semibold text-12 text-success-text">+{lines.length}</span>
+				) : null}
+				{undo}
+			</div>
+			{open ? (
+				<DiffView
+					text={f.text}
+					path={f.path}
+					binary={f.binary}
+					truncated={f.truncated}
+					label={format(t.assistant.diff, { name: f.path })}
+					binaryLabel={t.assistant.diffBinary}
+					truncatedLabel={t.assistant.diffTruncated}
+				/>
+			) : lines.length ? (
+				<pre className="overflow-hidden rounded-sm bg-success-subtle px-3 py-2 font-mono text-12 text-success-text">
+					{lines.slice(0, 3).join("\n")}
+				</pre>
+			) : null}
+		</div>
+	);
+}
+
 function Changed({
 	files,
 	onUndo,
 	full,
+	inCard,
 }: {
 	files: FileDiff[];
 	onUndo: () => void;
 	full?: boolean;
+	/** The files sit inside the answer card: no card of their own. */
+	inCard?: boolean;
 }) {
 	const { t } = useI18n();
 	if (!files.length) return null;
+	if (full)
+		return (
+			<section aria-label={t.assistant.changed} className={inCard ? "flex flex-col gap-2" : CARD}>
+				{files.map((f, i) => (
+					<FileBox
+						key={f.path}
+						f={f}
+						undo={
+							i === 0 ? (
+								<ConfirmButton
+									variant="secondary"
+									className="min-h-control"
+									confirm={t.assistant.undoConfirm}
+									onConfirm={onUndo}
+								>
+									{t.assistant.undo}
+								</ConfirmButton>
+							) : undefined
+						}
+					/>
+				))}
+			</section>
+		);
 	return (
-		<section
-			aria-label={t.assistant.changed}
-			className={full ? CARD : "flex flex-col gap-1 border-t pt-2"}
-		>
+		<section aria-label={t.assistant.changed} className="flex flex-col gap-1 border-t pt-2">
 			<h3 className="text-12 font-medium">{t.assistant.changed}</h3>
 			{files.map((f) => (
 				<details key={f.path} className="text-12">
@@ -260,7 +335,7 @@ function Changed({
 				</details>
 			))}
 			<ConfirmButton
-				variant={full ? "secondary" : "ghost"}
+				variant="ghost"
 				className="min-h-control self-start"
 				confirm={t.assistant.undoConfirm}
 				onConfirm={onUndo}
@@ -303,7 +378,16 @@ export function Messages({
 					// biome-ignore lint/suspicious/noArrayIndexKey: the transcript only grows
 					key={i}
 					aria-label={m.role === "user" ? t.assistant.you : t.assistant.assistant}
-					className={m.role === "user" ? BUBBLE.user : full ? CARD : BUBBLE.assistant}
+					className={cn(
+						"group",
+						m.role === "user"
+							? full
+								? `${BUBBLE.user} bg-n-3`
+								: BUBBLE.user
+							: full
+								? CARD
+								: BUBBLE.assistant,
+					)}
 				>
 					<h3 className="sr-only">{m.role === "user" ? t.assistant.you : t.assistant.assistant}</h3>
 					{full && m.role !== "user" ? (
@@ -318,7 +402,7 @@ export function Messages({
 							{i === lastAsk && !a.busy ? (
 								<Button
 									variant="ghost"
-									className="h-6 self-end px-1.5 text-12"
+									className={cn("h-6 self-end px-1.5 text-12", full && QUIET)}
 									onClick={() => void a.send(m.text, false, m.quotes)}
 								>
 									<ArrowPathIcon size={12} />
@@ -337,6 +421,9 @@ export function Messages({
 							full={full}
 						/>
 					)}
+					{full && m.role !== "user" && i === list.length - 1 ? (
+						<Changed files={a.changed} onUndo={() => void a.undo()} full inCard />
+					) : null}
 				</article>
 			))}
 			{a.pending !== null && a.running === (a.current?.thread.id ?? null) ? (
@@ -360,7 +447,9 @@ export function Messages({
 					) : null}
 				</>
 			) : null}
-			<Changed files={a.changed} onUndo={() => void a.undo()} full={full} />
+			{full && list.at(-1)?.role === "assistant" ? null : (
+				<Changed files={a.changed} onUndo={() => void a.undo()} full={full} />
+			)}
 		</div>
 	);
 }

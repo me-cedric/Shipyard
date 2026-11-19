@@ -649,6 +649,8 @@ function seedDemo(p: ProjectEntry_Serialize) {
 		capabilities: FLAGS.linear,
 	});
 	state.secrets[id] = "demo";
+	// The menu bar panel shows the sync chip once a tick ran.
+	state.sync.lastOk[id] = Math.floor(Date.now() / 1000);
 	state.files[p.id] = {
 		name: p.name,
 		key: p.key,
@@ -1084,6 +1086,12 @@ const handlers: Handlers = {
 		const known = state.projects.some((p) => p.path === path);
 		const opened = activate(path, name, deriveKey(name));
 		if (path === DEMO_FOLDER && !known && opened.project) seedDemo(opened.project);
+		// The demo question takes a free answer, so the card of Today shows "Another answer" (picture 001).
+		if (demo && path === DEMO_FOLDER && !known)
+			for (const x of state.factory.questions) if (x.q.id === "Q-101") x.q.free_text = true;
+		// A demo person who chose no role is a developer, so that Role views marks "My view".
+		if (demo && path === DEMO_FOLDER && !known && state.prefs.role === "none")
+			state.prefs.role = "developer";
 		// The demo holds two earlier projects: the Projects page shows "Opened before".
 		if (demo && path === DEMO_FOLDER && !known)
 			for (const [id, before] of [

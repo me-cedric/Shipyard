@@ -31,6 +31,15 @@ describe("Knowledge / Handbook", () => {
 		await waitFor(async () => expect(await inspector()).toHaveTextContent(`doc:${PAGE}`));
 	});
 
+	it("opens the card of a ref in the running text of a page", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("handbook");
+		await user.click(await screen.findByRole("button", { name: "Getting started" }));
+		const page = await screen.findByRole("article", { name: "Getting started" });
+		await user.click(within(page).getByRole("button", { name: /^adr:0001/ }));
+		await waitFor(async () => expect(await inspector()).toHaveTextContent("adr:0001"));
+	});
+
 	it("filters the pages with the text search, and shows all again when the box is empty", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("handbook");

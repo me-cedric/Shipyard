@@ -88,7 +88,7 @@ test("shows the shortcuts overlay and rebinds an action", async ({ page }) => {
 // spec:app-redesign#REQ-006, scenario "A viewer": Today opens and the menu shows no Code place.
 test("a viewer opens on Today and sees no Code place", async ({ page }) => {
 	await page.goto("/");
-	await page.getByRole("button", { name: "Viewer", exact: true }).click();
+	await page.getByRole("button", { name: "I only look", exact: true }).click();
 	await openFirstFolder(page);
 	await expect(page).toHaveURL(/\/today\/today$/);
 	const sidebar = page.getByRole("navigation", { name: "Sidebar" });

@@ -103,6 +103,8 @@ describe("Run address", () => {
 		const plan = (await unwrap(commands.runsList())).find((r) => r.state === "PlanReview");
 		const router = mountApp("/home/today");
 		const queue = within(await screen.findByRole("list", { name: "Needs you" }));
+		// The queue shows three things: "N more" shows the rest in place.
+		await user.click(await queue.findByRole("button", { name: /^\d+ more$/ }));
 		await user.click(
 			await queue.findByRole("button", { name: new RegExp(`Review the plan ${plan?.title}`) }),
 		);

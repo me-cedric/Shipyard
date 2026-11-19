@@ -76,6 +76,8 @@ export const es: Messages = {
 		goTo: "Ir a",
 		do: "Hacer",
 		openAssistant: "Abrir el asistente completo",
+		startOnTicket: "Iniciar un agente en un ticket",
+		syncNow: "Sincronizar ahora",
 		markBlocked: "Bloqueada",
 		markStopped: "Detenida",
 		markNeeds: "Te necesita",

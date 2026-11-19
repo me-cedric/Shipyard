@@ -245,10 +245,11 @@ describe("Code / Now, the files to commit", () => {
 
 	it("shows the empty state with one action when no project is active", async () => {
 		mountApp("/code/now");
-		// The one primary action opens the project list; the folder action stays beside it.
-		const add = await screen.findByRole("link", { name: "Open a project" });
+		// The one primary action opens a menu; the folder action is one click deeper.
+		const add = await screen.findByRole("button", { name: "Open a project" });
 		expect(add.className).toContain("bg-primary");
-		expect(screen.getByRole("button", { name: "Open a local folder" })).toBeVisible();
+		await userEvent.setup().click(add);
+		expect(await screen.findByRole("menuitem", { name: "Open a local folder" })).toBeVisible();
 	});
 });
 

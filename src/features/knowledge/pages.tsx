@@ -95,7 +95,13 @@ function HandbookPage({ path, title }: { path: string; title: string }) {
 			<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-auto @4xl:flex-row @4xl:overflow-visible">
 				<div className="min-w-0 @4xl:flex-1 @4xl:overflow-auto">
 					<div className="mx-auto max-w-[680px] pb-4">
-						<MarkdownView source={file.text} label={title} anchor={anchor} reading />
+						<MarkdownView
+							source={file.text}
+							label={title}
+							anchor={anchor}
+							reading
+							onOpenRef={openRef}
+						/>
 					</div>
 				</div>
 				<aside className="mx-auto flex w-full max-w-[680px] shrink-0 flex-col gap-3 @4xl:w-56">

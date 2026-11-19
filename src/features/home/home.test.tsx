@@ -13,6 +13,9 @@ async function renderNeedsYou() {
 }
 async function pick(user: ReturnType<typeof userEvent.setup>, text: RegExp) {
 	const queue = within(await screen.findByRole("list", { name: "Needs you" }));
+	// The queue shows three things: "N more" shows the rest in place.
+	if (!queue.queryByRole("button", { name: text }))
+		await user.click(queue.getByRole("button", { name: /^\d+ more$/ }));
 	await user.click(queue.getByRole("button", { name: text }));
 }
 /** The card of Today: the first article, since a row inside it can be an article too. */

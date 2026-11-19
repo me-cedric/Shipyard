@@ -31,13 +31,13 @@ describe("first run", () => {
 		expect(roles.map((r) => r.textContent)).toEqual([
 			"Product owner",
 			"Project manager",
+			"Business analyst",
 			"Architect",
 			"Tech lead",
-			"Business analyst",
 			"Developer",
 			"Tester",
 			"Designer",
-			"Viewer",
+			"I only look",
 			"Other",
 		]);
 		expect(screen.getByRole("button", { name: "Other", pressed: true })).toBeInTheDocument();

@@ -93,9 +93,12 @@ describe("Menu bar panel", () => {
 		await renderTray();
 		const head = await screen.findByRole("heading", { name: /^\d+ things? need/ });
 		const count = Number(/^(\d+)/.exec(head.textContent ?? "")?.[1]);
-		// Every thing of the count shows: the panel scrolls, it does not cut the list.
-		await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(count));
+		// Three things show, then one row "All n" opens the rest in Today: no thing is cut.
 		expect(count).toBeGreaterThan(3);
+		const more = await screen.findByRole("button", { name: `All ${count}` });
+		expect(screen.getAllByRole("listitem")).toHaveLength(4);
+		await user.click(more);
+		await waitFor(() => expect(emit).toHaveBeenCalledWith("open-path", "/"));
 		await user.keyboard("{Escape}");
 		expect(close).toHaveBeenCalled();
 	});
@@ -133,7 +136,8 @@ describe("Menu bar panel", () => {
 		const row = within(await screen.findByRole("region", { name: "Log your time for today" }));
 		const head = await screen.findByRole("heading", { name: /^\d+ things? need/ });
 		const count = Number(/^(\d+)/.exec(head.textContent ?? "")?.[1]);
-		expect(screen.getAllByRole("listitem")).toHaveLength(count);
+		expect(count).toBeGreaterThan(3);
+		await screen.findByRole("button", { name: `All ${count}` });
 		await user.click(row.getByRole("button", { name: "Log" }));
 		expect(open).toHaveBeenCalled();
 		await waitFor(() => expect(emit).toHaveBeenCalledWith("open-path", "/plan/time"));

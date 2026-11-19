@@ -72,11 +72,11 @@ test("developer", async ({ page }) => {
 	await w.step("Approve what the agent asks", "Approvals, Approve", async () => {
 		// The approvals of one run are one question: the main button sends them all.
 		// The approval waits in the queue: a click makes it the card.
-		await w.click(
-			page
-				.getByRole("list", { name: "Needs you" })
-				.getByRole("button", { name: /ACME-2 Add export endpoint/ }),
-		);
+		// The queue shows three things: "N more" shows the rest in place.
+		const queue = page.getByRole("list", { name: "Needs you" });
+		const more = queue.getByRole("button", { name: /^\d+ more$/ });
+		if ((await more.count()) > 0) await w.click(more);
+		await w.click(queue.getByRole("button", { name: /ACME-2 Add export endpoint/ }));
 		const effect = page.getByText(/Change the status of ACME-2/);
 		await w.see(effect, "no approval of the agent on the card");
 		await w.click(page.getByRole("button", { name: /^Approve( all)?$/ }));

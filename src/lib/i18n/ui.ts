@@ -37,6 +37,7 @@ export const uiEn = {
 		synced: "Synced {time}",
 		syncFailed: "Sync failed",
 		open: "Open Shipyard",
+		all: "All {count}",
 	},
 	welcome: "Welcome",
 	menu: {
@@ -132,6 +133,7 @@ export const uiFr: typeof uiEn = {
 		synced: "Synchronisé à {time}",
 		syncFailed: "Échec de la synchronisation",
 		open: "Ouvrir Shipyard",
+		all: "Tout voir ({count})",
 	},
 	welcome: "Bienvenue",
 	menu: {

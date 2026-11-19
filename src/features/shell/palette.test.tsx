@@ -43,17 +43,17 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 		const panel = within(await screen.findByRole("listbox"));
 		for (const name of [
 			"Projects",
-			"Flow / Impacts",
-			"Code / Pull requests",
-			"Setup / Connections",
-			"Setup / Tickets",
-			"Setup / Extensions",
-			"Setup / Health of this project",
-			"Setup / Agents and rules",
-			"Setup / Outside agents",
-			"Setup / Health of this computer",
-			"Setup / Logs and feedback",
-			"Setup / Look and layout",
+			"Flow, Impacts",
+			"Code, Pull requests",
+			"Setup, Connections",
+			"Setup, Tickets",
+			"Setup, Extensions",
+			"Setup, Health of this project",
+			"Setup, Agents and rules",
+			"Setup, Outside agents",
+			"Setup, Health of this computer",
+			"Setup, Logs and feedback",
+			"Setup, Look and layout",
 		])
 			expect(await panel.findByRole("option", { name })).toBeInTheDocument();
 		await user.type(bar, "Extensions{ArrowDown}{Enter}");
@@ -87,10 +87,10 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 		mountApp("/home");
 		await openPalette(user);
 		const panel = within(await screen.findByRole("listbox"));
-		expect(await panel.findByRole("option", { name: "Setup / Look and layout" })).toBeVisible();
-		await waitFor(() => expect(panel.queryByRole("option", { name: "Flow / Impacts" })).toBeNull());
-		expect(panel.queryByRole("option", { name: "Setup / Extensions" })).toBeNull();
-		expect(panel.queryByRole("option", { name: "Code / Pull requests" })).toBeNull();
+		expect(await panel.findByRole("option", { name: "Setup, Look and layout" })).toBeVisible();
+		await waitFor(() => expect(panel.queryByRole("option", { name: "Flow, Impacts" })).toBeNull());
+		expect(panel.queryByRole("option", { name: "Setup, Extensions" })).toBeNull();
+		expect(panel.queryByRole("option", { name: "Code, Pull requests" })).toBeNull();
 	});
 
 	it("runs an action by name with Enter and closes", async () => {
@@ -185,7 +185,11 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 			within(screen.getByRole("group", { name: "Do" }))
 				.getAllByRole("option")
 				.map((o) => o.textContent),
-		).toEqual([expect.stringMatching(/^New feature/), expect.stringMatching(/^Sync/)]);
+		).toEqual([
+			expect.stringMatching(/^New feature/),
+			expect.stringMatching(/^Start an agent on a ticket/),
+			expect.stringMatching(/^Sync now/),
+		]);
 		// The text stays: an answer shows for it, and the assistant does not open.
 		expect(bar).toHaveValue("what blocks the release?");
 		spy.mockRestore();
@@ -400,7 +404,7 @@ describe("palette pages and tickets", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await openPalette(user);
-		expect(await screen.findByRole("option", { name: "Library / Questions" })).toBeVisible();
+		expect(await screen.findByRole("option", { name: "Library, Questions" })).toBeVisible();
 	});
 
 	it("names the home of Library once in the Go to list", async () => {
@@ -410,7 +414,7 @@ describe("palette pages and tickets", () => {
 		await openPalette(user);
 		const go = await screen.findByRole("group", { name: "Go to" });
 		expect(await within(go).findByRole("option", { name: "Library" })).toBeVisible();
-		expect(screen.queryByRole("option", { name: "Library / Library" })).toBeNull();
+		expect(screen.queryByRole("option", { name: "Library, Library" })).toBeNull();
 	});
 
 	it("finds a ticket by its key", async () => {

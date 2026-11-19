@@ -369,12 +369,12 @@ function placeRoute<P extends PlaceId>(place: P) {
 	// The addresses of before wave 6 under Today and Setup redirect: Projects, and the six Settings tabs.
 	const moved = (
 		place === "today"
-			? (["projects"] as const)
+			? (["projects", "role-views"] as const)
 			: place === "setup"
 				? (["connections", "agents-rules", "extensions", "health"] as const)
 				: []
 	).map((tab) => createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }));
-	// The panels of a role and the role views are pages of Today off the section switch (pictures 092 and 066).
+	// The panels of a role is a page of Today and the role views a page of Setup, both off the section switch (pictures 092 and 066).
 	const today =
 		place === "today"
 			? [
@@ -387,13 +387,19 @@ function placeRoute<P extends PlaceId>(place: P) {
 							"RolePanelsPage",
 						),
 					}),
-					createRoute({
-						getParentRoute: () => route,
-						path: "role-views",
-						component: lazyRouteComponent(() => import("@/features/home/role-views"), "RoleViews"),
-					}),
 				]
-			: [];
+			: place === "setup"
+				? [
+						createRoute({
+							getParentRoute: () => route,
+							path: "role-views",
+							component: lazyRouteComponent(
+								() => import("@/features/home/role-views"),
+								"RoleViews",
+							),
+						}),
+					]
+				: [];
 	return route.addChildren([index, ...sections, ...run, ...code, ...old, ...moved, ...today]);
 }
 

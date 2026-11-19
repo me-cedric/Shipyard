@@ -28,11 +28,11 @@ import { Chip } from "@/ui/atoms/chip";
 import { linkClass } from "@/ui/atoms/link-button";
 import { Progress } from "@/ui/atoms/progress";
 import { AttentionCard } from "@/ui/molecules/attention-card";
-import { BackLink } from "@/ui/molecules/back-link";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { SinceAway } from "./away";
 import { MyWork } from "./my-work";
+import { NoSwitch } from "./no-switch";
 import { useMyItems } from "./stats";
 import { TimeReminder } from "./time-reminder";
 
@@ -325,7 +325,7 @@ export const ROLE_PANELS: Record<TeamRole, (keyof typeof PANELS)[]> = {
  * The plan cards of a product owner or a project manager (picture 065): when the release ends with
  * the features that are ready, and the people with too much work. The same data as Plan / Timeline.
  */
-function PlanCards() {
+export function PlanCards({ className }: { className?: string }) {
 	const { t } = useI18n();
 	const day = useDay();
 	const { level } = useRights();
@@ -345,7 +345,12 @@ function PlanCards() {
 		total: features.length,
 	});
 	return (
-		<div className="grid grid-cols-[repeat(auto-fill,minmax(min(340px,100%),1fr))] gap-4">
+		<div
+			className={cn(
+				"grid grid-cols-[repeat(auto-fill,minmax(min(340px,100%),1fr))] gap-4",
+				className,
+			)}
+		>
 			<section className={cn(SURFACE, "flex flex-col gap-3.5 px-6 py-5.5")}>
 				<h2 className="text-17 font-semibold text-n-12">
 					{finish ? format(t.planPlace.ends, { name, day: day(finish) }) : name}
@@ -364,14 +369,12 @@ function PlanCards() {
 			</section>
 			{over.length ? (
 				<AttentionCard
-					who={t.rights.today.you}
 					title={
 						over.length === 1
 							? format(t.planPlace.tooMuchOne, { name: memberName(members, over[0]?.handle) })
 							: format(t.planPlace.tooMuch, { count: over.length })
 					}
-				>
-					<div className="flex flex-wrap items-center gap-3.5">
+					icon={
 						<span className="flex">
 							{over.map((m) => (
 								<Avatar
@@ -381,11 +384,13 @@ function PlanCards() {
 								/>
 							))}
 						</span>
-						<Link to="/plan/people" className={cn(buttonVariants(), "ml-auto min-h-control")}>
+					}
+					action={
+						<Link to="/plan/people" className={cn(buttonVariants(), "min-h-control")}>
 							{t.planPlace.show}
 						</Link>
-					</div>
-				</AttentionCard>
+					}
+				/>
 			) : null}
 		</div>
 	);
@@ -407,17 +412,16 @@ export function RolePanelsPage() {
 	const names: Record<string, string> = t.rights.panel;
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
-			<PageHeader
-				title={role ? format(t.home.forRole, { role: t.rights.role[role] }) : t.ui.place.today}
-				back={
-					<BackLink label={t.ui.place.today} render={(p) => <Link to="/today/today" {...p} />} />
-				}
-				action={
-					<Link to="/today/role-views" className={cn(buttonVariants(), "min-h-control")}>
-						{t.home.roleViews}
-					</Link>
-				}
-			/>
+			<NoSwitch>
+				<PageHeader
+					title={role ? format(t.home.forRole, { role: t.rights.role[role] }) : t.ui.place.today}
+					action={
+						<Link to="/setup/role-views" className={cn(buttonVariants(), "min-h-control")}>
+							{t.home.roleViews}
+						</Link>
+					}
+				/>
+			</NoSwitch>
 			<div className="flex flex-col gap-4 px-4">
 				{/* biome-ignore lint/a11y/useSemanticElements: a fieldset draws its own frame */}
 				<div role="group" aria-label={t.rights.team.pickRole} className="flex flex-wrap gap-2">

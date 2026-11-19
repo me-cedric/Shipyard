@@ -13,6 +13,9 @@ const card = async () => (await screen.findAllByRole("article"))[0] as HTMLEleme
 /** Opens the queue row of a thing, so the card shows it. */
 async function pick(user: ReturnType<typeof userEvent.setup>, text: RegExp) {
 	const queue = within(await screen.findByRole("list", { name: "Needs you" }));
+	// The queue shows three things: "N more" shows the rest in place.
+	if (!queue.queryByRole("button", { name: text }))
+		await user.click(queue.getByRole("button", { name: /^\d+ more$/ }));
 	await user.click(queue.getByRole("button", { name: text }));
 }
 
@@ -200,7 +203,7 @@ describe("Home / Today", () => {
 		for (const [category, name] of [
 			["in-progress", "In progress"],
 			["todo", "To do"],
-			["done", "Done in the last 7 days"],
+			["done", "Done in 7 days"],
 		] as const) {
 			const rows = items.filter((i) => i.category === category && fresh(i));
 			await waitFor(() =>
@@ -211,7 +214,7 @@ describe("Home / Today", () => {
 		}
 		const first = items.find((i) => i.category !== "done") ?? items[0];
 		if (!first) throw new Error("no ticket of the person");
-		const names = { "in-progress": "In progress", todo: "To do", done: "Done in the last 7 days" };
+		const names = { "in-progress": "In progress", todo: "To do", done: "Done in 7 days" };
 		await user.click(
 			work.getByRole("button", {
 				name: new RegExp(`^${names[first.category as keyof typeof names]}\\s*\\d+$`),
@@ -223,8 +226,34 @@ describe("Home / Today", () => {
 		expect(screen.getByRole("button", { name: `Start run ${first.key}` })).toBeInTheDocument();
 	});
 
-	it("shows no stat tiles: the spend of today sits behind More of Working now", async () => {
+	it("shows the next three things in the queue, and N more shows the rest in place", async () => {
 		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mountApp("/today/today");
+		const queue = within(await screen.findByRole("list", { name: "Needs you" }));
+		const more = await queue.findByRole("button", { name: /^\d+ more$/ });
+		expect(queue.getAllByRole("listitem")).toHaveLength(4);
+		const rest = Number(more.textContent?.match(/^\d+/)?.[0]);
+		await user.click(more);
+		expect(queue.queryByRole("button", { name: /^\d+ more$/ })).toBeNull();
+		expect(queue.getAllByRole("listitem")).toHaveLength(3 + rest);
+	});
+
+	it("shows the plan cards of a product owner before Working now, the alert in one row", async () => {
+		await withTracker();
+		await importAll();
+		await unwrap(commands.prefsSet({ role: "po" }));
+		mountApp("/today/today");
+		const ends = await screen.findByRole("heading", { name: /^MVP 1 ends / });
+		const working = await screen.findByRole("region", { name: /^Working now/ });
+		expect(ends.compareDocumentPosition(working) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(
+			await screen.findByRole("heading", { name: "3 people have too much work" }),
+		).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "Show" })).toHaveAttribute("href", "/plan/people");
+	});
+
+	it("shows no stat tiles: the spend of today sits in the foot of Working now", async () => {
 		await withTracker();
 		await importAll();
 		mountApp("/home/today");
@@ -234,7 +263,6 @@ describe("Home / Today", () => {
 			"href",
 			"/flow/flow",
 		);
-		await user.click(agents.getByRole("button", { name: "More: Working now" }));
 		expect(agents.getByText("Spend today")).toBeInTheDocument();
 		expect(agents.getByText(/^\$/)).toBeInTheDocument();
 	});
@@ -245,7 +273,6 @@ describe("Home / Today", () => {
 		mountApp("/home/today");
 		const agents = within(await screen.findByRole("region", { name: "Working now" }));
 		expect(agents.getByText("No active run")).toBeInTheDocument();
-		await userEvent.setup().click(agents.getByRole("button", { name: "More: Working now" }));
 		expect(agents.getByText("Spend today")).toBeInTheDocument();
 		vi.restoreAllMocks();
 	});
@@ -284,15 +311,11 @@ describe("Home / Today", () => {
 		const { keys } = await mine();
 		const runs = (await unwrap(commands.runsList())).filter(live);
 		mountApp("/home/today");
-		const agents = await screen.findByRole("region", { name: /^Working now/ });
-		// Stop is behind More.
-		await userEvent
-			.setup()
-			.click(within(agents).getByRole("button", { name: "More: Working now" }));
+		const agents = within(await screen.findByRole("region", { name: /^Working now/ }));
 		for (const r of runs.filter((x) => keys.has(x.key)))
-			expect(await screen.findByRole("button", { name: `Stop ${r.key}` })).toBeInTheDocument();
+			expect(await agents.findByRole("button", { name: `Stop ${r.key}` })).toBeInTheDocument();
 		for (const r of runs.filter((x) => !keys.has(x.key)))
-			expect(screen.queryByRole("button", { name: `Stop ${r.key}` })).toBeNull();
+			expect(agents.queryByRole("button", { name: `Stop ${r.key}` })).toBeNull();
 	});
 
 	it("keeps a focus target around the sections for a row that leaves last", async () => {
@@ -321,10 +344,9 @@ describe("Home / Today", () => {
 		};
 		mountApp("/home/today");
 		const agents = await screen.findByRole("region", { name: /^Working now/ });
-		await userEvent
-			.setup()
-			.click(within(agents).getByRole("button", { name: "More: Working now" }));
-		expect(await screen.findByRole("button", { name: `Stop ${runs[0]?.key}` })).toBeDisabled();
+		expect(
+			await within(agents).findByRole("button", { name: `Stop ${runs[0]?.key}` }),
+		).toBeDisabled();
 	});
 
 	it("shows only the events of my runs that are newer than the last visit, newest first", async () => {

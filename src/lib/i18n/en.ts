@@ -75,6 +75,8 @@ export const en = {
 		goTo: "Go to",
 		do: "Do",
 		openAssistant: "Open the full assistant",
+		startOnTicket: "Start an agent on a ticket",
+		syncNow: "Sync now",
 		markBlocked: "Blocked",
 		markStopped: "Stopped",
 		markNeeds: "Needs you",

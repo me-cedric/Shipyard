@@ -67,6 +67,9 @@ const pictureOf = (page: string) => PICTURES[`/docs/assets/screenshots/${PICTURE
 /** A page off the section switch whose help has a heading of its own: the label of its old tab. */
 const OFF_SWITCH: Record<string, [SectionSpace, string]> = { "flow/impacts": ["code", "impacts"] };
 
+// The first page is named Start in the list and in the card; its file keeps its own heading.
+const START: Record<Lang, string> = { en: "Start", fr: "Démarrer", de: "Start", es: "Inicio" };
+
 export type ManualPage = { id: string; title: string; text: string };
 
 /** The pages in a language. A page with no file in that language keeps its English text. */
@@ -74,7 +77,7 @@ export const manualFor = (lang: Lang): ManualPage[] =>
 	ORDER.flatMap((id) => {
 		const text = RAW_LANG[`/docs/guide/${lang}/${id}.md`] ?? RAW[`/docs/guide/${id}.md`];
 		if (!text) return [];
-		const title = /^#\s+(.+)$/m.exec(text)?.[1] ?? id;
+		const title = id === "start" ? START[lang] : (/^#\s+(.+)$/m.exec(text)?.[1] ?? id);
 		return [{ id, title, text }];
 	});
 
@@ -139,6 +142,8 @@ export function Manual() {
 	const [query, setQuery] = useState("");
 	const [scrollTo, setScrollTo] = useState<string | null>(null);
 	const current = pages.find((p) => p.id === page) ?? pages[0];
+	// The card draws the title itself, then the picture; the reader gets the text below the first heading.
+	const body = current?.text.replace(/^#\s+.+\n?/, "") ?? "";
 	const hits = useMemo(() => searchManual(query, pages), [query, pages]);
 	const picture = current ? pictureOf(current.id) : undefined;
 
@@ -160,10 +165,10 @@ export function Manual() {
 
 	useEffect(() => {
 		if (!scrollTo || !current) return;
-		const i = headingIndex(current.text, scrollTo);
+		const i = headingIndex(body, scrollTo);
 		const el = i >= 0 ? document.getElementById(`${anchor}-${i}`) : null;
 		el?.scrollIntoView?.({ block: "start" });
-	}, [scrollTo, current, anchor]);
+	}, [scrollTo, current, body, anchor]);
 
 	const open = (id: string, heading: string | null) => {
 		setPage(id);
@@ -234,22 +239,25 @@ export function Manual() {
 					>
 						<div className="flex max-w-[640px] flex-col gap-4 pb-1">
 							{current ? (
-								<MarkdownView
-									key={current.id}
-									source={current.text}
-									label={current.title}
-									anchor={anchor}
-									refs={false}
-									reading
-								/>
-							) : null}
-							{current && picture ? (
-								<img
-									src={picture}
-									alt={format(m.picture, { page: current.title })}
-									loading="lazy"
-									className="w-full rounded-field border border-n-6"
-								/>
+								<>
+									<h2 className="text-32 font-semibold text-n-12">{current.title}</h2>
+									{picture ? (
+										<img
+											src={picture}
+											alt={format(m.picture, { page: current.title })}
+											loading="lazy"
+											className="w-full rounded-field border border-n-6"
+										/>
+									) : null}
+									<MarkdownView
+										key={current.id}
+										source={body}
+										label={current.title}
+										anchor={anchor}
+										refs={false}
+										reading
+									/>
+								</>
 							) : null}
 						</div>
 					</section>

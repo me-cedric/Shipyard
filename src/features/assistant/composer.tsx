@@ -200,7 +200,8 @@ export function Composer({
 					ref={inputRef}
 					label={t.assistant.message}
 					rows={full ? 1 : 3}
-					className={full ? "min-h-13" : undefined}
+					className={full ? "min-h-13 resize-none" : undefined}
+					placeholder={full ? t.assistant.message : undefined}
 					value={a.draft}
 					aria-controls={menuOpen ? listId : undefined}
 					aria-activedescendant={menuOpen ? `${listId}-${current}` : undefined}

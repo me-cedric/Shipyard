@@ -18,7 +18,13 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { LinkButton } from "@/ui/atoms/link-button";
-import { ChatBubbleIcon, CodeBracketIcon, DocumentTextIcon, SparklesIcon } from "@/ui/icons";
+import {
+	ChatBubbleIcon,
+	CodeBracketIcon,
+	DocumentTextIcon,
+	PlayIcon,
+	SparklesIcon,
+} from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { CommandPalette, type PaletteGroup } from "@/ui/organisms/command-palette";
 import type { Action } from "./actions";
@@ -93,7 +99,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 			label:
 				space === "library" && tab === "home"
 					? t.ui.place[place]
-					: `${t.ui.place[place]} / ${tabLabel(t, space, tab)}`,
+					: `${t.ui.place[place]}, ${tabLabel(t, space, tab)}`,
 			Icon: PLACE_ICON[place],
 			run: () => void navigate({ to: sectionPath(place, tab) }),
 		})),
@@ -104,7 +110,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 	const scopes = visibleSections("setup", level).map(([, tab]) => tab);
 	const door = (scope: string, page: string, label: string) => ({
 		id: `go-setup-${scope}-${page}`,
-		label: `${t.ui.place.setup} / ${label}`,
+		label: `${t.ui.place.setup}, ${label}`,
 		href: `/setup/${scope}?page=${page}`,
 		Icon: PLACE_ICON.setup,
 		hidden: !scopes.includes(scope),
@@ -114,14 +120,14 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		{ id: "go-projects", label: t.tabs.home.projects, href: "/projects", Icon: CodeBracketIcon },
 		{
 			id: "go-flow-impacts",
-			label: `${t.ui.place.flow} / ${tabLabel(t, "code", "impacts")}`,
+			label: `${t.ui.place.flow}, ${tabLabel(t, "code", "impacts")}`,
 			href: "/flow/impacts",
 			Icon: PLACE_ICON.flow,
 			hidden: hiddenTab(level, "code", "impacts"),
 		},
 		{
 			id: "go-code-pull-requests",
-			label: `${t.ui.place.code} / ${tabLabel(t, "code", "pull-requests")}`,
+			label: `${t.ui.place.code}, ${tabLabel(t, "code", "pull-requests")}`,
 			href: "/code/now#code-now-pulls",
 			Icon: PLACE_ICON.code,
 			hidden: hiddenSection(level, "code", "now"),
@@ -200,13 +206,28 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 			items: [
 				...actions
 					.filter((a) => !a.disabled && !a.hidden)
-					.map((a) => ({
-						id: a.id,
-						label: a.label,
-						icon: <a.Icon size={20} />,
-						shortcut: a.shortcut,
-						onSelect: a.run,
-					})),
+					.flatMap((a) => {
+						const item = {
+							id: a.id,
+							label: a.id === "sync" ? t.palette.syncNow : a.label,
+							icon: <a.Icon size={20} />,
+							shortcut: a.shortcut,
+							onSelect: a.run,
+						};
+						// The start from a ticket is a part of the page New feature: its row follows it.
+						return a.id === "new-feature"
+							? [
+									item,
+									{
+										id: "start-from-ticket",
+										label: t.palette.startOnTicket,
+										icon: <PlayIcon size={20} />,
+										shortcut: undefined,
+										onSelect: () => void navigate({ to: "/flow/new" }),
+									},
+								]
+							: [item];
+					}),
 				...(type ? PROMPT_KINDS[type] : []).map((kind) => ({
 					id: `prompt-${kind}`,
 					label: t.assistant.ask[kind],
@@ -243,7 +264,12 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		.filter((w) => w.length > 2);
 	const short = (g: PaletteGroup): PaletteGroup => {
 		if (g.id === "do")
-			return { ...g, items: g.items.filter((i) => i.id === "new-feature" || i.id === "sync") };
+			return {
+				...g,
+				items: g.items.filter(
+					(i) => i.id === "new-feature" || i.id === "start-from-ticket" || i.id === "sync",
+				),
+			};
 		if (g.id !== "go") return g;
 		const named = g.items.filter((i) => words.some((w) => i.label.toLowerCase().includes(w)));
 		const usual = g.items.filter((i) => i.id === "go-flow-flow" || i.id === "go-plan-timeline");

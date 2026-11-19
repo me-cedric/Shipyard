@@ -34,6 +34,8 @@ const WIDTH = 360;
 const MIN_H = 280;
 /** The panel grows with its content up to this share of the screen, then it scrolls. */
 const MAX_SHARE = 0.8;
+/** The panel lists this many things that need the person; a row opens the rest in Today. */
+const SHOWN = 3;
 /** The height of the tallest bar, in px: the box of the bars is 40 px. */
 const BAR_H = 40;
 
@@ -181,7 +183,7 @@ export function TrayView() {
 							})}
 						</h2>
 						<ul>
-							{items.map((i) => (
+							{items.slice(0, SHOWN).map((i) => (
 								<li key={i.id} className="[&+&]:border-t [&+&]:border-n-6">
 									<button
 										type="button"
@@ -194,6 +196,23 @@ export function TrayView() {
 									</button>
 								</li>
 							))}
+							{items.length > SHOWN ? (
+								<li className="border-t border-n-6">
+									<button
+										type="button"
+										onClick={() =>
+											void run(async () => {
+												await commands.trayOpen();
+												if (isTauri()) await emit(OPEN_PATH_EVENT, "/");
+											})
+										}
+										className="flex min-h-13 w-full items-center gap-3 px-4 text-left font-semibold text-accent hover:bg-n-2"
+									>
+										<span className="min-w-0 flex-1">{format(u.all, { count: items.length })}</span>
+										<ChevronRightIcon size={16} />
+									</button>
+								</li>
+							) : null}
 						</ul>
 					</Card>
 				) : null}

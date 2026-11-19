@@ -822,7 +822,7 @@ describe("Pull request page limits", () => {
 
 	it("shows the project gate with no project", async () => {
 		const router = mountApp("/code/pull-requests/github-demo-141");
-		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
+		expect(await screen.findByRole("button", { name: "Open a project" })).toBeInTheDocument();
 		expect(screen.queryByText("No such pull request")).toBeNull();
 		await idle(router);
 	});

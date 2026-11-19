@@ -83,8 +83,8 @@ describe("Library / Manual", () => {
 		mountApp("/library/manual");
 		expect(await screen.findByRole("article", { name: "Démarrer" })).toBeInTheDocument();
 		expect(searchManual("trousseau", manualFor("fr")).length).toBeGreaterThan(0);
-		expect(manualFor("de")[0]?.title).toBe("Erste Schritte");
-		expect(manualFor("es")[0]?.title).toBe("Primeros pasos");
+		expect(manualFor("de")[0]?.title).toBe("Start");
+		expect(manualFor("es")[0]?.title).toBe("Inicio");
 	});
 
 	it("finds each section that holds every word of the search", () => {
@@ -103,7 +103,7 @@ describe("Library / Manual", () => {
 		mountApp("/library/manual");
 		const pages = await screen.findByRole("navigation", { name: "Manual pages" });
 		expect(within(pages).getAllByRole("button")).toHaveLength(MANUAL.length);
-		expect(await screen.findByRole("article", { name: "Getting started" })).toBeInTheDocument();
+		expect(await screen.findByRole("article", { name: "Start" })).toBeInTheDocument();
 		await user.type(screen.getByRole("searchbox", { name: "Search the manual" }), "merge box");
 		const results = await screen.findByRole("region", { name: "Results" });
 		await user.click(within(results).getByRole("button", { name: /^Flow \/ Changes/ }));
@@ -149,8 +149,8 @@ describe("Library / Manual", () => {
 
 	it("shows the page in a card with its picture, the key F1 and no count or way back", async () => {
 		mountApp("/library/manual");
-		const page = await screen.findByRole("article", { name: "Getting started" });
-		expect(screen.getByRole("img", { name: "Picture of the page Getting started" })).toBeVisible();
+		const page = await screen.findByRole("article", { name: "Start" });
+		expect(screen.getByRole("img", { name: "Picture of the page Start" })).toBeVisible();
 		const header = screen.getByRole("heading", { level: 1, name: "Manual" }).closest("div");
 		expect(within(header as HTMLElement).getByText("F1")).toBeInTheDocument();
 		expect(within(header as HTMLElement).queryByText(String(MANUAL.length))).toBeNull();
@@ -167,12 +167,12 @@ describe("Library / Manual", () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/library/manual");
-		await screen.findByRole("article", { name: "Getting started" });
+		await screen.findByRole("article", { name: "Start" });
 		await user.click(screen.getByRole("button", { name: "Ask about this page" }));
 		const assistant = await screen.findByRole("complementary", { name: "Assistant" });
 		await waitFor(() =>
 			expect(within(assistant).getByRole("textbox")).toHaveValue(
-				"Explain the page Getting started of the manual.",
+				"Explain the page Start of the manual.",
 			),
 		);
 		await user.click(screen.getByRole("button", { name: "Shortcuts" }));

@@ -38,8 +38,9 @@ export function CodexTrust({ card }: { card?: boolean } = {}): ReactNode {
 	) : null;
 	if (card)
 		return (
-			<AttentionCard who="Codex" title={t.assistant.codexTrust.title}>
-				<p className="text-ui text-n-11">{t.assistant.codexTrust.body}</p>
+			<AttentionCard title={t.assistant.codexTrust.title}>
+				{/* The card names what the click writes: nothing is written before it. */}
+				<p className="text-13 text-n-11">{t.assistant.codexTrust.body}</p>
 				<div className="flex gap-2.5">
 					<Button className="flex-1" onClick={() => setLater(true)}>
 						{t.assistant.codexTrust.notNow}

@@ -86,7 +86,7 @@ describe("Home / Today role panels (team-rights REQ-012)", () => {
 		expect(others.queryByText("Ready items")).toBeNull();
 		expect(screen.getByRole("link", { name: "All role views" })).toHaveAttribute(
 			"href",
-			"/today/role-views",
+			"/setup/role-views",
 		);
 	});
 });
@@ -151,5 +151,36 @@ describe("Inbox routing (team-rights REQ-014)", () => {
 		expect(approve).toHaveAccessibleDescription(
 			/^Needs the right .+ \(your role: Project manager\)$/,
 		);
+	});
+});
+
+describe("Role views (app-redesign REQ-009)", () => {
+	it("lists the roles in the order of the design, marks my view and names the start place once", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await unwrap(commands.prefsSet({ role: "developer" }));
+		mountApp("/setup/role-views");
+		await screen.findByRole("heading", { level: 1, name: "Role views" });
+		await screen.findByRole("region", { name: "Developer" });
+		const names = [...document.querySelectorAll("h2[id^=role-]")].map((h) => h.textContent);
+		expect(names).toEqual([
+			"Product owner",
+			"Project manager",
+			"Business analyst",
+			"Architect",
+			"Tech lead",
+			"Developer",
+			"Tester",
+			"Designer",
+			"I only look",
+		]);
+		expect(screen.getAllByText("My view")).toHaveLength(1);
+		expect(screen.queryByText(/Flow, Flow/)).toBeNull();
+		expect(screen.queryByRole("link", { name: "Today" })).toBeNull();
+	});
+
+	it("opens the old address of the page in Setup", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const router = mountApp("/today/role-views");
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/role-views"));
 	});
 });

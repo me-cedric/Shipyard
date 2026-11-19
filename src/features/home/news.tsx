@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence } from "motion/react";
 import { useEffect, useId, useRef, useState } from "react";
-import { format, useI18n } from "@/lib/i18n";
+import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import { type Notice, useNotifications, useOpenNotice } from "@/lib/notifications";
@@ -11,7 +11,7 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Leave } from "@/ui/atoms/leave";
 import { LinkButton, linkClass } from "@/ui/atoms/link-button";
 import { Switch } from "@/ui/atoms/switch";
-import { XMarkIcon } from "@/ui/icons";
+import { ArrowPathIcon, XMarkIcon } from "@/ui/icons";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 
@@ -21,13 +21,13 @@ const CARD_TITLE = "px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11";
 /** The earlier rows that show before "Older news". */
 const EARLIER = 5;
 
-/** The five sources of picture 062. Setup / Me holds the switch of each source. */
-const SOURCES: EventSource[] = [
-	"question",
-	"approval",
-	"run-ended",
-	"review-draft",
-	"sync-failure",
+/** The five switches of picture 062, each with the sources that it turns on or off. Setup / Me holds the switch of each source. */
+const SWITCHES: { id: keyof Messages["home"]["tellOn"]; sources: EventSource[] }[] = [
+	{ id: "needsMe", sources: ["question", "approval"] },
+	{ id: "finishes", sources: ["run-ended"] },
+	{ id: "review", sources: ["review-draft"] },
+	{ id: "budget", sources: ["run"] },
+	{ id: "sync", sources: ["sync-failure"] },
 ];
 
 /** One news row (picture 062): who, the title, the feature and one action. Dismiss removes the row. */
@@ -36,8 +36,22 @@ function NewsRow({ row, time, unread }: { row: Notice; time: string; unread: boo
 	const { remove } = useNotifications();
 	const open = useOpenNotice();
 	const [more, setMore] = useState(false);
-	const main =
-		row.action ?? (row.target ? { label: t.rights.today.open, run: () => open(row) } : null);
+	// The id starts with the kind of the news; the action follows it (Open when the kind has none of its own).
+	const [head = "", next] = row.id.split(":");
+	const kind = head === "demo" ? next : head;
+	const label =
+		kind === "review-draft" || kind === "review"
+			? t.home.newsAct.review
+			: kind === "budget"
+				? t.home.newsAct.budget
+				: kind === "sync"
+					? t.home.newsAct.sync
+					: t.rights.today.open;
+	const main = row.action
+		? { ...row.action, label: kind === "sync" ? label : row.action.label }
+		: row.target
+			? { label, run: () => open(row) }
+			: null;
 	return (
 		<Row className="min-h-18 py-2">
 			<article
@@ -46,7 +60,13 @@ function NewsRow({ row, time, unread }: { row: Notice; time: string; unread: boo
 			>
 				{/* The row has its name: the avatar is a picture only. */}
 				<span aria-hidden="true" className="flex">
-					<Avatar agent={row.kind !== "needs-you"} name={row.title} />
+					{kind === "sync" ? (
+						<span className="flex size-9 items-center justify-center rounded-full bg-n-3 text-n-11">
+							<ArrowPathIcon size={16} />
+						</span>
+					) : (
+						<Avatar agent={row.kind !== "needs-you"} name={row.title} />
+					)}
 				</span>
 				<span className="flex min-w-0 flex-[1_1_220px] flex-col">
 					<span className={unread ? "font-semibold" : "font-medium"}>{row.title}</span>
@@ -108,15 +128,15 @@ function TellMe() {
 	}, []);
 	// One write after the other: each reads the list that the write before it stored.
 	const writes = useRef<Promise<unknown>>(Promise.resolve());
-	const toggle = (s: EventSource, on: boolean) => {
+	const toggle = (sources: EventSource[], on: boolean) => {
 		writes.current = writes.current
 			.then(() => unwrap(commands.prefsGet()))
 			.then((p) =>
 				unwrap(
 					commands.prefsSet({
 						notifyOff: on
-							? p.notifyOff.filter((x) => x !== s)
-							: [...p.notifyOff.filter((x) => x !== s), s],
+							? p.notifyOff.filter((x) => !sources.includes(x))
+							: [...p.notifyOff.filter((x) => !sources.includes(x)), ...sources],
 					}),
 				),
 			)
@@ -129,16 +149,16 @@ function TellMe() {
 			<h2 id={title} className={CARD_TITLE}>
 				{t.home.tellMe}
 			</h2>
-			{SOURCES.map((s) => (
-				<Row key={s}>
+			{SWITCHES.map(({ id, sources }) => (
+				<Row key={id}>
 					<span aria-hidden="true" className="mr-auto font-semibold">
-						{t.notifications.source[s]}
+						{t.home.tellOn[id]}
 					</span>
 					<Switch
-						label={t.notifications.source[s]}
+						label={t.home.tellOn[id]}
 						iconOnly
-						checked={!off.includes(s)}
-						onCheckedChange={(on) => toggle(s, on)}
+						checked={!sources.some((x) => off.includes(x))}
+						onCheckedChange={(on) => toggle(sources, on)}
 					/>
 				</Row>
 			))}

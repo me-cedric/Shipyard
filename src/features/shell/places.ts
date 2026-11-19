@@ -225,6 +225,7 @@ export const OLD_SLUGS: Partial<Record<PlaceId, Record<string, string>>> = {
 const MOVED: Record<string, string> = {
 	"/home/projects": "/projects",
 	"/today/projects": "/projects",
+	"/today/role-views": "/setup/role-views",
 	"/code/impacts": "/flow/impacts",
 };
 

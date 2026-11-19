@@ -46,6 +46,9 @@ const CARDS = ["project", "brief", "team", "remote", "start"] as const;
 const TEAM_ROLE = (r: string) => (r === "none" ? "developer" : r);
 /** The 820 px column of the page. */
 const COLUMN = "w-full max-w-205";
+/** The row labels are medium; a row with a field gives it 380 px (design: fields start at x 726 of 1440). */
+const ROW_LOOK =
+	"[&_[role=group]>span:first-child]:font-medium [&_[role=group]>div:last-child:has(>input,>textarea)]:basis-95";
 const QUESTION = "text-center text-44 font-semibold text-n-12 outline-none";
 
 /** What happens after Create: the run, the starter issues or nothing. */
@@ -398,7 +401,7 @@ export function NewProject() {
 					label={t.creator.steps}
 					className="gap-2 *:w-11"
 				/>
-				<div className={cn(COLUMN, "flex flex-col gap-4")}>
+				<div className={cn(COLUMN, "flex flex-col gap-4", ROW_LOOK)}>
 					{CARDS.map((s, i) => (
 						<Card key={s} role="region" aria-labelledby={`creator-${s}`} className={ROWS}>
 							<h2

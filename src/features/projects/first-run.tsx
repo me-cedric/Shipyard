@@ -4,7 +4,7 @@ import { type ComponentType, useEffect, useRef, useState } from "react";
 import { MARK, useBare } from "@/features/shell/bare";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, pickFolder, unwrap } from "@/lib/ipc";
-import { ROLES, type Role, usePrefs } from "@/lib/prefs";
+import { type Role, usePrefs } from "@/lib/prefs";
 import { outcomeError, type ProjectOutcome, useProjectActions, useProjects } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
@@ -49,6 +49,20 @@ const ROLE_ICON: Record<Role, ComponentType<IconProps>> = {
 	viewer: BookOpenIcon,
 	none: UserCircleIcon,
 };
+
+/** The order of the design; Other stays last. */
+const ROLE_ORDER = [
+	"po",
+	"pm",
+	"ba",
+	"architect",
+	"techlead",
+	"developer",
+	"qa",
+	"designer",
+	"viewer",
+	"none",
+] as const satisfies readonly Role[];
 
 /** The project key from the name, as the app derives it: six letters or digits, a letter first. */
 export const keyOf = (name: string) => {
@@ -219,13 +233,13 @@ export function FirstRun() {
 				<>
 					{/* biome-ignore lint/a11y/useSemanticElements: a fieldset needs a legend, and the question is the h1 */}
 					<div role="group" aria-labelledby="first-run-question" className={GRID}>
-						{([...ROLES, "none"] as const).map((r) => {
+						{ROLE_ORDER.map((r) => {
 							const Icon = ROLE_ICON[r];
 							return (
 								<Tile
 									key={r}
 									icon={<Icon size={24} />}
-									label={t.role[r]}
+									label={r === "viewer" ? t.home.roles.viewer : t.role[r]}
 									selected={pick === r}
 									onClick={() => setPick(r)}
 								/>

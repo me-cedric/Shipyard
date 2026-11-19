@@ -76,6 +76,8 @@ export const de: Messages = {
 		goTo: "Gehe zu",
 		do: "Tun",
 		openAssistant: "Den vollen Assistenten öffnen",
+		startOnTicket: "Einen Agenten auf ein Ticket ansetzen",
+		syncNow: "Jetzt synchronisieren",
 		markBlocked: "Blockiert",
 		markStopped: "Gestoppt",
 		markNeeds: "Braucht Sie",
