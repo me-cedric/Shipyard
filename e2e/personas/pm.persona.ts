@@ -6,10 +6,15 @@ test("project manager", async ({ page }) => {
 	const w = new Walk(page, { key: "pm", label: "Project manager" });
 	await w.start();
 
-	await w.step("Land on the board", "the page that opens first: Flow, Flow", async () => {
-		await w.landsOn("Flow", "Flow");
-		await w.see(page.getByText("Bump dependencies"), "no card on the board");
-	});
+	await w.step(
+		"Land on the plan, open the board",
+		"the page that opens first: Plan, Timeline, then Flow, Flow",
+		async () => {
+			await w.landsOn("Plan", "Timeline");
+			await w.go("Flow", "Flow");
+			await w.see(page.getByText("Bump dependencies"), "no card on the board");
+		},
+	);
 
 	await w.step("Filter the board by person", "the All assignees menu", async () => {
 		await w.go("Flow", "List");

@@ -14,10 +14,9 @@ vi.setConfig({ testTimeout: 15_000 });
 const files = () => mockState().design.files;
 // The frame and the inspector hold chips with the same names: look in the list only.
 const row = async (name: string | RegExp) =>
-	within(await screen.findByRole("list", { name: /^(Decisions|Décisions|API|Flows)$/ })).findByRole(
-		"button",
-		{ name },
-	);
+	within(
+		await screen.findByRole("list", { name: /^(Decisions|Décisions|API|Network flows)$/ }),
+	).findByRole("button", { name });
 const ADR3 = "docs/decisions/0003-ship-a-browser-mock.md";
 const FLOWS = "docs/flows/network.yaml";
 
@@ -204,7 +203,7 @@ describe("Design / Flows", () => {
 
 	it("shows the rows with a count in the heading", async () => {
 		await open(userEvent.setup());
-		expect(await screen.findByRole("heading", { name: "Flows (20)" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Network flows (20)" })).toBeInTheDocument();
 		expect(await bodyRows()).toBe(20);
 	});
 
@@ -268,7 +267,7 @@ describe("Design / Flows", () => {
 		await user.type(await screen.findByRole("textbox", { name: "Brick name" }), "Web");
 		await user.click(screen.getByRole("button", { name: "Brick" }));
 		await waitFor(() => expect(files()["docs/flows/bricks.json"]?.text).toContain('"Web"'));
-		await user.click(screen.getByRole("button", { name: "Flows" }));
+		await user.click(screen.getByRole("button", { name: "Network flows" }));
 		await user.click((await screen.findAllByRole("button", { name: /^Edit / }))[0] as HTMLElement);
 		await user.click(await screen.findByRole("combobox", { name: "Source brick" }));
 		await user.click(await screen.findByRole("option", { name: "Web" }));

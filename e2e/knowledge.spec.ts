@@ -16,7 +16,7 @@ async function openKnowledge(page: Page, tab: string) {
 }
 
 test("filters the graph by kind and explains an entity from the inspector", async ({ page }) => {
-	await openKnowledge(page, "Graph");
+	await openKnowledge(page, "Map");
 	// The clusters come first: a click opens one in place, a second click closes it.
 	const adr = page.getByRole("button", { name: /^ADR adr:0001/ });
 	const cluster = page.locator('button[data-node="cluster/adr"]');

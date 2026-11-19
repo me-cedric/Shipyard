@@ -66,7 +66,7 @@ export function SetupProject() {
 			]}
 		>
 			<SectionNav label={t.ui.sections} items={sectionItems(t, !!file)} />
-			<ProjectSettings scope />
+			<ProjectSettings />
 			<Automation />
 		</SetupScope>
 	);

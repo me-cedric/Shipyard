@@ -20,7 +20,6 @@ export const assistantEn = {
 	you: "You",
 	assistant: "Assistant",
 	mode: { label: "Mode", ask: "Ask", plan: "Plan", agent: "Agent" },
-	runner: "AI tool",
 	model: "Model",
 	effort: "Effort",
 	default: "Default",
@@ -48,9 +47,8 @@ export const assistantEn = {
 	diffBinary: "Binary file",
 	diffTruncated: "Cut",
 	factory: {
-		send: "Send to factory",
-		title: "Work item",
-		workflow: "Workflow",
+		send: "Send to Flow",
+		workflow: "Recipe",
 		none: "Work item",
 		create: "Send",
 		sent: "Sent {key}",
@@ -67,10 +65,10 @@ export const assistantEn = {
 		label: "Selection",
 		explain: "Explain",
 		fix: "Fix",
-		factory: "Send to factory",
+		factory: "Send to Flow",
 		promptExplain: "Explain this:",
 		promptFix: "Fix this:",
-		promptFactory: "Write a work item for the factory from this:",
+		promptFactory: "Write a work item from this:",
 	},
 	noCli: {
 		title: "No AI tool found",
@@ -102,7 +100,6 @@ export const assistantEn = {
 	codexTrust: {
 		body: 'Codex does not trust this folder. Shipyard adds it to the Codex config file with trust_level = "trusted". Codex then runs here without asking again.',
 		button: "Trust this folder",
-		done: "Folder trusted for Codex",
 	},
 };
 
@@ -127,7 +124,6 @@ export const assistantFr: typeof assistantEn = {
 	you: "Vous",
 	assistant: "Assistant",
 	mode: { label: "Mode", ask: "Question", plan: "Plan", agent: "Agent" },
-	runner: "Outil d’IA",
 	model: "Modèle",
 	effort: "Effort",
 	default: "Défaut",
@@ -155,9 +151,8 @@ export const assistantFr: typeof assistantEn = {
 	diffBinary: "Fichier binaire",
 	diffTruncated: "Coupé",
 	factory: {
-		send: "Envoyer à l'usine",
-		title: "Ticket",
-		workflow: "Workflow",
+		send: "Envoyer vers Flux",
+		workflow: "Recette",
 		none: "Ticket",
 		create: "Envoyer",
 		sent: "Envoyé {key}",
@@ -174,10 +169,10 @@ export const assistantFr: typeof assistantEn = {
 		label: "Sélection",
 		explain: "Expliquer",
 		fix: "Corriger",
-		factory: "Envoyer à l'usine",
+		factory: "Envoyer vers Flux",
 		promptExplain: "Explique ceci :",
 		promptFix: "Corrige ceci :",
-		promptFactory: "Écris un ticket pour l'usine à partir de ceci :",
+		promptFactory: "Écris un ticket à partir de ceci :",
 	},
 	noCli: {
 		title: "Aucun outil IA trouvé",
@@ -209,6 +204,5 @@ export const assistantFr: typeof assistantEn = {
 	codexTrust: {
 		body: "Codex ne fait pas confiance à ce dossier. Shipyard l'ajoute au fichier de configuration de Codex avec trust_level = \"trusted\". Codex s'exécute ensuite ici sans redemander.",
 		button: "Faire confiance à ce dossier",
-		done: "Dossier de confiance pour Codex",
 	},
 };

@@ -234,7 +234,7 @@ describe("Code / Now, the files to commit", () => {
 		code.conflicts = [{ path: "x.txt", text: false, segments: [] }];
 		mockState().code = code;
 		mountApp("/code/now");
-		await user.click(await screen.findByRole("button", { name: "Hand to factory" }));
+		await user.click(await screen.findByRole("button", { name: "Hand to an agent" }));
 		expect(await screen.findByText("Work item SHIP-200 created")).toBeInTheDocument();
 	});
 

@@ -4,7 +4,6 @@ export const forgeEs: typeof forgeEn = {
 	resize: {
 		changes: "Ancho de la lista de cambios",
 		history: "Ancho del historial",
-		pulls: "Ancho de los pull requests",
 		impacts: "Ancho de los impactos",
 	},
 	state: { open: "Abierto", merged: "Fusionado", closed: "Cerrado" },
@@ -24,7 +23,6 @@ export const forgeEs: typeof forgeEn = {
 	commits: "Commits",
 	checks: "Comprobaciones",
 	threads: "Conversación",
-	verdicts: "Veredictos",
 	links: "Enlaces",
 	comment: "Comentar",
 	merge: "Fusionar",
@@ -74,8 +72,6 @@ export const forgeEs: typeof forgeEn = {
 		code: "Código {code}",
 		copy: "Copiar",
 		copied: "Copiado",
-		waiting: "Esperando al navegador",
-		openPage: "Abrir la página",
 		denied: "Se rechazó el inicio de sesión.",
 		expired: "El código caducó. Empieza de nuevo.",
 	},
@@ -220,7 +216,6 @@ export const forgeEs: typeof forgeEn = {
 		label: "Archivo {path}",
 		line: "Línea {n}",
 		binary: "Archivo binario, {size} bytes",
-		view: "Ver",
 		blame: "Blame",
 	},
 	pullFiles: {

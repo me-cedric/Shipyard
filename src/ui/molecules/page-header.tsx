@@ -34,7 +34,10 @@ export function PageHeader({
 }) {
 	const { t } = useI18n();
 	return (
-		<div data-page-header className="flex min-h-14 flex-wrap items-center gap-3 px-4 pt-3 pb-1">
+		<div
+			data-page-header
+			className="flex min-h-14 shrink-0 flex-wrap items-center gap-3 px-4 pt-3 pb-1"
+		>
 			{icon ? (
 				<span
 					aria-hidden="true"
@@ -57,7 +60,7 @@ export function PageHeader({
 					<Tooltip label={t.ui.more}>
 						<Menu.Trigger
 							aria-label={t.ui.more}
-							className="inline-flex size-(--row-h) items-center justify-center rounded-md text-n-11 hover:bg-n-3 hover:text-n-12"
+							className="inline-flex size-(--control-h) items-center justify-center rounded-md text-n-11 hover:bg-n-3 hover:text-n-12"
 						>
 							<svg aria-hidden="true" viewBox="0 0 16 16" className="size-4" fill="currentColor">
 								<circle cx="3" cy="8" r="1.25" />

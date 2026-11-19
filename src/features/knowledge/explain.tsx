@@ -27,7 +27,7 @@ export function KnowledgeActions({ refId }: { refId: string }) {
 					variant="ghost"
 					onClick={() => {
 						setFocus(refId);
-						void router.navigate({ to: "/knowledge/graph" });
+						void router.navigate({ to: "/library/graph" });
 					}}
 				>
 					<MagnifyingGlassIcon size={14} />

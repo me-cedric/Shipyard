@@ -76,10 +76,10 @@ test("sends a thread to the factory as a work item with a workflow", async ({ pa
 	await openPanel(page);
 	await say(page, "Plan the export");
 	await expect(log(page).getByText("Here is the answer.")).toBeVisible();
-	await panel(page).getByRole("button", { name: "Send to factory" }).click();
+	await panel(page).getByRole("button", { name: "Send to Flow" }).click();
 	const dialog = page.getByRole("dialog");
 	await expect(dialog.getByText(/^doc:assistant\//)).toBeVisible();
-	await dialog.getByRole("combobox", { name: "Workflow" }).click();
+	await dialog.getByRole("combobox", { name: "Recipe" }).click();
 	await page.getByRole("option", { name: "feature" }).click();
 	await dialog.getByRole("button", { name: "Send", exact: true }).click();
 	await expect(dialog.getByRole("status")).toContainText("Sent SHIP-101 · wf:feature");

@@ -83,13 +83,14 @@ test("architect", async ({ page }) => {
 	});
 
 	await w.step("Read the network flows", "the Flows tab, the table, Export", async () => {
-		await w.go("Library", "Flows");
-		await w.see(page.getByText("Flows (20)"), "no flow table");
+		await w.go("Library", "Network flows");
+		await w.see(page.getByText("Network flows (20)"), "no flow table");
 		await w.see(page.getByRole("button", { name: "Export" }), "no way to export the flows");
 	});
 
 	await w.step("Find a diagram with the keyboard", "Ctrl+K, the name of a diagram", async () => {
-		await w.palette("network", "the palette finds no diagram by its name");
+		// "network" names the page Network flows too: the name of a diagram that no page has.
+		await w.palette("context", "the palette finds no diagram by its name");
 		await w.see(
 			page.getByRole("button", { name: "Save" }),
 			"Enter only shows the diagram in the inspector: the page does not change and the inspector has no Open action",

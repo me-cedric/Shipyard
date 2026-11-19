@@ -45,12 +45,12 @@ export const workspaceDe: typeof workspaceEn = {
 	},
 	conflict: {
 		agent: "An Agenten übergeben",
-		factory: "An die Fabrik übergeben",
+		factory: "An einen Agenten übergeben",
 		sent: "Arbeitselement {key} erstellt",
 		prompt:
 			"Löse die Merge-Konflikte in {files}. Behalte die Absicht beider Seiten. Lass keine Markierung zurück.",
 	},
-	notes: { title: "Lieferhinweise", open: "{title} öffnen", empty: "Kein Hinweis" },
+	notes: { title: "Lieferhinweise", open: "{title} öffnen" },
 	budget: {
 		label: "Budget {key}",
 		used: "{used} Std. von {estimate} Std.",

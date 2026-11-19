@@ -42,11 +42,13 @@ function count(items: WorkItem[], key: (i: WorkItem) => string) {
  * request leaves the machine. Without a tracker the tile is off.
  */
 export function useTrackerTile(kind: string, person: string | null | undefined): TileData {
-	const k = useI18n().t.knowledge.dashboards;
+	const { t } = useI18n();
+	const k = t.knowledge.dashboards;
 	const ctx = useWorkContext().data;
 	const members = useTeam().data?.team.members ?? [];
 	const items = useWorkItems({}).data ?? [];
-	if (ctx && !ctx.tracker) return { kind, columns: [], rows: [], cut: false, off: "tracker" };
+	if (ctx && !ctx.tracker)
+		return { kind, columns: [], rows: [], cut: false, off: t.glossary.words["issue-tracker"] };
 	const mine = person ? items.filter((i) => i.member === person) : items;
 	const open = mine.filter((i) => i.category !== "done");
 	const [label, data] =

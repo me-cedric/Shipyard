@@ -137,7 +137,7 @@ describe("selection actions", () => {
 			within(bar)
 				.getAllByRole("button")
 				.map((b) => b.textContent),
-		).toEqual(["Explain", "Fix", "Send to factory"]);
+		).toEqual(["Explain", "Fix", "Send to Flow"]);
 		fireEvent.mouseDown(document.body);
 		expect(screen.queryByRole("toolbar")).toBeNull();
 	});

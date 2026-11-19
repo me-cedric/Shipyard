@@ -76,7 +76,7 @@ describe("router", () => {
 
 	it.each([
 		["none", "Today"],
-		["pm", "Flow"],
+		["pm", "Plan"],
 		["developer", "Flow"],
 	])("sends / to the home of role %s", async (role, name) => {
 		mount("/", role);

@@ -21,7 +21,6 @@ export const assistantEs: typeof assistantEn = {
 	you: "Tú",
 	assistant: "Asistente",
 	mode: { label: "Modo", ask: "Preguntar", plan: "Plan", agent: "Agente" },
-	runner: "Herramienta de IA",
 	model: "Modelo",
 	effort: "Esfuerzo",
 	default: "Predeterminado",
@@ -49,9 +48,8 @@ export const assistantEs: typeof assistantEn = {
 	diffBinary: "Archivo binario",
 	diffTruncated: "Cortado",
 	factory: {
-		send: "Enviar a la fábrica",
-		title: "Elemento de trabajo",
-		workflow: "Flujo de trabajo",
+		send: "Enviar a Flujo",
+		workflow: "Receta",
 		none: "Elemento de trabajo",
 		create: "Enviar",
 		sent: "Enviado {key}",
@@ -68,10 +66,10 @@ export const assistantEs: typeof assistantEn = {
 		label: "Selección",
 		explain: "Explicar",
 		fix: "Corregir",
-		factory: "Enviar a la fábrica",
+		factory: "Enviar a Flujo",
 		promptExplain: "Explica esto:",
 		promptFix: "Corrige esto:",
-		promptFactory: "Escribe un elemento de trabajo para la fábrica a partir de esto:",
+		promptFactory: "Escribe un elemento de trabajo a partir de esto:",
 	},
 	noCli: {
 		title: "No se encontró ninguna herramienta de IA",
@@ -103,6 +101,5 @@ export const assistantEs: typeof assistantEn = {
 	codexTrust: {
 		body: 'Codex no confía en esta carpeta. Shipyard la añade al archivo de configuración de Codex con trust_level = "trusted". Después Codex se ejecuta aquí sin preguntar de nuevo.',
 		button: "Confiar en esta carpeta",
-		done: "Carpeta de confianza para Codex",
 	},
 };

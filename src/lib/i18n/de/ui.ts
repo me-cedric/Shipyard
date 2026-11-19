@@ -29,9 +29,6 @@ export const uiDe: typeof uiEn = {
 		setup: "Einrichtung",
 	},
 	back: "Zurück",
-	ahead: "Im Vorsprung",
-	behind: "Im Rückstand",
-	changes: "Änderungen",
 	myItems: "Meine Elemente",
 	spendToday: "Ausgaben heute",
 	tray: {

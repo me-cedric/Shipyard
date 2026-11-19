@@ -1,51 +1,6 @@
-import type { Change } from "./index";
-import { capabilityOf, kindStatus, lastLine, openItems, planRef } from "./index";
-
-const art = (
-	artifact: string,
-	status: "missing" | "unchecked" | "draft" | "done",
-	capability: string | null,
-) => ({
-	artifact,
-	capability,
-	path: "x",
-	status,
-	findings: [],
-});
-const change = (artifacts: Change["artifacts"]): Change => ({
-	id: "c",
-	title: "c",
-	path: "p",
-	validated: false,
-	artifacts,
-});
+import { capabilityOf, lastLine, openItems, planRef } from "./index";
 
 describe("specs rules", () => {
-	it("gives one status for each artifact kind", () => {
-		const c = change([
-			art("proposal", "done", null),
-			art("spec", "done", "a"),
-			art("spec", "draft", "b"),
-			art("plan", "missing", "a"),
-		]);
-		expect(kindStatus(c, "proposal")).toBe("done");
-		expect(kindStatus(c, "spec")).toBe("draft");
-		expect(kindStatus(c, "plan")).toBe("missing");
-		// No file of the kind at all.
-		expect(kindStatus(c, "tasks")).toBe("missing");
-	});
-
-	it("says not checked when no draft is left and a file has no validation of its text", () => {
-		const c = change([
-			art("spec", "done", "a"),
-			art("spec", "unchecked", "b"),
-			art("plan", "unchecked", "a"),
-			art("plan", "draft", "b"),
-		]);
-		expect(kindStatus(c, "spec")).toBe("unchecked");
-		expect(kindStatus(c, "plan")).toBe("draft");
-	});
-
 	it("names the ref of a plan, a capability and an answer", () => {
 		expect(planRef("docs/delivery/test-plans/Auth Login.feature")).toBe("test:auth-login");
 		expect(capabilityOf("spec:auth#REQ-001")).toBe("auth");

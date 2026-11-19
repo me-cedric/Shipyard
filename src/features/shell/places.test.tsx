@@ -102,11 +102,15 @@ describe("places (app-redesign REQ-001, adr:0023)", () => {
 		]);
 	});
 
-	it("opens a place on the first tab of the role when it holds it", () => {
-		expect(firstSection("flow", "pm")).toBe("flow");
+	it("opens a place on the first page of the role when it holds it", () => {
 		expect(firstSection("flow", "po")).toBe("list");
-		expect(firstSection("flow", "ba")).toBe("list");
+		expect(firstSection("flow", "pm")).toBe("flow");
 		expect(firstSection("flow", "qa")).toBe("flow");
+		expect(firstSection("plan", "pm")).toBe("timeline");
+		// The role does not see its first page: the place opens on its first visible section.
+		expect(
+			firstSection("flow", "po", (a) => (a === "work" || a === "specs" ? "none" : "read")),
+		).toBe("flow");
 	});
 
 	// spec:app-redesign#REQ-020

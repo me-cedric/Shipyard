@@ -14,7 +14,6 @@ const LOADERS: Partial<Record<string, Load>> = {
 	"code/now": () => import("@/features/code/now").then((m) => m.CodeNow),
 	"code/history": () => import("@/features/code/history").then((m) => m.History),
 	"code/branches": () => import("@/features/code/branches").then((m) => m.Branches),
-	"code/quality": () => import("@/features/code/quality").then((m) => m.Quality),
 	"code/impacts": () => import("@/features/code/impacts").then((m) => m.Impacts),
 	"code/terminal": () => import("@/features/code/terminal").then((m) => m.Terminal),
 	"setup/start": () => import("@/features/onboarding/start").then((m) => m.SetupStart),

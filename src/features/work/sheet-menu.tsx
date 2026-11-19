@@ -131,8 +131,8 @@ export function ProfileTable({ slug, currency }: { slug: string | null; currency
 					!costs ? (
 						"—"
 					) : row.original.cost == null ? (
-						// The rates are set in Work / Team.
-						<Link to="/work/team" className="text-accent-text underline">
+						// The rates are set in Crew.
+						<Link to="/crew/crew" className="text-accent-text underline">
 							{e.unrated}
 						</Link>
 					) : (

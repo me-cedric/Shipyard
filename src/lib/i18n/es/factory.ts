@@ -2,7 +2,7 @@ import type { factoryEn } from "../factory";
 
 export const factoryEs: typeof factoryEn = {
 	resize: {
-		workflows: "Ancho de los flujos de trabajo",
+		workflows: "Ancho de las recetas",
 	},
 	runs: "Ejecuciones",
 	start: "Iniciar ejecución",
@@ -133,12 +133,12 @@ export const factoryEs: typeof factoryEn = {
 	planApprove: "Aprobar plan",
 	planReject: "Rechazar plan",
 	note: "Nota",
-	workflow: "Flujo de trabajo",
+	workflow: "Receta",
 	findings: "Hallazgos",
 	diff: "Diff",
 	log: "Eventos",
 	more: "Más",
-	workflows: "Flujos de trabajo",
+	workflows: "Recetas",
 	roles: "Roles",
 	wf: {
 		permissions: "Escribe sin preguntar",
@@ -284,7 +284,7 @@ export const factoryEs: typeof factoryEn = {
 		board: "Tablero",
 		history: "Historial",
 		state: "Estado",
-		workflow: "Flujo de trabajo",
+		workflow: "Receta",
 		steps: "Pasos",
 		ended: "Terminada",
 		pullRequest: "Pull request",

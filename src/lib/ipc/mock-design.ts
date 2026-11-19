@@ -344,7 +344,7 @@ export function seedDesign(): MockDesign {
 			ADR("proposed", "2026-10-20", "Ship a browser mock"),
 		),
 		[`${DIR.decisions}/0004-polling-sync-with-local-mirror.md`]: file(
-			`${ADR("accepted", "2026-09-02", "Polling sync with local mirror")}\nThe first tracker is q:Q-012.\n`,
+			`${ADR("accepted", "2026-09-02", "Polling sync with local mirror")}\nThe first issue tracker is q:Q-012.\n`,
 		),
 	};
 	for (const [name, text] of Object.entries(DIAGRAMS)) files[`${DIR.diagram}/${name}`] = file(text);

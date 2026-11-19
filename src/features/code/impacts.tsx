@@ -220,7 +220,11 @@ function ImpactsView() {
 						<Assignments />
 					</div>
 				</SplitPane>
-				<div className="min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
+				<div
+					// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable)
+					tabIndex={0}
+					className="min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1"
+				>
 					{entry ? (
 						<Report entry={entry} />
 					) : (

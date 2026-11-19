@@ -107,17 +107,13 @@ export function TerminalDrawer({ open, onHide }: { open: boolean; onHide: () => 
 							>
 								{name(n)}
 							</button>
-							<IconButton
-								label={format(d.close, { name: name(n) })}
-								onClick={() => close(n)}
-								className="size-6"
-							>
+							<IconButton label={format(d.close, { name: name(n) })} onClick={() => close(n)}>
 								<XMarkIcon size={12} />
 							</IconButton>
 						</span>
 					))}
 				</div>
-				<IconButton label={d.add} onClick={() => add()} className="size-7">
+				<IconButton label={d.add} onClick={() => add()}>
 					<PlusIcon size={14} />
 				</IconButton>
 				<MenuButton

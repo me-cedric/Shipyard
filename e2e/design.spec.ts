@@ -70,11 +70,11 @@ test("accepts a proposed ADR with a comment", async ({ page }) => {
 });
 
 test("filters the flow table by VLAN and action", async ({ page }) => {
-	await openDesign(page, "Flows");
-	await list(page, "Flows")
+	await openDesign(page, "Network flows");
+	await list(page, "Network flows")
 		.getByRole("button", { name: /network/ })
 		.click();
-	await expect(page.getByRole("heading", { name: "Flows (20)" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Network flows (20)" })).toBeVisible();
 	const rows = page.getByRole("table").getByRole("row");
 	await expect(rows).toHaveCount(21);
 	await page.getByRole("combobox", { name: "VLAN or VNET" }).click();

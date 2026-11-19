@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import type { Messages } from "@/lib/i18n";
-import type { Level, TeamRole } from "@/lib/ipc";
+import type { Level } from "@/lib/ipc";
 import type { Area } from "@/lib/rights";
 import {
 	AcademicCapIcon,
@@ -48,16 +48,8 @@ export const SPACES = {
 } as const;
 
 export type SpaceId = keyof typeof SPACES;
-export type TabId = (typeof SPACES)[SpaceId][number];
-/** Every valid tab path, such as `/design/diagrams`. */
-export type TabPath = {
-	[S in SpaceId]: `/${S}/${(typeof SPACES)[S][number]}`;
-}[SpaceId];
 
 export const SPACE_IDS = Object.keys(SPACES) as SpaceId[];
-
-// shortcut: one cast. A template over two unions makes invalid pairs, so the callers pass a valid pair.
-export const tabPath = (space: SpaceId, tab: TabId) => `/${space}/${tab}` as TabPath;
 
 /** A space of before adr:0023, or a place with sections of its own: Flow, Plan, Crew, Library and Setup. */
 export type SectionSpace = SpaceId | "flow" | "plan" | "crew" | "library" | "setup";
@@ -152,28 +144,8 @@ const TAB_ICON: Record<string, TabIcon> = {
 
 export const tabIcon = (space: SectionSpace, tab: string) => TAB_ICON[`${space}/${tab}`];
 
-/** The first tab of each role of `team-rights` (REQ-013). */
-export const FIRST_TAB: Record<TeamRole, TabPath> = {
-	po: "/work/backlog",
-	pm: "/work/board",
-	architect: "/design/decisions",
-	techlead: "/factory/runs",
-	ba: "/specs/changes",
-	developer: "/factory/runs",
-	qa: "/specs/test-plans",
-	designer: "/design/screens",
-	viewer: "/home/today",
-};
-
-/** The path a person opens first: the first tab of the role, Home / Today without a role. */
-export const firstPath = (role: TeamRole | null): TabPath =>
-	role ? FIRST_TAB[role] : "/home/today";
-
-const spaceOf = (path: string) => path.split("/")[1] as SpaceId;
-
 /** The level of the person in an area (`useRights().level`). */
 export type LevelOf = (area: Area) => Level;
-const open: LevelOf = () => "write";
 
 /** The area of each space (`team-rights`). Home has none: it always shows. */
 const SPACE_AREA: Partial<Record<SpaceId, Area>> = {
@@ -192,26 +164,6 @@ export const hiddenTab = (level: LevelOf, space: SpaceId, tab: string) => {
 	return !!area && level(area) === "none" && !(space === "settings" && tab === "me");
 };
 
-/** The tabs of a space that the person sees, the first tab of the role first. */
-export const visibleTabs = <S extends SpaceId>(space: S, role: TeamRole | null, level = open) =>
-	[...SPACES[space]]
-		.filter((tab) => !hiddenTab(level, space, tab))
-		.sort(
-			(a, b) =>
-				Number(firstPath(role) === `/${space}/${b}`) - Number(firstPath(role) === `/${space}/${a}`),
-		) as (typeof SPACES)[S][number][];
-
 /** Manual keeps its address, palette entry and menu entry, but no tab (REQ-014). Terminal is a section of Code (`spec:app-redesign#REQ-022`). */
 const OFF_BAR = new Set(["knowledge/manual"]);
 export const isOffBar = (space: SectionSpace, tab: string) => OFF_BAR.has(`${space}/${tab}`);
-
-/** The tabs that the tab bar draws. */
-export const barTabs = (space: SpaceId, role: TeamRole | null, level = open) =>
-	visibleTabs(space, role, level).filter((tab) => !isOffBar(space, tab));
-
-/** Home first, the space of the first tab next, the rest in default order, Settings last. A space with no visible tab is hidden. */
-export function orderedSpaces(role: TeamRole | null, level = open): SpaceId[] {
-	return [...new Set<SpaceId>(["home", spaceOf(firstPath(role)), ...SPACE_IDS])]
-		.filter((space) => visibleTabs(space, role, level).length > 0)
-		.sort((a, b) => Number(a === "settings") - Number(b === "settings"));
-}

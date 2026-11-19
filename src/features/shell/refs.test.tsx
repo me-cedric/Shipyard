@@ -18,7 +18,7 @@ describe("refs in the shell", () => {
 		const input = await openPalette(user);
 		await user.type(input, "Q-012");
 		expect(
-			await screen.findByRole("option", { name: /q:Q-012 Which tracker first\?/ }),
+			await screen.findByRole("option", { name: /q:Q-012 Which issue tracker first\?/ }),
 		).toBeVisible();
 		await user.clear(input);
 		await user.type(input, "polling");
@@ -31,7 +31,7 @@ describe("refs in the shell", () => {
 		const input = await openPalette(user);
 		await user.type(input, "Q-012");
 		const options = await screen.findAllByRole("option", { name: /Q-012/ });
-		expect(options[0]).toHaveTextContent("q:Q-012 Which tracker first?");
+		expect(options[0]).toHaveTextContent("q:Q-012 Which issue tracker first?");
 	});
 
 	it("opens the entity with its backlinks grouped by kind with a count", async () => {

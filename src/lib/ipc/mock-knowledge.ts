@@ -86,7 +86,7 @@ const file = (text: string): Files[string] => ({ text, stamp: "1" });
 
 // ---------------------------------------------------------------- seed
 
-const DECK = `# Kickoff\n\nShipyard, one place for the work\n\n---\n\n## Goals\n\n- One graph of refs\n- One factory\n- One handbook\n\n---\n\n## Decisions\n\n- adr:0001 Use Tauri\n- adr:0004 Polling sync\n\n---\n\n## Plan\n\n1. Specs first\n2. Waves\n\n---\n\n## Questions\n\nAsk now.\n`;
+const DECK = `# Kickoff\n\nShipyard, one place for the work\n\n---\n\n## Goals\n\n- One graph of refs\n- One crew\n- One handbook\n\n---\n\n## Decisions\n\n- adr:0001 Use Tauri\n- adr:0004 Polling sync\n\n---\n\n## Plan\n\n1. Specs first\n2. Waves\n\n---\n\n## Questions\n\nAsk now.\n`;
 
 const DASHBOARD: Dashboard_Serialize = {
 	version: VERSION,
@@ -120,7 +120,7 @@ export function seedKnowledge(): MockKnowledge {
 	return {
 		files: {
 			[`${h}/getting-started.md`]: file(
-				"# Getting started\n\nRead adr:0001 first, then the architecture overview. The first tracker is q:Q-012.\n",
+				"# Getting started\n\nRead adr:0001 first, then the architecture overview. The first issue tracker is q:Q-012.\n",
 			),
 			[`${h}/architecture/overview.md`]: file(
 				"# Architecture overview\n\nThe model is model:system. The domain stays in Rust (adr:0002) and sync polls (adr:0004).\n",

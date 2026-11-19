@@ -25,7 +25,7 @@ export function IconButton({
 				aria-label={label}
 				aria-description={props.disabled ? reason : undefined}
 				className={cn(
-					"inline-flex size-(--row-h) shrink-0 items-center justify-center rounded-md border border-transparent text-n-11 transition-colors duration-(--duration-fast) hover:bg-n-3 hover:text-n-12 disabled:pointer-events-none disabled:opacity-50",
+					"inline-flex size-(--control-h) shrink-0 items-center justify-center rounded-md border border-transparent text-n-11 transition-colors duration-(--duration-fast) hover:bg-n-3 hover:text-n-12 disabled:pointer-events-none disabled:opacity-50",
 					className,
 				)}
 				{...props}

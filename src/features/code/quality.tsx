@@ -178,7 +178,7 @@ function QualityView() {
 						<Popover.Root>
 							<Popover.Trigger
 								aria-label={format(q18.about, { name: nameOf(r) })}
-								className="inline-flex size-(--row-h) shrink-0 items-center justify-center rounded-md text-n-11 hover:bg-n-3 hover:text-n-12"
+								className="inline-flex size-(--control-h) shrink-0 items-center justify-center rounded-md text-n-11 hover:bg-n-3 hover:text-n-12"
 							>
 								<InformationCircleIcon size={16} />
 							</Popover.Trigger>

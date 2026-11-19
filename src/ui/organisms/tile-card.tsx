@@ -60,16 +60,12 @@ export function TileCard({
 				aria-hidden="true"
 				className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-linear-to-b from-accent-soft to-transparent opacity-60"
 			/>
-			<header className="relative flex items-center gap-1">
-				<h2 className="min-w-0 flex-1 truncate text-ui font-medium text-n-12">{title}</h2>
+			{/* The title keeps its own line when the 44 px buttons take the width of a narrow tile. */}
+			<header className="relative flex flex-wrap items-center gap-1">
+				<h2 className="min-w-24 flex-1 truncate text-ui font-medium text-n-12">{title}</h2>
 				{actions}
 				{off ? null : (
-					<IconButton
-						label={labels.table}
-						aria-pressed={table}
-						className="size-6"
-						onClick={() => setTable(!table)}
-					>
+					<IconButton label={labels.table} aria-pressed={table} onClick={() => setTable(!table)}>
 						<ViewColumnsIcon size={12} />
 					</IconButton>
 				)}
@@ -77,7 +73,6 @@ export function TileCard({
 					<IconButton
 						label={pinned ? labels.unpin : labels.pin}
 						aria-pressed={!!pinned}
-						className="size-6"
 						onClick={onPin}
 					>
 						{pinned ? <LockClosedIcon size={12} /> : <LockOpenIcon size={12} />}

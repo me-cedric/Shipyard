@@ -38,7 +38,7 @@ export const extrasEn = {
 		choose: "Choose a picture",
 		remove: "Remove the picture",
 	},
-	project: { name: "Name", save: "Save" },
+	project: { name: "Name" },
 	feedbackMail: "Open in mail",
 	time: { pullMonth: "Read the month" },
 	usage: {
@@ -131,7 +131,7 @@ export const extrasFr: typeof extrasEn = {
 		choose: "Choisir une image",
 		remove: "Retirer l'image",
 	},
-	project: { name: "Nom", save: "Enregistrer" },
+	project: { name: "Nom" },
 	feedbackMail: "Ouvrir dans la messagerie",
 	time: { pullMonth: "Lire le mois" },
 	usage: {

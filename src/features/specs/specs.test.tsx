@@ -202,9 +202,9 @@ describe("Specs / Constitution", () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Constitution />);
 		// The constitution opens as a page to read.
-		expect(await screen.findByRole("article", { name: "Constitution" })).toBeVisible();
+		expect(await screen.findByRole("article", { name: "Project rules" })).toBeVisible();
 		await user.click(screen.getByRole("tab", { name: "Edit" }));
-		const box = await screen.findByRole("textbox", { name: "Constitution" });
+		const box = await screen.findByRole("textbox", { name: "Project rules" });
 		await waitFor(() =>
 			expect(box).toHaveValue(files()["docs/openspec/constitution.md"]?.text ?? ""),
 		);

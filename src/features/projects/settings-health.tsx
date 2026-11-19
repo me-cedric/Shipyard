@@ -9,7 +9,6 @@ import { useShell } from "@/lib/shell";
 import { Ring } from "@/ui/atoms/ring";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import {
-	ChatBubbleIcon,
 	ClockIcon,
 	CommandLineIcon,
 	DocumentTextIcon,
@@ -26,12 +25,10 @@ import { RefChip } from "@/ui/molecules/ref-chip";
 import { SectionNav } from "@/ui/molecules/section-nav";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { SETTINGS_PAGE } from "@/ui/templates/settings";
-import { DebugConsole } from "./debug-console";
 import { DoctorBootstrap } from "./doctor-bootstrap";
 import { DoctorCompliance } from "./doctor-compliance";
 import { DoctorLedger } from "./doctor-ledger";
 import { DoctorTools } from "./doctor-tools";
-import { HealthFeedback } from "./health-feedback";
 
 const GROUPS: Group[] = ["compliance", "tools", "refs", "generated"];
 /** The findings that this computer causes: a tool that is missing or old. The others are of the project. */
@@ -114,23 +111,19 @@ const SEVERITIES: Severity[] = ["error", "warning", "info"];
 const TONE = { error: "danger", warning: "warning", info: "info" } as const;
 
 /**
- * Settings / Health: a score ring (the groups with no finding), the count of each severity, then
+ * Health: a score ring (the groups with no finding), the count of each severity, then
  * four groups with a count each, and one fix action for each finding. A scope of Setup shows its
  * part (`spec:app-redesign#REQ-024`): the findings and the files of the project under This project,
  * the tools under This computer.
  */
-export function Health({ scope }: { scope?: "project" | "computer" }) {
+export function Health({ scope }: { scope: "project" | "computer" }) {
 	const { t } = useI18n();
 	const s = t.settings.health;
 	const health = useHealth();
 	const all = health.data;
-	const groups = scope ? GROUPS.filter((g) => ofComputer(g) === (scope === "computer")) : GROUPS;
+	const groups = GROUPS.filter((g) => ofComputer(g) === (scope === "computer"));
 	const title =
-		scope === "project"
-			? t.settings.pages.projectHealth
-			: scope === "computer"
-				? t.settings.pages.computerHealth
-				: t.tabs.settings.health;
+		scope === "project" ? t.settings.pages.projectHealth : t.settings.pages.computerHealth;
 	if (all === undefined) return <Loading title={title} icon={<ShieldCheckIcon size={16} />} />;
 	const findings = all.filter((f) => groups.includes(f.group));
 	// The status bar counts each finding: a scope links to the ones of the other scope.
@@ -159,21 +152,6 @@ export function Health({ scope }: { scope?: "project" | "computer" }) {
 					{ id: "doctor-ledger", label: t.settings.ledger.title, icon: <ClockIcon size={14} /> },
 				]
 			: []),
-		// Under a scope the logs and the feedback have their own page.
-		...(scope
-			? []
-			: [
-					{
-						id: "doctor-console",
-						label: t.doctor.console.title,
-						icon: <CommandLineIcon size={14} />,
-					},
-					{
-						id: "doctor-feedback",
-						label: t.doctor.feedback.title,
-						icon: <ChatBubbleIcon size={14} />,
-					},
-				]),
 	];
 	const clean = groups.filter((g) => !findings.some((f) => f.group === g)).length;
 	return (
@@ -248,12 +226,6 @@ export function Health({ scope }: { scope?: "project" | "computer" }) {
 						<DoctorLedger findings={all} />
 					</>
 				) : null}
-				{scope ? null : (
-					<>
-						<DebugConsole />
-						<HealthFeedback />
-					</>
-				)}
 			</div>
 		</div>
 	);

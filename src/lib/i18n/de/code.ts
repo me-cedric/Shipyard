@@ -4,7 +4,6 @@ export const forgeDe: typeof forgeEn = {
 	resize: {
 		changes: "Breite der Änderungsliste",
 		history: "Breite des Verlaufs",
-		pulls: "Breite der Pull Requests",
 		impacts: "Breite der Auswirkungen",
 	},
 	state: { open: "Offen", merged: "Zusammengeführt", closed: "Geschlossen" },
@@ -29,7 +28,6 @@ export const forgeDe: typeof forgeEn = {
 	commits: "Commits",
 	checks: "Prüfungen",
 	threads: "Unterhaltung",
-	verdicts: "Urteile",
 	links: "Links",
 	comment: "Kommentieren",
 	merge: "Zusammenführen",
@@ -83,8 +81,6 @@ export const forgeDe: typeof forgeEn = {
 		code: "Code {code}",
 		copy: "Kopieren",
 		copied: "Kopiert",
-		waiting: "Wartet auf den Browser",
-		openPage: "Seite öffnen",
 		denied: "Die Anmeldung wurde abgelehnt.",
 		expired: "Der Code ist abgelaufen. Beginnen Sie neu.",
 	},
@@ -234,7 +230,6 @@ export const forgeDe: typeof forgeEn = {
 		label: "Datei {path}",
 		line: "Zeile {n}",
 		binary: "Binärdatei, {size} Bytes",
-		view: "Ansicht",
 		blame: "Blame",
 	},
 	pullFiles: {

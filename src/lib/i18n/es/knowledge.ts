@@ -20,9 +20,9 @@ export const knowledgeEs: typeof knowledgeEn = {
 	},
 	explain: "Explicar",
 	explainRef: "Explicar {ref}",
-	openInGraph: "Abrir en el grafo",
+	openInGraph: "Abrir en el mapa",
 	graph: {
-		title: "Grafo",
+		title: "Mapa",
 		source: "Origen",
 		refs: "Conocimiento",
 		code: "Código",

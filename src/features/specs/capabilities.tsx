@@ -190,7 +190,7 @@ function CapabilityList() {
 						icon={<BookOpenIcon size={28} />}
 						action={{
 							label: t.tabs.specs.changes,
-							onClick: () => void navigate({ to: "/specs/changes" }),
+							onClick: () => void navigate({ to: "/flow/list" }),
 						}}
 					/>
 				</div>

@@ -36,9 +36,7 @@ import {
 } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
-import { SectionNav } from "@/ui/molecules/section-nav";
 import { SETTINGS_PAGE, Settings } from "@/ui/templates/settings";
 import { PersonasEditor } from "./personas";
 import { ProjectDetails } from "./project-details";
@@ -46,7 +44,6 @@ import { ProjectImport } from "./project-import";
 import { ProjectOverrides } from "./project-overrides";
 import { RepoTools } from "./repo-tools";
 import { ScopePicker } from "./scope-picker";
-import { TicketsConfigEditor } from "./tickets-config";
 
 const NONE = "none";
 const ACCENTS: Accent[] = ["blue", "violet", "green", "orange", "rose"];
@@ -77,11 +74,9 @@ const draftOf = (f: ProjectFile_Deserialize | null): Draft => ({
 function Form({
 	file,
 	overrides,
-	scope,
 }: {
 	file: ProjectFile_Deserialize | null;
 	overrides: Overrides_Serialize;
-	scope?: boolean;
 }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
@@ -361,8 +356,7 @@ function Form({
 				<>
 					<ProjectDetails>{own}</ProjectDetails>
 					<RepoTools />
-					{/* Under This project the tickets have their own page. */}
-					{scope ? null : <TicketsConfigEditor />}
+					{/* The tickets have their own page under This project. */}
 					<PersonasEditor />
 				</>
 			) : null}
@@ -417,10 +411,10 @@ export function sectionItems(t: ReturnType<typeof useI18n>["t"], hasFile: boolea
 }
 
 /**
- * Settings / Project: paths and workflow go to `.shipyard/project.yaml`, overrides to the registry.
- * `scope`: the page is a part of Setup / This project, with no header of its own.
+ * The project page of Setup / This project: paths and recipe go to `.shipyard/project.yaml`,
+ * overrides to the registry. The scope draws the header and the section list.
  */
-export function ProjectSettings({ scope }: { scope?: boolean }) {
+export function ProjectSettings() {
 	const { t } = useI18n();
 	const { openFolder } = useProjectActions();
 	const settings = useQuery({
@@ -428,25 +422,13 @@ export function ProjectSettings({ scope }: { scope?: boolean }) {
 		queryFn: () => unwrap(commands.projectSettings()),
 	});
 	const data = settings.data;
-	const header = scope ? null : (
-		<PageHeader icon={<Cog6ToothIcon size={16} />} title={t.tabs.settings.project} />
-	);
-	if (data === undefined) return header;
+	if (data === undefined) return null;
 	return (
 		// A block as tall as its content, so the section list stays in view while the page scrolls.
 		<div className="flex flex-col">
-			{header}
-			{data && !scope ? (
-				<SectionNav label={t.ui.sections} items={sectionItems(t, !!data.file)} />
-			) : null}
 			{data ? (
 				// A saved file resets the draft.
-				<Form
-					key={JSON.stringify(data.file)}
-					file={data.file}
-					overrides={data.overrides}
-					scope={scope}
-				/>
+				<Form key={JSON.stringify(data.file)} file={data.file} overrides={data.overrides} />
 			) : (
 				<div className="p-4">
 					<EmptyState

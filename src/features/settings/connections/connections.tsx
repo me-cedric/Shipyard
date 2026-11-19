@@ -54,7 +54,6 @@ import { ADD_TYPES, type AddType, ConnectionForm, GROUPS } from "./connection-fo
 import { GitlabTools } from "./gitlab-tools";
 import { connectionKeys, message, useMcpServers, useProviders } from "./keys";
 import { McpAddForm, McpGroup } from "./mcp-group";
-import { McpOutsideGroup } from "./mcp-outside-group";
 import { ProviderForm, ProvidersGroup } from "./providers-group";
 import { Repair } from "./repair";
 import { RunnersGroup } from "./runners-group";
@@ -388,12 +387,12 @@ const OTHER_TYPES = ADD_TYPES.filter((v) => v !== "tracker" && v !== "forge");
  * part (`spec:app-redesign#REQ-024`): the issue trackers and the code hosts under This project, the
  * AI tools, the providers, the MCP servers and the certificates under This computer.
  */
-export function Connections({ scope }: { scope?: "project" | "computer" }) {
+export function Connections({ scope }: { scope: "project" | "computer" }) {
 	const { t } = useI18n();
 	const router = useRouter();
 	const ofProject = scope !== "computer";
 	const ofComputer = scope !== "project";
-	const types = scope === "project" ? GROUPS : scope === "computer" ? OTHER_TYPES : ADD_TYPES;
+	const types = scope === "project" ? GROUPS : OTHER_TYPES;
 	const list = useQuery({
 		queryKey: connectionKeys.list,
 		queryFn: () => unwrap(commands.connectionsList()),
@@ -472,7 +471,7 @@ export function Connections({ scope }: { scope?: "project" | "computer" }) {
 	const addButton = empty ? undefined : (
 		<Button
 			variant={formOpen ? "secondary" : "primary"}
-			className={scope ? "min-h-control" : undefined}
+			className="min-h-control"
 			disabled={adding}
 			onClick={add.onClick}
 		>
@@ -562,8 +561,7 @@ export function Connections({ scope }: { scope?: "project" | "computer" }) {
 							</summary>
 							<div className="flex flex-col gap-5 pt-3">
 								<McpGroup formOpen={formOpen} onForm={setEditing} />
-								{/* Under This computer the outside agents have their own page, Share. */}
-								{scope ? null : <McpOutsideGroup />}
+								{/* The outside agents have their own page, Share. */}
 								<CertsGroup />
 							</div>
 						</details>

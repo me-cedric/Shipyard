@@ -62,18 +62,6 @@ export const specsKeys = {
 /** The repository path of an artifact of a change. */
 export const artifactPath = (c: Change, a: Artifact) => `${c.path}/${a.path}`;
 
-/**
- * One status for the artifacts of one kind. No file is missing; any draft makes a draft; then any
- * file with no check of its text is not checked; all done is done.
- */
-export function kindStatus(c: Change, kind: ArtifactKind): ArtifactStatus {
-	const of = c.artifacts.filter((a) => a.artifact === kind);
-	if (of.every((a) => a.status === "missing")) return "missing";
-	if (of.every((a) => a.status === "done")) return "done";
-	if (of.some((a) => a.status === "draft" || a.status === "missing")) return "draft";
-	return "unchecked";
-}
-
 /** The slug of a plan file, as the `test:` ref has it. */
 export const planRef = (path: string) =>
 	`test:${(path.split("/").pop() ?? "")
@@ -195,14 +183,6 @@ export function useSpecView(path: string | null) {
 	});
 }
 
-/** The requirements of a capability that no scenario cites. */
-export function useCoverage(cap: string) {
-	return useQuery({
-		queryKey: specsKeys.coverage(cap),
-		queryFn: () => unwrap(commands.specsCoverage(cap)),
-	});
-}
-
 export function useSplitDraft(change: string) {
 	return useQuery({
 		queryKey: specsKeys.draft(change),
@@ -220,26 +200,6 @@ export function useSplitPreview(change: string, enabled: boolean) {
 		retry: false,
 		gcTime: 0,
 	});
-}
-
-/** The number of open markers of each change, by change id (REQ-007). */
-export function useMarkerCounts(changes: Change[]) {
-	const specs = changes.flatMap((c) =>
-		c.artifacts
-			.filter((a) => a.artifact === "spec" && a.status !== "missing")
-			.map((a) => ({ id: c.id, path: artifactPath(c, a) })),
-	);
-	const results = useQueries({
-		queries: specs.map((s) => ({
-			queryKey: specsKeys.spec(s.path),
-			queryFn: () => unwrap(commands.specsSpec(s.path)),
-		})),
-	});
-	const out: Record<string, number> = {};
-	specs.forEach((s, i) => {
-		out[s.id] = (out[s.id] ?? 0) + (results[i]?.data?.markers.length ?? 0);
-	});
-	return out;
 }
 
 /** The specs that hold a marker of the question: where a fold would write (REQ-015). */

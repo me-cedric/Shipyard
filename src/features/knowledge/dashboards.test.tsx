@@ -37,6 +37,20 @@ describe("Knowledge / Dashboards", () => {
 		expect(quality).toHaveTextContent("Source off: quality");
 	});
 
+	it("names the issue tracker on a tile whose issue tracker is not linked", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await unwrap(
+			commands.dashboardSaveOne(
+				"team",
+				{ title: "Team", tiles: [{ id: "a", kind: "tracker-assignee", x: 0, y: 0, w: 4, h: 3 }] },
+				null,
+			),
+		);
+		mountApp("/knowledge/dashboards");
+		const items = await screen.findByRole("region", { name: "Items by assignee" });
+		await waitFor(() => expect(items).toHaveTextContent("Source off: issue tracker"));
+	});
+
 	it("saves a moved tile to the file", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("dashboards");

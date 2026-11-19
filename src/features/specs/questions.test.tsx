@@ -36,7 +36,7 @@ describe("Specs / Questions", () => {
 		await pick(user, "Kind", "All kinds");
 		await pick(user, "Owner", "All owners");
 		await pick(user, "Status", "All statuses");
-		await user.type(screen.getByRole("textbox", { name: "Search" }), "forge");
+		await user.type(screen.getByRole("textbox", { name: "Search" }), "code host");
 		await waitFor(async () => expect(await rows()).toHaveLength(1));
 	});
 
@@ -131,7 +131,7 @@ describe("Specs / Questions", () => {
 		const dialog = within(await screen.findByRole("dialog"));
 		await waitFor(() =>
 			expect(dialog.getByLabelText("Text")).toHaveValue(
-				"\nClaim stamps need a tracker comment write\n",
+				"\nClaim stamps need an issue tracker comment write\n",
 			),
 		);
 		await fill(user, "Title", "Use labels");

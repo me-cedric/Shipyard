@@ -76,7 +76,7 @@ function MoveHandle({
 			label={label}
 			shortcut="Alt+↑ ↓"
 			disabled={disabled}
-			className="size-6 cursor-grab touch-none"
+			className="cursor-grab touch-none"
 			onPointerDown={down}
 			onPointerUp={up}
 			onPointerCancel={() => {

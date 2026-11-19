@@ -8,7 +8,7 @@ import { runHref } from "@/lib/shell";
 import { Leave } from "@/ui/atoms/leave";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 
-const heading = "flex min-h-row items-center border-b px-3 text-12 font-medium text-n-11";
+const heading = "flex min-h-control items-center border-b px-3 text-12 font-medium text-n-11";
 
 /** The Runs part: each live run with its stop, as on Today. */
 export function RunsPart({ live }: { live: { id: string; key: string; title: string }[] }) {

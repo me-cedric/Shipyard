@@ -109,7 +109,7 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 		await mountView(<Reports />);
 		expect(within(await card("Schedule")).getByRole("link", { name: "Open Plan" })).toHaveAttribute(
 			"href",
-			"/plan/plan",
+			"/plan/timeline",
 		);
 		expect(
 			within(await card("Sheet workbook")).getByRole("link", { name: "Open Estimates" }),

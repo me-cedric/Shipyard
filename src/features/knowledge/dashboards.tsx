@@ -402,7 +402,6 @@ function DashboardView({ slug }: { slug: string }) {
 											<RightIconButton
 												right="knowledge.edit"
 												label={k.left}
-												className="size-6"
 												onClick={() => void move(x.id, -1)}
 											>
 												<ChevronLeftIcon size={12} />
@@ -410,14 +409,12 @@ function DashboardView({ slug }: { slug: string }) {
 											<RightIconButton
 												right="knowledge.edit"
 												label={k.right}
-												className="size-6"
 												onClick={() => void move(x.id, 1)}
 											>
 												<ChevronRightIcon size={12} />
 											</RightIconButton>
 											<IconButton
 												label={`${k.settings} ${name}`}
-												className="size-6"
 												onClick={() =>
 													openDetail(
 														k.settings,
@@ -430,7 +427,6 @@ function DashboardView({ slug }: { slug: string }) {
 											<RightIconButton
 												right="knowledge.edit"
 												label={`${k.remove} ${name}`}
-												className="size-6"
 												onClick={() => void write(dash.tiles.filter((o) => o.id !== x.id))}
 											>
 												<XMarkIcon size={12} />

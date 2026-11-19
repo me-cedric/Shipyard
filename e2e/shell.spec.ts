@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { openFirstFolder } from "./first-run";
+import { visit } from "./places";
 
 test("first run shows one primary action and no tour or help text", async ({ page }) => {
 	await page.goto("/");
@@ -76,4 +77,21 @@ test("shows the shortcuts overlay and rebinds an action", async ({ page }) => {
 	const inspector = page.getByLabel("Inspector", { exact: true });
 	await page.keyboard.press("ControlOrMeta+Shift+u");
 	await expect(inspector).toHaveAttribute("data-open", "true");
+});
+
+// spec:app-redesign#REQ-006, scenario "A viewer": the first page. The mock project has no admin, so this
+// person has each right and sees Code; `routes.test.tsx` covers the menu at the level Hidden.
+test("a viewer opens on Today", async ({ page }) => {
+	await page.goto("/");
+	await page.getByRole("radiogroup").getByText("Viewer", { exact: true }).click();
+	await openFirstFolder(page);
+	await expect(page).toHaveURL(/\/today\/today$/);
+	const sidebar = page.getByRole("navigation", { name: "Sidebar" });
+	await expect(sidebar.getByRole("link", { name: /^Today/ })).toHaveAttribute(
+		"aria-current",
+		"page",
+	);
+	// The home address and an old address of the role page open Today too.
+	await visit(page, "/");
+	await expect(page).toHaveURL(/\/today\/today$/);
 });

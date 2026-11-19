@@ -32,7 +32,7 @@ export const designDe: typeof designEn = {
 	convertExists: "{name} ist schon vorhanden",
 	formats: { excalidraw: "Excalidraw", mermaid: "Mermaid", drawio: "draw.io", bpmn: "BPMN" },
 	unreadable: "Nicht lesbar",
-	diagram: { text: "Diagrammtext", picture: "Diagramm", invalid: "Kein draw.io-Board" },
+	diagram: { text: "Diagrammtext", invalid: "Kein draw.io-Board" },
 	architecture: { text: "Modelltext", render: "Modell" },
 	decisions: {
 		status: {

@@ -32,7 +32,7 @@ export const designEn = {
 	convertExists: "{name} exists already",
 	formats: { excalidraw: "Excalidraw", mermaid: "Mermaid", drawio: "draw.io", bpmn: "BPMN" },
 	unreadable: "Not readable",
-	diagram: { text: "Diagram text", picture: "Diagram", invalid: "Not a draw.io board" },
+	diagram: { text: "Diagram text", invalid: "Not a draw.io board" },
 	architecture: { text: "Model text", render: "Model" },
 	decisions: {
 		status: {
@@ -148,7 +148,7 @@ export const designFr: typeof designEn = {
 	convertExists: "{name} existe déjà",
 	formats: { excalidraw: "Excalidraw", mermaid: "Mermaid", drawio: "draw.io", bpmn: "BPMN" },
 	unreadable: "Illisible",
-	diagram: { text: "Texte du diagramme", picture: "Diagramme", invalid: "Pas un tableau draw.io" },
+	diagram: { text: "Texte du diagramme", invalid: "Pas un tableau draw.io" },
 	architecture: { text: "Texte du modèle", render: "Modèle" },
 	decisions: {
 		status: {

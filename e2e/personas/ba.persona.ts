@@ -6,10 +6,15 @@ test("business analyst", async ({ page }) => {
 	const w = new Walk(page, { key: "ba", label: "Business analyst" });
 	await w.start();
 
-	await w.step("Land on the proposals", "the page that opens first: Flow, List", async () => {
-		await w.landsOn("Flow", "List");
-		await w.see(page.getByRole("button", { name: /add-export/ }), "no change in the list");
-	});
+	await w.step(
+		"Land on the specs, open the proposals",
+		"the page that opens first: Library, Specs, then Flow, List",
+		async () => {
+			await w.landsOn("Library", "Specs");
+			await w.go("Flow", "List");
+			await w.see(page.getByRole("button", { name: /add-export/ }), "no change in the list");
+		},
+	);
 
 	await w.step("Open a change", "the change row, then the Brief section", async () => {
 		await w.click(page.getByRole("button", { name: /add-export/ }));
@@ -64,7 +69,7 @@ test("business analyst", async ({ page }) => {
 	});
 
 	await w.step("Read a capability", "Capabilities, auth, the requirements", async () => {
-		await w.go("Library", "Capabilities");
+		await w.go("Library", "Specs");
 		await w.click(page.getByRole("button", { name: /^auth/ }));
 		await w.see(page.getByText("REQ-001"), "no requirement list");
 		await w.see(page.getByText("Backlinks"), "no link from a requirement to its tests and items");

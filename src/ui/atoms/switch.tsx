@@ -14,7 +14,7 @@ export function Switch({ label, iconOnly, reason, className, disabled, ...props 
 	return (
 		<label
 			title={disabled ? reason : undefined}
-			className="inline-flex h-row items-center gap-2 text-ui"
+			className="inline-flex min-h-control items-center gap-2 text-ui"
 		>
 			<BaseSwitch.Root
 				aria-label={label}

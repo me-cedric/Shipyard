@@ -2,9 +2,13 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { mockState } from "@/lib/ipc/mock";
 import { de } from "./de";
 import { en } from "./en";
+import { actionLabels, errorMessages } from "./errors";
 import { es } from "./es";
 import { fr } from "./fr";
-import { format, I18nProvider, useI18n } from "./i18n";
+import { format, I18nProvider, LANGS, type Lang, useI18n } from "./i18n";
+import { flatten } from "./packs";
+
+const catalogues = { en, fr, de, es };
 
 function Probe() {
 	const { t, lang, setLang } = useI18n();
@@ -72,4 +76,52 @@ describe.each([
 		const slots = (v: unknown) => (typeof v === "string" ? (v.match(/\{\w+\}/g) ?? []).sort() : []);
 		for (const [k, v] of enLeaves) expect(slots(other.get(k)), k).toEqual(slots(v));
 	});
+});
+
+// `spec:app-redesign#REQ-027`: the language check. It reads the texts, not the keys.
+const texts = (lang: Lang) =>
+	Object.entries({
+		...flatten(catalogues[lang]),
+		...flatten(errorMessages[lang], "error"),
+		...flatten(actionLabels[lang], "action"),
+	});
+const hits = (lang: Lang, word: RegExp) =>
+	texts(lang)
+		.filter(([, v]) => word.test(v))
+		.map(([k, v]) => `${k}: ${v}`);
+
+describe.each(LANGS)("plain words (REQ-027): %s", (lang) => {
+	it("has each key of English", () => {
+		expect(
+			texts(lang)
+				.map(([k]) => k)
+				.sort(),
+		).toEqual(
+			texts("en")
+				.map(([k]) => k)
+				.sort(),
+		);
+	});
+
+	it('says "issue tracker" and "code host", never "tracker" or "forge" alone', () => {
+		expect(hits(lang, /(?<!issue[ -])\btrackers?\b/i)).toEqual([]);
+		expect(hits(lang, /\bforges?\b/i)).toEqual([]);
+	});
+
+	it('says "recipe" and "crew", never "workflow" or "Factory"', () => {
+		expect(hits(lang, /workflow|factory/i)).toEqual([]);
+	});
+});
+
+// The names of `q:Q-169` (English) and of the default of `q:Q-172` (French, German, Spanish).
+it.each([
+	["en", "Today Flow Plan Crew Library Code Setup", "Recipes"],
+	["fr", "Aujourd'hui Flux Plan Équipe Bibliothèque Code Configuration", "Recettes"],
+	["de", "Heute Ablauf Plan Team Bibliothek Code Einrichtung", "Rezepte"],
+	["es", "Hoy Flujo Plan Equipo Biblioteca Código Configuración", "Recetas"],
+] as const)("names the places and the recipes (REQ-027): %s", (lang, places, recipes) => {
+	const t = catalogues[lang];
+	expect(Object.values(t.ui.place).join(" ")).toBe(places);
+	expect(t.crewPlace.views.crew).toBe(t.ui.place.crew);
+	expect(t.crewPlace.views.recipes).toBe(recipes);
 });

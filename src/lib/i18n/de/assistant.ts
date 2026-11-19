@@ -21,7 +21,6 @@ export const assistantDe: typeof assistantEn = {
 	you: "Sie",
 	assistant: "Assistent",
 	mode: { label: "Modus", ask: "Fragen", plan: "Plan", agent: "Agent" },
-	runner: "KI-Tool",
 	model: "Modell",
 	effort: "Aufwand",
 	default: "Standard",
@@ -49,9 +48,8 @@ export const assistantDe: typeof assistantEn = {
 	diffBinary: "Binärdatei",
 	diffTruncated: "Gekürzt",
 	factory: {
-		send: "An die Fabrik senden",
-		title: "Arbeitselement",
-		workflow: "Workflow",
+		send: "An Ablauf senden",
+		workflow: "Rezept",
 		none: "Arbeitselement",
 		create: "Senden",
 		sent: "{key} gesendet",
@@ -68,10 +66,10 @@ export const assistantDe: typeof assistantEn = {
 		label: "Auswahl",
 		explain: "Erklären",
 		fix: "Beheben",
-		factory: "An die Fabrik senden",
+		factory: "An Ablauf senden",
 		promptExplain: "Erkläre das:",
 		promptFix: "Behebe das:",
-		promptFactory: "Schreibe aus diesem Text ein Arbeitselement für die Fabrik:",
+		promptFactory: "Schreibe aus diesem Text ein Arbeitselement:",
 	},
 	noCli: {
 		title: "Kein KI-Tool gefunden",
@@ -103,6 +101,5 @@ export const assistantDe: typeof assistantEn = {
 	codexTrust: {
 		body: 'Codex vertraut diesem Ordner nicht. Shipyard fügt ihn mit trust_level = "trusted" zur Konfigurationsdatei von Codex hinzu. Codex läuft dann hier, ohne erneut zu fragen.',
 		button: "Diesem Ordner vertrauen",
-		done: "Ordner für Codex vertraut",
 	},
 };

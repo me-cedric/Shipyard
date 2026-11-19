@@ -359,7 +359,7 @@ function FlowPage({ view }: { view: "flow" | "list" | "done" }) {
 					) : null
 				) : null}
 				{view === "flow" ? (
-					<div className="min-h-0 flex-1 overflow-x-auto">
+					<div className="relative min-h-0 flex-1 overflow-x-auto">
 						<div className="grid h-full min-h-0 min-w-[80rem] grid-cols-5 grid-rows-[minmax(0,1fr)] gap-3 min-[1100px]:min-w-0">
 							{STAGES.map((stage) => {
 								const cards = shown.filter((f) => f.stage === stage);

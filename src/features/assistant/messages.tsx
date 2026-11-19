@@ -83,7 +83,7 @@ function Code({ lang, file, text }: { lang: string; file: string; text: string }
 			<figcaption className="flex items-center gap-2 border-b bg-n-2 px-2 text-12 text-n-11">
 				<span className="min-w-0 flex-1 truncate font-mono">{file}</span>
 				<span>{lang}</span>
-				<IconButton label={t.assistant.copyCode} className="size-6" onClick={() => copyText(text)}>
+				<IconButton label={t.assistant.copyCode} onClick={() => copyText(text)}>
 					<ClipboardIcon size={12} />
 				</IconButton>
 			</figcaption>

@@ -81,9 +81,6 @@ export const useSlideTheme = () =>
 	useProjectQuery(key("theme"), () => unwrap(commands.slideThemeGet()));
 export const useDashboards = () =>
 	useProjectQuery(key("dashboards"), () => unwrap(commands.dashboardListGet()));
-export const useExplainContext = (entity: string) =>
-	useProjectQuery(key("explain", entity), () => unwrap(commands.explainContextGet(entity)));
-
 /** The Index action of the code graph. The app starts a server that is off for this run only. */
 export function useIndexCode() {
 	const qc = useQueryClient();

@@ -292,7 +292,7 @@ describe("assistant panel: Explain and Send to factory", () => {
 		await mountAssistant();
 		await say(user, "Refuse this one");
 		await log().findByText("Here is the answer.");
-		await user.click(screen.getByRole("button", { name: "Send to factory" }));
+		await user.click(screen.getByRole("button", { name: "Send to Flow" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		await dialog.findByText(/^doc:assistant\//);
 		await user.click(dialog.getByRole("button", { name: "Send" }));
@@ -317,10 +317,10 @@ describe("assistant panel: Explain and Send to factory", () => {
 	it("needs the Send button of the dialog to create the work item", async () => {
 		const user = userEvent.setup();
 		await mountAssistant();
-		expect(screen.getByRole("button", { name: "Send to factory" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Send to Flow" })).toBeDisabled();
 		await say(user, "Plan the export");
 		await log().findByText("Here is the answer.");
-		await user.click(screen.getByRole("button", { name: "Send to factory" }));
+		await user.click(screen.getByRole("button", { name: "Send to Flow" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		expect(await dialog.findByText(/^doc:assistant\//)).toBeInTheDocument();
 		await user.click(dialog.getByRole("button", { name: "Close" }));
@@ -332,10 +332,10 @@ describe("assistant panel: Explain and Send to factory", () => {
 		await mountAssistant();
 		await say(user, "Plan the export");
 		await log().findByText("Here is the answer.");
-		await user.click(screen.getByRole("button", { name: "Send to factory" }));
+		await user.click(screen.getByRole("button", { name: "Send to Flow" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		await dialog.findByText(/^doc:assistant\//);
-		await user.click(dialog.getByRole("combobox", { name: "Workflow" }));
+		await user.click(dialog.getByRole("combobox", { name: "Recipe" }));
 		await user.click(await screen.findByRole("option", { name: "feature" }));
 		await user.click(dialog.getByRole("button", { name: "Send" }));
 		expect(await dialog.findByRole("status")).toHaveTextContent("Sent SHIP-101 · wf:feature");

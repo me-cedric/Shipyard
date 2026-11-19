@@ -28,9 +28,6 @@ export const uiEn = {
 		setup: "Setup",
 	},
 	back: "Back",
-	ahead: "Ahead",
-	behind: "Behind",
-	changes: "Changes",
 	myItems: "My items",
 	spendToday: "Spend today",
 	tray: {
@@ -125,9 +122,6 @@ export const uiFr: typeof uiEn = {
 		setup: "Configuration",
 	},
 	back: "Retour",
-	ahead: "En avance",
-	behind: "En retard",
-	changes: "Modifications",
 	myItems: "Mes éléments",
 	spendToday: "Dépense du jour",
 	tray: {

@@ -403,10 +403,16 @@ export function seedSpecs(): MockSpecs {
 			["spec:billing#REQ-002", "A receipt is sent"],
 		]),
 		...Object.fromEntries([
-			question("Q-012", "question", "answered", "ada", "Which tracker first?"),
-			question("Q-020", "risk", "open", "grace", "Claim stamps need a tracker comment write"),
-			question("Q-021", "assumption", "answered", "alan", "One tracker for each project"),
-			question("Q-030", "dependency", "open", "ada", "The forge adapter ships first"),
+			question("Q-012", "question", "answered", "ada", "Which issue tracker first?"),
+			question(
+				"Q-020",
+				"risk",
+				"open",
+				"grace",
+				"Claim stamps need an issue tracker comment write",
+			),
+			question("Q-021", "assumption", "answered", "alan", "One issue tracker for each project"),
+			question("Q-030", "dependency", "open", "ada", "The code host adapter ships first"),
 			question("Q-033", "decision", "answered", "margaret", "The row ref is a ticket label"),
 			question("Q-034", "issue", "withdrawn", "edsger", "A duplicate of Q-020"),
 			question(

@@ -1,50 +1,58 @@
 import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { en } from "@/lib/i18n/en";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { TEAM_ROLES } from "@/lib/prefs";
 import { mountApp } from "@/test/mount";
-import { barSections, PLACE_IDS } from "./places";
 import {
-	barTabs,
-	FIRST_TAB,
+	barSections,
+	FIRST_PAGE,
 	firstPath,
-	orderedSpaces,
-	SPACE_IDS,
-	SPACES,
-	type SpaceId,
-	tabIcon,
-	tabLabel,
-} from "./spaces";
+	PLACE_IDS,
+	sections,
+	sectionView,
+	visiblePlaces,
+	visibleSections,
+} from "./places";
+import { SPACE_IDS, SPACES, tabIcon, tabLabel } from "./spaces";
 
 const sidebar = () => screen.findByRole("navigation", { name: "Sidebar" });
 
-describe("role homes (shell REQ-009, team-rights REQ-013)", () => {
-	it("gives each of the nine roles a first tab", () => {
-		expect(FIRST_TAB).toEqual({
-			po: "/work/backlog",
-			pm: "/work/board",
-			architect: "/design/decisions",
-			techlead: "/factory/runs",
-			ba: "/specs/changes",
-			developer: "/factory/runs",
-			qa: "/specs/test-plans",
-			designer: "/design/screens",
-			viewer: "/home/today",
+describe("role homes (shell REQ-009, team-rights REQ-013, app-redesign REQ-006)", () => {
+	// Picture 066 of the design source names the first page of each role.
+	it("gives each of the nine roles a first page, a section of a place", () => {
+		expect(FIRST_PAGE).toEqual({
+			po: "/flow/list",
+			pm: "/plan/timeline",
+			architect: "/library/decisions",
+			techlead: "/flow/flow",
+			ba: "/library/capabilities",
+			developer: "/flow/flow",
+			qa: "/library/test-plans",
+			designer: "/library/screens",
+			viewer: "/today/today",
 		});
-		expect(Object.keys(FIRST_TAB).sort()).toEqual([...TEAM_ROLES].sort());
+		expect(Object.keys(FIRST_PAGE).sort()).toEqual([...TEAM_ROLES].sort());
+		for (const page of Object.values(FIRST_PAGE)) {
+			const [, place, slug] = page.split("/");
+			expect(sectionView(place as (typeof PLACE_IDS)[number], slug ?? ""), page).toBeDefined();
+		}
 	});
 
 	it.each([null, ...TEAM_ROLES] as const)(
-		"keeps every space for role %s, the space of the first tab second, Settings last",
+		"keeps every place for role %s in menu order: the role picks the first page, not the order",
 		(role) => {
-			const order = orderedSpaces(role);
-			expect([...order].sort()).toEqual([...SPACE_IDS].sort());
-			expect(order[0]).toBe("home");
-			expect(order.at(-1)).toBe("settings");
-			expect(order.indexOf(firstPath(role).split("/")[1] as SpaceId)).toBeLessThanOrEqual(1);
+			expect(visiblePlaces()).toEqual(PLACE_IDS);
+			expect(firstPath(role)).toBe(role ? FIRST_PAGE[role] : "/today/today");
 		},
 	);
+
+	it("opens Today when the role does not see its first page", () => {
+		const level = (a: string) => (a === "design" ? "none" : "read");
+		expect(firstPath("architect", level)).toBe("/today/today");
+		expect(firstPath("qa", level)).toBe("/library/test-plans");
+	});
 
 	it("opens Library on Decisions for an architect and still lists the six places and Setup", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
@@ -64,7 +72,7 @@ describe("role homes (shell REQ-009, team-rights REQ-013)", () => {
 		expect(within(nav).getByRole("link", { current: "page" })).toHaveAccessibleName("Library");
 	});
 
-	it("opens a viewer on Today and lists every place", async () => {
+	it("opens a viewer on Today and lists every place that the levels of the role show", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mockState().person = {
 			member: null,
@@ -79,10 +87,145 @@ describe("role homes (shell REQ-009, team-rights REQ-013)", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/today/today"));
 	});
 
+	// spec:app-redesign#REQ-006, scenario "A viewer": the team gives the viewer the level none for code.
+	it("opens a viewer on Today and shows no Code place, no Code destination and no link to the changes", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const view = await unwrap(commands.rightsGet());
+		mockState().prefs.role = "viewer";
+		mockState().person = {
+			member: null,
+			found: "unknown",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+			access: { ...view.person.access, code: "none" },
+		};
+		const router = mountApp("/");
+		const nav = await sidebar();
+		await waitFor(() => expect(router.state.location.pathname).toBe("/today/today"));
+		await waitFor(() =>
+			expect(within(nav).queryByRole("link", { name: /^Code/ })).not.toBeInTheDocument(),
+		);
+		expect(within(nav).getAllByRole("link")).toHaveLength(6);
+		const bar = within(await screen.findByRole("contentinfo"));
+		expect(bar.queryByRole("link", { name: /lines added/ })).toBeNull();
+		await user.keyboard("{Control>}k{/Control}");
+		const panel = within(await screen.findByRole("listbox"));
+		expect(await panel.findByRole("option", { name: "Today / Today" })).toBeInTheDocument();
+		expect(panel.queryByRole("option", { name: /^Code/ })).toBeNull();
+		expect(panel.queryByRole("option", { name: "Flow / Impacts" })).toBeNull();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	// A hidden view does not open by its address, and no old address opens it either.
+	it.each([
+		["/code", "code"],
+		["/code/now", "code"],
+		["/code/history", "code"],
+		["/code/branches", "code"],
+		["/code/terminal", "code"],
+		["/code/changes", "code"],
+		["/code/pull-requests/pr-1", "code"],
+		["/flow/impacts", "code"],
+		["/code/impacts", "code"],
+		["/flow/flow", "work,runs"],
+		["/flow/runs/r1", "work,runs"],
+		["/flow/feature/f1", "work,runs"],
+		["/flow/new", "work,specs"],
+		["/flow/list", "work,specs"],
+		["/plan/timeline", "work"],
+		["/crew/sessions", "runs"],
+		["/crew/rights", "work"],
+		["/library/decisions", "design"],
+		["/library/questions", "specs"],
+		["/library/manual", "knowledge"],
+		["/design/screens", "design"],
+		["/setup/project", "settings"],
+		["/setup/computer", "settings"],
+		["/settings/connections", "settings"],
+	])("shows No access at %s with the level none for %s", async (path, areas) => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const view = await unwrap(commands.rightsGet());
+		const none = Object.fromEntries(areas.split(",").map((a) => [a, "none"]));
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "developer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+			access: { ...view.person.access, ...none },
+		};
+		const router = mountApp(path);
+		expect(await screen.findByText(en.rights.noAccess)).toBeInTheDocument();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("keeps Today, Health, the guided start and Me for a person with the level none in each area", () => {
+		const shown = PLACE_IDS.flatMap((p) =>
+			visibleSections(p, () => "none").map(([, tab]) => `${p}/${tab}`),
+		);
+		expect(shown).toEqual([
+			"today/today",
+			"today/news",
+			"today/activity",
+			"flow/health",
+			"setup/start",
+			"setup/me",
+		]);
+		expect(visiblePlaces(() => "none")).toEqual(["today", "flow", "setup"]);
+	});
+
+	it("shows no link to the sessions on Today / Activity when the role sees no Sessions", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const view = await unwrap(commands.rightsGet());
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "developer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+			access: { ...view.person.access, runs: "none" },
+		};
+		const router = mountApp("/today/activity");
+		const part = await screen.findByRole("region", { name: en.panels.sessions.title });
+		await waitFor(() =>
+			expect(within(part).queryByRole("link", { name: en.panels.sessions.all })).toBeNull(),
+		);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("turns the New feature action off the list when the role sees no List", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const view = await unwrap(commands.rightsGet());
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "developer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+			access: { ...view.person.access, work: "none", specs: "none" },
+		};
+		const router = mountApp("/today/today");
+		await sidebar();
+		await user.keyboard("{Control>}k{/Control}");
+		const panel = within(await screen.findByRole("listbox"));
+		expect(await panel.findByRole("option", { name: "Today / Today" })).toBeInTheDocument();
+		await waitFor(() =>
+			expect(panel.queryByRole("option", { name: en.flow.newAction })).toBeNull(),
+		);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
 	it("hides a place at the level none and shows No access on its route; Setup / Me stays", async () => {
 		const level = (a: string) => (a === "code" || a === "settings" ? "none" : "read");
-		expect(orderedSpaces("developer", level)).not.toContain("code");
-		expect(orderedSpaces("developer", level)).toContain("settings");
+		expect(visiblePlaces(level)).not.toContain("code");
+		expect(visiblePlaces(level)).toContain("setup");
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const view = await unwrap(commands.rightsGet());
 		mockState().person = {
@@ -115,10 +258,10 @@ describe("role homes (shell REQ-009, team-rights REQ-013)", () => {
 });
 
 describe("tab names", () => {
-	it("opens Flow on the Board for a PM, and Settings has no Team: Work / Team is the one place", async () => {
+	it("opens the old Work index on the Timeline for a PM, and Settings has no Team: Work / Team is the one place", async () => {
 		mockState().prefs.role = "pm";
 		const router = mountApp("/work");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/flow"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/plan/timeline"));
 		expect(SPACES.settings).not.toContain("team");
 	});
 
@@ -167,9 +310,9 @@ describe("twin tabs (ux-declutter REQ-014, REQ-021)", () => {
 		const code = await screen.findByRole("navigation", { name: "Tabs" });
 		expect(within(code).getAllByRole("link")).toHaveLength(4);
 		expect(within(code).getByRole("link", { name: "Terminal" })).toBeInTheDocument();
-		expect(barTabs("knowledge", null)).toHaveLength(6);
-		expect(barTabs("knowledge", null)).not.toContain("manual");
-		expect(barSections("library").map(([, tab]) => tab)).not.toContain("manual");
+		const library = barSections("library").map(([, tab]) => tab);
+		expect(library).toHaveLength(sections("library").length - 1);
+		expect(library).not.toContain("manual");
 	});
 
 	// spec:app-redesign#REQ-022: the terminal is a page of Code, not a redirect to the drawer.
@@ -194,9 +337,10 @@ describe("twin tabs (ux-declutter REQ-014, REQ-021)", () => {
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
-	it("gives each tab of the bar an icon", () => {
-		for (const s of SPACE_IDS)
-			for (const tab of barTabs(s, null)) expect(tabIcon(s, tab), `${s}/${tab}`).toBeDefined();
+	it("gives each section of a place an icon", () => {
+		for (const place of PLACE_IDS)
+			for (const [space, tab] of sections(place))
+				expect(tabIcon(space, tab), `${space}/${tab}`).toBeDefined();
 	});
 
 	// The section switch of adr:0023 draws names only: the name is the text, as on the tabs before.

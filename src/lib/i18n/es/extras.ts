@@ -39,7 +39,7 @@ export const extrasEs: typeof extrasEn = {
 		choose: "Elegir una imagen",
 		remove: "Quitar la imagen",
 	},
-	project: { name: "Nombre", save: "Guardar" },
+	project: { name: "Nombre" },
 	feedbackMail: "Abrir en el correo",
 	time: { pullMonth: "Leer el mes" },
 	usage: {

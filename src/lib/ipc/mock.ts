@@ -637,7 +637,7 @@ function seedDemo(p: ProjectEntry_Serialize) {
 	const id = "demo-tracker";
 	state.connections.push({
 		id,
-		name: "Demo tracker",
+		name: "Demo issue tracker",
 		group: "tracker",
 		kind: "linear",
 		url: "",

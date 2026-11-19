@@ -20,7 +20,7 @@ describe("Term", () => {
 		expect(within(popup).getByText(glossaryEn.terms["code-host"])).toBeInTheDocument();
 		await userEvent.tab();
 		const link = within(popup).getByRole("link", { name: "Manual" });
-		expect(link).toHaveAttribute("href", "/knowledge/manual");
+		expect(link).toHaveAttribute("href", "/library/manual");
 		expect(link).toHaveFocus();
 		await userEvent.tab({ shift: true });
 		expect(word).toHaveFocus();

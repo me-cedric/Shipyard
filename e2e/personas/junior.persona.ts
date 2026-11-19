@@ -41,7 +41,13 @@ test("junior", async ({ page }) => {
 			page.getByText("the act of a person who proves who they are"),
 			"no definition for login",
 		);
-		await w.click(page.getByRole("button", { name: /spec:auth/ }).first());
+		// The chip of the word, not the one of a step of the path.
+		await w.click(
+			page
+				.getByRole("list", { name: "Glossary" })
+				.getByRole("button", { name: /spec:auth/ })
+				.first(),
+		);
 	});
 
 	await w.step("Read the handbook", "Handbook, a page, Read", async () => {
@@ -116,7 +122,7 @@ test("junior", async ({ page }) => {
 		"See the whole project",
 		"Knowledge, Graph",
 		async () => {
-			await w.go("Library", "Graph");
+			await w.go("Library", "Map");
 			await w.see(page.getByRole("button", { name: "Table view" }), "no table view of the graph");
 		},
 		true,

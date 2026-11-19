@@ -34,7 +34,6 @@ import {
 	sectionView,
 	tabIcon,
 	tabLabel,
-	visibleTabs,
 } from "@/features/shell";
 import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
@@ -58,10 +57,7 @@ const indexRoute = createRoute({
 	component: function RoleHome() {
 		const { teamRole } = usePrefs();
 		const { level } = useRights();
-		const [, space, tab] = firstPath(teamRole).split("/") as [string, SpaceId, string];
-		// shortcut: one cast. `placePath` of a tab path is always a section path.
-		const home = hiddenTab(level, space, tab) ? "/today/today" : placePath(firstPath(teamRole));
-		return <Navigate to={home as PlacePath} replace />;
+		return <Navigate to={firstPath(teamRole, level)} replace />;
 	},
 });
 
@@ -98,12 +94,14 @@ function PlaceLayout({ place }: { place: PlaceId }) {
 			: place === "code" && part === "pull-requests"
 				? "now"
 				: part;
+	// New feature makes a ticket or a spec change: it shows with the List.
+	const gate = place === "flow" && part === "new" ? "list" : slug;
 	// Impacts left the switch of Flow: its page keeps the gate of the code area.
 	const view: [SectionSpace, string] | undefined =
 		place === "flow" && slug === "impacts"
 			? ["code", "impacts"]
-			: slug
-				? sectionView(place, slug)
+			: gate
+				? sectionView(place, gate)
 				: undefined;
 	return (
 		<div className="flex h-full flex-col">
@@ -129,7 +127,7 @@ function PlaceLayout({ place }: { place: PlaceId }) {
 	);
 }
 
-/** The place opens on its first section: the tab of the role, else the first visible one. */
+/** The place opens on its first section: the first page of the role, else the first visible one. */
 function FirstSection({ place }: { place: PlaceId }) {
 	const { teamRole } = usePrefs();
 	const { level } = useRights();
@@ -377,13 +375,15 @@ function placeRoute<P extends PlaceId>(place: P) {
 	return route.addChildren([index, ...sections, ...run, ...code, ...old, ...moved]);
 }
 
-/** A bare old space opens the place of the first tab that the role sees, so `/factory` shows Runs. */
+/** A bare old space opens the first page of the role when the space held it, else the place of its first tab that the role sees: `/factory` shows Flow. */
 function OldSpaceHome({ space }: { space: SpaceId }) {
 	const { teamRole } = usePrefs();
 	const { level } = useRights();
-	const tab = visibleTabs(space, teamRole, level)[0] ?? SPACES[space][0];
+	const tabs = SPACES[space].filter((tab) => !hiddenTab(level, space, tab));
+	const pages = (tabs.length ? tabs : SPACES[space]).map((tab) => placePath(`/${space}/${tab}`));
+	const first = firstPath(teamRole, level);
 	// shortcut: one cast. `placePath` of a tab of a space is always a section path.
-	return <Navigate to={placePath(`/${space}/${tab}`) as PlacePath} replace />;
+	return <Navigate to={(pages.includes(first) ? first : pages[0]) as PlacePath} replace />;
 }
 
 /** A space of before adr:0023 stays registered, so a stored or typed address works: it redirects to its place. */

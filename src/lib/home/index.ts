@@ -154,8 +154,6 @@ export function useInbox() {
 	};
 }
 
-export type NeedsYouKind = "question" | "approval" | "plan" | "review" | "message";
-
 /** One thing that needs the person, with the data of its row. */
 export type NeedsYouItem = {
 	/** Stable: the same thing keeps its id while it waits. */

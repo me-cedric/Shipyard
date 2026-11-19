@@ -45,7 +45,7 @@ export function Segmented<V extends string>({
 				<Toggle
 					key={i.value}
 					value={i.value}
-					className="h-6 flex-1 rounded-full px-2 text-12 text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 data-[pressed]:text-accent-fg"
+					className="min-h-control flex-1 rounded-full px-2 text-12 text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 data-[pressed]:text-accent-fg"
 				>
 					{i.label}
 				</Toggle>

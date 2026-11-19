@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { LiveDot } from "./live-dot";
 
 export const buttonVariants = cva(
-	"inline-flex h-row shrink-0 items-center justify-center gap-2 rounded-md border px-3 text-ui font-medium whitespace-nowrap transition-[color,background-color,border-color,filter,scale] duration-(--duration-fast) active:scale-[.98] disabled:pointer-events-none disabled:opacity-50",
+	"inline-flex min-h-control shrink-0 items-center justify-center gap-2 rounded-md border px-3 text-ui font-medium whitespace-nowrap transition-[color,background-color,border-color,filter,scale] duration-(--duration-fast) active:scale-[.98] disabled:pointer-events-none disabled:opacity-50",
 	{
 		variants: {
 			variant: {

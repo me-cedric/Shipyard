@@ -226,7 +226,7 @@ describe("Factory / Runs", () => {
 		expect(await within(panel).findByRole("region", { name: "Diff" })).toBeInTheDocument();
 		await user.click(sections.getByRole("button", { name: "Story" }));
 		await user.click(await within(panel).findByRole("button", { name: "Requests and sessions" }));
-		const graph = await within(panel).findByRole("region", { name: "Workflow" });
+		const graph = await within(panel).findByRole("region", { name: "Recipe" });
 		// jsdom measures no node, so xyflow keeps each one hidden.
 		const node = (id: string) => within(graph).findByTestId(`rf__node-${id}`);
 		for (const s of run.steps) expect(await node(s.id)).toBeInTheDocument();

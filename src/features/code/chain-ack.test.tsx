@@ -33,7 +33,7 @@ describe("Docs chain acknowledgement", () => {
 		mountApp("/library/home");
 		const link = await screen.findByRole("link", { name: /Test plans/ });
 		await waitFor(() => expect(link).toHaveTextContent("Out of date"));
-		expect(screen.getByRole("link", { name: /Capabilities/ })).not.toHaveTextContent("Out of date");
+		expect(screen.getByRole("link", { name: /^Specs/ })).not.toHaveTextContent("Out of date");
 	});
 
 	it("shows no badge when the link was acknowledged", async () => {

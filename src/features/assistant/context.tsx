@@ -13,7 +13,7 @@ export function ContextBar({ a, onOpenRef }: { a: Assistant; onOpenRef: (ref: st
 	const selected = a.dropped.selected ? null : a.selected;
 	const target = selected ?? refs.at(-1) ?? null;
 	const remove = (name: string, onClick: () => void) => (
-		<IconButton label={format(t.assistant.remove, { name })} className="size-5" onClick={onClick}>
+		<IconButton label={format(t.assistant.remove, { name })} onClick={onClick}>
 			<XMarkIcon size={12} />
 		</IconButton>
 	);

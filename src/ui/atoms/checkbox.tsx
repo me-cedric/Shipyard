@@ -11,7 +11,7 @@ export type CheckboxProps = Omit<ComponentProps<typeof BaseCheckbox.Root>, "aria
 
 export function Checkbox({ label, hideLabel, className, ...props }: CheckboxProps) {
 	return (
-		<label className="inline-flex h-row items-center gap-2 text-ui">
+		<label className="inline-flex min-h-control items-center gap-2 text-ui">
 			<BaseCheckbox.Root
 				aria-label={label}
 				className={cn(

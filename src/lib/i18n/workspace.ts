@@ -44,12 +44,12 @@ export const workspaceEn = {
 	},
 	conflict: {
 		agent: "Hand to agent",
-		factory: "Hand to factory",
+		factory: "Hand to an agent",
 		sent: "Work item {key} created",
 		prompt:
 			"Resolve the merge conflicts in {files}. Keep the intent of both sides. Leave no marker.",
 	},
-	notes: { title: "Delivery notes", open: "Open {title}", empty: "No note" },
+	notes: { title: "Delivery notes", open: "Open {title}" },
 	budget: {
 		label: "Budget {key}",
 		used: "{used} h of {estimate} h",
@@ -179,12 +179,12 @@ export const workspaceFr: typeof workspaceEn = {
 	},
 	conflict: {
 		agent: "Confier à un agent",
-		factory: "Confier à l'usine",
+		factory: "Confier à un agent",
 		sent: "Élément {key} créé",
 		prompt:
 			"Résous les conflits de fusion dans {files}. Garde l'intention des deux côtés. Ne laisse aucun marqueur.",
 	},
-	notes: { title: "Notes de livraison", open: "Ouvrir {title}", empty: "Aucune note" },
+	notes: { title: "Notes de livraison", open: "Ouvrir {title}" },
 	budget: {
 		label: "Budget {key}",
 		used: "{used} h sur {estimate} h",

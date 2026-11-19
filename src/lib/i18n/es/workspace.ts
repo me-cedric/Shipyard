@@ -45,12 +45,12 @@ export const workspaceEs: typeof workspaceEn = {
 	},
 	conflict: {
 		agent: "Pasar al agente",
-		factory: "Pasar a la fábrica",
+		factory: "Pasar a un agente",
 		sent: "Elemento de trabajo {key} creado",
 		prompt:
 			"Resuelve los conflictos de fusión en {files}. Conserva la intención de ambos lados. No dejes ningún marcador.",
 	},
-	notes: { title: "Notas de entrega", open: "Abrir {title}", empty: "Sin notas" },
+	notes: { title: "Notas de entrega", open: "Abrir {title}" },
 	budget: {
 		label: "Presupuesto {key}",
 		used: "{used} h de {estimate} h",

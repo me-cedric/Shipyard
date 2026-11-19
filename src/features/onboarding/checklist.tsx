@@ -82,7 +82,7 @@ const PLACE: Record<ItemId, { to: string; hash?: string }> = {
 	models: { to: MODELS, hash: "tiers" },
 	tracker: { to: "/setup/project", hash: "issue-tracker" },
 	forge: { to: "/setup/project", hash: "code-host" },
-	team: { to: "/crew/team" },
+	team: { to: "/crew/crew" },
 	// The page depends on the role: `usePermissionsPlace`.
 	permissions: { to: "", hash: "section-permissions" },
 	decision: { to: "/library/decisions" },
@@ -363,7 +363,7 @@ export function ChecklistControl({
 			{todo && id === "team" ? (
 				<>
 					<AddMe />
-					{open(s.action.openTeam, "/crew/team", undefined, "member", false)}
+					{open(s.action.openTeam, "/crew/crew", undefined, "member", false)}
 				</>
 			) : null}
 			{todo && id === "permissions"

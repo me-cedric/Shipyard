@@ -10,7 +10,6 @@ import {
 	ViewColumnsIcon,
 } from "@/ui/icons";
 import {
-	firstPath,
 	hiddenTab,
 	isOffBar,
 	type LevelOf,
@@ -116,7 +115,7 @@ export const PLACE_ICON: Record<PlaceId, ComponentType<{ size?: number }>> = {
 	setup: Cog6ToothIcon,
 };
 
-// shortcut: one cast, as `tabPath`. The callers pass a slug of the place.
+// shortcut: one cast. A template over two unions makes invalid pairs, so the callers pass a slug of the place.
 export const sectionPath = (place: PlaceId, slug: string) => `/${place}/${slug}` as PlacePath;
 
 const open: LevelOf = () => "write";
@@ -164,19 +163,40 @@ export const barSections = (place: PlaceId, level = open) =>
 export const visiblePlaces = (level = open) =>
 	PLACE_IDS.filter((p) => visibleSections(p, level).length > 0);
 
+/** The first page of each role (`spec:app-redesign#REQ-006`, picture 066 of the design source). */
+export const FIRST_PAGE: Record<TeamRole, PlacePath> = {
+	po: "/flow/list",
+	pm: "/plan/timeline",
+	architect: "/library/decisions",
+	techlead: "/flow/flow",
+	ba: "/library/capabilities",
+	developer: "/flow/flow",
+	qa: "/library/test-plans",
+	designer: "/library/screens",
+	viewer: "/today/today",
+};
+
+/** The page a person opens first: the first page of the role, or Today with no role or when the role does not see that page. */
+export function firstPath(role: TeamRole | null, level = open): PlacePath {
+	const page = role ? FIRST_PAGE[role] : "/today/today";
+	const [, place, slug] = page.split("/") as [string, PlaceId, string];
+	const view = sectionView(place, slug);
+	return view && !hiddenSection(level, ...view) ? page : "/today/today";
+}
+
 /**
- * The section that a place opens on: the first tab of the role when the place holds it, else the
+ * The section that a place opens on: the first page of the role when the place holds it, else the
  * first visible one. Library always opens on its doors (`spec:app-redesign#REQ-020`).
  */
 export function firstSection(place: PlaceId, role: TeamRole | null, level = open) {
 	const shown = visibleSections(place, level);
-	const [, home, slug] = (placePath(firstPath(role)) ?? "").split("/");
+	const [, home, slug] = firstPath(role).split("/");
 	const first =
 		home === place && place !== "library" ? shown.find((v) => v[1] === slug) : undefined;
 	return (first ?? shown[0] ?? sections(place)[0])?.[1] ?? "";
 }
 
-/** The old path `/<space>/<tab>` of a section path: the manual keeps its help by space. */
+/** The old path `/<space>/<tab>` of a section path: the item type of a page is known by its old view. */
 export function viewPath(path: string) {
 	// The pages of wave 6 that no old view names keep the help of the tab that held them.
 	const held = {

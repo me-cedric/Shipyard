@@ -90,7 +90,7 @@ describe("Knowledge / Graph", () => {
 		await user.click(await graphNode(edge.source));
 		const panel = await inspector();
 		await waitFor(() => expect(panel).toHaveTextContent(edge.source));
-		await user.click(within(panel).getByRole("button", { name: "Open in graph" }));
+		await user.click(within(panel).getByRole("button", { name: "Open in the map" }));
 		const near = new Set([edge.source]);
 		for (const e of g.edges) {
 			if (e.source === edge.source) near.add(e.target);

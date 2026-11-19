@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Checklist, usePermissionSection } from "@/features/onboarding";
+import { usePermissionSection } from "@/features/onboarding";
 import { LANGS, useI18n } from "@/lib/i18n";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
@@ -25,7 +25,6 @@ import {
 	DocumentTextIcon,
 	LanguageIcon,
 	ShieldCheckIcon,
-	SparklesIcon,
 	SunIcon,
 	SwatchIcon,
 	UserCircleIcon,
@@ -46,7 +45,6 @@ const SECTION_ICON: Record<string, React.ReactNode> = {
 	agent: <CpuChipIcon size={14} />,
 	notifications: <BellIcon size={14} />,
 	permissions: <ShieldCheckIcon size={14} />,
-	setup: <SparklesIcon size={14} />,
 };
 
 /** Where the update check reads the latest release. It saves when the field loses focus. */
@@ -137,9 +135,9 @@ function NotifySwitch({ source }: { source: EventSource }) {
  */
 export function Me({
 	part,
-	permissions: here = !part,
+	permissions: here = false,
 }: {
-	part?: "main" | "look";
+	part: "main" | "look";
 	permissions?: boolean;
 }) {
 	const { t } = useI18n();
@@ -158,10 +156,9 @@ export function Me({
 	const look = useLookRows();
 	const permissions = usePermissionSection();
 	const withIcon = personal
-		.filter((s) => !part || (s.id === "fonts") === (part === "look"))
+		.filter((s) => (s.id === "fonts") === (part === "look"))
 		.map((s) => ({ ...s, icon: SECTION_ICON[s.id] }));
 	const nav = [
-		{ id: "setup", title: t.onboarding.setup.title },
 		{ id: "me", title: t.tabs.settings.me },
 		...personal,
 		{ id: "notifications", title: t.notifications.title },
@@ -197,11 +194,9 @@ export function Me({
 		);
 	return (
 		<div className="flex flex-col">
-			{part ? null : <PageHeader icon={<UserCircleIcon size={16} />} title={t.tabs.settings.me} />}
 			{/* The list shows the sections that are on the page. */}
 			<SectionNav label={t.ui.sections} items={nav} />
 			<div className={SETTINGS_PAGE}>
-				{part ? null : <Checklist id="section-setup" />}
 				<Settings
 					sections={[
 						{

@@ -88,7 +88,10 @@ test("tester", async ({ page }) => {
 		"Specs, Questions, the Risk kind and the Open status",
 		async () => {
 			await w.go("Library", "Questions");
-			await w.see(page.getByText("Claim stamps need a tracker comment write"), "no open risk");
+			await w.see(
+				page.getByText("Claim stamps need an issue tracker comment write"),
+				"no open risk",
+			);
 		},
 	);
 

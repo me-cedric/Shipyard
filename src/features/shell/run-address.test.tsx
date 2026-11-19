@@ -33,7 +33,7 @@ describe("Run address", () => {
 
 	it("builds the address of a run and of a unit from a ref", () => {
 		expect(runHref("r1")).toEqual({
-			to: "/factory/runs/$runId",
+			to: "/flow/runs/$runId",
 			params: { runId: "r1" },
 			search: {},
 		});
@@ -218,7 +218,7 @@ describe("Run address", () => {
 		const router = mountApp("/today/activity");
 		const panel = within(await screen.findByRole("region", { name: "Active runs" }));
 		const link = await panel.findByRole("link", { name: /ACME-2/ });
-		expect(link).toHaveAttribute("href", `/factory/runs/${run.id}`);
+		expect(link).toHaveAttribute("href", `/flow/runs/${run.id}`);
 		expect(within(link).queryByRole("button")).not.toBeInTheDocument();
 		expect(panel.getByRole("button", { name: "Stop ACME-2" })).toBeInTheDocument();
 		await user.click(link);

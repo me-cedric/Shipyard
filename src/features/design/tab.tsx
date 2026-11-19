@@ -326,7 +326,7 @@ export function ArtifactTab({
 											aria-current={r.ref === selected ? "true" : undefined}
 											onClick={() => pick(r.ref)}
 											className={cn(
-												"flex min-h-row w-full items-center gap-2 rounded-md px-2 py-1 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3",
+												"flex min-h-control w-full items-center gap-2 rounded-md px-2 py-1 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3",
 												r.ref === selected && "bg-accent-soft",
 											)}
 										>

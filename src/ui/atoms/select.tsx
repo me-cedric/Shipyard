@@ -44,7 +44,7 @@ export function Select({
 				aria-label={label}
 				aria-description={disabled ? reason : undefined}
 				className={cn(
-					"inline-flex h-row min-w-24 shrink-0 items-center justify-between gap-2 rounded-md whitespace-nowrap border border-n-7 bg-n-1 px-2 text-ui text-n-12",
+					"inline-flex min-h-control min-w-24 shrink-0 items-center justify-between gap-2 rounded-md whitespace-nowrap border border-n-7 bg-n-1 px-2 text-ui text-n-12",
 					className,
 				)}
 			>
@@ -61,7 +61,7 @@ export function Select({
 								<BaseSelect.Item
 									key={item.value}
 									value={item.value}
-									className="flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5"
+									className="flex min-h-control cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5"
 								>
 									<BaseSelect.ItemIndicator className="w-3">
 										<CheckIcon size={12} />

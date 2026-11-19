@@ -247,7 +247,8 @@ export function MarkdownView({
 					const cell = (c: string) =>
 						c.length > CELL_LONG ? "min-w-48 max-w-md break-words" : "whitespace-nowrap";
 					return (
-						<div key={key} className="overflow-x-auto rounded-md border">
+						// biome-ignore lint/a11y/noNoninteractiveTabindex: a wide table scrolls, so it needs a keyboard stop (axe scrollable-region-focusable)
+						<div key={key} tabIndex={0} className="overflow-x-auto rounded-md border">
 							<table className="w-full table-auto border-collapse text-left text-ui">
 								<thead className="bg-n-3">
 									<tr>

@@ -40,8 +40,6 @@ export type {
 
 /** The commit types of `shipyard-core`. A branch name starts with one of them. */
 export const COMMIT_TYPES = ["feat", "fix", "chore", "docs", "refactor", "test"] as const;
-/** The advice for a summary length. It never blocks a longer one. */
-export const SUMMARY_ADVICE = 50;
 const PAGE = 30;
 const NOTICE_EVENT = "code-notice";
 

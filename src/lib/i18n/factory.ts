@@ -1,7 +1,7 @@
 /** The strings of the Factory space. */
 export const factoryEn = {
 	resize: {
-		workflows: "Workflows width",
+		workflows: "Recipes width",
 	},
 	runs: "Runs",
 	start: "Start run",
@@ -124,12 +124,12 @@ export const factoryEn = {
 	planApprove: "Approve plan",
 	planReject: "Reject plan",
 	note: "Note",
-	workflow: "Workflow",
+	workflow: "Recipe",
 	findings: "Findings",
 	diff: "Diff",
 	log: "Events",
 	more: "More",
-	workflows: "Workflows",
+	workflows: "Recipes",
 	roles: "Roles",
 	wf: {
 		permissions: "Writes without a question",
@@ -275,7 +275,7 @@ export const factoryEn = {
 		board: "Board",
 		history: "History",
 		state: "State",
-		workflow: "Workflow",
+		workflow: "Recipe",
 		steps: "Steps",
 		ended: "Ended",
 		pullRequest: "Pull request",
@@ -288,7 +288,7 @@ export const factoryEn = {
 
 export const factoryFr: typeof factoryEn = {
 	resize: {
-		workflows: "Largeur des workflows",
+		workflows: "Largeur des recettes",
 	},
 	runs: "Exécutions",
 	start: "Lancer une exécution",
@@ -419,12 +419,12 @@ export const factoryFr: typeof factoryEn = {
 	planApprove: "Approuver le plan",
 	planReject: "Rejeter le plan",
 	note: "Note",
-	workflow: "Workflow",
+	workflow: "Recette",
 	findings: "Constats",
 	diff: "Diff",
 	log: "Événements",
 	more: "Plus",
-	workflows: "Workflows",
+	workflows: "Recettes",
 	roles: "Rôles",
 	wf: {
 		permissions: "Écrit sans demander",
@@ -570,7 +570,7 @@ export const factoryFr: typeof factoryEn = {
 		board: "Tableau",
 		history: "Historique",
 		state: "État",
-		workflow: "Workflow",
+		workflow: "Recette",
 		steps: "Étapes",
 		ended: "Terminée",
 		pullRequest: "Pull request",

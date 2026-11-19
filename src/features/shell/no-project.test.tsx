@@ -6,12 +6,12 @@ import { mountApp } from "@/test/mount";
 describe("No-project page (REQ-006)", () => {
 	it.each([
 		["/work/backlog", "Flow"],
-		["/specs/capabilities", "Capabilities"],
+		["/specs/capabilities", "Specs"],
 		// The old address opens Code / Now, whose title is the place.
 		["/code/changes", "Code"],
 		["/design/architecture", "Architecture"],
 		["/factory/runs", "Flow"],
-		["/knowledge/graph", "Graph"],
+		["/knowledge/graph", "Map"],
 	])("%s offers the three ways to open a project under one h1", async (path, title) => {
 		const user = userEvent.setup();
 		const router = mountApp(path);

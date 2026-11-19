@@ -132,7 +132,7 @@ export function Shell({
 				{navSide === "right" ? nav : null}
 			</div>
 			{statusbar ? (
-				<footer className="flex h-5 shrink-0 items-center gap-3 border-t bg-surface-1 px-3 text-11 text-n-11">
+				<footer className="flex min-h-control shrink-0 items-center gap-3 border-t bg-surface-1 px-3 text-11 text-n-11">
 					{statusbar}
 				</footer>
 			) : null}

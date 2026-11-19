@@ -3,11 +3,13 @@ import { useChanges, useWatchNotice } from "@/lib/code";
 import { useErrorNotice } from "@/lib/errors";
 import { format, useI18n } from "@/lib/i18n";
 import { useHealth, worstStatus } from "@/lib/projects";
+import { useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useWhatsNew } from "@/lib/updates/whats-new";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import type { Action } from "./actions";
 import { useCounts } from "./counts";
+import { hiddenSection } from "./places";
 
 const button =
 	"inline-flex h-4 items-center gap-1.5 rounded-sm px-1.5 text-11 text-n-11 hover:bg-n-3 hover:text-n-12 disabled:pointer-events-none disabled:opacity-50";
@@ -31,6 +33,8 @@ export function StatusBar({ commit }: { commit: Action }) {
 	const health = useHealth();
 	const changes = useChanges().data;
 	const { changed } = useCounts();
+	// The links to the changes show with Code / Now (`spec:app-redesign#REQ-006`).
+	const seesCode = !hiddenSection(useRights().level, "code", "now");
 	const n = (v: number) => v.toLocaleString();
 	// "Changes: {added} lines added, {removed} removed": the text around the two numbers.
 	const lines = t.shell.lines.split(/\{added\}|\{removed\}/);
@@ -51,7 +55,7 @@ export function StatusBar({ commit }: { commit: Action }) {
 	return (
 		<>
 			<ActionButton action={commit} />
-			{changed ? (
+			{seesCode && changed ? (
 				// The count of changed files. A click opens the changes. The number is in the name (WCAG 2.5.3).
 				<Link to="/code/now" className={button}>
 					<span className="sr-only">
@@ -62,7 +66,7 @@ export function StatusBar({ commit }: { commit: Action }) {
 					</span>
 				</Link>
 			) : null}
-			{changes && (changes.added > 0 || changes.removed > 0) ? (
+			{seesCode && changes && (changes.added > 0 || changes.removed > 0) ? (
 				// Lines added and removed since the last commit. A click opens the changes.
 				// The visible numbers sit inside the spoken sentence (WCAG 2.5.3, label in name).
 				<Link to="/code/now" className={button}>

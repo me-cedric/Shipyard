@@ -19,9 +19,9 @@ export const knowledgeEn = {
 	},
 	explain: "Explain",
 	explainRef: "Explain {ref}",
-	openInGraph: "Open in graph",
+	openInGraph: "Open in the map",
 	graph: {
-		title: "Graph",
+		title: "Map",
 		source: "Source",
 		refs: "Knowledge",
 		code: "Code",
@@ -216,9 +216,9 @@ export const knowledgeFr: typeof knowledgeEn = {
 	},
 	explain: "Expliquer",
 	explainRef: "Expliquer {ref}",
-	openInGraph: "Ouvrir dans le graphe",
+	openInGraph: "Ouvrir dans la carte",
 	graph: {
-		title: "Graphe",
+		title: "Carte",
 		source: "Source",
 		refs: "Connaissances",
 		code: "Code",

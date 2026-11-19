@@ -102,7 +102,7 @@ describe("native menu", () => {
 			for (const id of MENU_ACTIONS) expect(labels[id], id).toBeTruthy();
 			expect(labels.go).toBeTruthy();
 		}
-		expect(menuLabels(en)["go-factory"]).toBe("Factory");
+		expect(menuLabels(en)["go-flow"]).toBe("Flow");
 		expect(menuLabels(fr)["shortcuts-help"]).toBe("Raccourcis clavier");
 	});
 });

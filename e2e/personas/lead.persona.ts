@@ -23,8 +23,8 @@ test("functional lead", async ({ page }) => {
 	});
 
 	await w.step("Read the constitution", "the Constitution tab", async () => {
-		await w.go("Library", "Constitution");
-		await w.see(page.getByRole("heading", { name: "Constitution" }).first(), "no constitution");
+		await w.go("Library", "Project rules");
+		await w.see(page.getByRole("heading", { name: "Project rules" }).first(), "no constitution");
 		if (await page.getByText("## Principles").first().isVisible()) {
 			w.confusing("the constitution opens as raw Markdown in a code editor, not as a page to read");
 		}
@@ -40,13 +40,13 @@ test("functional lead", async ({ page }) => {
 		await w.click(page.getByRole("combobox", { name: "Status" }));
 		await w.click(page.getByRole("option", { name: "open" }));
 		await w.see(
-			page.getByText("The forge adapter ships first"),
+			page.getByText("The code host adapter ships first"),
 			"the open filter hides an open question",
 		);
 	});
 
 	await w.step("Find a page with the keyboard", "Ctrl+K, the name of a page", async () => {
-		await w.palette("Constitution", "the palette finds no page by its name (Constitution)");
+		await w.palette("Project rules", "the palette finds no page by its name (Project rules)");
 	});
 
 	await w.step("Read a decision", "Design, Decisions, a record", async () => {

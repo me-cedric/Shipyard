@@ -290,7 +290,7 @@ export function RunSummary({
 						icon={<ArrowsRightLeftIcon size={14} />}
 					>
 						<a
-							href="/code/pull-requests"
+							href="/code/now"
 							onClick={(e) => {
 								e.preventDefault();
 								onOpenPr(pr.reference);

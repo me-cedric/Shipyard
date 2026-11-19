@@ -49,7 +49,7 @@ export function Reports() {
 
 	// A report shows only to a role that sees the page of its export (`spec:app-redesign#REQ-006`).
 	const sees = (page: ExportPage) => level(AREA[page]) !== "none";
-	const plan = { to: "/plan/plan", label: t.tabs.work.plan };
+	const plan = { to: "/plan/timeline", label: t.tabs.work.plan };
 	const reports: Report[] = [
 		...[
 			...(["documents", "workDone", "costing", "flows", "raid", "security"] as const)

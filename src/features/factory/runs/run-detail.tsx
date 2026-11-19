@@ -10,19 +10,8 @@ import {
 import { useGuard } from "@/features/work/guard";
 import { ENDED, useRunActions, useRunDiff, useRunLog, useRuns, useWorkflow } from "@/lib/factory";
 import { useRunWaits } from "@/lib/home";
-import type { RunView, RunView_Serialize } from "@/lib/ipc";
+import type { RunView_Serialize } from "@/lib/ipc";
 import { pullHref, useShell } from "@/lib/shell";
-
-/** The steps done out of all steps, and the step that works now. */
-export function progressOf(run: RunView) {
-	const running = run.steps.find((s) => s.state === "running");
-	return {
-		done: run.steps.filter((s) => s.state === "done").length,
-		total: run.steps.length,
-		agent: running?.id,
-		live: running !== undefined,
-	};
-}
 
 /** A live run reads pages on its own up to this many events (20 pages of 50); past it, "Load more" reads the rest. */
 export const LIVE_MAX_EVENTS = 1000;
@@ -103,7 +92,7 @@ export function RunScope({ id, children }: { id: string; children: ReactNode }) 
 		needs,
 		focusIn: (selector) => needs.current?.querySelector<HTMLElement>(selector)?.focus(),
 		openPr: (reference) => {
-			void router?.navigate(reference ? pullHref(reference) : { to: "/code/pull-requests" });
+			void router?.navigate(reference ? pullHref(reference) : { to: "/code/now" });
 		},
 		again: () => void guard(() => startAgain(act, run.key, (started) => openRef(`run:${started}`))),
 	};

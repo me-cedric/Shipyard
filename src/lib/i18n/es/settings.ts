@@ -66,7 +66,7 @@ export const settingsEs: typeof settingsEn = {
 		tickets: "Tickets",
 		adrs: "ADR",
 		qa: "Comprobaciones de calidad",
-		workflows: "Flujos de trabajo",
+		workflows: "Recetas",
 		save: "Aplicar",
 		agents: "Herramientas de agente",
 		agentsNone: "No se encontró ninguna herramienta de agente",

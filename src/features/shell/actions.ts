@@ -36,7 +36,7 @@ import {
 	ViewColumnsIcon,
 	XMarkIcon,
 } from "@/ui/icons";
-import { PLACE_ICON, type PlaceId, placeOfView, viewPath, visiblePlaces } from "./places";
+import { hiddenSection, PLACE_ICON, type PlaceId, placeOfView, visiblePlaces } from "./places";
 import { SPACE_IDS, SPACES } from "./spaces";
 import { useOpenInTerminalApp } from "./terminal-app";
 
@@ -100,6 +100,8 @@ export function useActions() {
 	const writes = can("code.write");
 	// A text keeps the memo stable: `level` is a new function at each render.
 	const shown = visiblePlaces(level).join(",");
+	// New feature makes a ticket or a spec change: it shows with the List (`spec:app-redesign#REQ-006`).
+	const noList = hiddenSection(level, "flow", "list");
 	const checkUpdate = useUpdateCheck();
 	const { bindings } = useShortcutBindings();
 	const { setShortcutsOpen } = shell;
@@ -210,14 +212,14 @@ export function useActions() {
 			Icon: ArrowDownTrayIcon,
 			run: () => void checkUpdate(true),
 		};
-		// The manual opens at the section of the tab that the person is on.
+		// The manual opens at the page of the place and the section that the person is on.
 		const manual: Action = {
 			id: "manual",
 			label: t.knowledge.manual.open,
 			Icon: BookOpenIcon,
 			shortcut: "F1",
 			run: () => {
-				openManualFor(viewPath(router.state.location.pathname));
+				openManualFor(router.state.location.pathname);
 				void navigate({ to: "/library/manual" });
 			},
 		};
@@ -304,6 +306,7 @@ export function useActions() {
 			id: "new-feature",
 			label: t.flow.newAction,
 			Icon: PlusIcon,
+			hidden: noList,
 			run: () => void navigate({ to: "/flow/new" }),
 		};
 		const list: Action[] = [
@@ -397,6 +400,7 @@ export function useActions() {
 	}, [
 		t,
 		shown,
+		noList,
 		sidebarOpen,
 		inspectorOpen,
 		assistantOpen,
