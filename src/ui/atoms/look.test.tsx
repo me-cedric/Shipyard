@@ -125,7 +125,7 @@ describe("atoms, look pass 1", () => {
 		])
 			expect(el).toHaveClass("border-n-7", "bg-surface-1");
 		expect(screen.getByRole("combobox", { name: "Lang" })).toHaveClass("min-h-control");
-		expect(screen.getByRole("switch", { name: "Flip" })).toHaveClass("border-n-7");
+		expect(screen.getByRole("switch", { name: "Flip" })).toHaveClass("h-7.5", "w-13", "bg-n-9");
 	});
 
 	it("Segmented shows the choice as a white thumb on a grey track", () => {

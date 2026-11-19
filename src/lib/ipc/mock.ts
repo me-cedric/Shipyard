@@ -1092,6 +1092,8 @@ const handlers: Handlers = {
 		// A demo person who chose no role is a developer, so that Role views marks "My view".
 		if (demo && path === DEMO_FOLDER && !known && state.prefs.role === "none")
 			state.prefs.role = "developer";
+		// The demo person is Ada of the seeded team, so the account row shows a name and two initials (picture 001).
+		if (demo && path === DEMO_FOLDER && !known) state.person = { ...SOLO, member: "ada" };
 		// The demo holds two earlier projects: the Projects page shows "Opened before".
 		if (demo && path === DEMO_FOLDER && !known)
 			for (const [id, before] of [

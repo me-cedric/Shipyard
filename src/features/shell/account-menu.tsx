@@ -90,8 +90,11 @@ export function AccountMenu({ compact }: { compact?: boolean }) {
 				)}
 			</Menu.Trigger>
 			<Menu.Portal>
-				<Menu.Positioner side="top" align="start" sideOffset={4} className="z-50">
-					<Menu.Popup className={cn(MENU_POPUP, "w-94 max-w-[calc(100vw-2rem)] px-0")}>
+				{/* In the page area, right of the rail (picture 064): the offset clears the 14 px padding of the rail. */}
+				<Menu.Positioner side="right" align="end" sideOffset={18} className="z-50">
+					<Menu.Popup
+						className={cn(MENU_POPUP, "w-94 max-w-[calc(100vw-2rem)] border-2 border-accent px-0")}
+					>
 						<Menu.Item
 							className={cn(ITEM, "min-h-19")}
 							onClick={() => void navigate({ to: "/setup/me" })}

@@ -17,8 +17,8 @@ import { useLiveSessions } from "./active-sessions";
 import { useCounts } from "./counts";
 import { PLACE_ICON, type PlaceId, visiblePlaces } from "./places";
 
-/** The counts of the shell, on the place that shows them. */
-const COUNT_OF = { today: "needsYou", flow: "live", code: "changed" } as const;
+/** The count of the shell: Today only (picture 001). */
+const COUNT_OF = { today: "needsYou" } as const;
 
 /** The project switch at the top of the rail: the list of the projects and their actions. */
 function ProjectSwitch({ compact }: { compact: boolean }) {

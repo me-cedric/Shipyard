@@ -10,7 +10,7 @@ describe("Switch", () => {
 		const thumb = sw.querySelector("span") as HTMLElement;
 		// Each state class is its own token: a missing space makes Tailwind skip both.
 		expect(thumb.className.split(" ")).toEqual(
-			expect.arrayContaining(["data-[checked]:translate-x-[13px]", "data-[checked]:bg-accent-fg"]),
+			expect.arrayContaining(["data-[checked]:translate-x-[25px]", "size-6"]),
 		);
 		await user.click(sw);
 		expect(sw).toHaveAttribute("aria-checked", "true");
