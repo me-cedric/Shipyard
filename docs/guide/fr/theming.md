@@ -1,6 +1,6 @@
 # Thèmes
 
-Shipyard a cinq thèmes intégrés et une bibliothèque de thèmes que vous importez. Choisissez le thème dans Réglages / Moi ou dans le menu du compte.
+Shipyard a cinq thèmes intégrés et une bibliothèque de thèmes que vous importez. Choisissez le thème dans Configuration / Moi ou dans le menu du compte.
 
 ## Thèmes intégrés
 
@@ -13,13 +13,13 @@ Le raccourci du thème (Mod+Maj+L) passe de Clair à Sombre, OLED, Système, pui
 
 ## Importer un thème
 
-1. Dans Réglages / Moi, sur la ligne Fichiers de thème, cliquez sur Importer et choisissez un fichier `.json`.
+1. Dans Configuration / Moi, sur la ligne Fichiers de thème, cliquez sur Importer et choisissez un fichier `.json`.
 2. Shipyard vérifie le fichier. Si le fichier a des erreurs, une liste montre chaque erreur avec son champ. Rien n'est enregistré.
 3. Si le fichier est valide, un aperçu montre les surfaces, le texte et l'accent. Cliquez sur Ajouter pour enregistrer le thème et l'utiliser. Cliquez sur Fermer pour garder le thème actuel.
 
 Le thème va dans la bibliothèque de cet ordinateur, pas dans le projet. Il apparaît avec son nom dans la liste Thème. Une ligne à son nom a un bouton pour le retirer. Quand vous retirez le thème actuel, son thème de base s'applique.
 
-Quand le projet fixe un thème dans Réglages / Projet, le thème du projet l'emporte.
+Quand le projet fixe un thème dans Configuration / Ce projet, le thème du projet l'emporte.
 
 ## Exporter un thème
 
@@ -63,7 +63,7 @@ Le fichier `examples/theme-sample/harbor-night.json` contient cet exemple.
 | `background` | non | La couleur de la surface 0. Shipyard en tire les autres surfaces et l'échelle de gris. |
 | `foreground` | non | La couleur du texte principal. |
 | `radius` | non | L'arrondi d'un contrôle, de 0 à 16 px. Les petits éléments ont la moitié, les cartes 1,5 fois, les dialogues 2 fois. |
-| `font` | non | `system`, `grotesk`, `humanist`, `serif` ou `mono`. Les polices sont sur votre ordinateur : rien n'est téléchargé. La police de l'interface de Réglages / Moi l'emporte. |
+| `font` | non | `system`, `grotesk`, `humanist`, `serif` ou `mono`. Les polices sont sur votre ordinateur : rien n'est téléchargé. La police de l'interface de Configuration / Moi l'emporte. |
 | `tokens` | non | Le niveau avancé : un nom de jeton vers une couleur. Un jeton l'emporte sur un champ simple. |
 
 Le niveau simple est `base`, `accent`, `background`, `foreground`, `radius` et `font`. La plupart des thèmes n'ont besoin que de ceux-là.
@@ -104,7 +104,7 @@ La liste est `src/lib/themes/tokens.json`.
 
 ### Contraste
 
-Shipyard ne vérifie pas le contraste d'un thème importé. Donnez à `n-10`, `n-11`, `n-12` et à chaque jeton `-text` un contraste de 4,5:1 ou plus sur `surface-0` à `surface-3`. Un thème importé l'emporte sur la Couleur d'accent de Réglages / Moi. Quand Contraste élevé est activé, un thème importé ne donne que son arrondi. Un thème de plugin ne remplace jamais un autre thème qui a le même id.
+Shipyard ne vérifie pas le contraste d'un thème importé. Donnez à `n-10`, `n-11`, `n-12` et à chaque jeton `-text` un contraste de 4,5:1 ou plus sur `surface-0` à `surface-3`. Un thème importé l'emporte sur la Couleur d'accent de Configuration / Moi. Quand Contraste élevé est activé, un thème importé ne donne que son arrondi. Un thème de plugin ne remplace jamais un autre thème qui a le même id.
 
 ## Thèmes dans un plugin
 

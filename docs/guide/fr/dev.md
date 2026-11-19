@@ -14,9 +14,9 @@
 | `src/ui/` | Système de design : `tokens`, `icons`, `atoms`, `molecules`, `organisms`, `templates`, `gallery`. Les longues listes utilisent `VirtualList` et `DataTable` (TanStack Virtual et Table). |
 | `src/features/<space>/` | Un dossier par espace. Une fonctionnalité importe seulement `@/ui`, `@/lib` et son propre dossier. |
 | `src/lib/ipc/` | Les liaisons générées et la couche de simulation. |
-| `src/lib/i18n/` | Les catalogues anglais et français. `fr.ts` a le type de `en.ts`. |
+| `src/lib/i18n/` | Les catalogues anglais, français, allemand et espagnol. Chacun a le type de `en.ts`. |
 | `e2e/` | Tests Playwright sur la version de production de Vite, avec l'IPC simulé. |
-| `docs/guide/` | Les pages pour les utilisateurs, une par espace, et ce guide. `docs/guide/fr/` a les pages françaises, avec les mêmes noms de fichier. |
+| `docs/guide/` | Les pages pour les utilisateurs, une par lieu, et ce guide. `docs/guide/fr/`, `de/` et `es/` ont les pages françaises, allemandes et espagnoles, avec les mêmes noms de fichier et les mêmes titres. |
 
 ## Lancer
 

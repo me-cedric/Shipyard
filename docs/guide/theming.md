@@ -1,6 +1,6 @@
 # Theming
 
-Shipyard has five built-in themes and a library of themes that you import. Choose the theme in Settings / Me or in the account menu.
+Shipyard has five built-in themes and a library of themes that you import. Choose the theme in Setup / Me or in the account menu.
 
 ## Built-in themes
 
@@ -13,13 +13,13 @@ The theme shortcut (Mod+Shift+L) goes from Light to Dark, OLED, System, then Lig
 
 ## Import a theme
 
-1. In Settings / Me, on the Theme files row, click Import and choose a `.json` file.
+1. In Setup / Me, on the Theme files row, click Import and choose a `.json` file.
 2. Shipyard checks the file. When the file has faults, a list shows each fault with its field. Nothing is saved.
 3. When the file is valid, a preview shows the surfaces, the text and the accent. Click Add to save the theme and use it. Click Close to keep the current theme.
 
 The theme goes to the library of this computer, not to the project. It shows in the Theme select with its name. A row with its name has a remove button. When you remove the current theme, its base theme applies.
 
-When the project sets a theme in Settings / Project, the project theme wins.
+When the project sets a theme in Setup / This project, the project theme wins.
 
 ## Export a theme
 
@@ -63,7 +63,7 @@ The file `examples/theme-sample/harbor-night.json` holds this example.
 | `background` | no | The colour of surface 0. Shipyard makes the other surfaces and the grey scale from it. |
 | `foreground` | no | The main text colour. |
 | `radius` | no | The corner radius of a control, 0 to 16 px. Small items get half, cards 1.5 times, dialogs 2 times. |
-| `font` | no | `system`, `grotesk`, `humanist`, `serif` or `mono`. The fonts are on your computer: nothing is downloaded. The Interface font of Settings / Me wins. |
+| `font` | no | `system`, `grotesk`, `humanist`, `serif` or `mono`. The fonts are on your computer: nothing is downloaded. The Interface font of Setup / Me wins. |
 | `tokens` | no | The advanced level: a token name to a colour. A token wins over a simple field. |
 
 The simple level is `base`, `accent`, `background`, `foreground`, `radius` and `font`. Most themes need only these.
@@ -104,7 +104,7 @@ The list is `src/lib/themes/tokens.json`.
 
 ### Contrast
 
-Shipyard does not check the contrast of an imported theme. Give `n-10`, `n-11`, `n-12` and each `-text` token a contrast of 4.5:1 or more on `surface-0` to `surface-3`. An imported theme wins over the Accent colour of Settings / Me. When High contrast is on, an imported theme gives only its radius. A plugin theme never replaces a different theme with the same id.
+Shipyard does not check the contrast of an imported theme. Give `n-10`, `n-11`, `n-12` and each `-text` token a contrast of 4.5:1 or more on `surface-0` to `surface-3`. An imported theme wins over the Accent colour of Setup / Me. When High contrast is on, an imported theme gives only its radius. A plugin theme never replaces a different theme with the same id.
 
 ## Themes in a plugin
 

@@ -1,4 +1,6 @@
 import { useEffect, useId, useMemo, useState } from "react";
+import { PLACES, type PlaceId, sectionView } from "@/features/shell/places";
+import { type SectionSpace, tabLabel } from "@/features/shell/spaces";
 import { type Lang, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Input } from "@/ui/atoms/input";
@@ -21,20 +23,23 @@ const RAW_LANG = import.meta.glob("/docs/guide/*/*.md", {
 	eager: true,
 }) as Record<string, string>;
 
-/** The pages in reading order. The developer guide is not for the people who use the app. */
+/** The pages in reading order: the start, one page for each place, then the rest. The developer guide is not for the people who use the app. */
 const ORDER = [
 	"start",
-	"home",
-	"design",
-	"specs",
-	"work",
-	"team",
-	"factory",
+	"today",
+	"flow",
+	"plan",
+	"crew",
+	"library",
 	"code",
-	"knowledge",
-	"settings",
+	"setup",
+	"projects",
+	"ask",
 	"theming",
 ];
+
+/** A page off the section switch whose help has a heading of its own: the label of its old tab. */
+const OFF_SWITCH: Record<string, [SectionSpace, string]> = { "flow/impacts": ["code", "impacts"] };
 
 export type ManualPage = { id: string; title: string; text: string };
 
@@ -92,8 +97,8 @@ const headingIndex = (text: string, heading: string) =>
 	blocks(text).findIndex((b) => b.type === "h" && b.text === heading);
 
 /**
- * Knowledge / Manual: the user guide that ships with the app, with a full-text search. The palette
- * action Open the manual for this page opens the section of the tab that the person was on.
+ * Library / Manual: the user guide that ships with the app, with a full-text search. The action
+ * Open the manual for this page opens the page of the place and the section that the person was on.
  */
 export function Manual() {
 	const { t, lang } = useI18n();
@@ -107,16 +112,19 @@ export function Manual() {
 	const current = pages.find((p) => p.id === page) ?? pages[0];
 	const hits = useMemo(() => searchManual(query, pages), [query, pages]);
 
-	// A new ask of the palette opens its page at the section of its tab.
+	// A new ask opens the page of its place at the heading of its section.
 	useEffect(() => {
 		if (!target) return;
 		const known = pages.some((p) => p.id === target.page);
 		setPage(known ? target.page : "start");
-		const tabs = t.tabs as Record<string, Record<string, string>>;
-		// A page of Library with no old view has its name in `t.library.views`.
-		const views: Record<string, string> = t.library.views;
-		const heading = tabs[target.page]?.[target.tab ?? ""] ?? views[target.tab ?? ""];
-		setScrollTo(known ? (heading ?? null) : null);
+		// The heading of a section is its label on the screen.
+		const view =
+			target.tab && target.page in PLACES
+				? (sectionView(target.page as PlaceId, target.tab) ??
+					OFF_SWITCH[`${target.page}/${target.tab}`])
+				: undefined;
+		const heading = view ? tabLabel(t, ...view) : null;
+		setScrollTo(known ? heading : null);
 		setQuery("");
 	}, [target, pages, t]);
 

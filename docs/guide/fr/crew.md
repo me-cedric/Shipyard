@@ -1,0 +1,81 @@
+# Équipe
+
+L'équipe réunit les personnes et les agents du projet. Le sélecteur a cinq sections : Équipe, Recettes, Sessions, Dépenses et Droits. L'interrupteur des agents est dans l'en-tête d'Équipe, de Sessions et de Dépenses : désactivé, il arrête chaque agent et empêche les nouvelles exécutions.
+
+Équipe s'ouvre sur les cartes. Personnes montre chaque personne en carte : le travail en cours, la charge, le rôle, les jours par semaine et les compétences. Agents montre chaque rôle d'agent avec son travail en cours. La page montre aussi les dépenses du travail ouvert et les recettes.
+
+- Cliquez sur Membre pour ajouter une personne. Cliquez sur une carte pour ouvrir la page d'une personne.
+- Sur la page d'une personne, saisissez le nom, l'identifiant, les e-mails et les comptes de l'outil de suivi et de l'hébergeur de code. Choisissez un rôle : les droits du rôle s'affichent avant l'enregistrement. Cochez admin pour les personnes qui gèrent l'équipe. Retirer de l'équipe est sur la même page.
+- Ajoutez l'admin en dernier : une équipe avec un admin donne les droits seulement aux personnes du fichier.
+
+## En direct
+
+Le sélecteur Cartes et En direct est en haut d'Équipe. En direct montre les agents au travail. Chaque ligne montre un agent, sa fonctionnalité avec son état, et les fichiers et les specs que l'agent lit et modifie. Le filtre est Au travail, Terminée, Fichiers ou Specs. Survolez un agent pour voir sa réf. Faites un clic droit, ou appuyez sur la touche du menu contextuel, pour copier la réf. Cliquez sur la fonctionnalité pour ouvrir sa page.
+
+## Recettes
+
+Une recette est la liste des étapes qu'un agent suit sur une fonctionnalité. Recettes liste les recettes et les rôles des agents, chacun en carte avec les noms de ses étapes. Cliquez sur une carte pour la lire ou la changer, puis enregistrez. Un fichier cassé montre son erreur et sa ligne. La dernière bonne version continue de tourner.
+
+Une recette s'ouvre dans un formulaire. Utilisez Formulaire et Texte pour passer du formulaire au texte YAML. Les deux modifient le même fichier.
+
+- Étapes : chaque étape est une carte avec les groupes Qui, Personnes, Fonctionnement et Limites. Fixez le rôle ou l'action, le niveau de modèle, l'effort, le mode, les prérequis, les outils et le contrôle de chaque étape. Plus montre les autres champs : espace de travail, pour chaque, enfants en parallèle, essais, limite de temps, budget, compétence, contexte neuf et tours de revue. Ajoutez, retirez et déplacez une étape vers le haut ou le bas.
+- Limites : le délai de blocage en secondes. Activez Budget pour arrêter chaque exécution à un montant en USD, et Limite de tours pour mettre chaque exécution en pause après un nombre de tours. Les deux sont désactivés par défaut.
+- Le formulaire vérifie la recette à chaque changement. Enregistrer reste désactivé tant qu'il montre un problème.
+- Nouveau crée une recette à partir d'un modèle : feature, bug, spike, docs-update, review-only, spec-split ou bootstrap. Le menu Plus d'actions de la recette ouverte a Dupliquer, Renommer et Supprimer. Renommer et Supprimer refusent la recette par défaut du projet et une recette qu'une exécution utilise. Supprimer demande une confirmation.
+- Un enregistrement depuis le formulaire garde les lignes de commentaire en haut du fichier. Utilisez Texte pour garder les autres commentaires.
+- Un agent extérieur avec les outils Recettes activés (Configuration / Cet ordinateur, Agents extérieurs) peut lister, lire, vérifier et proposer une recette. Une proposition ne change pas le fichier : ouvrez la recette, lisez le diff, puis Appliquer ou Écarter.
+- Écrit sans demander liste les permissions d'une recette (voir la page Flux, Approbations). Retirer demande une confirmation, puis enregistre pour toute l'équipe.
+
+## Sessions
+
+Sessions liste les sessions d'agent des exécutions et les sessions de cet ordinateur. Un agent qui relit une pull request, estime des tâches ou crée une tuile s'y affiche aussi. Cliquez sur une session d'exécution pour ouvrir sa fonctionnalité à cette étape. Arrêtez une session dont vous n'avez pas besoin.
+
+## Dépenses
+
+Dépenses montre les jetons et l'argent que les agents ont utilisés, par jour et par personne, face aux budgets, et le taux de réussite des exécutions.
+
+- Budgets liste chaque montant fixé, avec son propre Modifier. Sans budget fixé, il montre le formulaire. Cliquez sur un jour ou un membre pour remplir le formulaire.
+- Cliquez sur une exécution pour ouvrir sa fonctionnalité.
+- Itérations compte les requêtes que chaque exécution a envoyées au modèle.
+- Les montants s'affichent par défaut. Désactivez Afficher les prix pour les masquer : une tuile d'argent montre alors le nombre de jetons. L'application retient l'interrupteur pour chaque projet.
+- Une alerte s'affiche à 80 pour cent d'un budget.
+- Une exécution se met en pause à 100 pour cent. Augmentez le budget pour continuer.
+
+## Droits
+
+Le fichier d'équipe `.shipyard/team.yaml` liste les personnes du projet, leur rôle et leurs droits. Équipe modifie les membres, et Droits montre les droits de chaque rôle. Un projet sans fichier d'équipe, ou sans admin, donne tous les droits à chaque personne.
+
+### Rôles et droits
+
+Chaque membre a un rôle : Responsable produit, Chef de projet, Architecte, Responsable technique, Analyste métier, Développeur, Testeur, Designer ou Lecteur. Le rôle donne les droits, la première page et les panneaux d'Aujourd'hui (voir Démarrer, Votre rôle).
+
+Un droit désactive une commande. La commande reste visible, et son infobulle nomme le droit manquant et votre rôle. Un lieu ou une section se masque seulement quand l'équipe ne donne à votre rôle aucun accès.
+
+- `work.edit` : tickets, la liste, le tableau, le plan, estimations, temps.
+- `specs.edit` : changements de spec, spécifications, questions, plans de test, règles du projet.
+- `design.edit` : diagrammes, décisions, API, données, flux réseau, écrans.
+- `knowledge.edit` : manuel, documents, diapositives, tableaux de bord.
+- `code.write` : commit, push, branche, ouvrir une pull request.
+- `code.merge` : fusionner une pull request.
+- `runs.start` : lancer, arrêter et reprendre une exécution.
+- `runs.approve` : approuver ce qu'un agent veut écrire, et son plan.
+- `project.settings` : Configuration / Ce projet, automatisation, recettes, connexions, le fichier d'équipe.
+- `costs.view` : les montants d'argent.
+
+Le statut admin donne tous les droits. Un membre peut avoir des écarts : `+code.merge` ajoute un droit, `-runs.approve` en retire un. Votre rôle personnel dans Configuration / Moi et le profil en lecture seule d'un projet ne peuvent que retirer des droits.
+
+### Qui vous êtes
+
+Shipyard vous trouve par le compte d'une connexion ouverte, puis par votre e-mail git. Droits montre qui il a trouvé. Quand le fichier d'équipe a un admin et que vous n'y êtes pas, vous êtes lecteur : vous pouvez lire et ne rien changer. Remplissez Demander à rejoindre et envoyez l'entrée copiée à un admin.
+
+### Les droits viennent de la branche par défaut
+
+Quand le projet a un dépôt distant, Shipyard lit les droits dans le fichier d'équipe de la branche par défaut. Un changement dans votre copie de travail ne donne aucun droit avant sa fusion. Droits vous avertit tant que les deux diffèrent. Protégez la branche par défaut chez votre hébergeur de code, et exigez une revue pour `.shipyard/team.yaml` : Shipyard ne peut pas arrêter une personne qui modifie les fichiers avec un autre outil.
+
+### Déplacer les rôles de cette machine
+
+Si cette machine contient des rôles par e-mail, Droits propose de les écrire comme membres. Un ancien responsable fonctionnel devient responsable produit. Un ancien junior devient développeur sans `code.merge` ni `runs.approve`. Les modes de page des anciens profils sont abandonnés, et la liste montre chacun d'eux. Une personne avec `project.settings` confirme.
+
+### Audit
+
+Chaque écriture qui demande un droit, et chaque refus, ajoute une ligne au journal d'audit de votre machine. Droits montre les 100 dernières lignes à une personne avec `project.settings`.

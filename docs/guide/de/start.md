@@ -1,85 +1,85 @@
 # Erste Schritte
 
-Shipyard hilft einem Team, ein Softwareprojekt auszuliefern: den Entwurf, die Spezifikationen, die Arbeit, die Agenten, den Code und das Wissen. Alles bleibt in den Dateien des Projekts, sodass das Team es mit git teilt.
+Shipyard hilft einem Team, ein Softwareprojekt auszuliefern: die Funktionen, den Plan, die Personen und die Agenten, die Spezifikationen, den Entwurf und den Code. Alles bleibt in den Dateien des Projekts, sodass das Team es mit git teilt.
 
 ## Das Fenster
 
-- Die linke Leiste enthält die sechs Orte und Einrichtung: Heute, Ablauf, Plan, Team, Bibliothek, Code und Einrichtung. Jede frühere Seite liegt in einem Ort, und ihre alte Adresse öffnet sie weiterhin.
+- Die linke Leiste enthält die sieben Orte: Heute, Ablauf, Plan, Team, Bibliothek, Code und Einrichtung. Diese Anleitung hat eine Seite für jeden Ort.
 - Die Abschnitte eines Ortes stehen oben auf der Seite, in einem Umschalter. Bibliothek hat keinen Umschalter: Sie öffnet sich mit vier Türen, und jede ihrer Seiten hat einen Link Bibliothek, der dorthin zurückführt.
 - Der Inspektor rechts zeigt das Element, das Sie auswählen.
 - Die Statusleiste unten zeigt das Projekt, den Sync-Status und die Commit-Steuerung, mit der Zahl der geänderten Dateien neben Commit.
-- Die obere Leiste enthält Zurück und Vorwärts, Synchronisieren, die Leiste Shipyard fragen oder beauftragen, die Schaltflächen Dateien und Terminal und das Kontomenü.
-  - Synchronisieren zeigt, um wie viele Commits Sie voraus und zurück sind.
-  - Shipyard fragen oder beauftragen ist die eine Leiste für eine Frage, einen Ort und eine Aktion. Drücken Sie Ctrl+K (Cmd+K auf einem Mac), um dorthin zu gehen. Gehe zu öffnet einen Ort, ein Projekt, ein Element oder ein Suchergebnis. Tun startet eine Aktion oder eine Anfrage für die Seite, die Sie sehen. Fragen Sie, was blockiert, was gestoppt ist oder was auf Sie wartet: Die Antwort nennt jedes Feature und gibt seine Aktion. Jeder andere Text geht mit der Eingabetaste an den Assistenten.
-  - Was auf Sie wartet, die Neuigkeiten und die aktiven Läufe und Sitzungen stehen in Heute. Ein Punkt an Heute im Menü zeigt ungelesene Neuigkeiten, und eine Markierung zeigt, dass ein Lauf oder eine Sitzung arbeitet.
-  - Das Kontomenü (Ihr Bild) enthält Einstellungen / Ich, Design (Hell, Dunkel, System), Anleitung, Tastenkürzel, Neuigkeiten und Tour wiederholen.
-- Der Assistent öffnet sich an der Seite. Stellen Sie ihm eine Frage zum Projekt. Jedes Gespräch ist ein Tab, und ein Punkt markiert einen Tab mit einer neuen Antwort.
-  - Unter dem Nachrichtenfeld hat eine Leiste die Schaltfläche zum Anhängen, eine Schaltfläche mit dem Modell und dem Aufwand (sie öffnet die Modelle des KI-Tools, die Aufwandsstufen und die Modelle der anderen KI-Tools), die Berechtigung, den Kontextring und Senden.
-  - Im Modus Agent ist die Berechtigung Bearbeiten mit Freigabe, Auto: Änderungen annehmen oder Berechtigungen umgehen. Berechtigungen umgehen überspringt jede Freigabe von Claude Code oder Codex: Shipyard fragt Sie beim ersten Mal in jedem Projekt, zeigt die Einstellung in Rot, solange sie aktiv ist, und lehnt sie in einem schreibgeschützten Projekt und bei ausgeschaltetem Agenten-Schalter ab.
-  - Tippen Sie `/` am Anfang einer Nachricht, um die Befehle des gewählten KI-Tools aufzulisten. Der Text geht so an das KI-Tool, wie Sie ihn getippt haben.
-  - Jedes Gespräch hält eine Agent-Sitzung, sodass eine spätere Nachricht die frühere Arbeit fortsetzt.
-- Wählen Sie in Einstellungen, dann Ich, die Seite der Leiste und der Schubladen, die Akzentfarbe, das Datumsformat, eine schmale obere Leiste und Ihr Bild.
+- Die obere Leiste enthält die Schaltfläche der Seitenleiste, Zurück und Vorwärts, den Projektnamen, den Branch mit seiner Sync-Markierung, die Leiste Shipyard fragen oder beauftragen, die Schaltflächen Dateien und Terminal und das Kontomenü.
+  - Der Projektname öffnet die Seite Projekte.
+  - Die Sync-Markierung zeigt den Zustand des Repositorys. Siehe die Seite Code, Synchronisieren.
+  - Shipyard fragen oder beauftragen ist die eine Leiste für eine Frage, einen Ort und eine Aktion. Siehe die Seite Die Fragen-Leiste.
+  - Das Kontomenü (Ihr Bild) enthält Einrichtung / Ich, Design (Hell, Dunkel, System), Anleitung, Tastenkürzel, Was ist neu und Tour wiederholen.
+- Unter 1100 px stehen die Schaltflächen Dateien und Terminal im Menü Mehr.
 
 Das Fenster öffnet sich in der Größe, in der Sie es geschlossen haben. Um die Daten der App neben der App zu halten (zum Beispiel auf einem USB-Stick), legen Sie eine leere Datei namens `portable` neben die App.
 
 ## Das Element der Menüleiste
 
-- Das Shipyard-Symbol steht in der Menüleiste (im Infobereich unter Windows und Linux). Ein Punkt auf dem Symbol heißt, dass etwas auf Sie wartet.
-- Ein Klick öffnet ein kleines Fenster: die Ausgaben von heute und des Monats, die aktiven Läufe mit Stoppen, die Zahl Wartet auf Sie mit den ersten Elementen, der Agenten-Schalter, der Sync-Status, das Projekt und Shipyard öffnen.
-- Das Fenster verlangt für jede Aktion, die schreibt, denselben Klick wie die App.
-- Schalten Sie das Element der Menüleiste in Einstellungen, dann Ich, aus.
+- Das Shipyard-Symbol steht in der Menüleiste (im Infobereich unter Windows und Linux).
+- Ein Klick öffnet ein kleines Feld: die Ausgaben von heute und des Monats, die aktiven Läufe mit Stoppen, was auf Sie wartet (dieselbe Liste wie in Heute), die Erinnerung an die Zeiterfassung, den Agenten-Schalter, den Sync-Status, das Projekt und Shipyard öffnen.
+- Das Feld verlangt für jede schreibende Aktion denselben Klick wie die App.
+- Schalten Sie das Element der Menüleiste in Einrichtung, dann Ich, aus.
+
+## Erster Start
+
+Die Seite des ersten Starts fragt nach Ihrer Rolle. Wählen Sie sie, dann klicken Sie auf Fortfahren. Öffnen Sie danach einen Ordner, klonen Sie ein Repository oder beginnen Sie ein neues Projekt. Ohne offenes Projekt zeigt jeder Ort dieselbe Auswahl. Siehe die Seite Projekte.
+
+In Heute nennt eine Liste Erste Schritte die nächsten Schritte der Reihe nach: Projekt, KI-Tool, Modelle, Ticketsystem, Code-Plattform, Team, Berechtigungen, erste Entscheidung, erste Spezifikation, erstes zugewiesenes Ticket und erster Lauf. Jeder Eintrag hat eine Aktion, die den echten nächsten Schritt nennt, etwa Installieren, Anmelden, Wählen oder Verbinden. Einrichtung / Start zeigt dieselben Schritte, eine Frage nach der anderen. In Heute verschwindet die Liste, wenn nichts mehr zu tun ist.
 
 ## Die Tour
 
 - Die Tour öffnet sich nicht beim ersten Start. Sie öffnet sich einmal, wenn Sie Ihr erstes Projekt öffnen. Sie hat sechs Schritte: der Kreislauf, ein Projekt öffnen, das Ticketsystem und die Code-Plattform verbinden, das KI-Tool wählen, die Berechtigungen und der erste Lauf auf einem Ticket.
-- Klicken Sie auf Weiter und Zurück, oder drücken Sie die Pfeiltasten links und rechts. Schließen beendet die Tour bei jedem Schritt. Sie öffnet sich nicht mehr von selbst.
-- Um sie noch einmal zu sehen, wählen Sie Tour wiederholen im Kontomenü oder im Menü Hilfe, oder tippen Sie Tour wiederholen in die Fragen-Leiste, oder gehen Sie zu Einstellungen, dann Ich, dann Berechtigungen.
+- Klicken Sie auf Weiter und Zurück, oder drücken Sie die Pfeiltasten Links und Rechts. Schließen beendet die Tour bei jedem Schritt. Sie öffnet sich nicht wieder von selbst.
+- Um sie erneut zu sehen, wählen Sie Tour wiederholen im Kontomenü oder im Menü Hilfe, oder tippen Sie Tour wiederholen in die Fragen-Leiste, oder gehen Sie zu Einrichtung, dann Dieser Computer, dann Berechtigungen.
 - Der letzte Schritt öffnet diese Anleitung.
 
 ## Berechtigungen
 
-Shipyard fragt nach einer Berechtigung des Systems erst, nachdem Sie auf Erlauben geklickt haben. Die Tour und Einstellungen / Ich zeigen jede mit ihrem Status: An, Aus, Nicht gefragt, Nicht nötig oder Unbekannt.
+Shipyard fragt erst nach einer Berechtigung des Systems, wenn Sie auf Erlauben klicken. Die Tour und Einrichtung / Dieser Computer zeigen jede mit ihrem Zustand: An, Aus, Nicht gefragt, Nicht nötig oder Unbekannt.
 
 | Berechtigung | macOS | Windows | Linux |
 |---|---|---|---|
-| Benachrichtigungen | Erlauben zeigt die Abfrage des Systems. Aus öffnet die Systemeinstellungen. | Test senden und Systemeinstellungen öffnen. | Test senden. |
-| Dokumente, Schreibtisch und Downloads | Erlauben lässt macOS nach jedem Ordner fragen. Aus öffnet Datenschutz & Sicherheit / Dateien und Ordner. | Nicht nötig. | Nicht nötig. |
+| Benachrichtigungen | Erlauben zeigt die Abfrage des Systems. Aus öffnet die Systemeinstellungen. | Test senden, und Systemeinstellungen öffnen. | Test senden. |
+| Dokumente, Schreibtisch und Downloads | Erlauben lässt macOS für jeden Ordner fragen. Aus öffnet Datenschutz & Sicherheit / Dateien und Ordner. | Nicht nötig. | Nicht nötig. |
 
-Shipyard fragt nicht nach Vollzugriff auf die Festplatte, der Kamera, dem Mikrofon oder dem Standort. Ein Projekt auf einem Wechsel- oder Netzwerkdatenträger erhält beim Öffnen die Abfrage von macOS.
-
-## Erster Start
-
-Die Seite des ersten Starts fragt nach Ihrer Rolle. Wählen Sie sie, dann klicken Sie auf Weiter. Öffnen Sie danach einen Ordner, klonen Sie ein Repository oder starten Sie ein neues Projekt. Ohne offenes Projekt zeigt jeder Bereich dieselbe Auswahl: Ordner öffnen, Repository klonen und Neues Projekt.
-
-In Start, dann Heute, nennt eine einzige Liste Erste Schritte die nächsten Schritte in dieser Reihenfolge: Projekt, KI-Tool, Modelle, Ticketsystem, Code-Plattform, Team, Berechtigungen, erste Entscheidung, erste Spezifikation, erstes zugewiesenes Ticket und erster Lauf. Jedes Element hat eine Aktion, die den echten nächsten Schritt nennt, zum Beispiel Installieren, Anmelden, Wählen oder Verbinden. Einstellungen / Ich zeigt dieselbe Karte. Unter Heute verschwindet sie, wenn nichts mehr zu tun ist.
-
-## Ein Projekt öffnen
-
-1. Gehen Sie zu Start, dann Projekte.
-2. Klicken Sie auf Lokalen Ordner öffnen und wählen Sie den Ordner Ihres Projekts. Oder erstellen Sie ein neues Projekt.
-3. Wenn der Ordner noch kein Projekt ist, klicken Sie auf Zum Projekt machen.
-
-## Sich zurechtfinden
-
-- Drücken Sie Ctrl+K (Cmd+K auf einem Mac), um zur Fragen-Leiste zu gehen. Tippen Sie den Namen einer Seite, eines Elements oder einer Aktion, dann nutzen Sie die Pfeiltasten und die Eingabetaste. Escape schließt sie.
-- Tippen Sie in der Fragen-Leiste ein paar Wörter, um den Text Ihrer Dokumente, Entscheidungen, Spezifikationen, Fragen, Tickets und Entwürfe zu durchsuchen. Groß- und Kleinschreibung und Akzente spielen keine Rolle („decision“ findet „décision“), jedes Wort muss passen, und das letzte Wort darf ein Anfang sein. Die Ergebnisse sind nach Art gruppiert, zeigen einen kurzen Auszug mit markierten Wörtern und stellen eine Seite, die viele Elemente zitieren, an die erste Stelle. Wählen Sie Den Assistenten fragen, um diese Elemente als Kontext in das Nachrichtenfeld des Assistenten zu legen. Nichts wird gesendet, bevor Sie senden. Das Dokument, das Sie aus einem Ergebnis öffnen, markiert die Wörter.
-- Die Listen in Entwurf und Wissen haben ein Feld Suchen, das die Liste mit derselben Suche filtert.
-- Drücken Sie Ctrl+1 bis Ctrl+7, um zu einem Ort zu gehen.
-- Gehen Sie zur Fragen-Leiste und wählen Sie Anleitung zu dieser Seite öffnen, um die Hilfe der Seite zu lesen, die Sie sehen.
-- Drücken Sie Ctrl+[ und Ctrl+] (Cmd auf einem Mac), oder klicken Sie in der oberen Leiste auf Zurück und Vorwärts, um zwischen den geöffneten Ansichten zu wechseln.
-- Drücken Sie F1, oder wählen Sie Anleitung im Kontomenü, um die Hilfe der Seite zu lesen, die Sie sehen.
-- Klicken Sie auf die Schaltfläche der Seitenleiste am linken Ende der oberen Leiste, um die Seitenleiste aus- oder einzublenden.
-- Unter 1100 px stehen die Schaltflächen Dateien und Terminal im Menü Mehr.
-- Klicken Sie auf die Schaltfläche Terminal, um die Terminal-Schublade zu öffnen oder zu schließen. Terminal und Anleitung sind keine Tabs. Die Fragen-Leiste und das Menü des Fensters behalten ihre Einträge.
-- Klicken Sie auf Synchronisieren, um zu synchronisieren. Klicken Sie auf den Pfeil daneben für Nur abrufen oder für Push.
-- Wenn ein Fehler eine Schaltfläche hat, die eine Einstellung öffnet, klicken Sie darauf. Die Seite öffnet sich genau an der Zeile, setzt den Fokus auf ihr Steuerelement und markiert es 2 Sekunden lang.
-- Halten Sie Ctrl (Cmd auf einem Mac) und drehen Sie das Mausrad auf einem Diagramm oder einem Bild, um zu zoomen. Ziehen Sie, um es zu verschieben. Nutzen Sie Vollbild für eine große Ansicht.
-- Drücken Sie Ctrl+= und Ctrl+-, um die Textgröße zu ändern, und Ctrl+0, um zu 16 px zurückzukehren. Einstellungen / Ich bietet dieselbe Auswahl.
-- Drücken Sie Ctrl+Shift+K, um alle Tastenkürzel zu sehen.
+Shipyard fragt nicht nach Festplattenvollzugriff, Kamera, Mikrofon oder Standort. Ein Projekt auf einem Wechsel- oder Netzlaufwerk erhält die Abfrage von macOS, wenn es sich öffnet.
 
 ## Ihre Rolle
 
-Wählen Sie in Einstellungen, dann Ich, Ihre Rolle. Die Rolle legt den Bereich fest, der zuerst öffnet. Ein Tech Lead startet in Flow. Eine Projektleitung startet in Flow.
+Wählen Sie in Einrichtung, dann Ich, Ihre Rolle. Die Rolle bestimmt die Seite, die sich zuerst öffnet, und die Felder in Heute. Siehe die Seite Team, Rechte.
+
+| Rolle | Erste Seite |
+|---|---|
+| Product Owner | Ablauf / Liste |
+| Projektleitung | Plan / Zeitplan |
+| Architekt | Bibliothek / Entscheidungen |
+| Tech Lead | Ablauf |
+| Business-Analyst | Bibliothek / Spezifikationen |
+| Entwickler | Ablauf |
+| Tester | Bibliothek / Testpläne |
+| Designer | Bibliothek / Bildschirme |
+| Leser | Heute |
+
+Wenn Ihre Rolle ihre erste Seite nicht sieht, öffnet sich Heute. Ohne Rolle öffnet sich Heute.
+
+## Sich zurechtfinden
+
+- Drücken Sie Ctrl+K (Cmd+K auf einem Mac), um zur Fragen-Leiste zu gehen. Tippen Sie den Namen einer Seite, eines Elements oder einer Aktion, dann nutzen Sie die Pfeiltasten und die Eingabetaste.
+- Drücken Sie Ctrl+1 bis Ctrl+7, um zu einem Ort zu gehen.
+- Drücken Sie F1, oder wählen Sie Anleitung im Kontomenü, oder wählen Sie Anleitung zu dieser Seite öffnen in der Fragen-Leiste, um die Hilfe zur Seite zu lesen, die Sie sehen. Die Anleitung öffnet sich auf der Seite des Ortes, beim Abschnitt, in dem Sie waren.
+- Drücken Sie Ctrl+[ und Ctrl+] (Cmd auf einem Mac), oder klicken Sie auf Zurück und Vorwärts in der oberen Leiste, um zwischen den geöffneten Seiten zu wechseln.
+- Klicken Sie auf die Schaltfläche der Seitenleiste am linken Ende der oberen Leiste, um die Seitenleiste aus- oder einzublenden.
+- Klicken Sie auf die Schaltfläche Terminal, um die Terminal-Schublade zu öffnen oder zu schließen.
+- Eine Adresse einer älteren Version funktioniert weiterhin: Sie öffnet die Seite, die dieselbe Funktion heute enthält.
+- Wenn ein Fehler eine Schaltfläche hat, die eine Einstellung öffnet, klicken Sie darauf. Die Seite öffnet sich in der genauen Zeile, setzt den Fokus auf ihr Bedienelement und markiert es 2 Sekunden lang.
+- Halten Sie Ctrl (Cmd auf einem Mac) und drehen Sie das Mausrad auf einem Diagramm oder einem Bild, um zu zoomen. Ziehen Sie, um es zu verschieben. Nutzen Sie Vollbild für eine große Ansicht.
+- Drücken Sie Ctrl+= und Ctrl+-, um die Textgröße zu ändern, und Ctrl+0, um zu 16 px zurückzukehren. Einrichtung / Ich hat dieselbe Auswahl.
+- Drücken Sie Ctrl+Shift+K, um alle Tastenkürzel zu sehen.
+- Jede Schaltfläche, jedes Feld und jeder Schalter ist 44 px hoch oder höher. Die Seiten funktionieren in einem Fenster von 960 mal 600 px ohne seitliches Scrollen.
 
 ## Standardmäßig sicher
 
@@ -91,12 +91,16 @@ Wählen Sie in Einstellungen, dann Ich, Ihre Rolle. Die Rolle legt den Bereich f
 
 | Begriff | Bedeutung |
 |---|---|
-| Referenz | Der Kurzname eines Elements, zum Beispiel `adr:0003` oder `wi:ACME-12`. Klicken Sie auf eine Referenz, um ihr Element zu öffnen. |
-| Ticketsystem | Das Tool, das die Tickets enthält: Jira, GitHub, GitLab, Azure DevOps oder Linear. |
-| Code-Plattform | Der Server, der den Code enthält: GitHub oder GitLab. |
-| Lauf | Ein Auftrag eines Agenten auf einem Ticket. |
+| Ort | Ein Eintrag der linken Leiste, etwa Ablauf oder Bibliothek. |
+| Funktion | Eine Sache, die gebaut wird. Ablauf zeigt sie einmal, mit ihrem Ticket, ihrer Spezifikation, der Arbeit des Agenten und ihrem Pull Request. |
+| Rezept | Die Schritte, denen ein Agent bei einer Funktion folgt: Plan, Arbeit, Prüfung, dann ein Pull Request. |
+| Team | Die Personen und die Agenten des Projekts. |
+| Ref | Der Kurzname eines Elements, etwa `adr:0003` oder `wi:ACME-12`. Klicken Sie auf eine Ref, um ihr Element zu öffnen. |
+| Ticketsystem | Das Werkzeug, das die Tickets hält: Jira, GitHub, GitLab, Azure DevOps oder Linear. |
+| Code-Plattform | Der Server, der den Code hält: GitHub oder GitLab. |
+| Lauf | Eine Aufgabe eines Agenten auf einem Ticket. |
 | Spezifikation | Ein Text, der sagt, was das Produkt tun muss. |
 | ADR | Ein Entscheidungsprotokoll: eine Entscheidung, ihre Optionen und ihre Gründe. |
-| MCP-Server | Ein Tool, das ein Agent aufrufen kann, zum Beispiel Jira oder Figma. |
+| MCP-Server | Ein Werkzeug, das ein Agent aufrufen kann, etwa Jira oder Figma. |
 
-Fahren Sie mit der Maus über ein markiertes Wort in der Liste, in der Tour oder auf einer leeren Seite, oder setzen Sie den Tastaturfokus darauf. Ein Satz erklärt es, mit einem Link zur Anleitung. Die markierten Wörter sind Ticketsystem, Code-Plattform, KI-Tool, Modell, Spezifikation, Entscheidung, Lauf und Pull Request.
+Fahren Sie mit der Maus über ein markiertes Wort in der Liste Erste Schritte, in der Tour oder auf einer leeren Seite, oder setzen Sie den Tastaturfokus darauf. Ein Satz erklärt es, mit einem Link zur Anleitung. Die markierten Wörter sind Ticketsystem, Code-Plattform, KI-Tool, Modell, Spezifikation, Entscheidung, Lauf und Pull Request.

@@ -1,0 +1,81 @@
+# Team
+
+Das Team sind die Personen und die Agenten des Projekts. Der Umschalter hat fünf Abschnitte: Team, Rezepte, Sitzungen, Ausgaben und Rechte. Der Agenten-Schalter steht im Kopf von Team, Sitzungen und Ausgaben: Aus stoppt jeden Agenten und verhindert neue Läufe.
+
+Team öffnet sich mit den Karten. Personen zeigt jede Person als Karte: die aktuelle Arbeit, die Auslastung, die Rolle, die Tage pro Woche und die Fähigkeiten. Agenten zeigt jede Agenten-Rolle mit ihrer aktuellen Arbeit. Die Seite zeigt auch die Ausgaben für offene Arbeit und die Rezepte.
+
+- Klicken Sie auf Mitglied, um eine Person hinzuzufügen. Klicken Sie auf eine Karte, um die Seite einer Person zu öffnen.
+- Geben Sie auf der Seite einer Person den Namen, das Kürzel, die E-Mails und die Konten des Ticketsystems und der Code-Plattform ein. Wählen Sie eine Rolle: Die Rechte der Rolle zeigen sich vor dem Speichern. Setzen Sie Admin für die Personen, die das Team verwalten. Aus dem Team entfernen steht auf derselben Seite.
+- Fügen Sie den Admin zuletzt hinzu: Ein Team mit einem Admin gibt die Rechte nur den Personen in der Datei.
+
+## Live
+
+Der Umschalter Karten und Live steht oben in Team. Live zeigt die Agenten bei der Arbeit. Jede Zeile zeigt einen Agenten, seine Funktion mit ihrem Zustand, und die Dateien und Specs, die der Agent liest und ändert. Der Filter ist Bei der Arbeit, Beendet, Dateien oder Specs. Fahren Sie über einen Agenten, um seine Ref zu sehen. Klicken Sie mit der rechten Maustaste, oder drücken Sie die Kontextmenü-Taste, um die Ref zu kopieren. Klicken Sie auf die Funktion, um ihre Seite zu öffnen.
+
+## Rezepte
+
+Ein Rezept ist die Liste der Schritte, denen ein Agent bei einer Funktion folgt. Rezepte listet die Rezepte und die Rollen der Agenten, jeweils als Karte mit den Namen ihrer Schritte. Klicken Sie auf eine Karte, um sie zu lesen oder zu ändern, dann speichern Sie. Eine fehlerhafte Datei zeigt ihren Fehler und ihre Zeile. Die letzte gute Version läuft weiter.
+
+Ein Rezept öffnet sich in einem Formular. Nutzen Sie Formular und Text, um zwischen dem Formular und dem YAML-Text zu wechseln. Beide bearbeiten dieselbe Datei.
+
+- Schritte: Jeder Schritt ist eine Karte mit den Gruppen Wer, Personen, Ablauf und Limits. Legen Sie die Rolle oder die Aktion, die Modellstufe, den Aufwand, den Modus, die Voraussetzungen, die Werkzeuge und den Prüfschritt jedes Schritts fest. Mehr zeigt die anderen Felder: Arbeitsbereich, für jedes, parallele Kinder, Wiederholungen, Zeitlimit, Budget, Skill, frischer Kontext und Prüfrunden. Fügen Sie einen Schritt hinzu, entfernen Sie ihn und schieben Sie ihn nach oben oder unten.
+- Limits: das Stillstands-Zeitlimit in Sekunden. Schalten Sie Budget ein, um jeden Lauf bei einem Betrag in USD zu stoppen, und Rundenlimit, um jeden Lauf nach einer Zahl von Runden zu pausieren. Beide sind standardmäßig aus.
+- Das Formular prüft das Rezept bei jeder Änderung. Speichern bleibt aus, solange es ein Problem zeigt.
+- Neu legt ein Rezept aus einer Vorlage an: feature, bug, spike, docs-update, review-only, spec-split oder bootstrap. Das Menü Weitere Aktionen des offenen Rezepts hat Duplizieren, Umbenennen und Löschen. Umbenennen und Löschen lehnen das Standardrezept des Projekts und ein Rezept ab, das ein Lauf nutzt. Löschen bittet um Bestätigung.
+- Ein Speichern aus dem Formular behält die Kommentarzeilen am Anfang der Datei. Nutzen Sie Text, um andere Kommentare zu behalten.
+- Ein externer Agent mit eingeschalteten Rezepte-Werkzeugen (Einrichtung / Dieser Computer, Externe Agenten) kann ein Rezept auflisten, lesen, prüfen und vorschlagen. Ein Vorschlag ändert die Datei nicht: Öffnen Sie das Rezept, lesen Sie den Diff, dann Anwenden oder Verwerfen.
+- Schreibt ohne Rückfrage listet die Erlaubnisse eines Rezepts (siehe die Seite Ablauf, Freigaben). Entfernen bittet um Bestätigung, dann speichert es für das ganze Team.
+
+## Sitzungen
+
+Sitzungen listet die Agenten-Sitzungen der Läufe und die Sitzungen auf diesem Computer. Ein Agent, der einen Pull Request prüft, Aufgaben schätzt oder eine Kachel baut, zeigt sich dort auch. Klicken Sie auf eine Lauf-Sitzung, um ihre Funktion bei diesem Schritt zu öffnen. Stoppen Sie eine Sitzung, die Sie nicht brauchen.
+
+## Ausgaben
+
+Ausgaben zeigt die Tokens und das Geld, die die Agenten verbraucht haben, pro Tag und pro Person, gegenüber den Budgets, und die Erfolgsquote der Läufe.
+
+- Budgets listet jeden festgelegten Betrag, mit eigenem Bearbeiten. Ohne festgelegtes Budget zeigt es das Formular. Klicken Sie auf einen Tag oder ein Mitglied, um das Formular zu füllen.
+- Klicken Sie auf einen Lauf, um seine Funktion zu öffnen.
+- Iterationen zählt die Anfragen, die jeder Lauf an das Modell gesendet hat.
+- Die Beträge zeigen sich standardmäßig. Schalten Sie Preise anzeigen aus, um sie zu verbergen: Eine Geld-Kachel zeigt dann die Token-Zahl. Die App merkt sich den Schalter für jedes Projekt.
+- Eine Warnung zeigt sich bei 80 Prozent eines Budgets.
+- Ein Lauf pausiert bei 100 Prozent. Erhöhen Sie das Budget, um fortzufahren.
+
+## Rechte
+
+Die Teamdatei `.shipyard/team.yaml` listet die Personen des Projekts, ihre Rolle und ihre Rechte. Team bearbeitet die Mitglieder, und Rechte zeigt die Rechte jeder Rolle. Ein Projekt ohne Teamdatei, oder ohne Admin, gibt jeder Person jedes Recht.
+
+### Rollen und Rechte
+
+Jedes Mitglied hat eine Rolle: Product Owner, Projektleitung, Architekt, Tech Lead, Business-Analyst, Entwickler, Tester, Designer oder Leser. Die Rolle gibt die Rechte, die erste Seite und die Felder in Heute (siehe Erste Schritte, Ihre Rolle).
+
+Ein Recht schaltet ein Bedienelement aus. Das Bedienelement bleibt sichtbar, und sein Tooltip nennt das fehlende Recht und Ihre Rolle. Ein Ort oder ein Abschnitt verschwindet nur, wenn das Team Ihrer Rolle keinen Zugriff darauf gibt.
+
+- `work.edit`: Tickets, die Liste, das Board, der Plan, Schätzungen, Zeit.
+- `specs.edit`: Spezifikationsänderungen, Spezifikationen, Fragen, Testpläne, Projektregeln.
+- `design.edit`: Diagramme, Entscheidungen, API, Daten, Netzwerkabläufe, Bildschirme.
+- `knowledge.edit`: Handbuch, Dokumente, Folien, Dashboards.
+- `code.write`: Commit, Push, Branch, einen Pull Request öffnen.
+- `code.merge`: einen Pull Request zusammenführen.
+- `runs.start`: einen Lauf starten, stoppen und fortsetzen.
+- `runs.approve`: freigeben, was ein Agent schreiben will, und seinen Plan.
+- `project.settings`: Einrichtung / Dieses Projekt, Automatisierung, Rezepte, Verbindungen, die Teamdatei.
+- `costs.view`: Geldbeträge.
+
+Admin gibt jedes Recht. Ein Mitglied kann Abweichungen haben: `+code.merge` fügt ein Recht hinzu, `-runs.approve` entfernt eines. Ihre persönliche Rolle in Einrichtung / Ich und das schreibgeschützte Profil eines Projekts können Rechte nur entfernen.
+
+### Wer Sie sind
+
+Shipyard findet Sie über das Konto einer angemeldeten Verbindung, dann über Ihre git-E-Mail. Rechte zeigt, wen es gefunden hat. Wenn die Teamdatei einen Admin hat und Sie nicht darin stehen, sind Sie Leser: Sie können lesen und nichts ändern. Füllen Sie Beitritt anfragen aus und senden Sie den kopierten Eintrag an einen Admin.
+
+### Die Rechte kommen vom Standard-Branch
+
+Wenn das Projekt ein Remote hat, liest Shipyard die Rechte aus der Teamdatei des Standard-Branches. Eine Änderung in Ihrer Arbeitskopie gibt kein Recht, bis sie zusammengeführt ist. Rechte warnt Sie, solange die beiden sich unterscheiden. Schützen Sie den Standard-Branch auf Ihrer Code-Plattform, und verlangen Sie ein Review für `.shipyard/team.yaml`: Shipyard kann eine Person nicht aufhalten, die Dateien mit einem anderen Werkzeug bearbeitet.
+
+### Die Rollen dieses Rechners übertragen
+
+Wenn dieser Rechner Rollen nach E-Mail hält, bietet Rechte an, sie als Mitglieder zu schreiben. Ein früherer fachlicher Leiter wird Product Owner. Ein früherer Junior wird Entwickler ohne `code.merge` und `runs.approve`. Die Seitenmodi der alten Profile entfallen, und die Liste zeigt jeden von ihnen. Eine Person mit `project.settings` bestätigt.
+
+### Audit
+
+Jeder Schreibvorgang, der ein Recht braucht, und jede Ablehnung fügen dem Audit-Protokoll auf Ihrem Rechner eine Zeile hinzu. Rechte zeigt einer Person mit `project.settings` die letzten 100 Zeilen.

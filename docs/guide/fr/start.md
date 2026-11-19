@@ -1,114 +1,106 @@
 # Démarrer
 
-Shipyard aide une équipe à livrer un projet logiciel : la conception, les spécifications, le travail, les agents, le code et les connaissances. Tout reste dans les fichiers du projet, donc l'équipe le partage avec git.
+Shipyard aide une équipe à livrer un projet logiciel : les fonctionnalités, le plan, les personnes et les agents, les spécifications, la conception et le code. Tout reste dans les fichiers du projet, donc l'équipe le partage avec git.
 
 ## La fenêtre
 
-- La barre de gauche contient les six lieux et Configuration : Aujourd'hui, Flux, Plan, Équipe, Bibliothèque, Code et Configuration. Chaque page d'avant se trouve dans un lieu, et son ancienne adresse l'ouvre toujours.
+- La barre de gauche contient les sept lieux : Aujourd'hui, Flux, Plan, Équipe, Bibliothèque, Code et Configuration. Ce mode d'emploi a une page pour chaque lieu.
 - Les sections d'un lieu sont en haut de la page, dans un seul sélecteur. Bibliothèque n'a pas de sélecteur : elle s'ouvre sur quatre portes, et chacune de ses pages a un lien Bibliothèque qui y revient.
 - L'inspecteur à droite montre l'élément que vous sélectionnez.
 - La barre d'état en bas montre le projet, l'état de la synchronisation et la commande de commit, avec le nombre de fichiers modifiés à côté de Commit.
-- La barre du haut contient Précédent et Suivant, Synchroniser, la barre Demander ou dire à Shipyard, les boutons Fichiers et Terminal et le menu du compte.
-  - Synchroniser montre de combien de commits vous êtes en avance et en retard.
-  - Demander ou dire à Shipyard est la seule barre pour une question, un lieu et une action. Appuyez sur Ctrl+K (Cmd+K sur Mac) pour y aller. Aller à ouvre un lieu, un projet, un élément ou un résultat de recherche. Faire lance une action ou une demande pour la page que vous voyez. Demandez ce qui bloque, ce qui s'est arrêté ou ce qui vous attend : la réponse nomme chaque fonctionnalité et donne son action. Tout autre texte part vers l'assistant quand vous appuyez sur Entrée.
-  - Ce qui vous attend, les nouvelles et les exécutions et sessions actives sont dans Aujourd'hui. Un point sur Aujourd'hui dans le menu marque des nouvelles non lues, et une marque d'activité s'affiche tant qu'une exécution ou une session travaille.
-  - Le menu du compte (votre photo) contient Réglages / Moi, Thème (Clair, Sombre, Système), Mode d'emploi, Raccourcis, Nouveautés et Revoir la visite.
-- L'assistant s'ouvre sur le côté. Posez-lui une question sur le projet. Chaque conversation est un onglet, et un point marque un onglet avec une nouvelle réponse.
-- Dans Réglages, puis Moi, choisissez le côté de la barre et des tiroirs, la couleur d'accent, le format des dates, une barre du haut étroite et votre photo.
+- La barre du haut contient le bouton de la barre latérale, Précédent et Suivant, le nom du projet, la branche avec sa marque de synchronisation, la barre Demander ou dire à Shipyard, les boutons Fichiers et Terminal et le menu du compte.
+  - Le nom du projet ouvre la page Projets.
+  - La marque de synchronisation montre l'état du dépôt. Voir la page Code, Synchroniser.
+  - Demander ou dire à Shipyard est la seule barre pour une question, un lieu et une action. Voir la page La barre Demander.
+  - Le menu du compte (votre image) contient Configuration / Moi, Thème (Clair, Sombre, Système), Mode d'emploi, Raccourcis, Nouveautés et Revoir la visite.
+- Sous 1100 px, les boutons Fichiers et Terminal sont dans le menu Plus.
 
 La fenêtre s'ouvre à la taille où vous l'avez fermée. Pour garder les données de l'application à côté de l'application (sur une clé USB, par exemple), placez un fichier vide nommé `portable` à côté de l'application.
 
 ## L'élément de la barre de menus
 
 - L'icône Shipyard est dans la barre de menus (la zone de notification sous Windows et Linux).
-- Un clic ouvre un petit panneau : la dépense du jour et du mois, les exécutions actives avec Arrêter, le nombre À traiter avec ses premiers éléments, l'interrupteur des agents, l'état de la synchronisation, le projet et Ouvrir Shipyard.
+- Un clic ouvre un petit panneau : les dépenses du jour et du mois, les exécutions actives avec Arrêter, ce qui vous attend (la même liste que dans Aujourd'hui), le rappel de saisie du temps, l'interrupteur des agents, l'état de la synchronisation, le projet et Ouvrir Shipyard.
 - Le panneau demande le même clic que l'application pour chaque action qui écrit.
-- Dans Réglages, puis Moi, désactivez l'élément de la barre de menus.
+- Dans Configuration, puis Moi, désactivez l'élément de la barre de menus.
+
+## Premier lancement
+
+La page du premier lancement demande votre rôle. Choisissez-le, puis cliquez sur Continuer. Ensuite, ouvrez un dossier, clonez un dépôt ou créez un projet. Sans projet ouvert, chaque lieu montre ce même choix. Voir la page Projets.
+
+Dans Aujourd'hui, une liste Pour commencer donne les prochaines étapes dans l'ordre : projet, outil d'IA, modèles, outil de suivi, hébergeur de code, équipe, autorisations, première décision, première spec, premier ticket attribué et première exécution. Chaque élément a une action qui nomme la vraie étape suivante, comme Installer, Se connecter, Choisir ou Connecter. Configuration / Démarrage montre les mêmes étapes, une question à la fois. Dans Aujourd'hui, la liste se masque quand il ne reste rien à faire.
 
 ## La visite
 
 - La visite ne s'ouvre pas au premier lancement. Elle s'ouvre une fois, quand vous ouvrez votre premier projet. Elle a six étapes : la boucle, ouvrir un projet, connecter l'outil de suivi et l'hébergeur de code, choisir l'outil d'IA, les autorisations, et la première exécution sur un ticket.
-- Cliquez sur Suivant et Retour, ou appuyez sur les flèches gauche et droite. Fermer arrête la visite à chaque étape. Elle ne s'ouvre plus d'elle-même.
+- Cliquez sur Suivant et Précédent, ou appuyez sur les flèches Gauche et Droite. Fermer termine la visite à toute étape. Elle ne s'ouvre plus d'elle-même.
 - Pour la revoir, choisissez Revoir la visite dans le menu du compte ou dans le menu Aide, ou tapez Revoir la visite dans la barre Demander, ou allez dans Configuration, puis Cet ordinateur, puis Autorisations.
-- La dernière étape ouvre ce manuel.
+- La dernière étape ouvre ce mode d'emploi.
 
 ## Autorisations
 
-Shipyard demande une autorisation du système seulement après un clic sur Autoriser. La visite et Configuration / Cet ordinateur montrent chacune avec son état : Activé, Désactivé, Pas demandé, Pas nécessaire ou Inconnu.
+Shipyard demande une autorisation du système seulement après votre clic sur Autoriser. La visite et Configuration / Cet ordinateur montrent chacune avec son état : Activé, Désactivé, Pas demandé, Pas nécessaire ou Inconnu.
 
 | Autorisation | macOS | Windows | Linux |
 |---|---|---|---|
-| Notifications | Autoriser affiche la demande du système. Désactivé ouvre les Réglages Système. | Envoyer un test, et Ouvrir les Réglages Système. | Envoyer un test. |
-| Documents, Bureau et Téléchargements | Autoriser laisse macOS demander chaque dossier. Désactivé ouvre Confidentialité et sécurité / Fichiers et dossiers. | Pas nécessaire. | Pas nécessaire. |
+| Notifications | Autoriser montre la demande du système. Désactivé ouvre les Réglages Système. | Envoyer un test, et Ouvrir les Réglages Système. | Envoyer un test. |
+| Documents, Bureau et Téléchargements | Autoriser laisse macOS demander pour chaque dossier. Désactivé ouvre Confidentialité et sécurité / Fichiers et dossiers. | Pas nécessaire. | Pas nécessaire. |
 
-Shipyard ne demande pas l'accès complet au disque, la caméra, le micro ni la position. Un projet sur un volume amovible ou réseau reçoit la demande de macOS à son ouverture.
-
-## Premier lancement
-
-La page du premier lancement demande votre rôle. Choisissez-le, puis cliquez sur Continuer. Ensuite, ouvrez un dossier, clonez un dépôt ou démarrez un nouveau projet. Quand aucun projet n'est ouvert, chaque espace montre ce même choix : Ouvrir un dossier, Cloner un dépôt et Nouveau projet.
-
-Dans Accueil, puis Aujourd'hui, une seule liste Pour commencer donne les prochaines étapes dans l'ordre : projet, outil d'IA, modèles, outil de suivi des tickets, hébergeur de code, équipe, autorisations, première décision, première spécification, premier ticket attribué et première exécution. Chaque élément a une action qui nomme la vraie étape suivante, comme Installer, Se connecter, Choisir ou Connecter. Configuration / Démarrage montre les mêmes étapes, une question à la fois. Dans Aujourd'hui, elle se masque quand il ne reste rien à faire.
-
-## Ouvrir un projet
-
-1. Cliquez sur le nom du projet dans la barre du haut, puis sur Projets.
-2. Cliquez sur Ouvrir un dossier local et choisissez le dossier de votre projet. Ou cliquez sur Nouveau projet (voir Nouveau projet ci-dessous).
-3. Quand le dossier n'est pas encore un projet, cliquez sur En faire un projet.
-
-## Nouveau projet
-
-Cliquez sur Nouveau projet sur la page Projets, ou sur la page du premier lancement ou la page sans projet. L'assistant a cinq étapes : Projet, Cahier, Équipe, Dépôt et Départ. Chaque étape a des valeurs par défaut. Créer est actif dès la première étape quand le nom et le dossier parent sont renseignés.
-
-1. Projet : le nom, la clé (tirée du nom, vous pouvez la modifier), le dossier parent et la pile : Node, Rust, Python, Java, Go ou Autre. La pile fixe les contrôles du fichier de projet et les règles d'exclusion de `.gitignore`. Le dossier doit être vide ou nouveau : Créer refuse un dossier qui contient des fichiers.
-2. Cahier : la vision, les utilisateurs et le périmètre, en texte que vous modifiez. Ils vont dans `docs/brief.md`. Choisissez aussi la langue des documents et la langue des pull requests. Les deux valent par défaut la langue de l'interface. Les agents écrivent les spécifications, les diagrammes, les documents et le texte des pull requests dans ces langues. Le code, les identifiants, les commentaires de code et les messages de commit restent en anglais.
-3. Équipe : vous êtes le premier membre, avec un rôle. Ajoutez ou retirez des membres avec un nom et un rôle.
-4. Dépôt : Local seulement (par défaut), une adresse distante existante, ou un nouveau dépôt privé sur une connexion d'hébergeur de code (GitHub ou GitLab). Un dépôt public n'est pas proposé. Choisissez aussi une connexion d'outil de suivi des tickets et son périmètre.
-5. Départ : la liste des fichiers que Créer écrit, avec leur texte. Rien n'est écrit avant votre clic sur Créer. Choisissez ensuite un démarrage :
-   - Une exécution Factory du workflow `bootstrap` : un plan qui attend votre approbation, une construction, une revue et une pull request. Elle demande une connexion d'hébergeur de code.
-   - Des tickets de départ : un ticket pour chaque ligne du périmètre. Vous voyez, modifiez et retirez chacun d'eux d'abord. Ils demandent une connexion d'outil de suivi des tickets. Shipyard crée les tickets seulement quand vous cliquez sur Créer les tickets, et un deuxième clic ne crée aucune copie.
-   - Plus tard.
-
-   Le choix par défaut est l'exécution quand c'est possible, sinon les tickets, sinon plus tard.
-
-Créer fait le dépôt, écrit les fichiers, fait le premier commit et ouvre le projet. Pour un nouveau dépôt, il crée ensuite le dépôt chez l'hébergeur de code, fixe `origin` et pousse. Quand l'hébergeur de code refuse, le projet local reste ouvert et l'erreur s'affiche.
-
-## Trouver son chemin
-
-- Appuyez sur Ctrl+K (Cmd+K sur Mac) pour aller à la barre Demander. Tapez le nom d'une page, d'un élément ou d'une action, puis utilisez les flèches et Entrée. Échap la ferme.
-- Dans la barre Demander, tapez quelques mots pour chercher dans le texte de vos documents, décisions, spécifications, questions, tickets et maquettes. Les majuscules et les accents ne comptent pas (« decision » trouve « décision »), chaque mot doit correspondre, et le dernier mot peut être un début. Les résultats se groupent par type, montrent un court extrait avec les mots marqués, et placent en premier une page que beaucoup d'éléments citent. Choisissez Demander à l'assistant pour mettre ces éléments comme contexte dans la zone de message de l'assistant. Rien n'est envoyé avant votre envoi. Le document que vous ouvrez depuis un résultat marque les mots.
-- Les listes de Design et de Connaissances ont une zone Rechercher qui filtre la liste avec la même recherche.
-- Appuyez sur Ctrl+1 à Ctrl+7 pour aller dans un lieu.
-- Allez à la barre Demander et choisissez Ouvrir le mode d'emploi de cette page pour lire l'aide de la page que vous voyez.
-- Appuyez sur Ctrl+[ et Ctrl+] (Cmd sur Mac), ou cliquez sur Précédent et Suivant dans la barre du haut, pour passer d'une vue ouverte à l'autre.
-- Appuyez sur F1, ou choisissez Mode d'emploi dans le menu du compte, pour lire l'aide de la page que vous voyez.
-- Cliquez sur le bouton de la barre latérale, au bout gauche de la barre du haut, pour masquer ou montrer la barre latérale.
-- Sous 1100 px, les boutons Fichiers et Terminal sont dans le menu Plus.
-- Cliquez sur le bouton Terminal pour ouvrir ou fermer le tiroir du terminal. Terminal et Mode d'emploi ne sont pas des onglets. La barre Demander et le menu de la fenêtre gardent leurs entrées.
-- Cliquez sur la flèche à côté de Synchroniser pour Récupérer seulement ou pour Envoyer.
-- Maintenez Ctrl (Cmd sur Mac) et tournez la molette de la souris sur un diagramme ou une image pour zoomer. Faites glisser pour la déplacer. Utilisez Plein écran pour une grande vue.
-- Appuyez sur Ctrl+= et Ctrl+- pour changer la taille du texte, et sur Ctrl+0 pour revenir à 16 px. Réglages / Moi offre le même choix.
-- Appuyez sur Ctrl+Maj+K pour voir tous les raccourcis clavier.
+Shipyard ne demande pas l'accès complet au disque, la caméra, le micro ni la position. Un projet sur un volume amovible ou réseau reçoit la demande de macOS quand il s'ouvre.
 
 ## Votre rôle
 
-Dans Réglages, puis Moi, choisissez votre rôle. Le rôle fixe l'espace qui s'ouvre en premier. Un responsable technique commence dans Flux. Un chef de projet commence dans Flux.
+Dans Configuration, puis Moi, choisissez votre rôle. Le rôle fixe la page qui s'ouvre en premier et les panneaux d'Aujourd'hui. Voir la page Équipe, Droits.
+
+| Rôle | Première page |
+|---|---|
+| Responsable produit | Flux / Liste |
+| Chef de projet | Plan / Calendrier |
+| Architecte | Bibliothèque / Décisions |
+| Responsable technique | Flux |
+| Analyste métier | Bibliothèque / Spécifications |
+| Développeur | Flux |
+| Testeur | Bibliothèque / Plans de test |
+| Designer | Bibliothèque / Écrans |
+| Lecteur | Aujourd'hui |
+
+Quand votre rôle ne voit pas sa première page, Aujourd'hui s'ouvre. Sans rôle, Aujourd'hui s'ouvre.
+
+## Trouver son chemin
+
+- Appuyez sur Ctrl+K (Cmd+K sur un Mac) pour aller à la barre Demander. Tapez le nom d'une page, d'un élément ou d'une action, puis utilisez les flèches et Entrée.
+- Appuyez sur Ctrl+1 à Ctrl+7 pour aller à un lieu.
+- Appuyez sur F1, ou choisissez Mode d'emploi dans le menu du compte, ou choisissez Ouvrir le mode d'emploi de cette page dans la barre Demander, pour lire l'aide de la page que vous voyez. Le mode d'emploi s'ouvre sur la page du lieu, à la section où vous étiez.
+- Appuyez sur Ctrl+[ et Ctrl+] (Cmd sur un Mac), ou cliquez sur Précédent et Suivant dans la barre du haut, pour passer d'une page ouverte à l'autre.
+- Cliquez sur le bouton de la barre latérale, au bout gauche de la barre du haut, pour masquer ou afficher la barre latérale.
+- Cliquez sur le bouton Terminal pour ouvrir ou fermer le tiroir du terminal.
+- Une adresse d'une version plus ancienne marche encore : elle ouvre la page qui contient la même fonction aujourd'hui.
+- Quand une erreur a un bouton qui ouvre un réglage, cliquez dessus. La page s'ouvre sur la ligne exacte, place le focus sur sa commande et la marque pendant 2 secondes.
+- Maintenez Ctrl (Cmd sur un Mac) et tournez la molette sur un diagramme ou une image pour zoomer. Faites glisser pour le déplacer. Utilisez Plein écran pour une grande vue.
+- Appuyez sur Ctrl+= et Ctrl+- pour changer la taille du texte, et sur Ctrl+0 pour revenir à 16 px. Configuration / Moi a le même choix.
+- Appuyez sur Ctrl+Maj+K pour voir tous les raccourcis clavier.
+- Chaque bouton, champ et interrupteur fait 44 px de haut ou plus. Les pages marchent dans une fenêtre de 960 par 600 px sans défilement horizontal.
 
 ## Sûr par défaut
 
-- L'application n'envoie jamais un changement à un outil de suivi des tickets ou à un hébergeur de code sans votre clic.
+- L'application n'envoie jamais un changement à un outil de suivi ou à un hébergeur de code sans votre clic.
 - Un jeton va dans le trousseau de votre ordinateur. L'application ne le montre plus jamais.
-- Un projet avec un profil en lecture seule n'accepte aucun changement.
+- Un projet avec un profil en lecture seule ne prend aucun changement.
 
 ## Les mots
 
 | Mot | Sens |
 |---|---|
+| Lieu | Une entrée de la barre de gauche, comme Flux ou Bibliothèque. |
+| Fonctionnalité | Une chose à construire. Flux la montre une fois, avec son ticket, sa spec, le travail de l'agent et sa pull request. |
+| Recette | Les étapes qu'un agent suit sur une fonctionnalité : plan, travail, revue, puis une pull request. |
+| Équipe | Les personnes et les agents du projet. |
 | Réf | Le nom court d'un élément, comme `adr:0003` ou `wi:ACME-12`. Cliquez sur une réf pour ouvrir son élément. |
-| Outil de suivi des tickets | L'outil qui contient les tickets : Jira, GitHub, GitLab, Azure DevOps ou Linear. |
+| Outil de suivi | L'outil qui contient les tickets : Jira, GitHub, GitLab, Azure DevOps ou Linear. |
 | Hébergeur de code | Le serveur qui contient le code : GitHub ou GitLab. |
 | Exécution | Un travail d'un agent sur un ticket. |
-| Spécification | Un texte qui dit ce que le produit doit faire. |
-| ADR | Une fiche de décision : une décision, ses options et ses raisons. |
+| Spec | Un texte qui dit ce que le produit doit faire. |
+| ADR | Un relevé de décision : une décision, ses options et ses raisons. |
 | Serveur MCP | Un outil qu'un agent peut appeler, comme Jira ou Figma. |
 
-Survolez un mot marqué dans la liste, dans la visite ou sur une page vide, ou placez le focus clavier dessus. Une phrase l'explique, avec un lien vers le mode d'emploi. Les mots marqués sont outil de suivi des tickets, hébergeur de code, outil d'IA, modèle, spécification, décision, exécution et pull request.
+Survolez un mot marqué dans la liste Pour commencer, dans la visite ou sur une page vide, ou placez-y le focus du clavier. Une phrase l'explique, avec un lien vers le mode d'emploi. Les mots marqués sont outil de suivi, hébergeur de code, outil d'IA, modèle, spec, décision, exécution et pull request.
