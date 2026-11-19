@@ -46,6 +46,9 @@ export const knowledgeEn = {
 		callees: "What it calls",
 		file: "File",
 		symbol: "Symbol",
+		function: "Function",
+		openEditor: "Open in the editor",
+		uses: "Specs and decisions that use it",
 		folder: "Folder",
 	},
 	handbook: {
@@ -298,6 +301,9 @@ export const knowledgeFr: typeof knowledgeEn = {
 		callees: "Ce qu'il appelle",
 		file: "Fichier",
 		symbol: "Symbole",
+		function: "Fonction",
+		openEditor: "Ouvrir dans l'éditeur",
+		uses: "Specs et décisions qui l'utilisent",
 		folder: "Dossier",
 	},
 	handbook: {

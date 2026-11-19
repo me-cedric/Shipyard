@@ -27,7 +27,7 @@ import { SavedActions } from "./export-menu";
 import { useReports } from "./reports-page";
 
 const FIELD = "w-56 flex-none";
-const SHORT = "w-44 flex-none";
+const SHORT = "w-44 flex-none font-semibold";
 
 /** One row of a form: the name of the field, then its control. */
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -272,10 +272,10 @@ export function ReportForm() {
 			back={<BackLink label={title} render={(p) => <Link to="/library/reports" {...p} />} />}
 		>
 			<PageColumns>
-				<DetailColumn>
+				<DetailColumn className="min-w-80 flex-[690_1_0px]">
 					<Form />
 				</DetailColumn>
-				<SideCards>
+				<SideCards className="min-w-80 flex-[460_1_0px]">
 					{others.length ? (
 						<LinkedCard title={r.askFirst}>
 							{others.map(({ item }) => (

@@ -47,6 +47,9 @@ export const knowledgeEs: typeof knowledgeEn = {
 		callees: "Qué llama",
 		file: "Archivo",
 		symbol: "Símbolo",
+		function: "Función",
+		openEditor: "Abrir en el editor",
+		uses: "Specs y decisiones que lo usan",
 		folder: "Carpeta",
 	},
 	handbook: {

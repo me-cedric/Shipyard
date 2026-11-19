@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { OpenInEditor } from "@/features/code/open-in-editor";
 import { DetailColumn, LinkedCard, PageColumns, SideCards } from "@/features/library/page-parts";
+import { useEditors } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
-import type { CodeGraph_Serialize, KGraph_Serialize } from "@/lib/ipc";
+import { type CodeGraph_Serialize, commands, type KGraph_Serialize, unwrap } from "@/lib/ipc";
 import { useCodeFocus } from "@/lib/knowledge";
 import { copyText } from "@/lib/menus";
 import { useShell } from "@/lib/shell";
@@ -11,6 +11,7 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Chip } from "@/ui/atoms/chip";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { folderClusters } from "./graph-clusters";
 
@@ -20,21 +21,26 @@ const GROUP = "flex flex-col gap-3.5 rounded-[24px] bg-n-4 p-5";
 const WHITE = "bg-surface-2";
 const LINKED = "outline-2 outline-accent";
 
+/** The row of a card of links: the whole width, so that the line between two rows is full. */
+const WIDE = "w-full text-left";
+
 /** The map of the knowledge: one light card for each kind, and the card of the chosen item beside. */
 export function KnowledgeMap({
 	graph,
 	focus,
+	only,
 }: {
 	graph: KGraph_Serialize;
 	/** The item that "Open in the map" asked for. */
 	focus: string | null;
+	/** The filter of the More menu of the page: only the orphans or only the stale items. */
+	only: "orphan" | "stale" | null;
 }) {
 	const { t } = useI18n();
 	const k = t.knowledge;
 	const { openRef, explain } = useShell();
 	const kindNames = t.refKind as Record<string, string>;
 	const [picked, setPicked] = useState<string | null>(null);
-	const [only, setOnly] = useState<"orphan" | "stale" | null>(null);
 	const [open, setOpen] = useState<string[]>([]);
 	const nodes = only ? graph.nodes.filter((n) => n[only]) : graph.nodes;
 	const groups = new Map<string, typeof nodes>();
@@ -47,32 +53,17 @@ export function KnowledgeMap({
 			)
 		: [];
 	const near = [...new Set(linked)].flatMap((ref) => graph.nodes.find((n) => n.ref === ref) ?? []);
-	const flags = (["orphan", "stale"] as const).filter((f) => graph.nodes.some((n) => n[f]));
 	return (
 		<>
-			{flags.length ? (
-				<fieldset aria-label={k.graph.only} className="m-0 flex flex-wrap gap-2 border-0 p-0">
-					{flags.map((f) => (
-						<Chip
-							key={f}
-							selected={only === f}
-							className={only === f ? undefined : WHITE}
-							onClick={() => setOnly(only === f ? null : f)}
-						>
-							{k.graph[f]}
-						</Chip>
-					))}
-				</fieldset>
-			) : null}
 			<PageColumns>
 				<DetailColumn className="grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-4">
 					{[...groups].map(([kind, members]) => {
 						const name = kindNames[kind] ?? kind;
 						const all = open.includes(kind) || members.length <= FIRST + 1;
-						// The chosen item always shows, also past the first chips.
+						// The chosen item and its links always show, also past the first chips.
 						const shown = all
 							? members
-							: members.filter((m, i) => i < FIRST || m.ref === chosen?.ref);
+							: members.filter((m, i) => i < FIRST || m.ref === chosen?.ref || near.includes(m));
 						return (
 							<section key={kind} data-map-group aria-label={name} className={GROUP}>
 								<h2 className="text-17 font-semibold text-n-12">{name}</h2>
@@ -129,6 +120,7 @@ export function KnowledgeMap({
 								{near.map((n) => (
 									<Row
 										key={n.ref}
+										className={WIDE}
 										render={(p) => <button type="button" onClick={() => setPicked(n.ref)} {...p} />}
 									>
 										<Badge>{kindNames[n.kind] ?? n.kind}</Badge>
@@ -164,11 +156,19 @@ export function CodeMap({
 	file: string | null;
 	onFile: (file: string | null) => void;
 }) {
-	const k = useI18n().t.knowledge;
+	const { t } = useI18n();
+	const k = t.knowledge;
 	const { openRef, explain } = useShell();
+	const editor = useEditors().data?.[0];
+	const [editorError, setEditorError] = useState<unknown>(null);
+	const [orphans, setOrphans] = useState(false);
 	const [folder, setFolder] = useState<string | null>(null);
 	const [symbol, setSymbol] = useState<string | null>(null);
-	const folders = folderClusters(graph.nodes);
+	// A file that no call reaches or leaves.
+	const linkedFiles = new Set(graph.edges.flatMap((e) => [e.source, e.target]));
+	const folders = folderClusters(
+		orphans ? graph.nodes.filter((n) => !linkedFiles.has(n.ref)) : graph.nodes,
+	);
 	const at =
 		folders.find((f) => f.key === folder) ??
 		folders.find((f) => f.members.some((m) => m.ref === file)) ??
@@ -196,6 +196,7 @@ export function CodeMap({
 				{list.map((n) => (
 					<Row
 						key={n.ref}
+						className={WIDE}
 						render={(p) => <button type="button" onClick={() => pick(n.ref)} {...p} />}
 					>
 						<span className="min-w-0 font-mono text-14 font-semibold">{n.title}</span>
@@ -207,99 +208,131 @@ export function CodeMap({
 			</LinkedCard>
 		) : null;
 	const target = chosen ?? graph.nodes.find((n) => n.ref === current);
+	// The symbols that the chosen symbol calls or that call it get the blue outline.
+	const near = new Set(
+		[...ends("target", "source"), ...ends("source", "target")].map((n) => n.ref),
+	);
 	return (
-		<PageColumns>
-			<DetailColumn>
-				{at ? (
-					<section aria-label={at.key} className={GROUP}>
-						<h2 className="text-17 font-semibold text-n-12">{at.key}</h2>
-						<div className="flex flex-wrap items-start gap-3">
-							{at.members.map((m) =>
-								m.ref === current ? (
-									<Card key={m.ref} className="flex flex-[1_1_240px] flex-col gap-2.5 p-4">
-										<span className="break-all font-mono text-14 font-semibold">{m.ref}</span>
-										<fieldset
-											aria-label={`${k.graph.symbol}: ${base(m.ref)}`}
-											className="m-0 flex flex-wrap gap-2 border-0 p-0"
+		<>
+			<fieldset aria-label={k.graph.only} className="m-0 flex flex-wrap gap-2 border-0 p-0">
+				<Chip
+					selected={orphans}
+					className={orphans ? undefined : WHITE}
+					onClick={() => setOrphans(!orphans)}
+				>
+					{k.graph.orphan}
+				</Chip>
+			</fieldset>
+			<PageColumns>
+				<DetailColumn>
+					{at ? (
+						<section aria-label={at.key} className={GROUP}>
+							<h2 className="text-17 font-semibold text-n-12">{at.key}</h2>
+							<div className="flex flex-wrap items-start gap-3">
+								{at.members.map((m) =>
+									m.ref === current ? (
+										<Card key={m.ref} className="flex flex-[1_1_240px] flex-col gap-2.5 p-4">
+											<span className="break-all font-mono text-14 font-semibold">{m.ref}</span>
+											<fieldset
+												aria-label={`${k.graph.symbol}: ${base(m.ref)}`}
+												className="m-0 flex flex-wrap gap-2 border-0 p-0"
+											>
+												{symbols
+													.filter((n) => n.location === current)
+													.map((n) => (
+														<Chip
+															key={n.ref}
+															selected={n.ref === chosen?.ref}
+															className={cn("font-mono text-14", near.has(n.ref) && LINKED)}
+															onClick={() => setSymbol(n.ref)}
+														>
+															{n.title}
+														</Chip>
+													))}
+											</fieldset>
+										</Card>
+									) : (
+										<Chip
+											key={m.ref}
+											className={cn(WHITE, "font-mono text-14")}
+											aria-label={`${k.graph.file} ${m.ref}`}
+											onClick={() => {
+												setSymbol(null);
+												onFile(m.ref);
+											}}
 										>
-											{symbols
-												.filter((n) => n.location === current)
-												.map((n) => (
-													<Chip
-														key={n.ref}
-														selected={n.ref === chosen?.ref}
-														className="font-mono text-14"
-														onClick={() => setSymbol(n.ref)}
-													>
-														{n.title}
-													</Chip>
-												))}
-										</fieldset>
-									</Card>
-								) : (
-									<Chip
-										key={m.ref}
-										className={cn(WHITE, "font-mono text-14")}
-										aria-label={`${k.graph.file} ${m.ref}`}
-										onClick={() => {
-											setSymbol(null);
-											onFile(m.ref);
-										}}
-									>
-										{base(m.ref)}
-									</Chip>
-								),
-							)}
-						</div>
-					</section>
-				) : null}
-				<div className="grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-3.5">
-					{folders
-						.filter((f) => f !== at)
-						.map((f) => (
-							<button
-								key={f.id}
-								type="button"
-								aria-label={`${k.graph.folder} ${f.key}`}
-								className="flex min-h-control cursor-pointer flex-col gap-3 rounded-lg bg-n-4 p-4.5 text-left text-n-12"
-								onClick={() => {
-									setFolder(f.key);
-									setSymbol(null);
-									onFile(null);
-								}}
-							>
-								<span className="break-all text-17 font-semibold">{f.key}</span>
-								<span className="text-n-10">
-									{format(k.graph.files, { count: f.members.length })}
-								</span>
-							</button>
-						))}
-				</div>
-			</DetailColumn>
-			{target ? (
-				<SideCards className="flex-[2_1_300px]">
-					<Card pad>
-						<section aria-label={k.graph.chosen} className="flex flex-col gap-3.5">
-							<Badge variant="accent" className="self-start">
-								{chosen ? k.graph.symbol : k.graph.file}
-							</Badge>
-							<h2 className="break-all font-mono text-30 font-semibold text-n-12">
-								{chosen ? chosen.title : base(target.ref)}
-							</h2>
-							<span className="break-all font-mono text-14 text-n-10">{target.location}</span>
-							<div className="flex flex-wrap gap-2.5">
-								<Button variant="primary" onClick={() => explain(`code:${target.ref}`)}>
-									{k.explain}
-								</Button>
-								<Button onClick={() => openRef(`code:${target.ref}`)}>{k.graph.open}</Button>
-								{target.location ? <OpenInEditor path={target.location} /> : null}
+											{base(m.ref)}
+										</Chip>
+									),
+								)}
 							</div>
 						</section>
-					</Card>
-					{chosen ? calls(k.graph.callers, ends("target", "source")) : null}
-					{chosen ? calls(k.graph.callees, ends("source", "target")) : null}
-				</SideCards>
-			) : null}
-		</PageColumns>
+					) : null}
+					<div className="grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-3.5">
+						{folders
+							.filter((f) => f !== at)
+							.map((f) => (
+								<button
+									key={f.id}
+									type="button"
+									aria-label={`${k.graph.folder} ${f.key}`}
+									className="flex min-h-control cursor-pointer flex-col gap-3 rounded-lg bg-n-4 p-4.5 text-left text-n-12"
+									onClick={() => {
+										setFolder(f.key);
+										setSymbol(null);
+										onFile(null);
+									}}
+								>
+									<span className="break-all text-17 font-semibold">{f.key}</span>
+									<span className="text-n-10">
+										{format(k.graph.files, { count: f.members.length })}
+									</span>
+								</button>
+							))}
+					</div>
+				</DetailColumn>
+				{target ? (
+					<SideCards className="flex-[2_1_300px]">
+						<Card pad>
+							<section aria-label={k.graph.chosen} className="flex flex-col gap-3.5">
+								<Badge variant="accent" className="self-start">
+									{chosen ? (chosen.status ?? k.graph.function) : k.graph.file}
+								</Badge>
+								<h2 className="break-all font-mono text-14 font-semibold text-n-12">
+									{chosen ? chosen.title : base(target.ref)}
+								</h2>
+								<span className="break-all font-mono text-14 text-n-10">{target.location}</span>
+								<div className="flex flex-wrap gap-2.5">
+									<Button variant="primary" onClick={() => explain(`code:${target.ref}`)}>
+										{k.explain}
+									</Button>
+									{editor && target.location ? (
+										<Button
+											title={format(t.forge.editor.openIn, { name: editor.name })}
+											onClick={async () => {
+												try {
+													setEditorError(null);
+													await unwrap(commands.editorOpen(editor.id, target.location ?? "", null));
+												} catch (e) {
+													setEditorError(e);
+												}
+											}}
+										>
+											{k.graph.openEditor}
+										</Button>
+									) : null}
+								</div>
+								<ErrorNotice error={editorError} />
+							</section>
+						</Card>
+						{chosen ? calls(k.graph.callers, ends("target", "source")) : null}
+						{chosen ? calls(k.graph.callees, ends("source", "target")) : null}
+						<Button className="w-full" onClick={() => openRef(`code:${target.ref}`)}>
+							{k.graph.uses}
+						</Button>
+					</SideCards>
+				) : null}
+			</PageColumns>
+		</>
 	);
 }

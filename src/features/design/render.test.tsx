@@ -320,7 +320,7 @@ describe("Design / Architecture", () => {
 		await waitFor(() => expect(view).toHaveTextContent("shipyard = system"));
 		await user.type(text, "{Control>}{End}{/Control}\nBAD line");
 		const alert = await screen.findByRole("alert");
-		expect(alert).toHaveTextContent(/Line 15/);
+		expect(alert).toHaveTextContent(/Line 14/);
 		expect(alert).toHaveTextContent("Unexpected token");
 		expect(screen.getByTestId("error-line")).toBeInTheDocument();
 		// The render still shows the last good text.

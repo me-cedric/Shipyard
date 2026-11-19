@@ -342,8 +342,8 @@ function List({
 								{rows.map((r) => {
 									const [from, to] = ends(r);
 									return (
-										<tr key={r.id}>
-											<td className="py-1.5">
+										<tr key={r.id} className="border-t border-n-6">
+											<td className="w-[28%] py-2.5">
 												<span className="flex min-h-control items-center rounded-md bg-n-3 px-3.5 font-semibold">
 													{from}
 												</span>
@@ -351,7 +351,7 @@ function List({
 											<td aria-hidden="true" className="px-0">
 												<span className="block h-0.5 bg-accent" />
 											</td>
-											<td className="py-1.5">
+											<td className="w-[28%] py-2.5">
 												<span
 													className={cn(
 														"flex min-h-control items-center rounded-md bg-n-3 px-3.5 font-semibold",
@@ -365,7 +365,7 @@ function List({
 											<td aria-hidden="true" className="px-0">
 												<span className="block h-0.5 bg-accent" />
 											</td>
-											<td className="py-1.5">
+											<td className="py-2.5">
 												{r.note || r.name || [r.protocol, r.port].filter(Boolean).join(" ")}
 											</td>
 										</tr>
@@ -386,7 +386,7 @@ function List({
 						>
 							<span />
 							{tos.map((h) => (
-								<span key={h} className="break-all font-mono text-13 text-n-11">
+								<span key={h} title={h} className="truncate font-mono text-12 text-n-11">
 									{h}
 								</span>
 							))}

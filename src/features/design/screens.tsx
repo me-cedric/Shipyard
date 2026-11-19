@@ -178,8 +178,13 @@ function ScreenTile({
 			</span>
 			<span className="max-w-full break-words text-17 font-semibold">{screen.title}</span>
 			<span className="flex flex-wrap gap-1.5">
-				{screen.broken ? <Badge variant="danger">{t.design.screens.broken}</Badge> : null}
-				<Badge variant={built ? "success" : undefined}>{built ? p.built : p.notBuilt}</Badge>
+				<Badge
+					variant={built ? "success" : undefined}
+					title={screen.broken ? t.design.screens.broken : undefined}
+				>
+					{built ? p.built : p.notBuilt}
+					{screen.broken ? <span className="sr-only">, {t.design.screens.broken}</span> : null}
+				</Badge>
 			</span>
 		</button>
 	);
@@ -207,7 +212,7 @@ function TokenCards({ onAll }: { onAll: () => void }) {
 				<LinkedCard title={p.colours}>
 					<ul>
 						{colours.map((x) => (
-							<li key={x.name}>
+							<li key={x.name} className="[&+&]:border-t [&+&]:border-n-6">
 								<Row>
 									<span
 										aria-hidden="true"
@@ -225,7 +230,7 @@ function TokenCards({ onAll }: { onAll: () => void }) {
 			<LinkedCard title={p.typeSizes}>
 				<ul>
 					{sizes.map((x) => (
-						<li key={x.name}>
+						<li key={x.name} className="[&+&]:border-t [&+&]:border-n-6">
 							<Row>
 								<span
 									aria-hidden="true"
@@ -240,9 +245,11 @@ function TokenCards({ onAll }: { onAll: () => void }) {
 						</li>
 					))}
 				</ul>
-				<Row render={(rp) => <button type="button" onClick={onAll} {...rp} />}>
-					<span className="font-semibold text-accent-text">{p.allTokens}</span>
-				</Row>
+				<div className="border-t border-n-6">
+					<Row render={(rp) => <button type="button" onClick={onAll} {...rp} />}>
+						<span className="font-semibold text-accent-text">{p.allTokens}</span>
+					</Row>
+				</div>
 			</LinkedCard>
 		</SideCards>
 	);
@@ -346,6 +353,8 @@ export function Screens() {
 	// The detail opens on a pick, not before: the cards show none selected at first.
 	const [opened, setOpened] = useState<string | null>(null);
 	const open = screens.find((s) => `screen:${s.slug}` === opened);
+	// "Design to code" works on the open screen, else on the first one.
+	const target = open ?? screens[0];
 	return (
 		<DesignGate title={t.tabs.design.screens}>
 			<LibraryPage
@@ -365,8 +374,8 @@ export function Screens() {
 						</RightButton>
 						<Button
 							variant="primary"
-							disabled={!open}
-							onClick={() => open && page.pick(`screen:${open.slug}`)}
+							disabled={!target}
+							onClick={() => target && page.pick(`screen:${target.slug}`)}
 						>
 							{p.toCode}
 						</Button>

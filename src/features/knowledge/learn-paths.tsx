@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ColumnDef } from "@tanstack/react-table";
 import { useId, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
@@ -12,6 +11,7 @@ import {
 } from "@/lib/ipc";
 import { RightButton, RightIconButton } from "@/lib/rights";
 import { useTeam } from "@/lib/work";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Checkbox } from "@/ui/atoms/checkbox";
@@ -21,7 +21,6 @@ import { Progress } from "@/ui/atoms/progress";
 import { Select } from "@/ui/atoms/select";
 import { LinkIcon, PencilIcon, PlusIcon, TrashIcon, XMarkIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { DataTable } from "@/ui/organisms/data-table";
 import { LearnCard, learningKey, openAddress } from "./learn-feeds";
 
 const KINDS: StepKind[] = ["course", "certification", "reading"];
@@ -182,32 +181,26 @@ export function LearnPaths({ part }: { part: "paths" | "team" }) {
 			<>
 				{paths.length && people.length ? (
 					<LearnCard title={k.team}>
-						<DataTable
-							label={k.team}
-							data={people}
-							rowId={(m) => m.handle}
-							columns={[
-								{
-									id: "person",
-									header: k.person,
-									accessorFn: (m) => m.name,
-									meta: { rowHeader: true, wrap: true },
-								},
-								...paths.map<ColumnDef<(typeof people)[number]>>((p) => ({
-									id: p.id,
-									header: p.title,
-									cell: ({ row }) => (
-										<span className="font-mono text-12 text-n-11">
-											{
-												p.steps.filter((s) => doneBy(row.original.handle).includes(stepKey(p, s)))
-													.length
-											}
-											/{p.steps.length}
+						<ul aria-label={k.team} className="flex flex-col gap-3">
+							{people.map((m) => {
+								const total = paths.reduce((n, p) => n + p.steps.length, 0);
+								const finished = paths.reduce(
+									(n, p) =>
+										n + p.steps.filter((s) => doneBy(m.handle).includes(stepKey(p, s))).length,
+									0,
+								);
+								return (
+									<li key={m.handle} className="flex items-center gap-3">
+										<Avatar name={m.name} size="s" />
+										<span className="sr-only">{m.name}</span>
+										<Progress value={finished} max={Math.max(total, 1)} label={m.name} />
+										<span className="shrink-0 text-14 text-n-12">
+											{format(k.of, { n: finished, count: total })}
 										</span>
-									),
-								})),
-							]}
-						/>
+									</li>
+								);
+							})}
+						</ul>
 					</LearnCard>
 				) : null}
 			</>

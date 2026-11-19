@@ -57,12 +57,12 @@ export function TileCard({
 			aria-label={title}
 			aria-disabled={off || undefined}
 			className={cn(
-				"flex h-full min-h-0 flex-col gap-3 overflow-auto rounded-lg bg-surface-2 px-6 py-5.5 shadow-2",
+				"flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-lg bg-surface-2 px-6 py-5.5 shadow-2",
 				edit && "outline-2 outline-n-8 outline-dashed",
 				off && "opacity-60",
 			)}
 		>
-			<header className={cn("flex items-center gap-2", !edit && "flex-wrap")}>
+			<header className="flex shrink-0 flex-wrap items-center gap-2">
 				{lead}
 				<h2
 					className={cn(
@@ -105,7 +105,7 @@ export function TileCard({
 			</header>
 			<div
 				className={cn(
-					"flex min-h-0 flex-1 flex-col",
+					"flex min-h-0 flex-1 flex-col overflow-y-auto",
 					edit && "rounded-md border border-n-7 border-dashed bg-n-2 p-3",
 				)}
 			>
@@ -136,10 +136,7 @@ export function TileCard({
 						</tbody>
 					</table>
 				) : (
-					<ul
-						aria-label={`${title}, ${labels.chart}`}
-						className="flex min-h-0 flex-1 flex-col justify-center gap-2 text-13"
-					>
+					<ul aria-label={`${title}, ${labels.chart}`} className="flex flex-col gap-2 text-13">
 						{(data?.rows ?? []).map(([name, n]) => (
 							<li key={name} className="flex items-center gap-2">
 								<span className="w-28 shrink-0 truncate text-n-10">{name}</span>

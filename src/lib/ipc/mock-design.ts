@@ -306,7 +306,6 @@ model {
 views {
   view index { include * }
 }
-//
 `;
 
 const DESIGN_DOC = `# Design

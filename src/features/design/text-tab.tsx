@@ -165,7 +165,7 @@ export function ReaderPage(p: Props) {
 					) : (
 						<Button
 							aria-pressed={i.ref === page.selected}
-							className={cn("w-full font-mono", i.ref === page.selected && "border-accent")}
+							className="w-full font-mono font-normal"
 							onClick={() => page.pick(i.ref)}
 						>
 							{i.path ? fileName(i.path) : i.title}

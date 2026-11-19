@@ -27,7 +27,7 @@ export type FlowError = { id: string; field: FlowField; message: string };
 
 /** Allow and deny as tinted chips. Another action stays neutral. */
 const TINT: Record<string, "success" | "you"> = { allow: "success", deny: "you" };
-const CELL = "px-3 py-1.5 align-middle";
+const CELL = "px-3 py-1 align-middle";
 
 /** The columns in order. The extra ones show when `labels` names them. */
 const ORDER: FlowField[] = [
@@ -298,7 +298,7 @@ export function FlowMatrix({
 												render={
 													<Button
 														variant="ghost"
-														className="-my-2 px-0"
+														className="-my-3 h-8 min-h-0 w-8 min-w-0 px-0"
 														aria-label={(labels.rowMenu ?? "{name}").replace(
 															"{name}",
 															`${r.sourceName || r.source} ${r.destinationName || r.destination}`,

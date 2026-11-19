@@ -144,7 +144,7 @@ export function Reports() {
 					.map(({ item, name, page }) => (
 						<li
 							key={item.id}
-							className="flex flex-col gap-3 rounded-lg bg-surface-2 p-4.5 shadow-2"
+							className="flex min-h-36 flex-col gap-3 rounded-lg bg-surface-2 p-4.5 shadow-2"
 						>
 							<h2 className="text-17 font-semibold text-n-12">{name}</h2>
 							{page ? (

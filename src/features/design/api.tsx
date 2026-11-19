@@ -47,15 +47,6 @@ import {
 
 type Pending = { method: string; server: string; go: () => void; cancel: () => void };
 
-const TONE = {
-	GET: "info",
-	POST: "success",
-	PUT: "warning",
-	PATCH: "warning",
-	DELETE: "danger",
-} as const;
-const tone = (method: string) => TONE[method as keyof typeof TONE] ?? "neutral";
-
 /** One endpoint of one contract. */
 type Endpoint = { id: string; a: Artifact; doc: ApiDoc; op: ApiOp };
 
@@ -135,25 +126,28 @@ function EndpointCard({ op }: { op: ApiOp }) {
 		<Card pad className="flex flex-col gap-3.5">
 			<section aria-label={`${op.method} ${op.path}`} className="contents">
 				<div className="flex flex-wrap items-center gap-2.5">
-					<Badge variant={tone(op.method)}>{op.method}</Badge>
-					<span className="font-mono text-17 font-semibold break-all">{op.path}</span>
+					<Badge variant="info">{op.method}</Badge>
+					<span className="font-mono text-15 break-all">{op.path}</span>
 				</div>
 				{op.summary ? <h2 className="text-30 font-semibold">{op.summary}</h2> : null}
 				{op.parameters.length ? (
-					<section aria-label={l.parameters} className={block}>
-						<h3 className="text-13 text-n-11">{l.parameters}</h3>
-						<ul className="flex flex-col gap-2">
-							{op.parameters.map((p) => (
-								<li key={`${p.in}.${p.name}`} className="flex flex-wrap items-center gap-3">
-									<span className="font-mono font-semibold">{p.name}</span>
-									<span className="flex-1 text-n-11">
-										{p.in} {p.type}
-									</span>
-									{p.required ? <Badge>{l.required}</Badge> : null}
-								</li>
-							))}
-						</ul>
-					</section>
+					<ul aria-label={l.parameters} className="flex flex-col gap-2">
+						{op.parameters.map((p) => (
+							<li
+								key={`${p.in}.${p.name}`}
+								className="flex flex-wrap items-center gap-3 rounded-[14px] bg-n-3 px-4 py-3"
+							>
+								<span className="font-mono font-semibold">{p.name}</span>
+								<span className="min-w-0 flex-1 text-n-11">
+									{p.description || `${p.in} ${p.type}`}
+								</span>
+								{(p.options ?? []).map((o) => (
+									<Badge key={o}>{o}</Badge>
+								))}
+								{p.required ? <Badge>{l.required}</Badge> : null}
+							</li>
+						))}
+					</ul>
 				) : null}
 				<section aria-label={l.responses} className={block}>
 					<h3 className="text-13 text-n-11">{l.responses}</h3>
@@ -316,10 +310,12 @@ export function Api() {
 										<li key={e.id}>
 											<ListCard
 												name={e.op.path}
-												pills={<Badge variant={tone(e.op.method)}>{e.op.method}</Badge>}
+												pills={
+													<Badge variant={e === endpoint ? "info" : "neutral"}>{e.op.method}</Badge>
+												}
 												selected={e === endpoint}
 												// The method comes first, on the line of the path.
-												className="flex-row-reverse flex-wrap items-center justify-end font-mono"
+												className="flex-row-reverse flex-wrap items-center justify-end font-mono [&>span:first-child]:text-15! [&>span:first-child]:font-normal!"
 												onClick={() => {
 													setOpId(e.id);
 													page.pick(e.a.reference);

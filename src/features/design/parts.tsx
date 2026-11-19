@@ -343,7 +343,9 @@ export function TextCard({
 				<span className="min-w-0 break-all font-mono font-semibold">{name}</span>
 				{save}
 			</Row>
-			<div className="flex min-h-80 flex-1 flex-col border-t border-n-6 *:flex-1">{children}</div>
+			<div className="flex min-h-80 flex-1 flex-col border-t border-n-6 *:flex-1 *:rounded-none *:border-0">
+				{children}
+			</div>
 		</Card>
 	);
 }

@@ -23,22 +23,13 @@ import { Card } from "@/ui/molecules/card";
 import { gherkin } from "@/ui/molecules/code-editor";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { MenuButton } from "@/ui/molecules/menu-button";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { Row } from "@/ui/molecules/row";
 import { caretToEnd } from "./constitution";
 import { FileEditor } from "./file-editor";
 import { useGuard } from "./guard";
 import { NameDialog } from "./name-dialog";
-import {
-	capOf,
-	MoreDots,
-	missingTests,
-	ROW_BUTTON,
-	SmallChevron,
-	VerdictBadge,
-	worst,
-} from "./parts";
+import { capOf, missingTests, ROW_BUTTON, SmallChevron, VerdictBadge, worst } from "./parts";
 
 const DIR = "docs/delivery/test-plans";
 const SCOPE = "specs:test-plans";
@@ -227,34 +218,18 @@ function PlanView({
 							</Button>
 						</>
 					}
+					menu={[
+						{ label: s.newPlan, onClick: onNew, disabled: gate("specs.edit").disabled },
+						{ label: p.copyRef, onClick: () => void copyText(planRef(plan.path)) },
+						{ label: p.copyFile, onClick: () => void copyText(plan.path) },
+					]}
 				>
-					{/* The More button sits here, not in the header row: the header row has no room for it. */}
 					<div className="flex items-center gap-2">
 						<Badge dot variant={plan.errors.length ? "you" : "success"} role="status">
 							{plan.errors.length
 								? format(p.textErrors, { count: plan.errors.length })
 								: p.textClean}
 						</Badge>
-						<span className="flex-1" />
-						<MenuButton
-							iconOnly
-							label={t.ui.more}
-							icon={<MoreDots />}
-							items={[
-								{
-									id: "new",
-									label: s.newPlan,
-									onSelect: onNew,
-									disabled: gate("specs.edit").disabled,
-								},
-								{
-									id: "ref",
-									label: p.copyRef,
-									onSelect: () => void copyText(planRef(plan.path)),
-								},
-								{ id: "file", label: p.copyFile, onSelect: () => void copyText(plan.path) },
-							]}
-						/>
 					</div>
 					<ErrorNotice error={failure} />
 					<PageColumns>

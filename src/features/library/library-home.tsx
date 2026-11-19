@@ -153,7 +153,7 @@ function Doors() {
 			</Link>
 		);
 		const attention = (text: string) => (
-			<Link key={`waiting-${page}`} to={href} className={cn(CHIP, ATTENTION_CHIP)}>
+			<Link key={`waiting-${page}`} to={href} className={cn(CHIP, ATTENTION_CHIP, "font-medium")}>
 				{text}
 				{page === "questions" && stale.has(`${v[0]}/${page}`) ? <StaleBadge /> : null}
 			</Link>

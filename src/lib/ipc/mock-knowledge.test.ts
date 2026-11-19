@@ -101,7 +101,12 @@ describe("mock knowledge", () => {
 	});
 
 	it("saves a dashboard and refuses a file of a newer version", async () => {
-		expect((await unwrap(commands.dashboardListGet())).map((d) => d.slug)).toEqual(["team"]);
+		expect((await unwrap(commands.dashboardListGet())).map((d) => d.slug)).toEqual([
+			"team",
+			"team-agents",
+			"team-delivery",
+			"team-quality",
+		]);
 		const d = await unwrap(commands.dashboardGetOne("team"));
 		expect(d.value.tiles).toHaveLength(4);
 		const moved = { ...d.value, tiles: d.value.tiles.map((t) => ({ ...t, x: 1 })) };

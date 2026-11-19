@@ -95,9 +95,23 @@ const DASHBOARD: Dashboard_Serialize = {
 		{ id: "work", kind: "work", x: 0, y: 0, w: 4, h: 3 },
 		{ id: "runs", kind: "runs", x: 4, y: 0, w: 4, h: 3 },
 		{ id: "questions", kind: "questions", x: 8, y: 0, w: 4, h: 3 },
-		{ id: "quality", kind: "quality", x: 0, y: 3, w: 6, h: 3 },
+		{ id: "quality", kind: "quality", x: 0, y: 3, w: 4, h: 3 },
 	],
 };
+
+/** Three more dashboards for the demo, so that the header switch shows. */
+const extra = (title: string, kinds: string[]): Dashboard_Serialize => ({
+	version: VERSION,
+	title,
+	tiles: kinds.map((kind, i) => ({
+		id: kind,
+		kind,
+		x: (i % 3) * 4,
+		y: Math.floor(i / 3) * 3,
+		w: 4,
+		h: 3,
+	})),
+});
 
 /** A small HTML deck (ADR 0016): two slides, the arrow keys and the messages of the frame host. */
 const HTML_DECK = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Roadmap</title>
@@ -135,6 +149,15 @@ export function seedKnowledge(): MockKnowledge {
 			[`${FOLDERS.slides}/roadmap.html`]: file(HTML_DECK),
 			[THEME]: file(stringify(THEME_DEFAULT, YAML)),
 			[`${DASH}/team.yaml`]: file(stringify(DASHBOARD, YAML)),
+			[`${DASH}/team-delivery.yaml`]: file(
+				stringify(extra("Delivery", ["work", "runs", "questions"]), YAML),
+			),
+			[`${DASH}/team-quality.yaml`]: file(
+				stringify(extra("Quality", ["quality", "specs", "impact"]), YAML),
+			),
+			[`${DASH}/team-agents.yaml`]: file(
+				stringify(extra("Agents", ["runs", "estimates", "tracker-assignee"]), YAML),
+			),
 		},
 		// The spec changed after the ADR that it cites, so the graph marks it stale.
 		changed: { "spec:auth": 100, "adr:0004": 200, "adr:0001": 50 },

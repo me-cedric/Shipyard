@@ -10,7 +10,7 @@ import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
 import { Segmented } from "@/ui/atoms/segmented";
-import { ArrowPathIcon, ShareIcon, XMarkIcon } from "@/ui/icons";
+import { ArrowPathIcon, CheckIcon, ShareIcon, XMarkIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
@@ -59,6 +59,7 @@ export function Graph() {
 			},
 			replace: true,
 		} as never);
+	const [only, setOnly] = useState<"orphan" | "stale" | null>(null);
 	const [query, setQuery] = useState("");
 	const [hidden, setHidden] = useState<string[]>([]);
 	const [focus, setFocus] = useGraphFocus();
@@ -224,9 +225,21 @@ export function Graph() {
 	return (
 		<LibraryPage
 			title={k.graph.title}
-			menu={(source === "code" ? (["graph"] as const) : (["map", "table", "graph"] as const))
-				.filter((id) => id !== view)
-				.map((id) => ({ label: k.graph.views[id], onClick: () => go({ view: id }) }))}
+			menu={[
+				...(source === "code" ? (["graph"] as const) : (["map", "table", "graph"] as const))
+					.filter((id) => id !== view)
+					.map((id) => ({ label: k.graph.views[id], onClick: () => go({ view: id }) })),
+				// The filter of the knowledge map: it needs the flags that the knowledge items carry.
+				...(source === "refs" && view === "map"
+					? (["orphan", "stale"] as const)
+							.filter((f) => refs?.nodes.some((n) => n[f]))
+							.map((f) => ({
+								label: k.graph[f],
+								icon: only === f ? <CheckIcon size={14} /> : undefined,
+								onClick: () => setOnly(only === f ? null : f),
+							}))
+					: []),
+			]}
 			action={
 				<>
 					<div>
@@ -278,7 +291,7 @@ export function Graph() {
 						<CodeMap graph={overview} file={codeFocus} onFile={setCodeFocus} />
 					) : null
 				) : refs ? (
-					<KnowledgeMap graph={refs} focus={focus} />
+					<KnowledgeMap graph={refs} focus={focus} only={only} />
 				) : null
 			) : (
 				<>

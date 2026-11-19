@@ -95,14 +95,14 @@ export function Learn() {
 									return (
 										<li
 											key={s.ref}
-											className="relative flex min-h-14 flex-wrap items-center gap-3.5 after:absolute after:top-11 after:left-[15px] after:h-6 after:w-0.5 after:bg-n-6 last:after:hidden"
+											className="relative flex min-h-14 flex-wrap items-center gap-3.5 after:absolute after:top-[48px] after:left-[15px] after:h-2.5 after:w-0.5 after:bg-n-6 last:after:hidden"
 										>
 											<span
 												aria-hidden="true"
 												className={cn(
 													"flex size-8 shrink-0 items-center justify-center rounded-full border-2 font-semibold text-14",
 													now
-														? "border-accent bg-accent text-accent-fg ring-4 ring-accent-tint"
+														? "border-accent bg-accent text-accent-fg ring-[5px] ring-accent/25"
 														: ok
 															? "border-transparent bg-success-soft text-success-text"
 															: "border-n-7 bg-surface-1 text-n-12",
@@ -140,14 +140,14 @@ export function Learn() {
 					</DetailColumn>
 					<SideCards className="flex-[2_1_320px]">
 						<LearnCard title={k.glossary}>
-							<ul aria-label={k.glossary} className="flex flex-col gap-3.5">
+							<ul aria-label={k.glossary} className="flex flex-col gap-3">
 								{glossary.map((g) => (
-									<li key={g.term} className="flex flex-col gap-0.5">
+									<li key={g.term} className="flex flex-col">
 										<button
 											type="button"
 											data-nav=""
 											onClick={() => openRef(g.spec)}
-											className="min-h-control w-fit max-w-full text-left font-semibold text-n-12 hover:underline"
+											className="min-h-6 w-fit max-w-full text-left font-semibold text-n-12 hover:underline"
 										>
 											{g.term}
 										</button>

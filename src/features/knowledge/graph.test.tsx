@@ -70,11 +70,8 @@ describe("Library / Map", () => {
 		const g = await graph();
 		const stale = g.nodes.filter((n) => n.stale);
 		expect(stale.length).toBeGreaterThan(0);
-		await user.click(
-			within(await screen.findByRole("group", { name: "Show only" })).getByRole("button", {
-				name: "Stale",
-			}),
-		);
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Stale" }));
 		const kinds = new Set(stale.map((n) => n.kind));
 		await waitFor(() =>
 			expect(document.querySelectorAll("[data-map-group]")).toHaveLength(kinds.size),

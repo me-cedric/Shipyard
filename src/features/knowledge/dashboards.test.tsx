@@ -249,7 +249,8 @@ describe("Knowledge / Dashboards", () => {
 
 	it("starts a project that has no dashboard with one primary action", async () => {
 		const user = userEvent.setup();
-		delete mockState().knowledge.files[FILE];
+		const files = mockState().knowledge.files;
+		for (const f of Object.keys(files)) if (f.startsWith("docs/dashboards/")) delete files[f];
 		await mountKnowledge("dashboards");
 		await user.click(await screen.findByRole("button", { name: "Dashboards" }));
 		expect(await screen.findByRole("list", { name: "Tiles (10)" })).toBeInTheDocument();

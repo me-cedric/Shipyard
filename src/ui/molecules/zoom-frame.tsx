@@ -53,12 +53,15 @@ function Pane({
 	children,
 	onFull,
 	className,
+	viewClassName,
 }: {
 	label: string;
 	children: ReactNode;
 	/** Absent in the full screen pane. */
 	onFull?: () => void;
 	className?: string;
+	/** The look of the picture area, under the buttons. */
+	viewClassName?: string;
 }) {
 	const { t } = useI18n();
 	const v = t.workspace.view;
@@ -157,7 +160,33 @@ function Pane({
 		e.preventDefault();
 	};
 	return (
-		<div className={cn("relative h-[60vh]", className)}>
+		<div className={cn("flex h-[60vh] flex-col gap-2", className)}>
+			<div className="flex shrink-0 justify-end gap-2">
+				<IconButton
+					variant="outline"
+					label={v.zoomIn}
+					onClick={() => zoom(STEP)}
+					disabled={scale >= MAX_ZOOM}
+				>
+					+
+				</IconButton>
+				<IconButton
+					variant="outline"
+					label={v.zoomOut}
+					onClick={() => zoom(1 / STEP)}
+					disabled={scale <= MIN_ZOOM}
+				>
+					−
+				</IconButton>
+				<IconButton variant="outline" label={v.zoomFit} onClick={reset}>
+					⊡
+				</IconButton>
+				{onFull ? (
+					<IconButton variant="outline" label={v.fullScreen} onClick={onFull}>
+						⛶
+					</IconButton>
+				) : null}
+			</div>
 			<section
 				ref={box}
 				aria-label={`${v.zoomArea}: ${label}`}
@@ -180,7 +209,10 @@ function Pane({
 				onPointerCancel={() => {
 					drag.current = null;
 				}}
-				className="h-full cursor-grab touch-none overflow-hidden rounded-md active:cursor-grabbing"
+				className={cn(
+					"min-h-0 flex-1 cursor-grab touch-none overflow-hidden rounded-md active:cursor-grabbing",
+					viewClassName,
+				)}
 			>
 				<div
 					ref={picture}
@@ -194,22 +226,6 @@ function Pane({
 					{children}
 				</div>
 			</section>
-			<div className="absolute top-1 right-1 flex gap-0.5 rounded-md border bg-surface-2 p-0.5">
-				<IconButton label={v.zoomIn} onClick={() => zoom(STEP)} disabled={scale >= MAX_ZOOM}>
-					+
-				</IconButton>
-				<IconButton label={v.zoomOut} onClick={() => zoom(1 / STEP)} disabled={scale <= MIN_ZOOM}>
-					−
-				</IconButton>
-				<IconButton label={v.zoomFit} onClick={reset}>
-					⊡
-				</IconButton>
-				{onFull ? (
-					<IconButton label={v.fullScreen} onClick={onFull}>
-						⛶
-					</IconButton>
-				) : null}
-			</div>
 		</div>
 	);
 }
@@ -223,20 +239,28 @@ export function ZoomFrame({
 	label,
 	children,
 	className,
+	viewClassName,
 }: {
 	/** The name of the picture. */
 	label: string;
 	children: ReactNode;
 	className?: string;
+	/** The look of the picture area, under the buttons. */
+	viewClassName?: string;
 }) {
 	const [full, setFull] = useState(false);
 	return (
 		<>
-			<Pane label={label} onFull={() => setFull(true)} className={className}>
+			<Pane
+				label={label}
+				onFull={() => setFull(true)}
+				className={className}
+				viewClassName={viewClassName}
+			>
 				{children}
 			</Pane>
 			<Dialog open={full} onOpenChange={setFull} title={label} full>
-				<Pane label={label} className="h-full">
+				<Pane label={label} className="h-full" viewClassName={viewClassName}>
 					{children}
 				</Pane>
 			</Dialog>

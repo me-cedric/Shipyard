@@ -211,7 +211,7 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 				className={cn(
 					present
 						? "fixed inset-0 z-50 bg-surface-0"
-						: "relative aspect-video w-full overflow-hidden rounded-lg border border-n-7",
+						: "relative aspect-video max-h-[36vh] w-full overflow-hidden rounded-lg border border-dashed border-n-8 bg-surface-1",
 				)}
 			>
 				{present ? (
@@ -280,7 +280,7 @@ function MarkdownDeck({ path, title }: { path: string; title: string }) {
 				// The stage keeps its 16:9 box: a deck never shows an empty area of no height.
 				<section
 					aria-label={`${k.slides.slides} (${slides.length})`}
-					className="flex aspect-video w-full flex-col justify-center overflow-auto rounded-lg border border-n-7 p-[6%] text-17"
+					className="flex aspect-video max-h-[36vh] w-full flex-col justify-center overflow-auto rounded-lg border border-dashed border-n-8 p-[6%] text-17"
 					style={{ background: theme.background, color: theme.text, fontFamily: theme.font }}
 				>
 					<MarkdownView source={slides[at - 1] ?? ""} label={format(k.slides.slide, { n: at })} />
@@ -353,17 +353,13 @@ function MarkdownThumb({ path, title }: { path: string; title: string }) {
 	return (
 		<span
 			// Token colours until the deck theme loads: the face never shows text on an unknown background.
-			className="@container relative flex aspect-video flex-col justify-center gap-1.5 overflow-hidden rounded-md border bg-surface-1 px-4 text-n-12 shadow-1"
+			className="@container relative flex aspect-video flex-col justify-center gap-1.5 overflow-hidden rounded-lg border border-dashed border-n-8 bg-surface-1 px-4 text-n-12"
 			style={
 				themed
 					? { background: themed.background, color: themed.text, fontFamily: themed.font }
 					: undefined
 			}
 		>
-			<span
-				className="absolute inset-x-0 top-0 h-1"
-				style={{ background: theme?.accent ?? "var(--accent)" }}
-			/>
 			<span className="truncate text-16 font-semibold" style={ink}>
 				{head}
 			</span>
@@ -389,8 +385,7 @@ function MarkdownThumb({ path, title }: { path: string; title: string }) {
 /** The face of an HTML deck: its title. A live frame for each card would run every deck at once. */
 function HtmlThumb({ title }: { title: string }) {
 	return (
-		<span className="relative flex aspect-video items-center overflow-hidden rounded-md border bg-n-12 px-4 text-n-1 shadow-1">
-			<span className="absolute inset-x-0 top-0 h-1 bg-accent" />
+		<span className="flex aspect-video items-center overflow-hidden rounded-lg border border-dashed border-n-8 bg-surface-1 px-4 text-n-12">
 			<span className="truncate text-16 font-semibold">{title}</span>
 		</span>
 	);

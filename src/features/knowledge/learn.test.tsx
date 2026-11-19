@@ -69,9 +69,11 @@ describe("Knowledge / Learn: paths and feeds", () => {
 		);
 		const { progress } = await unwrap(commands.learningGet());
 		expect(progress.ada).toContain("onboarding/cloud-certification");
-		const table = await screen.findByRole("table");
-		const ada = within(table).getByRole("row", { name: /Ada Lovelace/ });
-		expect(ada).toHaveTextContent("3/3");
+		const team = await screen.findByRole("list", { name: "Team progress" });
+		const ada = within(team)
+			.getAllByRole("listitem")
+			.find((li) => li.textContent?.includes("Ada Lovelace"));
+		expect(ada).toHaveTextContent("3 of 3");
 		expect(within(path).getByRole("list", { name: "Experts" })).toHaveTextContent("Ada Lovelace");
 	});
 

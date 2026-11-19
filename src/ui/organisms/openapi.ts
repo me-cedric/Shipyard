@@ -3,7 +3,15 @@ import type { EditorError } from "./error-line";
 
 const METHODS = ["get", "put", "post", "delete", "patch", "options", "head", "trace"] as const;
 
-export type ApiParam = { name: string; in: string; required: boolean; type: string };
+export type ApiParam = {
+	name: string;
+	in: string;
+	required: boolean;
+	type: string;
+	description?: string;
+	/** The values the contract allows (`enum`), else empty. */
+	options?: string[];
+};
 export type ApiResponse = { status: string; description: string };
 export type ApiOp = {
 	method: string;
@@ -39,11 +47,16 @@ function deref(root: Obj, v: unknown): Obj {
 
 function param(root: Obj, v: unknown): ApiParam {
 	const p = deref(root, v);
+	const schema = deref(root, p.schema);
+	const description = str(p.description);
+	const options = Array.isArray(schema.enum) ? schema.enum.map(String) : [];
 	return {
 		name: str(p.name),
 		in: str(p.in),
 		required: p.required === true || p.in === "path",
-		type: str(deref(root, p.schema).type),
+		type: str(schema.type),
+		...(description ? { description } : {}),
+		...(options.length ? { options } : {}),
 	};
 }
 

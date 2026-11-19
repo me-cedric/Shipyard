@@ -20,7 +20,27 @@ export async function renderLikeC4(source: string): Promise<Layout[]> {
 	return views;
 }
 
-function Drawing({ view }: { view: Layout }) {
+// LikeC4 lays nodes out at about 320 by 180: draw them near 240 by 110 so the labels read large.
+const SX = 0.75;
+const SY = 0.6;
+
+function Drawing({ view: full }: { view: Layout }) {
+	const view: Layout = {
+		...full,
+		width: full.width * SX,
+		height: full.height * SY,
+		nodes: full.nodes.map((n) => ({
+			...n,
+			x: n.x * SX,
+			y: n.y * SY,
+			width: n.width * SX,
+			height: n.height * SY,
+		})),
+		edges: full.edges.map((e) => ({
+			...e,
+			points: e.points.map(([x, y]) => [x * SX, y * SY] as [number, number]),
+		})),
+	};
 	const byId = new Map(view.nodes.map((n) => [n.id, n]));
 	// A holder draws first, so that its children sit above it.
 	const depth = (id: string | null): number => (id ? 1 + depth(byId.get(id)?.parent ?? null) : 0);
@@ -75,7 +95,8 @@ function Drawing({ view }: { view: Layout }) {
 							y={n.y + n.height / 2}
 							textAnchor="middle"
 							dominantBaseline="middle"
-							className={cn("text-14 font-semibold", system ? "fill-accent-fg" : "fill-n-12")}
+							style={{ fontSize: 22 }}
+							className={cn("font-semibold", system ? "fill-accent-fg" : "fill-n-12")}
 						>
 							{n.title}
 						</text>
@@ -84,7 +105,7 @@ function Drawing({ view }: { view: Layout }) {
 			})}
 			{view.edges.map((e) => {
 				const mid = e.points[Math.floor(e.points.length / 2)];
-				const w = e.label.length * 7 + 24;
+				const w = e.label.length * 9 + 28;
 				return (
 					<g key={e.id}>
 						<path
@@ -109,7 +130,8 @@ function Drawing({ view }: { view: Layout }) {
 									y={mid[1]}
 									textAnchor="middle"
 									dominantBaseline="middle"
-									className="fill-n-12 text-12 font-medium"
+									style={{ fontSize: 16 }}
+									className="fill-n-12 font-medium"
 								>
 									{e.label}
 								</text>
