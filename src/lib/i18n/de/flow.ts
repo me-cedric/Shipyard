@@ -3,8 +3,10 @@ import { boardDe } from "../flow-look/board";
 import { briefDe } from "../flow-look/brief";
 import { checksDe } from "../flow-look/checks";
 import { createDe } from "../flow-look/create";
+import { impactDe } from "../flow-look/impact";
 import { pageDe } from "../flow-look/page";
 import { pullDe } from "../flow-look/pull";
+import { pullsDe } from "../flow-look/pulls";
 
 export const flowDe: typeof flowEn = {
 	look: {
@@ -14,6 +16,8 @@ export const flowDe: typeof flowEn = {
 		checks: checksDe,
 		pull: pullDe,
 		create: createDe,
+		impact: impactDe,
+		pulls: pullsDe,
 	},
 	newAction: "Neues Feature",
 	views: { flow: "Ablauf", list: "Liste", done: "Erledigt", health: "Zustand" },

@@ -2,8 +2,10 @@ import { boardEn, boardFr } from "./flow-look/board";
 import { briefEn, briefFr } from "./flow-look/brief";
 import { checksEn, checksFr } from "./flow-look/checks";
 import { createEn, createFr } from "./flow-look/create";
+import { impactEn, impactFr } from "./flow-look/impact";
 import { pageEn, pageFr } from "./flow-look/page";
 import { pullEn, pullFr } from "./flow-look/pull";
+import { pullsEn, pullsFr } from "./flow-look/pulls";
 
 /** The strings of Flow and of the feature pages. */
 export const flowEn = {
@@ -14,6 +16,8 @@ export const flowEn = {
 		checks: checksEn,
 		pull: pullEn,
 		create: createEn,
+		impact: impactEn,
+		pulls: pullsEn,
 	},
 	newAction: "New feature",
 	views: { flow: "Flow", list: "List", done: "Done", health: "Health" },
@@ -140,6 +144,8 @@ export const flowFr: typeof flowEn = {
 		checks: checksFr,
 		pull: pullFr,
 		create: createFr,
+		impact: impactFr,
+		pulls: pullsFr,
 	},
 	newAction: "Nouvelle fonctionnalité",
 	views: { flow: "Flux", list: "Liste", done: "Terminé", health: "Santé" },

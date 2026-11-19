@@ -3,8 +3,10 @@ import { boardEs } from "../flow-look/board";
 import { briefEs } from "../flow-look/brief";
 import { checksEs } from "../flow-look/checks";
 import { createEs } from "../flow-look/create";
+import { impactEs } from "../flow-look/impact";
 import { pageEs } from "../flow-look/page";
 import { pullEs } from "../flow-look/pull";
+import { pullsEs } from "../flow-look/pulls";
 
 export const flowEs: typeof flowEn = {
 	look: {
@@ -14,6 +16,8 @@ export const flowEs: typeof flowEn = {
 		checks: checksEs,
 		pull: pullEs,
 		create: createEs,
+		impact: impactEs,
+		pulls: pullsEs,
 	},
 	newAction: "Nueva funcionalidad",
 	views: { flow: "Flujo", list: "Lista", done: "Hecho", health: "Salud" },
