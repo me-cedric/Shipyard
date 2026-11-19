@@ -448,7 +448,7 @@ export function MemberLevels() {
 	];
 	return (
 		<Card className="py-2">
-			<section aria-label={r.each}>
+			<section>
 				<h2 className={HEAD}>{r.each}</h2>
 				<Frame label={r.each}>
 					<DataTable

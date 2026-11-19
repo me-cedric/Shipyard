@@ -15,6 +15,9 @@ function hold() {
 	if (!task) throw new Error("no task");
 	return unwrap(commands.estimateAgentStart("mvp-1", [task], true)).catch((e: unknown) => e);
 }
+/** The panel shows one session: pick the estimate in the list first. */
+const pick = async (user: ReturnType<typeof userEvent.setup>) =>
+	user.click(await screen.findByRole("button", { name: /Estimates mvp-1/ }));
 const estimates = async () =>
 	(await unwrap(commands.sessionsList())).filter((s) => s.step === "estimate");
 
@@ -27,6 +30,7 @@ describe("Crew / Sessions: an estimate of an agent", () => {
 		const turn = hold();
 		expect(await estimates()).toHaveLength(1);
 		const router = mountApp("/crew/sessions");
+		await pick(user);
 		await user.click(await screen.findByRole("button", { name: "Stop mvp-1" }));
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Stop mvp-1" })).toBeNull());
 		await turn;
@@ -40,10 +44,12 @@ describe("Crew / Sessions: an estimate of an agent", () => {
 		await withTracker();
 		const turn = hold();
 		const router = mountApp("/crew/sessions");
-		const stop = await screen.findByRole("button", { name: "Stop mvp-1" });
-		const row = stop.closest<HTMLElement>('[role="row"]');
-		if (!row) throw new Error("no row");
-		await user.click(within(row).getByText("Estimate"));
+		await pick(user);
+		// The estimate is the session shown: its panel opens the sheet.
+		const panel = within(
+			await screen.findByRole("region", { name: "Live output of Estimates mvp-1" }),
+		);
+		await user.click(panel.getByRole("button", { name: "Open" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/plan/estimates"));
 		expect(router.state.location.search).toEqual({ sheet: "mvp-1" });
 		await unwrap(commands.estimateAgentStop("mvp-1"));
@@ -52,6 +58,7 @@ describe("Crew / Sessions: an estimate of an agent", () => {
 	});
 
 	it("turns Stop off without the right to start runs", async () => {
+		const user = userEvent.setup();
 		await withTracker();
 		mockState().person = {
 			member: "ada",
@@ -63,6 +70,7 @@ describe("Crew / Sessions: an estimate of an agent", () => {
 		};
 		const turn = hold();
 		const router = mountApp("/crew/sessions");
+		await pick(user);
 		const stop = await screen.findByRole("button", { name: "Stop mvp-1" });
 		await waitFor(() => expect(stop).toBeDisabled());
 		await unwrap(commands.estimateAgentStop("mvp-1"));

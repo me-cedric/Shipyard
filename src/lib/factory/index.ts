@@ -206,6 +206,8 @@ export function useFactoryWrites() {
 			write: (kind: "workflow" | "role", id: string, text: string) =>
 				run(kind === "workflow" ? commands.workflowWrite(id, text) : commands.roleWrite(id, text)),
 			killSwitch: (on: boolean) => run(commands.killSwitchSet(on)),
+			// A person's click: the agents stay on, each live run stops.
+			stopAll: () => run(commands.agentsStopAll(true)),
 			reviewStop: (number: number) => run(commands.prReviewStop(number)),
 			// The budgets sit in the automation file: its read changes too.
 			budget: async (scope: string, key: string, usd: number | null) => {

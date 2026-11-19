@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useContext, useMemo } from "react";
 import {
 	AuditTail,
 	JoinAsked,
@@ -9,7 +10,7 @@ import {
 } from "@/features/work/team-rights";
 import { useI18n } from "@/lib/i18n";
 import { BackLink } from "@/ui/molecules/back-link";
-import { PageHeader } from "@/ui/molecules/page-header";
+import { PageHeader, PageSwitchContext } from "@/ui/molecules/page-header";
 
 /**
  * The team file, a page of Crew / Rights (`page=team`): who the person is, the join requests, the
@@ -18,12 +19,19 @@ import { PageHeader } from "@/ui/molecules/page-header";
 export function TeamPage() {
 	const { t } = useI18n();
 	const r = t.rights.team;
+	const slot = useContext(PageSwitchContext);
+	// A sub-page claims the section switch and draws none: its way back is the link "Rights".
+	const bare = useMemo(() => slot && { ...slot, node: null }, [slot]);
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-			<PageHeader
-				title={r.teamTitle}
-				back={<BackLink label={r.back} render={(props) => <Link to="/crew/rights" {...props} />} />}
-			/>
+			<PageSwitchContext.Provider value={bare}>
+				<PageHeader
+					title={r.teamTitle}
+					back={
+						<BackLink label={r.back} render={(props) => <Link to="/crew/rights" {...props} />} />
+					}
+				/>
+			</PageSwitchContext.Provider>
 			<div className="flex flex-col gap-5 px-4 pb-4">
 				<TeamBanners />
 				<div className="flex flex-wrap items-start gap-5">

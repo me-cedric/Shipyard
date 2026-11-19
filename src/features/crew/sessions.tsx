@@ -1,199 +1,221 @@
-import { useNavigate } from "@tanstack/react-router";
-import type { ColumnDef } from "@tanstack/react-table";
-import { AgentsToggle } from "@/features/factory/agents-toggle";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { useContext, useMemo } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
-import { SectionCard } from "@/features/factory/section-card";
-import { MachineSessions } from "@/features/factory/sessions/machine-sessions";
-import { OrcaSessions } from "@/features/factory/sessions/orca-sessions";
 import { NoProject } from "@/features/shell/no-project";
-import { tabIcon } from "@/features/shell/spaces";
 import { useGuard } from "@/features/work/guard";
 import { useFactoryWrites, useSessions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type SessionView, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
-import { RightIconButton } from "@/lib/rights";
+import { RightButton } from "@/lib/rights";
 import { runHref } from "@/lib/shell";
+import { cn } from "@/lib/utils";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
-import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
-import { LiveDot } from "@/ui/atoms/live-dot";
-import { StatusDot } from "@/ui/atoms/status-dot";
-import { StopIcon } from "@/ui/icons";
+import { runnerName } from "@/ui/atoms/brand-icon";
+import { Button } from "@/ui/atoms/button";
+import { BackLink } from "@/ui/molecules/back-link";
+import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
-import { PageHeader } from "@/ui/molecules/page-header";
-import { STEP_STATUS } from "@/ui/molecules/run-step";
-import { DataTable } from "@/ui/organisms/data-table";
+import { PageHeader, PageSwitchContext } from "@/ui/molecules/page-header";
+import { Row } from "@/ui/molecules/row";
+import { usePlainDay } from "../plan/capacity";
+import { type AgentRow, useAgentRows } from "./live";
+import { EndedCard, MachineRows, OrcaCard, SIDE_HEAD } from "./sessions-side";
 
-const STATE_BADGE = {
-	pending: "neutral",
-	running: "accent",
-	gate: "warning",
-	done: "success",
-	failed: "danger",
-} as const;
+const live = (r: AgentRow) => r.session.state === "running" || r.session.state === "gate";
+const idOf = (s: SessionView) => `${s.run}/${s.step}`;
 
-/** Crew / Sessions (`spec:app-redesign#REQ-016`): the agent sessions; a run session opens its run at the step (factory REQ-031, ux-declutter REQ-038). */
+/** Crew / Sessions (`spec:app-redesign#REQ-016`): the sessions of this machine, the one shown, and the ended ones on `page=ended`. */
 export function CrewSessions() {
 	const { t, lang } = useI18n();
 	const f = t.factory;
+	const s = f.sessionsPage;
 	const navigate = useNavigate();
+	const search = useSearch({ strict: false }) as { session?: string; page?: string };
 	const active = useActiveProject().data;
 	const sessions = useSessions();
+	const { rows } = useAgentRows();
 	const writes = useFactoryWrites();
 	const { error, run } = useGuard();
-	const Icon = tabIcon("crew", "sessions");
-	const icon = Icon && <Icon size={16} />;
-	if (active === undefined) return <Loading title={t.ui.place.crew} icon={icon} />;
-	if (active === null) return <NoProject title={t.ui.place.crew} icon={icon} />;
-	// The live sessions first: a group heading shows each time the group changes.
-	const live = (r: SessionView) => r.state === "running" || r.state === "gate";
-	const rows = (sessions.data ?? []).toSorted((a, b) => Number(live(b)) - Number(live(a)));
-	const time = new Intl.DateTimeFormat(lang, { dateStyle: "short", timeStyle: "short" });
-	const columns: ColumnDef<SessionView>[] = [
-		{
-			id: "runner",
-			header: f.runner,
-			meta: { width: "8rem" },
-			cell: (c) => (
-				<span className="flex items-center gap-2">
-					<span className="relative flex">
-						<BrandIcon name={c.row.original.runner} size={20} />
-						{c.row.original.state === "running" ? (
-							<LiveDot className="absolute -right-0.5 -bottom-0.5 size-2 ring-2 ring-surface-1" />
-						) : null}
-					</span>
-					{runnerName(c.row.original.runner)}
-				</span>
-			),
-		},
-		{ id: "model", header: f.model, meta: { width: "6rem" }, cell: (c) => c.row.original.model },
-		{ id: "key", header: f.run, meta: { width: "6rem" }, cell: (c) => c.row.original.key },
-		{ id: "step", header: f.stepName, cell: (c) => nameOf(c.row.original.step) },
-		{
-			id: "state",
-			header: f.status,
-			meta: { width: "8rem" },
-			cell: (c) => (
-				<Badge variant={STATE_BADGE[c.row.original.state]}>
-					<StatusDot
-						status={STEP_STATUS[c.row.original.state]}
-						label={f.step[c.row.original.state]}
-						className="size-2"
+	const slot = useContext(PageSwitchContext);
+	// The page of the ended sessions has no section switch: it claims the switch and draws none.
+	const day = usePlainDay();
+	const bare = useMemo(() => slot && { ...slot, node: null }, [slot]);
+	if (active === undefined) return <Loading title={t.ui.place.crew} />;
+	if (active === null) return <NoProject title={t.ui.place.crew} icon={null} />;
+	const name = (r: AgentRow) =>
+		r.session.step === "estimate"
+			? format(s.estimate, { name: r.session.key })
+			: r.session.pull != null
+				? format(s.review, { number: r.session.pull })
+				: r.title;
+	const detail = (r: AgentRow) =>
+		[runnerName(r.session.runner), r.session.model].filter(Boolean).join(", ");
+	const open = (r: SessionView) => {
+		if (r.step === "estimate")
+			void navigate({ to: "/plan/estimates", search: { sheet: r.key } as never });
+		else if (r.pull == null) void navigate(runHref(r.run, r.step));
+	};
+	const stop = (r: SessionView) =>
+		void run(async () => {
+			if (r.pull != null) return writes.reviewStop(r.pull);
+			try {
+				await unwrap(commands.estimateAgentStop(r.key));
+			} finally {
+				await sessions.refetch();
+			}
+		});
+
+	if (search.page === "ended") {
+		const ended = rows.filter((r) => !live(r));
+		return (
+			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+				<PageSwitchContext.Provider value={bare}>
+					<PageHeader
+						title={s.endedAll}
+						back={
+							<BackLink
+								label={t.crewPlace.views.sessions}
+								render={(props) => <Link to="/crew/sessions" {...props} />}
+							/>
+						}
 					/>
-					{f.step[c.row.original.state]}
-				</Badge>
-			),
-		},
-		{
-			id: "started",
-			header: f.started,
-			meta: { width: "9rem" },
-			cell: (c) => (c.row.original.started ? time.format(c.row.original.started * 1000) : "-"),
-		},
-		{
-			id: "tokens",
-			header: f.tokens,
-			meta: { width: "6rem", numeric: true },
-			cell: (c) => c.row.original.tokens.toLocaleString(),
-		},
-		{
-			id: "cost",
-			header: f.cost,
-			meta: { width: "6rem", numeric: true },
-			cell: (c) =>
-				c.row.original.costUsd === null ? "-" : `$${c.row.original.costUsd.toFixed(2)}`,
-		},
-		{
-			// An agent review and an estimate are no run: Stop ends the session
-			// (`spec:app-redesign#REQ-033`). The key of an estimate is its sheet.
-			id: "stop",
-			header: "",
-			meta: { width: "3rem" },
-			cell: (c) => {
-				const { pull, key, step, state } = c.row.original;
-				return (pull == null && step !== "estimate") || state !== "running" ? null : (
-					<RightIconButton
-						right="runs.start"
-						label={format(f.machine.stop, { name: key })}
-						className="min-h-control min-w-11"
-						onClick={(e) => {
-							// The row opens its page on a click: Stop does not.
-							e.stopPropagation();
-							void run(async () => {
-								if (pull != null) return writes.reviewStop(pull);
-								try {
-									await unwrap(commands.estimateAgentStop(key));
-								} finally {
-									await sessions.refetch();
-								}
-							});
-						}}
-					>
-						<StopIcon size={14} />
-					</RightIconButton>
-				);
-			},
-		},
-	];
-	// The totals that the tiles showed stay as the last row of the table.
-	const totals = [
-		f.total,
-		"",
-		"",
-		"",
-		"",
-		"",
-		rows.reduce((a, r) => a + r.tokens, 0).toLocaleString(),
-		`$${rows.reduce((a, r) => a + (r.costUsd ?? 0), 0).toFixed(2)}`,
-		"",
-	];
+				</PageSwitchContext.Provider>
+				<div className="px-4 pb-4">
+					<Card className="py-2">
+						{ended.length === 0 ? <Row className="text-n-11">{s.none}</Row> : null}
+						{ended.map((r) => (
+							<Row
+								key={r.id}
+								className="min-h-18 py-2"
+								render={(props) => (
+									<button type="button" {...props} onClick={() => open(r.session)} />
+								)}
+							>
+								<Avatar agent name={nameOf(r.session.step)} />
+								<span className="flex min-w-0 flex-1 flex-col text-left">
+									<span className="truncate font-semibold">{name(r)}</span>
+									<span className="truncate text-n-11">
+										{[
+											detail(r),
+											r.session.started
+												? day(new Date(r.session.started * 1000).toISOString().slice(0, 10))
+												: "",
+										]
+											.filter(Boolean)
+											.join(", ")}
+									</span>
+								</span>
+								<Badge variant={r.session.state === "failed" ? "danger" : "neutral"}>
+									{f.step[r.session.state]}
+								</Badge>
+							</Row>
+						))}
+					</Card>
+				</div>
+			</div>
+		);
+	}
+
+	const here = rows.filter(live).toSorted((a, b) => a.id.localeCompare(b.id, lang));
+	const shown = here.find((r) => idOf(r.session) === search.session) ?? here[0];
+	const none = here.length === 0 && !sessions.isPending;
 	return (
-		<div className="flex min-h-0 flex-1 flex-col">
-			<PageHeader icon={icon} title={t.ui.place.crew} chips={<AgentsToggle />} />
+		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+			<PageHeader title={t.ui.place.crew} />
 			{error ? (
 				<p role="alert" className="px-4 pb-2 text-ui text-danger-text">
 					{error}
 				</p>
 			) : null}
-			{rows.length === 0 && !sessions.isPending ? (
-				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-2 pb-4 [&>*]:shrink-0">
-					<EmptyState
-						title={t.empty.sessions}
-						action={{ label: f.runs, onClick: () => void navigate({ to: "/flow/flow" }) }}
-					/>
-					<MachineSessions />
-					<OrcaSessions />
-				</div>
-			) : (
-				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-2 pb-4 [&>*]:shrink-0">
-					<SectionCard
-						title={f.sessions}
-						count={rows.length}
-						flush
-						className="min-h-64 flex-1"
-						bodyClassName="min-h-0 flex-1"
-					>
-						<DataTable
-							label={f.sessions}
-							columns={columns}
-							data={rows}
-							rowId={(r) => `${r.run}/${r.step}`}
-							group={(r) => (live(r) ? "active" : "previous")}
-							groupLabel={(g) => (g === "active" ? f.sessionsActive : f.sessionsPrevious)}
-							footer={totals}
-							// A review is no run: only a run unit opens its run page, at the unit. An estimate opens its sheet.
-							onOpen={(r) => {
-								if (r.step === "estimate")
-									void navigate({ to: "/plan/estimates", search: { sheet: r.key } as never });
-								else if (r.pull == null) void navigate(runHref(r.run, r.step));
-							}}
+			<div className="flex flex-wrap items-stretch gap-4 px-4 pb-4">
+				<div className="flex min-w-0 flex-[2_1_21rem] flex-col gap-4">
+					{none ? (
+						<EmptyState
+							title={t.empty.sessions}
+							action={{ label: f.runs, onClick: () => void navigate({ to: "/flow/flow" }) }}
 						/>
-					</SectionCard>
-					<MachineSessions />
-					<OrcaSessions />
+					) : null}
+					<Card className="py-2">
+						<section aria-label={s.here}>
+							<h2 className={SIDE_HEAD}>{s.here}</h2>
+							{here.map((r) => (
+								<Row
+									key={r.id}
+									className={cn("min-h-18 w-full py-2", r === shown && "bg-accent-subtle")}
+									render={(props) => (
+										<button
+											type="button"
+											aria-pressed={r === shown}
+											{...props}
+											onClick={() =>
+												void navigate({
+													to: "/crew/sessions",
+													search: { session: idOf(r.session) } as never,
+													replace: true,
+												})
+											}
+										/>
+									)}
+								>
+									<Avatar agent name={nameOf(r.session.step)} />
+									<span className="flex min-w-0 flex-1 flex-col text-left">
+										<span className="truncate font-semibold">{name(r)}</span>
+										<span className="truncate text-n-11">{detail(r)}</span>
+									</span>
+									{r === shown ? (
+										<Badge variant="accent">{s.shown}</Badge>
+									) : r.session.state === "gate" ? (
+										<Badge variant="you">{s.waits}</Badge>
+									) : null}
+								</Row>
+							))}
+							<MachineRows />
+						</section>
+					</Card>
+					<OrcaCard />
+					<EndedCard />
 				</div>
-			)}
+				{shown ? (
+					<section
+						aria-label={format(s.output, { name: name(shown) })}
+						className="flex min-h-80 min-w-0 flex-[3_1_28rem] flex-col overflow-hidden rounded-xl bg-primary text-primary-fg"
+					>
+						<div className="flex flex-wrap items-center gap-3 px-4 py-3.5">
+							<Avatar
+								agent
+								name={nameOf(shown.session.step)}
+								className="bg-primary-fg text-primary"
+							/>
+							<h2 className="font-semibold">{name(shown)}</h2>
+							<span className="flex-1" />
+							<Button className="min-h-control" onClick={() => open(shown.session)}>
+								{t.common.open}
+							</Button>
+							{(shown.session.pull != null || shown.session.step === "estimate") &&
+							shown.session.state === "running" ? (
+								<RightButton
+									right="runs.start"
+									aria-label={format(f.machine.stop, { name: shown.session.key })}
+									className="min-h-control"
+									onClick={() => stop(shown.session)}
+								>
+									{s.stop}
+								</RightButton>
+							) : null}
+						</div>
+						<div className="flex flex-col gap-1 border-t border-primary-fg/20 px-4 py-4.5 text-primary-fg/80">
+							<p>{format(s.tokens, { count: shown.session.tokens.toLocaleString(lang) })}</p>
+							{shown.session.costUsd === null ? null : (
+								<p>{`$${shown.session.costUsd.toFixed(2)}`}</p>
+							)}
+							<p>{s.noOutput}</p>
+						</div>
+					</section>
+				) : null}
+			</div>
 		</div>
 	);
 }

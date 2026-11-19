@@ -180,37 +180,29 @@ describe("Run address", () => {
 		await idle(router);
 	});
 
-	it("opens the run from its ref and from the agent of a live row of Crew", async () => {
+	it("opens the run from the agent of a live row of Crew, and Back returns to the live rows", async () => {
 		await open();
 		const user = userEvent.setup();
 		const run = await find("ACME-2");
-		const session = (await unwrap(commands.sessionsList())).find(
-			(s) => s.run === run.id && s.state === "running",
-		);
 		const router = mountApp("/factory/agents-map");
-		// The address of the agents map opens the live rows.
+		// The address of the agents map opens the live rows. A row shows what the agent touches, not the run ref.
 		const table = () => screen.findByRole("table", { name: "Agents at work" });
-		const runRef = (
-			await within(await table()).findAllByRole("button", {
-				name: new RegExp(`^${run.reference},`),
-			})
-		)[0];
-		runRef?.focus();
-		await user.keyboard("{Enter}");
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
-		expect(router.state.location.search).toEqual({});
-		router.history.back();
-		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/crew"));
-		expect(router.state.location.search).toEqual({ view: "live" });
 		const agent = await waitFor(async () => {
 			const b = within(await table())
 				.getAllByRole("button")
-				.find((x) => x.title === `run:${run.id}/${session?.step}`);
+				.find((x) => x.title?.startsWith(`run:${run.id}`));
 			if (!b) throw new Error("no agent");
 			return b;
 		});
+		// One row for each run: its agent opens the run at the unit of the row.
+		const unit = agent.title.split("/")[1];
+		expect(unit).toBeTruthy();
 		await user.click(agent);
-		await waitFor(() => expect(router.state.location.search).toEqual({ unit: session?.step }));
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
+		await waitFor(() => expect(router.state.location.search).toEqual({ unit }));
+		router.history.back();
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/crew"));
+		expect(router.state.location.search).toEqual({ view: "live" });
 		await idle(router);
 	});
 

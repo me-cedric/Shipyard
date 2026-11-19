@@ -30,7 +30,8 @@ const MOVED: Record<string, readonly [string, SectionSpace, string]> = {
 const placeTitle = (space: SpaceId, tab: string) => {
 	const at = hosted(space, tab);
 	if (!at) return MOVED[`${space}/${tab}`]?.[0];
-	return tab === "agents-map" ? en.crewPlace.atWork : en.ui.place[at.place];
+	// The live rows count the agents at work in the title (app-redesign REQ-017).
+	return tab === "agents-map" ? "(\\d+ agents?|Agents) at work" : en.ui.place[at.place];
 };
 
 // update-ux-declutter REQ-017: each tab shows a visible page header with its title,
@@ -117,7 +118,10 @@ describe("a page header on every tab (REQ-017)", () => {
 						: // Estimates says the size of the release in its title, once the estimate loads.
 							space === "work" && tab === "estimates"
 							? "(Estimates|.+ is .+ days of work)"
-							: title(space, tab),
+							: // Time names whose time it shows, as the design does ("My time").
+								space === "work" && tab === "time"
+								? "(Time|My time|.+ time)"
+								: title(space, tab),
 		);
 	});
 });

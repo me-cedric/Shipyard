@@ -3,27 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { errorMessages } from "@/lib/i18n/errors";
 import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
-import { ShellProvider, useShell } from "@/lib/shell";
 import { mountApp } from "@/test/mount";
 import { spendStatus } from "@/ui/molecules/spend-meter";
-import { renderApp } from "@/ui/test-utils";
-import { Sessions, Usage } from "./index";
-
-/** Stands in for the inspector of the shell. */
-function Panel() {
-	const { selectedRef } = useShell();
-	return <aside aria-label="panel">{selectedRef}</aside>;
-}
-
-async function renderTab(tab: React.ReactNode) {
-	await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
-	return renderApp(
-		<ShellProvider>
-			{tab}
-			<Panel />
-		</ShellProvider>,
-	);
-}
 
 let router: ReturnType<typeof mountApp> | undefined;
 afterEach(() => waitFor(() => expect(router?.state.status ?? "idle").toBe("idle")));
@@ -138,11 +119,17 @@ describe("Factory tabs", () => {
 
 	it("Sessions: lists the sessions, and the kill switch toggles", async () => {
 		const user = userEvent.setup();
-		await renderTab(<Sessions />);
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const rows = await unwrap(commands.sessionsList());
 		expect(rows.length).toBeGreaterThan(0);
-		expect(await screen.findByRole("table", { name: "Sessions" })).toBeInTheDocument();
-		expect(await screen.findAllByText(rows[0]?.key ?? "")).not.toHaveLength(0);
+		router = mountApp("/crew/sessions");
+		const here = await screen.findByRole("region", { name: "On this machine" });
+		const live = rows.filter((r) => r.state === "running" || r.state === "gate");
+		if (live.length > 0)
+			expect(await within(here).findAllByRole("button", { name: /\S/ })).not.toHaveLength(0);
+		// The kill switch lives on Crew, not on Sessions.
+		expect(screen.queryByRole("switch", { name: "Agents on" })).toBeNull();
+		await router.navigate({ to: "/crew/crew" });
 		const on = await screen.findByRole("switch", { name: "Agents on" });
 		expect(on).toBeChecked();
 		await user.click(on);
@@ -154,24 +141,25 @@ describe("Factory tabs", () => {
 	});
 
 	it("Sessions: run units show in Active and Previous, with a total row and no tiles", async () => {
-		await renderTab(<Sessions />);
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const rows = await unwrap(commands.sessionsList());
-		const live = rows.filter((r) => r.state === "running" || r.state === "gate").length;
-		expect(await screen.findByRole("heading", { name: `Active (${live})` })).toBeInTheDocument();
-		expect(
-			screen.getByRole("heading", { name: `Previous (${rows.length - live})` }),
-		).toBeInTheDocument();
-		const first = rows[0];
-		const row = (await screen.findAllByText(first?.key ?? ""))[0]?.closest(
-			'[role="row"]',
-		) as HTMLElement;
-		expect(within(row).getByText("Claude Code")).toBeInTheDocument();
-		// The tiles are gone: their totals are the last row of the table, and a click opens the run
-		// (run-address.test.tsx checks the address).
+		const live = rows.filter((r) => r.state === "running" || r.state === "gate");
+		router = mountApp("/crew/sessions");
+		// The table with its Total row is gone: the tokens and the cost of the shown session are in its panel.
+		const panel = within(await screen.findByRole("region", { name: /^Live output of / }));
+		const tokens = (await panel.findByText(/ tokens$/)).textContent;
+		expect(live.map((r) => `${r.tokens.toLocaleString("en")} tokens`)).toContain(tokens);
+		expect(panel.getByText(/^\$\d+\.\d\d$/)).toBeInTheDocument();
 		expect(document.querySelector("dl")).toBeNull();
-		expect(
-			within(await screen.findByRole("table", { name: "Sessions" })).getByText("Total"),
-		).toBeInTheDocument();
+		expect(screen.queryByRole("table", { name: "Sessions" })).toBeNull();
+		// The ended sessions are on their own page.
+		await router.navigate({ to: "/crew/sessions", search: { page: "ended" } as never });
+		await screen.findByRole("heading", { name: "Ended sessions" });
+		const ended = rows.filter((r) => r.state !== "running" && r.state !== "gate");
+		expect(ended.length).toBeGreaterThan(0);
+		await waitFor(() =>
+			expect(screen.getAllByText("Claude Code", { exact: false }).length).toBeGreaterThan(0),
+		);
 	});
 
 	it("Sessions: a running agent review is a session, and Stop ends it", async () => {
@@ -180,19 +168,21 @@ describe("Factory tabs", () => {
 		await unwrap(commands.prReviewStart(141, true));
 		const agent = mockState().agentPr;
 		if (agent) agent.running = [141];
-		await renderTab(<Sessions />);
-		const row = (await screen.findByText("#141")).closest('[role="row"]') as HTMLElement;
-		expect(within(row).getByText("Running")).toBeInTheDocument();
+		router = mountApp("/crew/sessions");
+		await user.click(await screen.findByRole("button", { name: /Review of pull request 141/ }));
+		const panel = within(
+			await screen.findByRole("region", { name: "Live output of Review of pull request 141" }),
+		);
 		// A run has no Stop here: only the review has one.
 		expect(screen.getAllByRole("button", { name: /^Stop #/ })).toHaveLength(1);
-		await user.click(within(row).getByRole("button", { name: "Stop #141" }));
-		await waitFor(() => expect(screen.queryByText("#141")).toBeNull());
+		await user.click(panel.getByRole("button", { name: "Stop #141" }));
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Stop #141" })).toBeNull());
 		expect(mockState().agentPr?.running).toEqual([]);
 	});
 
-	it("Usage: three groups with counts, and budgetSet", async () => {
-		const user = userEvent.setup();
-		await renderTab(<Usage />);
+	it("Usage: three groups with counts on How agents do", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const router = mountApp("/crew/spend?page=how");
 		const u = await unwrap(commands.usageGet());
 		for (const [name, n] of [
 			["Per run", u.runs.length],
@@ -200,69 +190,63 @@ describe("Factory tabs", () => {
 			["Per member", u.members.length],
 		] as const)
 			expect(await screen.findByRole("heading", { name: `${name} (${n})` })).toBeInTheDocument();
+		expect((await screen.findAllByRole("meter")).length).toBeGreaterThan(0);
+		// A run row shows the ticket key and its title.
+		const run = (await unwrap(commands.runsList())).find((r) => r.key === "ACME-2");
+		expect(await screen.findByText(run?.title ?? "")).toBeInTheDocument();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("Usage: Budgets sets the budget of one day with budgetSet, and a blank amount clears it", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const u = await unwrap(commands.usageGet());
 		const day = u.days[0]?.key ?? "";
-		await user.click(await screen.findByRole("button", { name: "Edit" }));
+		const router = mountApp("/crew/spend?page=budgets");
+		await user.click(await screen.findByRole("button", { name: "Add a limit" }));
 		await user.type(screen.getByRole("textbox", { name: "Day or member" }), day);
 		await user.type(screen.getByRole("spinbutton", { name: "Budget (USD)" }), "3");
 		await user.click(screen.getByRole("button", { name: "Set budget" }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.usageGet())).days.find((d) => d.key === day)?.budget).toBe(3),
 		);
-		expect((await screen.findAllByRole("meter")).length).toBeGreaterThan(0);
 		// An empty amount clears the budget.
-		await user.type(screen.getByRole("textbox", { name: "Day or member" }), day);
+		await user.click(await screen.findByRole("button", { name: `Edit the limit of ${day}` }));
+		await user.clear(screen.getByRole("spinbutton", { name: "Budget (USD)" }));
 		await user.click(screen.getByRole("button", { name: "Set budget" }));
 		await waitFor(async () =>
 			expect(
 				(await unwrap(commands.usageGet())).days.find((d) => d.key === day)?.budget,
 			).toBeNull(),
 		);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
-	it("Usage: the budgets sit in a panel, as one line of amounts with Edit, and the success rate shows", async () => {
-		const user = userEvent.setup();
-		await renderTab(<Usage />);
-		const panel = within(await screen.findByRole("region", { name: "Budgets" }));
-		expect(panel.getByText("Ada Lovelace")).toBeInTheDocument();
-		expect(panel.getByText("$10.00")).toBeInTheDocument();
-		expect(panel.queryByRole("textbox", { name: "Day or member" })).toBeNull();
-		expect(screen.queryByRole("button", { name: "Set budget" })).toBeNull();
-		await user.click(panel.getByRole("button", { name: "Edit" }));
-		// The form is in the panel, not in the page header.
-		expect(screen.getAllByRole("button", { name: "Set budget" })).toHaveLength(1);
-		expect(panel.getByRole("button", { name: "Set budget" })).toBeInTheDocument();
-		// The demo has 4 ended runs: 2 done, 1 failed, 1 cancelled.
-		const rate = screen.getByText("Success rate").closest("div") as HTMLElement;
-		expect(rate).toHaveTextContent("50 %");
-		expect(rate).toHaveTextContent("2/4");
-		// A run row shows the ticket key and its title.
-		const run = (await unwrap(commands.runsList())).find((r) => r.key === "ACME-2");
-		expect(await screen.findByText(run?.title ?? "")).toBeInTheDocument();
-	});
-
-	it("Usage: the budgets list the default once, then each key, also a key with no spend", async () => {
+	it("Usage: Budgets list the default once, then each key, also a key with no spend", async () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		await unwrap(commands.budgetSet("day", "*", 5));
 		await unwrap(commands.budgetSet("day", "2020-01-01", 7));
-		await renderTab(<Usage />);
-		const list = within(await screen.findByRole("list", { name: "Budget" }));
-		expect(list.getAllByText("$5.00")).toHaveLength(1);
-		expect(list.getByText("Per day")).toBeInTheDocument();
-		expect(list.getByText("2020-01-01")).toBeInTheDocument();
-		expect(list.getByText("$7.00")).toBeInTheDocument();
+		const router = mountApp("/crew/spend?page=budgets");
+		const panel = within(await screen.findByRole("region", { name: "Budgets" }));
+		expect(await panel.findByText("2020-01-01")).toBeInTheDocument();
+		expect(panel.getAllByText("$5.00")).toHaveLength(1);
+		expect(panel.getByText("Each day")).toBeInTheDocument();
+		expect(panel.getByText("$7.00")).toBeInTheDocument();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
-	it("Usage: with no budget set the form shows open and has no Edit", async () => {
+	it("Usage: with no budget set the rows say No limit and the form is closed", async () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		await unwrap(commands.budgetSet("member", "Ada Lovelace", null));
-		await renderTab(<Usage />);
+		const router = mountApp("/crew/spend?page=budgets");
 		const panel = within(await screen.findByRole("region", { name: "Budgets" }));
-		expect(panel.getByRole("textbox", { name: "Day or member" })).toBeInTheDocument();
-		expect(panel.queryByRole("button", { name: "Edit" })).toBeNull();
+		expect((await panel.findAllByText("No limit")).length).toBeGreaterThan(1);
+		expect(panel.queryByRole("textbox", { name: "Day or member" })).toBeNull();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
-	it("Usage: the request tree nests the requests of a run under its steps", async () => {
-		await renderTab(<Usage />);
+	it("Usage: the request tree totals are the ones of its run", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const u = await unwrap(commands.usageGet());
 		const trees = await Promise.all(u.runs.map((r) => unwrap(commands.usageTreeGet(r.run))));
 		// The totals of a tree are the ones of its run when a step has started.
@@ -271,48 +255,22 @@ describe("Factory tabs", () => {
 		const run = u.runs.find((r) => r.run === tree.run);
 		expect(tree.tokens).toBe(run?.tokens);
 		expect(tree.usd).toBeCloseTo(run?.usd ?? 0, 1);
-		await screen.findByText("Request tree");
-		// The view shows the first run.
-		const shown = trees[0]?.steps.reduce((n, s) => n + s.requests.length, 0) ?? 0;
-		await waitFor(() => expect(document.querySelectorAll("details li")).toHaveLength(shown));
 		await expect(unwrap(commands.usageTreeGet("nope"))).rejects.toThrow(errorMessages.en.not_found);
 	});
 
-	it("Usage: the spend flame graph has one keyboard reachable bar for each step", async () => {
+	it("Usage: Each person sets the default member budget", async () => {
 		const user = userEvent.setup();
-		await renderTab(<Usage />);
-		const u = await unwrap(commands.usageGet());
-		const trees = await Promise.all(u.runs.map((r) => unwrap(commands.usageTreeGet(r.run))));
-		const at = trees.findIndex((x) => x.steps.some((s) => s.tokens > 0));
-		const run = u.runs[at];
-		const step = trees[at]?.steps.find((s) => s.tokens > 0);
-		if (!run || !step) throw new Error("the demo has a started run");
-		await screen.findByText("Request tree");
-		if (at > 0) {
-			await user.click(screen.getByRole("combobox", { name: "Run" }));
-			await user.click(await screen.findByRole("option", { name: run.key }));
-		}
-		const graph = await screen.findByRole("region", { name: "Spend flame graph" });
-		const bar = await within(graph).findByRole("button", {
-			name: `${step.step}: ${step.tokens} tokens`,
-		});
-		bar.focus();
-		expect(bar).toHaveFocus();
-	});
-
-	it("Usage: a member scope sets the default member budget", async () => {
-		const user = userEvent.setup();
-		await renderTab(<Usage />);
-		await user.click(await screen.findByRole("button", { name: "Edit" }));
-		await user.click(await screen.findByRole("combobox", { name: "Budget for" }));
-		await user.click(await screen.findByRole("option", { name: "Per member" }));
-		await user.type(screen.getByRole("textbox", { name: "Day or member" }), "*");
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const router = mountApp("/crew/spend?page=budgets");
+		await user.click(await screen.findByRole("button", { name: "Edit the limit of each person" }));
+		await user.clear(screen.getByRole("spinbutton", { name: "Budget (USD)" }));
 		await user.type(screen.getByRole("spinbutton", { name: "Budget (USD)" }), "4");
 		await user.click(screen.getByRole("button", { name: "Set budget" }));
 		await waitFor(async () => {
 			const { members } = await unwrap(commands.usageGet());
 			expect(members.some((m) => m.budget === 4)).toBe(true);
 		});
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
 	it("Usage: status colour at 80 % and 100 %", () => {

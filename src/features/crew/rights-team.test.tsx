@@ -47,8 +47,7 @@ describe("Crew / Rights: the team file", () => {
 		await router.navigate({ to: "/crew/rights", search: { page: "team" } as never });
 		expect(await screen.findByText("You are ada (Account)")).toBeInTheDocument();
 		// a grid wider than the page scrolls sideways, and the keyboard reaches the scroll
-		const region = await screen.findByRole("region", { name: "Rights of each person" });
-		const scroll = within(region).getByRole("region", { name: "Rights of each person" });
+		const scroll = await screen.findByRole("region", { name: "Rights of each person" });
 		expect(scroll).toHaveAttribute("tabindex", "0");
 		expect(scroll).toHaveClass("overflow-auto");
 		await idle(router);

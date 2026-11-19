@@ -101,7 +101,14 @@ function Bars({
 }
 
 /** Factory / Usage, second block: spend of every AI session on this computer, with budgets. */
-export function MachineUsage({ prices }: { prices: boolean }) {
+export function MachineUsage({
+	prices,
+	withBudget = true,
+}: {
+	prices: boolean;
+	/** The budget card of this computer: Budgets (picture 083) has its own rows. */
+	withBudget?: boolean;
+}) {
 	const { t, lang } = useI18n();
 	const m = t.factory.machine;
 	const [days, setDays] = useState(30);
@@ -223,63 +230,65 @@ export function MachineUsage({ prices }: { prices: boolean }) {
 			>
 				<DataTable label={m.title} columns={columns} data={lines} rowId={(r) => r.name} />
 			</SectionCard>
-			<SectionCard title={m.budget} count={budgets.length}>
-				<div className="flex flex-col gap-2">
-					<span className="flex flex-wrap items-end gap-2">
-						<Select
-							label={m.budgetFor}
-							className="min-h-control"
-							items={[ALL, ...runners].map((r) => ({
-								value: r,
-								label: r === ALL ? m.allRunners : runnerName(r),
-								icon: r === ALL ? undefined : <BrandIcon name={r} size={14} />,
-							}))}
-							value={runner}
-							onValueChange={setRunner}
-						/>
-						<Input
-							label={m.budgetAmount}
-							type="number"
-							min="0"
-							step="any"
-							className="min-h-control max-w-32"
-							value={amount}
-							onChange={(e) => setAmount(e.target.value)}
-						/>
-						<Button
-							variant="primary"
-							className="min-h-control"
-							disabled={!amount.trim()}
-							onClick={() => save(runner, Number(amount))}
-						>
-							{m.save}
-						</Button>
-					</span>
-					{budgets.map((b) => (
-						<span key={b.runner} className="flex flex-wrap items-center gap-3 text-ui">
-							<span className="w-32">
-								{b.runner === ALL ? m.allRunners : <RunnerLabel id={b.runner} />}
-							</span>
-							<span className="w-40 text-n-11">
-								{money.format(monthUsd(b.runner))} / {money.format(b.usd ?? 0)}
-							</span>
-							<SpendMeter
-								usd={monthUsd(b.runner)}
-								budget={b.usd}
-								label={`${m.budget} ${b.runner === ALL ? m.allRunners : runnerName(b.runner)}`}
+			{withBudget ? (
+				<SectionCard title={m.budget} count={budgets.length}>
+					<div className="flex flex-col gap-2">
+						<span className="flex flex-wrap items-end gap-2">
+							<Select
+								label={m.budgetFor}
+								className="min-h-control"
+								items={[ALL, ...runners].map((r) => ({
+									value: r,
+									label: r === ALL ? m.allRunners : runnerName(r),
+									icon: r === ALL ? undefined : <BrandIcon name={r} size={14} />,
+								}))}
+								value={runner}
+								onValueChange={setRunner}
 							/>
-							<Button className="min-h-control" onClick={() => save(b.runner, null)}>
-								{m.remove}
+							<Input
+								label={m.budgetAmount}
+								type="number"
+								min="0"
+								step="any"
+								className="min-h-control max-w-32"
+								value={amount}
+								onChange={(e) => setAmount(e.target.value)}
+							/>
+							<Button
+								variant="primary"
+								className="min-h-control"
+								disabled={!amount.trim()}
+								onClick={() => save(runner, Number(amount))}
+							>
+								{m.save}
 							</Button>
 						</span>
-					))}
-					{error ? (
-						<p role="alert" className="text-ui text-danger-text">
-							{error}
-						</p>
-					) : null}
-				</div>
-			</SectionCard>
+						{budgets.map((b) => (
+							<span key={b.runner} className="flex flex-wrap items-center gap-3 text-ui">
+								<span className="w-32">
+									{b.runner === ALL ? m.allRunners : <RunnerLabel id={b.runner} />}
+								</span>
+								<span className="w-40 text-n-11">
+									{money.format(monthUsd(b.runner))} / {money.format(b.usd ?? 0)}
+								</span>
+								<SpendMeter
+									usd={monthUsd(b.runner)}
+									budget={b.usd}
+									label={`${m.budget} ${b.runner === ALL ? m.allRunners : runnerName(b.runner)}`}
+								/>
+								<Button className="min-h-control" onClick={() => save(b.runner, null)}>
+									{m.remove}
+								</Button>
+							</span>
+						))}
+						{error ? (
+							<p role="alert" className="text-ui text-danger-text">
+								{error}
+							</p>
+						) : null}
+					</div>
+				</SectionCard>
+			) : null}
 		</>
 	);
 }
