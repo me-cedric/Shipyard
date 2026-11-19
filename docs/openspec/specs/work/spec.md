@@ -70,10 +70,10 @@ The costing Plan tab, the Gantt page and the tickets Generate tab do the same jo
 
 ### Acceptance Criteria
 
-- [x] Backlog and Board read the mirror, work offline and show the run state of each item. Test: `src/features/work/backlog.test.tsx`.
-- [x] A card move sends the transition, and a refusal returns the card. Test: `src/features/work/backlog.test.tsx`.
+- [x] Backlog and Board read the mirror, work offline and show the run state of each item. Test: `src/features/flow/list.test.tsx`.
+- [x] A card move sends the transition, and a refusal returns the card. Test: `src/features/flow/list.test.tsx`.
 - [x] A team file with a duplicate handle is refused and the last valid team stays. Test: `crates/shipyard-store/tests/work.rs`, `src/features/crew/crew-page.test.tsx`.
-- [x] The PM assigns a member, and the suggestion ranks members by skill and capacity without assigning. Test: `src/features/work/backlog.test.tsx`, `crates/shipyard-core/tests/work.rs`.
+- [x] The PM assigns a member, and the suggestion ranks members by skill and capacity without assigning. Test: `src/features/flow/list.test.tsx`, `crates/shipyard-core/tests/work.rs`.
 - [x] An item assigned to me with the pickup label is eligible on my machine, and no other item is. Test: `crates/shipyard-core/tests/pickup.rs`.
 - [x] A sheet shows the four views with equal totals in the summary, the spread and the portfolio. Test: `src/features/plan/estimates.test.tsx`.
 - [ ] An Excel import shows a preview, and an Excel export opens in the CGI costing tool.

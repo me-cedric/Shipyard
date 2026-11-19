@@ -252,6 +252,12 @@ Feature: code
     When a person confirms the run
     Then the result shows its state, duration and output tail
 
+  @spec:code#REQ-026
+  Scenario: QA checks: A role with no right on code
+    Given a tester with no right on code
+    When the tester opens Flow / Health
+    Then the checks show with their state and Run is off
+
   @spec:code#REQ-027
   Scenario: Security scanners: Leaked secret
     Given a working copy with a secret in a file

@@ -1,6 +1,11 @@
 # Changelog
 
 ## [0.2.0]
+- Each role opens on its own first page: the product owner on Flow / List, the project manager on Plan / Timeline, the business analyst on Library / Specs, the architect on Library / Decisions, the tech lead and the developer on Flow, the tester on Library / Test plans, the designer on Library / Screens and the viewer on Today; a place or a view that a role cannot open stays hidden, with its links and its actions.
+- The words are plainer in English, French, German and Spanish: Recipes for Workflows, Map for Graph, Specs for Capabilities, Project rules for Constitution, Network flows for Flows, and Flow in place of Factory.
+- Each control is 44 px high or more, and no page scrolls sideways in the smallest window (960 by 600).
+- The manual follows the places (Today, Flow, Plan, Crew, Library, Code, Setup) in English, French, German and Spanish.
+- The pages of the eight old spaces are gone: each function has one page in a place, and an old address still opens that page.
 - Crew shows the people and the agents on one page: each person is a card with the current work, the role, the days a week, the skills and Over by or Has room, each agent role is a card with its work, and the page shows the spend on open work and the recipes; a card opens the person, with Save and Remove from the team; the sections are Crew, Recipes (the workflows), Sessions, Spend (Usage) and Rights, with the agents switch, and the old addresses of Team, Workflows, Usage and the Agents map open them.
 - The Live view of Crew replaces the Agents map: one row for each agent at work, with the agent, the feature and its state, and the files and specs that it reads and changes, a filter (At work, Ended, Files, Specs) and Copy ref in the menu of the agent.
 - Plan is a place with the sections Timeline, People, Estimates and Time: the title of Timeline gives the day that the release ends, one card names the people with too much work and offers proposals with Apply and Rebalance, People shows the load of each person against the capacity of each week, Time has a week grid where a cell adds, changes or deletes an entry, and the preview before the plan goes to the issue tracker lists New, Changed and Stays the same; the estimate sheets, the costing with its seal, the import from Excel and Dates and days off stay.

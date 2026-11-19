@@ -3,9 +3,9 @@ Feature: shell
   @spec:shell#REQ-001
   Scenario: Sidebar: Open a space
     Given the sidebar is open
-    When the person selects Work
-    Then the main area shows the Work space
-    And the Work entry shows as current
+    When the person selects Plan
+    Then the main area shows Plan
+    And the Plan entry shows as current
 
   @spec:shell#REQ-002
   Scenario: Main area and inspector: Toggle inspector
@@ -35,16 +35,16 @@ Feature: shell
 
   @spec:shell#REQ-005
   Scenario: Command palette: Jump to a ref
-    Given the palette is open
+    Given the Ask bar has the focus
     When the person types a ref such as `wi:KEY-1`
-    Then the palette lists the matching entity
+    Then the Ask bar lists the matching entity
     And Enter opens it
 
   @spec:shell#REQ-005
   Scenario: Command palette: Run an action
-    Given the palette is open
+    Given the Ask bar has the focus
     When the person types the name of an action and presses Enter
-    Then the action runs and the palette closes
+    Then the action runs and the list closes
 
   @spec:shell#REQ-006
   Scenario: Inspector and backlinks: Follow a backlink
@@ -89,17 +89,17 @@ Feature: shell
 
   @spec:shell#REQ-009
   Scenario: Role home: Junior sidebar
-    Given the migration of `team-rights` REQ-015 gave a former junior the role developer with -code.merge
+    Given the migration of `team-rights` REQ-015 gave a former junior the role `developer` with `-code.merge`
     When the app opens
-    Then the main area shows Factory / Runs
-    And the sidebar still lists all seven spaces and Settings
+    Then the main area shows Flow
+    And the sidebar still lists the six places and Setup
 
   @spec:shell#REQ-009
   Scenario: Role home: Viewer sidebar
-    Given the person has the role viewer
+    Given the person has the role `viewer` with no level `none`
     When the app opens
-    Then the main area shows Home / Today
-    And the sidebar still lists all seven spaces and Settings
+    Then the main area shows Today
+    And the sidebar still lists the six places and Setup
 
   @spec:shell#REQ-010
   Scenario: Settings / Me: Setting applies everywhere

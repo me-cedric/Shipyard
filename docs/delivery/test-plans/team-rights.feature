@@ -101,8 +101,8 @@ Feature: team-rights
   Scenario: First tab of each role: Architect
     Given the member `ana` has the role `architect` and no last view
     When `ana` opens the project
-    Then the main area shows Design / Decisions
-    And Design is the second space of the sidebar
+    Then the main area shows Library / Decisions
+    And the menu shows the places in the same order as for every role
 
   @spec:team-rights#REQ-014
   Scenario: Inbox routing: Approval routing

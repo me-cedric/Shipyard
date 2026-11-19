@@ -485,30 +485,34 @@ Feature: factory
 
   @spec:factory#REQ-027
   Scenario: Runs view: Needs you lane
-    Given a run in `WaitingForAnswer`
-    When the person opens Runs
-    Then the run shows in the lane Needs you
+    Given a feature whose run is in `WaitingForAnswer`
+    When the person opens Flow
+    Then the feature shows once, in its stage, with the mark needs you
 
   @spec:factory#REQ-027
   Scenario: Runs view: Empty lane
-    Given no run in Queued
-    When the person opens Runs
-    Then the lane shows the empty pattern, an icon and the word None, with no ghost rows
+    Given a filter that hides every card of a stage
+    When the person opens Flow
+    Then the stage shows as an empty column with the count 0
 
   @spec:factory#REQ-027
   Scenario: Runs view: Ended run
-    Given a run in `Done`
-    When the person opens Runs
-    Then the board has no lane Done
-    And the run shows in History
+    Given a feature whose run is in `Done`
+    When the person opens the view Done
+    Then the feature shows in the list
 
   @spec:factory#REQ-027
   Scenario: Runs view: Failed run
     Given the latest run of a ticket is in `Failed`
-    When the person opens Runs
-    Then the run shows in the lane Needs you with the action Start again
-    And the action starts a new run and opens its page
-    And the run shows in History
+    When the person opens Flow
+    Then the feature shows in Build with the mark stopped, and its menu starts the run again
+    And the run shows in Done
+
+  @spec:factory#REQ-027
+  Scenario: Runs view: One card for one feature
+    Given a feature with a ticket, a spec change and a run in `Working`
+    When the person opens Flow
+    Then the feature shows once, in Build
 
   @spec:factory#REQ-028
   Scenario: Run view: Live step
@@ -538,25 +542,31 @@ Feature: factory
   Scenario: Agents map: Live node
     Given a running agent
     When it reads a file
-    Then a link from the agent to the file shows
+    Then the row of the agent names the file
 
   @spec:factory#REQ-030
   Scenario: Agents map: Open entity
-    Given a ticket node
-    When the person clicks it
-    Then the inspector shows the ticket
+    Given a row that names a file or a spec
+    When the person clicks that ref
+    Then the inspector shows the entity
 
   @spec:factory#REQ-030
   Scenario: Agents map: Open run
-    Given an agent node of a run
-    When the person clicks it
-    Then the run page opens on the Workflow tab at that step
+    Given the row of an agent of a run
+    When the person clicks the agent
+    Then the feature page opens at the unit of that agent
 
   @spec:factory#REQ-030
   Scenario: Agents map: Plain label
-    Given a run node
-    When the map shows
-    Then the node shows the ticket key and title and no `run:` ref
+    Given the row of an agent of a run
+    When the live view shows
+    Then the row shows the ticket key and title and no `run:` ref
+
+  @spec:factory#REQ-030
+  Scenario: Agents map: Old address
+    Given the address of the agents map of before this change
+    When the person opens it
+    Then the live view of Crew opens
 
   @spec:factory#REQ-031
   Scenario: Sessions view: Session row
@@ -714,21 +724,32 @@ Feature: factory
   @spec:factory#REQ-038
   Scenario: Run lanes: Ready to merge
     Given a run in `PROpen` with passing CI, no change request and no draft
-    When the person opens Runs
-    Then the run shows in the lane Ready to merge
+    When the person opens Flow
+    Then the feature shows in Review and its card says Ready to merge
 
   @spec:factory#REQ-038
   Scenario: Run lanes: Draft
     Given a run in `PROpen` with passing CI and a draft pull request
-    When the person opens Runs
-    Then the run shows in the lane In review
+    When the person opens Flow
+    Then the feature shows in Review
 
   @spec:factory#REQ-038
   Scenario: Run lanes: Cancelled run
-    Given a run in `Cancelled`
-    When the person opens Runs
-    Then the run shows in no lane
-    And the run shows in History
+    Given a run that a person stopped
+    When the person opens the view Done
+    Then the run shows in the list
+
+  @spec:factory#REQ-038
+  Scenario: Run lanes: A blocked run
+    Given a feature whose run is in `Blocked` and returns to `Working`
+    When the person opens Flow
+    Then the feature shows in Build with the mark blocked
+
+  @spec:factory#REQ-038
+  Scenario: Run lanes: A failed run
+    Given a feature whose run is in `Failed`
+    When the person opens Flow
+    Then the feature shows in Build with the mark stopped
 
   @spec:factory#REQ-039
   Scenario: Restart: Resume a step

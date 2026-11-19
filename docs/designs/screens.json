@@ -65,7 +65,8 @@
       "title": "Flow: each feature once in five stages (Idea, Spec, Build, Review, Ready), the views Flow, List, Done and Health, the filter All, Needs me and Mine, and New feature; a card shows the title, who works on it and its state",
       "artifacts": [
         "spec:factory",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/factory.png"
     },
@@ -86,7 +87,8 @@
       "title": "Code / Now: the files to commit with the commit box (Summary, Description, Write it for me, Commit), then the pull requests with a search, the filter All and Needs review, the open ones first and Merged and closed behind one button; two doors open the product health and the files",
       "artifacts": [
         "spec:code",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/pulls.png"
     },
@@ -104,10 +106,11 @@
     {
       "id": "SCR-010",
       "slug": "top-bar",
-      "title": "Top bar: sidebar toggle, Back and Forward, the project name with the Projects page, the sync mark (branch, state of the repository, Sync with ahead and behind), Activity, search, Files and Terminal buttons, Ask split button, notifications, account menu",
+      "title": "Top bar: sidebar toggle, Back and Forward, the project name with the Projects page, the sync mark (branch, state of the repository, Sync with ahead and behind), the Ask bar, the Files and Terminal buttons, and the account menu",
       "artifacts": [
         "spec:shell",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/home.png"
     },
@@ -116,34 +119,38 @@
       "slug": "projects",
       "title": "Projects: the page behind the project name of the top bar, with the open project, the projects opened before, New project, Open a local folder, Clone a repository and Import a project",
       "artifacts": [
-        "spec:projects"
+        "spec:projects",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/projects.png"
     },
     {
       "id": "SCR-012",
       "slug": "menu-bar-panel",
-      "title": "Menu bar panel: spend, runs with Stop, Needs you, agents switch, sync, project, Open Shipyard",
+      "title": "Menu bar panel: the same things that need the person as Today, the spend, the runs with Stop, the agents switch, the sync, the project, and Open Shipyard",
       "artifacts": [
         "spec:shell",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ]
     },
     {
       "id": "SCR-013",
       "slug": "knowledge-slides",
-      "title": "Knowledge / Slides: HTML deck in a sandboxed frame, Present, Export PDF; Markdown deck read only with Convert",
+      "title": "Library / Slides: an HTML deck in a sandboxed frame with Present and Export PDF; a Markdown deck is read only with Convert; the Library back link",
       "artifacts": [
         "spec:knowledge",
-        "adr:0016"
+        "adr:0016",
+        "spec:app-redesign"
       ]
     },
     {
       "id": "SCR-014",
       "slug": "assistant-composer",
-      "title": "Assistant: message box, then one bar with attach, the model and effort menu, the permission, the context ring and Send",
+      "title": "Full assistant: the threads (new, rename, delete), the message box, then one bar with attach, the mode, the model and effort menu, the permission, the context ring and Send; the trace, the changed files with keep and undo, and the side and width of the panel",
       "artifacts": [
-        "spec:assistant"
+        "spec:assistant",
+        "spec:app-redesign"
       ]
     },
     {
@@ -152,7 +159,8 @@
       "title": "Setup / This project, Connections: the issue trackers and the code hosts of the project, behind a door with a back link; the MCP servers with their allow list picker are in This computer",
       "artifacts": [
         "spec:extensions",
-        "spec:visual-cues"
+        "spec:visual-cues",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/settings-connections.png"
     },
@@ -162,7 +170,8 @@
       "title": "Onboarding tour: six steps with a title, one sentence and a picture; opens once after the first project; Close, Back, Next, Done and Open the manual",
       "artifacts": [
         "spec:onboarding",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/tour.png"
     },
@@ -172,7 +181,8 @@
       "title": "Setup / This computer, Permissions: each OS permission with its state and one action, Allow all, and Replay the tour; the Get started steps are in Setup / Start",
       "artifacts": [
         "spec:onboarding",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ]
     },
     {
@@ -182,14 +192,15 @@
       "artifacts": [
         "spec:projects",
         "spec:visual-cues",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/settings-project.png"
     },
     {
       "id": "SCR-019",
       "slug": "settings-me-themes",
-      "title": "Settings / Me: the Theme select (Light, Dark, OLED, System, System with OLED, imported themes), Theme files with Import and Export, a row for each imported theme with Remove, and the preview dialog",
+      "title": "Setup / Me, Look and layout: the Theme select (Light, Dark, OLED, System, System with OLED, imported themes), Theme files with Import and Export, a row for each imported theme with Remove, and the preview dialog",
       "artifacts": [
         "spec:themes",
         "adr:0018"
@@ -211,7 +222,7 @@
     {
       "id": "SCR-024",
       "slug": "settings-me-languages",
-      "title": "Settings / Me: the Language select (English, French, German, Spanish, imported languages), Language files with Import language and Export English, the Mark untranslated text switch when a language file is current, a row for each imported language with Remove, and the import dialog",
+      "title": "Setup / Me: the Language select (English, French, German, Spanish, imported languages), Language files with Import language and Export English, the Mark untranslated text switch when a language file is current, a row for each imported language with Remove, and the import dialog",
       "artifacts": [
         "spec:languages",
         "adr:0021"
@@ -223,7 +234,8 @@
       "title": "New project: the five steps of the creator, the preview of the files and the start choice",
       "artifacts": [
         "spec:project-creator",
-        "spec:projects"
+        "spec:projects",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/new-project.png"
     },
@@ -241,10 +253,11 @@
     {
       "id": "SCR-026",
       "slug": "factory-run",
-      "title": "Flow / Feature: the page of one feature from a run, with the stage line, the one action of the state, one question for its approvals, and the sections Story, Brief, Design, Changes, Checks and Chat",
+      "title": "Flow / Feature, Story: the page of one feature, with the stage line, the one action of the state, one question for its approvals, and the sections Story, Brief, Design, Changes, Checks and Chat; the Story shows the events in plain sentences, and all events, the requests and the live terminal open on demand; the old run address opens it",
       "artifacts": [
         "spec:factory",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/run.png"
     },
@@ -282,19 +295,21 @@
     {
       "id": "SCR-028",
       "slug": "account-menu",
-      "title": "Account menu: Settings / Me, Theme (Light, Dark, System), Manual, Shortcuts, What's new, Replay the tour",
+      "title": "Account menu: Setup / Me, Theme (Light, Dark, System), Manual, Shortcuts, What's new, Replay the tour",
       "artifacts": [
         "spec:shell",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ]
     },
     {
       "id": "SCR-029",
       "slug": "no-project",
-      "title": "No project: one page for every space with Open a folder, Clone a repository and New project",
+      "title": "No project: one page for every place with Open a folder, Clone a repository and New project",
       "artifacts": [
         "spec:shell",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ]
     },
     {
@@ -303,7 +318,8 @@
       "title": "First run: the role step with Continue, then the open-a-project step",
       "artifacts": [
         "spec:shell",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ]
     },
     {
@@ -312,27 +328,30 @@
       "title": "Flow / Feature, Changes: the pull request of a feature with the header, the four tabs, the merge box and the conversation; the old pull request address opens it. the header with the state, the branches and the line counts, the four tabs, the merge box with Checks, Comments and Approvals and a Merge split button, the description, the conversation with threads, and the sidebar with reviewers, links and Cited by",
       "artifacts": [
         "spec:code",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/pull.png"
     },
     {
       "id": "SCR-034",
       "slug": "pull-request-files",
-      "title": "Code / Pull request, Files changed: the file tree with a filter, Expand all, the viewed count, collapsed file rows with their counts, a thread and a pending comment under a line, and the pending review bar with Submit review and Discard",
+      "title": "Flow / Feature, Changes, Files changed: the file tree with a filter, Expand all, the viewed count, collapsed file rows with their counts, a thread and a pending comment under a line, and the pending review bar with Submit review and Discard",
       "artifacts": [
         "spec:code",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/pull-files.png"
     },
     {
       "id": "SCR-035",
       "slug": "submit-review",
-      "title": "Code / Pull request, Submit review: the verdicts Comment, Approve and Request changes, the review text with Preview, and the list of pending comments",
+      "title": "Flow / Feature, Changes, Submit review: the verdicts Comment, Approve and Request changes, the review text with Preview, and the list of pending comments",
       "artifacts": [
         "spec:code",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/pull-review.png"
     },
@@ -502,6 +521,307 @@
         "adr:0023"
       ],
       "file": "docs/assets/screenshots/feature-impacts.png"
+    },
+    {
+      "id": "SCR-067",
+      "slug": "plan-time",
+      "title": "Plan / Time: the time sheet of the person by day, with a duration, a note and a ticket, and the send of a worklog to the issue tracker; the old Work / Time address opens it",
+      "artifacts": [
+        "spec:work",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-068",
+      "slug": "crew-sessions",
+      "title": "Crew / Sessions: the agent sessions with runner, model, run, state and tokens, the totals in the last row, Active and Previous, Open in terminal, and the agents switch; the old Factory / Sessions address opens it",
+      "artifacts": [
+        "spec:factory",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-069",
+      "slug": "library-diagrams",
+      "title": "Library / Diagrams: the diagrams of the project, the picture first with the switch Picture, Both, Text, and the Library back link",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-070",
+      "slug": "library-decisions",
+      "title": "Library / Decisions: the decisions with their status, the plain form first and the text on demand; a proposed decision waits on the door Why it is so",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-071",
+      "slug": "library-api",
+      "title": "Library / API: the API descriptions of the project in a reader, with the Library back link",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-072",
+      "slug": "library-data",
+      "title": "Library / Data: the data models of the project as a picture first, the text on demand",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-073",
+      "slug": "library-network-flows",
+      "title": "Library / Network flows: the flow matrix of the network calls with its export",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-074",
+      "slug": "library-screens",
+      "title": "Library / Screens: the screens of this registry with their picture, their artifacts and the Figma link",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-075",
+      "slug": "library-specs",
+      "title": "Library / Specs: the capabilities with their requirements in the plain form first, the text on demand",
+      "artifacts": [
+        "spec:specs",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-076",
+      "slug": "library-test-plans",
+      "title": "Library / Test plans: the scenarios of each capability with the requirement that each one tests",
+      "artifacts": [
+        "spec:specs",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-077",
+      "slug": "library-project-rules",
+      "title": "Library / Project rules: the constitution of the project in a reader",
+      "artifacts": [
+        "spec:specs",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-078",
+      "slug": "library-map",
+      "title": "Library / Map: the map of the code as folders, with files and symbols on demand",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-079",
+      "slug": "library-handbook",
+      "title": "Library / Handbook: the handbook pages of the project in a reader",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-080",
+      "slug": "library-manual",
+      "title": "Library / Manual: the guide of Shipyard by place; F1 opens the help of the current page",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-081",
+      "slug": "library-documents",
+      "title": "Library / Documents: the documents of the project with their export",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-082",
+      "slug": "library-dashboards",
+      "title": "Library / Dashboards: the tiles of the dashboard, the pinned tiles first, the edit mode and Build a tile for me",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-083",
+      "slug": "code-history",
+      "title": "Code / History: the commits of the working branch with branch and tag labels and the picture of each author",
+      "artifacts": [
+        "spec:code",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-084",
+      "slug": "code-branches",
+      "title": "Code / Branches: the local and remote branches with their actions",
+      "artifacts": [
+        "spec:code",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-085",
+      "slug": "feature-brief",
+      "title": "Flow / Feature, Brief: what the feature must do, with the ticket and the spec change of the feature",
+      "artifacts": [
+        "spec:specs",
+        "spec:work",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-086",
+      "slug": "feature-design",
+      "title": "Flow / Feature, Design: the screens and the design files that the feature links",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-087",
+      "slug": "feature-checks",
+      "title": "Flow / Feature, Checks: the checks of the feature and the row Impacts on other code",
+      "artifacts": [
+        "spec:code",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-088",
+      "slug": "feature-chat",
+      "title": "Flow / Feature, Chat: the talk with the agent of the feature",
+      "artifacts": [
+        "spec:factory",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-089",
+      "slug": "setup-tickets",
+      "title": "Setup / This project, Tickets: the ticket settings of the project",
+      "artifacts": [
+        "spec:projects",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-090",
+      "slug": "setup-extensions",
+      "title": "Setup / This project, Extensions: the extensions of the project",
+      "artifacts": [
+        "spec:extensions",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-091",
+      "slug": "setup-project-health",
+      "title": "Setup / This project, Health of this project: the findings of the project and Fix all with an agent",
+      "artifacts": [
+        "spec:projects",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-092",
+      "slug": "setup-agents-rules",
+      "title": "Setup / This computer, Agents and rules: the AI tools, the model tiers and the rules",
+      "artifacts": [
+        "spec:extensions",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-093",
+      "slug": "setup-outside-agents",
+      "title": "Setup / This computer, Outside agents: what an agent outside Shipyard can read and do",
+      "artifacts": [
+        "spec:connections",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-094",
+      "slug": "setup-computer-health",
+      "title": "Setup / This computer, Health of this computer: the programs that Shipyard needs, with their state",
+      "artifacts": [
+        "spec:projects",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-095",
+      "slug": "setup-logs",
+      "title": "Setup / This computer, Logs and feedback: the logs of the app and the feedback form",
+      "artifacts": [
+        "spec:shell",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
+    },
+    {
+      "id": "SCR-096",
+      "slug": "close-guard",
+      "title": "Close guard: the question before the app closes while agents work, with Stop them and close and Keep them working; it also names the unsaved drafts",
+      "artifacts": [
+        "spec:shell",
+        "spec:app-redesign",
+        "adr:0023"
+      ]
     }
   ]
 }

@@ -125,12 +125,15 @@ New agent actions
 - Extends: `change:update-ux-declutter` (one checklist, shared patterns). Supersedes its top bar requirements when the Ask bar ships.
 - Rules: `docs/openspec/constitution.md` sections 2, 3 and 4.
 - Decision: `adr:0023` (six places and one flow), accepted. It replaces `adr:0004`.
+- Other capabilities: the deltas of this change hold the requirements whose behavior changes: `spec:shell#REQ-001`, `spec:shell#REQ-005`, `spec:shell#REQ-009`, `spec:factory#REQ-027`, `spec:factory#REQ-030`, `spec:factory#REQ-038`, `spec:code#REQ-026`, `spec:code#REQ-027`, `spec:code#REQ-029`. `spec:team-rights#REQ-013` has its new first pages in `change:add-team-rights`. Each other requirement that names a page of before this change keeps its ref and its behavior at the new place of the map in `plan.md`. No requirement ref moves.
 
 ## ADDED Requirements
 
 ### Requirement: REQ-001 Six places
 
 The main menu SHALL show Today, Flow, Plan, Crew, Library and Code in this order, with Setup at the end, and a page SHALL show one section switch at most.
+
+Screen: SCR-036
 
 #### Scenario: The menu
 
@@ -168,6 +171,8 @@ Each action and each view of before this change SHALL stay reachable from a visi
 
 One bar SHALL replace the search field, the command palette and the Ask button, and SHALL answer, open a place and start an action.
 
+Screen: SCR-038
+
 #### Scenario: Shortcut
 
 - GIVEN any page
@@ -184,6 +189,8 @@ One bar SHALL replace the search field, the command palette and the Ask button, 
 
 The full assistant SHALL keep its threads, modes, model, effort, permission level, context items, gauges, trace, changed-file diff, selection actions and panel placement.
 
+Screen: SCR-014
+
 #### Scenario: A selection
 
 - GIVEN a selected text on a page
@@ -193,6 +200,8 @@ The full assistant SHALL keep its threads, modes, model, effort, permission leve
 ### Requirement: REQ-006 Role view
 
 A role with the level `none` for an area SHALL NOT see its place or view, a right SHALL turn a control off and never a view, and each role SHALL open on its own first page.
+
+Screen: SCR-036
 
 #### Scenario: A viewer
 
@@ -204,6 +213,8 @@ A role with the level `none` for an area SHALL NOT see its place or view, a righ
 
 Today SHALL show the things that need the person one at a time, with the answer controls on the card, the count in the title and a short queue.
 
+Screen: SCR-001
+
 #### Scenario: An agent question
 
 - GIVEN three things that need the person, the first a question of an agent
@@ -213,6 +224,9 @@ Today SHALL show the things that need the person one at a time, with the answer 
 ### Requirement: REQ-008 One list of news
 
 Today SHALL hold the views Needs you, News and Activity, the menu bar panel SHALL show the same things that need the person, and no other screen SHALL hold a second list of notifications.
+
+Screen: SCR-037
+Screen: SCR-012
 
 #### Scenario: Same list
 
@@ -224,6 +238,8 @@ Today SHALL hold the views Needs you, News and Activity, the menu bar panel SHAL
 
 Today SHALL show the panels of the person's role, the person's work, what happened since the last visit and the reminder to log time.
 
+Screen: SCR-001
+
 #### Scenario: A tech lead
 
 - GIVEN a person with the role tech lead and no time logged today
@@ -233,6 +249,8 @@ Today SHALL show the panels of the person's role, the person's work, what happen
 ### Requirement: REQ-010 Five stages
 
 Flow SHALL show each feature once in one of the stages Idea, Spec, Build, Review and Ready, SHALL map each run state to a stage and a mark, and SHALL have the views Flow, List, Done and Health.
+
+Screen: SCR-006
 
 #### Scenario: A blocked run
 
@@ -244,6 +262,8 @@ Flow SHALL show each feature once in one of the stages Idea, Spec, Build, Review
 
 A feature card in Flow SHALL show three facts at most, and the attention colour SHALL show only where a person must act.
 
+Screen: SCR-006
+
 #### Scenario: A working feature
 
 - GIVEN a feature on which an agent works and that needs no person
@@ -254,6 +274,8 @@ A feature card in Flow SHALL show three facts at most, and the attention colour 
 
 One feature page SHALL join the ticket, the spec change, the agent work, the pull request and the checks, with the stage line and the sections Story, Brief, Design, Changes, Checks and Chat.
 
+Screen: SCR-026
+
 #### Scenario: From Flow
 
 - GIVEN a feature in Build with a spec change and a run
@@ -263,6 +285,8 @@ One feature page SHALL join the ticket, the spec change, the agent work, the pul
 ### Requirement: REQ-013 One approval for one intent
 
 Approvals that an agent needs for one intent SHALL show as one question that names each effect, each effect SHALL stay approvable alone, and "Do not ask again for this recipe" SHALL store a durable permission.
+
+Screen: SCR-026
 
 #### Scenario: Send for review
 
@@ -280,6 +304,8 @@ Approvals that an agent needs for one intent SHALL show as one question that nam
 
 Each state in which an agent does not work SHALL show one main action.
 
+Screen: SCR-026
+
 #### Scenario: Budget reached
 
 - GIVEN a feature whose agent stopped at its budget limit
@@ -289,6 +315,8 @@ Each state in which an agent does not work SHALL show one main action.
 ### Requirement: REQ-015 Plain story
 
 The Story of a feature SHALL show its events in plain sentences, and all events, the requests and the live terminal SHALL open on demand.
+
+Screen: SCR-026
 
 #### Scenario: Story first
 
@@ -300,6 +328,8 @@ The Story of a feature SHALL show its events in plain sentences, and all events,
 
 Crew SHALL show people and agents on one page with the sections Recipes, Sessions, Spend and Rights, the agents switch and the action that stops all agents.
 
+Screen: SCR-041
+
 #### Scenario: People and agents
 
 - GIVEN a project with five people and three agent roles
@@ -309,6 +339,8 @@ Crew SHALL show people and agents on one page with the sections Recipes, Session
 ### Requirement: REQ-017 Live work
 
 Crew SHALL show the live work as rows of agent, feature and touched files and specs, with copyable refs, in place of the agents map.
+
+Screen: SCR-007
 
 #### Scenario: Six agents
 
@@ -320,6 +352,8 @@ Crew SHALL show the live work as rows of agent, feature and touched files and sp
 
 Plan SHALL give the end date of the release in its title, SHALL have the views Timeline, People, Estimates and Time, and SHALL show a capacity problem as one card with proposals to apply.
 
+Screen: SCR-005
+
 #### Scenario: Too much work
 
 - GIVEN three people over their capacity
@@ -329,6 +363,9 @@ Plan SHALL give the end date of the release in its title, SHALL have the views T
 ### Requirement: REQ-019 Plan keeps its tools
 
 Plan SHALL keep the estimate sheets, the costing with its seal, the import from Excel, the dates and days off, the time sheet and the preview before the plan goes to the issue tracker.
+
+Screen: SCR-005
+Screen: SCR-043
 
 #### Scenario: Preview before the send
 
@@ -340,6 +377,8 @@ Plan SHALL keep the estimate sheets, the costing with its seal, the import from 
 
 Library SHALL open on four doors, each current view of Design, Knowledge and the spec reference SHALL open from one door, and a door SHALL show the items that wait for a person.
 
+Screen: SCR-044
+
 #### Scenario: A waiting decision
 
 - GIVEN one proposed decision
@@ -349,6 +388,8 @@ Library SHALL open on four doors, each current view of Design, Knowledge and the
 ### Requirement: REQ-021 Picture first
 
 A reader SHALL show the picture or the plain form first, and the text form on demand.
+
+Screen: SCR-003
 
 #### Scenario: An architecture model
 
@@ -360,6 +401,8 @@ A reader SHALL show the picture or the plain form first, and the text form on de
 
 Code SHALL have the sections Now, History, Branches and Terminal, Now SHALL show the files to commit and the pull requests, and one mark SHALL show the sync state.
 
+Screen: SCR-008
+
 #### Scenario: Now
 
 - GIVEN five changed files and four open pull requests
@@ -369,6 +412,9 @@ Code SHALL have the sections Now, History, Branches and Terminal, Now SHALL show
 ### Requirement: REQ-023 Health for every role
 
 The quality gates and the scanners SHALL show as the Health view of Flow, and the impacts of a change SHALL open from the Checks of its feature.
+
+Screen: SCR-065
+Screen: SCR-066
 
 #### Scenario: A tester
 
@@ -380,6 +426,8 @@ The quality gates and the scanners SHALL show as the Health view of Flow, and th
 
 Setup SHALL have a guided start with every item of the start checklist and the scopes This project, This computer and Me, with one place for each setting.
 
+Screen: SCR-061
+
 #### Scenario: The issue tracker
 
 - GIVEN a project with no issue tracker
@@ -389,6 +437,8 @@ Setup SHALL have a guided start with every item of the start checklist and the s
 ### Requirement: REQ-025 Two colours with a meaning
 
 The interface SHALL use one accent colour and one attention colour that means "a person must act", SHALL keep the themes Light, Dark, OLED and System, and SHALL open in Light for a person who has not chosen a theme.
+
+Screen: SCR-002
 
 #### Scenario: Attention only for an action
 
@@ -421,6 +471,8 @@ Each control SHALL be 44 px high or more, and no page SHALL scroll sideways at 9
 ### Requirement: REQ-027 Plain words
 
 The interface SHALL use plain words, complete in English, French, German and Spanish, SHALL name the places Today, Flow, Plan, Crew, Library, Code and Setup, SHALL call a workflow a "recipe" and the people and the agents the "crew", and SHALL say "issue tracker" and "code host".
+
+Screen: SCR-020
 
 #### Scenario: Four languages
 
@@ -464,6 +516,8 @@ The change SHALL arrive in waves on the main branch with no switch, each wave SH
 
 Plan / Estimates SHALL offer "Ask an agent to estimate" for the selected tasks, the agent SHALL propose a best, a likely and a worst value with its assumptions, a value SHALL enter the sheet only when the person accepts it, and a sealed sheet SHALL refuse the action.
 
+Screen: SCR-043
+
 #### Scenario: A proposal
 
 - GIVEN three selected tasks on an open sheet
@@ -486,6 +540,8 @@ Plan / Estimates SHALL offer "Ask an agent to estimate" for the selected tasks, 
 
 The health of the project SHALL offer "Fix all with an agent", the action SHALL create one feature in Flow that fixes the listed findings, and its changes SHALL pass the same review and approvals as any other feature.
 
+Screen: SCR-091
+
 #### Scenario: One feature
 
 - GIVEN three findings in the health of the project
@@ -502,6 +558,8 @@ The health of the project SHALL offer "Fix all with an agent", the action SHALL 
 
 Library / Dashboards SHALL offer "Build a tile for me", the agent SHALL propose one tile from the person's words, and the tile SHALL enter the dashboard only when the person accepts it.
 
+Screen: SCR-046
+
 #### Scenario: A proposed tile
 
 - GIVEN a dashboard in edit mode
@@ -517,6 +575,8 @@ Library / Dashboards SHALL offer "Build a tile for me", the agent SHALL propose 
 ### Requirement: REQ-033 Budget and stop for the new actions
 
 Each of the three new agent actions SHALL run with a budget, SHALL show in Crew while it runs, and SHALL stop when the person stops it.
+
+Screen: SCR-041
 
 #### Scenario: Stop
 
