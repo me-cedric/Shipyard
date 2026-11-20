@@ -306,7 +306,7 @@ impl Inner {
             let work = Work::Gate {
                 git,
                 gates,
-                step: step.clone(),
+                step: Box::new(step.clone()),
                 findings,
                 dropped,
                 criteria,
