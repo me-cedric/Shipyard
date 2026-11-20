@@ -282,3 +282,50 @@ Feature: app-redesign
     Given a run, a review and an estimate at work
     When the person opens each session in Crew / Sessions
     Then each one has its own stop
+  @spec:app-redesign#REQ-034
+  Scenario: Library sub-pages with an address: What is tested
+    Given the page Test plans
+    When the person opens the chip What is tested of the door What it must do
+    Then the page opens at `/library/test-plans/coverage` with the back link Test plans
+
+  @spec:app-redesign#REQ-034
+  Scenario: Library sub-pages with an address: Edit a dashboard
+    Given a dashboard that the role can change
+    When the person clicks Edit
+    Then the page opens at `/library/dashboards/<name>/edit` with the back link Dashboards, and Done goes back
+
+  @spec:app-redesign#REQ-034
+  Scenario: Library sub-pages with an address: Flow matrix and map of the code
+    Given the pages Network flows and Map
+    When the person opens the full matrix, and then the source Code of the map
+    Then the matrix opens at `/library/flows/matrix` with the back link Network flows, and the map of the code opens at `/library/graph?source=code`
+
+  @spec:app-redesign#REQ-035
+  Scenario: Moved controls of Library: A filter of Questions
+    Given the page Questions
+    When the person opens the More menu
+    Then the filters by text, state and owner are there, and they filter the list as before
+
+  @spec:app-redesign#REQ-035
+  Scenario: Moved controls of Library: Rename and delete a document
+    Given an open document
+    When the person opens the More menu
+    Then Rename, Delete and Search in the text are there
+
+  @spec:app-redesign#REQ-035
+  Scenario: Moved controls of Library: Copy the reference
+    Given an open spec
+    When the person opens the More menu
+    Then Copy the reference and Copy the file name are there, and the header shows no reference chip
+
+  @spec:app-redesign#REQ-036
+  Scenario: Report forms as pages: Write a change request
+    Given the form Change request with its fields filled
+    When the person clicks Write the report
+    Then a card Written shows each file with Show in folder and Open
+
+  @spec:app-redesign#REQ-036
+  Scenario: Report forms as pages: A required field is empty
+    Given the form Change request with an empty field
+    When the person clicks Write the report
+    Then an error line shows and no file is written

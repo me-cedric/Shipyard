@@ -92,6 +92,12 @@ New agent actions
 - REQ-032: Library / Dashboards SHALL offer "Build a tile for me". The person SHALL describe the tile in words, and the agent SHALL propose one tile. The tile SHALL enter the dashboard only when the person accepts it.
 - REQ-033: Each of these three actions SHALL run with a budget, SHALL show in Crew while it runs, and SHALL stop when the person stops it.
 
+Look pass 2, Library
+
+- REQ-034: Each page of Library that the design shows as a full page with a back link SHALL have its own address under `/library/` and a back link to the page that it comes from. These pages are What is tested (`/library/test-plans/coverage`), Map of the code (`/library/graph?source=code`), Flow matrix (`/library/flows/matrix`), Edit a dashboard (`/library/dashboards/<name>/edit`) and the report forms (`/library/reports/<form>`). A dialog or a side panel SHALL NOT replace one of them.
+- REQ-035: A control that a Library page does not show SHALL stay reachable from the More menu of the page, from a sub-page or from the Ask bar, and SHALL NOT be deleted. The reference and the file name of an item SHALL be in the More menu (Copy the reference, Copy the file name), not in the header.
+- REQ-036: The forms of Change request and Work done SHALL open as pages of Library / Reports. A required field that is empty SHALL give an error line and SHALL write nothing. Write the report SHALL write each file and show it with Show in folder and Open.
+
 ### Non-Goals
 
 - No change to the engine, the run states, the sync, the stores or the command surface, except what a new view needs to read.
@@ -117,6 +123,7 @@ New agent actions
 - [ ] The accessibility run finds no control under 44 px and no sideways scroll at 960 by 600.
 - [ ] The four languages are complete, and no text says "tracker" or "forge" alone.
 - [ ] An agent proposes an estimate, a fix feature and a dashboard tile, and nothing changes before the person accepts.
+- [ ] Each Library sub-page of REQ-034 opens at its own address with a back link, and each control that moved is in the More menu, a sub-page or the Ask bar.
 
 ### Existing References
 
@@ -124,6 +131,7 @@ New agent actions
 - Existing code: `src/features/`, `src/app/router.tsx`, `src/ui/`.
 - Extends: `change:update-ux-declutter` (one checklist, shared patterns). Supersedes its top bar and status bar requirements: look pass 1 removed both bars (`spec:shell#REQ-021`).
 - Rules: `docs/openspec/constitution.md` sections 2, 3 and 4.
+- Look pass 2, Library: the pages of `spec:knowledge`, `spec:design` and `spec:specs` take the layout of the design. Their requirement refs and their behavior stay (`spec:specs#REQ-008` still filters the questions by kind, state and owner, from the More menu; `spec:knowledge#REQ-004` still filters the graph by kind). No requirement ref moves.
 - Decision: `adr:0023` (six places and one flow), accepted. It replaces `adr:0004`.
 - Other capabilities: the deltas of this change hold the requirements whose behavior changes: `spec:shell#REQ-001`, `spec:shell#REQ-005`, `spec:shell#REQ-009`, `spec:shell#REQ-012`, `spec:shell#REQ-017`, `spec:design-system#REQ-003`, `spec:factory#REQ-027`, `spec:factory#REQ-030`, `spec:factory#REQ-038`, `spec:code#REQ-026`, `spec:code#REQ-027`, `spec:code#REQ-029`. `spec:team-rights#REQ-013` has its new first pages in `change:add-team-rights`. Each other requirement that names a page of before this change keeps its ref and its behavior at the new place of the map in `plan.md`. One requirement ref moves: `spec:shell#REQ-021` (the top row and the sync mark) replaces the status bar requirement, REQ-007 of `shell`, which this change removes. The delta of `shell` also adds `spec:shell#REQ-018` to `spec:shell#REQ-020`.
 
@@ -602,3 +610,68 @@ Screen: SCR-041
 - GIVEN a run, a review and an estimate at work
 - WHEN the person opens each session in Crew / Sessions
 - THEN each one has its own stop
+### Requirement: REQ-034 Library sub-pages with an address
+
+Each sub-page of Library that the design shows as a full page SHALL have its own address under `/library/` and a back link, and SHALL NOT be a dialog or a side panel.
+
+Screen: SCR-163
+
+#### Scenario: What is tested
+
+- GIVEN the page Test plans
+- WHEN the person opens the chip What is tested of the door What it must do
+- THEN the page opens at `/library/test-plans/coverage` with the back link Test plans
+
+#### Scenario: Edit a dashboard
+
+- GIVEN a dashboard that the role can change
+- WHEN the person clicks Edit
+- THEN the page opens at `/library/dashboards/<name>/edit` with the back link Dashboards, and Done goes back
+
+#### Scenario: Flow matrix and map of the code
+
+- GIVEN the pages Network flows and Map
+- WHEN the person opens the full matrix, and then the source Code of the map
+- THEN the matrix opens at `/library/flows/matrix` with the back link Network flows, and the map of the code opens at `/library/graph?source=code`
+
+### Requirement: REQ-035 Moved controls of Library
+
+A control that a Library page does not show SHALL stay reachable from the More menu, a sub-page or the Ask bar, and the reference and the file name of an item SHALL be in the More menu.
+
+Screen: SCR-082
+
+#### Scenario: A filter of Questions
+
+- GIVEN the page Questions
+- WHEN the person opens the More menu
+- THEN the filters by text, state and owner are there, and they filter the list as before
+
+#### Scenario: Rename and delete a document
+
+- GIVEN an open document
+- WHEN the person opens the More menu
+- THEN Rename, Delete and Search in the text are there
+
+#### Scenario: Copy the reference
+
+- GIVEN an open spec
+- WHEN the person opens the More menu
+- THEN Copy the reference and Copy the file name are there, and the header shows no reference chip
+
+### Requirement: REQ-036 Report forms as pages
+
+The forms of Change request and Work done SHALL open as pages of Library / Reports, SHALL refuse an empty required field with an error line, and SHALL write each file with Write the report.
+
+Screen: SCR-164
+
+#### Scenario: Write a change request
+
+- GIVEN the form Change request with its fields filled
+- WHEN the person clicks Write the report
+- THEN a card Written shows each file with Show in folder and Open
+
+#### Scenario: A required field is empty
+
+- GIVEN the form Change request with an empty field
+- WHEN the person clicks Write the report
+- THEN an error line shows and no file is written

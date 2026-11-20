@@ -514,3 +514,62 @@ Source: the accepted list of the picture checks.
 - Passed: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --no-fail-fast` (2064), `pnpm typecheck`, `pnpm lint`, `pnpm ipc:check`, `pnpm test:personas` (7), `openspec validate update-app-redesign --strict`.
 - `pnpm test`: 2544 of 2545 in the full run; the one failure (`flow/board.test.tsx`, a 15 s timeout under load) passed alone, 16 of 16.
 - `CI=1 npx playwright test` (on port 4213, see above): 144 of 145; the one failure (the gallery lost its dev server on the port 4175 that another worktree shares) passed alone, 19 of 19.
+## Look pass 2, Library (2026-11-19)
+
+The pass rebuilt each page of Library from its design file, on the shared parts of look pass 1 and the parts of `src/features/library/page-parts.tsx` (`LibraryPage`, `ListColumn`, `ListCard`, `SideCards`, `LinkedCard`, `PageColumns`). Four writers worked in four folders, then three rounds of picture checks (a fresh agent compared each capture with `docs/assets/screenshots/redesign/NNN-*.jpg`) closed most differences. Tasks T047 and T048 of `tasks.md`; the spec delta is `spec:app-redesign#REQ-034` to `spec:app-redesign#REQ-036`.
+
+### Decisions of the lead
+
+- The shared layout parts of the group live in `page-parts.tsx`; the other writers import them and do not edit them.
+- New addresses: Map of the code `/library/graph?source=code`, Flow matrix `/library/flows/matrix`, Edit a dashboard `/library/dashboards/$slug/edit`, What is tested `/library/test-plans/coverage`, report forms `/library/reports/$form`. Each has a back link and is not a dialog.
+- An open item stays in the address where the page of before did it; else the mechanism of before stays.
+- The mode switch (Picture, Both, Text; Read, Text) sits in the header row or the detail card header beside Edit. The stored choice stays.
+- Ref chips and file chips leave the headers: Copy the reference and Copy the file name are in the More menu.
+- The primary action is the near-black `Button variant="primary"` with a plain verb.
+- An action of the design with no function today is not drawn: it is listed below as not built.
+
+### Screens
+
+Result of the last fresh-context check (round 3). The fixes of the third round were not checked again by a fresh agent. "Differs" lists what stays.
+
+| Screen | Address or steps | Result |
+|---|---|---|
+| 006 Library | `/library/home` | Match, except the Opened last rows: pages, not items with a kind pill (no per-item history) |
+| 015 Map | `/library/graph` | Differs: the Knowledge segment padding is in `src/ui/atoms/segmented` |
+| 016 Architecture | `/library/architecture` | Differs: zoom buttons and node size fixed in round 3, not rechecked |
+| 033 Specs | `/library/capabilities` | Differs: no Build pill on a change row (no stage); the demo has no change in progress on the first spec |
+| 034 Questions | `/library/questions` | Match, except the upload icon of Export (`PageExport`, in `src/features/reports/`) |
+| 035 Test plan | `/library/test-plans` | Match |
+| 036 Project rules | `/library/constitution` | Differs: no Earlier versions card (no history function) |
+| 037 Decisions | `/library/decisions` | Differs: the demo shows the section names of the file |
+| 038 Diagrams | `/library/diagrams` | Differs: no Zoom and Fit rows on the grid page |
+| 039 API | `/library/api` | Differs: no csv/json chips on Try it, no Add export endpoint link |
+| 040 Data | `/library/data` | Match after round 3, not rechecked |
+| 041 Network flows | `/library/flows` | Differs: Linked chevrons come from `LinkedRow` in `page-parts.tsx` |
+| 042 Screens | `/library/screens` | Differs: the demo has no screen without artifacts, so Not built does not show |
+| 043 Handbook | `/library/handbook` | Differs: no History and author line (no function) |
+| 044 Documents | `/library/documents` | Differs: no Add a file and no Word or PDF download for one document |
+| 045 Slides | `/library/slides` | Differs: no Speaker notes and no Edit; Find a deck stays |
+| 046 Learn | `/library/learn` | Differs: no Experts card, no Add a word, no person chip and New path in the header, no second pill on a step |
+| 047 Dashboards | `/library/dashboards` | Differs: no Reports segment and no release picker |
+| 071 Reports | `/library/reports` | Differs: no PDF and Markdown formats, no Pages that link to a report, no dates in Written for you |
+| 075 Map of the code | `/library/graph?source=code` | Differs: no Stale chip (no flag on code), other files are chips, not cards |
+| 077 Flow matrix | `/library/flows/matrix` | Differs: no Check against the code and no alert card (no function) |
+| 086 Edit a dashboard | `/library/dashboards/team/edit` | Differs: no Pin to Today for a whole dashboard; the kind chips wrap |
+| 095 What is tested | `/library/test-plans/coverage` | Match |
+| 096 Report forms | `/library/reports/change-request`, `/library/reports/work-done` | Differs: no PDF switch, no Fill row for the complete dossier; the Written card shows after a click |
+
+### Shared parts that lack something
+
+- `src/ui/atoms/segmented`: the white segment of Knowledge and Code is tight.
+- `PageColumns` and `LinkedRow` in `page-parts.tsx`: fixed column widths and large chevrons.
+- `PageExport` (`src/features/reports/`): the Export button has an icon that the design does not show.
+- The pins and the recent pages of Library keep pages, not items.
+
+### Open points
+
+- A person name for the avatar of Written for you: the row shows "Shipyard".
+- The demo mock has no finished change, no screen without artifacts and a Reports dashboard (the slugs are `team`, `team-delivery`, `team-quality`, `team-agents`).
+- Not built, no function: Add a word, Add a file, History of a page, Earlier versions of the rules, Speaker notes, PDF and Markdown reports, Check against the code in the matrix.
+- `e2e/library.spec.ts` and the persona walks use old labels and dialogs (a later agent moves them).
+- The pictures of the Library scenes are retaken from this tree. Scene `tile-build` now opens the edit page of the dashboard.

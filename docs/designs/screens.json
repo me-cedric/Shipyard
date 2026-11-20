@@ -30,7 +30,7 @@
     {
       "id": "SCR-003",
       "slug": "design",
-      "title": "Library / Architecture: the reader opens on the picture alone, with the switch Picture, Both, Text and the Library back link; the diagram or picture fits the zoom frame at the first paint; a sideways gesture or a drag pans it, a pinch zooms it, Fit brings it back",
+      "title": "Library / Architecture: the model chips with New model, the switch Picture, Both, Text with Edit in the header, and the picture beside the text in Both; the diagram fits the zoom frame at the first paint, with four zoom buttons",
       "artifacts": [
         "spec:design",
         "spec:ux-declutter",
@@ -41,7 +41,7 @@
     {
       "id": "SCR-004",
       "slug": "specs",
-      "title": "Library / Questions: the register of open points, with the Library back link in place of the section switch",
+      "title": "Library / Questions: the title gives the count of open questions; each open item is an attention card with its Answer field, the closed items sit in one Closed card with Add the answer to the spec, one row of kind chips and Mine; the old filters are in More",
       "artifacts": [
         "spec:specs",
         "spec:ux-declutter",
@@ -96,7 +96,7 @@
     {
       "id": "SCR-009",
       "slug": "knowledge",
-      "title": "Library / Learn: the path, the glossary, the learning paths and the feeds, with the Library back link; the manual opens from the account menu, F1, the Ask bar or its chip in Library",
+      "title": "Library / Learn: the title Learn this project, one path card with a numbered step and Start on the next one, the N of M bar, the glossary, the learning paths, the feeds, and the team progress in the right column",
       "artifacts": [
         "spec:knowledge",
         "spec:ux-declutter",
@@ -141,7 +141,7 @@
     {
       "id": "SCR-013",
       "slug": "knowledge-slides",
-      "title": "Library / Slides: an HTML deck in a sandboxed frame with Present and Export PDF; a Markdown deck is read only with Convert; the Library back link",
+      "title": "Library / Slides: the deck cards on the left, the open deck on the right with a pager, a thumbnail strip, Present, Export PDF and Convert; the Library back link",
       "artifacts": [
         "spec:knowledge",
         "adr:0016",
@@ -457,7 +457,7 @@
     {
       "id": "SCR-044",
       "slug": "library",
-      "title": "Library: four doors (What it must do, How it is built, Why it is so, Learn and share), one chip for each page, and the waiting items first (open questions, decisions that wait); no section switch",
+      "title": "Library: four doors (What it must do, How it is built, Why it is so, Learn and share) with one chip for each page, the waiting items first, the chip What is tested, the cards Pinned and Opened last with Pin and Unpin",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -467,7 +467,7 @@
     {
       "id": "SCR-045",
       "slug": "library-reports",
-      "title": "Library / Reports: one card for each report with Export, Fill the form or a link to the page that holds it, and the Format choice (All, Word, Excel, Picture)",
+      "title": "Library / Reports: one tile for each report with Export, Fill the form or a link to the page that holds it, the Format choice (All, Word, Excel, Picture), Written for you with Open and Write it, and the link Dashboards",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -477,7 +477,7 @@
     {
       "id": "SCR-046",
       "slug": "dashboard-tile-build",
-      "title": "Library / Dashboards, Build a tile for me: what the tile must show, the budget, Build and Stop, then the Proposed tile with Accept and Discard",
+      "title": "Library / Dashboards / Edit, Build a tile for me: what the tile must show, the budget, Build and Stop, then the Proposed tile with Accept and Discard",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -569,7 +569,7 @@
     {
       "id": "SCR-069",
       "slug": "library-diagrams",
-      "title": "Library / Diagrams: the diagrams of the project, the picture first with the switch Picture, Both, Text, and the Library back link",
+      "title": "Library / Diagrams: a grid or a list of the diagrams with the format pill and Draw it for me, the open diagram with Open, Edit and Change the format, the card Used by, and one New button for each format",
       "artifacts": [
         "spec:design",
         "spec:app-redesign",
@@ -580,7 +580,7 @@
     {
       "id": "SCR-070",
       "slug": "library-decisions",
-      "title": "Library / Decisions: the decisions with their status, the plain form first and the text on demand; a proposed decision waits on the door Why it is so",
+      "title": "Library / Decisions: the proposed decisions first with Waits for you; the open decision with its parts, Edit, Used by, and a Reason field with Refuse and Accept; New decision",
       "artifacts": [
         "spec:design",
         "spec:app-redesign",
@@ -591,7 +591,7 @@
     {
       "id": "SCR-071",
       "slug": "library-api",
-      "title": "Library / API: the API descriptions of the project in a reader, with the Library back link",
+      "title": "Library / API: the endpoints of the contract files, one endpoint with its parameters, and Try it with a server, a method, a path, Send and the answer",
       "artifacts": [
         "spec:design",
         "spec:app-redesign",
@@ -602,7 +602,7 @@
     {
       "id": "SCR-072",
       "slug": "library-data",
-      "title": "Library / Data: the data models of the project as a picture first, the text on demand",
+      "title": "Library / Data: the tables with Find a table, the picture of the tables with the Key and Link pills, the switch Picture, Both, Text",
       "artifacts": [
         "spec:design",
         "spec:app-redesign",
@@ -613,7 +613,7 @@
     {
       "id": "SCR-073",
       "slug": "library-network-flows",
-      "title": "Library / Network flows: the flow matrix of the network calls with its export",
+      "title": "Library / Network flows: the list From, To and Why, Bricks and hosts with Open the full matrix, the card Linked, the switch Flows and Bricks, Edit as text and Add a flow",
       "artifacts": [
         "spec:design",
         "spec:app-redesign",
@@ -624,7 +624,7 @@
     {
       "id": "SCR-074",
       "slug": "library-screens",
-      "title": "Library / Screens: the screens of this registry with their picture, their artifacts and the Figma link",
+      "title": "Library / Screens: the screen cards with Built and Not built, the switch Screens and Tokens, the Figma banner, the cards Colours and Type sizes, and Design to code",
       "artifacts": [
         "spec:design",
         "spec:app-redesign",
@@ -635,7 +635,7 @@
     {
       "id": "SCR-075",
       "slug": "library-specs",
-      "title": "Library / Specs: the capabilities with their requirements in the plain form first, the text on demand",
+      "title": "Library / Specs: the list of specs on the left, the open spec on the right with its requirements and their state, the cards Changes in progress, Linked and Check the specs, and the switch Read, Text, Files with Edit",
       "artifacts": [
         "spec:specs",
         "spec:app-redesign",
@@ -646,7 +646,7 @@
     {
       "id": "SCR-076",
       "slug": "library-test-plans",
-      "title": "Library / Test plans: the scenarios of each capability with the requirement that each one tests",
+      "title": "Library / Test plans: the open plan with one card for each scenario, a result pill and Edit, the cards Requirements and Other test plans, and Write the scenarios for me",
       "artifacts": [
         "spec:specs",
         "spec:app-redesign",
@@ -657,7 +657,7 @@
     {
       "id": "SCR-077",
       "slug": "library-project-rules",
-      "title": "Library / Project rules: the constitution of the project in a reader",
+      "title": "Library / Project rules: one numbered card for each rule with Edit and Add a rule, and the cards Who can change the rules and Who follows the rules",
       "artifacts": [
         "spec:specs",
         "spec:app-redesign",
@@ -668,7 +668,7 @@
     {
       "id": "SCR-078",
       "slug": "library-map",
-      "title": "Library / Map: the map of the code as folders, with files and symbols on demand",
+      "title": "Library / Map: the groups of the knowledge map as rounded cards with their items, the detail column, and the switch Knowledge and Code; Table, Graph, Orphans and Stale are in More",
       "artifacts": [
         "spec:knowledge",
         "spec:app-redesign",
@@ -679,7 +679,7 @@
     {
       "id": "SCR-079",
       "slug": "library-handbook",
-      "title": "Library / Handbook: the handbook pages of the project in a reader",
+      "title": "Library / Handbook: the page tree with Find a page, the open page, Pages that link here, Ask an agent to update it, and the manual card with F1",
       "artifacts": [
         "spec:knowledge",
         "spec:app-redesign",
@@ -701,7 +701,7 @@
     {
       "id": "SCR-081",
       "slug": "library-documents",
-      "title": "Library / Documents: the documents of the project with their export",
+      "title": "Library / Documents: the list with the format pill, Read or Text with Edit, the File card with Show in folder and Export, and Turn into slides and Turn into a spec; Rename, Delete and Search in the text are in More",
       "artifacts": [
         "spec:knowledge",
         "spec:app-redesign",
@@ -712,7 +712,7 @@
     {
       "id": "SCR-082",
       "slug": "library-dashboards",
-      "title": "Library / Dashboards: the tiles of the dashboard, the pinned tiles first, the edit mode and Build a tile for me",
+      "title": "Library / Dashboards: the switch of the dashboards, read-only tiles, Edit, Export the report and Build a dashboard for me; New dashboard is in More; More numbers links to Crew, Flow and Plan",
       "artifacts": [
         "spec:knowledge",
         "spec:app-redesign",
@@ -1106,6 +1106,70 @@
         "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/plan-time-team.png"
+    },
+    {
+      "id": "SCR-160",
+      "slug": "library-code-map",
+      "title": "Library / Map of the code (Map with the source Code): the folders as cards, the files and symbols of the chosen folder, the symbol card with Explain and Open in the editor, What it calls, Specs and decisions that use it, and Index again",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-code-map.png"
+    },
+    {
+      "id": "SCR-161",
+      "slug": "library-flow-matrix",
+      "title": "Library / Network flows / Flow matrix: a full page with the back link Network flows, filter chips, Find a host, and one row for each flow with Allow or Deny and a row menu with Edit and Remove",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-flow-matrix.png"
+    },
+    {
+      "id": "SCR-162",
+      "slug": "library-dashboard-edit",
+      "title": "Library / Dashboards / Edit: a full page with the back link Dashboards, Rename and Done, the card Add a tile with one chip for each kind and Build a tile for me, and the tiles with a handle, Settings and Remove",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-dashboard-edit.png"
+    },
+    {
+      "id": "SCR-163",
+      "slug": "library-test-coverage",
+      "title": "Library / Test plans / What is tested: a full page with the back link Test plans, filter chips, cards by state with counts and rows, the check of the scenarios, and Run the tests",
+      "artifacts": [
+        "spec:specs",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-test-coverage.png"
+    },
+    {
+      "id": "SCR-164",
+      "slug": "library-report-change-request",
+      "title": "Library / Reports / Change request: a full page with the back link Reports, the fields From version, To version and People who approve, Write the report, the card Written with Show in folder and Open, and the cards of the other reports",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-report-change-request.png"
+    },
+    {
+      "id": "SCR-165",
+      "slug": "library-report-work-done",
+      "title": "Library / Reports / Work done: a full page with the back link Reports, the fields of the form, Write the report, and the card Written with Show in folder and Open",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-report-work-done.png"
     }
   ]
 }

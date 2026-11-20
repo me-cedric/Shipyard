@@ -210,14 +210,15 @@ const scenes: Scene[] = [
 		light: true,
 		run: async (p) => {
 			await open(p, "Reports");
-			await p.getByRole("navigation", { name: "Format" }).waitFor();
+			await p.getByRole("group", { name: "Format" }).waitFor();
 		},
 	},
 	{
 		name: "tile-build",
 		light: true,
 		run: async (p) => {
-			await open(p, "Dashboards");
+			// The builder is on the edit page of the dashboard.
+			await go(p, "/library/dashboards/team/edit");
 			await p.getByRole("button", { name: "Build a tile for me" }).click();
 			await p
 				.getByRole("textbox", { name: "What the tile must show" })
@@ -227,7 +228,7 @@ const scenes: Scene[] = [
 		},
 	},
 	{ name: "design", run: (p) => open(p, "Architecture") },
-	{ name: "specs", run: (p) => open(p, "Questions") },
+	{ name: "specs", run: (p) => go(p, "/library/questions") },
 	// The old names stay for the docs that cite them: the plan, and the member page of the team.
 	{ name: "work", run: openTimeline },
 	{ name: "team", run: (p) => go(p, "/crew/rights") },
@@ -327,7 +328,7 @@ const scenes: Scene[] = [
 			await p.getByRole("dialog", { name: "Submit review" }).waitFor();
 		},
 	},
-	{ name: "knowledge", run: (p) => open(p, "Learn") },
+	{ name: "knowledge", run: (p) => go(p, "/library/learn") },
 	{ name: "settings-connections", run: (p) => openDoor(p, "This project", "Connections") },
 	{ name: "settings-project", run: (p) => open(p, "This project") },
 	{ name: "setup-start", run: (p) => open(p, "Start") },
@@ -429,6 +430,12 @@ const scenes: Scene[] = [
 		"library-manual": "/library/manual",
 		"library-documents": "/library/documents",
 		"library-dashboards": "/library/dashboards",
+		"library-dashboard-edit": "/library/dashboards/team/edit",
+		"library-code-map": "/library/graph?source=code",
+		"library-flow-matrix": "/library/flows/matrix",
+		"library-test-coverage": "/library/test-plans/coverage",
+		"library-report-change-request": "/library/reports/change-request",
+		"library-report-work-done": "/library/reports/work-done",
 		"code-history": "/code/history",
 		"code-branches": "/code/branches",
 	}).map(([name, path]): Scene => ({ name, run: (p) => go(p, path) })),

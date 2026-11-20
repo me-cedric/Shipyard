@@ -85,6 +85,11 @@ Look pass 1, shell, tokens and shared parts
 - [ ] T045 Retake the pictures of `docs/assets/screenshots/` and add the picture of SCR-097.
 - [ ] T046 Owner decision on the open points of look pass 1 in `.agents/progress/app-redesign.md` (the field border under 3:1, the Sign out action, the narrow bar preference).
 
+Look pass 2, Library
+
+- [x] T047 Library pages from the design source: the home with Pinned and Opened last, Specs, Test plans, Questions, Project rules, Map, Architecture, Diagrams, Screens, API, Data, Network flows, Decisions, Learn, Handbook, Documents, Slides, Dashboards and Reports, and the new pages What is tested, Map of the code, Flow matrix, Edit a dashboard and the report forms (`src/features/library/`, `src/features/specs/`, `src/features/design/`, `src/features/knowledge/`, `src/features/reports/`). REQ-034, REQ-035, REQ-036.
+- [x] T048 Docs: `docs/designs/screens.json` (SCR-160 to SCR-165), `docs/guide/` in four languages, both changelogs, `scripts/screenshots.ts`, the pictures of the Library scenes, `.agents/progress/app-redesign.md`.
+
 ## Completion Check
 
 - [ ] All acceptance criteria are met.

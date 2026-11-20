@@ -21,6 +21,7 @@ The owner also set a rule for the redesign: when a current feature is illogical 
 - An agent asks one question for one intent. The effects of the answer are named on the card.
 - Crew shows people and agents together, with recipes (the workflows of today), sessions, spend and rights.
 - Library opens on four doors by question. Each reader shows the picture or the plain form first.
+- Look pass 2 rebuilds each page of Library from its design, adds the sub-pages What is tested, Map of the code, Flow matrix, Edit a dashboard and the report forms, each with its own address, and moves the controls that a page does not show to its More menu.
 - Product health (the quality gates) becomes a view of Flow for every role. Impacts open from one feature.
 - Setup has three scopes: this project, this computer, me.
 - Three new agent actions: "Ask an agent to estimate" in Plan, "Fix all with an agent" in the health of the project, "Build a tile for me" in the dashboards. Each one proposes, and nothing changes before a person accepts.
