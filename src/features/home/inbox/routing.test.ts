@@ -36,6 +36,21 @@ describe("routeInbox", () => {
 		expect(keys("ba")).toEqual(["A-2"]);
 	});
 
+	it("sends a plan of a step with a role to that role only (runs-recipes REQ-008)", () => {
+		const gated = {
+			...inbox,
+			plans: [{ id: "r1", approver: "techlead" }, { id: "r2" }],
+		} as unknown as typeof inbox;
+		const ids = (role: string, roles: string[]) =>
+			routeInbox(gated, who(role, ["runs.approve"], { roles }) as never).plans.map(
+				(p) => (p as { id: string }).id,
+			);
+		expect(ids("developer", ["developer"])).toEqual(["r2"]);
+		expect(ids("techlead", ["techlead"])).toEqual(["r1", "r2"]);
+		// A person with two roles gets the card for each of them.
+		expect(ids("developer", ["developer", "techlead"])).toEqual(["r1", "r2"]);
+	});
+
 	it("shows each item with Everyone and to a solo person", () => {
 		expect(routeInbox(inbox, who("pm", [], { everyone: true }) as never)).toBe(inbox);
 		expect(routeInbox(inbox, who(null, []) as never)).toBe(inbox);

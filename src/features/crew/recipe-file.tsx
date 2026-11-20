@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { lineDiff } from "@/features/factory/workflows/line-diff";
-import { addStep, StepCards, stepLabel } from "@/features/factory/workflows/workflow-form";
+import { addStep, Fr, StepCards, stepLabel } from "@/features/factory/workflows/workflow-form";
 import { useGuard } from "@/features/work/guard";
 import { useFactoryFile, useFactoryWrites, useWorkflowOptions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
@@ -175,6 +175,11 @@ function Chain({ workflow, alone }: { workflow: Workflow; alone: boolean }) {
 									<Avatar name={p.you} />
 									<b className={STEP_NAME}>{format(p.review, { name: name.toLowerCase() })}</b>
 									<Badge variant="you">{t.factory.wf.gate}</Badge>
+									{s.approver ? (
+										<span className={PILL}>
+											{(t.rights.role as Record<string, string>)[s.approver] ?? s.approver}
+										</span>
+									) : null}
 								</div>
 							</>
 						) : null}
@@ -371,6 +376,29 @@ export function RecipeFile({
 						options={options}
 						people={
 							<>
+								{open.gate === "human" ? (
+									<Fr label={t.factory.runsRecipes.role}>
+										<Select
+											label={t.factory.runsRecipes.role}
+											value={open.approver ?? ""}
+											items={[
+												{ value: "", label: t.factory.runsRecipes.anyRole },
+												...Object.entries(t.rights.role).map(([value, label]) => ({
+													value,
+													label,
+												})),
+											]}
+											onValueChange={(v) =>
+												change({
+													...form,
+													steps: form.steps.map((s, k) =>
+														k === index ? { ...s, approver: v || undefined } : s,
+													),
+												})
+											}
+										/>
+									</Fr>
+								) : null}
 								{open.action === "open_pr" ? <MayWrite recipe={id} /> : null}
 								<Row>
 									<Link to="/settings/project" hash="automation" className={linkClass}>

@@ -46,6 +46,16 @@ export function Fr({ label, children }: { label: ReactNode; children: ReactNode 
 /** A segmented control that is wide enough for its words. */
 const WIDE = "w-100 max-w-full";
 
+/** What does a step: an agent, a person or a check. The same rule as `Step::kind` of the core (`runs-recipes` REQ-009). */
+export function stepKind(s: Step): "agent" | "person" | "check" {
+	if (s.gate === "human") return "person";
+	if (s.action || s.max_rounds != null || s.role === "reviewer") return "check";
+	return "agent";
+}
+
+/** Child steps that run at the same time when `max_parallel` is not set (`DEFAULT_PARALLEL`). */
+const DEFAULT_PARALLEL = 2;
+
 /** The default cap of review rounds of the engine (`REVIEW_ROUNDS`), when the recipe sets none. */
 const ROUNDS = 4;
 
@@ -351,6 +361,7 @@ export function StepCards({
 	const setLimits = (patch: Partial<Workflow["limits"]>) =>
 		onChange({ ...workflow, limits: { ...limits, ...patch } });
 	const tier = (v: string) => (p.tier as Record<string, string>)[v] ?? nameOf(v);
+	const r = t.factory.runsRecipes;
 	return (
 		<div className="grid items-start gap-6 lg:grid-cols-2">
 			<Part title={w.who}>
@@ -373,6 +384,9 @@ export function StepCards({
 							onRenamed(id);
 						}}
 					/>
+				</Fr>
+				<Fr label={w.kind}>
+					<span className="font-semibold">{r.kind[stepKind(step)]}</span>
 				</Fr>
 				<Fr label={p.does}>
 					<div className={WIDE}>
@@ -465,6 +479,18 @@ export function StepCards({
 						/>
 					</Fr>
 				) : null}
+				{/* A step with no need starts beside the others: it has nothing to wait for. The first step has nothing before it. */}
+				<Fr label={r.runsBeside}>
+					<Switch
+						iconOnly
+						label={r.runsBeside}
+						checked={(step.needs ?? []).length === 0}
+						disabled={index === 0}
+						onCheckedChange={(on) =>
+							set({ needs: on ? [] : [steps[index - 1]?.id ?? ""].filter(Boolean) })
+						}
+					/>
+				</Fr>
 			</Part>
 			<Part title={w.people}>
 				<Fr label={w.gate}>
@@ -472,7 +498,10 @@ export function StepCards({
 						iconOnly
 						label={w.gate}
 						checked={step.gate === "human"}
-						onCheckedChange={(on) => set({ gate: on ? "human" : "none" })}
+						// The role of a step that waits goes with the wait.
+						onCheckedChange={(on) =>
+							set(on ? { gate: "human" } : { gate: "none", approver: undefined })
+						}
 					/>
 				</Fr>
 				{people}
@@ -514,6 +543,16 @@ export function StepCards({
 						onChange={(v) => set({ max_parallel: v })}
 					/>
 				</Fr>
+				<Fr label={r.childrenBeside}>
+					<Switch
+						iconOnly
+						label={r.childrenBeside}
+						checked={(step.max_parallel ?? DEFAULT_PARALLEL) > 1}
+						// With nothing to repeat for, a step has no child steps.
+						disabled={!step.for_each}
+						onCheckedChange={(on) => set({ max_parallel: on ? undefined : 1 })}
+					/>
+				</Fr>
 				{agent ? (
 					<Chips
 						label={w.tools}
@@ -536,6 +575,19 @@ export function StepCards({
 					initial={TURNS}
 					onChange={(max_turns) => setLimits({ max_turns })}
 				/>
+				{agent ? (
+					<Fr label={w.mode}>
+						<Select
+							label={w.mode}
+							value={step.mode}
+							items={[
+								{ value: "plan", label: w.plan },
+								{ value: "auto", label: w.auto },
+							]}
+							onValueChange={(v) => set({ mode: v as Step["mode"] })}
+						/>
+					</Fr>
+				) : null}
 				<Fr label={w.place}>
 					<Button disabled={index === 0} onClick={() => onChange(moveStep(workflow, index, -1))}>
 						{w.up}

@@ -66,9 +66,10 @@ export function RecipePermissions({ recipe }: { recipe: string }) {
 }
 
 /**
- * "May write" of a step that opens a pull request (picture 080): Asks first, or Alone once a person
- * answered "Do not ask again". A save only narrows the list, so a recipe that asks first shows the
- * state, and a recipe that writes alone can go back to Asks first (`open_pr` leaves `recipe_writes`).
+ * "May write" of a step that opens a pull request (picture 080): Asks first, or Alone once the
+ * approval "Do not ask again for this recipe" is on. Alone is that approval: the click of a person
+ * with the settings and approve rights turns it on (`runs-recipes` REQ-009). Asks first takes
+ * `open_pr` out of `recipe_writes`: a save only narrows the list.
  */
 export function MayWrite({ recipe }: { recipe: string }) {
 	const { t } = useI18n();
@@ -81,6 +82,7 @@ export function MayWrite({ recipe }: { recipe: string }) {
 	const all = view.automation.recipe_writes ?? {};
 	const kinds = all[recipe] ?? [];
 	const alone = kinds.includes("open_pr");
+	const settle = () => qc.invalidateQueries({ queryKey: syncKeys.all });
 	const askFirst = () =>
 		void run(async () => {
 			await unwrap(
@@ -93,16 +95,21 @@ export function MayWrite({ recipe }: { recipe: string }) {
 					),
 				}),
 			);
-			await qc.invalidateQueries({ queryKey: syncKeys.all });
+			await settle();
+		});
+	const allow = () =>
+		void run(async () => {
+			await unwrap(commands.recipeAllowPrWrite(recipe, true));
+			await settle();
 		});
 	return (
 		<Fr label={p.mayWrite}>
-			{alone && can("project.settings") ? (
+			{can("project.settings") && can("runs.approve") ? (
 				<div className="w-[min(100%,20rem)]">
 					<Segmented
 						label={p.mayWrite}
-						value="alone"
-						onValueChange={(v) => v === "first" && askFirst()}
+						value={alone ? "alone" : "first"}
+						onValueChange={(v) => (v === "alone" ? !alone && allow() : alone && askFirst())}
 						items={[
 							{ value: "first", label: p.asksFirst },
 							{ value: "alone", label: p.alone },

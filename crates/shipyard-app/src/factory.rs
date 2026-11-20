@@ -1390,6 +1390,40 @@ pub fn run_attach_file(
     Ok(made)
 }
 
+/// "May write: Alone" of a recipe step that opens a pull request (`runs-recipes` REQ-009). The
+/// click is the approval "Do not ask again for this recipe": the file gets `open_pr` for that
+/// recipe. The form of the automation file cannot add a kind, so this command does. It needs the
+/// settings right, the approve right and the click of a person.
+pub fn recipe_allow_pr(s: &AppState, recipe: &str, click: bool) -> Res<()> {
+    use crate::rights::Right;
+    use shipyard_store::automation_file::{AutomationRead, read_automation, write_automation};
+    crate::work::need_click(s, click, Right::ProjectSettings, "recipe_allow_pr", recipe)?;
+    crate::rights::require(s, Right::RunsApprove, "recipe_allow_pr", recipe)?;
+    if !workflows(s)?.iter().any(|w| w.id == recipe) {
+        return Err(format!("no recipe `{recipe}` in this project"));
+    }
+    let (_, root) = root_of(s)?;
+    let file = crate::commands::sync::automation_lock();
+    let mut automation = match read_automation(&root).map_err(err)? {
+        AutomationRead::Missing => Default::default(),
+        AutomationRead::Valid(a) => a,
+        AutomationRead::Invalid(_) => {
+            return Err("the automation file is not valid: fix it first".into());
+        }
+    };
+    automation
+        .recipe_writes
+        .entry(recipe.to_string())
+        .or_default()
+        .insert(shipyard_core::pickup::WriteKind::OpenPr);
+    write_automation(&root, &automation).map_err(err)?;
+    drop(file);
+    crate::commands::sync::refresh(s);
+    s.sync.changed();
+    s.factory.publish();
+    Ok(())
+}
+
 /// Raise the budget and resume a paused run (`factory` REQ-005).
 pub fn resume(
     s: &AppState,
@@ -2130,6 +2164,12 @@ pub async fn run_attach(
     bytes: Vec<u8>,
 ) -> Api<crate::assistant_attach::Attachment> {
     blocking(app, move |s| run_attach_file(s, &run, &name, &bytes)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn recipe_allow_pr_write(app: AppHandle, recipe: String, click: bool) -> Api<()> {
+    blocking(app, move |s| recipe_allow_pr(s, &recipe, click)).await
 }
 
 #[tauri::command]

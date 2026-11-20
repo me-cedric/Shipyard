@@ -386,6 +386,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             factory::run_cancel,
             factory::run_resume,
             factory::run_pause,
+            factory::recipe_allow_pr_write,
             factory::run_take_over,
             factory::run_attach,
             factory::run_unblock,

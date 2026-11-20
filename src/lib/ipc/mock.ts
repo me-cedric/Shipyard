@@ -111,6 +111,7 @@ import * as rv from "./mock-review";
 import { SUGGESTION, scopesOf, tokenPage } from "./mock-setup";
 import * as specs from "./mock-specs";
 import {
+	allowRecipePr,
 	automationGet,
 	automationSave,
 	importConfirm,
@@ -1114,6 +1115,15 @@ function teamPerson(): RightsPerson_Serialize {
 		access: a,
 		rights: rightsOf(a),
 	};
+}
+
+/** A human step that names a role: only a person with that role approves it (`runs-recipes` REQ-008). */
+function approverOnly(run: string) {
+	const role = fx.approverOf(state.factory, run);
+	if (!role) return;
+	const me = state.person ? withAccess(state.person) : teamPerson();
+	if (me.found === "solo" || me.roles.some((r) => r === role)) return;
+	throw `only the role ${role} approves this step`;
 }
 
 // A missing key fails `tsc`: each generated command needs a handler.
@@ -2349,6 +2359,14 @@ const handlers: Handlers = {
 	runResume: (run, addUsd, addTokens, note) =>
 		fx.runResume(state.factory, run, addUsd, addTokens, note),
 	runUnblock: (run, note) => fx.runUnblock(state.factory, run, note),
+	recipeAllowPrWrite: (recipe, click) => {
+		if (!click) throw "this change needs the click of a person";
+		if (!active()) throw "no active project";
+		if (!fx.workflowsList(need(state.factory)).some((w) => w.id === recipe))
+			throw `no recipe \`${recipe}\` in this project`;
+		allowRecipePr(state.sync, recipe);
+		return null;
+	},
 	runPause: (run) => fx.runPause(state.factory, run),
 	runAttach: (run, name, bytes) => fx.runAttach(state.factory, run, name, bytes),
 	runTakeOver: (run) => {
@@ -2366,8 +2384,14 @@ const handlers: Handlers = {
 		return dir;
 	},
 	runCloseDone: (run) => fx.runCloseDone(state.factory, run),
-	runPlanApprove: (run) => fx.runPlanApprove(state.factory, run),
-	runPlanReject: (run, note) => fx.runPlanReject(state.factory, run, note),
+	runPlanApprove: (run) => {
+		approverOnly(run);
+		return fx.runPlanApprove(state.factory, run);
+	},
+	runPlanReject: (run, note) => {
+		approverOnly(run);
+		return fx.runPlanReject(state.factory, run, note);
+	},
 	killSwitchGet: () => fx.killSwitchGet(state.factory),
 	runLogDegraded: () => fx.runLogDegraded(),
 	killSwitchSet: (on) => {

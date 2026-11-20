@@ -167,6 +167,17 @@ export function automationSave(sync: MockSync, a: Automation_Serialize) {
 	sync.file = "valid";
 }
 
+/** "May write: Alone": the click adds `open_pr` to the kinds that the recipe writes with no question. */
+export function allowRecipePr(sync: MockSync, recipe: string) {
+	const kinds = new Set(sync.automation.recipe_writes?.[recipe] ?? []);
+	kinds.add("open_pr");
+	sync.automation = {
+		...sync.automation,
+		recipe_writes: { ...sync.automation.recipe_writes, [recipe]: [...kinds] },
+	};
+	sync.file = "valid";
+}
+
 const has = (hay: string, needle: string) => hay.toLowerCase().includes(needle.toLowerCase());
 const set = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
 

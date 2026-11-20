@@ -359,6 +359,7 @@ export const commands = {
 	runCancel: (run: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_cancel", { run })),
 	runResume: (run: string, addUsd: number | null, addTokens: number, note: string | null) => typedError<RunState, AppError_Serialize>(__TAURI_INVOKE("run_resume", { run, addUsd, addTokens, note })),
 	runPause: (run: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_pause", { run })),
+	recipeAllowPrWrite: (recipe: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("recipe_allow_pr_write", { recipe, click })),
 	runTakeOver: (run: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("run_take_over", { run })),
 	runAttach: (run: string, name: string, bytes: number[]) => typedError<Attachment, AppError_Serialize>(__TAURI_INVOKE("run_attach", { run, name, bytes })),
 	runUnblock: (run: string, note: string | null) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_unblock", { run, note })),
@@ -5453,6 +5454,11 @@ export type RunView_Deserialize = {
 	reason?: string | null,
 	/**  The main action of the stop (`app-redesign` REQ-014). `None`: the run waits on no stop. */
 	stop?: Stop | null,
+	/**
+	 *  The team role that approves the plan that waits (`runs-recipes` REQ-008). `None`: any
+	 *  person with the right to approve.
+	 */
+	approver?: string | null,
 };
 
 /**  A run with what a card needs (`factory` REQ-027, REQ-038). */
@@ -5488,6 +5494,11 @@ export type RunView_Serialize = {
 	reason: string | null,
 	/**  The main action of the stop (`app-redesign` REQ-014). `None`: the run waits on no stop. */
 	stop: Stop | null,
+	/**
+	 *  The team role that approves the plan that waits (`runs-recipes` REQ-008). `None`: any
+	 *  person with the right to approve.
+	 */
+	approver?: string,
 };
 
 export type Runner = Runner_Serialize | Runner_Deserialize;

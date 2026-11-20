@@ -18,6 +18,8 @@ export function routeInbox(
 		everyone: boolean;
 		can: (right: Right) => boolean;
 		role: string | null;
+		/** Each role of the person. A solo person has none. */
+		roles?: string[];
 		/** The assignee of a ticket key. */
 		assignee: (key: string) => string | null | undefined;
 		me: string | null;
@@ -27,7 +29,10 @@ export function routeInbox(
 	return {
 		...inbox,
 		approvals: inbox.approvals.filter((a) => who.can(a.right)),
-		plans: who.can("runs.approve") ? inbox.plans : [],
+		// A human step that names a role goes to that role only (`runs-recipes` REQ-008).
+		plans: who.can("runs.approve")
+			? inbox.plans.filter((p) => !p.approver || (who.roles ?? [who.role]).includes(p.approver))
+			: [],
 		questions: inbox.questions.filter(
 			(x) =>
 				(who.me !== null && who.assignee(x.key) === who.me) ||

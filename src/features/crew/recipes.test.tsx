@@ -260,9 +260,14 @@ describe("Workflows: the form", () => {
 		await openStep(user, "Pull request");
 		await user.click(await screen.findByRole("button", { name: "Asks first" }));
 		await waitFor(() => expect(mockState().sync.automation.recipe_writes).toBeUndefined());
-		// Asks first is the state: it shows as a word, with no way to widen it here.
-		await waitFor(() => expect(screen.queryByRole("button", { name: "Alone" })).toBeNull());
-		expect(screen.getByText("Asks first")).toBeInTheDocument();
+		// Asks first is the state, and Alone stays one click away: it is the approval (`runs-recipes` REQ-009).
+		await waitFor(() =>
+			expect(screen.getByRole("button", { name: "Asks first" })).toHaveAttribute(
+				"aria-pressed",
+				"true",
+			),
+		);
+		expect(screen.getByRole("button", { name: "Alone" })).toBeInTheDocument();
 	});
 
 	// spec:app-redesign#REQ-016: the permissions of "Do not ask again" are a part of the recipe.

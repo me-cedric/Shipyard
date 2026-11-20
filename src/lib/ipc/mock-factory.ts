@@ -606,6 +606,15 @@ function stopOfRun(r: Rec, pr: string | null) {
 	return stop === "resume" && day ? null : stop;
 }
 
+/** The role that approves the plan that waits: the human step of the recipe that names one. */
+export function approverOf(f: MockFactory, run: string): string | null {
+	const r = f.runs.find((x) => x.id === run);
+	if (r?.state !== "PlanReview") return null;
+	const text = f.workflows[r.workflow] ?? WORKFLOWS[r.workflow] ?? "";
+	const wf = parseWorkflow(r.workflow, text, DEFAULT_ROLES).workflow;
+	return wf?.steps.find((s) => s.gate === "human")?.approver ?? null;
+}
+
 function view(f: MockFactory, r: Rec): RunView_Serialize {
 	const { log: _log, pr: prNumber, ...rest } = r;
 	const pr = f.pulls.find((p) => p.number === prNumber);
@@ -618,6 +627,7 @@ function view(f: MockFactory, r: Rec): RunView_Serialize {
 		approvals: f.approvals.filter((a) => a.run === r.id).length,
 		reason: null,
 		stop: stopOfRun(r, pr?.state ?? null),
+		...(approverOf(f, r.id) ? { approver: approverOf(f, r.id) as string } : {}),
 	};
 }
 

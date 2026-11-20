@@ -230,6 +230,7 @@ fn a_pull_request_decides_the_lane_of_a_run_in_review() {
         worktree_kept: None,
         escalation: None,
         day_pause: false,
+        approver: None,
     };
     let pr = |ci: &str, review: &str, draft: bool| PrRowView {
         reference: "pr:github:7".into(),
@@ -1250,4 +1251,83 @@ fn features_join_a_run_and_the_change_that_names_its_ticket() {
     assert_eq!(f[0].run_state, Some(RunState::Working));
     assert_eq!((f[0].approvals, f[0].questions), (2, 0));
     assert_eq!((f[1].who.as_ref(), f[1].run_state), (None, None));
+}
+
+// `runs-recipes` REQ-001 to REQ-003 and REQ-009.
+
+#[test]
+fn a_person_pauses_a_working_run_and_the_view_names_the_stop() {
+    let fx = fx(Writes::default());
+    let run = fx.start("SHIP-1");
+    pause(&fx.s, &run).unwrap();
+    fx.agents.push("work", AgentEvent::Turn);
+    fx.s.factory.factory.pump();
+    let v = run_get(&fx.s, &run).unwrap().unwrap();
+    assert_eq!(v.state, RunState::Paused);
+    assert_eq!(v.stop, Some(shipyard_core::feature::Stop::Resume));
+    assert!(
+        pause(&fx.s, &run).is_err(),
+        "a paused run takes no second pause"
+    );
+    assert!(pause(&fx.s, "01JNOPE").is_err());
+}
+
+#[test]
+fn take_over_ends_the_run_with_the_reason_and_keeps_the_folder_of_the_run() {
+    let fx = fx(Writes::default());
+    let run = fx.start("SHIP-1");
+    let dir = take_over(&fx.s, &run).unwrap();
+    assert!(dir.contains(&run), "{dir}");
+    let v = run_get(&fx.s, &run).unwrap().unwrap();
+    assert_eq!(v.state, RunState::Cancelled);
+    assert!(
+        v.reason
+            .as_deref()
+            .is_some_and(|r| r.starts_with("Taken over by")),
+        "{:?}",
+        v.reason
+    );
+    assert!(take_over(&fx.s, &run).is_err(), "the run ended");
+}
+
+#[test]
+fn a_file_of_the_chat_goes_into_the_run_folder_within_the_limits_of_assistant_attach() {
+    let fx = fx(Writes::default());
+    let run = fx.start("SHIP-1");
+    let made = run_attach_file(&fx.s, &run, "dir/notes.md", b"use the endpoint").unwrap();
+    assert_eq!(
+        (made.kind.as_str(), made.name.as_str()),
+        ("text", "notes.md")
+    );
+    let kept = fx.s.dir.join("agents").join(&run).join("context/notes.md");
+    assert_eq!(std::fs::read(kept).unwrap(), b"use the endpoint");
+    let big = vec![b'a'; crate::assistant_attach::MAX_TEXT + 1];
+    let e = run_attach_file(&fx.s, &run, "big.txt", &big).unwrap_err();
+    assert!(e.contains("larger than 200 KiB"), "{e}");
+    assert!(run_attach_file(&fx.s, &run, "id_rsa", b"x").is_err());
+    assert!(run_attach_file(&fx.s, &run, "k.txt", b"password = \"abcdefgh12345\"").is_err());
+    fx.s.factory.factory.cancel(&run).unwrap();
+    assert!(
+        run_attach_file(&fx.s, &run, "late.md", b"x").is_err(),
+        "the run ended"
+    );
+}
+
+#[test]
+fn may_write_alone_turns_on_do_not_ask_again_for_that_recipe_only() {
+    use shipyard_store::automation_file::{AutomationRead, read_automation};
+    let fx = fx(Writes::default());
+    assert!(
+        recipe_allow_pr(&fx.s, "feature", false).is_err(),
+        "it needs the click of a person"
+    );
+    assert!(recipe_allow_pr(&fx.s, "nothing", true).is_err());
+    recipe_allow_pr(&fx.s, "feature", true).unwrap();
+    let AutomationRead::Valid(a) = read_automation(fx.repo.path()).unwrap() else {
+        panic!("a valid file");
+    };
+    assert_eq!(a.recipe_writes.keys().collect::<Vec<_>>(), ["feature"]);
+    assert!(a.recipe_writes["feature"].contains(&shipyard_core::pickup::WriteKind::OpenPr));
+    // The project switches stay as they were.
+    assert_eq!(a.writes, Automation::default().writes);
 }

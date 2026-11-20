@@ -197,13 +197,14 @@ function approvalsByRun(list: ApprovalItem[]): [ApprovalItem, ...ApprovalItem[]]
  */
 export function useNeedsYou(everyone = false) {
 	const raw = useInbox();
-	const { can, role } = useRights();
+	const { can, role, person } = useRights();
 	const me = useWorkContext().data?.me ?? null;
 	const work = useWorkItems({}).data ?? [];
 	const inbox = routeInbox(raw, {
 		everyone,
 		can,
 		role,
+		roles: person?.roles,
 		me,
 		assignee: (key) => work.find((i) => i.key === key)?.member,
 	});
