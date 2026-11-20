@@ -91,7 +91,7 @@ export function Tour() {
 				<BaseDialog.Backdrop className="fixed inset-0 z-40 bg-n-1/60 backdrop-blur-sm transition-opacity duration-(--duration-fast) data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
 				<BaseDialog.Popup
 					initialFocus={primary}
-					className="fixed top-20 left-1/2 z-50 w-[34rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border-2 border-accent bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0"
+					className="fixed top-20 left-1/2 z-50 w-[44rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border-2 border-accent bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0"
 				>
 					<div className="flex min-h-95 flex-col gap-5 p-8">
 						<span className="sr-only" aria-live="polite">
@@ -125,11 +125,9 @@ export function Tour() {
 						</p>
 						{id === "permissions" ? <PermissionList /> : null}
 						{SETUP_OF[id] ? <ChecklistList ids={SETUP_OF[id]} /> : null}
-						<div className="mt-auto flex flex-wrap justify-end gap-2.5">
+						<div className="mt-auto flex flex-wrap gap-2.5">
 							{/* Skip is the way out; Escape does the same. */}
-							<BaseDialog.Close
-								render={<Button variant="ghost" className="mr-auto min-h-control" />}
-							>
+							<BaseDialog.Close render={<Button className="min-h-control" />}>
 								{o.skip}
 							</BaseDialog.Close>
 							{step > 0 ? (

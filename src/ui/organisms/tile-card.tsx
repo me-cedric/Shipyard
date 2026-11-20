@@ -123,8 +123,7 @@ export function TileCard({
 				// biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region needs focus.
 				tabIndex={0}
 				className={cn(
-					"flex min-h-0 flex-1 flex-col overflow-y-auto",
-					edit && "rounded-md border border-n-7 border-dashed bg-n-2 p-3",
+					"flex min-h-0 flex-1 flex-col overflow-y-auto rounded-md border border-n-7 border-dashed bg-n-2 p-3",
 				)}
 			>
 				{off ? (

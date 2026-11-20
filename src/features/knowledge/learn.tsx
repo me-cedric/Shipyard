@@ -168,6 +168,7 @@ export function Learn() {
 								))}
 							</ul>
 						</LearnCard>
+						<LearnPaths part="experts" />
 						<LearnPaths part="team" />
 						<LearnFeeds />
 					</SideCards>

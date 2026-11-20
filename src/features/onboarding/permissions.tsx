@@ -11,7 +11,7 @@ import { Button } from "@/ui/atoms/button";
 import { BellIcon, FolderOpenIcon } from "@/ui/icons";
 import { Loading } from "@/ui/molecules/loading";
 import { Row } from "@/ui/molecules/row";
-import { SettingsRow } from "@/ui/molecules/settings-row";
+import { TourRow } from "./tour-row";
 import { openTour } from "./tour-store";
 
 /** The pill of each state: on, to fix by the person, or nothing to do. */
@@ -93,12 +93,15 @@ export function PermissionList() {
 	};
 	return (
 		<div className="flex flex-col gap-2">
-			<ul aria-label={t.onboarding.permissions.title} className="rounded-lg border bg-surface-2">
+			<ul
+				aria-label={t.onboarding.permissions.title}
+				className="divide-y divide-n-6 rounded-lg border bg-surface-2"
+			>
 				{(list ?? []).map((p) => (
 					<li key={p.kind}>
-						<SettingsRow icon={ICON[p.kind]} label={t.onboarding.permissions.kind[p.kind]}>
+						<TourRow icon={ICON[p.kind]} label={t.onboarding.permissions.kind[p.kind]}>
 							<PermissionControl permission={p} />
-						</SettingsRow>
+						</TourRow>
 					</li>
 				))}
 			</ul>

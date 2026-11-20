@@ -41,6 +41,7 @@ import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { Terms } from "@/ui/molecules/term";
 import { usePermissions, usePermissionsPlace } from "./permissions";
+import { TourRow } from "./tour-row";
 import { closeTour } from "./tour-store";
 
 /** The steps of a new project, in the order of need. */
@@ -410,12 +411,15 @@ export function ChecklistList({ ids }: { ids: readonly ItemId[] }) {
 	const { t } = useI18n();
 	const state = useChecklist();
 	return (
-		<ul aria-label={t.onboarding.setup.title} className="rounded-lg border bg-surface-2">
+		<ul
+			aria-label={t.onboarding.setup.title}
+			className="divide-y divide-n-6 rounded-lg border bg-surface-2"
+		>
 			{ids.map((id) => (
 				<li key={id}>
-					<SettingsRow icon={ICON[id]} label={<Terms>{t.onboarding.setup.item[id]}</Terms>}>
+					<TourRow icon={ICON[id]} label={<Terms>{t.onboarding.setup.item[id]}</Terms>}>
 						<ChecklistControl id={id} state={state} />
-					</SettingsRow>
+					</TourRow>
 				</li>
 			))}
 		</ul>

@@ -224,7 +224,16 @@ function SaveField({
 }
 
 /** The fields of a ticket that one control sets: priority, type, due date and estimate. `rows`: the ticket page, where a button opens each field. */
-export function TicketFields({ itemKey, rows }: { itemKey: string; rows?: boolean }) {
+export function TicketFields({
+	itemKey,
+	rows,
+	only,
+}: {
+	itemKey: string;
+	rows?: boolean;
+	/** Draw only these fields, so the page can put its own rows between them. */
+	only?: ("type" | "estimate" | "due" | "priority")[];
+}) {
 	const { t } = useI18n();
 	const d = t.work.thread;
 	const x = t.personal.thread;
@@ -248,23 +257,10 @@ export function TicketFields({ itemKey, rows }: { itemKey: string; rows?: boolea
 	const wrap = (shown: string, field: (close: () => void) => ReactNode) =>
 		rows ? <RowValue shown={shown}>{field}</RowValue> : field(() => undefined);
 	const keep = (clear: () => void) => (rows ? undefined : clear());
+	const on = (k: NonNullable<typeof only>[number]) => !only || only.includes(k);
 	return (
 		<>
-			{edit.priority ? (
-				<Prop label={d.priority}>
-					<Select
-						label={d.priority}
-						className="w-auto min-w-24 max-w-full shrink"
-						placeholder={rows ? d.set : undefined}
-						value={priority}
-						onValueChange={(p) =>
-							void run(() => act.setPriority(itemKey, p)).then((ok) => ok && setPriority(p))
-						}
-						items={Object.entries(d.priorities).map(([value, label]) => ({ value, label }))}
-					/>
-				</Prop>
-			) : null}
-			{edit.issueType ? (
+			{edit.issueType && on("type") ? (
 				<Prop label={x.type}>
 					{wrap(type || d.set, (close) => (
 						<SaveField
@@ -284,28 +280,7 @@ export function TicketFields({ itemKey, rows }: { itemKey: string; rows?: boolea
 					))}
 				</Prop>
 			) : null}
-			{edit.dueDate ? (
-				<Prop label={x.due}>
-					{wrap(saved || d.set, (close) => (
-						<div className="flex items-center justify-end gap-1">
-							<SaveField
-								label={x.due}
-								type="date"
-								className="w-40"
-								autoFocus={rows}
-								value={due}
-								ok={due !== saved}
-								onChange={setDue}
-								onSave={() => void sendDue(due).then(rows ? close : undefined)}
-							/>
-							<IconButton label={x.clearDue} onClick={() => void sendDue("")}>
-								<XMarkIcon size={14} />
-							</IconButton>
-						</div>
-					))}
-				</Prop>
-			) : null}
-			{edit.estimate ? (
+			{edit.estimate && on("estimate") ? (
 				<Prop label={x.estimate}>
 					{wrap(days || d.set, (close) => (
 						<SaveField
@@ -326,6 +301,41 @@ export function TicketFields({ itemKey, rows }: { itemKey: string; rows?: boolea
 							}}
 						/>
 					))}
+				</Prop>
+			) : null}
+			{edit.dueDate && on("due") ? (
+				<Prop label={x.due}>
+					{wrap(saved || d.set, (close) => (
+						<div className="flex items-center justify-end gap-1">
+							<SaveField
+								label={x.due}
+								type="date"
+								className="w-40"
+								autoFocus={rows}
+								value={due}
+								ok={due !== saved}
+								onChange={setDue}
+								onSave={() => void sendDue(due).then(rows ? close : undefined)}
+							/>
+							<IconButton label={x.clearDue} onClick={() => void sendDue("")}>
+								<XMarkIcon size={14} />
+							</IconButton>
+						</div>
+					))}
+				</Prop>
+			) : null}
+			{edit.priority && on("priority") ? (
+				<Prop label={d.priority}>
+					<Select
+						label={d.priority}
+						className="w-auto min-w-24 max-w-full shrink"
+						placeholder={rows ? d.set : undefined}
+						value={priority}
+						onValueChange={(p) =>
+							void run(() => act.setPriority(itemKey, p)).then((ok) => ok && setPriority(p))
+						}
+						items={Object.entries(d.priorities).map(([value, label]) => ({ value, label }))}
+					/>
 				</Prop>
 			) : null}
 			{error ? (

@@ -208,7 +208,7 @@ export function LearnPaths({
 	editing = null,
 	onEdit = () => undefined,
 }: {
-	part: "paths" | "team";
+	part: "paths" | "team" | "experts";
 	picked?: string | null;
 	editing?: Draft | null;
 	onEdit?: (d: Draft | null) => void;
@@ -237,6 +237,26 @@ export function LearnPaths({
 			qc.setQueryData(learningKey, await job());
 		});
 
+	if (part === "experts") {
+		// An expert of several paths shows each path name as the topic.
+		const topics = new Map<string, string[]>();
+		for (const p of paths)
+			for (const e of p.experts) topics.set(e, [...(topics.get(e) ?? []), p.title]);
+		if (!topics.size) return null;
+		return (
+			<LearnCard title={k.experts}>
+				<ul aria-label={k.experts} className="flex flex-col gap-3">
+					{[...topics].map(([handle, titles]) => (
+						<li key={handle} className="flex items-center gap-3">
+							<Avatar name={nameOf(handle)} />
+							<span className="font-semibold text-n-12">{nameOf(handle)}</span>
+							<span className="ml-auto min-w-0 truncate text-n-11">{titles.join(", ")}</span>
+						</li>
+					))}
+				</ul>
+			</LearnCard>
+		);
+	}
 	if (part === "team")
 		return (
 			<>
@@ -326,15 +346,6 @@ export function LearnPaths({
 									{k.cancel}
 								</Button>
 							</div>
-						) : null}
-						{p.experts.length ? (
-							<ul aria-label={k.experts} className="flex flex-wrap gap-1">
-								{p.experts.map((e) => (
-									<li key={e}>
-										<Badge variant="info">{nameOf(e)}</Badge>
-									</li>
-								))}
-							</ul>
 						) : null}
 						<ol aria-label={k.steps} className="flex flex-col">
 							{p.steps.map((s) => (

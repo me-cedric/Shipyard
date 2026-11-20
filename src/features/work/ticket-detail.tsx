@@ -89,118 +89,84 @@ export function TicketDetail({
 	// The ticket page shows each value as a compact control at the right of its row.
 	const fill = fieldsOnly ? "w-auto min-w-24 max-w-full shrink" : FILL;
 
-	const fields = (
-		<>
-			<Prop label={t.sync.backlog.status}>
-				<Select
-					label={t.sync.backlog.status}
-					className={fill}
-					value={item.status}
-					onValueChange={(to) => void run(() => act.transition(item.key, to))}
-					items={statuses.map((s) => ({ value: s, label: s }))}
-					disabled={statusReason !== null}
-				/>
-				{statusReason ? <p className="text-12 text-n-11">{statusReason}</p> : null}
-			</Prop>
-
-			<Prop label={d.assignee}>
-				{assignReason ? <p className="text-12 text-n-11">{assignReason}</p> : null}
-				<div className="flex min-w-0 items-center gap-2">
-					{item.member ? (
-						<Avatar name={memberName(members, item.member)} className="size-5 text-11" />
-					) : null}
-					<Select
-						label={d.assignee}
-						className={fill}
-						value={item.member ?? ""}
-						disabled={assignReason !== null}
-						onValueChange={(handle) => {
-							if (handle !== "" && handle !== item.member)
-								void run(() => act.assign(item.key, handle));
-						}}
-						items={[
-							...(item.member ? [] : [{ value: "", label: t.sync.backlog.unassigned }]),
-							...suggestions.map((s) => ({
-								value: s.handle,
-								label: memberName(members, s.handle),
-								hint: reasonsOf(s.reasons, t)
-									.map((r) => r.text)
-									.join(", "),
-							})),
-						]}
-					/>
-				</div>
-				{item.assignee && !item.member ? (
-					<p className="flex items-center gap-1.5 pt-1 text-12 text-n-11">
-						<StatusDot status="warning" label={t.work.unknownMember} className="size-2" />
-						{item.assignee}, {t.work.unknownMember}
-					</p>
+	const status = (
+		<Prop label={t.sync.backlog.status}>
+			<Select
+				label={t.sync.backlog.status}
+				className={fill}
+				value={item.status}
+				onValueChange={(to) => void run(() => act.transition(item.key, to))}
+				items={statuses.map((s) => ({ value: s, label: s }))}
+				disabled={statusReason !== null}
+			/>
+			{statusReason ? <p className="text-12 text-n-11">{statusReason}</p> : null}
+		</Prop>
+	);
+	const owner = (
+		<Prop label={d.assignee}>
+			{assignReason ? <p className="text-12 text-n-11">{assignReason}</p> : null}
+			<div className="flex min-w-0 items-center gap-2">
+				{item.member ? (
+					<Avatar name={memberName(members, item.member)} className="size-5 text-11" />
 				) : null}
-			</Prop>
-
-			<Prop label={t.work.thread.labels}>
-				{/* The chips and the field share one line in the narrow column. */}
-				<div className="[&_button]:px-3 [&_input]:w-28">
-					<TicketLabels itemKey={item.key} rows={fieldsOnly} />
-				</div>
-			</Prop>
-
-			{fieldsOnly ? (
-				<>
-					<Prop label={d.agent}>
-						<div className="flex justify-end">
-							<RightButton right="runs.start" onClick={() => void run(() => runs.start(item.key))}>
-								<PlayIcon size={14} />
-								{t.factory.start}
-							</RightButton>
-						</div>
-					</Prop>
-					<Prop label={th.give}>
-						<div className="flex flex-col items-end">
-							<Checkbox
-								label={th.give}
-								hideLabel
-								checked={marked}
-								disabled={markReason !== null || marked}
-								onCheckedChange={() => void run(() => act.mark(item.key))}
-							/>
-							{markReason === d.noLabel ? (
-								<SettingLink target="/setup/project?page=automation#pickup-label">
-									{markReason}
-								</SettingLink>
-							) : markReason ? (
-								<p className="text-12 text-n-11">{markReason}</p>
-							) : null}
-						</div>
-					</Prop>
-					<Prop label={th.pickup}>
-						<div className="flex justify-end">
-							<Checkbox label={th.pickup} hideLabel checked={eligible} readOnly disabled />
-						</div>
-					</Prop>
-				</>
-			) : (
-				<Prop label={d.agent}>
-					<div className="flex flex-wrap items-center gap-2 [&_button]:px-3">
-						<RightButton
-							right="work.edit"
-							disabled={markReason !== null || marked}
-							onClick={() => void run(() => act.mark(item.key))}
-						>
-							<CpuChipIcon size={14} />
-							{d.mark}
-						</RightButton>
-						<RightButton right="runs.start" onClick={() => void run(() => runs.start(item.key))}>
-							<PlayIcon size={14} />
-							{t.factory.start}
-						</RightButton>
-						{eligible ? (
-							<span role="status" className="flex items-center gap-1.5 text-12">
-								<StatusDot status="success" label={d.eligible} className="size-2" />
-								{d.eligible}
-							</span>
-						) : null}
-					</div>
+				<Select
+					label={d.assignee}
+					className={fill}
+					value={item.member ?? ""}
+					disabled={assignReason !== null}
+					onValueChange={(handle) => {
+						if (handle !== "" && handle !== item.member)
+							void run(() => act.assign(item.key, handle));
+					}}
+					items={[
+						...(item.member ? [] : [{ value: "", label: t.sync.backlog.unassigned }]),
+						...suggestions.map((s) => ({
+							value: s.handle,
+							label: memberName(members, s.handle),
+							hint: reasonsOf(s.reasons, t)
+								.map((r) => r.text)
+								.join(", "),
+						})),
+					]}
+				/>
+			</div>
+			{item.assignee && !item.member ? (
+				<p className="flex items-center gap-1.5 pt-1 text-12 text-n-11">
+					<StatusDot status="warning" label={t.work.unknownMember} className="size-2" />
+					{item.assignee}, {t.work.unknownMember}
+				</p>
+			) : null}
+		</Prop>
+	);
+	const labels = (
+		<Prop label={t.work.thread.labels}>
+			{/* The chips and the field share one line in the narrow column. */}
+			<div className="[&_button]:px-3 [&_input]:w-28">
+				<TicketLabels itemKey={item.key} rows={fieldsOnly} />
+			</div>
+		</Prop>
+	);
+	const startRow = (
+		<Prop label={d.agent}>
+			<div className="flex justify-end">
+				<RightButton right="runs.start" onClick={() => void run(() => runs.start(item.key))}>
+					<PlayIcon size={14} />
+					{t.factory.start}
+				</RightButton>
+			</div>
+		</Prop>
+	);
+	const checks = (
+		<>
+			<Prop label={th.give}>
+				<div className="flex flex-col items-end">
+					<Checkbox
+						label={th.give}
+						hideLabel
+						checked={marked}
+						disabled={markReason !== null || marked}
+						onCheckedChange={() => void run(() => act.mark(item.key))}
+					/>
 					{markReason === d.noLabel ? (
 						<SettingLink target="/setup/project?page=automation#pickup-label">
 							{markReason}
@@ -208,61 +174,116 @@ export function TicketDetail({
 					) : markReason ? (
 						<p className="text-12 text-n-11">{markReason}</p>
 					) : null}
-				</Prop>
-			)}
-
-			<Prop label={d.linked}>
-				{item.linked ? (
-					<div className="flex items-center gap-1">
-						<Linked id={item.linked} />
-						{fieldsOnly ? (
-							<RightButton
-								right="work.edit"
-								onClick={() => void run(() => unlink(item.linked ?? ""))}
-							>
-								{t.sync.backlog.unlink}
-							</RightButton>
-						) : (
-							<RightIconButton
-								right="work.edit"
-								label={t.sync.backlog.unlink}
-								onClick={() => void run(() => unlink(item.linked ?? ""))}
-							>
-								<XMarkIcon size={14} />
-							</RightIconButton>
-						)}
-					</div>
-				) : linking ? (
-					<form
-						className="flex items-center gap-2"
-						onSubmit={async (e) => {
-							e.preventDefault();
-							if (await run(() => link(local, item.key))) {
-								setLinking(false);
-								setLocal("");
-							}
-						}}
-					>
-						<Input
-							label={t.sync.backlog.local}
-							value={local}
-							onChange={(e) => setLocal(e.target.value)}
-							autoFocus
-						/>
-						<RightButton right="work.edit" type="submit" disabled={local.trim() === ""}>
-							{t.sync.backlog.confirm}
-						</RightButton>
-					</form>
-				) : (
-					<div>
-						<RightButton right="work.edit" onClick={() => setLinking(true)}>
-							{fieldsOnly ? null : <LinkIcon size={14} />}
-							{t.sync.backlog.link}
-						</RightButton>
-					</div>
-				)}
+				</div>
 			</Prop>
-			<TicketFields itemKey={item.key} rows={fieldsOnly} />
+			<Prop label={th.pickup}>
+				<div className="flex justify-end">
+					<Checkbox label={th.pickup} hideLabel checked={eligible} readOnly disabled />
+				</div>
+			</Prop>
+		</>
+	);
+	const drawerAgent = (
+		<Prop label={d.agent}>
+			<div className="flex flex-wrap items-center gap-2 [&_button]:px-3">
+				<RightButton
+					right="work.edit"
+					disabled={markReason !== null || marked}
+					onClick={() => void run(() => act.mark(item.key))}
+				>
+					<CpuChipIcon size={14} />
+					{d.mark}
+				</RightButton>
+				<RightButton right="runs.start" onClick={() => void run(() => runs.start(item.key))}>
+					<PlayIcon size={14} />
+					{t.factory.start}
+				</RightButton>
+				{eligible ? (
+					<span role="status" className="flex items-center gap-1.5 text-12">
+						<StatusDot status="success" label={d.eligible} className="size-2" />
+						{d.eligible}
+					</span>
+				) : null}
+			</div>
+			{markReason === d.noLabel ? (
+				<SettingLink target="/setup/project?page=automation#pickup-label">{markReason}</SettingLink>
+			) : markReason ? (
+				<p className="text-12 text-n-11">{markReason}</p>
+			) : null}
+		</Prop>
+	);
+	const linked = (
+		<Prop label={d.linked}>
+			{item.linked ? (
+				<div className="flex items-center gap-1">
+					<Linked id={item.linked} />
+					{fieldsOnly ? (
+						<RightButton
+							right="work.edit"
+							onClick={() => void run(() => unlink(item.linked ?? ""))}
+						>
+							{t.sync.backlog.unlink}
+						</RightButton>
+					) : (
+						<RightIconButton
+							right="work.edit"
+							label={t.sync.backlog.unlink}
+							onClick={() => void run(() => unlink(item.linked ?? ""))}
+						>
+							<XMarkIcon size={14} />
+						</RightIconButton>
+					)}
+				</div>
+			) : linking ? (
+				<form
+					className="flex items-center gap-2"
+					onSubmit={async (e) => {
+						e.preventDefault();
+						if (await run(() => link(local, item.key))) {
+							setLinking(false);
+							setLocal("");
+						}
+					}}
+				>
+					<Input
+						label={t.sync.backlog.local}
+						value={local}
+						onChange={(e) => setLocal(e.target.value)}
+						autoFocus
+					/>
+					<RightButton right="work.edit" type="submit" disabled={local.trim() === ""}>
+						{t.sync.backlog.confirm}
+					</RightButton>
+				</form>
+			) : (
+				<div>
+					<RightButton right="work.edit" onClick={() => setLinking(true)}>
+						{fieldsOnly ? null : <LinkIcon size={14} />}
+						{t.sync.backlog.link}
+					</RightButton>
+				</div>
+			)}
+		</Prop>
+	);
+	const fields = fieldsOnly ? (
+		<>
+			<TicketFields itemKey={item.key} rows only={["type"]} />
+			{owner}
+			{status}
+			<TicketFields itemKey={item.key} rows only={["estimate", "due", "priority"]} />
+			{labels}
+			{linked}
+			{checks}
+			{startRow}
+		</>
+	) : (
+		<>
+			{status}
+			{owner}
+			{labels}
+			{drawerAgent}
+			{linked}
+			<TicketFields itemKey={item.key} />
 		</>
 	);
 	if (fieldsOnly)

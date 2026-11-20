@@ -74,7 +74,9 @@ describe("Knowledge / Learn: paths and feeds", () => {
 			.getAllByRole("listitem")
 			.find((li) => li.textContent?.includes("Ada Lovelace"));
 		expect(ada).toHaveTextContent("3 of 3");
-		expect(within(path).getByRole("list", { name: "Experts" })).toHaveTextContent("Ada Lovelace");
+		const experts = screen.getByRole("list", { name: "Experts" });
+		expect(experts).toHaveTextContent("Ada Lovelace");
+		expect(experts).toHaveTextContent("Onboarding");
 	});
 
 	it("creates a path with a course from the form", async () => {

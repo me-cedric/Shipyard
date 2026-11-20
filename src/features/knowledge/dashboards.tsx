@@ -332,7 +332,7 @@ function DashboardView({ slug }: { slug: string }) {
 			</div>
 			<ul
 				aria-label={`${k.tiles} (${dash.tiles.length})`}
-				className="grid auto-rows-[minmax(72px,auto)] gap-4"
+				className="grid auto-rows-[72px] gap-4"
 				style={GRID}
 			>
 				{dash.tiles.map((x) => (
@@ -589,7 +589,7 @@ export function DashboardEdit() {
 			) : null}
 			<ul
 				aria-label={`${k.tiles} (${dash.tiles.length})`}
-				className="grid auto-rows-[minmax(72px,auto)] gap-4"
+				className="grid auto-rows-[72px] gap-4"
 				onDragOver={(e) => {
 					if (drag.current) e.preventDefault();
 				}}

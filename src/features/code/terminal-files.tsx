@@ -18,7 +18,7 @@ import { fileRows, findFiles } from "./file-drawer";
 import { flatRows } from "./tree";
 
 const ROW =
-	"flex min-h-control w-full items-center gap-2.5 px-4 text-left hover:bg-n-2 aria-pressed:bg-accent-soft";
+	"flex min-h-control w-full items-center gap-2.5 px-4 text-left hover:bg-n-2 aria-pressed:bg-n-3";
 const MAX_FOUND = 200;
 const parentOf = (p: string) => p.slice(0, Math.max(p.lastIndexOf("/"), 0));
 
