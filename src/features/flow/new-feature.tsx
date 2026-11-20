@@ -151,7 +151,7 @@ export function NewFeature() {
 				value={title}
 				onChange={(e) => setTitle(e.target.value)}
 			/>
-			<div className="flex flex-wrap items-center gap-2">
+			<div className="flex flex-wrap items-center justify-between gap-2">
 				<fieldset aria-label={n.kind} className="flex min-w-0 flex-wrap gap-2">
 					{(["feature", "bug", "idea"] as const).map((id) => (
 						<Chip
@@ -175,9 +175,7 @@ export function NewFeature() {
 						e.target.value = "";
 					}}
 				/>
-				<Button variant="ghost" onClick={() => picker.current?.click()}>
-					{r.addDocument}
-				</Button>
+				<Button onClick={() => picker.current?.click()}>{r.addDocument}</Button>
 			</div>
 			{docs.length > 0 ? (
 				<ul aria-label={r.addDocument} className="flex flex-wrap gap-2">
@@ -249,7 +247,8 @@ export function NewFeature() {
 							type="number"
 							min="0"
 							step="any"
-							className="w-24 font-semibold"
+							placeholder="3.00"
+							className="w-28 font-semibold"
 							value={limit}
 							onChange={(e) => setLimit(e.target.value)}
 						/>

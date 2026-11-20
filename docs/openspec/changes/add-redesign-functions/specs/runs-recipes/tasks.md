@@ -37,12 +37,12 @@ Plan: [plan.md](plan.md)
 - [x] T017 Build REQ-008 (F18, Role of a human step): `crates/shipyard-core/src/workflow.rs`, `src/features/crew/recipes.tsx`, `src/features/crew/recipe-file.tsx`, `src/lib/ipc/mock-factory.ts`. REQ-008.
 - [x] T018 Build REQ-009 (F19, Rows of a recipe step): `src/features/crew/recipe-file.tsx`, `crates/shipyard-core/src/workflow.rs`, `src/lib/ipc/mock-factory.ts`. REQ-009.
 - [x] T019 Shared files: add the commands to the map of `src/lib/ipc/mock.ts` and to `crates/shipyard-app/src/lib.rs`, run `pnpm ipc:gen`, add the strings in English, French, German and Spanish to `src/lib/i18n/`.
-- [ ] T020 Docs: `docs/diagrams/run-state-machine.mmd` (Pause), `docs/openspec/specs/factory/` after archive; the scenarios in `docs/delivery/test-plans/runs-recipes.feature`; the pictures in `docs/assets/screenshots/` and `docs/designs/screens.json` for each changed screen; one bullet each in `CHANGELOG.md` and `CHANGELOG.fr.md`; the page of the guide in four languages.
+- [x] T020 Docs: `docs/diagrams/run-state-machine.mmd` (Pause), `docs/openspec/specs/factory/` after archive; the scenarios in `docs/delivery/test-plans/runs-recipes.feature`; the pictures in `docs/assets/screenshots/` and `docs/designs/screens.json` for each changed screen; one bullet each in `CHANGELOG.md` and `CHANGELOG.fr.md`; the page of the guide in four languages.
 - [x] T021 Run the commands of the Validation block of `plan.md`.
-- [ ] T022 Compare the build with the spec and fix stale artifacts.
+- [x] T022 Compare the build with the spec and fix stale artifacts.
 
 ## Completion Check
 
-- [ ] All acceptance criteria are met.
-- [ ] Required validation passed or failures are marked pre-existing.
-- [ ] Specs, docs, and code agree.
+- [x] All acceptance criteria are met.
+- [x] Required validation passed or failures are marked pre-existing.
+- [x] Specs, docs, and code agree (the settled spec `docs/openspec/specs/factory/` follows the archive of the lead).

@@ -34,15 +34,15 @@ The design of the redesign shows nine controls of runs and recipes that the app 
 
 ### Acceptance Criteria
 
-- [ ] Pause an agent (F02): each scenario below passes.
-- [ ] Take it over (F03): each scenario below passes.
-- [ ] Attach a file in the agent chat (F05): each scenario below passes.
-- [ ] Add a document to a new feature (F07): each scenario below passes.
-- [ ] Limit of a new feature (F08): each scenario below passes.
-- [ ] Warn at and Then of budgets (F16): each scenario below passes.
-- [ ] Stage limits of Automation (F17): each scenario below passes.
-- [ ] Role of a human step (F18): each scenario below passes.
-- [ ] Rows of a recipe step (F19): each scenario below passes.
+- [x] Pause an agent (F02): each scenario below passes.
+- [x] Take it over (F03): each scenario below passes.
+- [x] Attach a file in the agent chat (F05): each scenario below passes.
+- [x] Add a document to a new feature (F07): each scenario below passes.
+- [x] Limit of a new feature (F08): each scenario below passes.
+- [x] Warn at and Then of budgets (F16): each scenario below passes.
+- [x] Stage limits of Automation (F17): each scenario below passes.
+- [x] Role of a human step (F18): each scenario below passes.
+- [x] Rows of a recipe step (F19): each scenario below passes.
 
 ### Existing References
 
