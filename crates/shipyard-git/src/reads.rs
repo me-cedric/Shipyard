@@ -71,6 +71,38 @@ impl Repo {
         Ok(out)
     }
 
+    /// Puts `path` back to its state at `rev`: the content of `rev` when it has the file, else the
+    /// file goes. The working copy and the index follow. No commit is made. The path stays inside
+    /// the working copy.
+    pub fn restore_path(&self, rev: &str, path: &str) -> Result<()> {
+        check_paths(&[path.to_string()])?;
+        let tree = self.repo.revparse_single(rev)?.peel_to_tree()?;
+        if tree.get_path(std::path::Path::new(path)).is_ok() {
+            let mut cb = git2::build::CheckoutBuilder::new();
+            cb.force().disable_pathspec_match(true).path(path);
+            self.repo.checkout_tree(tree.as_object(), Some(&mut cb))?;
+            return Ok(());
+        }
+        let mut index = self.repo.index()?;
+        // A path that the index does not hold is not an error: the file may be untracked.
+        let _ = index.remove_path(std::path::Path::new(path));
+        index.write()?;
+        match std::fs::remove_file(self.workdir().join(path)) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e.into()),
+            _ => Ok(()),
+        }
+    }
+
+    /// Full id of the commit that `rev` names.
+    pub fn rev_sha(&self, rev: &str) -> Result<String> {
+        Ok(self
+            .repo
+            .revparse_single(rev)?
+            .peel_to_commit()?
+            .id()
+            .to_string())
+    }
+
     /// Full id of HEAD.
     pub fn head_sha(&self) -> Result<String> {
         Ok(self.repo.head()?.peel_to_commit()?.id().to_string())

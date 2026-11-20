@@ -375,6 +375,7 @@ impl ForgeAdapter {
             // The adapter reads no reviews yet.
             changes_requested: false,
             updated: p.updated,
+            author: p.author,
         })
     }
 }

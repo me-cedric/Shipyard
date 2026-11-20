@@ -174,6 +174,7 @@ describe("the ticket thread", () => {
 				issueType: false,
 				dueDate: false,
 				estimate: false,
+				release: false,
 			},
 		});
 		mount();

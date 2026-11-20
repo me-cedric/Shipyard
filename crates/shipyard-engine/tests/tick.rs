@@ -23,6 +23,7 @@ fn pull(number: u64, state: PrState) -> PullSnapshot {
         ci: Ci::Pending,
         changes_requested: false,
         updated: "2026-10-29T10:00:00Z".into(),
+        author: "ada".into(),
     }
 }
 

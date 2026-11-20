@@ -1026,6 +1026,8 @@ pub struct PrRowView {
     pub head_sha: String,
     pub url: String,
     pub updated: String,
+    /// The login or name of the author on the code host (REQ-008 of `code-host-tickets`).
+    pub author: String,
     pub lane: Lane,
     /// The runs that opened this pull request.
     pub runs: Vec<String>,
@@ -1064,6 +1066,7 @@ fn view(row: PrRow, runs: Vec<String>) -> PrRowView {
         head_sha: row.head_sha,
         url: row.url,
         updated: row.updated,
+        author: row.author,
         lane,
         runs,
     }

@@ -6,6 +6,7 @@ import { copyText, useMenus } from "@/lib/menus";
 import { foldWords } from "@/lib/refs";
 import { pullHref } from "@/lib/shell";
 import { cn } from "@/lib/utils";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button, buttonVariants } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
@@ -72,6 +73,7 @@ function Row({ r, on, onSelect }: { r: PrRowView; on: boolean; onSelect: () => v
 					onClick={onSelect}
 					className="flex min-h-17 min-w-0 flex-1 cursor-pointer items-center gap-3 px-6 text-left font-semibold"
 				>
+					{r.author ? <Avatar name={r.author} size="s" /> : null}
 					<span className="min-w-0 flex-[1_1_200px] truncate text-n-12">{r.title}</span>
 					<Badge variant={pill.variant}>{pill.label}</Badge>
 				</button>

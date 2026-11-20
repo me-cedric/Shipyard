@@ -7,13 +7,20 @@ import {
 	TicketLabels,
 	TicketTitle,
 } from "@/features/sync/ticket-thread";
-import { useRunActions } from "@/lib/factory";
+import { useRunActions, useWorkflows } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { useResolvedRef } from "@/lib/refs";
 import { RightButton, RightIconButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useBacklogActions, useWorkItems } from "@/lib/sync";
-import { memberName, useSuggestions, useTeam, useWorkActions, useWorkContext } from "@/lib/work";
+import {
+	memberName,
+	useReleases,
+	useSuggestions,
+	useTeam,
+	useWorkActions,
+	useWorkContext,
+} from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Checkbox } from "@/ui/atoms/checkbox";
 import { Input } from "@/ui/atoms/input";
@@ -71,6 +78,8 @@ export function TicketDetail({
 	const { failure, run } = useGuard();
 	const [linking, setLinking] = useState(false);
 	const [local, setLocal] = useState("");
+	const recipes = useWorkflows().data ?? [];
+	const releases = useReleases().data ?? [];
 
 	if (!item) return null;
 	const caps = ctx?.capabilities;
@@ -144,6 +153,48 @@ export function TicketDetail({
 			<div className="[&_button]:px-3 [&_input]:w-28">
 				<TicketLabels itemKey={item.key} rows={fieldsOnly} />
 			</div>
+		</Prop>
+	);
+	// The label `wf:<id>` of a ticket picks its recipe (`run_label`). A change swaps that label.
+	const recipeLabel = item.labels.find((l) => l.startsWith("wf:"));
+	const recipeId = recipeLabel?.slice(3) ?? "";
+	const recipe = recipes.length ? (
+		<Prop label={t.codeHost.recipe}>
+			<Select
+				label={t.codeHost.recipe}
+				className={fill}
+				value={recipeId}
+				disabled={caps ? !caps.labels : true}
+				onValueChange={(id) =>
+					void run(async () => {
+						if (id === recipeId) return;
+						if (recipeLabel) await act.removeLabel(item.key, recipeLabel);
+						if (id) await act.addLabel(item.key, `wf:${id}`);
+					})
+				}
+				items={[
+					...(recipeId ? [] : [{ value: "", label: t.codeHost.noRecipe }]),
+					...recipes.map((w) => ({ value: w.id, label: w.id })),
+				]}
+			/>
+		</Prop>
+	) : null;
+	// A ticket has one release. The list is the one of the issue tracker, as Plan and Library read it.
+	const release = (
+		<Prop label={t.codeHost.release}>
+			<Select
+				label={t.codeHost.release}
+				className={fill}
+				value={item.release ?? ""}
+				onValueChange={(r) => void run(() => act.setRelease(item.key, r || null))}
+				items={[
+					{ value: "", label: t.codeHost.noRelease },
+					...[...new Set([...(item.release ? [item.release] : []), ...releases])].map((r) => ({
+						value: r,
+						label: r,
+					})),
+				]}
+			/>
 		</Prop>
 	);
 	const startRow = (
@@ -270,9 +321,11 @@ export function TicketDetail({
 			<TicketFields itemKey={item.key} rows only={["type"]} />
 			{owner}
 			{status}
+			{release}
 			<TicketFields itemKey={item.key} rows only={["estimate", "due", "priority"]} />
 			{labels}
 			{linked}
+			{recipe}
 			{checks}
 			{startRow}
 		</>
@@ -280,9 +333,11 @@ export function TicketDetail({
 		<>
 			{status}
 			{owner}
+			{release}
 			{labels}
 			{drawerAgent}
 			{linked}
+			{recipe}
 			<TicketFields itemKey={item.key} />
 		</>
 	);

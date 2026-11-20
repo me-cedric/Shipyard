@@ -91,6 +91,7 @@ pub fn ticket(key: &str, status: &str, category: StatusCategory) -> Ticket {
         url: format!("https://tracker.test/{key}"),
         updated: "2026-10-29T10:00:00Z".into(),
         time: None,
+        release: None,
     })
 }
 

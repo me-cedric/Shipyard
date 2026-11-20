@@ -402,6 +402,38 @@ pub fn worktree_discard(s: &AppState, thread: &str, force: bool) -> Res<ThreadVi
     Ok(view(t))
 }
 
+/// Keep the change of one file, or of every file of the review with `None`. The files leave the
+/// review list and stay changed. Returns the list that is left (REQ-002 of `code-host-tickets`).
+pub fn worktree_keep(s: &AppState, thread: &str, path: Option<&str>) -> Res<Vec<FileDiff>> {
+    let (id, _) = project(s)?;
+    let _busy = Busy::take(thread)?;
+    let st = Threads::new(&s.dir);
+    let mut t = st.get(&id, thread).map_err(err)?;
+    let w = t
+        .worktree
+        .as_mut()
+        .ok_or("the thread has no change to keep")?;
+    assistant_modes::keep(w, path).map_err(err)?;
+    st.save(&t).map_err(err)?;
+    thread_diff(s, thread)
+}
+
+/// Revert one file of the thread to the project content. The other files stay. Returns the list
+/// that is left.
+pub fn worktree_undo_file(s: &AppState, thread: &str, path: &str) -> Res<Vec<FileDiff>> {
+    let (id, _) = project(s)?;
+    let _busy = Busy::take(thread)?;
+    let st = Threads::new(&s.dir);
+    let mut t = st.get(&id, thread).map_err(err)?;
+    let w = t
+        .worktree
+        .as_mut()
+        .ok_or("the thread has no change to undo")?;
+    assistant_modes::undo_file(w, path).map_err(err)?;
+    st.save(&t).map_err(err)?;
+    thread_diff(s, thread)
+}
+
 pub fn thread_diff(s: &AppState, thread: &str) -> Res<Vec<FileDiff>> {
     let (id, _) = project(s)?;
     let t = Threads::new(&s.dir).get(&id, thread).map_err(err)?;
@@ -1088,6 +1120,14 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
             AssistantMode::Agent,
             "the thread keeps its mode"
         );
+    }
+
+    #[test]
+    fn keep_and_undo_of_a_file_need_a_worktree() {
+        let f = fx();
+        let t = thread_create(&f.s, None).unwrap().thread;
+        assert!(worktree_keep(&f.s, &t.id, None).is_err());
+        assert!(worktree_undo_file(&f.s, &t.id, "a.txt").is_err());
     }
 
     #[test]

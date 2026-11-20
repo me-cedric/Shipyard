@@ -480,6 +480,7 @@ fn ticket(
             estimate_minutes: Some(m),
             spent_minutes: None,
         }),
+        release: None,
     }
 }
 

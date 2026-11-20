@@ -244,6 +244,10 @@ pub struct Worktree {
     pub branch: String,
     /// The commit that the diff reads against.
     pub base: String,
+    /// The files that the person kept, each as `<path>` and a hash of its diff, joined by a tab.
+    /// A kept file leaves the review until its diff changes. A thread saved before this holds none.
+    #[serde(default)]
+    pub kept: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]

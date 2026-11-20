@@ -1058,6 +1058,7 @@ pub fn auto_tick(app: &AppHandle) {
             ci: shipyard_core::pickup::Ci::None,
             changes_requested: false,
             updated: p.updated,
+            author: p.author,
         })
         .collect();
     let due = reviews_due(mode, &snaps, |n, sha| {
@@ -1328,6 +1329,7 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
                 ci: shipyard_core::pickup::Ci::None,
                 changes_requested: false,
                 updated: String::new(),
+                author: String::new(),
             }],
             |n, sha| reviewed(&f.s, &f.pid, u32::try_from(n).unwrap(), sha),
         );

@@ -33,6 +33,7 @@ pub struct PrRow {
     pub head_sha: String,
     pub url: String,
     pub updated: String,
+    pub author: String,
 }
 
 impl PrRow {
@@ -77,6 +78,7 @@ fn to_row(forge: &str, p: PullSnapshot) -> PrRow {
         head_sha: p.head_sha,
         url: p.url,
         updated: p.updated,
+        author: p.author,
     }
 }
 

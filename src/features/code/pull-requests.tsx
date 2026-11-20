@@ -6,6 +6,7 @@ import { copyText, useMenus } from "@/lib/menus";
 import { foldWords } from "@/lib/refs";
 import { pullHref } from "@/lib/shell";
 import { cn } from "@/lib/utils";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button, buttonVariants } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
@@ -63,6 +64,7 @@ function Row({ r }: { r: PrRowView }) {
 					data-ask={r.reference}
 					className="flex min-h-control min-w-0 flex-1 flex-wrap items-center gap-2 px-3 py-2 text-ui"
 				>
+					{r.author ? <Avatar name={r.author} size="s" /> : null}
 					<span className="shrink-0 font-mono text-12 text-n-11">#{r.number}</span>
 					<span className="min-w-0 flex-1 truncate text-n-12">{r.title}</span>
 					{r.draft ? <Badge>{t.forge.draft}</Badge> : null}

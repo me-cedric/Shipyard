@@ -835,6 +835,7 @@ export function seedFactory(): MockFactory {
 			headSha: (0x3a7c91e + number * 0x1f3b).toString(16).padStart(7, "0"),
 			url: `https://github.com/acme/app/pull/${number}`,
 			updated: `2026-10-${String(20 + (number % 9)).padStart(2, "0")}T14:30:00Z`,
+			author: "Ada Lovelace",
 			...o,
 		});
 	const ask = (r: Rec, q: Partial<AskedQuestion_Serialize> & { id: string; question: string }) =>

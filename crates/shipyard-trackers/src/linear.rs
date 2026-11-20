@@ -10,7 +10,7 @@ use shipyard_secrets::Secret;
 use std::sync::Arc;
 
 const ENDPOINT: &str = "https://api.linear.app/graphql";
-const ISSUE: &str = "id identifier title description url updatedAt estimate state { name type } assignee { id name } labels { nodes { name } } parent { identifier }";
+const ISSUE: &str = "id identifier title description url updatedAt estimate state { name type } assignee { id name } labels { nodes { name } } parent { identifier } project { name }";
 
 pub struct Linear {
     pub(crate) http: Arc<dyn Http>,
@@ -93,6 +93,7 @@ fn item(v: &Value) -> WorkItem {
         url: text(v, "/url"),
         updated: text(v, "/updatedAt"),
         time: None,
+        release: Some(text(v, "/project/name")).filter(|r| !r.is_empty()),
     }
 }
 

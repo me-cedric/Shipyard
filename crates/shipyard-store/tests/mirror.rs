@@ -20,6 +20,7 @@ fn ticket(key: &str, status: &str) -> Ticket {
         url: format!("https://t/{key}"),
         updated: "2026-10-29T10:00:00Z".into(),
         time: None,
+        release: None,
     });
     t.components = vec!["api".into()];
     t.priority = Some("High".into());
@@ -37,6 +38,7 @@ fn pull(number: u64) -> PullSnapshot {
         ci: Ci::Pending,
         changes_requested: false,
         updated: "2026-10-29T10:00:00Z".into(),
+        author: String::new(),
     }
 }
 

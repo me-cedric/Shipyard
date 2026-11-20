@@ -54,6 +54,15 @@ export function usePull(number: number | null) {
 	});
 }
 
+/** The users of the code host that can review a pull request. */
+export function useReviewers() {
+	return useQuery({
+		queryKey: ["code", "reviewers"],
+		queryFn: () => unwrap(commands.codePullReviewers()),
+		staleTime: 60_000,
+	});
+}
+
 export function usePullLabels() {
 	return useQuery({
 		queryKey: forgeKeys.labels,
@@ -145,6 +154,8 @@ export function useForgeActions() {
 			) => run(commands.codePullReviewSubmit(reference, verdict, body, notes, headSha, true)),
 			merge: (n: number, method: MergeMethod) => run(commands.codePullMerge(n, method, true)),
 			ready: (n: number) => run(commands.codePullReady(n, true)),
+			/** Runs the failed checks of the pull request again, on the code host. */
+			rerun: (n: number) => run(commands.codePullRerun(n, true)),
 			close: (n: number, reason: string) => run(commands.codePullClose(n, reason, true)),
 			sendBack: (n: number, text: string) => run(commands.codePullSendBack(n, text, true)),
 			archiveSpec: (n: number, change: string, confirmed: boolean) =>

@@ -558,6 +558,9 @@ pub struct PullSnapshot {
     /// The forge adapter sets it from the reviews.
     pub changes_requested: bool,
     pub updated: String,
+    /// The login or name of the author. A mirror written before this field holds none.
+    #[serde(default)]
+    pub author: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -313,6 +313,15 @@ pub fn assignments(root: &Path) -> Assignments {
 
 // ---------------------------------------------------------------- tickets config
 
+/// A kind of ticket that the person added to the four fixed ones (REQ-005 of
+/// `code-host-tickets`). Its name is the type in the issue tracker. Its parent is a fixed kind
+/// (`epic`, `story`, `task`, `subtask`) or the name of an earlier added kind.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, serde::Deserialize, Type)]
+pub struct ExtraKind {
+    pub name: String,
+    pub parent: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, serde::Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct TicketsConfig {
@@ -328,6 +337,9 @@ pub struct TicketsConfig {
     pub spec_base_url: String,
     /// `feature` or `group`.
     pub hierarchy: String,
+    /// The kinds that were added, parents before children.
+    #[serde(default)]
+    pub extra_kinds: Vec<ExtraKind>,
 }
 
 impl Default for TicketsConfig {
@@ -344,6 +356,7 @@ impl Default for TicketsConfig {
             labels: Vec::new(),
             spec_base_url: String::new(),
             hierarchy: "feature".into(),
+            extra_kinds: Vec::new(),
         }
     }
 }
@@ -392,7 +405,50 @@ pub fn tickets_config(root: &Path) -> TicketsConfig {
         } else {
             d.hierarchy
         },
+        extra_kinds: v
+            .get("extraKinds")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .map(|k| ExtraKind {
+                name: str_of(k, "name"),
+                parent: str_of(k, "parent"),
+            })
+            .filter(|k| !k.name.is_empty() && !k.parent.is_empty())
+            .collect(),
     }
+}
+
+/// The added kinds must have a name of 60 characters or fewer that no other kind has (the fixed
+/// ones included, without regard to case), and a parent that is a fixed kind or an earlier added
+/// kind: so the hierarchy has no loop.
+fn check_extra_kinds(c: &TicketsConfig) -> Result<()> {
+    let mut seen: Vec<String> = [&c.epic, &c.story, &c.task, &c.subtask]
+        .iter()
+        .map(|t| t.trim().to_lowercase())
+        .collect();
+    let mut parents: Vec<String> = ["epic", "story", "task", "subtask"]
+        .iter()
+        .map(|p| p.to_string())
+        .collect();
+    for k in &c.extra_kinds {
+        let name = k.name.trim();
+        if name.is_empty() || name.chars().count() > 60 {
+            return Err("a kind has a name of 60 characters or fewer".into());
+        }
+        if seen.contains(&name.to_lowercase()) {
+            return Err(format!("the kind {name} exists already").into());
+        }
+        if !parents
+            .iter()
+            .any(|p| p.eq_ignore_ascii_case(k.parent.trim()))
+        {
+            return Err(format!("the parent of {name} is not a kind that comes before it").into());
+        }
+        seen.push(name.to_lowercase());
+        parents.push(name.to_lowercase());
+    }
+    Ok(())
 }
 
 /// Saves the config. It keeps the other keys of the file (site, cloudId, projectKey, ade). The
@@ -414,6 +470,7 @@ pub fn save_tickets_config(root: &Path, c: &TicketsConfig) -> Result<()> {
     if !(c.hours_per_day >= 1.0 && c.hours_per_day <= 24.0) {
         return Err("the hours per day must be between 1 and 24".into());
     }
+    check_extra_kinds(c)?;
     let url = c.spec_base_url.trim();
     if !url.is_empty() && !(url.starts_with("https://") || url.starts_with("http://")) {
         return Err("the spec base URL must start with http:// or https://".into());
@@ -439,6 +496,12 @@ pub fn save_tickets_config(root: &Path, c: &TicketsConfig) -> Result<()> {
     top.insert("labels".into(), json!(labels));
     top.insert("specBaseUrl".into(), json!(url));
     top.insert("hierarchy".into(), json!(c.hierarchy));
+    let extra: Vec<Value> = c
+        .extra_kinds
+        .iter()
+        .map(|k| json!({"name": k.name.trim(), "parent": k.parent.trim().to_lowercase()}))
+        .collect();
+    top.insert("extraKinds".into(), json!(extra));
     write(root, TICKETS_CONFIG, &Value::Object(top))
 }
 
@@ -668,6 +731,37 @@ mod tests {
         ] {
             assert!(save_tickets_config(root, &bad).is_err());
         }
+    }
+
+    #[test]
+    fn an_added_kind_is_saved_under_its_parent_and_a_loop_or_a_twin_is_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let kind = |name: &str, parent: &str| ExtraKind {
+            name: name.into(),
+            parent: parent.into(),
+        };
+        let mut c = tickets_config(root);
+        c.extra_kinds = vec![kind(" Spike ", "story"), kind("Probe", "Spike")];
+        save_tickets_config(root, &c).unwrap();
+        let got = tickets_config(root).extra_kinds;
+        assert_eq!(got, vec![kind("Spike", "story"), kind("Probe", "spike")]);
+        for bad in [
+            // A parent that does not exist, or that comes later: no loop.
+            vec![kind("Spike", "nobody")],
+            vec![kind("Probe", "Spike"), kind("Spike", "story")],
+            // A name that a kind has already, or a blank one.
+            vec![kind("story", "epic")],
+            vec![kind("Spike", "story"), kind("SPIKE", "task")],
+            vec![kind(" ", "story")],
+        ] {
+            let mut c = tickets_config(root);
+            c.extra_kinds = bad;
+            assert!(save_tickets_config(root, &c).is_err());
+        }
+        // A file written before the kinds existed reads with none.
+        put(root, TICKETS_CONFIG, r#"{"version":1}"#);
+        assert!(tickets_config(root).extra_kinds.is_empty());
     }
 
     #[test]

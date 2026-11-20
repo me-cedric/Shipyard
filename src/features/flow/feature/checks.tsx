@@ -1,16 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { usePullState } from "@/features/code/pull-page";
 import { CI_STATUS } from "@/features/code/status";
 import { useRunScope } from "@/features/factory/runs/run-detail";
 import { agentOf, webUrl } from "@/features/factory/runs/run-summary";
 import { hiddenTab } from "@/features/shell/spaces";
-import { useQuality } from "@/lib/code";
+import { useForgeActions, useQuality } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { openUrl } from "@/lib/menus";
-import { useRights } from "@/lib/rights";
+import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useBdd, useChanges } from "@/lib/specs";
 import { Avatar } from "@/ui/atoms/avatar";
@@ -22,6 +22,7 @@ import { ChevronRightIcon } from "@/ui/icons";
 import { ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { StartAgent } from "./start";
 import type { Parts } from "./use-feature";
 
@@ -180,6 +181,12 @@ export function Checks({ parts, ci }: { parts: Parts; ci?: string | null }) {
 	const scenarios = useScenarios(parts);
 	const stale = useStale();
 	const quality = useQuality().data;
+	const pull = usePullState()?.d;
+	const { rerun } = useForgeActions();
+	const [again, setAgain] = useState<{ busy: boolean; error: unknown }>({
+		busy: false,
+		error: null,
+	});
 	// The impacts keep the gate of the code area, as their page `/flow/impacts` does.
 	const noCode = hiddenTab(useRights().level, "code", "impacts");
 	const failing = checks.filter((x) => x.state === "failing");
@@ -264,6 +271,21 @@ export function Checks({ parts, ci }: { parts: Parts; ci?: string | null }) {
 						{t.forge.ci[ci as "none"]}
 					</p>
 				) : null}
+				{failing.length && parts.pr && pull ? (
+					<RightButton
+						right="code.write"
+						busy={again.busy}
+						onClick={() => {
+							setAgain({ busy: true, error: null });
+							rerun(pull.number).then(
+								() => setAgain({ busy: false, error: null }),
+								(error) => setAgain({ busy: false, error }),
+							);
+						}}
+					>
+						{t.codeHost.rerun}
+					</RightButton>
+				) : null}
 				{failing.length ? (
 					<Button
 						variant="primary"
@@ -275,6 +297,7 @@ export function Checks({ parts, ci }: { parts: Parts; ci?: string | null }) {
 					</Button>
 				) : null}
 			</section>
+			{again.error ? <ErrorNotice error={again.error} className="px-3 py-2" /> : null}
 			<div className="flex flex-wrap items-start gap-6">
 				<div className="flex min-w-0 flex-[1_1_380px] flex-col gap-6">
 					{checks.length ? (

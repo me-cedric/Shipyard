@@ -4,6 +4,7 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 
+use shipyard_http::Method;
 use shipyard_http::fake::FakeHttp;
 use shipyard_secrets::{MemoryStore, Secret};
 
@@ -201,4 +202,135 @@ fn a_join_request_needs_a_click_a_known_role_and_a_person_out_of_the_team() {
     ana.emails = vec!["ana@example.com".into()];
     git(&f.root, &["config", "user.email", "ana@example.com"]);
     assert!(team_join(&f.s, ana, true).unwrap_err().contains("already"));
+}
+
+fn mr(branch: &str) -> String {
+    serde_json::json!({
+        "iid": 7, "title": "Add Zed Nobody to the team", "state": "opened",
+        "description": "Zed Nobody asks to join the team.\n\nAsked role: `qa`. The entry gives `viewer`.",
+        "source_branch": branch, "target_branch": "main", "sha": "abc",
+        "web_url": "https://gitlab.com/acme/web/-/merge_requests/7",
+        "author": {"username": "zed"}
+    })
+    .to_string()
+}
+
+/// A join request that Zed sent, then the screen of Ana (a techlead with the merge right).
+fn sent_join(f: &Fx) {
+    f.http.post(
+        "/merge_requests",
+        "shipyard/join-zed",
+        201,
+        include_str!("../../../../shipyard-forges/tests/fixtures/gitlab/mr.json"),
+    );
+    team_join(&f.s, ask("qa"), true).unwrap();
+    git(&f.root, &["config", "user.email", "ana@example.com"]);
+}
+
+#[test]
+fn the_join_requests_are_the_open_pull_requests_of_the_join_branches_with_the_asked_role() {
+    let f = fx(true);
+    f.http
+        .get("/merge_requests/7", 200, &mr("shipyard/join-zed"))
+        .get(
+            "/merge_requests?",
+            200,
+            &format!(
+                "[{}, {}]",
+                mr("shipyard/join-zed"),
+                mr("feat/other").replace("\"iid\":7", "\"iid\":8")
+            ),
+        );
+    let got = team_join_requests(&f.s).unwrap();
+    assert_eq!(
+        got.len(),
+        1,
+        "a pull request of another branch is no join request"
+    );
+    assert_eq!(
+        (
+            got[0].number,
+            got[0].name.as_str(),
+            got[0].handle.as_str(),
+            got[0].asked.as_str()
+        ),
+        (7, "Zed Nobody", "zed", "qa")
+    );
+}
+
+#[test]
+fn accept_sets_the_role_on_the_branch_and_merges_and_needs_the_merge_right() {
+    let f = fx(true);
+    sent_join(&f);
+    f.http
+        .get("/merge_requests/7", 200, &mr("shipyard/join-zed"))
+        .put("/merge_requests/7/merge", "", 200, "{}");
+    // No click and a role that does not exist change nothing.
+    assert!(team_join_accept(&f.s, 7, "developer", false).is_err());
+    assert!(
+        team_join_accept(&f.s, 7, "boss", true)
+            .unwrap_err()
+            .contains("boss")
+    );
+    // A person with no merge right: nothing is sent.
+    git(&f.root, &["config", "user.email", "zed@example.com"]);
+    let denied = team_join_accept(&f.s, 7, "developer", true).unwrap_err();
+    assert!(!denied.is_empty());
+    assert!(
+        f.http.requests().iter().all(|r| r.method != Method::Put),
+        "a refused accept sent a merge"
+    );
+    git(&f.root, &["config", "user.email", "ana@example.com"]);
+    team_join_accept(&f.s, 7, "developer", true).unwrap();
+    let out = Command::new("git")
+        .current_dir(f.dir.path().join("acme/web.git"))
+        .args(["show", &format!("shipyard/join-zed:{TEAM_PATH}")])
+        .output()
+        .unwrap();
+    let team = read_team(&String::from_utf8(out.stdout).unwrap(), None).unwrap();
+    assert_eq!(team.resolve("zed").unwrap().role, "developer");
+    assert_eq!(
+        f.http
+            .requests()
+            .iter()
+            .filter(|r| r.method == Method::Put)
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn refuse_closes_the_pull_request_and_only_a_join_request() {
+    let f = fx(true);
+    sent_join(&f);
+    f.http
+        .get(
+            "/merge_requests/8",
+            200,
+            &mr("feat/other").replace("\"iid\":7", "\"iid\":8"),
+        )
+        .get("/merge_requests/7", 200, &mr("shipyard/join-zed"))
+        .put("/merge_requests/7", "close", 200, "{}");
+    assert!(
+        team_join_refuse(&f.s, 8, true)
+            .unwrap_err()
+            .contains("not a join request")
+    );
+    assert!(team_join_refuse(&f.s, 7, false).is_err());
+    team_join_refuse(&f.s, 7, true).unwrap();
+    let closes: Vec<_> = f
+        .http
+        .requests()
+        .into_iter()
+        .filter(|r| r.method == Method::Put)
+        .collect();
+    assert_eq!(closes.len(), 1);
+    assert!(
+        closes[0]
+            .body
+            .as_ref()
+            .unwrap()
+            .to_string()
+            .contains("close")
+    );
 }

@@ -1,5 +1,6 @@
 import { assistantEn } from "./assistant";
 import { forgeEn } from "./code";
+import { codeHostEn } from "./code-host";
 import { costingEn } from "./costing";
 import { creatorEn } from "./creator";
 import { crewEn } from "./crew";
@@ -994,6 +995,7 @@ export const en = {
 	shellFn: shellFnEn,
 	extras: extrasEn,
 	onboarding: onboardingEn,
+	codeHost: codeHostEn,
 };
 
 export type Messages = typeof en;

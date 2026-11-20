@@ -203,6 +203,23 @@ export function worktreeDiscard(a: MockAssistant, env: Env, id: string, force: b
 
 export const diff = (a: MockAssistant, env: Env, id: string): FileDiff[] => find(a, env, id).files;
 
+/** Keep leaves the file changed and takes it out of the review. With no path it takes every file. */
+export function fileKeep(a: MockAssistant, env: Env, id: string, path: string | null): FileDiff[] {
+	const r = find(a, env, id);
+	if (!r.thread.worktree) throw "the thread has no change to keep";
+	if (path !== null && !r.files.some((f) => f.path === path)) throw `${path} has no change to keep`;
+	r.files = path === null ? [] : r.files.filter((f) => f.path !== path);
+	return r.files;
+}
+
+/** Undo reverts one file: it leaves the review and the other files stay. */
+export function fileUndo(a: MockAssistant, env: Env, id: string, path: string): FileDiff[] {
+	const r = find(a, env, id);
+	if (!r.thread.worktree) throw "the thread has no change to undo";
+	r.files = r.files.filter((f) => f.path !== path);
+	return r.files;
+}
+
 export function saveDraft(
 	a: MockAssistant,
 	env: Env,
@@ -340,6 +357,7 @@ function edit(r: Rec) {
 		path: `/mock/worktrees/${r.thread.id}`,
 		branch: `assistant/${r.thread.id}`,
 		base: "abc1234",
+		kept: [],
 	};
 	if (!r.files.length) r.files = [hello];
 }

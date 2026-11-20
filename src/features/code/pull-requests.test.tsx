@@ -523,6 +523,10 @@ describe("Code / Now, the pull requests", () => {
 		await user.click(screen.getByRole("combobox", { name: "Into" }));
 		await user.click(await screen.findByRole("option", { name: "Default branch" }));
 		await submit();
+		// The page stays: it shows what the person can do with the pull request that exists (REQ-007).
+		expect(await screen.findByRole("button", { name: "Close the pull request" })).toBeVisible();
+		expect(screen.queryByRole("button", { name: "Mark as ready" })).toBeNull();
+		await user.click(screen.getByRole("link", { name: "Pull requests" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/code/pull-requests"));
 		expect(await screen.findByRole("heading", { name: "Open, 10" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: /feat\(code\): login/ })).toBeInTheDocument();

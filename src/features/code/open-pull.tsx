@@ -1,11 +1,18 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useBranches, useForgeActions, usePullLabels } from "@/lib/code";
+import {
+	type MergeMethod,
+	useBranches,
+	useForgeActions,
+	usePullLabels,
+	useReviewers,
+} from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { RightButton } from "@/lib/rights";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
 import { Switch } from "@/ui/atoms/switch";
 import { Textarea } from "@/ui/atoms/textarea";
@@ -13,6 +20,7 @@ import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuButton } from "@/ui/molecules/menu-button";
+import { defaultMergeMethod, saveMergeMethod } from "./merge-default";
 import { OpenPullCards } from "./open-pull-cards";
 import { withProject } from "./project-gate";
 import { useRun } from "./use-run";
@@ -28,9 +36,9 @@ const FIELD =
 export const NewPullPage = withProject(function NewPullView() {
 	const { t } = useI18n();
 	const x = t.flow.look.pulls;
-	const navigate = useNavigate();
-	const { open: openPull } = useForgeActions();
+	const { open: openPull, close, ready } = useForgeActions();
 	const known = usePullLabels().data ?? [];
+	const people = useReviewers().data ?? [];
 	const branches = useBranches().data ?? [];
 	const { failure, run } = useRun();
 	const [title, setTitle] = useState("");
@@ -38,6 +46,14 @@ export const NewPullPage = withProject(function NewPullView() {
 	const [base, setBase] = useState(DEFAULT);
 	const [draft, setDraft] = useState(false);
 	const [labels, setLabels] = useState<string[]>([]);
+	const [reviewers, setReviewers] = useState<string[]>([]);
+	const [method, setMethod] = useState<MergeMethod>(() =>
+		defaultMergeMethod(["merge", "squash", "rebase"]),
+	);
+	// The pull request that the open made: the page then acts on it (REQ-007).
+	const [opened, setOpened] = useState<{ number: number; draft: boolean; closed: boolean } | null>(
+		null,
+	);
 	const [missing, setMissing] = useState<string[]>([]);
 	const [labelError, setLabelError] = useState<string | null>(null);
 	// The pull request exists once the call returns: a second click would open a duplicate.
@@ -59,12 +75,23 @@ export const NewPullPage = withProject(function NewPullView() {
 		});
 	const submit = () =>
 		void run(async () => {
-			const out = await openPull({ title, body, base: baseOf, draft, labels });
+			const out = await openPull({ title, body, base: baseOf, draft, labels, reviewers });
 			setCreated(true);
+			setOpened({ number: out.number, draft, closed: false });
 			setMissing(out.missingLabels);
-			setLabelError(out.labelError);
-			if (out.missingLabels.length === 0 && !out.labelError)
-				void navigate({ to: "/code/pull-requests" });
+			setLabelError(out.labelError ?? out.reviewerError);
+		});
+	const markReady = () =>
+		void run(async () => {
+			if (!opened) return;
+			await ready(opened.number);
+			setOpened({ ...opened, draft: false });
+		});
+	const closeIt = () =>
+		void run(async () => {
+			if (!opened) return;
+			await close(opened.number, "");
+			setOpened({ ...opened, closed: true });
 		});
 	return (
 		<section aria-label={t.forge.newPull} className="flex w-full flex-col gap-6 px-4 pb-10">
@@ -134,6 +161,41 @@ export const NewPullPage = withProject(function NewPullView() {
 								/>
 							</section>
 						) : null}
+						<section aria-label={t.codeHost.reviewers} className={FIELD}>
+							<span>{t.codeHost.reviewers}</span>
+							<MenuButton
+								label={
+									reviewers.length
+										? reviewers.map((r) => people.find((p) => p.id === r)?.name ?? r).join(", ")
+										: t.codeHost.reviewers
+								}
+								disabled={created || people.length === 0}
+								items={people.map((p) => ({
+									id: p.id,
+									label: p.name,
+									checked: reviewers.includes(p.id),
+									onSelect: () =>
+										setReviewers((cur) =>
+											cur.includes(p.id) ? cur.filter((y) => y !== p.id) : [...cur, p.id],
+										),
+								}))}
+							/>
+						</section>
+						<div className={FIELD}>
+							<span>{t.codeHost.mergeWith}</span>
+							<Segmented
+								label={t.codeHost.mergeWith}
+								value={method}
+								onValueChange={(m) => {
+									setMethod(m);
+									saveMergeMethod(m);
+								}}
+								items={(["merge", "squash", "rebase"] as const).map((m) => ({
+									value: m,
+									label: t.forge.methods[m],
+								}))}
+							/>
+						</div>
 					</Card>
 					{missing.length ? (
 						<p role="status" className="text-ui text-warning-text">
@@ -142,6 +204,18 @@ export const NewPullPage = withProject(function NewPullView() {
 					) : null}
 					<ErrorNotice error={failure ?? labelError} className="px-3 py-2" />
 					<div className="flex flex-wrap justify-end gap-2.5">
+						{opened && !opened.closed ? (
+							<>
+								<RightButton right="code.write" className="text-danger-text" onClick={closeIt}>
+									{t.codeHost.closePull}
+								</RightButton>
+								{opened.draft ? (
+									<RightButton right="code.write" onClick={markReady}>
+										{t.codeHost.markReady}
+									</RightButton>
+								) : null}
+							</>
+						) : null}
 						<RightButton right="code.write" variant="primary" onClick={submit} disabled={created}>
 							{x.openIt}
 						</RightButton>

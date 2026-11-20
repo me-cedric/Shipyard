@@ -913,6 +913,8 @@ pub struct TicketEditCaps {
     pub due_date: bool,
     /// The estimate in days changes (a tracker with time tracking).
     pub estimate: bool,
+    /// The release changes: the fix version, the milestone, the iteration or the project.
+    pub release: bool,
 }
 
 pub fn ticket_edit_caps(s: &AppState) -> Res<TicketEditCaps> {
@@ -931,7 +933,56 @@ fn ticket_edit_caps_of(t: &Target) -> TicketEditCaps {
         issue_type: !matches!(t.kind, TrackerKind::GitHubIssues | TrackerKind::Linear),
         due_date: t.kind != TrackerKind::GitHubIssues,
         estimate: t.caps.time_tracking,
+        release: true,
     }
+}
+
+/// The releases of the issue tracker, by name (REQ-004 of `code-host-tickets`). The tracker lists
+/// its own (a version with no ticket yet shows too), and the releases of the mirrored tickets are
+/// added, so a tracker that cannot list still gives the ones in use. No write, no click.
+pub fn releases(s: &AppState) -> Res<Vec<String>> {
+    let t = tracker(s)?;
+    let mut all: Vec<String> = mirror_items(s, &t)?
+        .into_iter()
+        .filter_map(|i| i.release)
+        .collect();
+    if let (Some(scope), Ok(w)) = (t.scope.as_deref(), writer(s, &t)) {
+        all.extend(w.releases(scope).unwrap_or_default());
+    }
+    all.sort_by_key(|r| r.to_lowercase());
+    all.dedup();
+    Ok(all)
+}
+
+/// The types of ticket that the issue tracker holds, for the kinds of Setup / Tickets.
+pub fn issue_types(s: &AppState) -> Res<Vec<String>> {
+    let t = tracker(s)?;
+    let scope = t
+        .scope
+        .clone()
+        .ok_or("the project names no issue tracker scope")?;
+    writer(s, &t)?.issue_types(&scope).map_err(err)
+}
+
+/// Sets the one release of a ticket. `None` or a blank name clears it. The issue tracker refuses a
+/// release it does not hold, and nothing is sent for a name that is too long.
+pub fn ticket_release_set(s: &AppState, key: &str, release: Option<&str>, click: bool) -> Res<()> {
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "work_ticket_release_set",
+        key,
+    )?;
+    let release = release.map(str::trim).filter(|r| !r.is_empty());
+    if release.is_some_and(|r| r.len() > 120) {
+        return Err("the release is a name of 120 characters or fewer".into());
+    }
+    let t = tracker(s)?;
+    let w = writer(s, &t)?;
+    w.set_release(key, release).map_err(err)?;
+    refresh(s, &t, &*w, [key.to_string()]);
+    Ok(())
 }
 
 /// Sets the issue type by name. A blank name is refused, and a tracker with no type field refuses
@@ -2287,6 +2338,32 @@ pub async fn work_ticket_type_set(
     click: bool,
 ) -> Api<()> {
     blocking(app, move |s| ticket_type_set(s, &key, &name, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_issue_types(app: AppHandle) -> Api<Vec<String>> {
+    blocking(app, issue_types).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_releases(app: AppHandle) -> Api<Vec<String>> {
+    blocking(app, releases).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_ticket_release_set(
+    app: AppHandle,
+    key: String,
+    release: Option<String>,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| {
+        ticket_release_set(s, &key, release.as_deref(), click)
+    })
+    .await
 }
 
 #[tauri::command]

@@ -34,7 +34,7 @@ impl GitLab {
         Ok(self.http.send(&req)?.ok()?)
     }
 
-    fn call(&self, path: &str, query: &[(&str, &str)]) -> Result<Value, TrackerError> {
+    pub(crate) fn call(&self, path: &str, query: &[(&str, &str)]) -> Result<Value, TrackerError> {
         Ok(self.send(path, query)?.json()?)
     }
 }
@@ -93,6 +93,7 @@ fn item(v: &Value, scope_hint: &str) -> WorkItem {
             num(v, "/time_stats/time_estimate").filter(|s| *s > 0),
             num(v, "/time_stats/total_time_spent").filter(|s| *s > 0),
         ),
+        release: Some(text(v, "/milestone/title")).filter(|r| !r.is_empty()),
     }
 }
 

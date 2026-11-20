@@ -1,11 +1,16 @@
 // The mock of the delivery files: personas, the work split by profile (read only) and the
 // tickets config. It applies the rules of `crates/shipyard-store/src/delivery_docs.rs`.
-import type { Assignments, Persona, TicketsConfig } from "./bindings";
+import type {
+	Assignments,
+	Persona,
+	TicketsConfig,
+	TicketsConfig_Serialize,
+} from "./bindings";
 
 export type MockDelivery = {
 	personas: Persona[];
 	assignments: Assignments;
-	tickets: TicketsConfig;
+	tickets: TicketsConfig_Serialize;
 };
 
 export const seedDelivery = (): MockDelivery => ({
@@ -68,6 +73,7 @@ export const seedDelivery = (): MockDelivery => ({
 		labels: [],
 		specBaseUrl: "https://example.com/acme/specs",
 		hierarchy: "feature",
+		extraKinds: [],
 	},
 });
 
@@ -93,5 +99,13 @@ export function ticketsConfigSave(d: MockDelivery, c: TicketsConfig) {
 	const url = c.specBaseUrl.trim();
 	if (url && !/^https?:\/\//.test(url))
 		throw "the spec base URL must start with http:// or https://";
-	d.tickets = { ...c, specBaseUrl: url, labels: c.labels.map((l) => l.trim()).filter(Boolean) };
+	d.tickets = {
+		...c,
+		specBaseUrl: url,
+		labels: c.labels.map((l) => l.trim()).filter(Boolean),
+		extraKinds: (c.extraKinds ?? []).map((k) => ({
+			name: k.name.trim(),
+			parent: k.parent.trim().toLowerCase(),
+		})),
+	};
 }

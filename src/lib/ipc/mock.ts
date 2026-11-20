@@ -84,6 +84,7 @@ import {
 	seedCode,
 	seedDemoCode,
 } from "./mock-code";
+import * as ch from "./mock-code-host";
 import * as cp from "./mock-code-prs";
 import * as cs from "./mock-compass-setup";
 import * as cr from "./mock-creator";
@@ -1919,6 +1920,22 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 		needTracker(() => work.ticketDueSet(state.sync.mirror, key, day, click));
 		return null;
 	},
+	workReleases: () => needTracker(() => ch.releases(state.sync.mirror)),
+	workIssueTypes: () => needTracker(() => ch.ISSUE_TYPES),
+	workTicketReleaseSet: (key, release, click) => {
+		needTracker(() => ch.ticketReleaseSet(state.sync.mirror, key, release, click));
+		return null;
+	},
+	workTeamJoinRequests: () => ch.joinRequests(need(state.work)),
+	workTeamJoinAccept: (number, role, click) =>
+		ch.joinAccept(
+			need(state.work),
+			number,
+			role,
+			click,
+			(state.person ? withAccess(state.person) : teamPerson()).rights.includes("code.merge"),
+		),
+	workTeamJoinRefuse: (number, click) => ch.joinRefuse(need(state.work), number, click),
 	workTicketEditCaps: () =>
 		needTracker(() => ({
 			title: true,
@@ -1931,6 +1948,7 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 			issueType: true,
 			dueDate: true,
 			estimate: true,
+			release: true,
 		})),
 	workSealState: () => work.sealState(need(state.work)),
 	workUnlock: (passphrase) => work.sealUnlock(need(state.work), passphrase),
@@ -2117,6 +2135,9 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 	codeMyChecks: () => cp.myChecks(prs()),
 	codePullLabels: () => cp.pullLabels(),
 	codePullOpen: (input, click) => cp.pullOpen(prs(), code(), input, click),
+	codePullRerun: (number, click) => cp.pullRerun(prs(), number, click),
+	codePullReviewers: () => cp.pullReviewers(),
+	codeImpactPlanSave: (path, lines, click) => ch.impactPlanSave(prs(), path, lines, click),
 	prReviewStart: (number, click) => ap.reviewStart(agentPr(), prs(), number, click, readOnly()),
 	prReviewGet: (number, headSha) => ap.reviewGet(agentPr(), number, headSha),
 	prReviewPost: (post, click) => ap.reviewPost(agentPr(), prs(), post, click, readOnly()),
@@ -2600,6 +2621,8 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 	assistantWorktreeDiscard: (id, force) =>
 		ai.worktreeDiscard(state.assistant, assistantEnv(), id, force),
 	assistantDiff: (id) => ai.diff(state.assistant, assistantEnv(), id),
+	assistantFileKeep: (id, path) => ai.fileKeep(state.assistant, assistantEnv(), id, path),
+	assistantFileUndo: (id, path) => ai.fileUndo(state.assistant, assistantEnv(), id, path),
 	assistantSaveDraft: (id, draft, context) =>
 		ai.saveDraft(state.assistant, assistantEnv(), id, draft, context),
 	assistantSettingsSet: (id, settings) => {
@@ -2699,6 +2722,7 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 	ticketsConfigGet: () => need(state.delivery.tickets),
 	ticketsConfigSave: (c) => {
 		need(null);
+		ch.checkKinds(state.delivery.tickets, c);
 		dv.ticketsConfigSave(state.delivery, c);
 		return null;
 	},

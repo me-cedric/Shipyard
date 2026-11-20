@@ -461,6 +461,8 @@ pub struct WorkItemView {
     /// The estimate and the time spent, in minutes, when the tracker holds them.
     pub estimate_minutes: Option<u32>,
     pub spent_minutes: Option<u32>,
+    /// The release of the issue tracker: its fix version, milestone, iteration or project.
+    pub release: Option<String>,
 }
 
 fn category(c: StatusCategory) -> &'static str {
@@ -502,6 +504,7 @@ fn view(t: &Ticket, team: &Team, linked: Option<&str>, claimed: bool) -> WorkIte
             .as_ref()
             .and_then(|x| x.spent_minutes)
             .map(|m| m as u32),
+        release: i.release.clone(),
     }
 }
 

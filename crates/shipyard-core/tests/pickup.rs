@@ -23,6 +23,7 @@ fn ticket(key: &str, status: &str, category: StatusCategory) -> Ticket {
         url: String::new(),
         updated: "2026-10-29T10:00:00Z".into(),
         time: None,
+        release: None,
     })
 }
 
@@ -85,6 +86,7 @@ fn pr(number: u64, state: PrState) -> PullSnapshot {
         ci: Ci::Pending,
         changes_requested: false,
         updated: "2026-10-29T10:00:00Z".into(),
+        author: String::new(),
     }
 }
 
@@ -623,6 +625,7 @@ fn pull(number: u64, state: PrState, draft: bool, head: &str) -> PullSnapshot {
         ci: Ci::None,
         changes_requested: false,
         updated: String::new(),
+        author: String::new(),
     }
 }
 

@@ -238,6 +238,7 @@ pub(crate) fn ticket(key: &str, title: &str, labels: &[&str]) -> WorkItem {
         url: format!("https://jira.example.com/browse/{key}"),
         updated: "2026-10-28T09:30:00.000+0000".into(),
         time: None,
+        release: None,
     }
 }
 
@@ -2146,4 +2147,70 @@ fn a_ticket_thread_reads_comments_posts_one_edits_the_title_and_adds_a_label() {
             .any(|b| b.contains(r#""issuetype":{"name":"Bug"}"#))
     );
     assert!(sent.iter().any(|b| b.contains(r#""duedate":"2026-11-30""#)));
+}
+
+#[test]
+fn a_release_is_listed_from_the_tracker_and_the_mirror_and_set_with_a_click() {
+    let f = fx();
+    let mut held = ticket("PROJ-5", "T", &[]);
+    held.release = Some("MVP 2".into());
+    f.put(vec![held, ticket("PROJ-6", "U", &[])]);
+    f.http
+        .get(
+            "/rest/api/2/project/PROJ/versions",
+            200,
+            r#"[{"name":"MVP 1"},{"name":"MVP 2"}]"#,
+        )
+        .put("/rest/api/2/issue/PROJ-6", "fixVersions", 204, "")
+        .get(
+            "/rest/api/2/issue/PROJ-6",
+            200,
+            &issue("PROJ-6", "U", "", "", None, 0),
+        );
+    // The two lists merge without a double.
+    assert_eq!(releases(&f.s).unwrap(), ["MVP 1", "MVP 2"]);
+    assert!(ticket_edit_caps(&f.s).unwrap().release);
+    let before = f.writes();
+    assert!(ticket_release_set(&f.s, "PROJ-6", Some("MVP 1"), false).is_err());
+    assert!(ticket_release_set(&f.s, "PROJ-6", Some(&"x".repeat(121)), true).is_err());
+    assert_eq!(f.writes(), before, "a refused call sent nothing");
+    ticket_release_set(&f.s, "PROJ-6", Some(" MVP 1 "), true).unwrap();
+    let sent: Vec<_> = f
+        .http
+        .requests()
+        .into_iter()
+        .filter(|r| r.method == Method::Put)
+        .filter_map(|r| r.body.map(|b| b.to_string()))
+        .collect();
+    assert!(
+        sent.iter()
+            .any(|b| b.contains(r#""fixVersions":[{"name":"MVP 1"}]"#))
+    );
+}
+
+#[test]
+fn a_new_kind_of_ticket_needs_a_type_in_the_issue_tracker() {
+    use shipyard_store::delivery_docs::ExtraKind;
+    let f = fx();
+    f.http.get(
+        "/rest/api/2/project/PROJ",
+        200,
+        r#"{"issueTypes":[{"name":"Story"},{"name":"Spike"}]}"#,
+    );
+    assert_eq!(issue_types(&f.s).unwrap(), ["Story", "Spike"]);
+    let mut c = crate::commands::delivery_docs::tickets_config(&f.s).unwrap();
+    let kind = |name: &str| ExtraKind {
+        name: name.into(),
+        parent: "story".into(),
+    };
+    c.extra_kinds = vec![kind("Nope")];
+    let e = crate::commands::delivery_docs::tickets_config_set(&f.s, &c).unwrap_err();
+    assert!(e.contains("no type named Nope"), "{e}");
+    c.extra_kinds = vec![kind("spike")];
+    crate::commands::delivery_docs::tickets_config_set(&f.s, &c).unwrap();
+    // The saved kind stays on the next save, even when the issue tracker no longer lists it.
+    f.http.get("/rest/api/2/project/PROJ", 500, "{}");
+    crate::commands::delivery_docs::tickets_config_set(&f.s, &c).unwrap();
+    let saved = crate::commands::delivery_docs::tickets_config(&f.s).unwrap();
+    assert_eq!(saved.extra_kinds[0].name, "spike");
 }

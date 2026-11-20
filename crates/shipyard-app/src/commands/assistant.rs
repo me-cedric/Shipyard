@@ -52,6 +52,28 @@ pub async fn assistant_worktree_discard(
     blocking(app, move |s| a::worktree_discard(s, &thread, force)).await
 }
 
+/// Keep the change of one file, or of all with no path. Returns the files that are left to review.
+#[tauri::command]
+#[specta::specta]
+pub async fn assistant_file_keep(
+    app: AppHandle,
+    thread: String,
+    path: Option<String>,
+) -> Api<Vec<FileDiff>> {
+    blocking(app, move |s| a::worktree_keep(s, &thread, path.as_deref())).await
+}
+
+/// Revert one file of the thread. Returns the files that are left to review.
+#[tauri::command]
+#[specta::specta]
+pub async fn assistant_file_undo(
+    app: AppHandle,
+    thread: String,
+    path: String,
+) -> Api<Vec<FileDiff>> {
+    blocking(app, move |s| a::worktree_undo_file(s, &thread, &path)).await
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn assistant_diff(app: AppHandle, thread: String) -> Api<Vec<FileDiff>> {

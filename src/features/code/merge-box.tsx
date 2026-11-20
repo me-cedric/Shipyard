@@ -17,6 +17,7 @@ import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { CloseConfirm } from "./close-confirm";
+import { defaultMergeMethod } from "./merge-default";
 import { FitSegmented } from "./fit-segmented";
 import { focusPullTitle } from "./focus-title";
 import { usePullAsk } from "./pull-ask";
@@ -210,7 +211,7 @@ export function MergeCard({ d }: { d: PullDetail }) {
 	const [method, setMethod] = useState<MergeMethod | null>(null);
 	const [confirming, setConfirming] = useState(false);
 	const [closing, setClosing] = useState(false);
-	const current = method ?? d.mergeMethods[0] ?? "merge";
+	const current = method ?? defaultMergeMethod(d.mergeMethods);
 	const risk =
 		d.ci === "failing"
 			? t.forge.confirmFailing

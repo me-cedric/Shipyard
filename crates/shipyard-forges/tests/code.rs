@@ -901,3 +901,164 @@ fn azure_labels_a_note_of_an_older_commit() {
             .contains("(older version)")
     );
 }
+
+// ---- Run again (REQ-001): the failed checks only, on each code host.
+
+fn count(fake: &FakeHttp, method: Method, url_has: &str) -> usize {
+    bodies(fake, method, url_has).len()
+}
+
+#[test]
+fn github_runs_again_the_failed_workflow_runs_only() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.get("/repos/acme/web/pulls/12", 200, &gh_pull(false))
+        .get(
+            "/repos/acme/web/actions/runs",
+            200,
+            &json!({"workflow_runs": [
+                {"id": 7, "status": "completed", "conclusion": "failure"},
+                {"id": 8, "status": "completed", "conclusion": "success"},
+                {"id": 9, "status": "completed", "conclusion": "timed_out"},
+                {"id": 10, "status": "in_progress", "conclusion": null}
+            ]})
+            .to_string(),
+        )
+        .post("/actions/runs/7/rerun-failed-jobs", "", 201, "{}")
+        .post("/actions/runs/9/rerun-failed-jobs", "", 201, "{}");
+    let api = build(ForgeKind::GitHub, "https://github.com", fake.clone());
+    assert_eq!(api.rerun_failed("acme/web", 12).unwrap(), 2);
+    assert_eq!(count(&fake, Method::Post, "/rerun-failed-jobs"), 2);
+    assert_eq!(count(&fake, Method::Post, "/actions/runs/8/"), 0);
+    let asked = fake
+        .requests()
+        .into_iter()
+        .find(|r| r.url.contains("/actions/runs?"))
+        .unwrap();
+    assert!(asked.url.contains("head_sha=abc"), "{}", asked.url);
+}
+
+#[test]
+fn gitlab_retries_the_pipeline_that_failed() {
+    let mr =
+        |status: &str| json!({"iid": 9, "head_pipeline": {"id": 55, "status": status}}).to_string();
+    let fake = Arc::new(FakeHttp::new());
+    fake.get("/merge_requests/9", 200, &mr("failed")).post(
+        "/projects/acme%2Fweb/pipelines/55/retry",
+        "",
+        201,
+        "{}",
+    );
+    let api = build(ForgeKind::GitLab, "https://gitlab.com", fake.clone());
+    assert_eq!(api.rerun_failed("acme/web", 9).unwrap(), 1);
+    assert_eq!(count(&fake, Method::Post, "/pipelines/55/retry"), 1);
+    // A pipeline that passes is left alone.
+    let ok = Arc::new(FakeHttp::new());
+    ok.get("/merge_requests/9", 200, &mr("success"));
+    let api = build(ForgeKind::GitLab, "https://gitlab.com", ok.clone());
+    assert!(api.rerun_failed("acme/web", 9).is_err());
+    assert!(ok.requests().iter().all(|r| r.method == Method::Get));
+}
+
+#[test]
+fn azure_queues_the_failed_build_policies_again() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.get(
+        "/_apis/policy/evaluations",
+        200,
+        &json!({"value": [
+            {"evaluationId": "e1", "status": "rejected",
+             "configuration": {"type": {"displayName": "Build"}, "settings": {"displayName": "ci"}}},
+            {"evaluationId": "e2", "status": "approved",
+             "configuration": {"type": {"displayName": "Build"}, "settings": {"displayName": "lint"}}},
+            {"evaluationId": "e3", "status": "rejected",
+             "configuration": {"type": {"displayName": "Minimum number of reviewers"}}}
+        ]})
+        .to_string(),
+    )
+    .get(
+        "/pullrequests/7?",
+        200,
+        &json!({"pullRequestId": 7, "repository": {"project": {"id": "p1"}}}).to_string(),
+    )
+    .patch("/policy/evaluations/e1", "", 200, "{}");
+    let api = build(
+        ForgeKind::AzureDevOps,
+        "https://dev.azure.com/acme",
+        fake.clone(),
+    );
+    assert_eq!(api.rerun_failed("web/app", 7).unwrap(), 1);
+    assert_eq!(count(&fake, Method::Patch, "/policy/evaluations/"), 1);
+}
+
+#[test]
+fn nothing_failed_sends_no_write() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.get("/repos/acme/web/pulls/12", 200, &gh_pull(false))
+        .get(
+            "/repos/acme/web/actions/runs",
+            200,
+            &json!({"workflow_runs": [{"id": 8, "status": "completed", "conclusion": "success"}]})
+                .to_string(),
+        );
+    let api = build(ForgeKind::GitHub, "https://github.com", fake.clone());
+    let e = api.rerun_failed("acme/web", 12).unwrap_err();
+    assert!(e.to_string().contains("no failed check"), "{e}");
+    assert!(fake.requests().iter().all(|r| r.method == Method::Get));
+}
+
+// ---- Reviewers (REQ-006): the users of the code host that can review.
+
+#[test]
+fn each_code_host_lists_the_users_that_can_review() {
+    let gh = Arc::new(FakeHttp::new());
+    gh.get(
+        "/repos/acme/web/collaborators",
+        200,
+        &json!([{"login": "grace"}, {"login": "ada"}]).to_string(),
+    );
+    let api = build(ForgeKind::GitHub, "https://github.com", gh);
+    let got = api.reviewer_candidates("acme/web").unwrap();
+    assert_eq!(
+        got.iter()
+            .map(|r| (r.id.as_str(), r.name.as_str()))
+            .collect::<Vec<_>>(),
+        [("ada", "ada"), ("grace", "grace")]
+    );
+
+    let gl = Arc::new(FakeHttp::new());
+    gl.get(
+        "/projects/acme%2Fweb/members/all",
+        200,
+        &json!([
+            {"username": "grace", "name": "Grace Hopper", "state": "active"},
+            {"username": "old", "name": "Old Member", "state": "blocked"}
+        ])
+        .to_string(),
+    );
+    let api = build(ForgeKind::GitLab, "https://gitlab.com", gl);
+    let got = api.reviewer_candidates("acme/web").unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(
+        (got[0].id.as_str(), got[0].name.as_str()),
+        ("grace", "Grace Hopper")
+    );
+
+    let az = Arc::new(FakeHttp::new());
+    az.get(
+        "/_apis/projects/web/teams/t1/members",
+        200,
+        &json!({"value": [{"identity": {"id": "g-1", "displayName": "Grace Hopper"}}]}).to_string(),
+    )
+    .get(
+        "/_apis/projects/web/teams?",
+        200,
+        &json!({"value": [{"id": "t0", "name": "Other"}, {"id": "t1", "name": "web Team"}]})
+            .to_string(),
+    );
+    let api = build(ForgeKind::AzureDevOps, "https://dev.azure.com/acme", az);
+    let got = api.reviewer_candidates("web/app").unwrap();
+    assert_eq!(
+        (got[0].id.as_str(), got[0].name.as_str()),
+        ("g-1", "Grace Hopper")
+    );
+}

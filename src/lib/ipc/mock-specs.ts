@@ -983,6 +983,7 @@ export function splitApply(
 					claimed: false,
 					estimateMinutes: null,
 					spentMinutes: null,
+					release: null,
 				});
 		}
 		return out;

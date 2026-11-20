@@ -244,6 +244,7 @@ fn a_pull_request_decides_the_lane_of_a_run_in_review() {
         head_sha: "abc".into(),
         url: String::new(),
         updated: String::new(),
+        author: String::new(),
         lane: Lane::InReview,
         runs: vec![],
     };

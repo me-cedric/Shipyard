@@ -280,6 +280,7 @@ export function prRows(p: MockPrs): PrRowView[] {
 		headSha: d.headSha,
 		url: d.url,
 		updated: "2026-10-29T10:00:00Z",
+		author: d.author,
 		// As `delivery::view` does: an open pull request is ready to merge with passing CI, no change request and no draft.
 		lane:
 			d.state !== "open"
@@ -332,6 +333,25 @@ export const myChecks = (p: MockPrs): MyChecks[] =>
 
 export const pullLabels = (): string[] => [...LABELS];
 
+/** The users of the demo code host that can review. */
+export const REVIEWERS = [
+	{ id: "ada", name: "Ada Lovelace" },
+	{ id: "grace", name: "Grace Hopper" },
+];
+
+export const pullReviewers = () => REVIEWERS.map((r) => ({ ...r }));
+
+/** Runs the failed checks again: each failed check runs again and the others stay (REQ-001). */
+export function pullRerun(p: MockPrs, number: number, click: boolean): number {
+	need(click);
+	const d = find(p, number);
+	const failed = d.checks.filter((c) => c.state === "failing");
+	if (!failed.length) throw "no failed check to run again";
+	for (const c of failed) c.state = "pending";
+	d.ci = "pending";
+	return failed.length;
+}
+
 /** The working branch must be published first, as the real command asks. */
 export function pullOpen(
 	p: MockPrs,
@@ -363,6 +383,10 @@ export function pullOpen(
 		url: `https://github.com/acme/web/pull/${number}`,
 		missingLabels: wanted.filter((l) => !LABELS.some((x) => x.toLowerCase() === l.toLowerCase())),
 		labelError: null,
+		// A reviewer that the code host does not know is refused, and the pull request stays.
+		reviewerError: (input.reviewers ?? []).find((r) => !REVIEWERS.some((x) => x.id === r))
+			? "the code host refused a reviewer"
+			: null,
 	};
 }
 

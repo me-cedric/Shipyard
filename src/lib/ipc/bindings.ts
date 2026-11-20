@@ -57,8 +57,8 @@ export const commands = {
 	personasList: () => typedError<Persona[], AppError_Serialize>(__TAURI_INVOKE("personas_list")),
 	personasSave: (personas: Persona[]) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("personas_save", { personas })),
 	assignmentsRead: () => typedError<Assignments, AppError_Serialize>(__TAURI_INVOKE("assignments_read")),
-	ticketsConfigGet: () => typedError<TicketsConfig, AppError_Serialize>(__TAURI_INVOKE("tickets_config_get")),
-	ticketsConfigSave: (config: TicketsConfig) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("tickets_config_save", { config })),
+	ticketsConfigGet: () => typedError<TicketsConfig_Serialize, AppError_Serialize>(__TAURI_INVOKE("tickets_config_get")),
+	ticketsConfigSave: (config: TicketsConfig_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("tickets_config_save", { config })),
 	ticketsLinks: () => typedError<TicketLink[], AppError_Serialize>(__TAURI_INVOKE("tickets_links")),
 	deliveryNotes: () => typedError<DeliveryNote[], AppError_Serialize>(__TAURI_INVOKE("delivery_notes")),
 	projectsOverview: () => typedError<ProjectCard_Serialize[], AppError_Serialize>(__TAURI_INVOKE("projects_overview")),
@@ -146,6 +146,8 @@ export const commands = {
 	codePullMerge: (number: number, method: MergeMethod, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_merge", { number, method, click })),
 	codePullReady: (number: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_ready", { number, click })),
 	codePullClose: (number: number, reason: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_close", { number, reason, click })),
+	codePullRerun: (number: number, click: boolean) => typedError<number, AppError_Serialize>(__TAURI_INVOKE("code_pull_rerun", { number, click })),
+	codePullReviewers: () => typedError<Reviewer[], AppError_Serialize>(__TAURI_INVOKE("code_pull_reviewers")),
 	codePullSendBack: (number: number, text: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_send_back", { number, text, click })),
 	codePullArchiveSpec: (number: number, change: string, confirmed: boolean, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("code_pull_archive_spec", { number, change, confirmed, click })),
 	deviceLoginStart: (id: string, click: boolean) => typedError<DeviceStart, AppError_Serialize>(__TAURI_INVOKE("device_login_start", { id, click })),
@@ -198,6 +200,7 @@ export const commands = {
 	codeImpactList: () => typedError<ImpactEntry[], AppError_Serialize>(__TAURI_INVOKE("code_impact_list")),
 	codeImpactRead: (path: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("code_impact_read", { path })),
 	codeImpactAnalyze: (base: string, click: boolean) => typedError<ImpactEntry, AppError_Serialize>(__TAURI_INVOKE("code_impact_analyze", { base, click })),
+	codeImpactPlanSave: (path: string, lines: PlanLine[], click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_impact_plan_save", { path, lines, click })),
 	/**  Opens a terminal. `folder` is relative to the project root. Returns the id of the shell. */
 	terminalOpen: (id: string, folder: string | null, cols: number, rows: number) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("terminal_open", { id, folder, cols, rows })),
 	terminalWrite: (id: string, data: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("terminal_write", { id, data })),
@@ -328,6 +331,12 @@ export const commands = {
 	workTicketPrioritySet: (key: string, priority: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_ticket_priority_set", { key, priority, click })),
 	workTicketTypeSet: (key: string, name: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_ticket_type_set", { key, name, click })),
 	workTicketDueSet: (key: string, day: string | null, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_ticket_due_set", { key, day, click })),
+	workTicketReleaseSet: (key: string, release: string | null, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_ticket_release_set", { key, release, click })),
+	workReleases: () => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("work_releases")),
+	workTeamJoinRequests: () => typedError<JoinRequest[], AppError_Serialize>(__TAURI_INVOKE("work_team_join_requests")),
+	workTeamJoinAccept: (number: number, role: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_team_join_accept", { number, role, click })),
+	workTeamJoinRefuse: (number: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_team_join_refuse", { number, click })),
+	workIssueTypes: () => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("work_issue_types")),
 	filesCreateFile: (path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("files_create_file", { path, click })),
 	filesCreateFolder: (path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("files_create_folder", { path, click })),
 	filesRename: (from: string, to: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("files_rename", { from, to, click })),
@@ -474,6 +483,10 @@ export const commands = {
 	/**  Fails when the worktree of the thread holds changes: discard it first. */
 	assistantDelete: (thread: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("assistant_delete", { thread })),
 	assistantWorktreeDiscard: (thread: string, force: boolean) => typedError<ThreadView_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_worktree_discard", { thread, force })),
+	/**  Keep the change of one file, or of all with no path. Returns the files that are left to review. */
+	assistantFileKeep: (thread: string, path: string | null) => typedError<FileDiff[], AppError_Serialize>(__TAURI_INVOKE("assistant_file_keep", { thread, path })),
+	/**  Revert one file of the thread. Returns the files that are left to review. */
+	assistantFileUndo: (thread: string, path: string) => typedError<FileDiff[], AppError_Serialize>(__TAURI_INVOKE("assistant_file_undo", { thread, path })),
 	assistantDiff: (thread: string) => typedError<FileDiff[], AppError_Serialize>(__TAURI_INVOKE("assistant_diff", { thread })),
 	assistantSaveDraft: (thread: string, draft: string, context: Context_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("assistant_save_draft", { thread, draft, context })),
 	assistantSettingsSet: (thread: string, settings: ThreadSettings_Deserialize) => typedError<ThreadView_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_settings_set", { thread, settings })),
@@ -2392,6 +2405,16 @@ export type ExternalState =
 /**  A person edited files of the source: a sync keeps them. */
 "edited";
 
+/**
+ *  A kind of ticket that the person added to the four fixed ones (REQ-005 of
+ *  `code-host-tickets`). Its name is the type in the issue tracker. Its parent is a fixed kind
+ *  (`epic`, `story`, `task`, `subtask`) or the name of an earlier added kind.
+ */
+export type ExtraKind = {
+	name: string,
+	parent: string,
+};
+
 export type FactorySend = FactorySend_Serialize | FactorySend_Deserialize;
 
 export type FactorySend_Deserialize = {
@@ -3023,6 +3046,18 @@ export type JoinAsk = {
 	 *  role, and an admin sets it.
 	 */
 	role: string,
+};
+
+/**  One join request that waits on the code host (REQ-010 of `code-host-tickets`). */
+export type JoinRequest = {
+	number: number,
+	/**  The name of the person, from the title of the pull request. */
+	name: string,
+	/**  The handle of the new member entry: the end of the branch name. */
+	handle: string,
+	/**  The role that the person asked for. `viewer` when the text does not say. */
+	asked: string,
+	url: string,
 };
 
 export type JoinSent = JoinSent_Serialize | JoinSent_Deserialize;
@@ -3737,6 +3772,8 @@ export type OpenPull_Deserialize = {
 	base?: string | null,
 	draft: boolean,
 	labels: string[],
+	/**  Reviewers to ask, as `Reviewer::id` of [`pull_reviewers`] (REQ-006). */
+	reviewers?: string[],
 };
 
 export type OpenPull_Serialize = {
@@ -3746,6 +3783,8 @@ export type OpenPull_Serialize = {
 	base: string | null,
 	draft: boolean,
 	labels: string[],
+	/**  Reviewers to ask, as `Reviewer::id` of [`pull_reviewers`] (REQ-006). */
+	reviewers: string[],
 };
 
 export type OpenStatus = "opened" | "not-repository" | "folder-not-empty" | "invalid" | "failed";
@@ -3760,6 +3799,8 @@ export type OpenedPull_Deserialize = {
 	missingLabels: string[],
 	/**  The forge refused the labels. The pull request exists: this is not a failure of the open. */
 	labelError?: string | null,
+	/**  The forge refused the reviewers. The pull request exists: this is not a failure of the open. */
+	reviewerError?: string | null,
 };
 
 export type OpenedPull_Serialize = {
@@ -3770,6 +3811,8 @@ export type OpenedPull_Serialize = {
 	missingLabels: string[],
 	/**  The forge refused the labels. The pull request exists: this is not a failure of the open. */
 	labelError: string | null,
+	/**  The forge refused the reviewers. The pull request exists: this is not a failure of the open. */
+	reviewerError: string | null,
 };
 
 export type OrcaSession = OrcaSession_Serialize | OrcaSession_Deserialize;
@@ -3989,6 +4032,17 @@ export type Picture =
 "logo" | 
 /**  The picture of the person. */
 "avatar";
+
+/**
+ *  One line of the action plan of an impact report: a check box and an owner (REQ-009 of
+ *  `code-host-tickets`). The file holds it as `- [x] text (owner: name)`. It makes no ticket.
+ */
+export type PlanLine = {
+	text: string,
+	done: boolean,
+	/**  The name of the owner. Blank: nobody. */
+	owner: string,
+};
 
 export type PlanRow = {
 	path: string,
@@ -4210,6 +4264,8 @@ export type PrRowView = {
 	headSha: string,
 	url: string,
 	updated: string,
+	/**  The login or name of the author on the code host (REQ-008 of `code-host-tickets`). */
+	author: string,
 	lane: Lane,
 	/**  The runs that opened this pull request. */
 	runs: string[],
@@ -5324,6 +5380,13 @@ export type ReviewWait = {
 	title: string,
 	/**  The ref of the pull request, `pr:<connection>:<number>`. Empty without a code host. */
 	reference: string,
+};
+
+/**  A user of the code host that a pull request can ask for a review (REQ-006). */
+export type Reviewer = {
+	/**  What [`PullApi::add_reviewers`] takes: a login, a username or an identity id. */
+	id: string,
+	name: string,
 };
 
 /**  The verdict of one reviewer (REQ-021). */
@@ -6753,7 +6816,7 @@ export type Thread_Deserialize = {
 	granted?: string[],
 	messages: ChatMessage[],
 	usage: Usage,
-	worktree?: Worktree | null,
+	worktree?: Worktree_Deserialize | null,
 	created: number,
 	updated: number,
 };
@@ -6771,7 +6834,7 @@ export type Thread_Serialize = {
 	granted: string[],
 	messages: ChatMessage[],
 	usage: Usage,
-	worktree: Worktree | null,
+	worktree: Worktree_Serialize | null,
 	created: number,
 	updated: number,
 };
@@ -6819,6 +6882,8 @@ export type TicketEditCaps = {
 	dueDate: boolean,
 	/**  The estimate in days changes (a tracker with time tracking). */
 	estimate: boolean,
+	/**  The release changes: the fix version, the milestone, the iteration or the project. */
+	release: boolean,
 };
 
 /**  The link of a ticket to its Jira issue (`docs/delivery/tickets.json`, read only). */
@@ -6847,7 +6912,9 @@ export type TicketRows_Serialize = {
 	rows: TimeRow_Serialize[],
 };
 
-export type TicketsConfig = {
+export type TicketsConfig = TicketsConfig_Serialize | TicketsConfig_Deserialize;
+
+export type TicketsConfig_Deserialize = {
 	epic: string,
 	story: string,
 	task: string,
@@ -6860,6 +6927,25 @@ export type TicketsConfig = {
 	specBaseUrl: string,
 	/**  `feature` or `group`. */
 	hierarchy: string,
+	/**  The kinds that were added, parents before children. */
+	extraKinds?: ExtraKind[],
+};
+
+export type TicketsConfig_Serialize = {
+	epic: string,
+	story: string,
+	task: string,
+	subtask: string,
+	/**  `timetracking`, `points` or `none`. */
+	estimateMode: string,
+	estimateField: string,
+	hoursPerDay: number | null,
+	labels: string[],
+	specBaseUrl: string,
+	/**  `feature` or `group`. */
+	hierarchy: string,
+	/**  The kinds that were added, parents before children. */
+	extraKinds: ExtraKind[],
 };
 
 export type Tile = Tile_Serialize | Tile_Deserialize;
@@ -7312,6 +7398,8 @@ export type WorkItemView_Deserialize = {
 	/**  The estimate and the time spent, in minutes, when the tracker holds them. */
 	estimateMinutes?: number | null,
 	spentMinutes?: number | null,
+	/**  The release of the issue tracker: its fix version, milestone, iteration or project. */
+	release?: string | null,
 };
 
 export type WorkItemView_Serialize = {
@@ -7341,6 +7429,8 @@ export type WorkItemView_Serialize = {
 	/**  The estimate and the time spent, in minutes, when the tracker holds them. */
 	estimateMinutes: number | null,
 	spentMinutes: number | null,
+	/**  The release of the issue tracker: its fix version, milestone, iteration or project. */
+	release: string | null,
 };
 
 export type WorkState = "clean" | "changed" | "behind" | "ahead" | "missing";
@@ -7484,11 +7574,32 @@ export type Workflow_Serialize = {
 export type Workspace = "worktree" | "shared" | "none";
 
 /**  The worktree of an agent-mode thread (Q-047: one for each thread, kept until the person acts). */
-export type Worktree = {
+export type Worktree = Worktree_Serialize | Worktree_Deserialize;
+
+/**  The worktree of an agent-mode thread (Q-047: one for each thread, kept until the person acts). */
+export type Worktree_Deserialize = {
 	path: string,
 	branch: string,
 	/**  The commit that the diff reads against. */
 	base: string,
+	/**
+	 *  The files that the person kept, each as `<path>` and a hash of its diff, joined by a tab.
+	 *  A kept file leaves the review until its diff changes. A thread saved before this holds none.
+	 */
+	kept?: string[],
+};
+
+/**  The worktree of an agent-mode thread (Q-047: one for each thread, kept until the person acts). */
+export type Worktree_Serialize = {
+	path: string,
+	branch: string,
+	/**  The commit that the diff reads against. */
+	base: string,
+	/**
+	 *  The files that the person kept, each as `<path>` and a hash of its diff, joined by a tab.
+	 *  A kept file leaves the review until its diff changes. A thread saved before this holds none.
+	 */
+	kept: string[],
 };
 
 /**

@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use shipyard_core::rights::Role;
 use shipyard_core::work::{Member, Team};
-use shipyard_forges::NewPull;
+use shipyard_forges::{NewPull, PullQuery, StateFilter};
 use shipyard_git::Repo;
 use shipyard_store::work::{TEAM_PATH, read_team, write_team};
 use specta::Type;
@@ -177,6 +177,168 @@ pub fn team_join(s: &AppState, ask: JoinAsk, click: bool) -> Res<JoinSent> {
         push: None,
         entry,
     })
+}
+
+/// The start of the branch that [`team_join`] makes: the pull requests of a join request.
+const JOIN_BRANCH: &str = "shipyard/join-";
+
+/// One join request that waits on the code host (REQ-010 of `code-host-tickets`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct JoinRequest {
+    pub number: u32,
+    /// The name of the person, from the title of the pull request.
+    pub name: String,
+    /// The handle of the new member entry: the end of the branch name.
+    pub handle: String,
+    /// The role that the person asked for. `viewer` when the text does not say.
+    pub asked: String,
+    pub url: String,
+}
+
+/// The role in the text of the pull request: ``Asked role: `qa` ``.
+fn asked_role(body: &str) -> String {
+    body.split("Asked role: `")
+        .nth(1)
+        .and_then(|r| r.split('`').next())
+        .filter(|r| Role::parse(r).is_some())
+        .unwrap_or("viewer")
+        .to_string()
+}
+
+/// The open pull requests that ask to join the team. Nothing is written.
+pub fn team_join_requests(s: &AppState) -> Res<Vec<JoinRequest>> {
+    let (api, slug, _) = crate::code::forge(s)?;
+    let page = api
+        .list_pulls(
+            &slug,
+            &PullQuery {
+                state: StateFilter::Open,
+                limit: 100,
+                ..PullQuery::default()
+            },
+        )
+        .map_err(err)?;
+    Ok(page
+        .items
+        .into_iter()
+        .filter_map(|p| {
+            let handle = p.source_branch.strip_prefix(JOIN_BRANCH)?.to_string();
+            let name = p
+                .title
+                .strip_prefix("Add ")
+                .and_then(|t| t.strip_suffix(" to the team"))
+                .unwrap_or(&p.title)
+                .to_string();
+            let asked = api
+                .description(&slug, p.number)
+                .map_or_else(|_| "viewer".into(), |d| asked_role(&d));
+            Some(JoinRequest {
+                number: u32::try_from(p.number).ok()?,
+                name,
+                handle,
+                asked,
+                url: p.url,
+            })
+        })
+        .collect())
+}
+
+/// Accepts a join request: sets `role` on the entry in the team file on the branch of the pull
+/// request, pushes the branch and merges the pull request. It needs the merge right, and a click.
+pub fn team_join_accept(s: &AppState, number: u32, role: &str, click: bool) -> Res<()> {
+    crate::work::need_click(
+        s,
+        click,
+        Right::CodeMerge,
+        "team_join_accept",
+        &format!("#{number}"),
+    )?;
+    let role = Role::parse(role).ok_or_else(|| format!("unknown role `{role}`"))?;
+    let (api, slug, _) = crate::code::forge(s)?;
+    let n = u64::from(number);
+    let pull = api.pull(&slug, n).map_err(err)?;
+    let handle = pull
+        .source_branch
+        .strip_prefix(JOIN_BRANCH)
+        .ok_or("this pull request is not a join request")?
+        .to_string();
+    let a = active(s)?.ok_or("no active project")?;
+    let repo = Repo::open(&PathBuf::from(&a.entry.path)).map_err(err)?;
+    let (remote, url) = repo
+        .remote()
+        .map_err(err)?
+        .ok_or("the project has no remote")?;
+    let auth = s.connections.git_auth(&url)?;
+    repo.fetch(&remote, &auth).map_err(err)?;
+    // The commit, not the name: a commit on a name that the remote has is refused as protected.
+    let rev = repo
+        .rev_sha(&format!("{remote}/{}", pull.source_branch))
+        .map_err(err)?;
+    let mut team = read_team(
+        &repo
+            .text_at(&rev, TEAM_PATH)
+            .map_err(err)?
+            .ok_or("the branch holds no team file")?,
+        None,
+    )
+    .map_err(err)?;
+    let member = team
+        .members
+        .iter_mut()
+        .find(|m| m.handle == handle)
+        .ok_or("the branch holds no entry for this person")?;
+    member.role = role.as_str().into();
+    let text = write_team(&team, None).map_err(err)?;
+    repo.commit_file_to_branch(
+        &rev,
+        &pull.source_branch,
+        TEAM_PATH,
+        &text,
+        &format!("chore(team): set the role of {handle} to {}", role.as_str()),
+        "",
+    )
+    .map_err(err)?;
+    repo.push_branch(&remote, &pull.source_branch, &auth)
+        .map_err(err)?;
+    let method = *api
+        .merge_methods()
+        .first()
+        .ok_or("the code host offers no merge method")?;
+    api.merge(&slug, n, method).map_err(err)
+}
+
+/// Refuses a join request: the pull request closes, and the team file stays as it is.
+pub fn team_join_refuse(s: &AppState, number: u32, click: bool) -> Res<()> {
+    let (api, slug, _) = crate::code::forge(s)?;
+    let pull = api.pull(&slug, u64::from(number)).map_err(err)?;
+    if !pull.source_branch.starts_with(JOIN_BRANCH) {
+        return Err("this pull request is not a join request".into());
+    }
+    crate::code::pull_close(s, number, "", click)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_team_join_requests(app: AppHandle) -> Api<Vec<JoinRequest>> {
+    blocking(app, team_join_requests).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_team_join_accept(
+    app: AppHandle,
+    number: u32,
+    role: String,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| team_join_accept(s, number, &role, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_team_join_refuse(app: AppHandle, number: u32, click: bool) -> Api<()> {
+    blocking(app, move |s| team_join_refuse(s, number, click)).await
 }
 
 /// Ask to join the team of the open project (REQ-011).

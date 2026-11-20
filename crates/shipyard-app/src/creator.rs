@@ -572,6 +572,7 @@ pub fn bootstrap(s: &AppState, click: bool) -> Res<String> {
         url: String::new(),
         updated: crate::code::now_iso(),
         time: None,
+        release: None,
     };
     crate::factory::start_ticket(s, &a, shipyard_core::pickup::Ticket::new(item))
 }

@@ -1,5 +1,6 @@
 import { assistantFr } from "./assistant";
 import { forgeFr } from "./code";
+import { codeHostFr } from "./code-host";
 import { costingFr } from "./costing";
 import { creatorFr } from "./creator";
 import { crewFr } from "./crew";
@@ -1014,4 +1015,5 @@ export const fr: Messages = {
 	shellFn: shellFnFr,
 	extras: extrasFr,
 	onboarding: onboardingFr,
+	codeHost: codeHostFr,
 };

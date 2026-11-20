@@ -53,6 +53,7 @@ const ticket = (
 	claimed: false,
 	estimateMinutes: n % 3 === 0 ? 480 : null,
 	spentMinutes: n % 3 === 0 ? 360 : null,
+	release: n % 4 === 1 ? "MVP 1" : null,
 });
 
 /** The fake tracker data set: ten open tickets and two closed ones. */

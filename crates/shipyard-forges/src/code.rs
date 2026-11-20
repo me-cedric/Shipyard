@@ -6,10 +6,10 @@
 use crate::azure::{API, Azure, repo_path as az_repo};
 use crate::github::{GitHub, repo_path as gh_repo};
 use crate::gitlab::{GitLab, project_path};
-use crate::{ForgeError, PullApi, PullState};
+use crate::{Forge, ForgeError, PullApi, PullState};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use shipyard_http::{Method, items, text};
+use shipyard_http::{Auth, Method, Request, build_url, encode, items, num, text};
 use specta::Type;
 use std::collections::BTreeSet;
 
@@ -57,6 +57,20 @@ pub struct ReviewerVerdict {
     pub reviewer: String,
     /// `approved` or `changes-requested`.
     pub state: String,
+}
+
+/// A user of the code host that a pull request can ask for a review (REQ-006).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+pub struct Reviewer {
+    /// What [`PullApi::add_reviewers`] takes: a login, a username or an identity id.
+    pub id: String,
+    pub name: String,
+}
+
+fn sorted(mut v: Vec<Reviewer>) -> Vec<Reviewer> {
+    v.sort_by_key(|r| r.name.to_lowercase());
+    v.dedup_by(|a, b| a.id == b.id);
+    v
 }
 
 /// A note of a review on one line of the new file.
@@ -229,6 +243,14 @@ pub trait CodeApi: PullApi {
 
     fn send_merge(&self, repo: &str, number: u64, method: MergeMethod) -> Result<(), ForgeError>;
 
+    /// The users that can review a pull request of `repo` (REQ-006), by name.
+    fn reviewer_candidates(&self, repo: &str) -> Result<Vec<Reviewer>, ForgeError>;
+
+    /// Run the failed checks of the head commit again, and only those (REQ-001): the failed jobs
+    /// on GitHub, the pipeline on GitLab, the failed build policies on Azure DevOps. `Ok` holds
+    /// how many runs the code host restarted. No failed check is an error, and sends no write.
+    fn rerun_failed(&self, repo: &str, number: u64) -> Result<u32, ForgeError>;
+
     /// The write that closes the pull request without a merge.
     fn send_close(&self, repo: &str, number: u64) -> Result<(), ForgeError>;
 
@@ -259,6 +281,10 @@ pub trait CodeApi: PullApi {
         }
         self.send_merge(repo, number, method)
     }
+}
+
+fn no_failed_check() -> ForgeError {
+    ForgeError::Config("no failed check to run again".into())
 }
 
 fn check_text(body: &str, what: &str) -> Result<(), ForgeError> {
@@ -470,6 +496,54 @@ impl CodeApi for GitHub {
         Ok(())
     }
 
+    fn reviewer_candidates(&self, repo: &str) -> Result<Vec<Reviewer>, ForgeError> {
+        let v = self.call(
+            &format!("{}/collaborators", gh_repo(repo)?),
+            &[("per_page", "100")],
+        )?;
+        Ok(sorted(
+            items(&v, "")
+                .iter()
+                .map(|u| Reviewer {
+                    id: text(u, "/login"),
+                    name: text(u, "/login"),
+                })
+                .filter(|r| !r.id.is_empty())
+                .collect(),
+        ))
+    }
+
+    fn rerun_failed(&self, repo: &str, number: u64) -> Result<u32, ForgeError> {
+        let sha = self.pull(repo, number)?.head_sha;
+        let root = gh_repo(repo)?;
+        let runs = self.call(
+            &format!("{root}/actions/runs"),
+            &[("head_sha", sha.as_str()), ("per_page", "100")],
+        )?;
+        let failed: Vec<u64> = items(&runs, "/workflow_runs")
+            .iter()
+            .filter(|r| {
+                text(r, "/status") == "completed"
+                    && matches!(
+                        text(r, "/conclusion").as_str(),
+                        "failure" | "timed_out" | "cancelled"
+                    )
+            })
+            .filter_map(|r| num(r, "/id"))
+            .collect();
+        if failed.is_empty() {
+            return Err(no_failed_check());
+        }
+        for id in &failed {
+            self.write(
+                Method::Post,
+                &format!("{root}/actions/runs/{id}/rerun-failed-jobs"),
+                json!({}),
+            )?;
+        }
+        Ok(count(failed.len()))
+    }
+
     fn send_close(&self, repo: &str, number: u64) -> Result<(), ForgeError> {
         self.write(
             Method::Patch,
@@ -663,6 +737,42 @@ impl CodeApi for GitLab {
         Ok(())
     }
 
+    fn reviewer_candidates(&self, repo: &str) -> Result<Vec<Reviewer>, ForgeError> {
+        let v = self.call(
+            &format!("{}/members/all", project_path(repo)?),
+            &[("per_page", "100")],
+        )?;
+        Ok(sorted(
+            items(&v, "")
+                .iter()
+                .filter(|u| text(u, "/state") == "active")
+                .map(|u| Reviewer {
+                    id: text(u, "/username"),
+                    name: Some(text(u, "/name"))
+                        .filter(|n| !n.is_empty())
+                        .unwrap_or_else(|| text(u, "/username")),
+                })
+                .filter(|r| !r.id.is_empty())
+                .collect(),
+        ))
+    }
+
+    // GitLab retries the failed jobs of the pipeline in one call.
+    fn rerun_failed(&self, repo: &str, number: u64) -> Result<u32, ForgeError> {
+        let project = project_path(repo)?;
+        let mr = self.call(&format!("{project}/merge_requests/{number}"), &[])?;
+        let id = num(&mr, "/head_pipeline/id").ok_or_else(no_failed_check)?;
+        if text(&mr, "/head_pipeline/status") != "failed" {
+            return Err(no_failed_check());
+        }
+        self.write(
+            Method::Post,
+            &format!("{project}/pipelines/{id}/retry"),
+            json!({}),
+        )?;
+        Ok(1)
+    }
+
     fn send_close(&self, repo: &str, number: u64) -> Result<(), ForgeError> {
         self.write(
             Method::Put,
@@ -793,6 +903,77 @@ impl CodeApi for Azure {
             }),
         )?;
         Ok(())
+    }
+
+    // shortcut: the members of the default team of the project. Add the other teams when asked.
+    fn reviewer_candidates(&self, repo: &str) -> Result<Vec<Reviewer>, ForgeError> {
+        let project = repo.split('/').next().unwrap_or_default();
+        let base = format!("/_apis/projects/{}/teams", encode(project));
+        let teams = self.call(&base, &[("$top", "100")], API)?;
+        let list = items(&teams, "/value");
+        let default = format!("{project} Team");
+        let Some(team) = list
+            .iter()
+            .find(|t| text(t, "/name").eq_ignore_ascii_case(&default))
+            .or_else(|| list.first())
+        else {
+            return Ok(Vec::new());
+        };
+        let members = self.call(
+            &format!("{base}/{}/members", encode(&text(team, "/id"))),
+            &[],
+            API,
+        )?;
+        Ok(sorted(
+            items(&members, "/value")
+                .iter()
+                .map(|m| Reviewer {
+                    id: text(m, "/identity/id"),
+                    name: text(m, "/identity/displayName"),
+                })
+                .filter(|r| !r.id.is_empty())
+                .collect(),
+        ))
+    }
+
+    // The build policies of the pull request: a failed one is queued again.
+    fn rerun_failed(&self, repo: &str, number: u64) -> Result<u32, ForgeError> {
+        const PREVIEW: &str = "7.1-preview.1";
+        let raw = self.raw_pull(repo, number)?;
+        let project_id = text(&raw, "/repository/project/id");
+        let project = encode(repo.split('/').next().unwrap_or_default());
+        let artifact = format!("vstfs:///CodeReview/CodeReviewId/{project_id}/{number}");
+        let evaluations = self.call(
+            &format!("/{project}/_apis/policy/evaluations"),
+            &[("artifactId", artifact.as_str())],
+            PREVIEW,
+        )?;
+        let failed: Vec<String> = items(&evaluations, "/value")
+            .iter()
+            .filter(|e| {
+                text(e, "/configuration/type/displayName") == "Build"
+                    && matches!(text(e, "/status").as_str(), "rejected" | "broken")
+            })
+            .map(|e| text(e, "/evaluationId"))
+            .filter(|id| !id.is_empty())
+            .collect();
+        if failed.is_empty() {
+            return Err(no_failed_check());
+        }
+        for id in &failed {
+            let req = Request::write(
+                Method::Patch,
+                build_url(
+                    &self.base,
+                    &format!("/{project}/_apis/policy/evaluations/{}", encode(id)),
+                    &[("api-version", PREVIEW)],
+                ),
+                Auth::Basic(String::new(), self.token.clone()),
+                json!({}),
+            );
+            self.http.send(&req)?.ok()?;
+        }
+        Ok(count(failed.len()))
     }
 
     fn send_close(&self, repo: &str, number: u64) -> Result<(), ForgeError> {

@@ -17,6 +17,7 @@ import type {
 	Feature_Deserialize,
 	Feature_Serialize,
 	Field,
+	JoinRequest,
 	Load,
 	Member_Deserialize,
 	Member_Serialize,
@@ -49,6 +50,7 @@ import type {
 	WorkContext_Serialize,
 	WorkItemView_Serialize,
 } from "./bindings";
+import { seedJoins } from "./mock-code-host";
 import { parseRef } from "./mock-refs";
 
 const LOCKED = "sealed: this machine has no passphrase";
@@ -86,6 +88,8 @@ export type MockWork = {
 	account: { login: string; name: string } | null;
 	today: string;
 	counter: number;
+	/** The join requests that wait on the code host (`code-host-tickets` REQ-010). */
+	joins: JoinRequest[];
 };
 
 // ---------------------------------------------------------------- seed
@@ -242,6 +246,7 @@ export const seedWork = (): MockWork => ({
 	account: { login: "ada", name: "Ada Lovelace" },
 	today: "2026-11-02",
 	counter: 10,
+	joins: seedJoins(),
 });
 
 /** No team, no sheet, no entry: the empty states of the views. */

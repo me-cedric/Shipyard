@@ -1,6 +1,7 @@
 import type { Messages } from "../en";
 import { assistantEs } from "./assistant";
 import { forgeEs } from "./code";
+import { codeHostEs } from "../code-host";
 import { costingEs } from "./costing";
 import { creatorEs } from "./creator";
 import { crewEs } from "./crew";
@@ -1015,4 +1016,5 @@ export const es: Messages = {
 	shellFn: shellFnEs,
 	extras: extrasEs,
 	onboarding: onboardingEs,
+	codeHost: codeHostEs,
 };

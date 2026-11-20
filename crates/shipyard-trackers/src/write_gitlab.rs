@@ -27,6 +27,18 @@ impl GitLab {
         Ok(())
     }
 
+    /// The active milestones of a project: the title and the id.
+    fn milestones(&self, slug: &str) -> Result<Vec<(String, u64)>, TrackerError> {
+        let v = self.call(
+            &format!("/projects/{}/milestones", encode(slug)),
+            &[("state", "active"), ("per_page", "100")],
+        )?;
+        Ok(items(&v, "")
+            .iter()
+            .filter_map(|m| Some((text(m, "/title"), num(m, "/id")?)))
+            .collect())
+    }
+
     fn issue_path(key: &str) -> Result<String, TrackerError> {
         let (slug, iid) = split_key(key)?;
         Ok(format!("/projects/{}/issues/{iid}", encode(slug)))
@@ -135,6 +147,39 @@ impl TrackerWrite for GitLab {
             Method::Put,
             &Self::issue_path(key)?,
             json!({ "issue_type": name.to_lowercase() }),
+        )?;
+        Ok(())
+    }
+
+    fn issue_types(&self, _scope: &str) -> Result<Vec<String>, TrackerError> {
+        Ok(["issue", "incident", "task"].map(String::from).to_vec())
+    }
+
+    fn releases(&self, scope: &str) -> Result<Vec<String>, TrackerError> {
+        Ok(self
+            .milestones(scope)?
+            .into_iter()
+            .map(|(title, _)| title)
+            .collect())
+    }
+
+    fn set_release(&self, key: &str, release: Option<&str>) -> Result<(), TrackerError> {
+        let (slug, _) = split_key(key)?;
+        // GitLab clears the milestone with the id 0.
+        let id = match release {
+            Some(r) => {
+                self.milestones(slug)?
+                    .into_iter()
+                    .find(|(title, _)| title == r)
+                    .ok_or_else(|| TrackerError::Refused(format!("no milestone named {r}")))?
+                    .1
+            }
+            None => 0,
+        };
+        self.write(
+            Method::Put,
+            &Self::issue_path(key)?,
+            json!({ "milestone_id": id }),
         )?;
         Ok(())
     }

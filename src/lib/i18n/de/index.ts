@@ -1,6 +1,7 @@
 import type { Messages } from "../en";
 import { assistantDe } from "./assistant";
 import { forgeDe } from "./code";
+import { codeHostDe } from "../code-host";
 import { costingDe } from "./costing";
 import { creatorDe } from "./creator";
 import { crewDe } from "./crew";
@@ -1031,4 +1032,5 @@ export const de: Messages = {
 	shellFn: shellFnDe,
 	extras: extrasDe,
 	onboarding: onboardingDe,
+	codeHost: codeHostDe,
 };
