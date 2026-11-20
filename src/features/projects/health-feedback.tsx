@@ -53,7 +53,7 @@ export function HealthFeedback() {
 					value={details}
 					onChange={(e) => setDetails(e.target.value)}
 				/>
-				<div className="flex flex-wrap justify-end gap-2.5">
+				<div className="flex flex-wrap gap-2.5">
 					<Button
 						disabled={!title.trim()}
 						onClick={() => void send(() => unwrap(commands.feedbackMail(title, details, true)))}
@@ -62,6 +62,7 @@ export function HealthFeedback() {
 					</Button>
 					<Button
 						variant="primary"
+						className="ml-auto"
 						disabled={!title.trim()}
 						onClick={() =>
 							void send(() => unwrap(commands.feedbackOpen(kind, title, details, true)))

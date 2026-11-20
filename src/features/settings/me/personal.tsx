@@ -6,11 +6,12 @@ import { usePrefs } from "@/lib/prefs";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
+import { ValueButton } from "../parts";
 
 const DEFAULT = "default";
 const back = (v: string) => (v === DEFAULT ? "" : v);
 
-/** A text field that saves when it loses focus. */
+/** A button that shows the value. A click opens a text field that saves when it loses focus. */
 export function TextPref({
 	label,
 	value,
@@ -25,15 +26,27 @@ export function TextPref({
 	type?: "number";
 }) {
 	const [v, setV] = useState(value);
+	const [editing, setEditing] = useState(false);
 	useEffect(() => setV(value), [value]);
+	if (!editing)
+		return (
+			<ValueButton aria-label={label} onClick={() => setEditing(true)}>
+				<span className="truncate font-semibold">{value || placeholder}</span>
+			</ValueButton>
+		);
 	return (
 		<Input
 			label={label}
 			type={type}
 			value={v}
 			placeholder={placeholder}
+			autoFocus
 			onChange={(e) => setV(e.target.value)}
-			onBlur={() => v !== value && onSave(v)}
+			onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+			onBlur={() => {
+				if (v !== value) onSave(v);
+				setEditing(false);
+			}}
 			className="w-56"
 		/>
 	);

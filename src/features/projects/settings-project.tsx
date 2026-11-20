@@ -238,7 +238,6 @@ function Form({
 	));
 	const connection = (group: "tracker" | "forge") => {
 		const id = draft.connections[group];
-		const chosen = connectionItems(group).find((i) => i.value === id)?.label;
 		return (
 			<ConnectionCard
 				key={group}
@@ -251,22 +250,31 @@ function Form({
 						{id ? p.change : p.connect}
 					</ButtonLink>
 				}
-			>
-				<Select
-					label={t.connections.type[group]}
-					value={id || NONE}
-					onValueChange={(v) =>
-						setDraft({
-							...draft,
-							connections: { ...draft.connections, [group]: v === NONE ? "" : v },
-						})
-					}
-					items={connectionItems(group)}
-				/>
-				<span className="sr-only">{chosen}</span>
-			</ConnectionCard>
+			/>
 		);
 	};
+	// The choice of connection: behind More, not in the connection cards.
+	const connectionPick = (group: "tracker" | "forge") => (
+		<Fold
+			id={group === "tracker" ? "more-issue-tracker" : "more-code-host"}
+			label={p[group === "tracker" ? "tracker" : "host"]}
+			value={
+				connectionItems(group).find((i) => i.value === (draft.connections[group] || NONE))?.label
+			}
+		>
+			<Select
+				label={t.connections.type[group]}
+				value={draft.connections[group] || NONE}
+				onValueChange={(v) =>
+					setDraft({
+						...draft,
+						connections: { ...draft.connections, [group]: v === NONE ? "" : v },
+					})
+				}
+				items={connectionItems(group)}
+			/>
+		</Fold>
+	);
 	return (
 		<div className="flex flex-col">
 			{file ? (
@@ -306,7 +314,7 @@ function Form({
 							</Fold>
 							<Fold
 								id="languages"
-								label={t.creator.languages}
+								label={p.languagesOf}
 								value={picked.join(", ") || t.projects.noConnection}
 							>
 								{(["docs", "pulls"] as const).map((k) => (
@@ -357,6 +365,8 @@ function Form({
 					<SetupCard title={t.ui.more}>
 						{file ? (
 							<>
+								{connectionPick("tracker")}
+								{connectionPick("forge")}
 								<Fold id="more-personas" label={p.personas} value={p.edit}>
 									<PersonasEditor />
 								</Fold>

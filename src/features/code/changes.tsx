@@ -361,7 +361,7 @@ export function CommitBox({ changes, compact }: { changes: ChangesData; compact?
 	const { failure, busy, run } = useRun();
 	const [summary, setSummary] = useState("");
 	const [description, setDescription] = useState("");
-	const [describing, setDescribing] = useState(false);
+	const [more, setMore] = useState(false);
 	const count = changes.staged.length;
 	const write = (
 		<Button
@@ -419,18 +419,7 @@ export function CommitBox({ changes, compact }: { changes: ChangesData; compact?
 					{submit}
 				</div>
 			) : (
-				<>
-					{message}
-					{describing ? (
-						<Textarea
-							label={t.code.description}
-							value={description}
-							onChange={(e) => setDescription(e.target.value)}
-						/>
-					) : (
-						<LinkButton onClick={() => setDescribing(true)}>{n.describe}</LinkButton>
-					)}
-				</>
+				message
 			)}
 			<ErrorNotice error={failure} />
 			{compact ? null : (
@@ -443,6 +432,19 @@ export function CommitBox({ changes, compact }: { changes: ChangesData; compact?
 						<AutoCommit />
 						<AutoReview />
 					</div>
+					<LinkButton aria-expanded={more} onClick={() => setMore(!more)}>
+						{t.ui.more}
+					</LinkButton>
+					{more ? (
+						<>
+							<Textarea
+								label={t.code.description}
+								value={description}
+								onChange={(e) => setDescription(e.target.value)}
+							/>
+							<GateNotice push={false} part="default" />
+						</>
+					) : null}
 				</>
 			)}
 		</form>
@@ -531,6 +533,7 @@ export function WorkingCopy({ changes }: { changes: ChangesData }) {
 										<Checkbox
 											label={format(t.code.select, { name: r.path })}
 											hideLabel
+											className="aria-checked:border-transparent aria-checked:bg-accent aria-checked:text-accent-fg"
 											checked={r.staged && !r.unstaged}
 											indeterminate={r.staged && r.unstaged}
 											disabled={r.conflict || write.disabled}
@@ -567,7 +570,7 @@ export function WorkingCopy({ changes }: { changes: ChangesData }) {
 						</Card>
 					) : null}
 					<Card pad className="flex flex-col gap-3">
-						<GateNotice push={false} />
+						<GateNotice push={false} part="rest" />
 						<CommitBox changes={changes} />
 					</Card>
 					<Stashes dirty={free.length > 0} run={run} />
@@ -588,7 +591,7 @@ export function WorkingCopy({ changes }: { changes: ChangesData }) {
 									<h2 className="min-w-0 font-mono text-14 font-semibold break-all">{here.path}</h2>
 									<Counts row={here} />
 									<span className="ml-auto flex flex-wrap items-center gap-2">
-										<OpenInEditor path={here.path} />
+										<OpenInEditor path={here.path} plain />
 									</span>
 								</Row>
 							)}

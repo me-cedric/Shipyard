@@ -85,11 +85,14 @@ test("fixes a finding in Settings / Health after one confirm click", async ({ pa
 	await page.goto("/");
 	await openFirstFolder(page);
 	await (await openAccount(page)).getByRole("menuitem", { name: /Health \(2\)/ }).click();
-	await expect(page.getByRole("heading", { name: "Compliance (1)" })).toBeVisible();
+	// The finding of the rules is in its own card, with its count in words.
+	const rules = page.getByRole("region", { name: "Rules and skills of the agents" });
+	await expect(rules).toContainText("1 to fix");
 	await page.getByRole("button", { name: "Write" }).click();
 	await expect(page.getByLabel(".gitignore")).toContainText(".DS_Store");
 	await page.getByRole("button", { name: "Confirm" }).click();
-	await expect(page.getByRole("heading", { name: "Compliance (0)" })).toBeVisible();
+	// A card with nothing to fix leaves the page.
+	await expect(rules).toHaveCount(0);
 });
 
 test("opens an entity from the palette and shows its backlinks", async ({ page }) => {

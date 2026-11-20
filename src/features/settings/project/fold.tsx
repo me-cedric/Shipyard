@@ -21,6 +21,8 @@ export function Fold({
 	label,
 	value,
 	mono,
+	hint,
+	plain,
 	children,
 }: {
 	/** The anchor of the row (`#id`). */
@@ -29,6 +31,10 @@ export function Fold({
 	/** The text of the button: the value of the setting, or an action such as "Edit". */
 	value: ReactNode;
 	mono?: boolean;
+	/** A quiet value that shows before the button, such as an address. */
+	hint?: ReactNode;
+	/** The value is a status, not a button: it has no button look. */
+	plain?: boolean;
 	children: ReactNode;
 }) {
 	const ref = useRef<HTMLDetailsElement>(null);
@@ -47,7 +53,12 @@ export function Fold({
 		>
 			<summary className="flex min-h-15 cursor-pointer list-none flex-wrap items-center gap-3 px-6 py-2 text-n-12 [&::-webkit-details-marker]:hidden">
 				<span className="min-w-0 flex-[1_1_10rem] font-semibold">{label}</span>
-				<span className={cn(valueClass({ mono }), "ml-auto truncate")}>{value}</span>
+				{hint ? (
+					<span className="ml-auto min-w-0 truncate font-mono text-ui text-n-11">{hint}</span>
+				) : null}
+				<span className={cn(plain ? "" : valueClass({ mono }), !hint && "ml-auto", "truncate")}>
+					{value}
+				</span>
 			</summary>
 			<div className="flex flex-col gap-3 px-6 pt-1 pb-5">{children}</div>
 		</details>

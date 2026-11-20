@@ -57,7 +57,7 @@ describe("Settings / Health / bootstrap, skills, console and feedback", () => {
 	it("opens a feedback issue only with a title and shows a refusal", async () => {
 		const user = userEvent.setup();
 		mountApp("/setup/computer?page=logs");
-		const open = await screen.findByRole("button", { name: "Open on GitHub" });
+		const open = await screen.findByRole("button", { name: "Send" });
 		expect(open).toBeDisabled();
 		await user.type(screen.getByRole("textbox", { name: "Title" }), "Crash");
 		await user.type(

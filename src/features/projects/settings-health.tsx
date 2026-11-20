@@ -1,21 +1,19 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { openManualFor } from "@/features/knowledge/manual-target";
-import { Column, Columns, SetupCard, SetupRow, StatePill } from "@/features/settings/parts";
+import { Column, Columns, SetupCard, SetupRow } from "@/features/settings/parts";
 import { ButtonLink, Fold } from "@/features/settings/project/fold";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type Finding_Serialize, type Group, unwrap } from "@/lib/ipc";
-import { projectKeys, useHealth, worstStatus } from "@/lib/projects";
+import { projectKeys, useHealth } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useUpdateCheck } from "@/lib/updates";
 import { openWhatsNew, useWhatsNew } from "@/lib/updates/whats-new";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { Chip } from "@/ui/atoms/chip";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { FindingRow } from "@/ui/molecules/finding-row";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { RefChip } from "@/ui/molecules/ref-chip";
@@ -27,7 +25,14 @@ const GROUPS: Group[] = ["compliance", "refs", "generated"];
 
 type Preview = { path: string; content: string };
 
-function Finding({ finding }: { finding: Finding_Serialize }) {
+function Finding({
+	finding,
+	extra,
+}: {
+	finding: Finding_Serialize;
+	/** A button of the card that sits before Fix, such as Show all. */
+	extra?: ReactNode;
+}) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const { openRef } = useShell();
@@ -63,18 +68,17 @@ function Finding({ finding }: { finding: Finding_Serialize }) {
 		});
 
 	return (
-		<FindingRow
-			status={worstStatus([finding.severity])}
-			title={format(message, { detail: finding.detail ?? "" })}
-			source={
-				finding.source ? (
+		<div className="flex flex-col gap-3">
+			<div className="flex flex-wrap items-center gap-2 rounded-md bg-n-3 p-4 text-ui text-n-12">
+				<span className="min-w-0 flex-[1_1_8rem]">
+					{format(message, { detail: finding.detail ?? "" })}
+				</span>
+				{finding.source ? (
 					<RefChip refId={finding.source} state="resolved" onOpen={openRef} />
-				) : undefined
-			}
-			action={{ label: t.health.fix[fix.kind], onClick: run }}
-		>
+				) : null}
+			</div>
 			{preview ? (
-				<div className="flex flex-col gap-2 px-3 pb-2">
+				<div className="flex flex-col gap-2">
 					<figure aria-label={preview.path}>
 						<pre className="max-h-48 overflow-auto rounded-md border bg-n-2 p-2 font-mono text-11">
 							{preview.content}
@@ -87,37 +91,49 @@ function Finding({ finding }: { finding: Finding_Serialize }) {
 					</div>
 				</div>
 			) : null}
-			{error ? <ErrorNotice error={error} className="px-3 pb-2 text-ui text-danger-text" /> : null}
-		</FindingRow>
+			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
+			<div className="mt-auto flex flex-wrap gap-2.5">
+				{extra}
+				<Button variant="primary" onClick={run}>
+					{t.health.fix[fix.kind]}
+				</Button>
+			</div>
+		</div>
 	);
 }
 
 const SHOWN = 1;
 
-/** A card of the findings of one group: the first one, "Show all" for the rest. */
+/** A card of one group of findings: the first finding, with "Show all" for the rest and Fix. */
 function GroupCard({ group, rows }: { group: Group; rows: Finding_Serialize[] }) {
 	const { t } = useI18n();
 	const h = t.doctor.health;
 	const [all, setAll] = useState(false);
 	const shown = all ? rows : rows.slice(0, SHOWN);
 	return (
-		<SetupCard
+		<section
 			id={`health-${group}`}
-			title={h.group[group]}
-			attention
-			action={<Badge variant="warning">{format(h.toFix, { count: rows.length })}</Badge>}
+			aria-label={h.group[group]}
+			className="flex min-w-0 flex-col items-start gap-3 rounded-lg bg-surface-2 p-6 shadow-2 outline-2 outline-attention"
 		>
-			{shown.map((f) => (
-				<Finding key={f.id} finding={f} />
-			))}
-			{rows.length > SHOWN ? (
-				<div className="px-6 pt-1 pb-2">
-					<Chip selected={all} onClick={() => setAll(!all)}>
-						{all ? h.showFewer : h.showAll}
-					</Chip>
-				</div>
-			) : null}
-		</SetupCard>
+			<Badge variant="you">{format(h.toFix, { count: rows.length })}</Badge>
+			<h2 className="text-20 font-semibold text-n-12">{h.group[group]}</h2>
+			<div className="flex w-full flex-1 flex-col gap-4">
+				{shown.map((f, i) => (
+					<Finding
+						key={f.id}
+						finding={f}
+						extra={
+							i === 0 && rows.length > SHOWN ? (
+								<Button variant="secondary" aria-pressed={all} onClick={() => setAll(!all)}>
+									{all ? h.showFewer : h.showAll}
+								</Button>
+							) : undefined
+						}
+					/>
+				))}
+			</div>
+		</section>
 	);
 }
 
@@ -141,18 +157,18 @@ function ProjectHealth() {
 	return (
 		<div className="flex flex-col gap-4 px-4 pb-10">
 			<div className="flex flex-wrap items-center gap-3">
-				<h2 className="min-w-0 flex-[1_1_16rem] text-20 font-semibold text-n-12">{heading}</h2>
+				<h2 className="min-w-0 flex-[1_1_16rem] text-30 font-semibold text-n-12">{heading}</h2>
 				<HealthActions />
 			</div>
-			{GROUPS.map((g) => {
-				const rows = findings.filter((f) => f.group === g);
-				return rows.length ? <GroupCard key={g} group={g} rows={rows} /> : null;
-			})}
+			<div className="grid grid-cols-[repeat(auto-fill,minmax(min(300px,100%),1fr))] gap-4">
+				{GROUPS.map((g) => {
+					const rows = findings.filter((f) => f.group === g);
+					return rows.length ? <GroupCard key={g} group={g} rows={rows} /> : null;
+				})}
+			</div>
 			<SetupCard title={h.also}>
 				<SetupRow label={h.product} href="/flow/health" />
 				<SetupRow label={h.computer} href="/setup/computer?page=health" />
-			</SetupCard>
-			<SetupCard>
 				<Fold id="doctor-skills" label={t.doctor.skills.title} value={h.showAll}>
 					<DoctorCompliance />
 				</Fold>
@@ -161,15 +177,42 @@ function ProjectHealth() {
 	);
 }
 
+const GLYPH = {
+	warn: "M12 3l9 16H3zM12 10v4M12 17v.5",
+	ok: "M6 12.5l4 4 8-9",
+	console: "M5 7l4 5-5 5M12 17h7",
+} as const;
+
+/** A stroke icon of the design: the shape in a 24 by 24 box. */
+function Glyph({ shape, size = 24 }: { shape: keyof typeof GLYPH; size?: number }) {
+	return (
+		<svg
+			viewBox="0 0 24 24"
+			width={size}
+			height={size}
+			fill="none"
+			stroke="currentColor"
+			strokeWidth={1.8}
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+		>
+			<path d={GLYPH[shape]} />
+		</svg>
+	);
+}
+
 /** An area of this computer: its name and its state, as a link to where it opens. */
 function Area({
 	href,
 	label,
 	state,
+	icon,
 	children,
 }: {
 	href: string;
 	label: string;
+	icon: keyof typeof GLYPH;
 	state: "ready" | "fix" | "off";
 	children: string;
 }) {
@@ -181,10 +224,17 @@ function Area({
 				e.preventDefault();
 				router.history.push(href);
 			}}
-			className={`flex min-h-24 min-w-0 flex-[1_1_160px] flex-col items-start justify-between gap-3 rounded-lg bg-surface-2 p-4 shadow-2 hover:bg-n-3 ${state === "fix" ? "outline-2 outline-attention" : ""}`}
+			className={`flex min-h-40 min-w-0 flex-[1_1_180px] flex-col items-start gap-3 rounded-lg bg-surface-2 p-5 shadow-2 hover:bg-n-3 ${state === "fix" ? "outline-2 outline-attention" : ""}`}
 		>
-			<span className="font-semibold text-n-12">{label}</span>
-			<StatePill state={state}>{children}</StatePill>
+			<span
+				className={`flex size-12 items-center justify-center rounded-md ${state === "fix" ? "bg-attention-subtle text-attention-text" : "bg-accent-subtle text-accent-text"}`}
+			>
+				<Glyph shape={icon} />
+			</span>
+			<span className="text-20 font-semibold text-n-12">{label}</span>
+			<Badge variant={state === "ready" ? "success" : state === "fix" ? "you" : "neutral"}>
+				{children}
+			</Badge>
 		</a>
 	);
 }
@@ -225,15 +275,12 @@ function ComputerHealth() {
 					<section
 						key={p.id}
 						aria-label={format(h.toolMissing, { name: p.id })}
-						className="flex flex-wrap items-center gap-3 rounded-lg bg-surface-2 p-4 shadow-2 outline-2 outline-attention"
+						className="flex flex-wrap items-center gap-4 rounded-lg bg-surface-2 p-6 shadow-2 outline-2 outline-attention"
 					>
-						<span
-							aria-hidden="true"
-							className="flex size-8 items-center justify-center rounded-full bg-warning-soft font-semibold text-warning-text"
-						>
-							!
+						<span className="flex text-attention-text">
+							<Glyph shape="warn" size={28} />
 						</span>
-						<span className="min-w-0 flex-[1_1_14rem] font-semibold text-n-12">
+						<span className="min-w-0 flex-[1_1_16rem] text-20 font-semibold text-n-12">
 							{format(h.toolMissing, { name: p.id })}
 						</span>
 						<ButtonLink href="/setup/computer?page=health#tools">{h.details}</ButtonLink>
@@ -261,6 +308,7 @@ function ComputerHealth() {
 						href="/setup/computer?page=health#tools"
 						label={h.tools}
 						state={toolsMissing ? "fix" : "ready"}
+						icon="warn"
 					>
 						{toolsMissing ? format(h.missingN, { count: toolsMissing }) : h.ready}
 					</Area>
@@ -268,23 +316,30 @@ function ComputerHealth() {
 						href="/setup/computer?page=models"
 						label={h.skills}
 						state={staleSkills ? "fix" : "ready"}
+						icon="ok"
 					>
 						{staleSkills ? format(h.toFix, { count: staleSkills }) : h.ready}
 					</Area>
-					<Area href="/setup/start" label={h.firstSetup} state="ready">
+					<Area href="/setup/start" label={h.firstSetup} state="ready" icon="ok">
 						{h.done}
 					</Area>
-					<Area href="/setup/computer?page=logs#doctor-ledger" label={h.ledger} state="ready">
+					<Area
+						href="/setup/computer?page=logs#doctor-ledger"
+						label={h.ledger}
+						state="ready"
+						icon="ok"
+					>
 						{h.ready}
 					</Area>
-					<Area href="/setup/computer?page=logs" label={h.console} state="off">
+					<Area href="/setup/computer?page=logs" label={h.console} state="off" icon="console">
 						{h.open}
 					</Area>
 				</div>
 				<Columns className="px-0 pb-0">
 					<Column>
 						<SetupCard>
-							<SetupRow label={`${h.version} ${current}`.trim()}>
+							<SetupRow label={h.version}>
+								<span className="font-mono text-ui">{current}</span>
 								<Button variant="secondary" onClick={() => void checkUpdate(true)}>
 									{h.checkUpdate}
 								</Button>
@@ -295,6 +350,9 @@ function ComputerHealth() {
 								</Button>
 							</SetupRow>
 							<SetupRow label={t.settings.pages.logs} href="/setup/computer?page=logs" />
+							<Fold id="tools" label={t.settings.tools.title} value={h.details}>
+								<DoctorTools />
+							</Fold>
 						</SetupCard>
 					</Column>
 					<Column>
@@ -319,11 +377,6 @@ function ComputerHealth() {
 									{h.manual}
 								</Button>
 							</div>
-						</SetupCard>
-						<SetupCard>
-							<Fold id="tools" label={t.settings.tools.title} value={h.details}>
-								<DoctorTools />
-							</Fold>
 						</SetupCard>
 					</Column>
 				</Columns>

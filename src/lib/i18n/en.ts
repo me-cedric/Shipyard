@@ -42,7 +42,7 @@ export const en = {
 		dark: "Dark",
 		oled: "OLED",
 		system: "System",
-		"system-oled": "System, OLED when dark",
+		"system-oled": "System with OLED",
 	},
 	prefs: {
 		theme: "Theme",
@@ -664,10 +664,10 @@ export const en = {
 			mapLabels: "Labels",
 			writes: "Write switches",
 			write: {
-				push: "Push",
-				pullRequest: "Pull request",
-				trackerTransition: "Ticket transition",
-				trackerComment: "Ticket comment",
+				push: "Push the branch",
+				pullRequest: "Open the pull request",
+				trackerTransition: "Move the ticket",
+				trackerComment: "Comment in the issue tracker",
 			},
 			save: "Save",
 			recipes: "Allowed for a recipe",

@@ -35,12 +35,33 @@ import { SplitPane } from "@/ui/molecules/split-pane";
 import { BranchSelector } from "./branch-selector";
 import { featureOf } from "./branches-feature";
 import { withProject } from "./project-gate";
+import { diffCounts } from "./viewer";
 
 /** One colour per lane of the graph, in turn. */
 const LANE = ["bg-accent", "bg-success", "bg-warning", "bg-info", "bg-danger"];
 const lane = (i: number) => LANE[i % LANE.length];
 const STEP = 14;
 const LABEL = { branch: "accent", remote: "neutral", tag: "warning" } as const;
+
+type FileState = keyof ReturnType<typeof useI18n>["t"]["code"]["state"];
+
+/** The lines that one file of a commit adds and removes, in green and red. A file with no line change names its state. */
+function FileCounts({ sha, file }: { sha: string; file: { path: string; state: FileState } }) {
+	const { t } = useI18n();
+	const diff = useCommitDiff(sha, file.path).data;
+	if (!diff) return null;
+	const { added, removed } = diffCounts(diff.text);
+	if (!(added || removed))
+		return (
+			<span className="shrink-0 text-13 font-semibold text-n-11">{t.code.state[file.state]}</span>
+		);
+	return (
+		<>
+			{added ? <span className="font-semibold text-success-text">+{added}</span> : null}
+			{removed ? <span className="font-semibold text-danger-text">−{removed}</span> : null}
+		</>
+	);
+}
 
 /**
  * One commit: who and when, the message, its feature and its changed files. A file opens its diff
@@ -57,12 +78,12 @@ function Detail({ sha }: { sha: string }) {
 	const avatars = useAvatars(detail ? [detail.info.author_email] : []);
 	const features = useFeatures().data ?? [];
 	const editor = useEditors().data?.[0];
-	// The first file opens with the commit; a click on the open file closes it.
-	const [file, setFile] = useState<string | null | undefined>(undefined);
+	// A click on a file opens its diff; a click on the open file closes it.
+	const [file, setFile] = useState<string | null>(null);
 	const [blaming, setBlaming] = useState(false);
 	const [more, setMore] = useState(false);
 	const [error, setError] = useState<unknown>(null);
-	const picked = file === undefined ? detail?.files[0]?.path : file;
+	const picked = file ?? null;
 	const open = picked && detail?.files.some((f) => f.path === picked) ? picked : null;
 	// The buttons act on the open file, else on the first file of the commit.
 	const target = open ?? detail?.files[0]?.path ?? null;
@@ -95,6 +116,14 @@ function Detail({ sha }: { sha: string }) {
 						{format(h.feature, { title: feature.title })}
 					</Link>
 				) : null}
+				<LinkButton
+					className="self-start"
+					aria-expanded={more}
+					aria-controls={moreId}
+					onClick={() => setMore(!more)}
+				>
+					{t.ui.more}
+				</LinkButton>
 			</Card>
 			<Card className="py-2">
 				<section aria-label={t.code.files}>
@@ -115,9 +144,7 @@ function Detail({ sha }: { sha: string }) {
 								)}
 							>
 								<span className="mr-auto min-w-0 truncate font-mono text-13">{f.path}</span>
-								<span className="shrink-0 text-13 font-semibold text-n-11">
-									{t.code.state[f.state]}
-								</span>
+								<FileCounts sha={sha} file={f} />
 							</Row>
 						</ContextMenu>
 					))}
@@ -152,7 +179,7 @@ function Detail({ sha }: { sha: string }) {
 				) : null}
 				<RightButton
 					right="code.write"
-					className="border-danger-subtle text-danger-text"
+					className="border-danger/50 text-danger-text"
 					onClick={() => ask(format(h.undoAsk, { short: info.short, summary: info.summary }))}
 				>
 					{h.undo}
@@ -179,9 +206,6 @@ function Detail({ sha }: { sha: string }) {
 					</ol>
 				</Card>
 			) : null}
-			<LinkButton aria-expanded={more} aria-controls={moreId} onClick={() => setMore(!more)}>
-				{t.ui.more}
-			</LinkButton>
 			{more ? (
 				<div id={moreId} className="flex flex-wrap items-center gap-2">
 					<Badge className="font-mono">{info.short}</Badge>
@@ -301,7 +325,7 @@ function HistoryView() {
 											type="button"
 											aria-pressed={c.sha === sha}
 											onClick={() => setSha(c.sha)}
-											className="flex min-h-17 min-w-0 flex-1 flex-wrap items-center gap-3 px-6 py-2 text-left hover:bg-n-2 aria-pressed:bg-accent-soft"
+											className="flex min-h-17 min-w-0 flex-1 flex-wrap items-center gap-3 px-6 py-2 text-left hover:bg-n-2 aria-pressed:bg-accent-tint"
 										>
 											<Avatar
 												name={c.author_name}

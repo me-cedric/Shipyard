@@ -55,7 +55,7 @@ function PullRow({ r }: { r: PrRowView }) {
 					className="flex min-h-control min-w-0 flex-1 flex-wrap items-center gap-3"
 				>
 					<span aria-hidden="true" className="contents">
-						<Avatar agent={r.runs.length > 0} name={r.title} />
+						<Avatar name={r.title} />
 					</span>
 					<span className="mr-auto min-w-0 font-semibold">{r.title}</span>
 					<StatePill r={r} />
@@ -123,7 +123,7 @@ function Page() {
 	return (
 		<div className="flex flex-col">
 			<PageHeader title={t.ui.place.code} />
-			<div className="flex flex-col gap-6 px-4 pb-10">
+			<div className="flex flex-col gap-6 px-4 pt-3 pb-10">
 				<div className="flex flex-wrap items-start gap-6">
 					<FilesCard />
 					<PullsCard full={full} onFull={() => setAsked(true)} />

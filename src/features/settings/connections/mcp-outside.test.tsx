@@ -11,15 +11,17 @@ describe("Settings / Connections / Outside agents", () => {
 		mountApp("/setup/computer?page=share");
 		const box = within(await screen.findByRole("region", { name: "Address of Shipyard" }));
 		const all = within(screen.getByRole("main"));
-		expect(box.getByText("Stopped")).toBeInTheDocument();
+		expect(all.getByText("Stopped")).toBeInTheDocument();
+		// The server switch is under More of the card of what the tools may use.
+		expect(box.queryByRole("switch")).toBeNull();
 		// Each tool of a group is off until its switch is on.
-		await user.click(box.getByRole("switch", { name: "Server on" }));
+		await user.click(all.getByRole("switch", { name: "Server on" }));
 		await user.click(all.getByRole("button", { name: "Read files" }));
 		await user.click(all.getByRole("button", { name: "Apply" }));
 		await waitFor(() =>
 			expect(mockState().doctor.gates).toMatchObject({ enabled: true, reads: true }),
 		);
-		expect(await box.findByText("Running")).toBeInTheDocument();
+		expect(await all.findByText("Running")).toBeInTheDocument();
 		const status = await unwrap(commands.mcpOutsideGet());
 		expect(status.active).toEqual(["project_list_files", "project_read_file"]);
 		expect(status.url).toBe("http://127.0.0.1:47821/mcp");

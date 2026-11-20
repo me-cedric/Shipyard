@@ -1,12 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Column, Columns, SetupCard, SetupRow, Stepper } from "@/features/settings/parts";
-import { ButtonLink, Fold } from "@/features/settings/project/fold";
+import { ButtonLink, Fold, valueClass } from "@/features/settings/project/fold";
+import { STEPS, toDraft } from "@/features/sync/automation-draft";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type TicketsConfig, unwrap } from "@/lib/ipc";
 import { projectKeys, useTicketsConfig } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
 import { useAutomation, useWorkItems } from "@/lib/sync";
+import { cn } from "@/lib/utils";
 import { Chip } from "@/ui/atoms/chip";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
@@ -28,13 +30,22 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 	const d = t.doctor.tickets;
 	const qc = useQueryClient();
 	const [c, setC] = useState(saved);
-	const [edit, setEdit] = useState<(typeof TYPES)[number]>("epic");
+	const [edit, setEdit] = useState<(typeof TYPES)[number] | null>(null);
 	const [error, setError] = useState<unknown>(null);
 	const dirty = JSON.stringify(c) !== JSON.stringify(saved);
 	const statuses = [
 		...new Set((useWorkItems(NO_FILTER).data ?? []).map((i) => i.status).filter(Boolean)),
 	];
-	const interval = useAutomation().data?.automation.interval;
+	const automation = useAutomation().data?.automation;
+	const interval = automation?.interval;
+	// The step of Shipyard that a status of the issue tracker maps to, from the status mapping.
+	const stepMap = automation ? toDraft(automation).map : {};
+	const stageOf = (status: string) => {
+		const step = STEPS.find(([, states]) =>
+			states.some((st) => (stepMap[st]?.status ?? "").toLowerCase() === status.toLowerCase()),
+		);
+		return step ? t.doctor.auto.step[step[0]] : undefined;
+	};
 	const save = async () => {
 		try {
 			setError(null);
@@ -48,41 +59,59 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 	return (
 		<Columns>
 			<Column>
-				<SetupCard id="kinds" title={d.kinds}>
+				<SetupCard id="kinds" title={d.kinds} className="pb-4">
 					<div className="flex flex-wrap gap-2 px-6 py-3">
 						{TYPES.map((type) => (
-							<Chip key={type} selected={edit === type} onClick={() => setEdit(type)}>
+							<Chip
+								key={type}
+								selected={edit === type}
+								onClick={() => setEdit(edit === type ? null : type)}
+							>
 								{c[type] || k.type[type]}
 							</Chip>
 						))}
 					</div>
-					<div className="px-6 pb-4">
-						<Input
-							label={k.type[edit]}
-							value={c[edit]}
-							onChange={(e) => setC({ ...c, [edit]: e.target.value })}
-						/>
-					</div>
-				</SetupCard>
-				<SetupCard id="holds" title={d.holds}>
+					{edit ? (
+						<div className="px-6 pb-4">
+							<Input
+								label={k.type[edit]}
+								value={c[edit]}
+								onChange={(e) => setC({ ...c, [edit]: e.target.value })}
+							/>
+						</div>
+					) : null}
+					<h2 id="holds" className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">
+						{d.holds}
+					</h2>
 					<div className="px-6 py-3">
 						<div className={box}>
 							{c.epic}
-							<div className={box}>
+							<div className={cn(box, "bg-surface-1")}>
 								{c.story}
-								<div className={box}>{c.task}</div>
+								<div className={box}>
+									{c.task}, {c.subtask}
+								</div>
 							</div>
-							<div className={box}>{c.subtask}</div>
 						</div>
 					</div>
-					<SetupRow label={d.order}>
-						<Select
-							label={k.hierarchy}
-							value={c.hierarchy}
-							onValueChange={(v) => setC({ ...c, hierarchy: v })}
-							items={HIERARCHIES.map((v) => ({ value: v, label: k.hierarchies[v] }))}
-						/>
-					</SetupRow>
+					<details className="px-6">
+						<summary
+							className={cn(
+								valueClass(),
+								"w-fit cursor-pointer list-none [&::-webkit-details-marker]:hidden",
+							)}
+						>
+							{d.order}
+						</summary>
+						<div className="pt-3">
+							<Select
+								label={k.hierarchy}
+								value={c.hierarchy}
+								onValueChange={(v) => setC({ ...c, hierarchy: v })}
+								items={HIERARCHIES.map((v) => ({ value: v, label: k.hierarchies[v] }))}
+							/>
+						</div>
+					</details>
 				</SetupCard>
 				<SetupCard id="size" title={d.size}>
 					<SetupRow label={d.unit}>
@@ -117,21 +146,23 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 								href="/setup/project?page=automation#status-map"
 								aria-label={format(d.stageOf, { name: s })}
 							>
-								{t.doctor.project.map}
+								{stageOf(s) ?? t.doctor.project.map}
 							</ButtonLink>
 						</SetupRow>
 					))}
 				</SetupCard>
 				<SetupCard title={t.ui.more}>
-					<Fold id="spec-address" label={d.specAddress} value={c.specBaseUrl || d.change}>
+					<Fold id="spec-address" label={d.specAddress} hint={c.specBaseUrl} value={d.change}>
 						<Input
 							label={k.specUrl}
 							value={c.specBaseUrl}
 							onChange={(e) => setC({ ...c, specBaseUrl: e.target.value })}
 						/>
 					</Fold>
-					<SetupRow label={format(d.watch, { count: interval ?? 60 })}>
-						<ButtonLink href="/setup/project?page=automation#interval">{d.change}</ButtonLink>
+					<SetupRow label={d.every}>
+						<ButtonLink href="/setup/project?page=automation#interval">
+							{format(d.seconds, { count: interval ?? 60 })}
+						</ButtonLink>
 					</SetupRow>
 					<Fold id="fields" label={d.mapFields} value={d.mapBtn}>
 						<Input

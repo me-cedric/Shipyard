@@ -2,12 +2,14 @@ import {
 	codeBlame,
 	codeBranchCreate,
 	codeBranchDelete,
+	codeBranches,
 	codeBranchMerge,
 	codeBranchRebase,
 	codeBranchSwitch,
 	codeCommit,
 	codeDiff,
 	codeFileRead,
+	codeLog,
 	codeMergeAbort,
 	codeRebaseAbort,
 	codeRebaseContinue,
@@ -31,6 +33,14 @@ describe("the Code mock", () => {
 		expect(paths.size).toBe(5);
 		expect(s.conflicted.map((f) => f.path)).toEqual(["src/lib/format.ts"]);
 		expect(c.stashes).toHaveLength(1);
+	});
+
+	it("seeds the demo with a second page of the log, branches named after pull requests and counts", () => {
+		const c = seedDemoCode();
+		expect(codeLog(c, 0, 30).has_more).toBe(true);
+		const names = codeBranches(c).map((b) => b.name);
+		expect(names).toEqual(expect.arrayContaining(["feat/demo/pr-142", "feat/demo/pr-141"]));
+		expect(codeStatus(c)).toMatchObject({ ahead: 2, behind: 1 });
 	});
 
 	it("keeps a file in both groups when it has a staged and a later unstaged change", () => {

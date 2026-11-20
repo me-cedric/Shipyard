@@ -15,6 +15,7 @@ import { Badge } from "@/ui/atoms/badge";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
 import { SPRING, useReducedMotionPref } from "@/ui/motion";
+import { Fold } from "./connections/fold";
 import { TextPref } from "./me/personal";
 import { Column, Columns, SetupCard, SetupRow, Stepper, Toggle } from "./parts";
 
@@ -84,9 +85,13 @@ function Colour() {
 		<SetupCard title={t.personal.setup.colour}>
 			{/* biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box */}
 			<div role="group" aria-label={l.accent} className="flex flex-wrap gap-4 px-6 pt-2 pb-5">
-				{swatch("theme", l.accentTheme, null)}
 				{(Object.keys(SWATCH) as Accent[]).map((a) => swatch(a, l.accents[a], SWATCH[a]))}
 			</div>
+			<Fold label={t.ui.more}>
+				<div className="flex flex-wrap gap-4 px-6 pt-2 pb-3">
+					{swatch("theme", l.accentTheme, null)}
+				</div>
+			</Fold>
 		</SetupCard>
 	);
 }
@@ -139,13 +144,15 @@ function Layout() {
 			<SetupRow label={s.trayIcon}>
 				<Toggle label={l.tray} checked={p.tray} onCheckedChange={(c) => p.setPrefs({ tray: c })} />
 			</SetupRow>
-			<SetupRow label={l.showAllPages}>
-				<Toggle
-					label={l.showAllPages}
-					checked={p.showAllPages}
-					onCheckedChange={(c) => p.setPrefs({ showAllPages: c })}
-				/>
-			</SetupRow>
+			<Fold label={t.ui.more}>
+				<SetupRow label={l.showAllPages}>
+					<Toggle
+						label={l.showAllPages}
+						checked={p.showAllPages}
+						onCheckedChange={(c) => p.setPrefs({ showAllPages: c })}
+					/>
+				</SetupRow>
+			</Fold>
 		</SetupCard>
 	);
 }

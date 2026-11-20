@@ -46,6 +46,8 @@ export type MockCode = {
 	/** The paths that a delete moved to the system trash. Nothing is removed for good. */
 	trash: string[];
 	counter: number;
+	/** The commits that a branch is ahead of and behind its base: the demo shows them, a fresh copy has none. */
+	counts: Record<string, [ahead: number, behind: number]>;
 };
 
 const TYPES = ["feat", "fix", "chore", "docs", "refactor", "test"];
@@ -111,6 +113,7 @@ export function seedCode(): MockCode {
 		watchMinutes: 15,
 		trash: [],
 		counter: 4,
+		counts: {},
 	};
 }
 
@@ -130,6 +133,33 @@ export function seedDemoCode(): MockCode {
 			],
 		},
 	];
+	// Two branches named after the pull requests of the demo: one open, one merged into main.
+	const [tip, next, base] = c.branches.main?.log ?? [];
+	const open = commit(90, "fix(auth): refuse an empty token", {
+		"src/app.ts": ["a\nb\n", "a\nb\nc\n"],
+	});
+	if (tip && next && base) {
+		// Older history: a second page of the log, so that "Older commits" shows.
+		const older = Array.from({ length: 28 }, (_, i) =>
+			commit(100 + i, `chore: tidy part ${28 - i}`, {}),
+		);
+		for (const [i, o] of older.entries()) {
+			c.commits[o.info.sha] = o;
+			o.info.parents = older[i + 1] ? [older[i + 1]?.info.sha ?? ""] : [];
+			o.info.time = 1_760_000_000 - (i + 1) * 3600;
+		}
+		const first = older[0];
+		const baseInfo = c.commits[base]?.info;
+		if (first && baseInfo) baseInfo.parents = [first.info.sha];
+		c.branches.main?.log.push(...older.map((o) => o.info.sha));
+		open.info.parents = [next];
+		c.commits[open.info.sha] = open;
+		c.branches["feat/demo/pr-142"] = { log: [open.info.sha, next, base], touches: ["src/app.ts"] };
+		c.branches["feat/demo/pr-141"] = { log: [next, base], touches: [] };
+		const head = c.commits[tip]?.info;
+		if (head) head.summary = `${head.summary} (#142)`;
+	}
+	c.counts = { main: [2, 1], "feat/demo/pr-142": [1, 2], "feat/demo/pr-141": [0, 1] };
 	c.stashes = [
 		{
 			id: "d".repeat(40),
@@ -143,9 +173,9 @@ export function seedDemoCode(): MockCode {
 /** The comment of the automatic review on a changed file of the demo working copy, for the mock of the agent reviews. */
 export const DEMO_REVIEW_FINDING = {
 	severity: "P1",
-	path: "src/app.ts",
-	line: 2,
-	text: "This line changes the result and no test covers it. Add one.",
+	path: "docs/guide.md",
+	line: 1,
+	text: "This line changes the guide and nothing checks it. Add a link to the page that it describes.",
 } as const;
 
 /** The lines of a text. A missing text has none. */
@@ -191,8 +221,8 @@ export function codeStatus(c: MockCode): Changes_Serialize {
 		branch: c.branch,
 		head: c.branches[c.branch]?.log[0] ?? null,
 		upstream: c.branch === "main" ? "origin/main" : null,
-		ahead: 0,
-		behind: 0,
+		ahead: c.counts[c.branch]?.[0] ?? 0,
+		behind: c.counts[c.branch]?.[1] ?? 0,
 		staged: all
 			.filter(([p, f]) => f.index !== f.head && !skip.has(p))
 			.map(([p, f]) =>
@@ -428,8 +458,8 @@ export function codeBranches(c: MockCode): Branch_Serialize[] {
 				kind: "local",
 				is_head: name === c.branch,
 				upstream: c.remoteBranches.includes(`origin/${name}`) ? `origin/${name}` : null,
-				ahead: 0,
-				behind: 0,
+				ahead: c.counts[name]?.[0] ?? 0,
+				behind: c.counts[name]?.[1] ?? 0,
 				tip: tip(name),
 			}),
 		),

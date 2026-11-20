@@ -73,7 +73,7 @@ test("tester", async ({ page }) => {
 		"Code, Now, a row with CI failing",
 		async () => {
 			await w.go("Code", "Now");
-			await w.click(page.getByRole("link", { name: /#43 Audit the keychain use/ }));
+			await w.click(page.getByRole("link", { name: /^Audit the keychain use/ }));
 			const checks = page
 				.getByRole("navigation", { name: "Sections" })
 				.getByRole("button", { name: "Checks", exact: true });

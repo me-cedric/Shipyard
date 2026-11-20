@@ -120,7 +120,7 @@ export const onboardingDe: typeof onboardingEn = {
 		allow: "Erlauben",
 		allowAll: "Alle erlauben",
 		settings: "Systemeinstellungen öffnen",
-		test: "Test senden",
+		test: "Testbenachrichtigung senden",
 		testBody: "Die Benachrichtigungen sind an.",
 	},
 };

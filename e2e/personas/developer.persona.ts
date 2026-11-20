@@ -85,26 +85,38 @@ test("developer", async ({ page }) => {
 
 	await w.step(
 		"Stage and commit my changes",
-		"Code, Now, more files, Choose all, the sync mark, Commit",
+		"Code, Now, more files, Solve it myself, Choose all, the message, Commit",
 		async () => {
 			await w.go("Code", "Now");
 			await w.click(page.getByRole("link", { name: /\d+ more files?/ }));
-			await w.click(page.getByRole("button", { name: "Choose all" }));
-			// Commit of the old status bar is in the card of the sync mark.
-			await w.click(page.getByRole("banner").getByRole("button", { name: /^Sync state/ }));
-			await w.click(
-				page.getByRole("dialog", { name: "Sync state" }).getByRole("button", { name: "Commit" }),
+			// The demo copy has a file in conflict: a commit waits for it. Take ours.
+			await w.click(page.getByRole("button", { name: "Solve it myself" }));
+			await w.click(page.getByRole("button", { name: "Take ours" }));
+			await w.until(
+				() => page.getByRole("region", { name: /conflict/ }).count(),
+				0,
+				"the conflict stays",
 			);
-			const dialog = page.getByRole("dialog", { name: "Commit" });
-			await w.fill(dialog.getByRole("textbox"), "fix(auth): refuse an empty token");
-			await w.click(dialog.getByRole("button", { name: "Commit" }));
-			await w.until(() => page.getByRole("dialog").count(), 0, "the commit dialog stays open");
+			await w.click(page.getByRole("button", { name: "Choose all" }));
+			// The page of the changes holds the form: a message, then Commit. A conflict file stays out.
+			const form = page.getByRole("form", { name: "Commit" });
+			await w.fill(
+				form.getByRole("textbox", { name: "Commit message" }),
+				"fix(auth): refuse an empty token",
+			);
+			await w.click(form.getByRole("button", { name: /^Commit \d+ files?$/ }));
+			await w.until(() => form.getByRole("alert").count(), 0, "the commit shows an error");
+			await w.until(
+				() => page.getByRole("heading", { name: /^\d+ files? to commit$/ }).count(),
+				1,
+				"the files to commit do not show after the commit",
+			);
 		},
 	);
 
 	await w.step("Review a pull request", "the pull request row, Approve", async () => {
 		await w.go("Code", "Now");
-		await w.click(page.getByRole("link", { name: /#44 Rework the settings page/ }));
+		await w.click(page.getByRole("link", { name: /^Rework the settings page/ }));
 		await w.click(
 			page
 				.getByRole("navigation", { name: "Sections" })

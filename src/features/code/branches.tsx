@@ -1,3 +1,4 @@
+import { Menu } from "@base-ui/react/menu";
 import { Link } from "@tanstack/react-router";
 import { type ReactNode, useId, useState } from "react";
 import { featureHref, useFeatures } from "@/features/flow/feature";
@@ -30,6 +31,7 @@ import { Progress } from "@/ui/atoms/progress";
 import { Select } from "@/ui/atoms/select";
 import { Card } from "@/ui/molecules/card";
 import { ContextMenu } from "@/ui/molecules/context-menu";
+import { MenuList } from "@/ui/molecules/menu-button";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { featureOf } from "./branches-feature";
@@ -220,24 +222,29 @@ function BranchesView() {
 		</RightButton>
 	);
 	const rebase = (name: string) => run(async () => setRebased(await rebaseBranch(name)));
+	// The rarer actions of the page: the page header has no menu, they sit behind "More" at the end.
+	const moreItems = [
+		...(busy
+			? []
+			: locals
+					.filter((b) => !b.is_head)
+					.map((b) => ({
+						id: `rebase:${b.name}`,
+						label: format(t.code.rebaseBranch, { name: b.name }),
+						disabled: !writes,
+						onSelect: () => rebase(b.name),
+					}))),
+		{
+			id: "force",
+			label: t.code.forcePublish,
+			disabled: !writes,
+			onSelect: () => setForcing(true),
+		},
+		{ id: "remotes", label: b18.remotes, onSelect: () => setRemotes(!remotes) },
+	];
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-			<PageHeader
-				title={t.tabs.code.branches}
-				menu={[
-					...(busy
-						? []
-						: locals
-								.filter((b) => !b.is_head)
-								.map((b) => ({
-									label: format(t.code.rebaseBranch, { name: b.name }),
-									disabled: !writes,
-									onClick: () => rebase(b.name),
-								}))),
-					{ label: t.code.forcePublish, disabled: !writes, onClick: () => setForcing(true) },
-					{ label: b18.remotes, onClick: () => setRemotes(!remotes) },
-				]}
-			/>
+			<PageHeader title={t.tabs.code.branches} />
 			{/* biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box */}
 			<div
 				role="group"
@@ -270,6 +277,7 @@ function BranchesView() {
 			{creating ? <CreateBranch run={run} onDone={() => setCreating(false)} /> : null}
 			{forcing ? (
 				<div className="flex flex-wrap items-center gap-2.5 px-4 pb-4">
+					<GateNotice push part="default" />
 					<RightButton
 						right="code.write"
 						variant="danger"
@@ -287,7 +295,7 @@ function BranchesView() {
 					</Button>
 				</div>
 			) : null}
-			<GateNotice push />
+			<GateNotice push part="rest" />
 			{error ? (
 				<p role="alert" className="px-4 py-2 text-danger-text">
 					{error}
@@ -464,6 +472,12 @@ function BranchesView() {
 				</Card>
 			) : null}
 			<OriginPanel />
+			<div className="px-4 pb-10">
+				<Menu.Root>
+					<Menu.Trigger className={linkClass}>{t.ui.more}</Menu.Trigger>
+					<MenuList items={moreItems} />
+				</Menu.Root>
+			</div>
 			<CloneDialog open={cloning} onClose={() => setCloning(false)} />
 		</div>
 	);

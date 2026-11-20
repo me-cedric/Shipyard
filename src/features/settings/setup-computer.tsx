@@ -11,7 +11,6 @@ import { Button } from "@/ui/atoms/button";
 import { PageSwitchContext } from "@/ui/molecules/page-header";
 import { AgentsRules } from "./agents-rules";
 import { Connections } from "./connections";
-import { useMcpServers, useProviders } from "./connections/keys";
 import { McpOutsideGroup } from "./connections/mcp-outside-group";
 import { Compass } from "./extensions/compass";
 import { Column, Columns } from "./parts";
@@ -51,9 +50,6 @@ export function SetupComputer() {
 	const first = useRouterState({
 		select: (s) => !new URLSearchParams(s.location.searchStr).get("page"),
 	});
-	// The count of Settings / Connections of before, for what this computer holds: the same queries as the lists.
-	const servers = (useMcpServers().data ?? []).filter((m) => m.enabled).length;
-	const providers = (useProviders().data ?? []).length;
 	// Repair sits at the right of the section switch, on the first page: the title row draws this slot.
 	const slot = useContext(PageSwitchContext);
 	const withRepair = useMemo(
@@ -74,7 +70,6 @@ export function SetupComputer() {
 		<PageSwitchContext.Provider value={first ? withRepair : slot}>
 			<SetupScope
 				scope="computer"
-				count={servers + providers}
 				pages={[
 					{ id: "models", label: t.settings.pills.models, view: <AgentsRules />, bare: true },
 					{
@@ -93,7 +88,7 @@ export function SetupComputer() {
 					},
 					{
 						id: "health",
-						label: t.settings.pages.computerHealth,
+						label: t.settings.pills.health,
 						view: <Health scope="computer" />,
 					},
 					{

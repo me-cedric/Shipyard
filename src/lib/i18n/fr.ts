@@ -43,7 +43,7 @@ export const fr: Messages = {
 		dark: "Sombre",
 		oled: "OLED",
 		system: "Système",
-		"system-oled": "Système, OLED si sombre",
+		"system-oled": "Système avec OLED",
 	},
 	prefs: {
 		theme: "Thème",
@@ -669,10 +669,10 @@ export const fr: Messages = {
 			mapLabels: "Étiquettes",
 			writes: "Écritures autorisées",
 			write: {
-				push: "Push",
-				pullRequest: "Pull request",
-				trackerTransition: "Transition du ticket",
-				trackerComment: "Commentaire du ticket",
+				push: "Pousser la branche",
+				pullRequest: "Ouvrir la pull request",
+				trackerTransition: "Déplacer le ticket",
+				trackerComment: "Commenter dans l'outil de tickets",
 			},
 			save: "Enregistrer",
 			recipes: "Autorisé pour une recette",

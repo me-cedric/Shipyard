@@ -14,9 +14,8 @@ import { cn } from "@/lib/utils";
 import { useTeam } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
-import { CheckIcon, Cog6ToothIcon, CpuChipIcon, FolderOpenIcon } from "@/ui/icons";
+import { CheckIcon, Cog6ToothIcon, ComputerDesktopIcon, FolderOpenIcon } from "@/ui/icons";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { Terms } from "@/ui/molecules/term";
 import { ChecklistControl, ITEMS, type ItemId, useChecklist } from "./checklist";
 
 /** The card of a scope of Setup: an outline icon, the name and its state as a pill. */
@@ -110,7 +109,7 @@ export function SetupStart() {
 			<div className="mx-4 flex flex-wrap rounded-lg bg-surface-2 shadow-2">
 				<ol
 					aria-label={s.title}
-					className="flex min-w-0 flex-[1_1_220px] flex-col gap-0.5 border-r border-n-6 p-6"
+					className="flex min-w-0 flex-[1_1_220px] flex-col gap-1.5 border-r border-n-6 p-6"
 				>
 					{ITEMS.map((id, i) => {
 						const done = state.done[id] === true;
@@ -120,7 +119,7 @@ export function SetupStart() {
 									type="button"
 									aria-current={id === open ? "step" : undefined}
 									onClick={() => setChosen(id)}
-									className="flex min-h-control w-full cursor-pointer items-center gap-3 rounded-md px-2 text-left text-n-12 hover:bg-n-3 aria-[current=step]:font-semibold"
+									className="flex min-h-control w-full cursor-pointer items-center gap-3 rounded-md px-2 text-left text-n-12 aria-[current=step]:font-semibold"
 								>
 									<span
 										aria-hidden="true"
@@ -147,7 +146,7 @@ export function SetupStart() {
 					className="flex min-w-0 flex-[3_1_420px] flex-col gap-6 p-8"
 				>
 					<h2 id="setup-step" className="text-30 leading-tight font-semibold text-n-12">
-						<Terms>{s.question[open]}</Terms>
+						{s.question[open]}
 					</h2>
 					{open === "tracker" || open === "forge" ? <Kinds group={open} /> : null}
 					<div className="flex flex-wrap items-center justify-end gap-2.5">
@@ -156,7 +155,7 @@ export function SetupStart() {
 								{s.skip}
 							</Button>
 						) : null}
-						<ChecklistControl id={open} state={state} />
+						<ChecklistControl id={open} state={state} pick={false} pane />
 					</div>
 				</section>
 			</div>
@@ -183,7 +182,7 @@ export function SetupStart() {
 					<Scope
 						to="/setup/computer"
 						label={s.scope.computer}
-						icon={<CpuChipIcon size={28} />}
+						icon={<ComputerDesktopIcon size={28} />}
 						state={
 							<StatePill state={ready ? "ready" : "fix"}>
 								{format(s.state.tools, { count: ready })}

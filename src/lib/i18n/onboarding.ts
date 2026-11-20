@@ -118,8 +118,8 @@ export const onboardingEn = {
 		},
 		allow: "Allow",
 		allowAll: "Allow all",
-		settings: "Open System Settings",
-		test: "Send a test",
+		settings: "Open the system settings",
+		test: "Send a test notification",
 		testBody: "The notifications are on.",
 	},
 };
@@ -243,8 +243,8 @@ export const onboardingFr: typeof onboardingEn = {
 		},
 		allow: "Autoriser",
 		allowAll: "Tout autoriser",
-		settings: "Ouvrir les Réglages Système",
-		test: "Envoyer un test",
+		settings: "Ouvrir les réglages du système",
+		test: "Envoyer une notification de test",
 		testBody: "Les notifications sont activées.",
 	},
 };

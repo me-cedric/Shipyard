@@ -266,9 +266,12 @@ export function ChecklistControl({
 	id,
 	state,
 	pick = true,
+	pane,
 }: {
 	id: ItemId;
 	state: Checklist;
+	/** The step pane of Setup / Start: no status text and no select, only the actions. */
+	pane?: boolean;
 	/** Show the AI tool select. Settings / Me has it on the page already. */
 	pick?: boolean;
 }) {
@@ -322,7 +325,7 @@ export function ChecklistControl({
 	const todo = done === false;
 	return (
 		<>
-			{done === undefined ? null : (
+			{done === undefined || pane ? null : (
 				<span
 					className={`flex items-center gap-1.5 text-ui ${done ? "text-success-text" : "text-n-11"}`}
 				>
@@ -332,7 +335,7 @@ export function ChecklistControl({
 					{done ? s.done : s.todo}
 				</span>
 			)}
-			{id === "ai" && pick ? <DefaultAgentSelect /> : null}
+			{id === "ai" && pick && !pane ? <DefaultAgentSelect /> : null}
 			{done ? (
 				<Button
 					className="min-h-control"

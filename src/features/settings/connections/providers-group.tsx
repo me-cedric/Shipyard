@@ -216,12 +216,10 @@ function ProviderRow({
 					<span title={p.model} className="min-w-0 flex-1 font-semibold">
 						{p.name}
 					</span>
-					{p.state === "untested" ? (
-						<span className="sr-only">{t.connections.state.untested}</span>
+					{p.state === "untested" || p.state === "passed" ? (
+						<span className="sr-only">{t.connections.state[p.state]}</span>
 					) : (
-						<StatePill state={p.state === "passed" ? "ready" : "fix"}>
-							{t.connections.state[p.state]}
-						</StatePill>
+						<StatePill state="fix">{t.connections.state[p.state]}</StatePill>
 					)}
 					<Button
 						variant="secondary"
@@ -315,7 +313,7 @@ export function ProvidersGroup({
 					<ProviderForm onDone={() => add(false)} />
 				</div>
 			) : (
-				<Row>
+				<Row className={LINE}>
 					<LinkButton disabled={formOpen} onClick={() => add(true)}>
 						{t.personal.setup.addProvider}
 					</LinkButton>

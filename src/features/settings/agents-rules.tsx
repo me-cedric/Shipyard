@@ -12,7 +12,6 @@ import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Button } from "@/ui/atoms/button";
 import { Caption, Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
-import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { SettingsRow } from "@/ui/molecules/settings-row";
@@ -37,11 +36,14 @@ function TierRow({
 	row,
 	detected,
 	split,
+	extra,
 }: {
 	row: RunnerTiers_Serialize;
 	detected: boolean;
-	/** One row of the card for each tier, in place of one row for the tool. */
+	/** One row of the card for each tier, in place of one row for the tool. The levels are under More. */
 	split?: boolean;
+	/** More rows of the More row of a split card. */
+	extra?: ReactNode;
 }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
@@ -70,7 +72,7 @@ function TierRow({
 	};
 	const listed = detected && (catalog?.models.length ?? 0) > 0;
 	/** The model of a tier, and its effort when the model accepts one. */
-	const cell = (tier: (typeof TIERS)[number]) => {
+	const cell = (tier: (typeof TIERS)[number], part: "model" | "effort" | "both" = "both") => {
 		const name = `${runnerName(row.runner)} ${t.settings.tiers[tier]}`;
 		const ids = catalog?.models.map((m) => m.id) ?? [];
 		const efforts = listed ? levels(draft[tier]) : [];
@@ -81,21 +83,23 @@ function TierRow({
 			<>
 				{listed ? (
 					<span className="flex flex-col gap-1">
-						<Select
-							label={name}
-							className="w-full"
-							value={draft[tier] || AUTO}
-							onValueChange={(v) => pick(tier, v === AUTO ? "" : v)}
-							items={[
-								{ value: AUTO, label: t.settings.tiers.default },
-								// A model saved before the list, or typed by hand, stays pickable.
-								...(draft[tier] && !ids.includes(draft[tier])
-									? [{ value: draft[tier], label: draft[tier] }]
-									: []),
-								...ids.map((id) => ({ value: id, label: id })),
-							]}
-						/>
-						{efforts.length > 0 || unknown ? (
+						{part === "effort" ? null : (
+							<Select
+								label={name}
+								className="w-full"
+								value={draft[tier] || AUTO}
+								onValueChange={(v) => pick(tier, v === AUTO ? "" : v)}
+								items={[
+									{ value: AUTO, label: t.settings.tiers.default },
+									// A model saved before the list, or typed by hand, stays pickable.
+									...(draft[tier] && !ids.includes(draft[tier])
+										? [{ value: draft[tier], label: draft[tier] }]
+										: []),
+									...ids.map((id) => ({ value: id, label: id })),
+								]}
+							/>
+						)}
+						{part !== "model" && (efforts.length > 0 || unknown) ? (
 							<Select
 								label={`${name} ${t.settings.tiers.effort}`}
 								className="w-full"
@@ -120,7 +124,7 @@ function TierRow({
 							/>
 						) : null}
 					</span>
-				) : (
+				) : part === "effort" ? null : (
 					<Input
 						label={name}
 						value={draft[tier]}
@@ -141,10 +145,26 @@ function TierRow({
 			<>
 				{TIERS.map((tier) => (
 					<SetupRow key={tier} label={t.personal.setup.tier[tier]}>
-						{cell(tier)}
+						{cell(tier, "model")}
 					</SetupRow>
 				))}
 				{alert}
+				<Fold label={t.ui.more}>
+					{TIERS.map((tier) => {
+						const control = cell(tier, "effort");
+						const saved = draft[EFFORT[tier]];
+						const has = listed && (levels(draft[tier]).length > 0 || saved !== "");
+						return has ? (
+							<SetupRow
+								key={tier}
+								label={`${t.personal.setup.tier[tier]}: ${t.settings.tiers.effort}`}
+							>
+								{control}
+							</SetupRow>
+						) : null;
+					})}
+					{extra}
+				</Fold>
 			</>
 		);
 	return (
@@ -176,7 +196,7 @@ function ToolRows() {
 	const { t } = useI18n();
 	const s = t.settings.signIn;
 	const { runInTerminal } = useShell();
-	const { failure, busy, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [waiting, setWaiting] = useState<string | null>(null);
 	const [keyForm, setKeyForm] = useState(false);
 	const [key, setKey] = useState("");
@@ -203,12 +223,10 @@ function ToolRows() {
 			setKeyForm(false);
 			await runners.refetch();
 		});
-	const install = (id: string) =>
-		run(async () => {
-			await unwrap(commands.runnerInstall(id, true));
-			await runners.refetch();
-		});
 	const rows = runners.data ?? [];
+	const codex = rows.find(
+		(r) => r.id === "codex" && r.state !== "missing" && r.auth !== "signedIn",
+	);
 	return (
 		<SetupCard id="tools" title={t.personal.setup.toolSignIn}>
 			{rows.map((r) => {
@@ -235,65 +253,48 @@ function ToolRows() {
 							>
 								{label}
 							</StatePill>
-							{missing ? (
-								<ConfirmButton
-									busy={busy}
-									aria-label={format(t.settings.tools.install, { name: r.label })}
-									confirm={format(t.onboarding.setup.action.installConfirm, {
-										name: r.label,
-										command: r.install,
-									})}
-									onConfirm={() => void install(r.id)}
-								>
-									{t.personal.setup.install}
-								</ConfirmButton>
-							) : out ? (
+							{missing ? null : out ? (
 								<Button variant="primary" onClick={() => void signIn(r.id, false)}>
 									{s.action}
 								</Button>
 							) : null}
 						</SetupRow>
-						{r.id === "codex" && out ? (
-							<Fold aria-label={`${r.label}: ${t.ui.more}`} label={t.ui.more}>
-								<div className="flex flex-wrap gap-2 px-6 pb-2">
-									<Button onClick={() => void signIn(r.id, true)}>{s.code}</Button>
-									<Button aria-expanded={keyForm} onClick={() => setKeyForm(!keyForm)}>
-										{s.apiKey}
-									</Button>
-								</div>
-								{keyForm ? (
-									<form
-										className="flex flex-wrap items-end gap-2 px-6 py-2"
-										onSubmit={(e) => {
-											e.preventDefault();
-											void saveKey();
-										}}
-									>
-										<Input
-											autoFocus
-											label={s.apiKeyField}
-											type="password"
-											autoComplete="off"
-											value={key}
-											onChange={(e) => setKey(e.target.value)}
-											className="w-72"
-										/>
-										<Button type="submit" variant="primary" disabled={!key.trim()}>
-											{s.save}
-										</Button>
-									</form>
-								) : null}
-							</Fold>
-						) : null}
 					</div>
 				);
 			})}
+			{codex ? (
+				<Fold aria-label={`${codex.label}: ${t.ui.more}`} label={t.ui.more}>
+					<div className="flex flex-wrap gap-2 px-6 pb-2">
+						<Button onClick={() => void signIn(codex.id, true)}>{s.code}</Button>
+						<Button aria-expanded={keyForm} onClick={() => setKeyForm(!keyForm)}>
+							{s.apiKey}
+						</Button>
+					</div>
+					{keyForm ? (
+						<form
+							className="flex flex-wrap items-end gap-2 px-6 py-2"
+							onSubmit={(e) => {
+								e.preventDefault();
+								void saveKey();
+							}}
+						>
+							<Input
+								autoFocus
+								label={s.apiKeyField}
+								type="password"
+								autoComplete="off"
+								value={key}
+								onChange={(e) => setKey(e.target.value)}
+								className="w-72"
+							/>
+							<Button type="submit" variant="primary" disabled={!key.trim()}>
+								{s.save}
+							</Button>
+						</form>
+					) : null}
+				</Fold>
+			) : null}
 			<ErrorNotice error={failure} className="px-6" />
-			<Fold label={t.connections.group.provider}>
-				<div className="flex flex-col gap-2 px-6">
-					<ProviderRows />
-				</div>
-			</Fold>
 		</SetupCard>
 	);
 }
@@ -316,10 +317,26 @@ function ModelsCard() {
 		rows.find((r) => r.runner === defaultAgent) ?? rows.find((r) => detected(r.runner)) ?? rows[0];
 	const others = rows.filter((r) => r !== main);
 	return (
-		<SetupCard id="tiers" title={main ? `${p.models}: ${runnerName(main.runner)}` : p.models}>
+		<SetupCard id="tiers" title={p.models}>
 			{/* The saved row keys the draft: a refused edit keeps the typed text until the person fixes it. */}
 			{main ? (
-				<TierRow key={main.runner} row={main} detected={detected(main.runner)} split />
+				<TierRow
+					key={main.runner}
+					row={main}
+					detected={detected(main.runner)}
+					split
+					extra={
+						<>
+							{others.map((row) => (
+								<TierRow key={row.runner} row={row} detected={detected(row.runner)} />
+							))}
+							<SetupRow label={t.connections.group.provider}>{null}</SetupRow>
+							<div className="flex flex-col gap-2 px-6">
+								<ProviderRows />
+							</div>
+						</>
+					}
+				/>
 			) : null}
 			<SetupRow label={t.prefs.promptLang}>
 				<Select
@@ -332,13 +349,6 @@ function ModelsCard() {
 					]}
 				/>
 			</SetupRow>
-			{others.length ? (
-				<Fold label={p.otherTools}>
-					{others.map((row) => (
-						<TierRow key={row.runner} row={row} detected={detected(row.runner)} />
-					))}
-				</Fold>
-			) : null}
 		</SetupCard>
 	);
 }
@@ -426,6 +436,12 @@ export function AgentsRules() {
 						onClick={() => router.history.push("/setup/computer?page=rules")}
 					>
 						{t.personal.setup.editText}
+					</Button>
+					<Button
+						variant="secondary"
+						onClick={() => router.history.push("/library/specs/constitution")}
+					>
+						{t.personal.setup.projectRules}
 					</Button>
 				</RulesCard>
 			</Column>

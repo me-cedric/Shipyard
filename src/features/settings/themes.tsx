@@ -18,10 +18,9 @@ import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowDownTrayIcon, PlusIcon, TrashIcon } from "@/ui/icons";
-import { TILE_GRID } from "@/ui/molecules/tile";
 import { Dialog } from "@/ui/organisms/dialog";
 import { Fold } from "./connections/fold";
-import { SetupCard, SetupRow } from "./parts";
+import { SetupRow } from "./parts";
 
 const BUILT_IN: Theme[] = ["light", "dark", "oled", "system", "system-oled"];
 
@@ -147,7 +146,7 @@ function ThemeTile({
 			aria-pressed={selected}
 			onClick={onClick}
 			className={cn(
-				"flex min-h-control cursor-pointer flex-col gap-3 rounded-lg bg-surface-2 p-3 text-left font-semibold text-n-12 shadow-2",
+				"flex min-h-control cursor-pointer flex-col gap-3 rounded-lg border border-n-7 bg-surface-1 p-4 text-left font-semibold text-n-12",
 				selected && "bg-accent-tint outline-2 outline-accent",
 			)}
 		>
@@ -169,17 +168,28 @@ export function ThemeCard() {
 	const { library, importTheme, exportTheme, remove, dialog } = useThemeFiles();
 	const custom = library.find((x) => x.id === customTheme);
 	return (
-		<SetupCard
+		<section
 			id="section-theme"
-			title={t.prefs.theme}
-			action={
-				overridden.includes("theme") ? (
-					<StatusDot status="info" label={t.projects.overridden} />
-				) : null
-			}
+			aria-labelledby="section-theme-title"
+			className="min-w-0 rounded-lg bg-surface-2 py-2 shadow-2"
 		>
+			<h2
+				id="section-theme-title"
+				className="flex items-center gap-3 px-6 pt-4 text-20 font-semibold text-n-12"
+			>
+				{t.prefs.theme}
+				{overridden.includes("theme") ? (
+					<StatusDot status="info" label={t.projects.overridden} />
+				) : null}
+			</h2>
 			{/* biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box */}
-			<div role="group" aria-label={t.prefs.theme} className={cn(TILE_GRID, "px-6 pt-2 pb-4")}>
+			<div
+				role="group"
+				aria-label={t.prefs.theme}
+				className={cn(
+					"grid grid-cols-[repeat(auto-fill,minmax(min(150px,100%),1fr))] gap-3 px-6 pt-3 pb-4",
+				)}
+			>
 				{BUILT_IN.map((id) => (
 					<ThemeTile
 						key={id}
@@ -201,7 +211,7 @@ export function ThemeCard() {
 				<button
 					type="button"
 					onClick={() => importTheme().catch(logError)}
-					className="flex min-h-control cursor-pointer flex-col gap-3 rounded-lg bg-surface-2 p-3 text-left font-semibold text-n-12 shadow-2"
+					className="flex min-h-control cursor-pointer flex-col gap-3 rounded-lg border border-n-7 bg-surface-1 p-4 text-left font-semibold text-n-12"
 				>
 					<span
 						aria-hidden="true"
@@ -231,6 +241,6 @@ export function ThemeCard() {
 				))}
 			</Fold>
 			{dialog}
-		</SetupCard>
+		</section>
 	);
 }

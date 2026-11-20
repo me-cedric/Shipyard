@@ -253,9 +253,7 @@ export function McpGroup({
 			{error ? <ErrorNotice error={error} className="px-6 text-ui text-danger-text" /> : null}
 			{categories.map((c) => (
 				<section key={c} aria-label={categoryName(c)} className={LINE}>
-					{categories.length > 1 ? (
-						<h3 className="px-6 pt-2 text-12 text-n-11">{categoryName(c)}</h3>
-					) : null}
+					{categories.length > 1 ? <h3 className="sr-only">{categoryName(c)}</h3> : null}
 					{rows
 						.filter((s) => s.category === c)
 						.map((s) => (
@@ -268,7 +266,7 @@ export function McpGroup({
 					<McpAddForm onDone={() => add(false)} />
 				</div>
 			) : (
-				<Row>
+				<Row className={LINE}>
 					<LinkButton disabled={formOpen} onClick={() => add(true)}>
 						{t.personal.setup.addServer}
 					</LinkButton>

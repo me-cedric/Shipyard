@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Column, Columns, SetupCard, SetupRow, Stepper, Toggle } from "@/features/settings/parts";
+import { type ReactNode, useState } from "react";
+import { Columns, SetupCard, SetupRow, Stepper, Toggle } from "@/features/settings/parts";
 import { ButtonLink, Fold } from "@/features/settings/project/fold";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
@@ -24,6 +24,9 @@ const WRITE_KEY = {
 /** The label that the engine looks for when the file names none (`pickup::Filter::default`). */
 const MARK = "shipyard";
 const PICKUP = ["statuses", "label", "assignee", "component", "priority"] as const;
+
+/** A row label in regular weight, as the design draws the Automation page. */
+const plain = (label: ReactNode) => <span className="font-normal">{label}</span>;
 
 /** `name=2, other=1` as pairs, or null when a part is not `name=number`. */
 const pairs = (text: string): [string, number][] | null => {
@@ -105,7 +108,7 @@ function Form({ view }: { view: AutomationView }) {
 				},
 			});
 		return (
-			<SetupRow key={name} label={name}>
+			<SetupRow key={name} label={plain(name)}>
 				<Input
 					label={`${name}, ${a.mapStatus}`}
 					placeholder={a.mapStatus}
@@ -126,9 +129,9 @@ function Form({ view }: { view: AutomationView }) {
 
 	return (
 		<Columns>
-			<Column>
+			<div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
 				<SetupCard>
-					<SetupRow label={<span className="text-20">{k.pick}</span>}>
+					<SetupRow label={<span className="text-20 font-normal">{k.pick}</span>}>
 						<Toggle
 							label={k.pick}
 							checked={global > 0}
@@ -142,32 +145,36 @@ function Form({ view }: { view: AutomationView }) {
 						<Fold
 							key={id}
 							id={id === "label" ? "pickup-label" : id}
-							label={k.pickup[id]}
+							label={plain(k.pickup[id])}
 							value={draft[id].trim() || k.any}
 						>
 							{text(id)}
 						</Fold>
 					))}
-					<SetupRow label={k.marked}>
+					<SetupRow label={plain(k.marked)}>
 						<Toggle
 							label={k.marked}
 							checked={draft.label.trim() !== ""}
 							onCheckedChange={(on) => set({ label: on ? saved.label || MARK : "" })}
 						/>
 					</SetupRow>
-					<Fold id="interval" label={k.look} value={format(k.each, { count: draft.interval })}>
+					<Fold
+						id="interval"
+						label={plain(k.look)}
+						value={format(k.each, { count: draft.interval })}
+					>
 						{text("interval", "number")}
 					</Fold>
 				</SetupCard>
 				<SetupCard title={k.atOnce}>
-					<SetupRow label={k.computer}>
+					<SetupRow label={plain(k.computer)}>
 						<Stepper
 							label={k.computer}
 							value={global}
 							onValueChange={(v) => set({ global: String(v) })}
 						/>
 					</SetupRow>
-					<SetupRow label={k.project}>
+					<SetupRow label={plain(k.project)}>
 						<Stepper
 							label={k.project}
 							// No limit of the project: the limit of this computer holds.
@@ -176,7 +183,7 @@ function Form({ view }: { view: AutomationView }) {
 						/>
 					</SetupRow>
 					{perStatus.map(([name, count]) => (
-						<SetupRow key={name} label={name}>
+						<SetupRow key={name} label={plain(name)}>
 							<Stepper
 								label={name}
 								value={count}
@@ -188,13 +195,13 @@ function Form({ view }: { view: AutomationView }) {
 							/>
 						</SetupRow>
 					))}
-					<Fold id="perStatus" label={k.byStatus} value={t.doctor.project.edit}>
+					<Fold id="perStatus" label={plain(k.byStatus)} value={t.doctor.project.edit}>
 						{text("perStatus")}
 					</Fold>
 				</SetupCard>
 				<SetupCard id="status-map" title={k.shows}>
 					{STEPS.map(([step, states]) => mapRow(k.step[step], states))}
-					<Fold label={k.states} value={t.doctor.project.edit}>
+					<Fold label={plain(k.states)} value={t.doctor.project.edit}>
 						{RUN_STATES.map((state) => {
 							const name = format(k.state, { name: t.sync.runState[state] });
 							const row = draft.map[state] ?? { status: "", labels: "" };
@@ -234,11 +241,11 @@ function Form({ view }: { view: AutomationView }) {
 						</RightButton>
 					</div>
 				) : null}
-			</Column>
-			<Column>
+			</div>
+			<div className="flex min-w-0 flex-[2_1_320px] flex-col gap-4">
 				<SetupCard id="writes" title={k.write}>
 					{WRITES.map((w) => (
-						<SetupRow key={w} label={a.write[WRITE_KEY[w]]}>
+						<SetupRow key={w} label={plain(a.write[WRITE_KEY[w]])}>
 							<Toggle
 								label={a.write[WRITE_KEY[w]]}
 								checked={draft.writes[w]}
@@ -250,7 +257,7 @@ function Form({ view }: { view: AutomationView }) {
 				{recipes.length ? (
 					<SetupCard id="recipe-writes" title={a.recipes}>
 						{recipes.map(([recipe, kinds]) => (
-							<SetupRow key={recipe} label={recipe}>
+							<SetupRow key={recipe} label={plain(recipe)}>
 								{kinds.map((kind) => (
 									<span key={kind} className="flex items-center gap-2">
 										{a.kind[kind]}
@@ -270,13 +277,18 @@ function Form({ view }: { view: AutomationView }) {
 				) : null}
 				<div className="flex flex-col items-start gap-2 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2">
 					<Badge>{k.off}</Badge>
-					<ButtonLink href="/today/today">{k.today}</ButtonLink>
+					<ButtonLink
+						href="/today/today"
+						className="h-(--control-h) border-0 bg-transparent px-0 text-accent-text shadow-none hover:bg-transparent"
+					>
+						{k.today}
+					</ButtonLink>
 				</div>
 				<SetupCard>
-					<SetupRow label={k.mark} href="/flow/list" />
-					<SetupRow label={k.spend} href="/crew/spend" />
+					<SetupRow label={plain(k.mark)} href="/flow/list" />
+					<SetupRow label={plain(k.spend)} href="/crew/spend" />
 				</SetupCard>
-			</Column>
+			</div>
 		</Columns>
 	);
 }
@@ -312,7 +324,7 @@ export function AgentsAlone() {
 			{WRITES.map((w) => (
 				<SetupRow key={w} label={a.write[WRITE_KEY[w]]}>
 					{/* A person with no right sees the choice and cannot change it. */}
-					<fieldset disabled={off.disabled} title={off.reason} className="w-52 min-w-0">
+					<fieldset disabled={off.disabled} title={off.reason} className="w-44 min-w-0">
 						<Segmented
 							label={a.write[WRITE_KEY[w]]}
 							value={automation.writes[w] ? "alone" : "asks"}

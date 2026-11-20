@@ -6,6 +6,8 @@ import { commands, unwrap } from "@/lib/ipc";
 import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
+import { LinkButton } from "@/ui/atoms/link-button";
+import { SparklesIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 
 /**
@@ -18,6 +20,7 @@ export function ConflictAgent({ onSolve }: { onSolve?: (path: string) => void })
 	const { ask } = useShell();
 	const head = useId();
 	const workflow = useWorkflows().data?.find((w) => !w.issue)?.id;
+	const [more, setMore] = useState(false);
 	const [sent, setSent] = useState<string | null>(null);
 	const [error, setError] = useState<unknown>(null);
 	const files = (useConflicts().data ?? []).map((c) => c.path);
@@ -30,6 +33,12 @@ export function ConflictAgent({ onSolve }: { onSolve?: (path: string) => void })
 			aria-labelledby={head}
 			className="flex flex-wrap items-center gap-4 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2 outline-2 outline-attention"
 		>
+			<span
+				aria-hidden="true"
+				className="flex size-8 shrink-0 items-center justify-center rounded-sm bg-primary text-primary-fg"
+			>
+				<SparklesIcon size={16} />
+			</span>
 			<h2 id={head} className="flex-[1_1_260px] text-20 font-semibold text-n-12">
 				{files.length === 1 ? n.conflictOne : format(n.conflicts, { count: files.length })}
 			</h2>
@@ -39,6 +48,11 @@ export function ConflictAgent({ onSolve }: { onSolve?: (path: string) => void })
 				{n.solveAgent}
 			</Button>
 			{workflow ? (
+				<LinkButton aria-expanded={more} onClick={() => setMore(!more)}>
+					{t.ui.more}
+				</LinkButton>
+			) : null}
+			{workflow && more ? (
 				<RightButton
 					right="runs.start"
 					variant="ghost"

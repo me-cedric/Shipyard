@@ -37,7 +37,7 @@ export const doctorEs: typeof doctorEn = {
 		idea: "Idea",
 		subject: "Título",
 		details: "Detalles",
-		open: "Abrir en GitHub",
+		open: "Enviar",
 	},
 	console: {
 		title: "Consola de depuración",
@@ -116,6 +116,7 @@ export const doctorEs: typeof doctorEn = {
 		card: "Proyecto",
 		specs: "Carpetas de specs y docs",
 		screens: "Carpeta de pantallas",
+		languagesOf: "Idiomas del proyecto",
 		recipe: "Receta por defecto",
 		automation: "Automatización",
 		limit: "Límite por función",
@@ -203,6 +204,7 @@ export const doctorEs: typeof doctorEn = {
 		make: "Hacer un plugin de este proyecto",
 		send: "Enviar a los proyectos hijos",
 		sendBtn: "Enviar",
+		refuse: "Rechazar",
 		settings: "Ajustes",
 	},
 	tickets: {
@@ -220,6 +222,8 @@ export const doctorEs: typeof doctorEn = {
 		watch: "Buscar cambios cada {count} segundos",
 		mapFields: "Campos del gestor de tickets",
 		mapBtn: "Asociar los campos",
+		every: "Buscar cambios cada",
+		seconds: "{count} segundos",
 		stages: {
 			idea: "Idea",
 			spec: "Spec",

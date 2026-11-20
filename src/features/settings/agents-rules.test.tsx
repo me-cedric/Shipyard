@@ -48,7 +48,7 @@ const tier = async (_name: string) => {
 describe("Settings / Agents and rules: model tiers", () => {
 	it("shows the five runners: a picker for a detected tool, free text for the others", async () => {
 		mountApp("/setup/computer?page=models");
-		expect(await screen.findByRole("region", { name: "Models: Claude Code" })).toBeInTheDocument();
+		expect(await screen.findByRole("region", { name: "Models" })).toBeInTheDocument();
 		const claude = await tier("Claude Code");
 		expect(
 			await within(claude).findByRole("combobox", { name: "Claude Code Top" }),
@@ -159,14 +159,15 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 		expect(within(codex).getAllByText("Signed out").length).toBeGreaterThan(0);
 		expect(within(codex).getByRole("button", { name: "Sign in" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Use a code instead" })).toBeInTheDocument();
-		// A missing tool offers its install.
+		// A missing tool shows its state only: the install is on AI tools and connections.
 		const gemini = await row("Gemini CLI");
-		expect(within(gemini).getByRole("button", { name: "Install Gemini CLI" })).toBeInTheDocument();
+		expect(within(gemini).getAllByText("Not installed").length).toBeGreaterThan(0);
+		expect(within(gemini).queryByRole("button")).toBeNull();
 	});
 
 	it("asks before it installs a missing tool, and names the tool", async () => {
 		const user = userEvent.setup();
-		mountApp("/setup/computer?page=models");
+		mountApp("/setup/computer");
 		const gemini = await row("Gemini CLI");
 		await user.click(within(gemini).getByRole("button", { name: "Install Gemini CLI" }));
 		await user.click(

@@ -119,8 +119,8 @@ export const onboardingEs: typeof onboardingEn = {
 		},
 		allow: "Permitir",
 		allowAll: "Permitir todo",
-		settings: "Abrir Ajustes del Sistema",
-		test: "Enviar una prueba",
+		settings: "Abrir los ajustes del sistema",
+		test: "Enviar una notificación de prueba",
 		testBody: "Las notificaciones están activadas.",
 	},
 };

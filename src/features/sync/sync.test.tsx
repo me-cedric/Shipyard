@@ -91,7 +91,12 @@ describe("Settings / Project, group Automation", () => {
 		expect(within(less.parentElement as HTMLElement).getByText("2")).toBeVisible();
 		// The main switch is on while the limit of this computer is above zero.
 		expect(screen.getByRole("switch", { name: "Agents pick up tickets alone" })).toBeChecked();
-		for (const name of ["Push", "Pull request", "Ticket transition", "Ticket comment"])
+		for (const name of [
+			"Push the branch",
+			"Open the pull request",
+			"Move the ticket",
+			"Comment in the issue tracker",
+		])
 			expect(screen.getByRole("switch", { name })).toBeChecked();
 		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 	});
@@ -120,7 +125,7 @@ describe("Settings / Project, group Automation", () => {
 		await user.type(screen.getByRole("textbox", { name: "Statuses" }), "To Do, Ready");
 		await user.type(screen.getByRole("textbox", { name: "Per status" }), "To Do=1");
 		await user.type(screen.getByRole("textbox", { name: "Done, Status" }), "Closed");
-		await user.click(screen.getByRole("switch", { name: "Ticket comment" }));
+		await user.click(screen.getByRole("switch", { name: "Comment in the issue tracker" }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().sync.file).toBe("valid"));
 		const a = mockState().sync.automation;
@@ -189,7 +194,9 @@ describe("Settings / Project, group Automation", () => {
 		await withTracker();
 		mountApp("/setup/project?page=automation");
 		expect(await screen.findByRole("spinbutton", { name: "Intervalle (s)" })).toBeInTheDocument();
-		expect(screen.getByRole("switch", { name: "Commentaire du ticket" })).toBeInTheDocument();
+		expect(
+			screen.getByRole("switch", { name: "Commenter dans l'outil de tickets" }),
+		).toBeInTheDocument();
 		expect(screen.getByRole("textbox", { name: "Terminé, Statut" })).toBeInTheDocument();
 	});
 });

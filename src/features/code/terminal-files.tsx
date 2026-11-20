@@ -66,7 +66,7 @@ export function TerminalFiles() {
 	const here = chosen ? (chosen.folder ? chosen.path : parentOf(chosen.path)) : "";
 	const writes = !profile.readOnly;
 	return (
-		<Card className="flex min-w-0 flex-[1_1_260px] flex-col py-2">
+		<Card className="flex h-150 min-w-0 flex-[1_1_260px] flex-col py-2">
 			<section aria-label={t.code.files} className="flex min-h-0 flex-1 flex-col">
 				<div className="flex items-center gap-2.5 px-4 py-2.5">
 					<h2 className="mr-auto text-13 font-semibold text-n-11">{t.code.files}</h2>

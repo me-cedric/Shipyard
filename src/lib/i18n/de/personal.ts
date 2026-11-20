@@ -56,6 +56,7 @@ export const personalDe: typeof personalEn = {
 		roles: "Rollen der Agenten",
 		rules: "Arbeitsregeln der Agenten",
 		editText: "Als Text bearbeiten",
+		projectRules: "Projektregeln",
 		allows: "Was das System erlaubt",
 		console: "Konsole",
 		noHost: "Verbinden Sie zuerst einen Code-Host",

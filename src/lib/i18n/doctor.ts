@@ -36,7 +36,7 @@ export const doctorEn = {
 		idea: "Idea",
 		subject: "Title",
 		details: "Details",
-		open: "Open on GitHub",
+		open: "Send",
 	},
 	console: {
 		title: "Debug console",
@@ -45,7 +45,7 @@ export const doctorEn = {
 		info: "Info",
 		warn: "Warning",
 		error: "Error",
-		copy: "Copy log",
+		copy: "Copy the log",
 	},
 	fix: {
 		again: "Check again",
@@ -113,6 +113,7 @@ export const doctorEn = {
 		card: "Project",
 		specs: "Specs and docs folders",
 		screens: "Screens folder",
+		languagesOf: "Languages of the project",
 		recipe: "Default recipe",
 		automation: "Automation",
 		limit: "Limit for each feature",
@@ -200,6 +201,7 @@ export const doctorEn = {
 		make: "Make a plugin from this project",
 		send: "Send to the child projects",
 		sendBtn: "Send",
+		refuse: "Refuse",
 		settings: "Settings",
 	},
 	tickets: {
@@ -217,6 +219,8 @@ export const doctorEn = {
 		watch: "Look for changes every {count} seconds",
 		mapFields: "Fields of the issue tracker",
 		mapBtn: "Map the fields",
+		every: "Look for changes every",
+		seconds: "{count} seconds",
 		stages: {
 			idea: "Idea",
 			spec: "Spec",
@@ -266,7 +270,7 @@ export const doctorFr: typeof doctorEn = {
 		idea: "Idée",
 		subject: "Titre",
 		details: "Détails",
-		open: "Ouvrir sur GitHub",
+		open: "Envoyer",
 	},
 	console: {
 		title: "Console de débogage",
@@ -343,6 +347,7 @@ export const doctorFr: typeof doctorEn = {
 		card: "Projet",
 		specs: "Dossiers des specs et des docs",
 		screens: "Dossier des écrans",
+		languagesOf: "Langues du projet",
 		recipe: "Recette par défaut",
 		automation: "Automatisation",
 		limit: "Limite par fonctionnalité",
@@ -430,6 +435,7 @@ export const doctorFr: typeof doctorEn = {
 		make: "Faire un plugin depuis ce projet",
 		send: "Envoyer aux projets enfants",
 		sendBtn: "Envoyer",
+		refuse: "Refuser",
 		settings: "Réglages",
 	},
 	tickets: {
@@ -447,6 +453,8 @@ export const doctorFr: typeof doctorEn = {
 		watch: "Chercher les changements toutes les {count} secondes",
 		mapFields: "Champs de l'outil de tickets",
 		mapBtn: "Associer les champs",
+		every: "Chercher les changements toutes les",
+		seconds: "{count} secondes",
 		stages: {
 			idea: "Idée",
 			spec: "Spec",

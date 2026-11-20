@@ -191,14 +191,15 @@ describe("Setup scopes (spec:app-redesign#REQ-024)", () => {
 		).toBeInTheDocument();
 	});
 
-	it("keeps the cards of each scope, and the count of This computer", async () => {
+	it("keeps the cards of each scope, and no count on This computer", async () => {
 		await open();
 		await seed();
 		const router = mountApp("/setup/computer");
 		for (const name of [en.personal.setup.security, en.connections.group.mcp])
 			expect(await screen.findByRole("region", { name })).toBeInTheDocument();
 		const title = screen.getByRole("heading", { level: 1, name: "Setup" });
-		await waitFor(() => expect(title.nextElementSibling).toHaveTextContent(/^\d+$/));
+		// The design shows the title alone: no count next to it.
+		expect(title.nextElementSibling?.textContent ?? "").not.toMatch(/^\d+$/);
 		router.history.push("/setup/project");
 		expect(await screen.findByRole("region", { name: "Project" })).toBeInTheDocument();
 		router.history.push("/setup/project?page=connections");

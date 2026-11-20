@@ -16,7 +16,7 @@ describe("themes: OLED and the theme choice (REQ-001, REQ-002)", () => {
 		const user = userEvent.setup();
 		mountApp("/setup/me");
 		const tiles = within(await screen.findByRole("group", { name: "Theme" }));
-		for (const name of ["Light", "Dark", "OLED", "System", "System, OLED when dark"])
+		for (const name of ["Light", "Dark", "OLED", "System", "System with OLED"])
 			expect(tiles.getByRole("button", { name })).toBeInTheDocument();
 		expect(tiles.getByRole("button", { name: "Light" })).toHaveAttribute("aria-pressed", "true");
 		await user.click(tiles.getByRole("button", { name: "OLED" }));

@@ -1,15 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { DoctorBootstrap } from "@/features/projects/doctor-bootstrap";
-import {
-	Column,
-	Columns,
-	SetupCard,
-	SetupRow,
-	Toggle,
-	ValueButton,
-} from "@/features/settings/parts";
+import { Columns, SetupCard, SetupRow, Toggle, ValueButton } from "@/features/settings/parts";
 import { ButtonLink, Fold } from "@/features/settings/project/fold";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
@@ -150,6 +143,20 @@ function ChildDetail({ id }: { id: string }) {
 				))}
 			</ul>
 		</GroupSection>
+	);
+}
+
+/** A card with a large bold title, as the design draws the package and send cards. */
+function BigCard({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
+	return (
+		<section
+			id={id}
+			aria-label={title}
+			className="flex min-w-0 flex-col items-start gap-3 rounded-lg bg-surface-2 p-6 shadow-2"
+		>
+			<h2 className="text-20 font-semibold text-n-12">{title}</h2>
+			{children}
+		</section>
 	);
 }
 
@@ -339,7 +346,16 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 				</GroupSection>
 			) : null}
 			{review ? (
-				<div className="px-6 py-3">
+				<div className="flex flex-wrap justify-end gap-2.5 px-6 py-3">
+					<Button
+						variant="secondary"
+						onClick={() => {
+							setReview(null);
+							setAccepted(new Set());
+						}}
+					>
+						{d.refuse}
+					</Button>
 					<RightButton
 						right="project.settings"
 						variant="primary"
@@ -404,9 +420,15 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 	if (view === "plugins")
 		return (
 			<Columns>
-				<Column>
+				<div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
 					{errorLine}
-					<SetupCard id="plugin-review" title={d.review}>
+					<SetupCard id="plugin-review" title={review ? undefined : d.review} attention={!!review}>
+						{review ? (
+							<div className="flex flex-col items-start gap-3 px-6 pt-4">
+								<Badge variant="warning">{d.review}</Badge>
+								<h2 className="text-20 font-semibold text-n-12">{review.name}</h2>
+							</div>
+						) : null}
 						<Fold id="plugin-source" label={x.plugin.name} value={x.plugin.review}>
 							<div className="flex items-end gap-2">
 								<Input
@@ -470,7 +492,6 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 											</button>
 										}
 									>
-										<Badge className="font-mono">{c.version}</Badge>
 										<Toggle
 											label={format(x.plugin.enable, { name: c.name })}
 											{...gate("project.settings")}
@@ -487,45 +508,43 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 								)),
 						)}
 					</SetupCard>
-				</Column>
-				<Column>
-					<SetupCard id="plugin-package" title={d.make}>
-						<SetupRow label={x.plugin.package}>
-							<ValueButton
-								onClick={() =>
-									void run(async () => {
-										const dir = await folderOf();
-										const dest = dir
-											? await saveAs(dir.split(/[\\/]/).pop() || "plugin", "zip")
-											: null;
-										if (!dir || !dest) return;
-										setPath(dir);
-										setFault(null);
-										try {
-											setPackaged(await unwrap(commands.pluginPackage(dir, dest, true)));
-										} catch (e) {
-											keepFault(e, dir);
-										}
-									})
-								}
-							>
-								<ArrowDownTrayIcon size={14} />
-								{x.plugin.package}
-							</ValueButton>
-						</SetupRow>
-					</SetupCard>
-					<SetupCard id="plugin-send" title={d.send}>
+				</div>
+				<div className="flex min-w-0 flex-[2_1_320px] flex-col gap-4">
+					<BigCard id="plugin-package" title={d.make}>
+						<ValueButton
+							onClick={() =>
+								void run(async () => {
+									const dir = await folderOf();
+									const dest = dir
+										? await saveAs(dir.split(/[\\/]/).pop() || "plugin", "zip")
+										: null;
+									if (!dir || !dest) return;
+									setPath(dir);
+									setFault(null);
+									try {
+										setPackaged(await unwrap(commands.pluginPackage(dir, dest, true)));
+									} catch (e) {
+										keepFault(e, dir);
+									}
+								})
+							}
+						>
+							{x.plugin.package}
+						</ValueButton>
+					</BigCard>
+					<BigCard id="plugin-send" title={d.send}>
 						{cloned.map((c) => (
-							<SetupRow key={c.id} label={c.name}>
+							<span key={c.id} className="flex min-h-control items-center gap-3 font-medium">
 								<Checkbox
 									hideLabel
 									label={format(x.children.select, { name: c.name })}
 									checked={chosen.has(c.id)}
 									onCheckedChange={(on) => setChosen(flip(chosen, c.id, on === true))}
 								/>
-							</SetupRow>
+								{c.name}
+							</span>
 						))}
-						<div className="px-6 py-3">
+						<div>
 							<Button
 								variant="primary"
 								disabled={chosen.size === 0}
@@ -544,20 +563,58 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 							</Button>
 						</div>
 						{sent}
-					</SetupCard>
-				</Column>
+					</BigCard>
+				</div>
 			</Columns>
 		);
 
+	const tile = "flex min-w-0 flex-col items-start gap-3 rounded-lg bg-surface-2 p-4.5 shadow-2";
+	const tileIcon = (icon: ReactNode) => (
+		<span className="flex size-12 items-center justify-center rounded-md bg-accent-subtle text-accent-text">
+			{icon}
+		</span>
+	);
+	// The rule packs that the project does not hold yet: one tile each, with one Add.
+	const offered = (catalog.data ?? []).filter((c) => c.state === "absent").slice(0, 3);
+	const compassSet = (compass.data?.entries ?? []).some((e) => e.state === "current");
+	const grid =
+		"grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] items-start gap-6 px-4";
 	return (
-		<Columns>
-			<Column>
-				{errorLine}
-				<SetupCard id="plugin-add" title={d.add}>
-					<SetupRow label={d.folder}>
-						<ValueButton onClick={() => void run(fresh)}>{d.choose}</ValueButton>
-					</SetupRow>
-					<SetupRow label={d.zip}>
+		<div className="flex flex-col gap-4 pb-10">
+			{errorLine}
+			<h2 className="px-4 text-20 font-semibold text-n-12">{d.add}</h2>
+			<div className="grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-3.5 px-4">
+				{offered.map((c) => (
+					<section key={c.id} aria-label={c.name} className={tile}>
+						{tileIcon(<PlusIcon size={20} />)}
+						<span className="text-20 font-semibold text-n-12">{c.name}</span>
+						<Button
+							variant="secondary"
+							className="w-full"
+							aria-label={format(x.plugin.enable, { name: c.name })}
+							onClick={() =>
+								void run(async () => {
+									await unwrap(commands.catalogDeploy(c.id));
+									await qc.invalidateQueries({ queryKey: ["catalog"] });
+								})
+							}
+						>
+							{d.addBtn}
+						</Button>
+					</section>
+				))}
+				<section id="plugin-add" aria-label={d.folder} className={tile}>
+					{tileIcon(<PlusIcon size={20} />)}
+					<span className="text-20 font-semibold text-n-12">{d.folder}</span>
+					<Button variant="secondary" className="w-full" onClick={() => void run(fresh)}>
+						{d.choose}
+					</Button>
+				</section>
+			</div>
+			<div className="px-4">
+				<Fold id="plugin-add-more" label={t.ui.more} value={d.zip}>
+					<div className="flex flex-wrap items-center gap-3">
+						<span className="font-semibold">{d.zip}</span>
 						<ValueButton
 							onClick={() =>
 								void run(async () => {
@@ -570,8 +627,9 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 						>
 							{d.choose}
 						</ValueButton>
-					</SetupRow>
-					<SetupRow label={d.fresh}>
+					</div>
+					<div className="flex flex-wrap items-center gap-3">
+						<span className="font-semibold">{d.fresh}</span>
 						<ValueButton
 							onClick={() =>
 								void run(async () => {
@@ -582,56 +640,19 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 						>
 							{d.create}
 						</ValueButton>
-					</SetupRow>
-					{reviewShown ? reviewBody : null}
-				</SetupCard>
+					</div>
+				</Fold>
+			</div>
+			{reviewShown ? (
+				<div className="px-4">
+					<SetupCard>{reviewBody}</SetupCard>
+				</div>
+			) : null}
+			<div className={grid}>
 				<SetupCard id="extensions-installed" title={d.installed}>
 					{(plugins.data ?? []).map((p) => (
 						<div key={p.name}>
-							<SetupRow label={`${p.name} ${p.version}`}>
-								{p.settings.length ? (
-									<Button
-										variant="ghost"
-										aria-expanded={editing === p.name}
-										aria-label={format(x.plugin.settingsName, { name: p.name })}
-										onClick={() => setEditing(editing === p.name ? null : p.name)}
-									>
-										<Cog6ToothIcon size={14} />
-										{x.plugin.settings}
-									</Button>
-								) : null}
-								<Button
-									variant="ghost"
-									disabled={!p.enabled || !deployTo(p.name).length}
-									reason={p.enabled ? x.plugin.deployNone : x.plugin.deployOff}
-									aria-label={format(x.plugin.deployName, { name: p.name })}
-									onClick={() =>
-										void run(async () => {
-											const key = `plugin:${p.name}`;
-											setResults(await unwrap(commands.childDeploy(deployTo(p.name), [key])));
-											await refresh();
-										})
-									}
-								>
-									<ArrowUpTrayIcon size={14} />
-									{x.plugin.deploy}
-								</Button>
-								<RightButton
-									right="project.settings"
-									variant="ghost"
-									aria-label={format(x.plugin.removeName, { name: p.name })}
-									onClick={() =>
-										void run(async () => {
-											await unwrap(commands.pluginRemove(p.name, true));
-											await qc.invalidateQueries({ queryKey: ["plugins"] });
-											await refresh();
-											await qc.invalidateQueries({ queryKey: ["catalog"] });
-										})
-									}
-								>
-									<TrashIcon size={14} />
-									{x.plugin.remove}
-								</RightButton>
+							<SetupRow label={p.name}>
 								<Toggle
 									label={format(x.plugin.enable, { name: p.name })}
 									{...gate("project.settings")}
@@ -645,6 +666,56 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 									}
 								/>
 							</SetupRow>
+							<details className="px-6 pb-2">
+								<summary className="min-h-control cursor-pointer text-12 text-n-11">
+									{t.ui.more} {p.version}
+								</summary>
+								<div className="flex flex-wrap items-center gap-2">
+									{p.settings.length ? (
+										<Button
+											variant="ghost"
+											aria-expanded={editing === p.name}
+											aria-label={format(x.plugin.settingsName, { name: p.name })}
+											onClick={() => setEditing(editing === p.name ? null : p.name)}
+										>
+											<Cog6ToothIcon size={14} />
+											{x.plugin.settings}
+										</Button>
+									) : null}
+									<Button
+										variant="ghost"
+										disabled={!p.enabled || !deployTo(p.name).length}
+										reason={p.enabled ? x.plugin.deployNone : x.plugin.deployOff}
+										aria-label={format(x.plugin.deployName, { name: p.name })}
+										onClick={() =>
+											void run(async () => {
+												const key = `plugin:${p.name}`;
+												setResults(await unwrap(commands.childDeploy(deployTo(p.name), [key])));
+												await refresh();
+											})
+										}
+									>
+										<ArrowUpTrayIcon size={14} />
+										{x.plugin.deploy}
+									</Button>
+									<RightButton
+										right="project.settings"
+										variant="ghost"
+										aria-label={format(x.plugin.removeName, { name: p.name })}
+										onClick={() =>
+											void run(async () => {
+												await unwrap(commands.pluginRemove(p.name, true));
+												await qc.invalidateQueries({ queryKey: ["plugins"] });
+												await refresh();
+												await qc.invalidateQueries({ queryKey: ["catalog"] });
+											})
+										}
+									>
+										<TrashIcon size={14} />
+										{x.plugin.remove}
+									</RightButton>
+								</div>
+							</details>
 							{editing === p.name ? (
 								<PluginSettings
 									name={p.name}
@@ -661,9 +732,90 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 					))}
 					{sent}
 				</SetupCard>
+				<SetupCard id="extensions-children" title={d.children}>
+					{(children.data ?? []).map((c) => (
+						<div key={c.id}>
+							<SetupRow label={c.name}>
+								<ValueButton
+									onClick={() => openDetail(c.name, <ChildDetail key={c.id} id={c.id} />)}
+									aria-label={format(d.openChild, { name: c.name })}
+								>
+									{d.openChild}
+								</ValueButton>
+							</SetupRow>
+							<details className="px-6 pb-2">
+								<summary className="min-h-control cursor-pointer text-12 text-n-11">
+									{t.ui.more}
+								</summary>
+								<div className="flex flex-wrap items-center gap-2">
+									<Badge variant={c.cloned && c.held === c.total ? "success" : "neutral"}>
+										{format(x.children.held, { held: c.held, total: c.total })}
+									</Badge>
+									{c.cloned ? null : (
+										<Button
+											aria-label={format(x.children.cloneName, { name: c.name })}
+											onClick={() =>
+												void run(async () => {
+													await unwrap(commands.childClone(c.id));
+													await refresh();
+												})
+											}
+										>
+											<ArrowDownTrayIcon size={14} />
+											{x.children.clone}
+										</Button>
+									)}
+									<Button
+										variant="ghost"
+										aria-label={format(x.children.removeName, { name: c.name })}
+										onClick={() =>
+											void run(async () => {
+												await unwrap(commands.childRemove(c.id));
+												setChosen(flip(chosen, c.id, false));
+												await refresh();
+											})
+										}
+									>
+										<TrashIcon size={14} />
+										{x.children.remove}
+									</Button>
+								</div>
+							</details>
+						</div>
+					))}
+					<details id="child-add" className="border-n-6 border-t">
+						<summary className="flex min-h-15 cursor-pointer list-none items-center px-6 font-semibold text-accent-text [&::-webkit-details-marker]:hidden">
+							{d.addChild}
+						</summary>
+						<div className="flex flex-col gap-3 px-6 pt-1 pb-5">
+							<Input
+								label={x.children.nameField}
+								value={name}
+								onChange={(e) => setName(e.target.value)}
+							/>
+							<Input label={x.children.url} value={url} onChange={(e) => setUrl(e.target.value)} />
+							<div>
+								<Button
+									disabled={!name.trim() || !url.trim()}
+									onClick={() =>
+										void run(async () => {
+											await unwrap(commands.childAdd(name, url));
+											setName("");
+											setUrl("");
+											await refresh();
+										})
+									}
+								>
+									<PlusIcon size={14} />
+									{x.children.add}
+								</Button>
+							</div>
+						</div>
+					</details>
+				</SetupCard>
 				{skills.length ? (
 					<SetupCard id="extensions-skills" title={d.skills}>
-						{skills.map((e) => (
+						{skills.slice(0, 3).map((e) => (
 							<SetupRow key={e.id} label={e.title}>
 								<Toggle
 									label={e.title}
@@ -679,80 +831,23 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 								/>
 							</SetupRow>
 						))}
-						<SetupRow label={d.allSkills} href="/setup/computer?page=rules" />
+						<div className="flex min-h-15 items-center justify-center border-n-6 border-t">
+							<ButtonLink
+								href="/setup/computer?page=rules"
+								className="border-0 bg-transparent text-accent-text shadow-none hover:bg-transparent"
+							>
+								{d.allSkills}
+							</ButtonLink>
+						</div>
 					</SetupCard>
 				) : null}
-			</Column>
-			<Column>
-				<SetupCard id="extensions-children" title={d.children}>
-					{(children.data ?? []).map((c) => (
-						<SetupRow key={c.id} label={c.name}>
-							<Badge variant={c.cloned && c.held === c.total ? "success" : "neutral"}>
-								{format(x.children.held, { held: c.held, total: c.total })}
-							</Badge>
-							<ValueButton
-								onClick={() => openDetail(c.name, <ChildDetail key={c.id} id={c.id} />)}
-								aria-label={format(d.openChild, { name: c.name })}
-							>
-								{d.openChild}
-							</ValueButton>
-							{c.cloned ? null : (
-								<Button
-									aria-label={format(x.children.cloneName, { name: c.name })}
-									onClick={() =>
-										void run(async () => {
-											await unwrap(commands.childClone(c.id));
-											await refresh();
-										})
-									}
-								>
-									<ArrowDownTrayIcon size={14} />
-									{x.children.clone}
-								</Button>
-							)}
-							<Button
-								variant="ghost"
-								aria-label={format(x.children.removeName, { name: c.name })}
-								onClick={() =>
-									void run(async () => {
-										await unwrap(commands.childRemove(c.id));
-										setChosen(flip(chosen, c.id, false));
-										await refresh();
-									})
-								}
-							>
-								<TrashIcon size={14} />
-								{x.children.remove}
-							</Button>
-						</SetupRow>
-					))}
-					<Fold id="child-add" label={d.addChild} value={x.children.add}>
-						<Input
-							label={x.children.nameField}
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-						/>
-						<Input label={x.children.url} value={url} onChange={(e) => setUrl(e.target.value)} />
-						<div>
-							<Button
-								disabled={!name.trim() || !url.trim()}
-								onClick={() =>
-									void run(async () => {
-										await unwrap(commands.childAdd(name, url));
-										setName("");
-										setUrl("");
-										await refresh();
-									})
-								}
-							>
-								<PlusIcon size={14} />
-								{x.children.add}
-							</Button>
-						</div>
-					</Fold>
-				</SetupCard>
 				<SetupCard id="rules-setup" title={d.rules}>
-					<Fold id="rules-here" label={d.rulesHere} value={d.setUp}>
+					<Fold
+						id="rules-here"
+						label={d.rulesHere}
+						value={compassSet ? <Badge variant="success">{d.setUp}</Badge> : d.setUp}
+						plain={compassSet}
+					>
 						<CompassSetup />
 					</Fold>
 					<Fold id="rules-copy" label={d.rulesCopy} value={d.setUp}>
@@ -762,10 +857,12 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 						<ButtonLink href="/setup/computer?page=rules">{d.check}</ButtonLink>
 					</SetupRow>
 				</SetupCard>
+			</div>
+			<div className="px-4">
 				<SetupCard>
 					<SetupRow label={d.packs} href="/setup/project?page=plugins" />
 				</SetupCard>
-			</Column>
-		</Columns>
+			</div>
+		</div>
 	);
 }

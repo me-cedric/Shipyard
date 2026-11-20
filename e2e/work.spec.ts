@@ -16,10 +16,10 @@ async function openWork(page: Page, tab: string) {
 	).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "This project" }).click();
-	// The connections of an issue tracker are behind the door Connections of This project.
+	// The card Issue tracker of This project opens the page of the connections.
 	await page
-		.getByRole("navigation", { name: "This project" })
-		.getByRole("link", { name: "Connections" })
+		.getByRole("region", { name: "Issue tracker" })
+		.getByRole("link", { name: "Connect" })
 		.click();
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme");
@@ -212,8 +212,10 @@ test("shows the Work views in French", async ({ page }) => {
 	await openWork(page, "Time");
 	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "Me" }).click();
-	await page.getByRole("combobox", { name: "Language", exact: true }).click();
-	await page.getByRole("option", { name: "French" }).click();
+	await page
+		.getByRole("group", { name: "Language", exact: true })
+		.getByRole("button", { name: "French" })
+		.click();
 	const barre = page.getByRole("navigation", { name: "Barre latérale" });
 	await barre.getByRole("link", { name: "Plan" }).click();
 	const onglets = page.getByRole("navigation", { name: "Onglets" });

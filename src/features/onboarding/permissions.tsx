@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Fold } from "@/features/settings/connections/fold";
 import { SetupCard, SetupRow, StatePill } from "@/features/settings/parts";
 import { hiddenSection } from "@/features/shell/places";
 import { useI18n } from "@/lib/i18n";
@@ -57,7 +58,7 @@ export function PermissionControl({ permission: p }: { permission: OsPermission 
 		<>
 			<StatePill state={PILL[p.state]}>{m.state[p.state]}</StatePill>
 			{p.state === "notAsked" ? (
-				<Button variant="primary" className="min-h-control" disabled={busy} onClick={allow}>
+				<Button className="min-h-control" disabled={busy} onClick={allow}>
 					{m.allow}
 				</Button>
 			) : null}
@@ -123,6 +124,7 @@ export function PermissionsCard() {
 	const { t } = useI18n();
 	const m = t.onboarding;
 	const list = usePermissions().data ?? [];
+	const opener = list.find((p) => p.settings);
 	return (
 		<SetupCard id="section-permissions" title={t.personal.setup.allows}>
 			{list.map((p) => (
@@ -130,11 +132,25 @@ export function PermissionsCard() {
 					<PermissionControl permission={p} />
 				</SetupRow>
 			))}
-			<SetupRow id="tour" label={m.tour}>
-				<Button className="min-h-control" onClick={openTour}>
-					{m.replay}
-				</Button>
-			</SetupRow>
+			{opener ? (
+				<SetupRow label={m.permissions.settings}>
+					<Button
+						className="min-h-control"
+						onClick={() =>
+							void unwrap(commands.permissionsOpenSettings(opener.kind)).catch(logError)
+						}
+					>
+						{m.permissions.settings}
+					</Button>
+				</SetupRow>
+			) : null}
+			<Fold label={t.ui.more}>
+				<SetupRow id="tour" label={m.tour}>
+					<Button className="min-h-control" onClick={openTour}>
+						{m.replay}
+					</Button>
+				</SetupRow>
+			</Fold>
 		</SetupCard>
 	);
 }

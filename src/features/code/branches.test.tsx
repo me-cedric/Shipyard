@@ -23,7 +23,13 @@ describe("Code / History", () => {
 		await user.click(await screen.findByRole("button", { name: /chore: first commit/ }));
 		expect(await screen.findByRole("heading", { name: "chore: first commit" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "2 files" })).toBeInTheDocument();
-		// The first file, in the order of the commit, shows its diff.
+		// The diff of a file shows when its row opens.
+		expect(screen.queryByRole("region", { name: "Diff of docs/guide.md" })).toBeNull();
+		await user.click(
+			within(screen.getByRole("region", { name: "Files" })).getByRole("button", {
+				name: /docs\/guide\.md/,
+			}),
+		);
 		expect(await screen.findByRole("region", { name: "Diff of docs/guide.md" })).toHaveTextContent(
 			"g",
 		);

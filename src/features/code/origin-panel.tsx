@@ -44,7 +44,7 @@ export function OriginPanel() {
 	const chosen = forge || forges[0]?.id || "";
 	const address = typed ?? origin?.url ?? "";
 	return (
-		<Card pad className="mx-4 mb-10 flex flex-col gap-3">
+		<Card pad className="mx-4 mb-4 flex flex-col gap-3">
 			<h2 className="text-13 font-semibold text-n-11">{t.forge.branches.address}</h2>
 			{!origin && forges.length > 0 ? (
 				<form
@@ -81,7 +81,7 @@ export function OriginPanel() {
 			>
 				<Input
 					label={t.forge.branches.address}
-					className="flex-[1_1_200px] font-mono text-13"
+					className="flex-[1_1_200px] font-mono text-13 placeholder:font-sans"
 					value={address}
 					onChange={(e) => setTyped(e.target.value)}
 				/>

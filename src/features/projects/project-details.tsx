@@ -20,7 +20,9 @@ export function ProjectFolder() {
 	if (!active) return null;
 	return (
 		<SetupRow label={t.projects.details.folder}>
-			<span className="font-mono text-ui">{active.path}</span>
+			<span className="rounded-md border border-n-7 bg-surface-1 px-3.5 py-2 font-mono text-ui">
+				{active.path}
+			</span>
 		</SetupRow>
 	);
 }

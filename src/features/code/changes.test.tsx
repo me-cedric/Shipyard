@@ -135,7 +135,7 @@ describe("Code / the files to commit", () => {
 		const summary = box().getByRole("textbox", { name: "Commit message" });
 		await user.clear(summary);
 		await user.type(summary, "fix(auth): refuse nothing");
-		await user.click(box().getByRole("button", { name: "Add a description" }));
+		await user.click(box().getByRole("button", { name: "More" }));
 		await user.type(box().getByRole("textbox", { name: "Description" }), "the why");
 		await user.click(box().getByRole("button", { name: "Commit 1 file" }));
 		await waitFor(() => expect(mockState().code?.branches.main?.log).toHaveLength(4));
@@ -291,7 +291,9 @@ describe("Code / the files to commit", () => {
 		mountApp("/code/changes");
 		// The assistant panel has a "Send to Flow" of its own: this one is on the page.
 		const main = within(await screen.findByRole("main"));
-		await user.click(await main.findByRole("button", { name: "Send to Flow" }));
+		const banner = within(await main.findByRole("region", { name: "1 file has a conflict" }));
+		await user.click(await banner.findByRole("button", { name: "More" }));
+		await user.click(await banner.findByRole("button", { name: "Send to Flow" }));
 		expect(await screen.findByText("Work item SHIP-200 created")).toBeInTheDocument();
 	});
 

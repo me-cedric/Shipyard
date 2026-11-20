@@ -18,13 +18,15 @@ function Page() {
 			<PageHeader
 				title={changes ? title : t.ui.place.code}
 				back={
-					<BackLink
-						label={t.ui.place.code}
-						render={(props) => <Link to="/code/now" {...props} />}
-					/>
+					<div className="pb-6">
+						<BackLink
+							label={t.ui.place.code}
+							render={(props) => <Link to="/code/now" {...props} />}
+						/>
+					</div>
 				}
 			/>
-			<div className="px-4 pb-10">{changes ? <WorkingCopy changes={changes} /> : null}</div>
+			<div className="px-4 pt-3 pb-10">{changes ? <WorkingCopy changes={changes} /> : null}</div>
 		</div>
 	);
 }
