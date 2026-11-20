@@ -25,6 +25,7 @@ import { AUTOSAVE_MS } from "@/ui/organisms/editor-frame";
 import { LeaveGuard } from "@/ui/organisms/leave-guard";
 import { blocks, MarkdownView } from "@/ui/organisms/markdown-view";
 import { ListTab } from "./list-tab";
+import { HistoryFooter } from "./page-history";
 
 const DOTS = (
 	<svg aria-hidden="true" viewBox="0 0 16 16" className="size-4" fill="currentColor">
@@ -301,9 +302,12 @@ function HandbookCard({ path, title }: { path: string; title: string }) {
 			title={title}
 			contents
 			footer={
-				<Button className="min-h-control" onClick={() => ask(format(k.askUpdate, { path }))}>
-					{k.askUpdateLabel}
-				</Button>
+				<>
+					<HistoryFooter path={path} />
+					<Button className="min-h-control" onClick={() => ask(format(k.askUpdate, { path }))}>
+						{k.askUpdateLabel}
+					</Button>
+				</>
 			}
 		/>
 	);

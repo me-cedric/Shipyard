@@ -1,4 +1,5 @@
 import type { libraryEn } from "../library";
+import { libraryFnDe } from "./library-fn";
 
 export const libraryDe: typeof libraryEn = {
 	title: "Bibliothek",
@@ -24,4 +25,5 @@ export const libraryDe: typeof libraryEn = {
 	unpin: "Lösen",
 	pinPage: "{name} anheften",
 	unpinPage: "{name} lösen",
+	fn: libraryFnDe,
 };

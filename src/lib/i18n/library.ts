@@ -1,3 +1,5 @@
+import { libraryFnEn, libraryFnFr } from "./library-fn";
+
 /** The strings of the home of Library (`spec:app-redesign#REQ-020`). */
 export const libraryEn = {
 	title: "Library",
@@ -23,6 +25,7 @@ export const libraryEn = {
 	unpin: "Unpin",
 	pinPage: "Pin {name}",
 	unpinPage: "Unpin {name}",
+	fn: libraryFnEn,
 };
 
 export const libraryFr: typeof libraryEn = {
@@ -49,4 +52,5 @@ export const libraryFr: typeof libraryEn = {
 	unpin: "Désépingler",
 	pinPage: "Épingler {name}",
 	unpinPage: "Désépingler {name}",
+	fn: libraryFnFr,
 };

@@ -5,6 +5,7 @@
 import { parse, stringify } from "yaml";
 import type {
 	CodeGraph_Serialize,
+	CommitInfo,
 	Dashboard_Deserialize,
 	Dashboard_Serialize,
 	DashEntry,
@@ -69,6 +70,8 @@ export type MockKnowledge = {
 		path: string;
 		views?: ViewImage[];
 	}[];
+	/** The earlier versions of a page by path, newest first: the commit and the text at that commit. */
+	history: Record<string, { info: CommitInfo; text: string }[]>;
 };
 
 /** What the Knowledge commands read from the other mocks. */
@@ -164,8 +167,42 @@ export function seedKnowledge(): MockKnowledge {
 		server: true,
 		indexed: true,
 		exported: [],
+		history: {
+			[`${h}/getting-started.md`]: [
+				version(
+					3,
+					"Grace Hopper",
+					"# Getting started\n\nRead adr:0001 first, then the architecture overview.\n",
+				),
+				version(2, "Ada Lovelace", "# Getting started\n\nRead the architecture overview.\n"),
+			],
+			"docs/openspec/constitution.md": [
+				version(5, "Grace Hopper", "# Constitution\n\n## Principles\n\n- The spec comes first.\n"),
+				version(
+					4,
+					"Ada Lovelace",
+					"# Constitution\n\n## Principles\n\n- The spec comes first.\n- Nothing ships with no test.\n",
+				),
+			],
+		},
 	};
 }
+
+/** One earlier version of a page, for the demo history. */
+const version = (n: number, author: string, text: string) => ({
+	info: {
+		sha: `${String(n).padStart(7, "0")}${"b".repeat(33)}`,
+		short: String(n).padStart(7, "0"),
+		summary: `docs: change ${n}`,
+		description: "",
+		author_name: author,
+		author_email: `${author.split(" ")[0]?.toLowerCase()}@example.com`,
+		time: 1_760_000_000 + n * 86_400,
+		parents: [],
+		labels: [],
+	},
+	text,
+});
 
 // ---------------------------------------------------------------- pages
 
@@ -229,6 +266,35 @@ export function docWriteOne(
 	if (!html && !path.endsWith(".md")) throw "a page is a .md file";
 	resolvePath(path, html ? [FOLDERS.slides] : FOLDER_LIST);
 	return putText(k.files, path, text, stamp, create);
+}
+
+/** `page_history`: the earlier versions of a page, newest first. */
+export const pageHistory = (k: MockKnowledge, path: string): CommitInfo[] =>
+	(k.history[path] ?? []).map((v) => v.info);
+
+const versionOf = (k: MockKnowledge, path: string, sha: string) => {
+	const v = k.history[path]?.find((x) => x.info.sha === sha);
+	if (!v) throw `${path} is not in that version`;
+	return v.text;
+};
+
+/** `page_version`: the text of a page at a commit. */
+export const pageVersion = (k: MockKnowledge, path: string, sha: string): string =>
+	versionOf(k, path, sha);
+
+/** `page_restore`: writes the old text into the file `files` holds. Nothing is committed. */
+export function pageRestore(
+	k: MockKnowledge,
+	files: Files,
+	path: string,
+	sha: string,
+	click: boolean,
+): null {
+	if (!click) throw "this change needs the click of a person";
+	const text = versionOf(k, path, sha);
+	if (!files[path]) throw `${path} does not exist`;
+	putText(files, path, text, null, false);
+	return null;
 }
 
 /** The `doc:` entities and citations of the pages. */

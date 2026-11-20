@@ -343,6 +343,28 @@ fn history_pages_and_labels() {
 }
 
 #[test]
+fn file_history_lists_the_commits_of_one_path_and_reads_an_old_text() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    let a = commit(&r, "rules.md", "one\n", "docs: one");
+    commit(&r, "other.md", "x\n", "docs: other");
+    let b = commit(&r, "rules.md", "two\n", "docs: two");
+    let shas = |limit| -> Vec<String> {
+        r.file_history("rules.md", limit)
+            .unwrap()
+            .into_iter()
+            .map(|c| c.sha)
+            .collect()
+    };
+    assert_eq!(shas(10), vec![b.clone(), a.clone()]);
+    assert_eq!(shas(1), vec![b]);
+    assert!(r.file_history("missing.md", 10).unwrap().is_empty());
+    assert_eq!(r.file_at("rules.md", &a).unwrap().as_deref(), Some("one\n"));
+    // The file did not exist yet at that commit.
+    assert_eq!(r.file_at("other.md", &a).unwrap(), None);
+}
+
+#[test]
 fn branches_create_switch_and_refuse_a_dirty_overwrite() {
     let tmp = TempDir::new().unwrap();
     let r = init(tmp.path());

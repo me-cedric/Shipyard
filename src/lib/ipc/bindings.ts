@@ -166,6 +166,10 @@ export const commands = {
 	/**  The proposal for the `gates` of the active project. It reads files and writes nothing. */
 	codeGatesPropose: () => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("code_gates_propose")),
 	codeGatesSave: (gates: string[], click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_gates_save", { gates, click })),
+	pageHistory: (path: string) => typedError<CommitInfo[], AppError_Serialize>(__TAURI_INVOKE("page_history", { path })),
+	pageVersion: (path: string, sha: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("page_version", { path, sha })),
+	/**  Writes an earlier version into the page, after the click of a person. It does not commit. */
+	pageRestore: (path: string, sha: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("page_restore", { path, sha, click })),
 	docSearch: (query: string) => typedError<DocHit[], AppError_Serialize>(__TAURI_INVOKE("doc_search", { query })),
 	docDocxList: () => typedError<PageEntry[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_list")),
 	docDocxRead: (path: string) => typedError<Paragraph[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_read", { path })),

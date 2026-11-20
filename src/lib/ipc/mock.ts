@@ -2618,6 +2618,16 @@ const handlers: Handlers = {
 	codeChainAckWithdraw: (from, to, click) => rv.chainAckWithdraw(review(), from, to, click),
 	codeCoverage: () => rv.coverage(),
 	docSearch: (query) => rv.docSearch(need(state.knowledge).files, query),
+	pageHistory: (path) => kw.pageHistory(need(state.knowledge), path),
+	pageVersion: (path, sha) => kw.pageVersion(need(state.knowledge), path, sha),
+	pageRestore: (path, sha, click) =>
+		kw.pageRestore(
+			need(state.knowledge),
+			path.startsWith("docs/openspec/") ? need(state.specs).files : need(state.knowledge).files,
+			path,
+			sha,
+			click,
+		),
 	docDocxList: () => rv.docxList(review()),
 	docDocxRead: (path) => rv.docxRead(review(), path),
 	specsRequirements: () => specs.requirementRows(need(state.specs)),

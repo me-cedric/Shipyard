@@ -152,16 +152,23 @@ impl Repo {
     /// repository). `None` when no commit did, such as a new file. The walk stops after
     /// `LAST_CHANGE_DEPTH` commits.
     pub fn last_change(&self, path: &str) -> Result<Option<CommitInfo>> {
+        Ok(self.file_history(path, 1)?.pop())
+    }
+
+    /// The commits of the current branch that changed `path`, newest first, at most `limit`. The
+    /// walk stops after `LAST_CHANGE_DEPTH` commits.
+    pub fn file_history(&self, path: &str, limit: usize) -> Result<Vec<CommitInfo>> {
         let Some(head) = self.repo.head().ok().and_then(|h| h.target()) else {
-            return Ok(None);
+            return Ok(vec![]);
         };
         let mut walk = self.repo.revwalk()?;
-        walk.set_sorting(Sort::TIME)?;
+        walk.set_sorting(Sort::TIME | Sort::TOPOLOGICAL)?;
         walk.push(head)?;
         let file = std::path::Path::new(path);
         let blob = |c: &git2::Commit| -> Result<Option<Oid>> {
             Ok(c.tree()?.get_path(file).ok().map(|e| e.id()))
         };
+        let mut out = Vec::new();
         for id in walk.take(LAST_CHANGE_DEPTH) {
             let c = self.repo.find_commit(id?)?;
             let before = match c.parent(0) {
@@ -169,10 +176,26 @@ impl Repo {
                 Err(_) => None,
             };
             if blob(&c)? != before {
-                return Ok(Some(self.info(c.id(), &HashMap::new())?));
+                out.push(self.info(c.id(), &HashMap::new())?);
+                if out.len() == limit {
+                    break;
+                }
             }
         }
-        Ok(None)
+        Ok(out)
+    }
+
+    /// The text of `path` at the commit `sha`. `None` when the file is not in that commit. A file
+    /// that is not UTF-8 text is an error: a restore never writes it.
+    pub fn file_at(&self, path: &str, sha: &str) -> Result<Option<String>> {
+        let tree = self.repo.revparse_single(sha)?.peel_to_commit()?.tree()?;
+        let Ok(entry) = tree.get_path(std::path::Path::new(path)) else {
+            return Ok(None);
+        };
+        let blob = self.repo.find_blob(entry.id())?;
+        String::from_utf8(blob.content().to_vec())
+            .map(Some)
+            .map_err(|_| GitError::NotText(path.to_string()))
     }
 
     fn info(&self, id: Oid, labels: &HashMap<Oid, Vec<RefLabel>>) -> Result<CommitInfo> {

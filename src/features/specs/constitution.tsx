@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useRef } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
+import { EarlierVersions } from "@/features/knowledge/page-history";
 import { LibraryPage, LinkedCard, PageColumns, SideCards } from "@/features/library/page-parts";
 import { WithProject } from "@/features/shell/no-project";
 import { useRoles } from "@/lib/factory";
@@ -165,6 +166,7 @@ export function Constitution() {
 							<SideCards className="flex-[2_1_300px]">
 								<WhoChanges />
 								<WhoFollows />
+								<EarlierVersions path={PATH} />
 							</SideCards>
 						</PageColumns>
 					</LibraryPage>

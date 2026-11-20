@@ -30,6 +30,8 @@ pub enum GitError {
     IsWorkingBranch(String),
     #[error("the branch is not merged: {0}")]
     BranchNotMerged(String),
+    #[error("the file is not text: {0}")]
+    NotText(String),
     #[error("the file still holds a conflict marker: {0}")]
     ConflictMarkers(String),
     #[error("branch already exists: {0}")]

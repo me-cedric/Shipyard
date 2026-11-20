@@ -39,6 +39,7 @@ pub mod mcp_tools;
 pub mod openers;
 pub mod orca;
 pub mod outside;
+pub mod page_history;
 pub mod permissions;
 pub mod pkce;
 pub mod pr_agent;
@@ -216,6 +217,9 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::qa::code_coverage,
             crate::qa::code_gates_propose,
             crate::qa::code_gates_save,
+            crate::page_history::page_history,
+            crate::page_history::page_version,
+            crate::page_history::page_restore,
             crate::documents::doc_search,
             crate::documents::doc_docx_list,
             crate::documents::doc_docx_read,
