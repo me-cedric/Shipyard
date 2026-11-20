@@ -29,9 +29,6 @@ test("chooses a file, commits it from /code/changes and finds it in History", as
 	await openCode(page, "Now");
 	await visit(page, "/code/changes");
 	await expect(heading(page, "4 files to commit")).toBeVisible();
-	const commit = (await openSync(page)).getByRole("button", { name: "Commit" });
-	await expect(commit).toBeEnabled();
-	await page.keyboard.press("Escape");
 
 	await files(page).getByRole("checkbox", { name: "Select docs/guide.md" }).click();
 	const box = commitBox(page);
@@ -50,6 +47,30 @@ test("chooses a file, commits it from /code/changes and finds it in History", as
 		.getByRole("link", { name: "History" })
 		.click();
 	await expect(page.getByRole("button", { name: /docs\(guide\): update the guide/ })).toBeVisible();
+});
+
+test("commits the staged file from the card of the sync mark with Ctrl/Cmd+Enter", async ({
+	page,
+}) => {
+	await openCode(page, "Now");
+	await visit(page, "/code/changes");
+	await expect(heading(page, "4 files to commit")).toBeVisible();
+	const commit = (await openSync(page)).getByRole("button", { name: "Commit" });
+	await expect(commit).toBeEnabled();
+	await commit.click();
+	const dialog = page.getByRole("dialog", { name: "Commit" });
+	await dialog.getByRole("textbox", { name: "Summary" }).fill("wip: guide");
+	await dialog.getByRole("button", { name: "Commit" }).click();
+	await expect(dialog.getByRole("alert")).toContainText("feat, fix, chore, docs, refactor, test");
+
+	await dialog.getByRole("textbox", { name: "Summary" }).fill("docs(guide): update the guide");
+	await dialog.getByRole("textbox", { name: "Description" }).fill("why");
+	await page.keyboard.press("ControlOrMeta+Enter");
+	await expect(dialog).toBeHidden();
+	await expect(heading(page, "3 files to commit")).toBeVisible();
+	await openSync(page);
+	await expect(commit).toBeDisabled();
+	await page.keyboard.press("Escape");
 });
 
 test("refuses a switch that would overwrite a change, then switches after a discard", async ({

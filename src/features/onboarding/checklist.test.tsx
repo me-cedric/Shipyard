@@ -249,7 +249,7 @@ describe("Get started checklist", () => {
 		await pick(user, "forge");
 		await user.click(await screen.findByRole("button", { name: s.action.choose }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
-		expect(router.state.location.hash).toBe("code-host");
+		expect(router.state.location.hash).toBe("more-code-host");
 	});
 
 	it("connects the code host in one click from a detected gh login", async () => {

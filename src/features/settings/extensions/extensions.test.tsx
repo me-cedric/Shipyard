@@ -95,6 +95,28 @@ describe("Settings / Extensions", () => {
 		);
 	});
 
+	it("a rule-pack switch opens the file preview and writes nothing", async () => {
+		const user = userEvent.setup();
+		await mountTab("plugins");
+		await user.click(await screen.findByRole("switch", { name: "Enable node" }));
+		const panel = await screen.findByRole("complementary", { name: "node" });
+		await within(panel).findByText(".devcontainer/devcontainer.json");
+		expect(mockState().extensions.files).not.toContain(".devcontainer/devcontainer.json");
+	});
+
+	it("the Add tile of a rule pack opens the file preview and writes nothing", async () => {
+		const user = userEvent.setup();
+		const before = [...mockState().extensions.files];
+		await mountTab("extensions");
+		const tile = (await screen.findAllByRole("button", { name: /^Enable / }))[0] as HTMLElement;
+		await user.click(tile);
+		const panel = await screen.findByRole("complementary", {
+			name: tile.getAttribute("aria-label")?.replace("Enable ", ""),
+		});
+		await within(panel).findByRole("button", { name: "Deploy" });
+		expect(mockState().extensions.files).toEqual(before);
+	});
+
 	it("reviews a plugin and writes only the accepted items", async () => {
 		const user = userEvent.setup();
 		await mountTab("plugins");

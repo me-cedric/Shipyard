@@ -25,6 +25,7 @@ import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { FolderOpenIcon } from "@/ui/icons";
+import { ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PersonasEditor } from "./personas";
@@ -246,7 +247,16 @@ function Form({
 				connected={!!id}
 				attention={!id}
 				action={
-					<ButtonLink href="/setup/project?page=connections" primary={!id} className="w-full">
+					<ButtonLink
+						// With an account, the choice sits behind More on this page; with none, add one first.
+						href={
+							(connections ?? []).some((c) => c.group === group)
+								? `/setup/project#${group === "tracker" ? "more-issue-tracker" : "more-code-host"}`
+								: "/setup/project?page=connections"
+						}
+						primary={!id}
+						className="w-full"
+					>
 						{id ? p.change : p.connect}
 					</ButtonLink>
 				}
@@ -444,7 +454,7 @@ function ConnectionCard({
 			aria-label={title}
 			className={cn(
 				"flex min-w-0 flex-[0_1_280px] flex-col items-start gap-3 rounded-lg bg-surface-2 p-6 shadow-2",
-				attention && "outline-2 outline-attention",
+				attention && ATTENTION_FRAME,
 			)}
 		>
 			<h2 className="text-20 font-semibold text-n-12">{title}</h2>

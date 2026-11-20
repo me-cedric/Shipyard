@@ -677,6 +677,7 @@ export const de: Messages = {
 			priority: "Priorität",
 			map: "Status-Zuordnung",
 			mapStatus: "Status",
+			mixed: "Gemischt",
 			mapLabels: "Labels",
 			writes: "Schreibschalter",
 			write: {

@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { openManualFor } from "@/features/knowledge/manual-target";
+import { useChecklist } from "@/features/onboarding/checklist";
 import { Column, Columns, SetupCard, SetupRow } from "@/features/settings/parts";
 import { ButtonLink, Fold } from "@/features/settings/project/fold";
 import { format, useI18n } from "@/lib/i18n";
@@ -13,6 +14,7 @@ import { useUpdateCheck } from "@/lib/updates";
 import { openWhatsNew, useWhatsNew } from "@/lib/updates/whats-new";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
+import { ATTENTION_GLYPH, ATTENTION_ICON, ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
@@ -117,7 +119,7 @@ function GroupCard({ group, rows }: { group: Group; rows: Finding_Serialize[] })
 		<section
 			id={`health-${group}`}
 			aria-label={h.group[group]}
-			className="flex min-w-0 flex-col items-start gap-3 rounded-lg bg-surface-2 p-6 shadow-2 outline-2 outline-attention"
+			className={`flex min-w-0 flex-col items-start gap-3 rounded-lg bg-surface-2 p-6 shadow-2 ${ATTENTION_FRAME}`}
 		>
 			<Badge variant="you">{format(h.toFix, { count: rows.length })}</Badge>
 			<h2 className="text-20 font-semibold text-n-12">{h.group[group]}</h2>
@@ -230,10 +232,10 @@ function Area({
 				e.preventDefault();
 				router.history.push(href);
 			}}
-			className={`flex min-h-40 min-w-0 flex-[1_1_180px] flex-col items-start gap-3 rounded-lg bg-surface-2 p-5 shadow-2 hover:bg-n-3 ${state === "fix" ? "outline-2 outline-attention" : ""}`}
+			className={`flex min-h-40 min-w-0 flex-[1_1_180px] flex-col items-start gap-3 rounded-lg bg-surface-2 p-5 shadow-2 hover:bg-n-3 ${state === "fix" ? ATTENTION_FRAME : ""}`}
 		>
 			<span
-				className={`flex size-12 items-center justify-center rounded-md ${state === "fix" ? "bg-attention-subtle text-attention-text" : "bg-success-subtle text-success-text"}`}
+				className={`flex size-12 items-center justify-center rounded-md ${state === "fix" ? ATTENTION_ICON : "bg-success-subtle text-success-text"}`}
 			>
 				<Glyph shape={icon} />
 			</span>
@@ -262,6 +264,8 @@ function ComputerHealth() {
 		queryKey: ["doctor", "skills"],
 		queryFn: () => unwrap(commands.compassGet()),
 	}).data;
+	// An item that is known and not done is open; one still loading does not count.
+	const setupOpen = Object.values(useChecklist().done).filter((d) => d === false).length;
 	const staleSkills = (skills?.entries ?? []).filter(
 		(e) => e.kind === "skill" && e.state !== "current",
 	).length;
@@ -281,9 +285,9 @@ function ComputerHealth() {
 					<section
 						key={p.id}
 						aria-label={format(h.toolMissing, { name: p.id })}
-						className="flex flex-wrap items-center gap-4 rounded-lg bg-surface-2 p-6 shadow-2 outline-2 outline-attention"
+						className={`flex flex-wrap items-center gap-4 rounded-lg bg-surface-2 p-6 shadow-2 ${ATTENTION_FRAME}`}
 					>
-						<span className="flex text-attention-text">
+						<span className={`flex ${ATTENTION_GLYPH}`}>
 							<Glyph shape="warn" size={28} />
 						</span>
 						<span className="min-w-0 flex-[1_1_16rem] text-20 font-semibold text-n-12">
@@ -326,8 +330,13 @@ function ComputerHealth() {
 					>
 						{staleSkills ? format(h.toFix, { count: staleSkills }) : h.ready}
 					</Area>
-					<Area href="/setup/start" label={h.firstSetup} state="ready" icon="ok">
-						{h.done}
+					<Area
+						href="/setup/start"
+						label={h.firstSetup}
+						state={setupOpen ? "fix" : "ready"}
+						icon="ok"
+					>
+						{setupOpen ? format(h.toFix, { count: setupOpen }) : h.done}
 					</Area>
 					<Area
 						href="/setup/computer?page=logs#doctor-ledger"

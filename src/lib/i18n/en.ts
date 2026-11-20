@@ -661,6 +661,7 @@ export const en = {
 			priority: "Priority",
 			map: "Status mapping",
 			mapStatus: "Status",
+			mixed: "Mixed",
 			mapLabels: "Labels",
 			writes: "Write switches",
 			write: {

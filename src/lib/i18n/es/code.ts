@@ -307,6 +307,7 @@ export const forgeEs: typeof forgeEn = {
 		solveAgent: "Resolverlo con un agente",
 		chooseAll: "Elegir todo",
 		chooseNone: "No elegir nada",
+		confirmDiscardChosen: "¿Descartar {count} archivos, con la parte elegida? {paths}",
 		aside: "Apartado",
 		putAside: "Apartar mis cambios",
 		restore: "Restaurar",

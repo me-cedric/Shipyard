@@ -194,6 +194,9 @@ export function McpOutsideGroup() {
 										label: others.length < 2 ? e.name : `${e.name} (${e.source})`,
 									}))}
 								/>
+								<code className="min-w-0 font-mono text-13 break-all text-n-11">
+									{[chosen.command, ...chosen.args].join(" ")}
+								</code>
 								<Button
 									variant="primary"
 									aria-label={format(o.import, { name: chosen.name })}

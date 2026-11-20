@@ -28,6 +28,38 @@ describe("Setup / This project / Details", () => {
 		expect(screen.getByRole("link", { name: "Health of this project" })).toBeInTheDocument();
 	});
 
+	it("points Connect at the choice behind More when an account exists", async () => {
+		await unwrap(
+			commands.connectionsAdd({
+				name: "Acme",
+				group: "tracker",
+				kind: "linear",
+				url: "",
+				user: null,
+			}),
+		);
+		// An account that the project does not use yet.
+		const settings = await unwrap(commands.projectSettings());
+		if (!settings?.file) throw new Error("no project file");
+		await unwrap(
+			commands.projectFileSave({ ...settings.file, connections: { tracker: null, forge: null } }),
+		);
+		mountApp("/setup/project");
+		const tracker = within(await screen.findByRole("region", { name: "Issue tracker" }));
+		await waitFor(() =>
+			expect(tracker.getByRole("link", { name: "Connect" })).toHaveAttribute(
+				"href",
+				"/setup/project#more-issue-tracker",
+			),
+		);
+		// The code host has no account: it still goes to the accounts page.
+		const host = within(screen.getByRole("region", { name: "Code host" }));
+		expect(host.getByRole("link", { name: "Connect" })).toHaveAttribute(
+			"href",
+			"/setup/project?page=connections",
+		);
+	});
+
 	it("moves the pills: Automation and Extensions are pages, the old Connections page stays", async () => {
 		mountApp("/setup/project");
 		const pills = within(await screen.findByRole("navigation", { name: "This project" }));

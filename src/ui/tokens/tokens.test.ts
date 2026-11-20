@@ -166,11 +166,9 @@ describe("tokens (REQ-001)", () => {
 			// The design token view parses the token values of tokens.css to show them. The draw.io
 			// drawing uses the default colours of draw.io for a file with no colour (a picture, not UI).
 			// The brand logos keep the colour of their owner (data, shown only on request).
-			// The theme tiles and the accent swatches of Setup / Me draw the colours of a theme that is
-			// not active: a preview needs the values, not the tokens of the theme that shows.
 			if (
 				/\.test\.tsx?$/.test(path) ||
-				/gallery\/|slide-deck\.tsx$|design\/tokens\.tsx$|organisms\/drawio\.ts$|atoms\/brands\.ts$|settings\/(?:themes|look-rows)\.tsx$/.test(
+				/gallery\/|slide-deck\.tsx$|design\/tokens\.tsx$|organisms\/drawio\.ts$|atoms\/brands\.ts$/.test(
 					path,
 				)
 			)
@@ -213,8 +211,8 @@ describe("the look of the redesign (app-redesign REQ-025, REQ-026)", () => {
 	it("uses the attention colour only in the attention card, the tag for the person and a meter over its budget", () => {
 		const hits = Object.keys(sources).filter(
 			(p) =>
-				// The amber outline of a Setup card that a person must act on (design screens 52, 54, 91).
-				!/\.test\.tsx?$|gallery\/|molecules\/(?:attention-card|spend-meter)\.tsx$|atoms\/(?:badge|progress)\.tsx$|code\/conflict-agent\.tsx$|projects\/settings-(?:health|project)\.tsx$|settings\/parts\/setup-card\.tsx$/.test(
+				// The outline and glyph classes of a card to act on come from attention-card.tsx.
+				!/\.test\.tsx?$|gallery\/|molecules\/(?:attention-card|spend-meter)\.tsx$|atoms\/(?:badge|progress)\.tsx$/.test(
 					p,
 				) &&
 				/\battention(?:-|\b)/.test(sources[p] ?? "") &&

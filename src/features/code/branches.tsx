@@ -171,7 +171,7 @@ function BranchesView() {
 	const { t } = useI18n();
 	const b18 = t.forge.branches;
 	const menu = useMenus();
-	const { can } = useRights();
+	const { can, gate } = useRights();
 	const { ask } = useShell();
 	const { sync, fetch: fetchAction, push: pushAction } = useActions();
 	const branches = useBranches().data ?? [];
@@ -212,6 +212,7 @@ function BranchesView() {
 	// One scale for every bar: ten commits, or the largest count.
 	const max = Math.max(10, ...locals.flatMap((b) => [b.ahead, b.behind]));
 	const writes = can("code.write");
+	const write = gate("code.write");
 	const merge = (b: Branch) => (
 		<RightButton
 			right="code.write"
@@ -231,13 +232,13 @@ function BranchesView() {
 					.map((b) => ({
 						id: `rebase:${b.name}`,
 						label: format(t.code.rebaseBranch, { name: b.name }),
-						disabled: !writes,
+						...write,
 						onSelect: () => rebase(b.name),
 					}))),
 		{
 			id: "force",
 			label: t.code.forcePublish,
-			disabled: !writes,
+			...write,
 			onSelect: () => setForcing(true),
 		},
 		{ id: "remotes", label: b18.remotes, onSelect: () => setRemotes(!remotes) },
@@ -245,6 +246,7 @@ function BranchesView() {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 			<PageHeader title={t.tabs.code.branches} />
+			<GateNotice push />
 			{/* biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box */}
 			<div
 				role="group"
@@ -254,12 +256,12 @@ function BranchesView() {
 				<Button onClick={fetchAction.run} disabled={fetchAction.disabled}>
 					{t.code.fetch}
 				</Button>
-				<Button onClick={pushAction.run} disabled={pushAction.disabled}>
+				<RightButton right="code.write" onClick={pushAction.run} disabled={pushAction.disabled}>
 					{b18.push}
 					{head?.ahead ? (
 						<Badge variant="accent">{format(b18.toSend, { count: head.ahead })}</Badge>
 					) : null}
-				</Button>
+				</RightButton>
 				<Button variant="primary" onClick={sync.run} disabled={sync.disabled}>
 					{sync.label}
 					{head?.behind ? <Badge>{format(b18.toGet, { count: head.behind })}</Badge> : null}
@@ -277,7 +279,6 @@ function BranchesView() {
 			{creating ? <CreateBranch run={run} onDone={() => setCreating(false)} /> : null}
 			{forcing ? (
 				<div className="flex flex-wrap items-center gap-2.5 px-4 pb-4">
-					<GateNotice push part="default" />
 					<RightButton
 						right="code.write"
 						variant="danger"
@@ -295,7 +296,6 @@ function BranchesView() {
 					</Button>
 				</div>
 			) : null}
-			<GateNotice push part="rest" />
 			{error ? (
 				<p role="alert" className="px-4 py-2 text-danger-text">
 					{error}
@@ -398,15 +398,13 @@ function BranchesView() {
 									</RightButton>
 								)}
 								{!(b.is_head || busy || done) ? merge(b) : null}
-								{done ? null : (
-									<RightButton
-										right="code.write"
-										aria-label={format(b18.renameBranch, { name: b.name })}
-										onClick={() => ask(format(b18.renameAsk, { name: b.name }))}
-									>
-										{b18.rename}
-									</RightButton>
-								)}
+								<RightButton
+									right="code.write"
+									aria-label={format(b18.renameBranch, { name: b.name })}
+									onClick={() => ask(format(b18.renameAsk, { name: b.name }))}
+								>
+									{b18.rename}
+								</RightButton>
 								{b.is_head ? null : confirming === b.name ? (
 									<RightButton
 										right="code.write"

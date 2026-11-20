@@ -8,7 +8,6 @@ import { commands, unwrap, type WriteKind } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton, useRights } from "@/lib/rights";
 import { type AutomationView, syncKeys, useAutomation } from "@/lib/sync";
-import { Badge } from "@/ui/atoms/badge";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
@@ -78,7 +77,10 @@ function Form({ view }: { view: AutomationView }) {
 			},
 		});
 
-	const text = (id: (typeof PICKUP)[number] | "interval" | "perStatus", type?: "number") => (
+	const text = (
+		id: (typeof PICKUP)[number] | "interval" | "perProject" | "perStatus",
+		type?: "number",
+	) => (
 		<Input
 			label={a[id]}
 			type={type}
@@ -91,9 +93,10 @@ function Form({ view }: { view: AutomationView }) {
 	const perStatus = pairs(draft.perStatus) ?? [];
 	const mapRow = (name: string, states: readonly string[]) => {
 		// A step shows a value when each of its states holds the same one. A change writes each state.
+		// States with different values show Mixed, read-only: the states fold below edits them.
 		const same = (field: "status" | "labels") => {
 			const first = draft.map[states[0] ?? ""]?.[field] ?? "";
-			return states.every((s) => (draft.map[s]?.[field] ?? "") === first) ? first : "";
+			return states.every((s) => (draft.map[s]?.[field] ?? "") === first) ? first : null;
 		};
 		const put = (field: "status" | "labels", value: string) =>
 			set({
@@ -111,15 +114,17 @@ function Form({ view }: { view: AutomationView }) {
 			<SetupRow key={name} label={plain(name)}>
 				<Input
 					label={`${name}, ${a.mapStatus}`}
-					placeholder={a.mapStatus}
-					value={same("status")}
+					placeholder={same("status") === null ? a.mixed : a.mapStatus}
+					readOnly={same("status") === null}
+					value={same("status") ?? ""}
 					onChange={(e) => put("status", e.target.value)}
 					className="w-36"
 				/>
 				<Input
 					label={`${name}, ${a.mapLabels}`}
-					placeholder={a.mapLabels}
-					value={same("labels")}
+					placeholder={same("labels") === null ? a.mixed : a.mapLabels}
+					readOnly={same("labels") === null}
+					value={same("labels") ?? ""}
 					onChange={(e) => put("labels", e.target.value)}
 					className="w-36"
 				/>
@@ -195,6 +200,9 @@ function Form({ view }: { view: AutomationView }) {
 							/>
 						</SetupRow>
 					))}
+					<Fold id="perProject" label={plain(a.perProject)} value={t.doctor.project.edit}>
+						{text("perProject", "number")}
+					</Fold>
 					<Fold id="perStatus" label={plain(k.byStatus)} value={t.doctor.project.edit}>
 						{text("perStatus")}
 					</Fold>
@@ -276,7 +284,6 @@ function Form({ view }: { view: AutomationView }) {
 					</SetupCard>
 				) : null}
 				<div className="flex flex-col items-start gap-2 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2">
-					<Badge>{k.off}</Badge>
 					<ButtonLink
 						href="/today/today"
 						className="h-(--control-h) border-0 bg-transparent px-0 text-accent-text shadow-none hover:bg-transparent"

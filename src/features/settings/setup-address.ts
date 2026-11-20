@@ -24,15 +24,15 @@ const ANCHOR: Record<string, string> = {
 	"connections#connections-outside": "/setup/computer?page=share",
 	"me#section-setup": "/setup/start",
 	"me#section-fonts": LOOK,
+	"me#avatar": "/setup/me",
+	"me#text-size": "/setup/me",
 	...Object.fromEntries(
 		[
 			"ui-font",
 			"code-font",
-			"avatar",
 			"accent",
 			"nav-side",
 			"drawer-side",
-			"text-size",
 			"narrow-bar",
 			"tray",
 			"motion",

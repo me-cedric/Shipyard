@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
@@ -47,6 +47,20 @@ describe("a viewer on Plan / Estimates", () => {
 		const item = await screen.findByRole("menuitem", { name: "Add a task" });
 		expect(item).toHaveAttribute("aria-disabled", "true");
 		expect(item).toHaveAccessibleDescription(needs("work.edit"));
+	});
+});
+
+describe("a viewer on Code / Branches", () => {
+	it("sees Push off, with the reason", async () => {
+		await viewer();
+		mountApp("/code/branches");
+		await screen.findByRole("button", { name: "New branch" });
+		const push = () =>
+			within(screen.getByRole("group", { name: "Branch actions" })).getByRole("button", {
+				name: /^Push/,
+			});
+		await waitFor(() => expect(push()).toBeDisabled());
+		expect(push()).toHaveAccessibleDescription(needs("code.write"));
 	});
 });
 

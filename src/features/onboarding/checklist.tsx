@@ -94,7 +94,7 @@ const PLACE: Record<ItemId, { to: string; hash?: string }> = {
 
 /**
  * Where an issue tracker or code host step goes. With an account (a connection): the select of
- * This project. With none, that select offers only None: the connections on the same page, with
+ * This project (behind More). With none, that select offers only None: the connections on the same page, with
  * the add form open.
  */
 export function connectTarget(
@@ -102,7 +102,10 @@ export function connectTarget(
 	hasAccount: boolean | undefined,
 ): { to: string; hash?: string; form?: string } {
 	if (hasAccount)
-		return { to: "/setup/project", hash: group === "tracker" ? "issue-tracker" : "code-host" };
+		return {
+			to: "/setup/project",
+			hash: group === "tracker" ? "more-issue-tracker" : "more-code-host",
+		};
 	return {
 		to: "/setup/project?page=connections",
 		form: group === "tracker" ? "connection" : "connection:forge",

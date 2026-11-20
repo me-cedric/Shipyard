@@ -677,6 +677,7 @@ export const es: Messages = {
 			priority: "Prioridad",
 			map: "Correspondencia de estados",
 			mapStatus: "Estado",
+			mixed: "Variado",
 			mapLabels: "Etiquetas",
 			writes: "Interruptores de escritura",
 			write: {

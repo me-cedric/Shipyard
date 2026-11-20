@@ -2,6 +2,7 @@ import { useRouter } from "@tanstack/react-router";
 import { type ReactNode, useId } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronRightIcon } from "@/ui/icons";
+import { ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 import { Row } from "@/ui/molecules/row";
 
 /** The body of a Setup page: two columns of cards that fill the width, one column when the page is narrow. */
@@ -43,7 +44,7 @@ export function SetupCard({
 			aria-labelledby={title ? head : undefined}
 			className={cn(
 				"min-w-0 rounded-lg bg-surface-2 py-2 shadow-2",
-				attention && "outline-2 outline-attention",
+				attention && ATTENTION_FRAME,
 				className,
 			)}
 		>

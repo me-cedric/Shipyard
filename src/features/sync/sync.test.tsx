@@ -144,6 +144,42 @@ describe("Settings / Project, group Automation", () => {
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
 	});
 
+	it("clears the limit of the project again, so the file holds none", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/setup/project?page=automation");
+		await user.click(await screen.findByRole("button", { name: "More: In this project" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().sync.automation.concurrency?.per_project).toBe(3));
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
+		await user.clear(screen.getByRole("spinbutton", { name: "Per project" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(mockState().sync.automation.concurrency?.per_project).toBeUndefined(),
+		);
+	});
+
+	it("shows Mixed, read-only, for a step whose states differ, and keeps both values", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/setup/project?page=automation");
+		await user.type(
+			await screen.findByRole("textbox", { name: "State: Merged, Status" }),
+			"Released",
+		);
+		await user.type(screen.getByRole("textbox", { name: "State: Done, Status" }), "Closed");
+		const step = screen.getByRole("textbox", { name: "Done, Status" });
+		expect(step).toHaveAttribute("placeholder", "Mixed");
+		expect(step).toHaveAttribute("readonly");
+		await user.type(step, "x");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().sync.file).toBe("valid"));
+		expect(mockState().sync.automation.status_map).toEqual({
+			Merged: { status: "Released" },
+			Done: { status: "Closed" },
+		});
+	});
+
 	it("names a per-status value that is not name=number", async () => {
 		const user = userEvent.setup();
 		await withTracker();

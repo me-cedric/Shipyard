@@ -118,25 +118,36 @@ export function useThemeFiles() {
 	return { library, importTheme, exportTheme, remove, dialog };
 }
 
-const LIGHT = ["#F3F4F7", "#FFFFFF", "#2450D8"];
-const DARK = ["#0F1115", "#1A1D24", "#7E9BFF"];
-/** The three bands of the sample of each built-in theme: a picture of it, the same in each theme. */
-const STRIP: Record<Theme, string[]> = {
-	light: LIGHT,
-	dark: DARK,
-	oled: ["#000000", "#111111", "#7E9BFF"],
-	system: ["#F3F4F7", "#0F1115"],
-	"system-oled": ["#F3F4F7", "#000000"],
+type Scheme = "light" | "dark" | "oled";
+type Band = [Scheme, string];
+const strip = (s: Scheme): Band[] => [
+	[s, "bg-surface-0"],
+	[s, "bg-surface-1"],
+	[s, "bg-accent"],
+];
+/** The bands of the sample of each built-in theme: each band takes the tokens of its own scheme. */
+const STRIP: Record<Theme, Band[]> = {
+	light: strip("light"),
+	dark: strip("dark"),
+	oled: strip("oled"),
+	system: [
+		["light", "bg-surface-0"],
+		["dark", "bg-surface-0"],
+	],
+	"system-oled": [
+		["light", "bg-surface-0"],
+		["oled", "bg-surface-0"],
+	],
 };
 
 function ThemeTile({
 	label,
-	colors,
+	bands,
 	selected,
 	onClick,
 }: {
 	label: string;
-	colors: string[];
+	bands: Band[];
 	selected: boolean;
 	onClick: () => void;
 }) {
@@ -151,8 +162,13 @@ function ThemeTile({
 			)}
 		>
 			<span aria-hidden="true" className="flex h-14 overflow-hidden rounded-md border border-n-6">
-				{colors.map((c) => (
-					<span key={c} className="flex-1" style={{ background: c }} />
+				{bands.map(([scheme, tone]) => (
+					<span
+						key={`${scheme}${tone}`}
+						data-scheme={scheme}
+						style={{ colorScheme: scheme === "light" ? "light" : "dark" }}
+						className={cn("flex-1", tone)}
+					/>
 				))}
 			</span>
 			{label}
@@ -193,7 +209,7 @@ export function ThemeCard() {
 					<ThemeTile
 						key={id}
 						label={t.theme[id]}
-						colors={STRIP[id]}
+						bands={STRIP[id]}
 						selected={!custom && theme === id}
 						onClick={() => setPrefs({ theme: id, customTheme: "" })}
 					/>
@@ -202,7 +218,7 @@ export function ThemeCard() {
 					<ThemeTile
 						key={x.id}
 						label={x.name}
-						colors={x.base === "light" ? LIGHT : DARK}
+						bands={strip(x.base === "light" ? "light" : "dark")}
 						selected={custom?.id === x.id}
 						onClick={() => setPrefs({ theme: x.base, customTheme: x.id })}
 					/>

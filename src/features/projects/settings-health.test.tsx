@@ -33,6 +33,13 @@ describe("Setup / Health", () => {
 		expect(screen.getAllByRole("link", { name: "Logs and feedback" }).length).toBeGreaterThan(0);
 	});
 
+	it("counts the open first-setup items instead of saying Done", async () => {
+		mountApp("/setup/computer?page=health");
+		const area = await screen.findByRole("link", { name: /^First setup/ });
+		await waitFor(() => expect(area).toHaveTextContent(/\d+ to fix/));
+		expect(area).not.toHaveTextContent("Done");
+	});
+
 	it("says what is to fix in the project, with the two actions at the heading", async () => {
 		mountApp("/setup/project?page=health");
 		expect(await screen.findByRole("heading", { name: /in this project$/ })).toBeInTheDocument();

@@ -249,7 +249,7 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 								/>,
 							)}
 						</SetupRow>
-						<SetupRow label={t.workspace.view.size}>
+						<SetupRow id="text-size" label={t.workspace.view.size}>
 							<Stepper
 								label={t.workspace.view.size}
 								value={uiScale}
@@ -259,7 +259,7 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 								onValueChange={(v) => setPrefs({ uiScale: v })}
 							/>
 						</SetupRow>
-						<SetupRow label={s.picture}>
+						<SetupRow id="avatar" label={s.picture}>
 							<PictureField which="avatar" label={t.extras.picture.avatar} />
 						</SetupRow>
 					</SetupCard>
@@ -280,7 +280,7 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 							</SetupRow>
 						</Fold>
 					</SetupCard>
-					<SetupCard id="section-tools" title={s.tools}>
+					<SetupCard id="section-agent" title={s.tools}>
 						<SetupRow label={t.personal.prefs.defaultAgent}>
 							<DefaultAgentSelect />
 						</SetupRow>

@@ -541,12 +541,9 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 											label={format(x.plugin.enable, { name: c.name })}
 											{...gate("project.settings")}
 											checked={c.state !== "absent"}
-											onCheckedChange={(on) =>
-												void run(async () => {
-													if (on) await unwrap(commands.catalogDeploy(c.id));
-													else await unwrap(commands.catalogUndeploy(c.id, true));
-													await qc.invalidateQueries({ queryKey: ["catalog"] });
-												})
+											// The switch opens the inspector: the files show first, then a gated button writes.
+											onCheckedChange={() =>
+												openDetail(c.name, <ComponentDetail key={c.id} id={c.id} />)
 											}
 										/>
 									</SetupRow>
@@ -638,12 +635,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 							variant="secondary"
 							className="w-full"
 							aria-label={format(x.plugin.enable, { name: c.name })}
-							onClick={() =>
-								void run(async () => {
-									await unwrap(commands.catalogDeploy(c.id));
-									await qc.invalidateQueries({ queryKey: ["catalog"] });
-								})
-							}
+							onClick={() => openDetail(c.name, <ComponentDetail key={c.id} id={c.id} />)}
 						>
 							{d.addBtn}
 						</Button>

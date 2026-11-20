@@ -50,19 +50,13 @@ export function LookPreview({ width }: { width: number }) {
 const BASE_SIZE = 16;
 
 /** The five accents and the colour of the theme, as round swatches. */
-const SWATCH: Record<Accent, string> = {
-	blue: "#2450D8",
-	violet: "#7A3FD1",
-	green: "#14603A",
-	orange: "#B4530A",
-	rose: "#C2185B",
-};
+const ACCENTS: Accent[] = ["blue", "violet", "green", "orange", "rose"];
 
 function Colour() {
 	const { t } = useI18n();
 	const l = t.extras.look;
 	const p = usePrefs();
-	const swatch = (key: string, label: string, color: string | null) => {
+	const swatch = (key: string, label: string, accent: Accent | null) => {
 		const on = (p.accent ?? "theme") === key;
 		return (
 			<button
@@ -71,38 +65,46 @@ function Colour() {
 				aria-label={label}
 				aria-pressed={on}
 				title={label}
-				onClick={() => p.setPrefs({ accent: color === null ? null : (key as Accent) })}
+				onClick={() => p.setPrefs({ accent })}
+				data-accent-swatch={accent ?? undefined}
 				className={cn(
 					"size-11 cursor-pointer rounded-full border border-n-7 outline-offset-3",
+					accent && "bg-accent",
 					on && "outline-3 outline-n-12",
 				)}
-				style={{ background: color ?? "linear-gradient(135deg, var(--n-3) 50%, var(--n-12) 50%)" }}
+				style={
+					accent
+						? undefined
+						: { background: "linear-gradient(135deg, var(--n-3) 50%, var(--n-12) 50%)" }
+				}
 			/>
 		);
 	};
 	return (
-		<SetupCard title={t.personal.setup.colour}>
+		<SetupCard id="accent" title={t.personal.setup.colour}>
 			{/* biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box */}
 			<div role="group" aria-label={l.accent} className="flex flex-wrap gap-4 px-6 pt-2 pb-5">
 				{swatch("theme", l.accentTheme, null)}
-				{(Object.keys(SWATCH) as Accent[]).map((a) => swatch(a, l.accents[a], SWATCH[a]))}
+				{ACCENTS.map((a) => swatch(a, l.accents[a], a))}
 			</div>
 		</SetupCard>
 	);
 }
 
 function Side({
+	id,
 	label,
 	value,
 	onChange,
 }: {
+	id: string;
 	label: string;
 	value: PanelSide;
 	onChange: (v: PanelSide) => void;
 }) {
 	const { t } = useI18n();
 	return (
-		<SetupRow label={label}>
+		<SetupRow id={id} label={label}>
 			<Segmented
 				label={label}
 				value={value}
@@ -123,20 +125,26 @@ function Layout() {
 	const p = usePrefs();
 	return (
 		<SetupCard title={s.layout}>
-			<Side label={s.menuPlaces} value={p.navSide} onChange={(v) => p.setPrefs({ navSide: v })} />
 			<Side
+				id="nav-side"
+				label={s.menuPlaces}
+				value={p.navSide}
+				onChange={(v) => p.setPrefs({ navSide: v })}
+			/>
+			<Side
+				id="drawer-side"
 				label={s.sidePanel}
 				value={p.drawerSide}
 				onChange={(v) => p.setPrefs({ drawerSide: v })}
 			/>
-			<SetupRow label={l.narrowBar}>
+			<SetupRow id="narrow-bar" label={l.narrowBar}>
 				<Toggle
 					label={l.narrowBar}
 					checked={p.narrowBar}
 					onCheckedChange={(c) => p.setPrefs({ narrowBar: c })}
 				/>
 			</SetupRow>
-			<SetupRow label={s.trayIcon}>
+			<SetupRow id="tray" label={s.trayIcon}>
 				<Toggle label={l.tray} checked={p.tray} onCheckedChange={(c) => p.setPrefs({ tray: c })} />
 			</SetupRow>
 		</SetupCard>
@@ -150,14 +158,14 @@ function MotionAndFocus() {
 	const p = usePrefs();
 	return (
 		<SetupCard title={s.motionFocus}>
-			<SetupRow label={l.motion}>
+			<SetupRow id="motion" label={l.motion}>
 				<Toggle
 					label={l.motion}
 					checked={p.motion === "system"}
 					onCheckedChange={(c) => p.setPrefs({ motion: (c ? "system" : "reduce") as Motion })}
 				/>
 			</SetupRow>
-			<SetupRow label={s.ring}>
+			<SetupRow id="focus-ring" label={s.ring}>
 				<Toggle
 					label={l.focusRing}
 					checked={p.focusRing === "always"}
@@ -166,7 +174,7 @@ function MotionAndFocus() {
 					}
 				/>
 			</SetupRow>
-			<SetupRow label={s.ringWidth}>
+			<SetupRow id="focus-width" label={s.ringWidth}>
 				<Stepper
 					label={l.focusWidth}
 					value={p.focusWidth}
@@ -175,7 +183,7 @@ function MotionAndFocus() {
 					onValueChange={(v) => p.setPrefs({ focusWidth: v })}
 				/>
 			</SetupRow>
-			<SetupRow label={l.preview}>
+			<SetupRow id="look-preview" label={l.preview}>
 				<LookPreview width={p.focusWidth} />
 			</SetupRow>
 		</SetupCard>
@@ -192,7 +200,7 @@ function Text() {
 		Object.keys(map).map((k) => ({ value: k, label: f.font[k as keyof typeof f.font] ?? k }));
 	return (
 		<SetupCard title={s.text}>
-			<SetupRow label={s.fontApp}>
+			<SetupRow id="ui-font" label={s.fontApp}>
 				<ValueSelect
 					label={f.uiFont}
 					value={p.uiFont || "system"}
@@ -200,7 +208,7 @@ function Text() {
 					items={keys(UI_FONTS)}
 				/>
 			</SetupRow>
-			<SetupRow label={s.fontCode}>
+			<SetupRow id="code-font" label={s.fontCode}>
 				<ValueSelect
 					label={f.codeFont}
 					value={p.codeFont || "system"}
@@ -225,7 +233,7 @@ function Text() {
 					onValueChange={(v) => p.setPrefs({ terminalFontSize: v })}
 				/>
 			</SetupRow>
-			<SetupRow label={s.dates}>
+			<SetupRow id="date-format" label={s.dates}>
 				<ValueSelect
 					label={l.dateFormat}
 					value={p.dateFormat || "follow"}
@@ -260,21 +268,21 @@ function Computer() {
 				/>
 			</SetupRow>
 			{folder ? (
-				<SetupRow label={l.dataFolder}>
+				<SetupRow id="data-folder" label={l.dataFolder}>
 					<span className="max-w-80 truncate font-mono text-13 text-n-11" title={folder.path}>
 						{folder.path}
 					</span>
 					{folder.portable ? <Badge variant="info">{l.portable}</Badge> : null}
 				</SetupRow>
 			) : null}
-			<SetupRow label={l.showAllPages}>
+			<SetupRow id="all-pages" label={l.showAllPages}>
 				<Toggle
 					label={l.showAllPages}
 					checked={p.showAllPages}
 					onCheckedChange={(c) => p.setPrefs({ showAllPages: c })}
 				/>
 			</SetupRow>
-			<SetupRow label={t.personal.setup.closePush}>
+			<SetupRow id="close-push" label={t.personal.setup.closePush}>
 				<Toggle
 					label={l.closePush}
 					checked={p.closePush}

@@ -666,6 +666,7 @@ export const fr: Messages = {
 			priority: "Priorité",
 			map: "Correspondance des statuts",
 			mapStatus: "Statut",
+			mixed: "Divers",
 			mapLabels: "Étiquettes",
 			writes: "Écritures autorisées",
 			write: {

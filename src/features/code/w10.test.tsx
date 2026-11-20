@@ -60,10 +60,6 @@ describe("Code, W10", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		await unwrap(commands.codeStatus());
 		mountApp("/code/branches");
-		// The page has no line about it: the line shows with the confirmation of a force publish, behind More.
-		const user = userEvent.setup();
-		await user.click(await screen.findByRole("button", { name: "More" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Force publish" }));
 		expect(await screen.findByText(/is the default branch of origin/)).toBeInTheDocument();
 	});
 

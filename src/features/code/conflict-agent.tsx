@@ -8,6 +8,7 @@ import { useShell } from "@/lib/shell";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
 import { LinkButton } from "@/ui/atoms/link-button";
+import { ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 
 /**
@@ -30,7 +31,9 @@ export function ConflictAgent({ onSolve }: { onSolve?: (path: string) => void })
 	const n = t.forge.now;
 	return (
 		<section aria-labelledby={head} className="flex flex-col items-end gap-2">
-			<div className="flex w-full flex-wrap items-center gap-4 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2 outline-2 outline-attention">
+			<div
+				className={`flex w-full flex-wrap items-center gap-4 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2 ${ATTENTION_FRAME}`}
+			>
 				<span aria-hidden="true" className="contents">
 					<Avatar agent name={n.solveAgent.split(" ").at(-1) ?? ""} />
 				</span>

@@ -10,6 +10,10 @@ export const ATTENTION_FRAME = "outline-2 outline-attention";
 /** The soft ground and the full fill of a meter or a block that is over its limit. */
 export const ATTENTION_TINT = "bg-attention-subtle";
 export const ATTENTION_FILL = "bg-attention-strong";
+/** The ground and the glyph colour of an icon on such a card. */
+export const ATTENTION_ICON = "bg-attention-subtle text-attention-text";
+/** The colour of a glyph on such a card. */
+export const ATTENTION_GLYPH = "text-attention-text";
 
 /**
  * A card for a thing that a person must act on. The only user of the attention colour. With `icon`

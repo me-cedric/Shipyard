@@ -248,6 +248,7 @@
 
 /* A project can override the accent. Only the hue changes. */
 :root[data-accent] .canvas-dark,
+[data-accent-swatch],
 :root[data-accent] {
 	--accent: light-dark(oklch(0.494 0.2 var(--accent-hue)), oklch(0.711 0.15 var(--accent-hue)));
 	--accent-hover: light-dark(
@@ -268,23 +269,28 @@
 	);
 }
 
-:root[data-accent="blue"] {
+:root[data-accent="blue"],
+[data-accent-swatch="blue"] {
 	--accent-hue: 265;
 }
 
-:root[data-accent="violet"] {
+:root[data-accent="violet"],
+[data-accent-swatch="violet"] {
 	--accent-hue: 295;
 }
 
-:root[data-accent="green"] {
+:root[data-accent="green"],
+[data-accent-swatch="green"] {
 	--accent-hue: 150;
 }
 
-:root[data-accent="orange"] {
+:root[data-accent="orange"],
+[data-accent-swatch="orange"] {
 	--accent-hue: 55;
 }
 
-:root[data-accent="rose"] {
+:root[data-accent="rose"],
+[data-accent-swatch="rose"] {
 	--accent-hue: 10;
 }
 

@@ -321,6 +321,7 @@ export const forgeDe: typeof forgeEn = {
 		solveAgent: "Mit einem Agenten lösen",
 		chooseAll: "Alle wählen",
 		chooseNone: "Keine wählen",
+		confirmDiscardChosen: "{count} Dateien verwerfen, auch den gewählten Teil? {paths}",
 		aside: "Beiseitegelegt",
 		putAside: "Meine Änderungen beiseitelegen",
 		restore: "Wiederherstellen",

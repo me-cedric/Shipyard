@@ -265,6 +265,7 @@ describe("setupAddress", () => {
 		["me", "#permission-notifications", "/setup/me#permission-notifications"],
 		["me", "#tour", "/setup/me#tour"],
 		["me", "#ui-font", "/setup/me?page=look#ui-font"],
+		["me", "#text-size", "/setup/me#text-size"],
 		["health", "", "/setup/project?page=health"],
 		["health", "#tools", "/setup/computer?page=health#tools"],
 		["health", "#doctor-console", "/setup/computer?page=logs#doctor-console"],

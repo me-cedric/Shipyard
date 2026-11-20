@@ -104,6 +104,16 @@ describe("Code / the files to commit", () => {
 		expect(mockState().code?.files["README.md"]).toBeUndefined();
 	});
 
+	it("discards a file with a chosen part and an unchosen part, the chosen part too", async () => {
+		const user = userEvent.setup();
+		await changes();
+		mockState().confirm = true;
+		await user.click(list().getByRole("button", { name: "src/lib/util.ts" }));
+		await user.click(screen.getByRole("button", { name: "Discard" }));
+		await title("3 files to commit");
+		expect(mockState().code?.files["src/lib/util.ts"]).toMatchObject({ index: "x\n", work: "x\n" });
+	});
+
 	it("puts the changes aside, restores them and deletes the saved set", async () => {
 		const user = userEvent.setup();
 		await changes();

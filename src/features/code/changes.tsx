@@ -437,14 +437,11 @@ export function CommitBox({ changes, compact }: { changes: ChangesData; compact?
 						{t.ui.more}
 					</LinkButton>
 					{more ? (
-						<>
-							<Textarea
-								label={t.code.description}
-								value={description}
-								onChange={(e) => setDescription(e.target.value)}
-							/>
-							<GateNotice push={false} part="default" />
-						</>
+						<Textarea
+							label={t.code.description}
+							value={description}
+							onChange={(e) => setDescription(e.target.value)}
+						/>
 					) : null}
 				</>
 			)}
@@ -481,10 +478,12 @@ export function WorkingCopy({ changes }: { changes: ChangesData }) {
 
 	/** Discards the changes of one file, the chosen part too, after a confirmation that names it. */
 	const discardFile = async (r: FlatRow) => {
-		if (!(await confirmDialog(format(t.code.confirmDiscard, { count: 1, paths: r.path })))) return;
+		const ask = r.staged ? n.confirmDiscardChosen : t.code.confirmDiscard;
+		if (!(await confirmDialog(format(ask, { count: 1, paths: r.path })))) return;
 		if (r.staged) await unstage([r.path]);
-		// A new file leaves the working copy: nothing of it is in the last commit.
-		const fresh = r.file.state === "untracked" || r.file.state === "added";
+		// A new file leaves the working copy: nothing of it is in the last commit. After the unstage a
+		// renamed file is a new path too.
+		const fresh = ["untracked", "added", "renamed"].includes(r.file.state);
 		await discard([r.path], fresh);
 	};
 
@@ -571,7 +570,7 @@ export function WorkingCopy({ changes }: { changes: ChangesData }) {
 						</Card>
 					) : null}
 					<Card pad className="flex flex-col gap-3">
-						<GateNotice push={false} part="rest" />
+						<GateNotice push={false} />
 						<CommitBox changes={changes} />
 					</Card>
 					<Stashes dirty={free.length > 0} run={run} />
