@@ -66,15 +66,19 @@ export function TileCard({
 				{lead}
 				<h2
 					className={cn(
-						"min-w-0 flex-1 truncate text-n-12",
-						edit ? "text-14 font-semibold" : "text-17 font-semibold",
+						"min-w-0 flex-1 text-n-12",
+						// In edit mode the title wraps to two lines beside the handle and the two buttons.
+						edit
+							? "line-clamp-2 break-words text-14 font-semibold"
+							: "truncate text-17 font-semibold",
 					)}
 				>
 					{title}
 				</h2>
 				{actions}
 				{/* Show as table and the pin: one quiet menu, so that a tile in read mode has no icon row. */}
-				{off && !onPin ? null : (
+				{/* Edit mode shows Settings and Remove only: the menu stays in read mode. */}
+				{edit || (off && !onPin) ? null : (
 					<MenuButton
 						iconOnly
 						label={`${labels.more} ${title}`}

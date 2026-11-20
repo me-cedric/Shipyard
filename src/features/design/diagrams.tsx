@@ -34,7 +34,7 @@ import { drawioSvg, svgDataUri } from "@/ui/organisms/drawio";
 import { DrawioEditor } from "@/ui/organisms/drawio-editor";
 import { DrawioViewer } from "@/ui/organisms/drawio-viewer";
 import { ExcalidrawBoard } from "@/ui/organisms/excalidraw-board";
-import { MermaidView } from "@/ui/organisms/mermaid-view";
+import { MermaidView, renderMermaid } from "@/ui/organisms/mermaid-view";
 import { LibraryPage, PageColumns, SideCards } from "../library/page-parts";
 import { FileFrame, type Frame } from "./frame";
 import { useOpenOutside } from "./open";
@@ -99,29 +99,26 @@ function Face({ a }: { a: Artifact | undefined }) {
 		queryFn: async () =>
 			format === "drawio"
 				? drawioSvg(text ?? "", path.endsWith(".svg"))
-				: (await import("@/ui/organisms/excalidraw-canvas")).sceneSvg(text ?? ""),
-		enabled: (format === "excalidraw" || format === "drawio") && !!text,
+				: format === "mermaid"
+					? // SVG text labels: an image cannot draw the HTML labels of Mermaid.
+						renderMermaid(text ?? "", false, true)
+					: (await import("@/ui/organisms/excalidraw-canvas")).sceneSvg(text ?? ""),
+		enabled: (format === "excalidraw" || format === "drawio" || format === "mermaid") && !!text,
 	}).data;
 	if (!a || !drawn || !text) return <Thumb format={format} />;
 	const box = "pointer-events-none block h-28 w-full overflow-hidden px-2";
-	if (format === "mermaid" || format === "bpmn")
+	if (format === "bpmn")
 		return (
 			<span
 				aria-hidden="true"
 				// inert: the viewer inside holds a focusable node, and the card is a button.
 				inert
-				className={`${box} [&_[role=img]]:h-28 [&_[role=img]]:min-h-0 [&_[role=img]]:overflow-hidden [&_[role=img]]:border-0 [&_[role=img]]:bg-transparent [&_[role=img]]:p-0 [&_svg]:max-h-28${
-					format === "mermaid" ? " [&_svg]:h-full! [&_svg]:w-full! [&_svg]:max-w-none!" : ""
-				}`}
+				className={`${box} [&_[role=img]]:h-28 [&_[role=img]]:min-h-0 [&_[role=img]]:overflow-hidden [&_[role=img]]:border-0 [&_[role=img]]:bg-transparent [&_[role=img]]:p-0 [&_svg]:max-h-28`}
 			>
-				{format === "mermaid" ? (
-					<MermaidView source={text} label={a.title} plain />
-				) : (
-					<BpmnViewer text={text} label={a.title} />
-				)}
+				<BpmnViewer text={text} label={a.title} />
 			</span>
 		);
-	const svg = format === "excalidraw" || format === "drawio" ? scene : text;
+	const svg = format === "excalidraw" || format === "drawio" || format === "mermaid" ? scene : text;
 	if (!svg) return <Thumb format={format} />;
 	return <img alt="" src={svgDataUri(svg)} className="h-28 w-full object-contain px-2" />;
 }
