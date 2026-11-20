@@ -25,7 +25,8 @@ describe("the ref of a design artifact", () => {
 		await user.click((await list("Diagrams")).getByRole("button", { name: /context/ }));
 		// The inspector header offers Copy ref too: any of them copies the same ref.
 		// The reference sits in the "More" menu of the page.
-		await user.click(await screen.findByRole("button", { name: "More" }));
+		const [more] = await screen.findAllByRole("button", { name: "More" });
+		await user.click(more as HTMLElement);
 		await user.click(await screen.findByRole("menuitem", { name: "Copy ref" }));
 		expect(writeText).toHaveBeenCalledWith("diagram:context");
 	});

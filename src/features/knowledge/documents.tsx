@@ -65,89 +65,87 @@ export function Documents() {
 		};
 	const exports = useDocumentExports().map((x) => ({ ...x, go: run(x.id, x.ext, x.job) }));
 	return (
-		<>
-			<ListTab
-				title={k.title}
-				icon={<DocumentTextIcon size={16} />}
-				noun={k.newDocument}
-				nameLabel={k.name}
-				find={k.find}
-				base={DOC_DIR.documents}
-				rows={rows}
-				template={(name) => `# ${name}\n`}
-				pills={(row) => <Badge>{k.format[row.path.endsWith(".docx") ? "docx" : "md"]}</Badge>}
-				// The documents that Shipyard writes are cards of Reports: here they are in "More".
-				menu={[
-					{ label: t.review.documents.search, onClick: () => setSearching(true) },
-					...(canEdit
-						? exports.map((x) => ({
-								label: `${k.export} ${x.label}`,
-								disabled: exporting !== null,
-								onClick: () => void x.go(),
-							}))
-						: []),
-				]}
-				notice={
-					searching ? (
-						<Card pad className="flex flex-wrap items-start gap-3">
-							<div className="min-w-60 flex-1">
-								<DocSearch onPick={pick} />
-							</div>
-							<Button className="min-h-control" onClick={() => setSearching(false)}>
-								{t.common.close}
-							</Button>
-						</Card>
-					) : note ? (
-						<div className="flex flex-wrap items-center gap-2">
-							<p role="status" className="text-n-11">
-								{note}
-							</p>
-							{saved ? <SavedActions path={saved} onError={setFailure} /> : null}
-							<ErrorNotice error={failure} />
+		<ListTab
+			title={k.title}
+			icon={<DocumentTextIcon size={16} />}
+			noun={k.newDocument}
+			nameLabel={k.name}
+			find={k.find}
+			base={DOC_DIR.documents}
+			rows={rows}
+			template={(name) => `# ${name}\n`}
+			pills={(row) => <Badge>{k.format[row.path.endsWith(".docx") ? "docx" : "md"]}</Badge>}
+			// The documents that Shipyard writes are cards of Reports: here they are in "More".
+			menu={[
+				{ label: t.review.documents.search, onClick: () => setSearching(true) },
+				...(canEdit
+					? exports.map((x) => ({
+							label: `${k.export} ${x.label}`,
+							disabled: exporting !== null,
+							onClick: () => void x.go(),
+						}))
+					: []),
+			]}
+			notice={
+				searching ? (
+					<Card pad className="flex flex-wrap items-start gap-3">
+						<div className="min-w-60 flex-1">
+							<DocSearch onPick={pick} />
 						</div>
-					) : (
+						<Button className="min-h-control" onClick={() => setSearching(false)}>
+							{t.common.close}
+						</Button>
+					</Card>
+				) : note ? (
+					<div className="flex flex-wrap items-center gap-2">
+						<p role="status" className="text-n-11">
+							{note}
+						</p>
+						{saved ? <SavedActions path={saved} onError={setFailure} /> : null}
 						<ErrorNotice error={failure} />
-					)
-				}
-				below={(row) => (
-					<>
-						<Card pad className="flex flex-wrap items-center gap-3">
-							<h2 className="min-w-50 flex-1 text-17 font-semibold">{k.planner}</h2>
-							<Button
-								className="min-h-control"
-								onClick={() => ask(format(k.toSlidesAsk, { path: row.path }))}
-							>
-								{k.toSlides}
+					</div>
+				) : (
+					<ErrorNotice error={failure} />
+				)
+			}
+			below={(row) => (
+				<>
+					<Card pad className="flex flex-wrap items-center gap-3">
+						<h2 className="min-w-50 flex-1 text-17 font-semibold">{k.planner}</h2>
+						<Button
+							className="min-h-control"
+							onClick={() => ask(format(k.toSlidesAsk, { path: row.path }))}
+						>
+							{k.toSlides}
+						</Button>
+						<Button
+							variant="primary"
+							className="min-h-control"
+							onClick={() => ask(format(k.toSpecAsk, { path: row.path }))}
+						>
+							{k.toSpec}
+						</Button>
+					</Card>
+					<Card className="py-2">
+						<Row>
+							<span className="text-n-10">{k.file}</span>
+							<span className="ml-auto min-w-0 break-all font-mono text-14">{row.path}</span>
+							<Button className="min-h-control" onClick={() => revealPath(row.path)}>
+								{t.ui.item.reveal}
 							</Button>
-							<Button
-								variant="primary"
-								className="min-h-control"
-								onClick={() => ask(format(k.toSpecAsk, { path: row.path }))}
-							>
-								{k.toSpec}
-							</Button>
-						</Card>
-						<Card className="py-2">
-							<Row>
-								<span className="text-n-10">{k.file}</span>
-								<span className="ml-auto min-w-0 break-all font-mono text-14">{row.path}</span>
-								<Button className="min-h-control" onClick={() => revealPath(row.path)}>
-									{t.ui.item.reveal}
-								</Button>
-							</Row>
-							<Row>
-								<span className="text-n-10">{k.export}</span>
-								<span className="ml-auto">
-									<PageExport page="documents" />
-								</span>
-							</Row>
-						</Card>
-					</>
-				)}
-			>
-				{(row) => <Document path={row.path} title={row.title} onRenamed={pick} />}
-			</ListTab>
-		</>
+						</Row>
+						<Row>
+							<span className="text-n-10">{k.export}</span>
+							<span className="ml-auto">
+								<PageExport page="documents" />
+							</span>
+						</Row>
+					</Card>
+				</>
+			)}
+		>
+			{(row) => <Document path={row.path} title={row.title} onRenamed={pick} />}
+		</ListTab>
 	);
 }
 

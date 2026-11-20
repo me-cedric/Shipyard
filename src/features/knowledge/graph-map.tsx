@@ -55,89 +55,87 @@ export function KnowledgeMap({
 		: [];
 	const near = [...new Set(linked)].flatMap((ref) => graph.nodes.find((n) => n.ref === ref) ?? []);
 	return (
-		<>
-			<PageColumns>
-				<DetailColumn className="grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-4">
-					{[...groups].map(([kind, members]) => {
-						const name = groupNames[kind] ?? kindNames[kind] ?? kind;
-						const all = open.includes(kind) || members.length <= FIRST + 1;
-						// The chosen item and its links always show, also past the first chips.
-						const shown = all
-							? members
-							: members.filter((m, i) => i < FIRST || m.ref === chosen?.ref || near.includes(m));
-						return (
-							<section key={kind} data-map-group aria-label={name} className={GROUP}>
-								<h2 className="text-17 font-semibold text-n-12">{name}</h2>
-								<div className="flex flex-wrap gap-2">
-									{shown.map((m) => (
-										<Chip
-											key={m.ref}
-											selected={m.ref === chosen?.ref}
-											className={cn(
-												"max-w-full text-left",
-												m.ref === chosen?.ref ? undefined : WHITE,
-												near.includes(m) && LINKED,
-											)}
-											onClick={() => setPicked(m.ref)}
-										>
-											<span className="truncate">{m.title || m.ref}</span>
-										</Chip>
-									))}
-									{all ? null : (
-										<Chip
-											className={WHITE}
-											aria-expanded={false}
-											aria-label={`${name}: ${format(k.graph.more, { count: members.length - shown.length })}`}
-											onClick={() => setOpen([...open, kind])}
-										>
-											{format(k.graph.more, { count: members.length - shown.length })}
-										</Chip>
-									)}
-								</div>
-							</section>
-						);
-					})}
-				</DetailColumn>
-				{chosen ? (
-					<SideCards className="flex-[2_1_300px]">
-						<Card pad className="flex flex-col gap-3.5">
-							<section aria-label={k.graph.chosen} className="flex flex-col gap-3.5">
-								<Badge variant="accent" className="self-start">
-									{kindNames[chosen.kind] ?? chosen.kind}
-								</Badge>
-								<h2 className="break-words text-30 font-semibold text-n-12">
-									{chosen.title || chosen.ref}
-								</h2>
-								<div className="flex flex-wrap gap-2.5">
-									<Button variant="primary" onClick={() => openRef(chosen.ref)}>
-										{k.graph.open}
-									</Button>
-									<Button onClick={() => explain(chosen.ref)}>{k.explain}</Button>
-								</div>
-							</section>
-						</Card>
-						{near.length ? (
-							<LinkedCard title={k.graph.linked}>
-								{near.map((n) => (
-									<Row
-										key={n.ref}
-										className={WIDE}
-										render={(p) => <button type="button" onClick={() => setPicked(n.ref)} {...p} />}
+		<PageColumns>
+			<DetailColumn className="grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-4">
+				{[...groups].map(([kind, members]) => {
+					const name = groupNames[kind] ?? kindNames[kind] ?? kind;
+					const all = open.includes(kind) || members.length <= FIRST + 1;
+					// The chosen item and its links always show, also past the first chips.
+					const shown = all
+						? members
+						: members.filter((m, i) => i < FIRST || m.ref === chosen?.ref || near.includes(m));
+					return (
+						<section key={kind} data-map-group aria-label={name} className={GROUP}>
+							<h2 className="text-17 font-semibold text-n-12">{name}</h2>
+							<div className="flex flex-wrap gap-2">
+								{shown.map((m) => (
+									<Chip
+										key={m.ref}
+										selected={m.ref === chosen?.ref}
+										className={cn(
+											"max-w-full text-left",
+											m.ref === chosen?.ref ? undefined : WHITE,
+											near.includes(m) && LINKED,
+										)}
+										onClick={() => setPicked(m.ref)}
 									>
-										<Badge>{kindNames[n.kind] ?? n.kind}</Badge>
-										<span className="min-w-0 text-left font-semibold">{n.title || n.ref}</span>
-									</Row>
+										<span className="truncate">{m.title || m.ref}</span>
+									</Chip>
 								))}
-							</LinkedCard>
-						) : null}
-						<Card pad className="flex flex-wrap items-center gap-3">
-							<span className="mr-auto min-w-0 break-all font-mono text-14">{chosen.ref}</span>
-							<Button onClick={() => void copyText(chosen.ref)}>{k.graph.copy}</Button>
-						</Card>
-					</SideCards>
-				) : null}
-			</PageColumns>
-		</>
+								{all ? null : (
+									<Chip
+										className={WHITE}
+										aria-expanded={false}
+										aria-label={`${name}: ${format(k.graph.more, { count: members.length - shown.length })}`}
+										onClick={() => setOpen([...open, kind])}
+									>
+										{format(k.graph.more, { count: members.length - shown.length })}
+									</Chip>
+								)}
+							</div>
+						</section>
+					);
+				})}
+			</DetailColumn>
+			{chosen ? (
+				<SideCards className="flex-[2_1_300px]">
+					<Card pad className="flex flex-col gap-3.5">
+						<section aria-label={k.graph.chosen} className="flex flex-col gap-3.5">
+							<Badge variant="accent" className="self-start">
+								{kindNames[chosen.kind] ?? chosen.kind}
+							</Badge>
+							<h2 className="break-words text-30 font-semibold text-n-12">
+								{chosen.title || chosen.ref}
+							</h2>
+							<div className="flex flex-wrap gap-2.5">
+								<Button variant="primary" onClick={() => openRef(chosen.ref)}>
+									{k.graph.open}
+								</Button>
+								<Button onClick={() => explain(chosen.ref)}>{k.explain}</Button>
+							</div>
+						</section>
+					</Card>
+					{near.length ? (
+						<LinkedCard title={k.graph.linked}>
+							{near.map((n) => (
+								<Row
+									key={n.ref}
+									className={WIDE}
+									render={(p) => <button type="button" onClick={() => setPicked(n.ref)} {...p} />}
+								>
+									<Badge>{kindNames[n.kind] ?? n.kind}</Badge>
+									<span className="min-w-0 text-left font-semibold">{n.title || n.ref}</span>
+								</Row>
+							))}
+						</LinkedCard>
+					) : null}
+					<Card pad className="flex flex-wrap items-center gap-3">
+						<span className="mr-auto min-w-0 break-all font-mono text-14">{chosen.ref}</span>
+						<Button onClick={() => void copyText(chosen.ref)}>{k.graph.copy}</Button>
+					</Card>
+				</SideCards>
+			) : null}
+		</PageColumns>
 	);
 }
 

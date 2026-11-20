@@ -213,13 +213,7 @@ export function PageCard({
 			) : (
 				<div className="flex flex-col gap-6 @4xl:flex-row">
 					<div className="min-w-0 max-w-[70ch] flex-1">
-						<MarkdownView
-							source={body}
-							label={title}
-							anchor={anchor}
-							reading
-							onOpenRef={openRef}
-						/>
+						<MarkdownView source={body} label={title} anchor={anchor} reading onOpenRef={openRef} />
 					</div>
 					{toc.length ? (
 						<nav

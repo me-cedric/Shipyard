@@ -144,7 +144,8 @@ export function useItems(title: string, items: Item[]) {
 	const [created, setCreated] = useState<string>();
 	const pick = (ref: string) => {
 		setSelected(ref);
-		openRef(ref);
+		// A row that the page selects keeps the inspector at the side.
+		openRef(ref, true);
 	};
 	/** The context menu of an item. */
 	const menuOf = (i: Item): MenuItem[] => [

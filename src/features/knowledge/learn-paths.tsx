@@ -206,129 +206,127 @@ export function LearnPaths({ part }: { part: "paths" | "team" }) {
 			</>
 		);
 	return (
-		<>
-			<LearnCard
-				title={k.paths}
-				toolbar={
-					<span className="flex items-center gap-2">
-						{people.length ? (
-							<Select
-								label={k.person}
-								value={who}
-								onValueChange={setPicked}
-								items={people.map((m) => ({ value: m.handle, label: m.name }))}
+		<LearnCard
+			title={k.paths}
+			toolbar={
+				<span className="flex items-center gap-2">
+					{people.length ? (
+						<Select
+							label={k.person}
+							value={who}
+							onValueChange={setPicked}
+							items={people.map((m) => ({ value: m.handle, label: m.name }))}
+						/>
+					) : null}
+					<RightButton
+						right="knowledge.edit"
+						disabled={editing !== null}
+						onClick={() => setEditing({ id: "", title: "", experts: [], steps: [blankStep()] })}
+					>
+						<PlusIcon size={14} />
+						{k.newPath}
+					</RightButton>
+				</span>
+			}
+		>
+			{editing ? (
+				<PathForm start={editing} people={people} onDone={() => setEditing(null)} />
+			) : null}
+			<ErrorNotice error={failure} />
+			{paths.map((p) => {
+				const done = p.steps.filter((s) => doneBy(who).includes(stepKey(p, s))).length;
+				return (
+					<section
+						key={p.id}
+						aria-label={p.title}
+						className="flex flex-col gap-2 rounded-lg border bg-surface-2 p-3 shadow-1"
+					>
+						<div className="flex flex-wrap items-center gap-2">
+							<h3 className="min-w-0 flex-1 truncate font-medium text-ui text-n-12">{p.title}</h3>
+							<Progress
+								value={done}
+								max={Math.max(p.steps.length, 1)}
+								label={format(k.done, { name: p.title })}
+								className="w-24"
 							/>
-						) : null}
-						<RightButton
-							right="knowledge.edit"
-							disabled={editing !== null}
-							onClick={() => setEditing({ id: "", title: "", experts: [], steps: [blankStep()] })}
-						>
-							<PlusIcon size={14} />
-							{k.newPath}
-						</RightButton>
-					</span>
-				}
-			>
-				{editing ? (
-					<PathForm start={editing} people={people} onDone={() => setEditing(null)} />
-				) : null}
-				<ErrorNotice error={failure} />
-				{paths.map((p) => {
-					const done = p.steps.filter((s) => doneBy(who).includes(stepKey(p, s))).length;
-					return (
-						<section
-							key={p.id}
-							aria-label={p.title}
-							className="flex flex-col gap-2 rounded-lg border bg-surface-2 p-3 shadow-1"
-						>
-							<div className="flex flex-wrap items-center gap-2">
-								<h3 className="min-w-0 flex-1 truncate font-medium text-ui text-n-12">{p.title}</h3>
-								<Progress
-									value={done}
-									max={Math.max(p.steps.length, 1)}
-									label={format(k.done, { name: p.title })}
-									className="w-24"
-								/>
-								<span className="font-mono text-12 text-n-11">
-									{done}/{p.steps.length}
-								</span>
-								<RightIconButton
+							<span className="font-mono text-12 text-n-11">
+								{done}/{p.steps.length}
+							</span>
+							<RightIconButton
+								right="knowledge.edit"
+								label={format(k.editName, { name: p.title })}
+								disabled={editing !== null}
+								onClick={() => setEditing({ ...p })}
+							>
+								<PencilIcon size={14} />
+							</RightIconButton>
+							<RightIconButton
+								right="knowledge.edit"
+								label={format(k.removeName, { name: p.title })}
+								onClick={() => setRemoving(removing === p.id ? null : p.id)}
+							>
+								<TrashIcon size={14} />
+							</RightIconButton>
+						</div>
+						{removing === p.id ? (
+							<div className="flex gap-2">
+								<RightButton
 									right="knowledge.edit"
-									label={format(k.editName, { name: p.title })}
-									disabled={editing !== null}
-									onClick={() => setEditing({ ...p })}
+									variant="danger"
+									onClick={() =>
+										void change(async () => {
+											const next = await unwrap(commands.learningPathDelete(p.id, true));
+											setRemoving(null);
+											return next;
+										})
+									}
 								>
-									<PencilIcon size={14} />
-								</RightIconButton>
-								<RightIconButton
-									right="knowledge.edit"
-									label={format(k.removeName, { name: p.title })}
-									onClick={() => setRemoving(removing === p.id ? null : p.id)}
-								>
-									<TrashIcon size={14} />
-								</RightIconButton>
+									{format(k.confirmRemove, { name: p.title })}
+								</RightButton>
+								<Button variant="ghost" onClick={() => setRemoving(null)}>
+									{k.cancel}
+								</Button>
 							</div>
-							{removing === p.id ? (
-								<div className="flex gap-2">
-									<RightButton
-										right="knowledge.edit"
-										variant="danger"
-										onClick={() =>
-											void change(async () => {
-												const next = await unwrap(commands.learningPathDelete(p.id, true));
-												setRemoving(null);
-												return next;
-											})
-										}
-									>
-										{format(k.confirmRemove, { name: p.title })}
-									</RightButton>
-									<Button variant="ghost" onClick={() => setRemoving(null)}>
-										{k.cancel}
-									</Button>
-								</div>
-							) : null}
-							{p.experts.length ? (
-								<ul aria-label={k.experts} className="flex flex-wrap gap-1">
-									{p.experts.map((e) => (
-										<li key={e}>
-											<Badge variant="info">{nameOf(e)}</Badge>
-										</li>
-									))}
-								</ul>
-							) : null}
-							<ol aria-label={k.steps} className="flex flex-col">
-								{p.steps.map((s) => (
-									<li key={s.id} className="flex items-center gap-2 border-t py-1 first:border-t-0">
-										<Checkbox
-											label={format(k.done, { name: s.title })}
-											hideLabel
-											disabled={!who}
-											checked={doneBy(who).includes(stepKey(p, s))}
-											onCheckedChange={(on) =>
-												void change(() =>
-													unwrap(commands.learningProgressSet(who, stepKey(p, s), on, true)),
-												)
-											}
-										/>
-										<Badge>{k.kind[s.kind]}</Badge>
-										<span className="min-w-0 flex-1 truncate text-ui text-n-12">{s.title}</span>
-										{s.url ? (
-											<IconButton
-												label={format(k.open, { name: s.title })}
-												onClick={() => openAddress(s.url ?? "")}
-											>
-												<LinkIcon size={14} />
-											</IconButton>
-										) : null}
+						) : null}
+						{p.experts.length ? (
+							<ul aria-label={k.experts} className="flex flex-wrap gap-1">
+								{p.experts.map((e) => (
+									<li key={e}>
+										<Badge variant="info">{nameOf(e)}</Badge>
 									</li>
 								))}
-							</ol>
-						</section>
-					);
-				})}
-			</LearnCard>
-		</>
+							</ul>
+						) : null}
+						<ol aria-label={k.steps} className="flex flex-col">
+							{p.steps.map((s) => (
+								<li key={s.id} className="flex items-center gap-2 border-t py-1 first:border-t-0">
+									<Checkbox
+										label={format(k.done, { name: s.title })}
+										hideLabel
+										disabled={!who}
+										checked={doneBy(who).includes(stepKey(p, s))}
+										onCheckedChange={(on) =>
+											void change(() =>
+												unwrap(commands.learningProgressSet(who, stepKey(p, s), on, true)),
+											)
+										}
+									/>
+									<Badge>{k.kind[s.kind]}</Badge>
+									<span className="min-w-0 flex-1 truncate text-ui text-n-12">{s.title}</span>
+									{s.url ? (
+										<IconButton
+											label={format(k.open, { name: s.title })}
+											onClick={() => openAddress(s.url ?? "")}
+										>
+											<LinkIcon size={14} />
+										</IconButton>
+									) : null}
+								</li>
+							))}
+						</ol>
+					</section>
+				);
+			})}
+		</LearnCard>
 	);
 }

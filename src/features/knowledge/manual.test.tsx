@@ -156,7 +156,9 @@ describe("Library / Manual", () => {
 		const lead = screen.getByText(/^Shipyard helps a team deliver/);
 		expect(lead.compareDocumentPosition(picture) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 		expect(screen.getByRole("heading", { level: 2, name: "Start" })).toHaveClass("text-30");
-		const header = screen.getByRole("heading", { level: 1, name: "Manual" }).closest("div");
+		const header = screen
+			.getByRole("heading", { level: 1, name: "Manual" })
+			.closest("[data-page-header]");
 		expect(within(header as HTMLElement).getByText("F1")).toBeInTheDocument();
 		expect(within(header as HTMLElement).queryByText(String(MANUAL.length))).toBeNull();
 		// The rail keeps its link to the place: the page has no way back.

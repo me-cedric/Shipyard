@@ -10,7 +10,7 @@ export const rightsEn = {
 		pm: "Project manager",
 		architect: "Architect",
 		techlead: "Tech lead",
-		ba: "Analyst",
+		ba: "Business analyst",
 		developer: "Developer",
 		qa: "Tester",
 		designer: "Designer",

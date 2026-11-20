@@ -386,18 +386,16 @@ export function Dashboards() {
 				onClick: () => void create(id, k.template[id], TEMPLATES[id]),
 			}))}
 			action={
-				<>
-					{entries.length > 1 && slug ? (
-						<div>
-							<Segmented
-								label={k.switch}
-								value={slug}
-								onValueChange={choose}
-								items={entries.map((e) => ({ value: e.slug, label: e.title }))}
-							/>
-						</div>
-					) : null}
-				</>
+				entries.length > 1 && slug ? (
+					<div>
+						<Segmented
+							label={k.switch}
+							value={slug}
+							onValueChange={choose}
+							items={entries.map((e) => ({ value: e.slug, label: e.title }))}
+						/>
+					</div>
+				) : null
 			}
 		>
 			{failure ? (
