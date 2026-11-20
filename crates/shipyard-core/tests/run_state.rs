@@ -408,7 +408,9 @@ fn a_person_pauses_a_working_run_and_resume_returns_to_the_same_state() {
     let paused = run.apply(RunEvent::Pause).unwrap();
     assert_eq!(paused.state, RunState::Paused);
     assert_eq!(paused.return_to, Some(RunState::Working));
-    let back = paused.apply(RunEvent::Resume { budget_left: true }).unwrap();
+    let back = paused
+        .apply(RunEvent::Resume { budget_left: true })
+        .unwrap();
     assert_eq!(back.state, RunState::Working);
     // Pause waits for an agent: a state with no agent refuses it, and a final state too.
     assert!(Run::new().apply(RunEvent::Pause).is_err());
@@ -437,5 +439,8 @@ fn the_alert_follows_the_share_that_the_project_set() {
     assert_eq!(budget_level_at(6.9, 10.0, 0.7), BudgetLevel::Under);
     assert_eq!(budget_level_at(7.0, 10.0, 0.7), BudgetLevel::Alert);
     assert_eq!(budget_level_at(10.0, 10.0, 0.7), BudgetLevel::Spent);
-    assert_eq!(budget_level(4.0, 5.0), budget_level_at(4.0, 5.0, BUDGET_ALERT));
+    assert_eq!(
+        budget_level(4.0, 5.0),
+        budget_level_at(4.0, 5.0, BUDGET_ALERT)
+    );
 }

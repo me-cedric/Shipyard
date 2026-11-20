@@ -274,7 +274,8 @@ impl Budgets {
 
     /// The share of a budget where the alert shows, 0 to 1.
     pub fn warn(&self) -> f64 {
-        self.warn_at.map_or(crate::run::BUDGET_ALERT, |p| f64::from(p) / 100.0)
+        self.warn_at
+            .map_or(crate::run::BUDGET_ALERT, |p| f64::from(p) / 100.0)
     }
 
     pub fn for_feature(&self, key: &str) -> Option<f64> {

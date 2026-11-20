@@ -358,6 +358,9 @@ export const commands = {
 	runStart: (key: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("run_start", { key })),
 	runCancel: (run: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_cancel", { run })),
 	runResume: (run: string, addUsd: number | null, addTokens: number, note: string | null) => typedError<RunState, AppError_Serialize>(__TAURI_INVOKE("run_resume", { run, addUsd, addTokens, note })),
+	runPause: (run: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_pause", { run })),
+	runTakeOver: (run: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("run_take_over", { run })),
+	runAttach: (run: string, name: string, bytes: number[]) => typedError<Attachment, AppError_Serialize>(__TAURI_INVOKE("run_attach", { run, name, bytes })),
 	runUnblock: (run: string, note: string | null) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_unblock", { run, note })),
 	runCloseDone: (run: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_close_done", { run })),
 	runPlanApprove: (run: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_plan_approve", { run })),
@@ -412,6 +415,7 @@ export const commands = {
 	figmaTokens: (file: string) => typedError<DesignToken[], AppError_Serialize>(__TAURI_INVOKE("figma_tokens", { file })),
 	specsChanges: () => typedError<ChangeView_Serialize[], AppError_Serialize>(__TAURI_INVOKE("specs_changes")),
 	specsChangeCreate: (title: string) => typedError<ChangeView_Serialize, AppError_Serialize>(__TAURI_INVOKE("specs_change_create", { title })),
+	specsChangeInputAdd: (id: string, name: string, bytes: number[]) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("specs_change_input_add", { id, name, bytes })),
 	specsChangeFromTicket: (key: string, click: boolean) => typedError<TicketChange_Serialize, AppError_Serialize>(__TAURI_INVOKE("specs_change_from_ticket", { key, click })),
 	specsChangeDelegate: (key: string, workflow: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("specs_change_delegate", { key, workflow, click })),
 	specsRead: (path: string) => typedError<Text, AppError_Serialize>(__TAURI_INVOKE("specs_read", { path })),
@@ -1274,6 +1278,15 @@ export type Budgets_Deserialize = {
 	day?: { [key in string]: number | null },
 	/**  Key: the name of the ticket assignee. */
 	member?: { [key in string]: number | null },
+	/**  Key: a ticket key. The limit covers all runs of the feature (`runs-recipes` REQ-005). */
+	feature?: { [key in string]: number | null },
+	/**
+	 *  The percent of a budget where the alert shows, for the project. Default 80
+	 *  (`runs-recipes` REQ-006).
+	 */
+	warn_at?: number | null,
+	/**  What happens at the limit of each kind of budget. */
+	then?: Thens_Deserialize,
 };
 
 /**
@@ -1285,6 +1298,15 @@ export type Budgets_Serialize = {
 	day: { [key in string]: number | null },
 	/**  Key: the name of the ticket assignee. */
 	member: { [key in string]: number | null },
+	/**  Key: a ticket key. The limit covers all runs of the feature (`runs-recipes` REQ-005). */
+	feature?: { [key in string]: number | null },
+	/**
+	 *  The percent of a budget where the alert shows, for the project. Default 80
+	 *  (`runs-recipes` REQ-006).
+	 */
+	warn_at?: number,
+	/**  What happens at the limit of each kind of budget. */
+	then?: Thens_Serialize,
 };
 
 /**  Working days and public holidays (REQ-016). */
@@ -2999,6 +3021,8 @@ export type Limits_Deserialize = {
 	per_project?: number | null,
 	/**  By ticket status name at pickup. */
 	per_status?: { [key in string]: number },
+	/**  By stage of the run, beside the limits by status (`runs-recipes` REQ-007). */
+	per_stage?: StageLimits_Deserialize,
 };
 
 /**  Run limits (REQ-007). `global` counts the active runs of every project on this machine and its agent reviews. */
@@ -3007,6 +3031,8 @@ export type Limits_Serialize = {
 	per_project?: number,
 	/**  By ticket status name at pickup. */
 	per_status?: { [key in string]: number },
+	/**  By stage of the run, beside the limits by status (`runs-recipes` REQ-007). */
+	per_stage?: StageLimits_Serialize,
 };
 
 export type LineKind = "same" | "add" | "del";
@@ -5895,6 +5921,23 @@ export type StackPreset = {
 /**  The five stages of Flow, in order. */
 export type Stage = "idea" | "spec" | "build" | "review" | "ready";
 
+/**  The number of active runs that each stage may hold at once. `None`: no limit. */
+export type StageLimits = StageLimits_Serialize | StageLimits_Deserialize;
+
+/**  The number of active runs that each stage may hold at once. `None`: no limit. */
+export type StageLimits_Deserialize = {
+	plan?: number | null,
+	build?: number | null,
+	review?: number | null,
+};
+
+/**  The number of active runs that each stage may hold at once. `None`: no limit. */
+export type StageLimits_Serialize = {
+	plan?: number,
+	build?: number,
+	review?: number,
+};
+
 export type Stash = {
 	/**  Position in the list: 0 is the newest. A drop moves the ones after it. */
 	index: number,
@@ -5968,6 +6011,12 @@ export type Step_Deserialize = {
 	workspace?: Workspace,
 	needs?: string[],
 	gate?: Gate,
+	/**
+	 *  The team role that approves a `gate: human` step, as `team.yaml` names it. Only a person
+	 *  with this role approves, and only this role gets the card on Today (`runs-recipes`
+	 *  REQ-008). Absent: any person with the right to approve.
+	 */
+	approver?: string | null,
 	/**  `<step>.<field>`: one child for each item of that output. `<step>` is in `needs`. */
 	for_each?: string | null,
 	max_parallel?: number | null,
@@ -5999,6 +6048,12 @@ export type Step_Serialize = {
 	workspace: Workspace,
 	needs?: string[],
 	gate: Gate,
+	/**
+	 *  The team role that approves a `gate: human` step, as `team.yaml` names it. Only a person
+	 *  with this role approves, and only this role gets the card on Today (`runs-recipes`
+	 *  REQ-008). Absent: any person with the right to approve.
+	 */
+	approver?: string,
 	/**  `<step>.<field>`: one child for each item of that output. `<step>` is in `needs`. */
 	for_each?: string,
 	max_parallel?: number,
@@ -6327,6 +6382,43 @@ export type ThemeView_Deserialize = {
 export type ThemeView_Serialize = {
 	stamp: string | null,
 } & Loaded<DeckTheme_Serialize>;
+
+/**  What a run does when a budget is spent (`runs-recipes` REQ-006, `adr:0024`). */
+export type Then = 
+/**  The run pauses and the report asks a person (the default). */
+"stop_ask" | 
+/**  The run pauses and keeps the report to itself. */
+"pause" | 
+/**  The run pauses and only the app asks: no comment on the issue tracker. */
+"ask" | 
+/**  The budget is a warning only. The run goes on. */
+"go_on";
+
+/**
+ *  The choice `Then` of each kind of budget. A run budget (recipe) and a feature limit are both
+ *  `feature`.
+ */
+export type Thens = Thens_Serialize | Thens_Deserialize;
+
+/**
+ *  The choice `Then` of each kind of budget. A run budget (recipe) and a feature limit are both
+ *  `feature`.
+ */
+export type Thens_Deserialize = {
+	feature?: Then,
+	day?: Then,
+	member?: Then,
+};
+
+/**
+ *  The choice `Then` of each kind of budget. A run budget (recipe) and a feature limit are both
+ *  `feature`.
+ */
+export type Thens_Serialize = {
+	feature: Then,
+	day: Then,
+	member: Then,
+};
 
 export type Thread = Thread_Serialize | Thread_Deserialize;
 

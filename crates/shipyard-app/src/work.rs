@@ -712,6 +712,13 @@ pub(crate) fn assign_me(s: &AppState, key: &str) {
     }
 }
 
+/// The name of the person at this computer in the issue tracker, when it is known.
+pub(crate) fn me_name(s: &AppState) -> Option<String> {
+    let t = tracker(s).ok()?;
+    let me = s.connections.tracker(&t.id).ok()?.me().ok()?;
+    Some(me.name).filter(|n| !n.trim().is_empty())
+}
+
 /// Mark an item for agent work: add the pickup label of `automation.yaml` (REQ-008).
 pub fn mark(s: &AppState, key: &str, click: bool) -> Res<()> {
     need_click(s, click, crate::rights::Right::RunsStart, "work_mark", key)?;

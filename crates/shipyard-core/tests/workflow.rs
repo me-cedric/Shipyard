@@ -355,7 +355,10 @@ fn only_a_human_step_has_a_role_that_is_a_team_role() {
             },
         ]
     );
-    assert_eq!(wf.step("plan").unwrap().approver.as_deref(), Some("techlead"));
+    assert_eq!(
+        wf.step("plan").unwrap().approver.as_deref(),
+        Some("techlead")
+    );
 }
 
 #[test]

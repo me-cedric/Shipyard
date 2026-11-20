@@ -650,6 +650,36 @@ impl Factory {
         self.lock().cancel_run(run_id, "kill switch")
     }
 
+    /// A person ends the run for a reason that the run log keeps, as "Taken over by Ada"
+    /// (`runs-recipes` REQ-002). The branch and the worktree stay.
+    pub fn cancel_because(&self, run_id: &str, reason: &str) -> Result<(), String> {
+        self.lock().cancel_run(run_id, reason)
+    }
+
+    /// A person adds context for the next turn of the run (`runs-recipes` REQ-003): a note that
+    /// the next brief or the resumed session reads, like the message of `unblock_with`. `source`
+    /// names the file. `text` is data: the note fences it. A run that ended refuses it.
+    pub fn add_context(&self, run_id: &str, source: &str, text: &str) -> Result<(), String> {
+        let mut inner = self.lock();
+        if inner.run(run_id)?.run.state.is_final() {
+            return Err("the run ended".into());
+        }
+        let note = format!(
+            "The person added {source} as context:\n{}",
+            fence(source, text)
+        );
+        for s in inner.rec(run_id).steps.values_mut() {
+            if matches!(
+                s.state,
+                StepState::Running | StepState::Failed | StepState::Pending
+            ) {
+                s.notes.push(note.clone());
+            }
+        }
+        inner.log(run_id, None, kind::NOTE, json!({"context": source}));
+        Ok(())
+    }
+
     /// The global kill switch: on cancels every active run and stops pickup (REQ-024).
     pub fn set_kill_switch(&self, on: bool) {
         let mut inner = self.lock();
@@ -1311,9 +1341,10 @@ impl Inner {
     /// The choices `Then` and the share of the alert that the project set (`runs-recipes`
     /// REQ-006). A project that is not open has the defaults.
     pub(crate) fn budget_rules(&self, run_id: &str) -> (Thens, f64) {
-        self.project_of(run_id).map_or((Thens::default(), run::BUDGET_ALERT), |p| {
-            (p.automation.budgets.then, p.automation.budgets.warn())
-        })
+        self.project_of(run_id)
+            .map_or((Thens::default(), run::BUDGET_ALERT), |p| {
+                (p.automation.budgets.then, p.automation.budgets.warn())
+            })
     }
 
     /// The level of the budgets of the run itself, and of the shared ones by key. A budget that a
@@ -1817,7 +1848,8 @@ impl Inner {
     /// the issue tracker (the person did it). The agents keep their sessions.
     fn pause_now(&mut self, run_id: &str) {
         let record = self.record(run_id, Cause::Person, &[]);
-        let note = json!({"stop": Cause::Person.text(), "cause": Cause::Person, "escalation": record});
+        let note =
+            json!({"stop": Cause::Person.text(), "cause": Cause::Person, "escalation": record});
         self.log(run_id, None, kind::NOTE, note);
         self.transition(run_id, RunEvent::Pause);
     }

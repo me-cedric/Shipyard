@@ -72,8 +72,8 @@ pub fn write_automation(root: &Path, a: &Automation) -> Result<()> {
     )
 }
 
-/// Set or clear (`usd` is `None`) one budget in the file (`factory` REQ-032). `scope` is `day` or
-/// `member`. A missing file starts from the defaults; an invalid file or value is refused.
+/// Set or clear (`usd` is `None`) one budget in the file (`factory` REQ-032). `scope` is `day`,
+/// `member` or `feature` (key: a ticket key, `runs-recipes` REQ-005). A missing file starts from the defaults; an invalid file or value is refused.
 pub fn set_budget(root: &Path, scope: &str, key: &str, usd: Option<f64>) -> Result<()> {
     let mut a = match read_automation(root)? {
         AutomationRead::Missing => Automation::default(),
@@ -83,6 +83,7 @@ pub fn set_budget(root: &Path, scope: &str, key: &str, usd: Option<f64>) -> Resu
     let map = match scope {
         "day" => &mut a.budgets.day,
         "member" => &mut a.budgets.member,
+        "feature" => &mut a.budgets.feature,
         _ => return Err(format!("unknown budget scope `{scope}`").into()),
     };
     match usd {

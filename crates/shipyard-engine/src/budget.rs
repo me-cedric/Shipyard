@@ -83,7 +83,9 @@ impl Inner {
                 }
             }
             _ if then == Then::Pause => {
-                let why = spent.first().map_or("the budget of the run", |k| k.as_str());
+                let why = spent
+                    .first()
+                    .map_or("the budget of the run", |k| k.as_str());
                 self.log(
                     run_id,
                     None,

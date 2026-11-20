@@ -816,12 +816,18 @@ fn stage_limits_and_budget_choices_round_trip_and_stay_out_at_the_defaults() {
 fn a_bad_warn_at_a_bad_feature_limit_and_a_zero_stage_limit_are_refused() {
     let issue = |text: &str| {
         let a: Automation = serde_norway::from_str(text).unwrap();
-        a.validate().into_iter().map(|i| i.field).collect::<Vec<_>>()
+        a.validate()
+            .into_iter()
+            .map(|i| i.field)
+            .collect::<Vec<_>>()
     };
     assert_eq!(issue("budgets:\n  warn_at: 0\n"), ["budgets.warn_at"]);
     assert_eq!(issue("budgets:\n  warn_at: 101\n"), ["budgets.warn_at"]);
     assert!(issue("budgets:\n  warn_at: 100\n").is_empty());
-    assert_eq!(issue("budgets:\n  feature:\n    A-1: -1\n"), ["budgets.feature.A-1"]);
+    assert_eq!(
+        issue("budgets:\n  feature:\n    A-1: -1\n"),
+        ["budgets.feature.A-1"]
+    );
     assert_eq!(
         issue("concurrency:\n  per_stage:\n    review: 0\n"),
         ["concurrency.per_stage.review"]

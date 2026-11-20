@@ -159,7 +159,9 @@ fn go_on_turns_the_budget_into_a_warning_that_shows_once() {
 fn go_on_keeps_the_stall_timeout_and_the_max_turns() {
     let fx = Fx::build(
         writes(true),
-        &["id: one\nsteps:\n  - { id: work, role: worker, model: mid, tools: [report] }\nlimits: { max_turns: 2, budget_usd: 1, stall_s: 100 }\n"],
+        &[
+            "id: one\nsteps:\n  - { id: work, role: worker, model: mid, tools: [report] }\nlimits: { max_turns: 2, budget_usd: 1, stall_s: 100 }\n",
+        ],
         Config::default(),
         |p| {
             p.automation.budgets.then = Thens {
@@ -200,7 +202,10 @@ fn a_budget_with_no_choice_pauses_the_run_and_posts_the_stop_report() {
     let run = run_of(&fx, "SHIP-1");
     fx.event("work", usage(1.2));
     assert_eq!(fx.state(&run), RunState::Paused);
-    assert_eq!(fx.f.run_info(&run).unwrap().escalation.unwrap().cause, Cause::Budget);
+    assert_eq!(
+        fx.f.run_info(&run).unwrap().escalation.unwrap().cause,
+        Cause::Budget
+    );
     assert_eq!(comments(&fx), 1);
 }
 
@@ -241,13 +246,12 @@ fn the_limit_of_a_feature_sums_every_run_of_its_ticket() {
     fx.f.cancel(&first).unwrap();
     assert!(fx.f.active_runs().is_empty());
     fx.start("SHIP-1", &[]);
-    let second = fx
-        .f
-        .runs()
-        .into_iter()
-        .find(|r| r.key == "SHIP-1" && r.id != first)
-        .unwrap()
-        .id;
+    let second =
+        fx.f.runs()
+            .into_iter()
+            .find(|r| r.key == "SHIP-1" && r.id != first)
+            .unwrap()
+            .id;
     fx.event("work", usage(1.4));
     assert_eq!(fx.state(&second), RunState::Working, "$2.90 of $3.00");
     fx.event("work", usage(0.1));
@@ -277,11 +281,52 @@ fn a_run_stays_queued_while_its_stage_is_at_its_limit() {
     assert_eq!(fx.state(&a), RunState::Working);
     assert_eq!(fx.state(&b), RunState::Working);
     assert_eq!(fx.state(&c), RunState::Planning, "queued: Build is full");
-    assert!(fx.logged(&c, "note").iter().any(|n| n["queued"] == "build limit"));
+    assert!(
+        fx.logged(&c, "note")
+            .iter()
+            .any(|n| n["queued"] == "build limit")
+    );
     fx.f.pump();
     assert_eq!(fx.agents.running().len(), 2);
     // A run leaves Build: the queued run goes on at the next pump.
     fx.done(&a, "work");
     fx.f.pump();
     assert_eq!(fx.state(&c), RunState::Working);
+}
+
+// ---- REQ-002 Take it over, REQ-003 Attach
+
+#[test]
+fn a_run_ends_as_cancelled_with_the_reason_of_the_person_and_keeps_its_work() {
+    let fx = fx_with(|_| {});
+    let run = fx.start("SHIP-1", &[]);
+    fx.f.cancel_because(&run, "Taken over by Ada").unwrap();
+    assert_eq!(fx.state(&run), RunState::Cancelled);
+    assert!(
+        fx.logged(&run, "note")
+            .iter()
+            .any(|n| n["stop"] == "Taken over by Ada")
+    );
+}
+
+#[test]
+fn a_file_of_the_person_is_context_for_the_next_turn_as_data() {
+    let fx = fx_with(|_| {});
+    let run = fx.start("SHIP-1", &[]);
+    fx.event("work", AgentEvent::Session { id: "s-1".into() });
+    fx.f.add_context(&run, "the file `notes.md`", "Use the new endpoint.")
+        .unwrap();
+    fx.f.pause(&run).unwrap();
+    fx.event("work", AgentEvent::Turn);
+    assert_eq!(fx.f.resume(&run, 0.0), Ok(RunState::Working));
+    fx.f.pump();
+    let next = fx.agents.briefs().pop().unwrap();
+    assert!(next.prompt.contains("notes.md"), "{}", next.prompt);
+    assert!(
+        next.prompt.contains("Use the new endpoint."),
+        "{}",
+        next.prompt
+    );
+    fx.f.cancel(&run).unwrap();
+    assert!(fx.f.add_context(&run, "the file `a.md`", "x").is_err());
 }

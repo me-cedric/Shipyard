@@ -880,7 +880,7 @@ pub fn runs(s: &AppState) -> Res<Vec<RunView>> {
             let mut v = run_view(r, &pulls, open as u32, waiting as u32);
             if matches!(
                 v.state,
-                RunState::Failed | RunState::Paused | RunState::Blocked
+                RunState::Failed | RunState::Paused | RunState::Blocked | RunState::Cancelled
             ) {
                 v.reason = stop_reason(s, &r.id);
             }
@@ -1319,6 +1319,70 @@ pub(crate) fn start_ticket(
 pub fn cancel(s: &AppState, run: &str) -> Res<()> {
     crate::rights::require(s, crate::rights::Right::RunsStart, "run_cancel", run)?;
     done(s, s.factory.factory.cancel(run))
+}
+
+/// A person pauses a working run at the end of its turn (`runs-recipes` REQ-001).
+pub fn pause(s: &AppState, run: &str) -> Res<()> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "run_pause", run)?;
+    done(s, s.factory.factory.pause(run))
+}
+
+/// A person takes a run over (`runs-recipes` REQ-002): the run ends as `Cancelled` with the
+/// reason "Taken over by <person>", the branch and the worktree stay, the person becomes the
+/// assignee of the ticket and the worktree opens in the editor. Returns the worktree folder. A
+/// ticket that cannot be assigned, or no editor, does not undo the take over.
+pub fn take_over(s: &AppState, run: &str) -> Res<String> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "run_take_over", run)?;
+    let a = active(s)?.ok_or("no project is open")?;
+    let f = &s.factory.factory;
+    let info = f
+        .run_info(run)
+        .filter(|r| r.project == a.entry.id)
+        .ok_or_else(|| format!("no run {run}"))?;
+    if info.run.state.is_final() {
+        return Err("the run ended".into());
+    }
+    let who = crate::work::me_name(s)
+        .or_else(|| crate::rights::actor(s, &a.entry.id).map(|x| x.by))
+        .unwrap_or_else(|| "a person".into());
+    done(s, f.cancel_because(run, &format!("Taken over by {who}")))?;
+    crate::work::assign_me(s, &info.key);
+    let dir = run_folders(s, run)?.run_path(run).map_err(err)?;
+    if let Err(e) =
+        crate::openers::open_folder_in_editor_with(&crate::openers::app_dirs(), None, &dir)
+    {
+        eprintln!("take over {run}: {e}");
+    }
+    Ok(dir.display().to_string())
+}
+
+/// A file that a person adds to the chat of a run (`runs-recipes` REQ-003). The file goes into
+/// the run folder of the app data with the limits of `assistant_attach`, and the next turn reads
+/// it as context. A text file goes in as a quote that is data, an image as its path.
+pub fn run_attach_file(
+    s: &AppState,
+    run: &str,
+    name: &str,
+    bytes: &[u8],
+) -> Res<crate::assistant_attach::Attachment> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "run_attach", run)?;
+    let a = active(s)?.ok_or("no project is open")?;
+    let f = &s.factory.factory;
+    f.run_info(run)
+        .filter(|r| r.project == a.entry.id)
+        .ok_or_else(|| format!("no run {run}"))?;
+    if !plain(run) {
+        return Err(format!("`{run}` is not a plain run id"));
+    }
+    let dir = s.dir.join("agents").join(run).join("context");
+    let made = crate::assistant_attach::attach(&dir, name, bytes)?;
+    if made.kind == "text" {
+        std::fs::create_dir_all(&dir).map_err(err)?;
+        std::fs::write(dir.join(&made.name), bytes).map_err(err)?;
+    }
+    f.add_context(run, &format!("the file `{}`", made.name), &made.quote)?;
+    s.factory.publish();
+    Ok(made)
 }
 
 /// Raise the budget and resume a paused run (`factory` REQ-005).
@@ -2022,6 +2086,29 @@ pub async fn run_start(app: AppHandle, key: String) -> Api<String> {
 #[specta::specta]
 pub async fn run_cancel(app: AppHandle, run: String) -> Api<()> {
     blocking(app, move |s| cancel(s, &run)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn run_pause(app: AppHandle, run: String) -> Api<()> {
+    blocking(app, move |s| pause(s, &run)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn run_take_over(app: AppHandle, run: String) -> Api<String> {
+    blocking(app, move |s| take_over(s, &run)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn run_attach(
+    app: AppHandle,
+    run: String,
+    name: String,
+    bytes: Vec<u8>,
+) -> Api<crate::assistant_attach::Attachment> {
+    blocking(app, move |s| run_attach_file(s, &run, &name, &bytes)).await
 }
 
 #[tauri::command]

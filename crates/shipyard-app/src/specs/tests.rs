@@ -597,3 +597,35 @@ fn an_archive_with_an_open_item_needs_the_confirm_and_a_done_item_does_not_count
     );
     assert!(archive_change(&f.s, "archive", true).is_err());
 }
+
+#[test]
+fn a_document_goes_into_the_inputs_folder_of_the_change_and_another_kind_is_refused() {
+    // `runs-recipes` REQ-004.
+    let f = fx();
+    with_change(&f);
+    let rel = change_input_add(&f.s, "add-auth", "Brief.DOCX", b"PK word").unwrap();
+    assert_eq!(rel, "docs/openspec/changes/add-auth/inputs/Brief.DOCX");
+    assert_eq!(std::fs::read(f.repo.path().join(&rel)).unwrap(), b"PK word");
+    for name in ["notes.md", "spec.pdf", "old.doc"] {
+        change_input_add(&f.s, "add-auth", name, b"x").unwrap();
+    }
+    let e = change_input_add(&f.s, "add-auth", "shot.png", b"x").unwrap_err();
+    assert!(e.contains("Markdown, PDF or Word"), "{e}");
+    for (id, name, bytes) in [
+        ("add-auth", "Brief.DOCX", b"y".to_vec()),
+        ("add-auth", ".hidden.md", b"x".to_vec()),
+        ("add-auth", "big.pdf", vec![0; MAX_INPUT + 1]),
+        ("nothing", "a.md", b"x".to_vec()),
+        ("../add-auth", "a.md", b"x".to_vec()),
+    ] {
+        assert!(
+            change_input_add(&f.s, id, name, &bytes).is_err(),
+            "{id} {name}"
+        );
+    }
+    assert_eq!(
+        std::fs::read(f.repo.path().join(&rel)).unwrap(),
+        b"PK word",
+        "a name that is taken keeps the first file"
+    );
+}

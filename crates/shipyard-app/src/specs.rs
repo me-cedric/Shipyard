@@ -301,6 +301,55 @@ pub fn change_create(s: &AppState, title: &str) -> Res<ChangeView> {
     Ok(change_view(s, &p, id))
 }
 
+/// The biggest document that a person adds to a new feature.
+const MAX_INPUT: usize = 20 * 1024 * 1024;
+/// The kinds of document that the spec writer reads: Markdown, PDF and Word.
+const INPUT_KINDS: [&str; 5] = ["md", "markdown", "pdf", "docx", "doc"];
+
+/// A document for the spec writer of a change (`runs-recipes` REQ-004): Markdown, PDF or Word.
+/// It goes into `<specs>/changes/<id>/inputs/`. Another kind, a secret file name, a file that is
+/// too big and a name that is taken are refused. Returns the path in the project.
+pub fn change_input_add(s: &AppState, id: &str, name: &str, bytes: &[u8]) -> Res<String> {
+    crate::rights::require(
+        s,
+        crate::rights::Right::SpecsEdit,
+        "specs_change_input_add",
+        id,
+    )?;
+    change_id(id)?;
+    let name = crate::assistant_attach::plain_name(name)?;
+    let ext = name
+        .rsplit_once('.')
+        .map_or("", |(_, e)| e)
+        .to_ascii_lowercase();
+    if !INPUT_KINDS.contains(&ext.as_str()) {
+        return Err(format!(
+            "{name} is not a Markdown, PDF or Word file: add one of these three kinds"
+        ));
+    }
+    if bytes.len() > MAX_INPUT {
+        return Err(format!(
+            "{name} is larger than {} MiB",
+            MAX_INPUT / (1024 * 1024)
+        ));
+    }
+    let p = project(s)?;
+    let change = openspec(&p).join("changes").join(id);
+    if !change.is_dir() {
+        return Err(format!("no change {id}"));
+    }
+    let dir = change.join("inputs");
+    let path = dir.join(&name);
+    let _g = s.guard();
+    std::fs::create_dir_all(&dir).map_err(err)?;
+    if path.exists() {
+        return Err(format!("{name} is already added to {id}"));
+    }
+    write_atomic(&path, bytes).map_err(err)?;
+    let rel = path.strip_prefix(&p.root).unwrap_or(&path);
+    Ok(rel.to_string_lossy().replace('\\', "/"))
+}
+
 /// A change that a ticket started, and the branch that holds it.
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -854,6 +903,17 @@ pub async fn specs_changes(app: AppHandle) -> Api<Vec<ChangeView>> {
 #[specta::specta]
 pub async fn specs_change_create(app: AppHandle, title: String) -> Api<ChangeView> {
     blocking(app, move |s| change_create(s, &title)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn specs_change_input_add(
+    app: AppHandle,
+    id: String,
+    name: String,
+    bytes: Vec<u8>,
+) -> Api<String> {
+    blocking(app, move |s| change_input_add(s, &id, &name, &bytes)).await
 }
 
 #[tauri::command]
