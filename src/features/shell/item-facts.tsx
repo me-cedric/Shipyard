@@ -6,6 +6,7 @@ import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useCopy } from "@/lib/menus";
 import { useDay } from "@/lib/prefs";
+import { useShellIfAny } from "@/lib/shell";
 import { rememberSelection, requestEdit } from "@/lib/shell/selection";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -112,6 +113,7 @@ export function ItemFacts({ path, docs, title }: { path: string; docs: boolean; 
 export function OpenActions({ refId }: { refId: string }) {
 	const { t } = useI18n();
 	const router = useRouter({ warn: false });
+	const shell = useShellIfAny();
 	const doc = docTarget(refId);
 	const page = doc?.page ?? refPage(refId);
 	const [viewing, setViewing] = useState(false);
@@ -138,6 +140,8 @@ export function OpenActions({ refId }: { refId: string }) {
 		// A connection is behind the door Connections of This project.
 		if (refId.startsWith("conn:"))
 			return void router.navigate({ href: "/setup/project?page=connections" });
+		// On its own page the item is selected there, and the card gives way to the side panel.
+		if (shell && router.state.location.pathname === page) return shell.openRef(refId, true);
 		void router.navigate({ to: page });
 	};
 	return (

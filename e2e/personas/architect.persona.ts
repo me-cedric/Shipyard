@@ -105,7 +105,10 @@ test("architect", async ({ page }) => {
 	await w.step("Find a diagram with the keyboard", "Ctrl+K, the name of a diagram", async () => {
 		// "network" names the page Network flows too: the name of a diagram that no page has.
 		await w.palette("context", "the palette finds no diagram by its name");
-		await w.click(page.getByRole("button", { name: "Open", exact: true }));
+		// The inspector card has Open: on the page of the diagram it selects it there and moves to the side.
+		const inspector = page.getByRole("complementary", { name: "Inspector" });
+		await w.click(inspector.getByRole("button", { name: "Open", exact: true }));
+		await w.click(page.getByRole("main").getByRole("button", { name: "Open", exact: true }));
 		await w.see(
 			page.getByRole("button", { name: "Save" }),
 			"Enter only shows the diagram in the inspector: the page does not change and the inspector has no Open action",
