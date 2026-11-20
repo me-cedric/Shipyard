@@ -60,25 +60,34 @@ test("project manager", async ({ page }) => {
 			"the title of the plan does not say when the release ends",
 		);
 		await w.see(page.getByText("too much work").first(), "no capacity warning");
+		await w.click(page.getByRole("link", { name: "Show", exact: true }));
+		// The proposals are on People (the capacity card has "Show" and "Rebalance").
 		await w.see(
 			page.getByRole("button", { name: /^Apply: / }),
-			"the capacity card proposes no change",
+			"People proposes no change for the people who are over",
 		);
-		await w.click(page.getByRole("link", { name: "Show", exact: true }));
-		await w.see(page.getByText("over capacity").first(), "People names no person over capacity");
-		await w.click(page.getByRole("link", { name: /over capacity/ }));
+		await w.see(
+			page.getByRole("link", { name: /over capacity/ }),
+			"People names no person over capacity",
+		);
+		await w.click(page.getByRole("link", { name: /over capacity/ }).first());
 		await w.until(
 			() => page.url().includes("/crew/crew"),
 			true,
 			"a capacity warning does not open the member in Crew",
 		);
-		await w.see(page.getByLabel(/Capacity/).first(), "the member does not open with its capacity");
+		await w.see(
+			page.getByRole("button", { name: "Days in a week, less" }),
+			"the member does not open with its capacity",
+		);
 	});
 
-	await w.step("Read the estimate", "the Summary tab: days, cost, price", async () => {
+	await w.step("Read the estimate", "the Summary view for days, the Costing view: cost, price", async () => {
 		await w.go("Plan", "Estimates");
-		await w.click(page.getByRole("tab", { name: "Summary" }));
-		await w.see(page.getByText("Price"), "no price figure");
+		await w.click(page.getByRole("button", { name: "Summary", exact: true }));
+		await w.see(page.getByRole("heading", { name: "Summary", exact: true }), "no summary of days");
+		await w.click(page.getByRole("button", { name: "Costing", exact: true }));
+		await w.see(page.getByText("Price", { exact: true }), "no price figure");
 		if (await page.getByText("€0").first().isVisible()) {
 			w.confusing(
 				"cost and price read €0; the only hint (Unrated) is small text at the foot of the page, and Crew already holds day rates",
@@ -88,9 +97,10 @@ test("project manager", async ({ page }) => {
 
 	await w.step(
 		"Ask an agent to estimate",
-		"the Backlog tab: select a task, Ask an agent to estimate, Accept",
+		"the Tasks view: Ask an agent to estimate opens the selection, select a task, Ask again, Accept",
 		async () => {
-			await w.click(page.getByRole("tab", { name: "Backlog" }));
+			await w.click(page.getByRole("button", { name: "Tasks", exact: true }));
+			await w.click(page.getByRole("button", { name: "Ask an agent to estimate" }));
 			await w.click(page.getByRole("checkbox", { name: "Select Export endpoint" }));
 			await w.click(page.getByRole("button", { name: "Ask an agent to estimate" }));
 			const row = page
@@ -100,9 +110,7 @@ test("project manager", async ({ page }) => {
 			await w.click(row.getByRole("button", { name: "Accept" }));
 			await w.until(() => row.count(), 0, "an accepted proposal stays in the list");
 			await w.see(
-				page
-					.getByRole("table", { name: "Backlog" })
-					.getByRole("row", { name: /Export endpoint dev 7/ }),
+				page.getByRole("group", { name: "Export endpoint", exact: true }).getByText("7"),
 				"the accepted values are not in the sheet",
 			);
 		},
@@ -113,6 +121,7 @@ test("project manager", async ({ page }) => {
 		"the To send list, the Send button",
 		async () => {
 			await w.go("Plan", "Time");
+			await w.click(page.getByRole("link", { name: "Send the hours to the issue tracker" }));
 			await w.click(page.getByRole("button", { name: "Send 2026-11-03 ACME-1" }));
 			await w.see(page.getByText("To send (1)"), "the sent entry stays in the To send list");
 		},
@@ -129,7 +138,9 @@ test("project manager", async ({ page }) => {
 			page.getByRole("list", { name: "Agents" }).getByRole("link").first(),
 			"no agent beside the people",
 		);
-		await w.click(page.getByRole("main").getByRole("link", { name: "Live", exact: true }));
+		// Live is an item of the More menu of Crew.
+		await w.click(page.getByRole("main").getByRole("button", { name: "More", exact: true }));
+		await w.click(page.getByRole("menuitem", { name: "Live", exact: true }));
 		await w.see(
 			page.getByRole("table", { name: "Agents at work" }).locator("tbody tr"),
 			"the live view shows no agent at work",
@@ -148,9 +159,11 @@ test("project manager", async ({ page }) => {
 
 	await w.step("Check the budget", "Crew, Spend: the money figures", async () => {
 		await w.go("Crew", "Spend");
-		await w.see(page.getByText("Over budget").first(), "no budget warning");
+		await w.see(page.getByText(/reached its limit/).first(), "no budget warning");
 		if (await page.getByText("Hidden").first().isVisible()) {
-			await w.click(page.getByRole("switch", { name: "Show prices" }));
+			// "Show prices" is an item of the More menu.
+			await w.click(page.getByRole("main").getByRole("button", { name: "More", exact: true }));
+			await w.click(page.getByRole("menuitem", { name: "Show prices" }));
 		}
 		await w.see(page.getByText(/\$\d/).first(), "the money figures stay hidden");
 	});

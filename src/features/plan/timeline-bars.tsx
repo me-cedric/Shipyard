@@ -75,6 +75,8 @@ function BarButton({
 			className="group absolute inset-y-0 flex min-w-28 touch-none items-center rounded-full outline-none"
 		>
 			<span
+				// The button name says all of it: the pill is the same text, drawn.
+				aria-hidden="true"
 				className={cn(
 					"flex h-9 w-full items-center gap-2 overflow-hidden rounded-full px-1.5 text-14 font-semibold whitespace-nowrap group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-accent",
 					bar.over

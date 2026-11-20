@@ -104,7 +104,8 @@ test("a viewer opens on Today and sees no Code place", async ({ page }) => {
 	await page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Crew" }).click();
 	const main = page.getByRole("main");
 	const add = async (name: string, handle: string, role: string, admin: boolean) => {
-		await page.getByRole("button", { name: "Member", exact: true }).click();
+		await main.getByRole("button", { name: "More", exact: true }).click();
+		await page.getByRole("menuitem", { name: "Add a person" }).click();
 		await main.getByRole("textbox", { name: "Name" }).fill(name);
 		await main.getByRole("textbox", { name: "Handle" }).fill(handle);
 		await main.getByRole("combobox", { name: "Role" }).click();
@@ -112,7 +113,7 @@ test("a viewer opens on Today and sees no Code place", async ({ page }) => {
 		if (admin) await main.getByRole("switch", { name: "Admin" }).click();
 		await main.getByRole("button", { name: "Save" }).click();
 		await expect(main.getByRole("heading", { level: 1, name })).toBeVisible();
-		await main.getByRole("button", { name: "Crew", exact: true }).click();
+		await main.getByRole("link", { name: "Crew", exact: true }).click();
 	};
 	await add("Vi Reader", "vi", "Viewer", false);
 	await add("Cy Lead", "cy", "Tech lead", true);

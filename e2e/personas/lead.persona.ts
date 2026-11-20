@@ -58,10 +58,11 @@ test("functional lead", async ({ page }) => {
 		);
 	});
 
-	await w.step("Read the estimate", "Plan, Estimates, Summary", async () => {
+	await w.step("Read the estimate", "Plan, Estimates, Costing", async () => {
 		await w.go("Plan", "Estimates");
-		await w.click(page.getByRole("tab", { name: "Summary" }));
-		await w.see(page.getByText("Margin").first(), "no margin on the summary");
+		// The amounts moved to the view Costing: the Summary shows days only.
+		await w.click(page.getByRole("button", { name: "Costing", exact: true }));
+		await w.see(page.getByText("Margin").first(), "no margin on the costing");
 		if (await page.getByText("€0").first().isVisible()) {
 			w.confusing(
 				"cost and price read €0; the only hint (Unrated) is small text at the foot of the page, and Crew already holds day rates",

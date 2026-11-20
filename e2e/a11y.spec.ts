@@ -20,6 +20,26 @@ const OFF_SWITCH = [
 	"/setup/me?page=look",
 ];
 
+// The sub-pages of Crew and Plan (look pass 2): each one has its own address.
+const SUB_PAGES = [
+	"/crew/crew?member=ada",
+	"/crew/recipes?recipe=feature",
+	"/crew/recipes?recipe=feature&step=build",
+	"/crew/sessions?page=ended",
+	"/crew/rights?page=team",
+	"/crew/rights?page=levels",
+	"/crew/spend?page=how",
+	"/crew/spend?page=budgets",
+	"/crew/spend?page=usage",
+	"/plan/timeline?page=dates",
+	"/plan/people?page=send",
+	"/plan/time?page=entries",
+	"/plan/time?page=team",
+	"/plan/estimates?tab=summary",
+	"/plan/estimates?tab=costing",
+	"/plan/estimates?page=import",
+];
+
 // The minimum window (`spec:app-redesign#REQ-026`): each page of the run opens at this size.
 test.use({ viewport: { width: 960, height: 600 } });
 
@@ -145,6 +165,23 @@ for (const scheme of ["light", "dark"] as const) {
 			expect(found).toEqual([]);
 		});
 	}
+	test(`has no axe violation: the sub-pages of Crew and Plan, ${scheme} theme`, async ({ page }) => {
+		test.setTimeout(120_000);
+		page.setDefaultTimeout(10_000);
+		await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
+		await page.goto("/");
+		await openFirstFolder(page);
+		await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
+		if (scheme === "dark") await pickDarkTheme(page);
+		const found: string[] = [];
+		for (const href of SUB_PAGES) {
+			await visit(page, href);
+			await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+			await page.waitForLoadState("networkidle");
+			found.push(...(await scan(page, href)));
+		}
+		expect(found).toEqual([]);
+	});
 	test(`has no axe violation: the pages off the section switches, ${scheme} theme`, async ({
 		page,
 	}) => {

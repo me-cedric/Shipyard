@@ -365,6 +365,19 @@ fn global_kill_switch_cancels_all_and_stops_pickup() {
 }
 
 #[test]
+fn cancel_all_cancels_live_runs_with_the_reason_and_leaves_the_switch() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    let a = fx.start("SHIP-1", &[]);
+    fx.f.cancel_all("stopped by Stop all agents");
+    assert_eq!(fx.state(&a), RunState::Cancelled);
+    assert!(!fx.f.kill_switch());
+    assert!(fx.agents.running().is_empty());
+    fx.f.set_kill_switch(true);
+    fx.f.cancel_all("again");
+    assert!(fx.f.kill_switch());
+}
+
+#[test]
 fn sync_stop_cancels_the_run() {
     let fx = Fx::new(writes(true), &[ONE]);
     let run = fx.start("SHIP-1", &[]);

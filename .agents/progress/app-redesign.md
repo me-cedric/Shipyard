@@ -467,3 +467,42 @@ Known differences from the design:
 - The lead adds the screenshot scenes for the six new screens.
 
 Checks, run by the lead on the final tree: passed `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --no-fail-fast` (app library 531; no Rust file changed in this pass), `pnpm typecheck`, `pnpm lint`, `pnpm test` (282 files, 2537 tests), `CI=1 npx playwright test` (143, on port 4211 through a scratch config because port 4174 was held by another session), `pnpm test:personas` (7), `openspec validate update-app-redesign --strict`. Picture check in a fresh context, four rounds: 61, 66 and 68 match; 9, 20, 60 and 63 are close; the others keep the differences of the Open list.
+## Look pass 2, Crew and Plan (2026-11-19)
+
+Branch `feature/app-redesign-look-2-crew-plan`, base `108fb9c4`. Three picture checks in a fresh context (Opus).
+
+### What the pass did
+
+- Crew and Plan now match their design pictures: 21 screens (4, 30, 101, 27, 80, 28, 29, 84, 13, 78, 83, 5, 99, 31, 93, 32, 14, 69, 72, 85, 94).
+- Sub-pages with their own address and a back link, and no section switch: one person (`/crew/crew?member=`), a recipe step (`/crew/recipes?recipe=&step=`), the team file (`/crew/rights?page=team`), How agents do (`/crew/spend?page=how`), Budgets (`?page=budgets`), the usage tables (`?page=usage`), the ended sessions (`/crew/sessions?page=ended`), Dates and days off (`/plan/timeline?page=dates`), Send (`/plan/people?page=send`), one estimate (`/plan/estimates?task=`), the import (`?page=import`), the sheets (`?tab=summary`) and Costing (`?tab=costing`).
+- New command `agents_stop_all` (Rust, binding and mock): it cancels each active run, review and estimate, and leaves the agents on.
+- Docs: SCR-140 to SCR-151 added (no `file` yet), nine entries retitled, the guide in four languages, three changelog bullets in each language, a sentence and a scenario each in REQ-016 and REQ-033.
+
+### Decisions
+
+- Two agent controls: the Agents on switch in the header of Crew (stops every agent and new runs) and Stop all agents on Spend (stops each running agent; agents stay on).
+- One section switch on a main page; a sub-page claims the switch and draws none.
+- The moved controls are in a More menu: Crew (Live, Add a person), Spend, How agents do and Budgets (Show prices, Add a limit, usage tables), Estimates (search, filters, columns, sheet actions), Recipes (role files).
+- Spend lists the six features with the most spend, then "<n> more", so Stop all agents stays in the window.
+- Estimates and one estimate keep a Save: the form validates before it writes.
+- Each session kind has its Stop in Sessions: run (with confirm), review, estimate, tile build (it runs in the job list of the reviews, so the stop of a review and `agents_stop_all` end it).
+
+### Differences that stay
+
+Source: the accepted list of the picture checks.
+
+- No command or no data: Take control and live output (028); Accept and Refuse of a join request (084); Fill from my work and a Save button (032, each field saves on leave); Processor and Memory bars and tool calls under a step (078); Edit on Warn at and Then: Stop or Go on (013, 083); role buttons and the proposal agent (027); Kind and Runs beside other steps (080); Release and Go to Today (099); the "Plan and estimates" row of Rights (029).
+- A demo data state: the day rate on 101 (seal open), the Seal card on 072, Many tasks at once on 085, the capture before a file is read on 094, only Create on 093, months and not weeks on 069.
+- Chosen: the six features on 013, a Save on 014 and 085.
+
+### Shared parts that lack something
+
+- `AttentionCard`: `who` cannot be an agent avatar with bold text (013).
+- `Switch`: the 52 by 30 px track is not ported.
+- `PageHeader`: the back link sits above the title; `action` draws after the section switch; a menu item has no `reason`.
+- `Select`: no outlined button look (078).
+
+### Open points
+
+- SCR-140 to SCR-151 have no picture: add them to `scripts/screenshots.ts` and `docs/assets/screenshots/`.
+- Guide pages describe addresses and menus from the page sources; no one has read them against a running window.

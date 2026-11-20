@@ -1,6 +1,6 @@
 # Équipe
 
-L'équipe réunit les personnes et les agents du projet. Le sélecteur a cinq sections : Équipe, Recettes, Sessions, Dépenses et Droits. L'interrupteur des agents est dans l'en-tête d'Équipe, de Sessions et de Dépenses : désactivé, il arrête chaque agent et empêche les nouvelles exécutions.
+L'équipe réunit les personnes et les agents du projet. Le sélecteur a cinq sections : Équipe, Recettes, Sessions, Dépenses et Droits. L'interrupteur Agents actifs est dans l'en-tête d'Équipe : désactivé, il arrête chaque agent et empêche les nouvelles exécutions. Arrêter tous les agents est dans Dépenses : il arrête chaque agent en cours et laisse les agents actifs, donc une nouvelle exécution peut démarrer.
 
 Équipe s'ouvre sur les cartes. Personnes montre chaque personne en carte : le travail en cours, la charge, le rôle, les jours par semaine et les compétences. Agents montre chaque rôle d'agent avec son travail en cours. La page montre aussi les dépenses du travail ouvert et les recettes.
 
@@ -28,7 +28,7 @@ Une recette s'ouvre dans un formulaire. Utilisez Formulaire et Texte pour passer
 
 ## Sessions
 
-Sessions liste les sessions d'agent des exécutions et les sessions de cet ordinateur. Un agent qui relit une pull request, estime des tâches ou crée une tuile s'y affiche aussi. Cliquez sur une session d'exécution pour ouvrir sa fonctionnalité à cette étape. Arrêtez une session dont vous n'avez pas besoin.
+Sessions liste les sessions des agents : une exécution, une relecture de pull request, une estimation et la création d'une tuile. Cliquez sur une session pour l'afficher avec Ouvrir et Arrêter. Arrêter une exécution demande une confirmation. Arrêter une relecture met fin à la relecture. Arrêter une estimation met fin à l'agent, et la feuille garde ses valeurs. Arrêter la création d'une tuile y met fin, et le tableau de bord ne change pas. Les sessions terminées sont sur leur propre page.
 
 ## Dépenses
 
@@ -79,3 +79,13 @@ Si cette machine contient des rôles par e-mail, Droits propose de les écrire c
 ### Audit
 
 Chaque écriture qui demande un droit, et chaque refus, ajoute une ligne au journal d'audit de votre machine. Droits montre les 100 dernières lignes à une personne avec `project.settings`.
+
+## Pages
+
+Une sous-page a sa propre adresse et un lien de retour, sans sélecteur de section.
+
+- Équipe : `/crew/crew`. Le menu Plus contient En direct (`?view=live`) et Ajouter une personne. Une personne s'ouvre à `?member=<identifiant>`.
+- Recettes : `/crew/recipes`. Une recette s'ouvre à `?recipe=<id>` et une étape à `&step=<id>`. Les fichiers des rôles d'agent sont dans le menu Plus.
+- Sessions : `/crew/sessions`. Les sessions terminées sont à `?page=ended`.
+- Droits : `/crew/rights`. Le fichier d'équipe est à `?page=team`.
+- Dépenses : `/crew/spend`. Comment les agents s'en sortent est à `?page=how` et Budgets à `?page=budgets`. Afficher les prix, Ajouter une limite et les tableaux d'usage (`?page=usage`) sont dans le menu Plus.

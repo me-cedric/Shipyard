@@ -67,7 +67,7 @@ function MoveHandle({
 	const start = useRef<{ y: number; h: number } | null>(null);
 	const down = (e: PointerEvent<HTMLButtonElement>) => {
 		e.currentTarget.setPointerCapture?.(e.pointerId);
-		const row = e.currentTarget.closest("[role=row]")?.getBoundingClientRect().height;
+		const row = e.currentTarget.closest("li")?.getBoundingClientRect().height;
 		start.current = { y: e.clientY, h: row || 28 };
 	};
 	const up = (e: PointerEvent<HTMLButtonElement>) => {
@@ -99,6 +99,10 @@ function MoveHandle({
 		</IconButton>
 	);
 }
+
+/** A new likely value of a task, never below 0 and, on a three-point task, between best and worst. */
+const clampLikely = (x: Task, days: number) =>
+	Math.min(x.pessimistic ?? Infinity, Math.max(x.optimistic ?? 0, days, 0));
 
 /** The tasks of a sheet, by id. */
 const tasksOf = (sheet: Sheet) => sheet.features.flatMap((f) => f.tasks);
@@ -135,7 +139,7 @@ export function EstimateBacklog({
 	const sheet = view.sheet;
 	const frozen = sheet.frozen === true;
 	const sealed = useSealState().data?.sealed === true;
-	const { can } = useRights();
+	const { can, gate } = useRights();
 	const [query, setQuery] = useViewState("filters:estimate-query", "");
 	const [active, setActive] = useViewState<string[]>("filters:estimate-active", []);
 
@@ -169,7 +173,7 @@ export function EstimateBacklog({
 	const visible = new Set(lines.map((l) => l.task.id));
 	const dayOf = (id: string) => view.days[id] ?? 0;
 	const max = Math.max(1, ...tasksOf(sheet).map((x) => dayOf(x.id)));
-	const off = sealed ? c.agent.sealed : frozen ? c.sheet.frozen : undefined;
+	const off = sealed ? c.agent.sealed : frozen ? c.sheet.frozen : gate("work.edit").reason;
 	const locked = off !== undefined || !can("work.edit");
 
 	const save = (next: Sheet) => run(() => act.saveSheet(slug, next));
@@ -184,7 +188,7 @@ export function EstimateBacklog({
 						? x
 						: x.percent != null
 							? { ...x, percent: Math.max(0, x.percent + 5 * by) }
-							: { ...x, days: Math.max(0, (x.days ?? 0) + by) },
+							: { ...x, days: clampLikely(x, (x.days ?? 0) + by) },
 				),
 			})),
 		});
@@ -229,62 +233,67 @@ export function EstimateBacklog({
 										{daysText(f.tasks.reduce((n, x) => n + dayOf(x.id), 0))}
 									</span>
 								</div>
-								{f.tasks
-									.filter((x) => visible.has(x.id))
-									.map((task) => (
-										// `role=row`: the handle reads the height of its row for a drag.
-										// biome-ignore lint/a11y/useSemanticElements: a list of rows, not a table
-										// biome-ignore lint/a11y/useFocusableInteractive: the controls of the row take the focus
-										<div key={task.id} role="row" className="flex min-h-14 items-center gap-4">
-											{picking ? (
-												<span className="flex shrink-0 items-center gap-0.5">
-													<Checkbox
-														label={format(c.bulk.select, { name: task.name })}
-														hideLabel
-														checked={picked.has(task.id)}
-														onCheckedChange={(on) => {
-															const next = new Set(picked);
-															if (on) next.add(task.id);
-															else next.delete(task.id);
-															onPicked(next);
-														}}
-													/>
-													<MoveHandle
-														label={format(c.task.move, { name: task.name })}
-														disabled={locked}
-														onMove={(by) => void save(moveTask(sheet, task.id, by, visible))}
+								<ul>
+									{f.tasks
+										.filter((x) => visible.has(x.id))
+										.map((task) => (
+											// The handle reads the height of its item for a drag.
+											<li key={task.id} className="flex min-h-14 items-center gap-4">
+												{picking ? (
+													<span className="flex shrink-0 items-center gap-0.5">
+														<Checkbox
+															label={format(c.bulk.select, { name: task.name })}
+															hideLabel
+															checked={picked.has(task.id)}
+															onCheckedChange={(on) => {
+																const next = new Set(picked);
+																if (on) next.add(task.id);
+																else next.delete(task.id);
+																onPicked(next);
+															}}
+														/>
+														<MoveHandle
+															label={format(c.task.move, { name: task.name })}
+															disabled={locked}
+															onMove={(by) => void save(moveTask(sheet, task.id, by, visible))}
+														/>
+													</span>
+												) : null}
+												<LinkButton
+													className="w-48 shrink-0 self-center text-left"
+													onClick={() => onOpen(task.id)}
+												>
+													<span className="truncate">{task.name}</span>
+												</LinkButton>
+												<span
+													role="img"
+													aria-label={daysText(dayOf(task.id))}
+													className="min-w-0 flex-1"
+												>
+													<span
+														className="block h-7 rounded-sm bg-accent-subtle"
+														style={{ width: `${(dayOf(task.id) / max) * 100}%` }}
 													/>
 												</span>
-											) : null}
-											<LinkButton
-												className="w-48 shrink-0 self-center text-left"
-												onClick={() => onOpen(task.id)}
-											>
-												<span className="truncate">{task.name}</span>
-											</LinkButton>
-											<span
-												role="img"
-												aria-label={daysText(dayOf(task.id))}
-												className="min-w-0 flex-1"
-											>
-												<span
-													className="block h-7 rounded-sm bg-accent-subtle"
-													style={{ width: `${(dayOf(task.id) / max) * 100}%` }}
+												<Stepper
+													label={task.name}
+													value={
+														task.percent != null
+															? `${figure(task.percent, lang)} %`
+															: figure(
+																	task.optimistic != null && task.pessimistic != null
+																		? (task.days ?? 0)
+																		: dayOf(task.id),
+																	lang,
+																)
+													}
+													disabled={locked || busy}
+													reason={off}
+													onStep={(by) => void step(task.id, by)}
 												/>
-											</span>
-											<Stepper
-												label={task.name}
-												value={
-													task.percent != null
-														? `${figure(task.percent, lang)} %`
-														: figure(dayOf(task.id), lang)
-												}
-												disabled={locked || busy}
-												reason={off}
-												onStep={(by) => void step(task.id, by)}
-											/>
-										</div>
-									))}
+											</li>
+										))}
+								</ul>
 							</section>
 						))}
 				</div>

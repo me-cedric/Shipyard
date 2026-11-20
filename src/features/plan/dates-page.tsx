@@ -216,8 +216,7 @@ function CalendarCards({ slug }: { slug: string }) {
 					{[1, 2, 3, 4, 5, 6, 7].map((n) => (
 						<Chip
 							key={n}
-							// 1 January 2024 is a Monday.
-							aria-label={weekday(`2024-01-0${n}`, "long")}
+							// 1 January 2024 is a Monday. The name is the visible text.
 							className="min-w-14 justify-center"
 							disabled={!can("work.edit")}
 							selected={cal.workingDays.includes(n)}

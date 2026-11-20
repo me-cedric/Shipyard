@@ -8,17 +8,16 @@ Zeitplan zeichnet den Zeitplan eines Loses als Gantt-Diagramm, aus einem Schätz
 
 - Termine und freie Tage legt die Arbeitstage und die Feiertage fest.
 - Exportieren Sie das Diagramm als Bild.
-- An das Ticketsystem senden zeigt zuerst eine Vorschau: Neu, Geändert und Bleibt gleich, jeweils mit seiner Zahl. Nichts geht an das Ticketsystem, bevor Sie auf Anwenden klicken.
 
 Wenn eine Person zu viel Arbeit hat, nennt eine Karte das Problem und listet Vorschläge: Eine Aufgabe geht an eine Person derselben Rolle mit Platz, oder sie beginnt später. Anwenden führt einen Vorschlag aus. Ausgleichen führt jeden aus.
 
 ## Personen
 
-Personen zeigt jede Person mit der Auslastung gegenüber der Kapazität jeder Woche, die Aufgaben und ihre Termine. Eine Person mit zu viel Arbeit hat dort auch die Vorschläge.
+Personen zeigt jede Person mit der Auslastung gegenüber der Kapazität jeder Woche, die Aufgaben und ihre Termine. Eine Person mit zu viel Arbeit hat dort auch die Vorschläge. An das Ticketsystem senden öffnet eine Seite mit einer Vorschau zuerst: Neu, Geändert und Bleibt gleich, jeweils mit seiner Zahl. Nichts geht an das Ticketsystem, bevor Sie auf Anwenden klicken.
 
 ## Schätzungen
 
-Schätzungen enthält ein Blatt für jedes Los. Jede Zeile hat eine niedrige, eine wahrscheinliche und eine hohe Schätzung. Die App berechnet den Preis, die Kosten und die Marge aus den Tagessätzen. Ein Umschalter zeigt das Blatt als Backlog, Übersicht, Verteilung oder Portfolio.
+Schätzungen enthält ein Blatt für jedes Los. Jede Zeile hat eine niedrige, eine wahrscheinliche und eine hohe Schätzung. Die App berechnet den Preis, die Kosten und die Marge aus den Tagessätzen. Ein Umschalter zeigt das Blatt als Backlog, Übersicht, Verteilung, Portfolio oder Kalkulation.
 
 - Duplizieren, benennen Sie um, frieren Sie ein oder löschen Sie ein Blatt über sein Menü.
 - Versiegeln Sie das Projekt mit einer Passphrase, um die Tagessätze in den Dateien zu verbergen.
@@ -33,3 +32,12 @@ Unter dem Raster listet der Monat die Zeit, die jede Person aufgewendet hat. Die
 Klicken Sie auf Monat lesen, um die Zeiteinträge des Monats aus dem Ticketsystem neben Ihren Einträgen zu lesen. Das ändert nichts.
 
 Eine Rolle mit weniger als drei Mitgliedern mit einem Tagessatz zeigt keine Kosten. Mit einem oder zwei Sätzen würden Kosten den Satz einer Person zeigen.
+
+## Seiten
+
+Eine Unterseite hat eine eigene Adresse und einen Zurück-Link. Schätzungen hält sein Blatt auch in der Adresse.
+
+- Zeitplan: `/plan/timeline`. Termine und freie Tage stehen bei `?page=dates`.
+- Personen: `/plan/people`. An das Ticketsystem senden steht bei `?page=send`.
+- Zeit: `/plan/time`.
+- Schätzungen: `/plan/estimates`. Die Ansichten sind `?tab=summary` (Blätter) und `?tab=costing`. Eine Schätzung öffnet sich bei `?task=<id>` und der Import aus Excel bei `?page=import`. Suche, Filter, Spalten und die Aktionen des Blatts stehen im Menü Mehr.

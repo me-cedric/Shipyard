@@ -1,6 +1,6 @@
 # Equipo
 
-El equipo son las personas y los agentes del proyecto. El selector tiene cinco secciones: Equipo, Recetas, Sesiones, Gasto y Derechos. El interruptor de agentes está en la cabecera de Equipo, de Sesiones y de Gasto: desactivado detiene cada agente e impide las ejecuciones nuevas.
+El equipo son las personas y los agentes del proyecto. El selector tiene cinco secciones: Equipo, Recetas, Sesiones, Gasto y Derechos. El interruptor Agentes activos está en la cabecera de Equipo: desactivado detiene cada agente e impide las ejecuciones nuevas. Detener todos los agentes está en Gasto: detiene cada agente en marcha y deja los agentes activos, así que una ejecución nueva puede empezar.
 
 Equipo se abre con las tarjetas. Personas muestra cada persona como tarjeta: el trabajo actual, la carga, el rol, los días por semana y las competencias. Agentes muestra cada rol de agente con su trabajo actual. La página muestra también el gasto del trabajo abierto y las recetas.
 
@@ -28,7 +28,7 @@ Una receta se abre en un formulario. Usa Formulario y Texto para pasar del formu
 
 ## Sesiones
 
-Sesiones lista las sesiones de agente de las ejecuciones y las sesiones de este ordenador. Un agente que revisa una pull request, estima tareas o crea un mosaico se muestra allí también. Haz clic en una sesión de ejecución para abrir su funcionalidad en ese paso. Detén una sesión que no necesitas.
+Sesiones lista las sesiones de los agentes: una ejecución, una revisión de pull request, una estimación y la creación de un mosaico. Haz clic en una sesión para verla con Abrir y Detener. Detener una ejecución pide una confirmación. Detener una revisión termina la revisión. Detener una estimación termina el agente, y la hoja conserva sus valores. Detener la creación de un mosaico la termina, y el panel no cambia. Las sesiones terminadas están en su propia página.
 
 ## Gasto
 
@@ -79,3 +79,13 @@ Si esta máquina guarda roles por correo, Derechos ofrece escribirlos como miemb
 ### Auditoría
 
 Cada escritura que necesita un derecho, y cada rechazo, añade una línea al registro de auditoría de tu máquina. Derechos muestra las últimas 100 líneas a una persona con `project.settings`.
+
+## Páginas
+
+Una subpágina tiene su propia dirección y un enlace de vuelta, sin selector de sección.
+
+- Equipo: `/crew/crew`. El menú Más contiene En vivo (`?view=live`) y Añadir una persona. Una persona se abre en `?member=<identificador>`.
+- Recetas: `/crew/recipes`. Una receta se abre en `?recipe=<id>` y un paso en `&step=<id>`. Los archivos de los roles de agente están en el menú Más.
+- Sesiones: `/crew/sessions`. Las sesiones terminadas están en `?page=ended`.
+- Derechos: `/crew/rights`. El archivo del equipo está en `?page=team`.
+- Gasto: `/crew/spend`. Cómo les va a los agentes está en `?page=how` y Presupuestos en `?page=budgets`. Mostrar precios, Añadir un límite y las tablas de uso (`?page=usage`) están en el menú Más.

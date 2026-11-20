@@ -124,7 +124,8 @@ test("approves a plan on ACME-4 from the run view", async ({ page }) => {
 });
 
 test("the global kill switch cancels the runs and releases", async ({ page }) => {
-	await openFactory(page, "Sessions");
+	// The switch is in the header of Crew, no longer on Sessions.
+	await openFactory(page, "Crew");
 	await expect(page.getByRole("switch", { name: "Agents on" })).toBeChecked();
 	await page.getByRole("switch", { name: "Agents on" }).click();
 	await expect(page.getByRole("switch", { name: "Agents stopped" })).not.toBeChecked();
@@ -136,7 +137,7 @@ test("shows a check error with its line for a broken workflow", async ({ page })
 	await openFactory(page, "Recipes");
 	await expect(page).toHaveURL(/\/crew\/recipes$/);
 	await page.getByRole("button", { name: /^Bug/ }).click();
-	await page.getByRole("tab", { name: "Text" }).click();
+	await page.getByRole("button", { name: "Edit as text" }).click();
 	const editor = page.getByRole("textbox", { name: "bug" });
 	await editor.fill((await editor.inputValue()).replace("id: bug", "id: other"));
 	const alert = page.getByRole("alert");
@@ -149,23 +150,26 @@ test("makes a workflow from a preset, changes an effort in the form and saves it
 	page,
 }) => {
 	await openFactory(page, "Recipes");
-	await page.getByRole("button", { name: "New", exact: true }).click();
+	await page.getByRole("button", { name: "New recipe", exact: true }).click();
 	const dialog = page.getByRole("dialog");
 	await dialog.getByRole("combobox", { name: "Preset" }).click();
 	await page.getByRole("option", { name: "bug" }).click();
 	await dialog.getByRole("textbox", { name: "New id" }).fill("hotfix");
 	await dialog.getByRole("button", { name: "Create" }).click();
-	const triage = page.getByRole("region", { name: "Step triage" });
-	await triage.getByRole("combobox", { name: "Effort" }).click();
+	// A step is a page of its own: the chain links to it.
+	await page.getByRole("link", { name: "Triage", exact: true }).click();
+	await expect(page).toHaveURL(/\?recipe=hotfix&step=triage$/);
+	await page.getByRole("combobox", { name: "Effort" }).click();
 	await page.getByRole("option", { name: "max" }).click();
 	await page.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
+	await page.getByRole("link", { name: "Recipes", exact: true }).click();
 	await expect(page.getByRole("button", { name: /^Hotfix/ })).toBeVisible();
 });
 
 test("lists every AI session on the computer and stops a running one", async ({ page }) => {
 	await openFactory(page, "Sessions");
-	const machine = page.getByRole("table", { name: "This computer" });
+	const machine = page.getByRole("region", { name: "On this machine" });
 	await expect(machine.getByText("Fix the login")).toBeVisible();
 	await page.getByRole("button", { name: "Stop claude alpha" }).click();
 	await expect(machine.getByText("Fix the login")).toHaveCount(0);
@@ -174,7 +178,17 @@ test("lists every AI session on the computer and stops a running one", async ({ 
 test("shows the spend of the computer as a chart and keeps a monthly budget", async ({ page }) => {
 	await openFactory(page, "Spend");
 	await expect(page).toHaveURL(/\/crew\/spend$/);
+	// The chart by day is on the usage page: Spend, How agents do, More, Usage.
+	await page.getByRole("link", { name: "Use of this machine" }).click();
+	await page.getByRole("button", { name: "More", exact: true }).click();
+	await page.getByRole("menuitem", { name: "Usage", exact: true }).click();
+	await expect(page).toHaveURL(/\/crew\/spend\?page=usage$/);
 	await expect(page.getByRole("img", { name: "Spend by day" })).toBeVisible();
+	// The monthly budget is a row of the page Budgets.
+	await page.getByRole("link", { name: "Spend", exact: true }).first().click();
+	await page.getByRole("link", { name: "All budgets" }).click();
+	await expect(page).toHaveURL(/\/crew\/spend\?page=budgets$/);
+	await page.getByRole("button", { name: "Edit the limit of each month" }).click();
 	await page.getByRole("spinbutton", { name: "Monthly budget (USD)" }).fill("1000");
 	await page.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByRole("meter", { name: /Monthly budget/ })).toBeVisible();

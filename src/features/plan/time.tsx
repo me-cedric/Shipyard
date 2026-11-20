@@ -440,18 +440,25 @@ export function PlanTime() {
 
 	const p = t.planPlace;
 	const nameOf = (ticket: string) => items.find((i) => i.key === ticket)?.title ?? ticket;
-	/** The first line of the note of each entry of a row. The lines after it stay. */
+	/** The first line of the note, for each entry of a row that shows the old one. The rest stays. */
 	const setNote = (row: WeekEntry[], text: string) =>
 		void run(async () => {
-			for (const x of row)
-				await act.updateTime(
+			const shown = (row[0]?.note ?? "").split("\n")[0];
+			let unsynced: string | null = null;
+			for (const x of row) {
+				const [first, ...rest] = x.note.split("\n");
+				if (first !== shown) continue;
+				const saved = await act.updateTime(
 					handle,
 					x.day,
 					x.id,
 					x.minutes,
-					[text, ...x.note.split("\n").slice(1)].join("\n"),
+					[text, ...rest].join("\n"),
 				);
+				unsynced = saved.error ?? unsynced;
+			}
 			setFetched({});
+			if (unsynced) setError(format(e.unsynced, { reason: unsynced }));
 		});
 	// The receipt of each entry whose answer was lost: the issue tracker holds the worklog already.
 	const lost = lines.filter((l) => l.lost && l.entryId);

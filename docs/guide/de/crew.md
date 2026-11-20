@@ -1,6 +1,6 @@
 # Team
 
-Das Team sind die Personen und die Agenten des Projekts. Der Umschalter hat fünf Abschnitte: Team, Rezepte, Sitzungen, Ausgaben und Rechte. Der Agenten-Schalter steht im Kopf von Team, Sitzungen und Ausgaben: Aus stoppt jeden Agenten und verhindert neue Läufe.
+Das Team sind die Personen und die Agenten des Projekts. Der Umschalter hat fünf Abschnitte: Team, Rezepte, Sitzungen, Ausgaben und Rechte. Der Schalter Agenten an steht im Kopf von Team: Aus stoppt jeden Agenten und verhindert neue Läufe. Alle Agenten anhalten steht bei Ausgaben: Es stoppt jeden laufenden Agenten und lässt die Agenten an, sodass ein neuer Lauf starten kann.
 
 Team öffnet sich mit den Karten. Personen zeigt jede Person als Karte: die aktuelle Arbeit, die Auslastung, die Rolle, die Tage pro Woche und die Fähigkeiten. Agenten zeigt jede Agenten-Rolle mit ihrer aktuellen Arbeit. Die Seite zeigt auch die Ausgaben für offene Arbeit und die Rezepte.
 
@@ -28,7 +28,7 @@ Ein Rezept öffnet sich in einem Formular. Nutzen Sie Formular und Text, um zwis
 
 ## Sitzungen
 
-Sitzungen listet die Agenten-Sitzungen der Läufe und die Sitzungen auf diesem Computer. Ein Agent, der einen Pull Request prüft, Aufgaben schätzt oder eine Kachel baut, zeigt sich dort auch. Klicken Sie auf eine Lauf-Sitzung, um ihr Feature bei diesem Schritt zu öffnen. Stoppen Sie eine Sitzung, die Sie nicht brauchen.
+Sitzungen listet die Sitzungen der Agenten: einen Lauf, eine Prüfung eines Pull Requests, eine Schätzung und den Bau einer Kachel. Klicken Sie auf eine Sitzung, um sie mit Öffnen und Stoppen zu zeigen. Stoppen eines Laufs fragt nach einer Bestätigung. Stoppen einer Prüfung beendet die Prüfung. Stoppen einer Schätzung beendet den Agenten, und das Blatt behält seine Werte. Stoppen des Baus einer Kachel beendet ihn, und das Dashboard ändert sich nicht. Beendete Sitzungen stehen auf einer eigenen Seite.
 
 ## Ausgaben
 
@@ -79,3 +79,13 @@ Wenn dieser Rechner Rollen nach E-Mail hält, bietet Rechte an, sie als Mitglied
 ### Audit
 
 Jeder Schreibvorgang, der ein Recht braucht, und jede Ablehnung fügen dem Audit-Protokoll auf Ihrem Rechner eine Zeile hinzu. Rechte zeigt einer Person mit `project.settings` die letzten 100 Zeilen.
+
+## Seiten
+
+Eine Unterseite hat eine eigene Adresse und einen Zurück-Link, aber keinen Abschnitts-Umschalter.
+
+- Team: `/crew/crew`. Das Menü Mehr enthält Live (`?view=live`) und Person hinzufügen. Eine Person öffnet sich bei `?member=<kürzel>`.
+- Rezepte: `/crew/recipes`. Ein Rezept öffnet sich bei `?recipe=<id>` und ein Schritt bei `&step=<id>`. Die Dateien der Agenten-Rollen stehen im Menü Mehr.
+- Sitzungen: `/crew/sessions`. Die beendeten Sitzungen stehen bei `?page=ended`.
+- Rechte: `/crew/rights`. Die Team-Datei steht bei `?page=team`.
+- Ausgaben: `/crew/spend`. Wie die Agenten abschneiden steht bei `?page=how` und Budgets bei `?page=budgets`. Preise zeigen, Limit hinzufügen und die Tabellen der Nutzung (`?page=usage`) stehen im Menü Mehr.

@@ -1,6 +1,6 @@
 # Crew
 
-The crew is the people and the agents of the project. The switch has five sections: Crew, Recipes, Sessions, Spend and Rights. The agents switch is in the header of Crew, Sessions and Spend: off stops every agent and stops new runs.
+The crew is the people and the agents of the project. The switch has five sections: Crew, Recipes, Sessions, Spend and Rights. The Agents on switch is in the header of Crew: off stops every agent and stops new runs. Stop all agents is on Spend: it stops each running agent and leaves the agents on, so a new run can start.
 
 Crew opens on the cards. People shows each person as a card: the current work, the load, the role, the days a week and the skills. Agents shows each agent role with its current work. The page also shows the spend on open work and the recipes.
 
@@ -28,7 +28,7 @@ A recipe opens in a form. Use Form and Text to switch between the form and the Y
 
 ## Sessions
 
-Sessions lists the agent sessions of the runs and the sessions on this computer. An agent that reviews a pull request, estimates tasks or builds a tile shows there too. Click a run session to open its feature at that step. Stop a session that you do not need.
+Sessions lists the sessions of the agents: a run, a review of a pull request, an estimate and a tile build. Click a session to show it with Open and Stop. Stop of a run asks you to confirm. Stop of a review ends the review. Stop of an estimate ends the agent, and the sheet keeps its values. Stop of a tile build ends the build, and the dashboard does not change. Ended sessions are on their own page.
 
 ## Spend
 
@@ -79,3 +79,13 @@ If this machine holds roles by e-mail, Rights offers to write them as members. A
 ### Audit
 
 Each write that needs a right, and each refusal, adds a line to the audit log on your machine. Rights shows the last 100 lines to a person with `project.settings`.
+
+## Pages
+
+A sub-page has its own address and a back link, and no section switch.
+
+- Crew: `/crew/crew`. The More menu holds Live (`?view=live`) and Add a person. A person opens at `?member=<handle>`.
+- Recipes: `/crew/recipes`. A recipe opens at `?recipe=<id>` and a step at `&step=<id>`. The files of the agent roles are in the More menu.
+- Sessions: `/crew/sessions`. The ended sessions are at `?page=ended`.
+- Rights: `/crew/rights`. The team file is at `?page=team`.
+- Spend: `/crew/spend`. How agents do is at `?page=how` and Budgets at `?page=budgets`. Show prices, Add a limit and the tables of usage (`?page=usage`) are in the More menu.

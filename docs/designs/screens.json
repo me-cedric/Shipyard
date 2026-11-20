@@ -74,7 +74,7 @@
     {
       "id": "SCR-007",
       "slug": "agents-map",
-      "title": "Crew, Live: one row for each agent at work with the agent, the feature and its state, and the files and specs that it reads and changes; the filter At work, Ended, Files and Specs; the ref is the tooltip and Copy ref is in the menu of the agent; it replaces the Agents map, and the old address opens it",
+      "title": "Crew, Live: one row for each agent at work with the agent, the feature and its state, and the files and specs that it reads and changes; the filter At work, Ended, Files and Specs; the ref is the tooltip and Copy ref is in the menu of the agent; it replaces the Agents map, and the old address opens it (design picture 030, /crew/crew?view=live)",
       "artifacts": [
         "spec:factory",
         "spec:ux-declutter",
@@ -218,7 +218,7 @@
     {
       "id": "SCR-020",
       "slug": "factory-workflows",
-      "title": "Crew / Recipes: each recipe and each agent role is a card with its step names and Edit; the editor shows each step as a card with the groups Who, People, How it works and Limits; Duplicate, Rename and Delete are in the More actions menu; the old Factory / Workflows address opens it",
+      "title": "Crew / Recipes: each recipe and each agent role as a card; a recipe opens as a page with its steps, and a step opens as its own page; the files of the roles are in the More menu; the old Factory / Workflows address opens it (design picture 027, /crew/recipes?recipe=feature)",
       "artifacts": [
         "spec:factory",
         "spec:workflow-editor",
@@ -252,7 +252,7 @@
     {
       "id": "SCR-025",
       "slug": "work-team",
-      "title": "Crew / Rights: the rights of each role and of each member by area, who Shipyard found, Ask to join, the move of the roles of this machine and the changes of rights; the members are on Crew, and the old Work / Team address opens Crew",
+      "title": "Crew / Rights: the rights of each role by area, who Shipyard found and the team file on its own page; the members are on Crew, and the old Work / Team address opens Crew (design picture 029, /crew/rights)",
       "artifacts": [
         "spec:team-rights",
         "spec:ux-declutter",
@@ -284,7 +284,7 @@
     {
       "id": "SCR-032",
       "slug": "factory-usage",
-      "title": "Crew / Spend: the spend and the success rate with the runs, their key and title, on the left; the budgets, each with Edit, and this computer on the right; the agents switch in the header; the old Factory / Usage address opens it",
+      "title": "Crew / Spend: the spend of the six features with the most spend, the budgets and the alerts, and Stop all agents; How agents do and Budgets are sub-pages, and the tables of usage are in the More menu; the old Factory / Usage address opens it (design picture 013, /crew/spend)",
       "artifacts": [
         "spec:factory",
         "spec:ux-declutter",
@@ -427,7 +427,7 @@
     {
       "id": "SCR-041",
       "slug": "crew",
-      "title": "Crew: the people as cards with their current work, role, days a week, skills and Over by or Has room; the agent roles as cards with their work and the count at work; the spend on open work with the limit for each feature; the recipes with Edit; the views Cards and Live and the agents switch; a person card opens the member page with Save and Remove from the team",
+      "title": "Crew: the people as cards with their current work, role, days a week, skills and Over by or Has room; the agent roles as cards with their work; the spend on open work; the recipes; the Agents on switch; a person card opens the member page; Live and Add a person are in the More menu (design picture 004, /crew/crew)",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -437,7 +437,7 @@
     {
       "id": "SCR-042",
       "slug": "plan-people",
-      "title": "Plan / People: each person with the load against the capacity of each week, the tasks with their dates, and the proposals for a person with too much work",
+      "title": "Plan / People: each person with the load against the capacity of each week, the tasks with their dates, and the proposals for a person with too much work; the send to the issue tracker has its own page (design picture 031, /plan/people)",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -447,7 +447,7 @@
     {
       "id": "SCR-043",
       "slug": "plan-estimates",
-      "title": "Plan / Estimates: the estimate sheets with the costing and its seal; Ask an agent to estimate proposes Best, Likely and Worst with the assumptions for the selected tasks, with Accept, Discard and Stop; a sealed sheet turns the action off",
+      "title": "Plan / Estimates: the estimate sheets with the views Backlog, Summary, Spread, Portfolio and Costing; one estimate has its own page; Ask an agent to estimate proposes Best, Likely and Worst with the assumptions for the selected tasks, with Accept, Discard and Stop; a sealed sheet turns the action off (design picture 014, /plan/estimates)",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -547,7 +547,7 @@
     {
       "id": "SCR-067",
       "slug": "plan-time",
-      "title": "Plan / Time: the time sheet of the person by day, with a duration, a note and a ticket, and the send of a worklog to the issue tracker; the old Work / Time address opens it",
+      "title": "Plan / Time: the time sheet of the person by week, with a duration, a note and a ticket, each field saved when you leave it, and the send of a worklog to the issue tracker; the old Work / Time address opens it (design picture 032, /plan/time)",
       "artifacts": [
         "spec:work",
         "spec:app-redesign",
@@ -558,7 +558,7 @@
     {
       "id": "SCR-068",
       "slug": "crew-sessions",
-      "title": "Crew / Sessions: the agent sessions with runner, model, run, state and tokens, the totals in the last row, Active and Previous, Open in terminal, and the agents switch; the old Factory / Sessions address opens it",
+      "title": "Crew / Sessions: the agent sessions of each kind (run, review, estimate, tile build) with state and tokens, the session shown with Open and its own Stop, and Previous on its own page; the old Factory / Sessions address opens it (design picture 028, /crew/sessions)",
       "artifacts": [
         "spec:factory",
         "spec:app-redesign",
@@ -953,6 +953,102 @@
         "adr:0023"
       ],
       "file": "docs/assets/screenshots/new-project-all-steps.png"
+    },
+    {
+      "id": "SCR-140",
+      "slug": "crew-member",
+      "title": "Crew / one person: the name, the handle, the role with its rights, the days a week, the skills and the day rate; Save and Remove from the team (design picture 101, /crew/crew?member=ada)",
+      "artifacts": [
+        "spec:app-redesign"
+      ]
+    },
+    {
+      "id": "SCR-141",
+      "slug": "crew-recipe-step",
+      "title": "Crew / Recipes / one step: the page of a step with who runs it, how it works and its limits, and a back link to the recipe (design picture 080, /crew/recipes?recipe=feature&step=build)",
+      "artifacts": [
+        "spec:app-redesign"
+      ]
+    },
+    {
+      "id": "SCR-142",
+      "slug": "crew-rights-team",
+      "title": "Crew / Rights / the team file: who Shipyard found, Ask to join, the move of the roles of this computer and the rights of each person (design picture 084, /crew/rights?page=team)",
+      "artifacts": [
+        "spec:app-redesign"
+      ]
+    },
+    {
+      "id": "SCR-143",
+      "slug": "crew-spend-how",
+      "title": "Crew / Spend / How agents do: the success rate, the requests of one run as a tree or a flame, and the use of this computer (design picture 078, /crew/spend?page=how)",
+      "artifacts": [
+        "spec:app-redesign"
+      ]
+    },
+    {
+      "id": "SCR-144",
+      "slug": "crew-spend-budgets",
+      "title": "Crew / Spend / Budgets: one row for each kind of limit with its value and Edit; Add a limit (design picture 083, /crew/spend?page=budgets)",
+      "artifacts": [
+        "spec:app-redesign"
+      ]
+    },
+    {
+      "id": "SCR-145",
+      "slug": "plan-timeline",
+      "title": "Plan / Timeline: the title gives the day that the release ends; the Gantt chart of the sheet; one card names the people with too much work with Apply and Rebalance (design picture 005, /plan/timeline)",
+      "artifacts": [
+        "spec:app-redesign"
+      ]
+    },
+    {
+      "id": "SCR-146",
+      "slug": "plan-dates",
+      "title": "Plan / Timeline / Dates and days off: the working days and the public holidays, with a back link to Timeline (design picture 099, /plan/timeline?page=dates)",
+      "artifacts": [
+        "spec:app-redesign"
+      ]
+    },
+    {
+      "id": "SCR-147",
+      "slug": "plan-send",
+      "title": "Plan / People / Send to the issue tracker: the preview with New, Changed and Stays the same, and Create (design picture 093, /plan/people?page=send)",
+      "artifacts": [
+        "spec:app-redesign"
+      ]
+    },
+    {
+      "id": "SCR-148",
+      "slug": "plan-estimate-sheets",
+      "title": "Plan / Estimates / Summary: the estimate sheets side by side with their totals (design picture 069, /plan/estimates?tab=summary)",
+      "artifacts": [
+        "spec:app-redesign"
+      ]
+    },
+    {
+      "id": "SCR-149",
+      "slug": "plan-costing",
+      "title": "Plan / Estimates / Costing: the price, the cost and the margin from the day rates, and the seal of the sheet (design picture 072, /plan/estimates?tab=costing)",
+      "artifacts": [
+        "spec:app-redesign"
+      ]
+    },
+    {
+      "id": "SCR-150",
+      "slug": "plan-estimate-one",
+      "title": "Plan / Estimates / one estimate: the page of one task with its Best, Likely and Worst values and Save (design picture 085, /plan/estimates?task=<id>)",
+      "artifacts": [
+        "spec:app-redesign"
+      ]
+    },
+    {
+      "id": "SCR-151",
+      "slug": "plan-estimate-import",
+      "title": "Plan / Estimates / Import from Excel: the file, the columns that the app read and the cards of the result (design picture 094, /plan/estimates?page=import)",
+      "artifacts": [
+        "spec:app-redesign"
+      ]
     }
   ]
 }

@@ -53,6 +53,9 @@
 - Today opens on Needs you: one card holds who asks, the feature and the answer (with the field Another answer), a short queue shows the next things, and small cards show the next setup step and the reminder to log time; the panels of your role open from Panels for my role, and Role views in Setup shows what each role sees.
 - Ask has its own page with the threads, the conversation and the tools, and the answer of the Ask bar offers Start an agent on a ticket and Sync now; changed files sit in the answer with Undo, and the Codex trust card shows What this writes before you click.
 - New project is a page with five questions and All steps, and the project is made at the end; the first run shows at a first launch only, a closed project shows the card No project is open with Open a project, a link in a manual page opens a card that explains it, and the account menu opens beside the rail.
+- Crew is rebuilt to the design with its sub-pages: Live, one person, Recipes with a page for each step, Sessions with its ended sessions, Rights with the team file, and Spend with How agents do and Budgets; the Agents on switch is in the header of Crew, Stop all agents is on Spend and stops each running agent while the agents stay on, and the moved controls are in the More menu of each page.
+- Plan is rebuilt to the design with its sub-pages: Dates and days off, Send to the issue tracker, the estimate sheets, Costing, one estimate and the import from Excel; each sub-page has its own address and a back link, and the section switch shows once on the main pages only.
+- Crew / Sessions shows each kind of agent session (run, review, estimate and tile build) and gives each one its own Stop; Stop all agents stops them all and leaves the agents on.
 
 ## [0.1.0]
 - Resume takes the limits that the workflow has now, so a budget that you removed no longer stops a run, and Resume with an empty amount works again.

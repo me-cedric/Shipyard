@@ -641,11 +641,13 @@ impl Factory {
         let mut inner = self.lock();
         inner.kill = on;
         if on {
-            for id in inner.live_ids() {
-                // A merged run is not cancelled: it goes to `Done` (the refusal is the answer).
-                let _ = inner.cancel_run(&id, "global kill switch");
-            }
+            inner.cancel_live("global kill switch");
         }
+    }
+
+    /// Cancel every live run with this reason. The kill switch keeps its value.
+    pub fn cancel_all(&self, reason: &str) {
+        self.lock().cancel_live(reason);
     }
 
     /// The app quits: stop every agent process and end its session. No run changes state, so the
@@ -905,6 +907,13 @@ impl Inner {
 
     pub(crate) fn project_of(&self, run_id: &str) -> Option<&Project> {
         self.projects.get(&self.runs.get(run_id)?.project)
+    }
+
+    fn cancel_live(&mut self, reason: &str) {
+        for id in self.live_ids() {
+            // A merged run is not cancelled: it goes to `Done` (the refusal is the answer).
+            let _ = self.cancel_run(&id, reason);
+        }
     }
 
     fn live_ids(&self) -> Vec<String> {

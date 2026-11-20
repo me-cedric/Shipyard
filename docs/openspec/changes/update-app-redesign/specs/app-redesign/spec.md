@@ -326,7 +326,7 @@ Screen: SCR-026
 
 ### Requirement: REQ-016 Crew
 
-Crew SHALL show people and agents on one page with the sections Recipes, Sessions, Spend and Rights, the agents switch and the action that stops all agents.
+Crew SHALL show people and agents on one page with the sections Recipes, Sessions, Spend and Rights, the agents switch and the action that stops all agents. The agents switch SHALL sit in the header of Crew and SHALL stop every agent and new runs. The action SHALL sit on Spend and SHALL stop each running agent and leave the agents on.
 
 Screen: SCR-041
 
@@ -335,6 +335,12 @@ Screen: SCR-041
 - GIVEN a project with five people and three agent roles
 - WHEN the person opens Crew
 - THEN both groups show on one page with their current work
+
+#### Scenario: Stop all agents
+
+- GIVEN two agents at work and the agents on
+- WHEN the person stops all agents on Spend
+- THEN both agents stop and the agents stay on
 
 ### Requirement: REQ-017 Live work
 
@@ -581,7 +587,7 @@ Screen: SCR-046
 
 ### Requirement: REQ-033 Budget and stop for the new actions
 
-Each of the three new agent actions SHALL run with a budget, SHALL show in Crew while it runs, and SHALL stop when the person stops it.
+Each of the three new agent actions SHALL run with a budget, SHALL show in Crew while it runs, and SHALL stop when the person stops it. Crew / Sessions SHALL give its own stop for a run, a review of a pull request, an estimate and a tile build.
 
 Screen: SCR-041
 
@@ -590,3 +596,9 @@ Screen: SCR-041
 - GIVEN an agent that estimates tasks
 - WHEN the person stops it in Crew
 - THEN the agent stops and the sheet keeps its old values
+
+#### Scenario: Stop in Sessions
+
+- GIVEN a run, a review and an estimate at work
+- WHEN the person opens each session in Crew / Sessions
+- THEN each one has its own stop

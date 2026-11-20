@@ -2306,6 +2306,9 @@ const handlers: Handlers = {
 		return fx.killSwitchSet(state.factory, on);
 	},
 	agentsStopAll: (click) => {
+		if (!click) throw "this change needs the click of a person";
+		const me = state.person ? withAccess(state.person) : teamPerson();
+		if (!me.rights.includes("runs.start")) throw "this needs the right runs.start";
 		for (const stop of Object.values(estimateAgent().running)) stop();
 		return fx.agentsStopAll(state.factory, click);
 	},

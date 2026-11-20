@@ -467,6 +467,35 @@ describe("Plan / Time", () => {
 			);
 		});
 
+		it("changes only the entries that show the old first line of the note of a row", async () => {
+			const user = userEvent.setup();
+			await withTracker();
+			mockState().work.time.ada?.push({
+				id: "t10",
+				day: "2026-11-03",
+				minutes: 60,
+				note: "Other work\nsecond line",
+				ticket: "ACME-2",
+			});
+			mountApp("/plan/time");
+			const row = (await screen.findByTitle("ACME-2")).closest("tr") as HTMLElement;
+			const note = within(row).getByRole("textbox", { name: /^Note for / });
+			// The field shows the first line of the first entry of the row.
+			const first = (note as HTMLInputElement).value === "Token API" ? "t1" : "t10";
+			const other = first === "t1" ? "t10" : "t1";
+			const before = mockState().work.time.ada?.find((e) => e.id === other)?.note;
+			await user.clear(note);
+			await user.type(note, "Renamed{Enter}");
+			await waitFor(() =>
+				expect(
+					mockState()
+						.work.time.ada?.find((e) => e.id === first)
+						?.note.split("\n")[0],
+				).toBe("Renamed"),
+			);
+			expect(mockState().work.time.ada?.find((e) => e.id === other)?.note).toBe(before);
+		});
+
 		it("refuses a bad duration in a cell and shows the stored hours again", async () => {
 			const user = userEvent.setup();
 			await withTracker();

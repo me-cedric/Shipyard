@@ -349,7 +349,12 @@ export function PlanEstimates() {
 				</p>
 			) : null}
 			{slug && sheet ? (
-				<div className="min-h-0 flex-1 overflow-y-auto">
+				<section
+					aria-label={title}
+					// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll region takes the focus for the keyboard
+					tabIndex={0}
+					className="min-h-0 flex-1 overflow-y-auto"
+				>
 					{view === "tasks" ? (
 						<div className="flex flex-wrap items-start gap-6 px-4 pb-10">
 							<EstimateBacklog
@@ -385,7 +390,7 @@ export function PlanEstimates() {
 							names={names}
 						/>
 					)}
-				</div>
+				</section>
 			) : null}
 		</>,
 	);

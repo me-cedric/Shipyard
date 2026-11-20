@@ -403,6 +403,19 @@ describe("mock factory: run actions", () => {
 		await expect(unwrap(commands.agentsStopAll(false))).rejects.toBeTruthy();
 		const before = await runs();
 		expect(before.some((r) => r.lane !== "done" && r.state !== "Failed")).toBe(true);
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: ["work.edit"],
+		};
+		await expect(unwrap(commands.agentsStopAll(true))).rejects.toMatchObject({
+			details: expect.stringContaining("runs.start"),
+		});
+		expect(await runs()).toEqual(before);
+		mockState().person = undefined;
 		await unwrap(commands.agentsStopAll(true));
 		expect(await unwrap(commands.killSwitchGet())).toBe(false);
 		for (const r of await runs()) {

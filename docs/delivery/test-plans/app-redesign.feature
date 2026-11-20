@@ -114,6 +114,12 @@ Feature: app-redesign
     When the person opens Crew
     Then both groups show on one page with their current work
 
+  @spec:app-redesign#REQ-016
+  Scenario: Crew: Stop all agents
+    Given two agents at work and the agents on
+    When the person stops all agents on Spend
+    Then both agents stop and the agents stay on
+
   @spec:app-redesign#REQ-017
   Scenario: Live work: Six agents
     Given six agents at work
@@ -270,3 +276,9 @@ Feature: app-redesign
     Given an agent that estimates tasks
     When the person stops it in Crew
     Then the agent stops and the sheet keeps its old values
+
+  @spec:app-redesign#REQ-033
+  Scenario: Budget and stop for the new actions: Stop in Sessions
+    Given a run, a review and an estimate at work
+    When the person opens each session in Crew / Sessions
+    Then each one has its own stop

@@ -45,11 +45,23 @@ const open = async (p: Page, tab: string) => {
 	const from = PLACE[tab] === "Library" ? p.getByRole("main") : tabs(p);
 	await from.getByRole("link", { name: tab, exact: true }).click();
 };
-// Crew / Live: one row for each agent at work (the agents map of before).
+// Crew / Live: one row for each agent at work (the agents map of before). Live is an item of More.
 const openLive = async (p: Page) => {
 	await open(p, "Crew");
-	await p.getByRole("main").getByRole("link", { name: "Live", exact: true }).click();
+	await p.getByRole("main").getByRole("button", { name: "More", exact: true }).click();
+	await p.getByRole("menuitem", { name: "Live", exact: true }).click();
 	await p.getByRole("table", { name: "Agents at work" }).waitFor();
+};
+// Crew / Recipes: the recipe feature as a chain of steps.
+const openRecipe = async (p: Page) => {
+	await open(p, "Recipes");
+	await p.getByRole("button", { name: /^feature/i }).click();
+	await p.getByRole("list", { name: "Steps" }).waitFor();
+};
+// Crew / Spend: the main page, with its alert and its limits.
+const openSpend = async (p: Page) => {
+	await open(p, "Spend");
+	await p.getByRole("link", { name: "All budgets" }).waitFor();
 };
 // Plan / Timeline: the chart with its bars.
 const openTimeline = async (p: Page) => {
@@ -219,6 +231,7 @@ const scenes: Scene[] = [
 	// The old names stay for the docs that cite them: the plan, and the member page of the team.
 	{ name: "work", run: openTimeline },
 	{ name: "team", run: (p) => go(p, "/crew/rights") },
+	{ name: "work-team", run: (p) => go(p, "/crew/rights") },
 	{
 		name: "crew",
 		run: async (p) => {
@@ -237,7 +250,15 @@ const scenes: Scene[] = [
 		name: "plan-estimates",
 		run: async (p) => {
 			await open(p, "Estimates");
-			await p.getByRole("table", { name: "Backlog" }).waitFor();
+			await p.getByRole("region", { name: "Authentication", exact: true }).waitFor();
+		},
+	},
+	{
+		name: "plan-estimate-one",
+		run: async (p) => {
+			await open(p, "Estimates");
+			await p.getByRole("button", { name: "Export endpoint", exact: true }).click();
+			await p.getByRole("spinbutton", { name: "Likely" }).waitFor();
 		},
 	},
 	{ name: "factory", run: (p) => open(p, "Flow") },
@@ -250,14 +271,9 @@ const scenes: Scene[] = [
 		},
 	},
 	{ name: "agents", run: openLive },
-	{
-		name: "workflows",
-		run: async (p) => {
-			await open(p, "Recipes");
-			await p.getByRole("button", { name: /^feature/i }).click();
-			await p.getByRole("textbox", { name: "Step id" }).first().waitFor();
-		},
-	},
+	{ name: "agents-map", run: openLive },
+	{ name: "workflows", run: openRecipe },
+	{ name: "factory-workflows", run: openRecipe },
 	{
 		name: "runs-history",
 		run: async (p) => {
@@ -265,13 +281,8 @@ const scenes: Scene[] = [
 			await p.getByRole("table", { name: "History" }).waitFor();
 		},
 	},
-	{
-		name: "usage",
-		run: async (p) => {
-			await open(p, "Spend");
-			await p.getByRole("region", { name: "Budgets" }).waitFor();
-		},
-	},
+	{ name: "usage", run: openSpend },
+	{ name: "factory-usage", run: openSpend },
 	{
 		name: "run",
 		run: async (p) => {
@@ -384,6 +395,24 @@ const scenes: Scene[] = [
 	...Object.entries({
 		"plan-time": "/plan/time",
 		"crew-sessions": "/crew/sessions",
+		// Crew and Plan, look pass 2: the sub-pages. The names with no slug in screens.json are
+		// crew-sessions-ended, crew-rights-levels, crew-spend-usage, plan-time-entries and plan-time-team.
+		"plan-timeline": "/plan/timeline",
+		"plan-dates": "/plan/timeline?page=dates",
+		"plan-send": "/plan/people?page=send",
+		"plan-estimate-sheets": "/plan/estimates?tab=summary",
+		"plan-costing": "/plan/estimates?tab=costing",
+		"plan-estimate-import": "/plan/estimates?page=import",
+		"plan-time-entries": "/plan/time?page=entries",
+		"plan-time-team": "/plan/time?page=team",
+		"crew-member": "/crew/crew?member=ada",
+		"crew-recipe-step": "/crew/recipes?recipe=feature&step=build",
+		"crew-sessions-ended": "/crew/sessions?page=ended",
+		"crew-rights-team": "/crew/rights?page=team",
+		"crew-rights-levels": "/crew/rights?page=levels",
+		"crew-spend-how": "/crew/spend?page=how",
+		"crew-spend-budgets": "/crew/spend?page=budgets",
+		"crew-spend-usage": "/crew/spend?page=usage",
 		"activity-panel": "/today/activity",
 		"knowledge-slides": "/library/slides",
 		"library-diagrams": "/library/diagrams",

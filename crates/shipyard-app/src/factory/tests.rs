@@ -356,6 +356,38 @@ fn stop_all_cancels_each_live_run_and_leaves_the_agents_on() {
 }
 
 #[test]
+fn stop_all_is_refused_without_runs_start_and_cancels_nothing() {
+    let fx = fx(Writes::default());
+    let a = fx.start("SHIP-1");
+    // A team file that names nobody like this person: the role is viewer.
+    let team = shipyard_core::work::Team {
+        members: vec![shipyard_core::work::Member {
+            name: "ROOT".into(),
+            handle: "root".into(),
+            emails: vec!["root@example.com".into()],
+            role: "techlead".into(),
+            admin: true,
+            capacity: 5.0,
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+    let path = fx.repo.path().join(shipyard_store::work::TEAM_PATH);
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &path,
+        shipyard_store::work::write_team(&team, None).unwrap(),
+    )
+    .unwrap();
+    let err = stop_all(&fx.s, true).unwrap_err();
+    assert!(err.contains("runs.start"), "{err}");
+    assert_ne!(
+        run_get(&fx.s, &a).unwrap().unwrap().state,
+        RunState::Cancelled
+    );
+}
+
+#[test]
 fn a_run_with_a_plan_gate_waits_for_a_click_and_a_rejection_runs_the_plan_again() {
     let fx = fx(Writes::default());
     // The feature workflow has a human gate after `plan`.

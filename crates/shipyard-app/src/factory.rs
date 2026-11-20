@@ -1407,11 +1407,7 @@ pub fn stop_all(s: &AppState, click: bool) -> Res<()> {
         "agents_stop_all",
         "",
     )?;
-    let f = &s.factory.factory;
-    let was = f.kill_switch();
-    // The switch is the one path of the engine that cancels each live run.
-    f.set_kill_switch(true);
-    f.set_kill_switch(was);
+    s.factory.factory.cancel_all("stopped by Stop all agents");
     crate::pr_agent::stop_all();
     crate::estimate_agent::stop_all();
     s.factory.publish();

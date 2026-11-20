@@ -51,10 +51,10 @@ describe("Plan / Estimates", () => {
 		).toBeInTheDocument();
 		const auth = within(await feature("Authentication"));
 		expect(auth.getByRole("heading", { name: "Authentication" })).toBeInTheDocument();
-		expect(auth.getAllByRole("row")).toHaveLength(4);
-		expect(within(await feature("Export")).getAllByRole("row")).toHaveLength(2);
+		expect(auth.getAllByRole("listitem")).toHaveLength(4);
+		expect(within(await feature("Export")).getAllByRole("listitem")).toHaveLength(2);
 		// A percentage task shows the days that the sheet computes from the build effort.
-		const test = auth.getByText("Test pass").closest("[role=row]") as HTMLElement;
+		const test = auth.getByText("Test pass").closest("li") as HTMLElement;
 		expect(
 			within(test).getByRole("img", { name: `${sheet.days["auth-test"]} days` }),
 		).toBeInTheDocument();
@@ -95,6 +95,27 @@ describe("Plan / Estimates", () => {
 		await waitFor(() => expect(mockState().work.sheets["mvp-1"]?.frozen).toBe(true));
 		await waitFor(async () => expect(await button("Export endpoint, more")).toBeDisabled());
 		expect(await button("Export endpoint, more")).toHaveAccessibleDescription("Frozen");
+		await idle(router);
+	});
+
+	it("steps the likely days of a three-point task and keeps best <= likely <= worst", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const t = task("export-api");
+		if (t) Object.assign(t, { days: 6, optimistic: 5, pessimistic: 7 });
+		const router = mountApp("/plan/estimates");
+		// The stepper shows the likely days, the value that it changes.
+		expect(
+			within(await screen.findByRole("group", { name: "Export endpoint" })).getByText("6"),
+		).toBeInTheDocument();
+		await user.click(await button("Export endpoint, more"));
+		await waitFor(() => expect(task("export-api")?.days).toBe(7));
+		await user.click(await button("Export endpoint, more"));
+		await user.click(await button("Export endpoint, less"));
+		await user.click(await button("Export endpoint, less"));
+		await user.click(await button("Export endpoint, less"));
+		await waitFor(() => expect(task("export-api")?.days).toBe(5));
+		expect(task("export-api")).toMatchObject({ optimistic: 5, pessimistic: 7 });
 		await idle(router);
 	});
 
@@ -189,7 +210,7 @@ describe("Plan / Estimates", () => {
 		for (const key of ["total", "price", "cost", 'margin":']) expect(file).not.toContain(key);
 		// The page of the task closes on the list.
 		const row = (await within(await feature("Export")).findByText("Export endpoint")).closest(
-			"[role=row]",
+			"li",
 		) as HTMLElement;
 		expect(within(row).getByRole("status")).toHaveTextContent("9");
 		await idle(router);

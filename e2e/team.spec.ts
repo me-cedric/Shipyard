@@ -18,11 +18,16 @@ async function openCrew(page: Page) {
 	await tabs(page).getByRole("link", { name: "Crew" }).click();
 }
 
+/** The item "Add a person" of the More menu of Crew. */
+const addItem = (page: Page) => page.getByRole("menuitem", { name: "Add a person" });
+const openMore = (page: Page) => main(page).getByRole("button", { name: "More", exact: true }).click();
+
 /** Adds a member on the member page of Crew, saves, and goes back to the cards. */
 async function addMember(page: Page, name: string, handle: string, role: string, admin = false) {
-	await page.getByRole("button", { name: "Member", exact: true }).click();
+	await openMore(page);
+	await addItem(page).click();
 	const panel = main(page);
-	await expect(panel.getByRole("heading", { level: 1, name: "Member" })).toBeVisible();
+	await expect(panel.getByRole("heading", { level: 1, name: "Add a person" })).toBeVisible();
 	await panel.getByRole("textbox", { name: "Name" }).fill(name);
 	await panel.getByRole("textbox", { name: "Handle" }).fill(handle);
 	await panel.getByRole("combobox", { name: "Role" }).click();
@@ -32,7 +37,7 @@ async function addMember(page: Page, name: string, handle: string, role: string,
 	// The saved member stays open under its name, and its address holds the handle.
 	await expect(panel.getByRole("heading", { level: 1, name })).toBeVisible();
 	await expect(page).toHaveURL(new RegExp(`member=${handle}$`));
-	await panel.getByRole("button", { name: "Crew", exact: true }).click();
+	await panel.getByRole("link", { name: "Crew", exact: true }).click();
 	await expect(people(page).getByRole("button", { name: new RegExp(`^${name}`) })).toBeVisible();
 }
 
@@ -40,18 +45,20 @@ test("a solo project gets two members with an admin, then an unknown person read
 	page,
 }) => {
 	await openCrew(page);
-	// No admin in the team file: every right, so the member control is on.
-	await expect(page.getByRole("button", { name: "Member", exact: true })).toBeEnabled();
+	// No admin in the team file: every right, so the item "Add a person" is on.
+	await openMore(page);
+	await expect(addItem(page)).toBeEnabled();
+	await page.keyboard.press("Escape");
 	await addMember(page, "Bo Dev", "bo", "Developer");
 	await addMember(page, "Cy Lead", "cy", "Tech lead", true);
 	// The team has an admin and this person matches no member: a viewer.
-	const add = page.getByRole("button", { name: "Member", exact: true });
-	await expect(add).toBeDisabled();
-	await expect(add).toHaveAccessibleDescription(
-		"Needs the right project.settings (your role: Viewer)",
-	);
+	// The menu item has no reason text (the shared PageHeader gives none): the item is off.
+	await openMore(page);
+	await expect(addItem(page)).toHaveAttribute("aria-disabled", "true");
+	await page.keyboard.press("Escape");
 	// Crew / Rights says who the person is.
 	await tabs(page).getByRole("link", { name: "Rights" }).click();
+	await main(page).getByRole("link", { name: "Team file, requests and log" }).click();
 	await expect(page.getByText("You are not in the team file")).toBeVisible();
 	// Every view still reads: Setup / This project opens, and its save is off.
 	await sidebar(page).getByRole("link", { name: "Setup" }).click();
@@ -90,9 +97,15 @@ test("Crew shows the people and the agents on one page, and the live view shows 
 	).toHaveAttribute("href", "/crew/recipes?recipe=bug");
 
 	// Live: the address keeps the view, and each agent at work has one row.
-	await main(page).getByRole("link", { name: "Live", exact: true }).click();
+	await openMore(page);
+	await page.getByRole("menuitem", { name: "Live", exact: true }).click();
 	await expect(page).toHaveURL(/\/crew\/crew\?view=live$/);
-	await expect(main(page).getByRole("heading", { level: 1 })).toHaveText("Agents at work");
+	await expect(main(page).getByRole("heading", { level: 1 })).toHaveText(/^\d+ agents? at work$/);
+	// The cards and the live rows are one switch of two.
+	await expect(main(page).getByRole("button", { name: "Live", exact: true })).toHaveAttribute(
+		"aria-pressed",
+		"true",
+	);
 	const rows = page.getByRole("table", { name: "Agents at work" }).locator("tbody tr");
 	await expect(rows.first().getByRole("button").first()).toBeVisible();
 	expect(await rows.count()).toBeGreaterThan(0);
