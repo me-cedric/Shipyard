@@ -97,3 +97,7 @@ A sub-page has its own address and a back link, and no section switch.
 - Sessions: `/crew/sessions`. The ended sessions are at `?page=ended`.
 - Rights: `/crew/rights`. The team file is at `?page=team`.
 - Spend: `/crew/spend`. How agents do is at `?page=how` and Budgets at `?page=budgets`. Show prices, Add a limit and the tables of usage (`?page=usage`) are in the More menu.
+
+## Join requests
+
+On the team file, each person who asked to join shows as a card with the pull request. As sets the role, Refuse closes the pull request, and Accept writes the role in the team file and merges the pull request. Accept needs the right to merge.

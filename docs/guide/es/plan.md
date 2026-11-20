@@ -43,3 +43,7 @@ Una subpágina tiene su propia dirección y un enlace de vuelta. Estimaciones gu
 - Personas: `/plan/people`. Enviar al gestor de tickets está en `?page=send`.
 - Tiempo: `/plan/time`.
 - Estimaciones: `/plan/estimates`. Las vistas son `?tab=summary` (hojas) y `?tab=costing`. Una estimación se abre en `?task=<id>` y la importación desde Excel en `?page=import`. La búsqueda, los filtros, las columnas y las acciones de la hoja están en el menú Más.
+
+## Versión y Hoy
+
+La tarjeta Calendario del plan tiene la fila Versión, con las versiones del gestor de tickets, la fila Hoja de estimación e Ir a Hoy. Hoy abre la línea de tiempo en el día actual.

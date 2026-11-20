@@ -97,3 +97,7 @@ Une sous-page a sa propre adresse et un lien de retour, sans sélecteur de secti
 - Sessions : `/crew/sessions`. Les sessions terminées sont à `?page=ended`.
 - Droits : `/crew/rights`. Le fichier d'équipe est à `?page=team`.
 - Dépenses : `/crew/spend`. Comment les agents s'en sortent est à `?page=how` et Budgets à `?page=budgets`. Afficher les prix, Ajouter une limite et les tableaux d'usage (`?page=usage`) sont dans le menu Plus.
+
+## Demandes d'adhésion
+
+Sur le fichier d'équipe, chaque personne qui demande à rejoindre s'affiche comme une carte avec la pull request. Comme règle le rôle, Refuser ferme la pull request, et Accepter écrit le rôle dans le fichier d'équipe et fusionne la pull request. Accepter demande le droit de fusionner.

@@ -134,3 +134,7 @@ Vistas por rol está en `/setup/role-views`. Todas las vistas por rol, en la pá
 Aspecto y disposición contiene las fuentes, el lado de la barra y de los cajones, el color de acento, el formato de fecha y tu foto.
 
 Cambiar, junto a la carpeta de datos, mueve los datos a la carpeta que elijas, tras tu confirmación, y reinicia Shipyard. El interruptor Modo portátil escribe o quita la marca `portable` junto a la aplicación.
+
+## Añadir un tipo de ticket
+
+Setup / Tickets tiene Añadir tras los tipos. Escriba el tipo, elija el tipo que lo contiene y pulse Añadir. El tipo debe existir en el gestor de tickets, o Añadir lo rechaza. La jerarquía muestra entonces el tipo bajo su padre.

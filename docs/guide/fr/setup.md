@@ -134,3 +134,7 @@ Vues par rôle est à l'adresse `/setup/role-views`. Toutes les vues par rôle, 
 Apparence et disposition contient les polices, le côté de la barre et des tiroirs, la couleur d'accent, le format de date et votre image.
 
 Changer, à côté du dossier des données, déplace les données vers le dossier que vous choisissez, après votre confirmation, puis redémarre Shipyard. L'interrupteur Mode portable écrit ou retire le marqueur `portable` à côté de l'application.
+
+## Ajouter un type de ticket
+
+Setup / Tickets a Ajouter après les types. Tapez le type, choisissez le type qui le contient, puis cliquez sur Ajouter. Le type doit exister dans l'outil de suivi, sinon Ajouter le refuse. La hiérarchie montre alors le type sous son parent.

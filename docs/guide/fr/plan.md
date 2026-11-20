@@ -43,3 +43,7 @@ Une sous-page a sa propre adresse et un lien de retour. Estimations garde aussi 
 - Personnes : `/plan/people`. Envoyer à l'outil de suivi est à `?page=send`.
 - Temps : `/plan/time`.
 - Estimations : `/plan/estimates`. Les vues sont `?tab=summary` (feuilles) et `?tab=costing`. Une estimation s'ouvre à `?task=<id>` et l'import depuis Excel à `?page=import`. La recherche, les filtres, les colonnes et les actions de la feuille sont dans le menu Plus.
+
+## Version et Aujourd'hui
+
+La carte Calendrier du plan a la ligne Version, avec les versions de l'outil de suivi, la ligne Feuille d'estimation et Aller à Aujourd'hui. Aujourd'hui ouvre le calendrier sur le jour courant.

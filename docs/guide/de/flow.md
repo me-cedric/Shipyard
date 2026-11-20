@@ -162,3 +162,11 @@ Vollständiger Auswirkungsbericht öffnet den Bericht als Seite: die Größe der
 Pull Requests ist eine Seite von Code, mit einem Link zurück zu Code / Jetzt. Sie hat eine Suche, den Filter Alle oder Von mir zu prüfen und Neuer Pull Request. Die offenen kommen zuerst. Die gemergten und geschlossenen sind hinter einer einzigen Schaltfläche. Wählen Sie einen Pull Request, um seine Prüfung zu sehen: die Prüfungen, die verlangten Änderungen und die Reviewer. Pull Request öffnen öffnet die Seite seines Features.
 
 Neuer Pull Request ist auch eine Seite. Schreiben Sie den Titel und die Beschreibung (Schreib es für mich bittet einen Agenten). Wählen Sie Nach, den Zweig, der die Änderung erhält. Stellen Sie Entwurf und Labels ein. Vor dem Senden nennt eine Notiz die nicht übernommenen Dateien, einen Basiszweig, der voraus ist, und die Docs, die veralten: Jedes hat seine Wahl. Klicken Sie auf Pull Request öffnen.
+
+## Code Host und Tickets
+
+- Im Abschnitt Prüfungen eines Pull Requests bittet Erneut starten den Code Host, die fehlgeschlagenen Prüfungen noch einmal zu starten, und nur diese. Es braucht dasselbe Recht wie ein anderer Schreibzugriff auf den Code Host.
+- Bei Neuer Pull Request listet Prüfer die Benutzer des Code Hosts, und das Öffnen bittet den Code Host, sie hinzuzufügen. Zusammenführen mit setzt die Standardmethode des Zusammenführen-Knopfs späterer Pull Requests: es führt nie von selbst zusammen. Nach dem Öffnen behält die Seite Pull Request schließen, und Als bereit markieren für einen Entwurf.
+- Jede Zeile eines Pull Requests zeigt den Avatar ihres Autors.
+- Im Auswirkungsbericht hat jede Zeile des Aktionsplans ein Kästchen und einen Verantwortlichen. Beides steht in der Berichtsdatei als Markdown-Kästchen und Name. Eine Zeile erzeugt kein Ticket. Zeile hinzufügen beendet die Liste.
+- Ein Ticket hat eine Zeile Rezept (das Label `wf:<id>`, das das Rezept wählt) und eine Zeile Release. Ein Release ist die Version des Ticketsystems: die Fix-Version von Jira, der Meilenstein von GitHub und GitLab, die Iteration von Azure DevOps und das Projekt von Linear. Ein Ticket hat ein Release.

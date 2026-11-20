@@ -38,3 +38,7 @@ The full assistant is the page Ask, at `/ask`. Open the full assistant in the As
 - The page has three columns: the conversations on the left, the thread with the message box in the middle, and the tools on the right.
 - The tools are This screen (what the assistant can see, with Add), The assistant may (Edit files alone, and Run commands alone for an AI tool that has it) and Panel (the side and the width of the side panel).
 - With Codex as the AI tool, a card asks: Codex asks: trust this folder? Not now hides the card for this visit. Trust this folder adds the folder to the Codex config file. What this writes shows the exact change, and nothing is written before you click.
+
+## Keep and Undo
+
+Each file that the assistant changed has Keep and Undo. Keep accepts the change of that file, and the file leaves the list. Undo reverts that file only. Keep all accepts every file of the list.

@@ -38,3 +38,7 @@ L'assistant complet est la page Demander, à l'adresse `/ask`. Ouvrir l'assistan
 - La page a trois colonnes : les conversations à gauche, le fil avec la zone de message au milieu, et les outils à droite.
 - Les outils sont Cet écran (ce que l'assistant peut voir, avec Ajouter), L'assistant peut (Modifier les fichiers seul, et Lancer des commandes seul pour un outil d'IA qui l'a) et Panneau (le côté et la largeur du panneau latéral).
 - Avec Codex comme outil d'IA, une carte demande : Codex demande : faire confiance à ce dossier ? Pas maintenant masque la carte pour cette visite. Faire confiance à ce dossier ajoute le dossier au fichier de configuration de Codex. Ce que cela écrit montre le changement exact, et rien n'est écrit avant votre clic.
+
+## Garder et Annuler
+
+Chaque fichier que l'assistant a changé a Garder et Annuler. Garder accepte le changement de ce fichier, et le fichier quitte la liste. Annuler défait ce fichier seulement. Tout garder accepte chaque fichier de la liste.

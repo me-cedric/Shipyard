@@ -43,3 +43,7 @@ Eine Unterseite hat eine eigene Adresse und einen Zurück-Link. Schätzungen hä
 - Personen: `/plan/people`. An das Ticketsystem senden steht bei `?page=send`.
 - Zeit: `/plan/time`.
 - Schätzungen: `/plan/estimates`. Die Ansichten sind `?tab=summary` (Blätter) und `?tab=costing`. Eine Schätzung öffnet sich bei `?task=<id>` und der Import aus Excel bei `?page=import`. Suche, Filter, Spalten und die Aktionen des Blatts stehen im Menü Mehr.
+
+## Release und Heute
+
+Die Karte Kalender des Plans hat die Zeile Release mit den Releases des Ticketsystems, die Zeile Schätzblatt und Gehe zu Heute. Heute öffnet den Zeitplan am aktuellen Tag.

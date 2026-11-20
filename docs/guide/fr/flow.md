@@ -162,3 +162,11 @@ Rapport d'impact complet ouvre le rapport comme une page : la taille du changeme
 Pull requests est une page de Code, avec un lien de retour vers Code / Maintenant. Elle a une recherche, le filtre Tout ou À relire par moi et Nouvelle pull request. Les ouvertes viennent d'abord. Les fusionnées et les fermées sont derrière un seul bouton. Choisissez une pull request pour voir sa revue : les contrôles, les changements demandés et les relecteurs. Ouvrir la pull request ouvre la page de sa fonctionnalité.
 
 Nouvelle pull request est aussi une page. Écrivez le titre et la description (Écris-le pour moi demande à un agent). Choisissez Vers, la branche qui reçoit le changement. Réglez Brouillon et Étiquettes. Avant l'envoi, une note nomme les fichiers non validés, une branche de base en avance et les docs qui deviennent périmées : chacun a son choix. Cliquez sur Ouvrir la pull request.
+
+## Code host et tickets
+
+- Dans la section Contrôles d'une pull request, Relancer demande au code host de relancer les contrôles en échec, et seulement ceux-là. Il faut le même droit que pour une autre écriture sur le code host.
+- Sur Nouvelle pull request, Relecteurs liste les utilisateurs du code host, et l'ouverture demande au code host de les ajouter. Fusionner avec règle la méthode par défaut du bouton Fusionner des pull requests suivantes : il ne fusionne jamais seul. Après l'ouverture, la page garde Fermer la pull request, et Marquer comme prête pour un brouillon.
+- Chaque ligne de pull request montre l'avatar de son auteur.
+- Dans le rapport d'impact, chaque ligne du plan d'action a une case à cocher et un responsable. Les deux vont dans le fichier du rapport, comme une case Markdown et un nom. Une ligne ne crée aucun ticket. Ajouter une ligne termine la liste.
+- Un ticket a une ligne Recette (l'étiquette `wf:<id>` qui choisit la recette) et une ligne Version. Une version est la version de l'outil de suivi : la version corrigée de Jira, le jalon de GitHub et de GitLab, l'itération d'Azure DevOps et le projet de Linear. Un ticket a une seule version.

@@ -162,3 +162,11 @@ Full impact report opens the report as a page: the size of the change by Code, S
 Pull requests is a page of Code, with the link Code back to Code / Now. It has a search, the filter All or Needs my review and New pull request. The open ones come first. The merged and closed ones are behind one button. Select a pull request to see its review: the checks, the changes asked and the reviewers. Open the pull request opens its feature page.
 
 New pull request is a page too. Write the title and the description (Write it for me asks an agent). Pick Into, the branch that receives the change. Choose Draft and Labels. Before the push, a note names the files that are not committed, a base branch that is ahead and the docs that go stale: each has its choice. Click Open the pull request.
+
+## Code host and tickets
+
+- On the Checks section of a pull request, Run again asks the code host to run the failed checks again, and only those. It needs the same right as another write to the code host.
+- On New pull request, Reviewers lists the users of the code host, and the open asks the code host to add them. Merge with sets the default method of the Merge button of later pull requests: it never merges by itself. After the open, the page keeps Close the pull request, and Mark as ready for a draft.
+- Each pull request row shows the avatar of its author.
+- In the impact report, each line of the action plan has a check box and an owner. Both go to the report file as a Markdown check box and a name. A line makes no ticket. Add a line ends the list.
+- A ticket has a Recipe row (the label `wf:<id>` that picks the recipe) and a Release row. A release is the version of the issue tracker: the fix version of Jira, the milestone of GitHub and GitLab, the iteration of Azure DevOps and the project of Linear. A ticket has one release.

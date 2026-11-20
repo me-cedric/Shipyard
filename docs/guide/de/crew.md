@@ -97,3 +97,7 @@ Eine Unterseite hat eine eigene Adresse und einen Zurück-Link, aber keinen Absc
 - Sitzungen: `/crew/sessions`. Die beendeten Sitzungen stehen bei `?page=ended`.
 - Rechte: `/crew/rights`. Die Team-Datei steht bei `?page=team`.
 - Ausgaben: `/crew/spend`. Wie die Agenten abschneiden steht bei `?page=how` und Budgets bei `?page=budgets`. Preise zeigen, Limit hinzufügen und die Tabellen der Nutzung (`?page=usage`) stehen im Menü Mehr.
+
+## Beitrittsanfragen
+
+In der Teamdatei erscheint jede Person, die beitreten will, als Karte mit dem Pull Request. Als setzt die Rolle, Ablehnen schließt den Pull Request, und Annehmen schreibt die Rolle in die Teamdatei und führt den Pull Request zusammen. Annehmen braucht das Recht zum Zusammenführen.

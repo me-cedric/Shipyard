@@ -74,7 +74,7 @@ export const codeHostFr: typeof codeHostEn = {
 	reviewers: "Relecteurs",
 	noReviewer: "Personne",
 	mergeWith: "Fusionner avec",
-	closePull: "Fermer la demande de fusion",
+	closePull: "Fermer la pull request",
 	markReady: "Marquer comme prête",
 	author: "Ouverte par {name}",
 	plan: {
@@ -174,7 +174,7 @@ export const codeHostEs: typeof codeHostEn = {
 	reviewers: "Revisores",
 	noReviewer: "Nadie",
 	mergeWith: "Fusionar con",
-	closePull: "Cerrar la solicitud de cambios",
+	closePull: "Cerrar la pull request",
 	markReady: "Marcar como lista",
 	author: "Abierta por {name}",
 	plan: {

@@ -97,3 +97,7 @@ Una subpágina tiene su propia dirección y un enlace de vuelta, sin selector de
 - Sesiones: `/crew/sessions`. Las sesiones terminadas están en `?page=ended`.
 - Derechos: `/crew/rights`. El archivo del equipo está en `?page=team`.
 - Gasto: `/crew/spend`. Cómo les va a los agentes está en `?page=how` y Presupuestos en `?page=budgets`. Mostrar precios, Añadir un límite y las tablas de uso (`?page=usage`) están en el menú Más.
+
+## Solicitudes de ingreso
+
+En el archivo del equipo, cada persona que pide unirse aparece como una tarjeta con la pull request. Como fija el rol, Rechazar cierra la pull request, y Aceptar escribe el rol en el archivo del equipo y fusiona la pull request. Aceptar necesita el derecho de fusionar.

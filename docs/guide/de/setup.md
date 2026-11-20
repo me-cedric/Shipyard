@@ -134,3 +134,7 @@ Rollenansichten liegt unter `/setup/role-views`. Alle Rollenansichten, auf der S
 Aussehen und Layout enthält die Schriften, die Seite der Leiste und der Schubladen, die Akzentfarbe, das Datumsformat und Ihr Bild.
 
 Ändern neben dem Datenordner verschiebt die Daten nach Ihrer Bestätigung in den gewählten Ordner und startet Shipyard neu. Der Schalter Portabler Modus schreibt oder entfernt die Markierung `portable` neben der App.
+
+## Eine Art von Ticket hinzufügen
+
+Setup / Tickets hat Hinzufügen nach den Arten. Tippen Sie die Art, wählen Sie die Art, die sie enthält, und klicken Sie auf Hinzufügen. Die Art muss als Typ im Ticketsystem existieren, sonst lehnt Hinzufügen sie ab. Die Hierarchie zeigt die Art dann unter ihrem Eltern-Element.

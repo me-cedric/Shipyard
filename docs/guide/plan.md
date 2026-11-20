@@ -43,3 +43,7 @@ A sub-page has its own address and a back link. Estimates also keeps its sheet i
 - People: `/plan/people`. Send to the issue tracker is at `?page=send`.
 - Time: `/plan/time`.
 - Estimates: `/plan/estimates`. The views are `?tab=summary` (sheets) and `?tab=costing`. One estimate opens at `?task=<id>` and the import from Excel at `?page=import`. Search, filters, columns and the actions of the sheet are in the More menu.
+
+## Release and Today
+
+The card Calendar of the plan has the row Release, with the releases of the issue tracker, the row Estimate sheet and Go to Today. Today opens the timeline on the current day.

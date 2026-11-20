@@ -19,12 +19,12 @@
     {
       "id": "issue-tracker",
       "name": "Issue tracker",
-      "description": "Jira Cloud or Data Center, GitHub Issues, GitLab Issues, Azure DevOps or Linear, as the connection says."
+      "description": "Jira Cloud or Data Center, GitHub Issues, GitLab Issues, Azure DevOps or Linear, as the connection says. Its releases are the fix version (Jira), the milestone (GitHub, GitLab), the iteration (Azure DevOps) and the project (Linear)."
     },
     {
       "id": "code-host",
       "name": "Code host",
-      "description": "GitHub, GitLab or Azure DevOps, on the host of the connection."
+      "description": "GitHub, GitLab or Azure DevOps, on the host of the connection. It re-runs failed checks, lists reviewers and takes the reviewers of a new pull request."
     },
     {
       "id": "model-provider",

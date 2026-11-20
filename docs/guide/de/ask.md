@@ -38,3 +38,7 @@ Der volle Assistent ist die Seite Fragen, unter `/ask`. Den vollen Assistenten �
 - Die Seite hat drei Spalten: die Gespräche links, den Verlauf mit dem Nachrichtenfeld in der Mitte und die Werkzeuge rechts.
 - Die Werkzeuge sind Dieser Bildschirm (was der Assistent sehen kann, mit Hinzufügen), Der Assistent darf (Dateien allein ändern, und Befehle allein ausführen für ein KI-Tool, das sie hat) und Panel (die Seite und die Breite des Seitenfelds).
 - Mit Codex als KI-Tool fragt eine Karte: Codex fragt: Diesem Ordner vertrauen? Nicht jetzt blendet die Karte für diesen Besuch aus. Diesem Ordner vertrauen fügt den Ordner der Konfigurationsdatei von Codex hinzu. Was das schreibt zeigt die genaue Änderung, und vor Ihrem Klick wird nichts geschrieben.
+
+## Behalten und Rückgängig
+
+Jede Datei, die der Assistent geändert hat, hat Behalten und Rückgängig. Behalten nimmt die Änderung dieser Datei an, und die Datei verlässt die Liste. Rückgängig macht nur diese Datei rückgängig. Alle behalten nimmt jede Datei der Liste an.

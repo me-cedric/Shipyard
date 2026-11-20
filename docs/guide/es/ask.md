@@ -38,3 +38,7 @@ El asistente completo es la página Preguntar, en `/ask`. Abrir el asistente com
 - La página tiene tres columnas: las conversaciones a la izquierda, el hilo con el cuadro de mensaje en el centro y las herramientas a la derecha.
 - Las herramientas son Esta pantalla (lo que el asistente puede ver, con Añadir), El asistente puede (Editar archivos solo, y Ejecutar comandos solo para una herramienta de IA que lo tiene) y Panel (el lado y el ancho del panel lateral).
 - Con Codex como herramienta de IA, una tarjeta pregunta: Codex pregunta: ¿confiar en esta carpeta? Ahora no oculta la tarjeta durante esta visita. Confiar en esta carpeta añade la carpeta al archivo de configuración de Codex. Qué escribe esto muestra el cambio exacto, y no se escribe nada antes de tu clic.
+
+## Conservar y Deshacer
+
+Cada archivo que el asistente cambió tiene Conservar y Deshacer. Conservar acepta el cambio de ese archivo, y el archivo sale de la lista. Deshacer revierte solo ese archivo. Conservar todo acepta cada archivo de la lista.
