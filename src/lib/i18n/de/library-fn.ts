@@ -1,6 +1,7 @@
 import type { libraryFnEn } from "../library-fn";
 
 export const libraryFnDe: typeof libraryFnEn = {
+	documents: { addFile: "Datei hinzufügen", open: "Öffnen" },
 	history: {
 		title: "Frühere Versionen",
 		open: "Verlauf",

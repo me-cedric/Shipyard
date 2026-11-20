@@ -19,6 +19,7 @@ import type {
 	KGraph_Serialize,
 	Learn,
 	PageEntry,
+	Paragraph,
 	Resolved_Serialize,
 	SheetIn,
 	Text,
@@ -72,6 +73,8 @@ export type MockKnowledge = {
 	}[];
 	/** The earlier versions of a page by path, newest first: the commit and the text at that commit. */
 	history: Record<string, { info: CommitInfo; text: string }[]>;
+	/** The files of the documents folder that are neither Markdown nor Word, by path. */
+	others: string[];
 };
 
 /** What the Knowledge commands read from the other mocks. */
@@ -167,6 +170,7 @@ export function seedKnowledge(): MockKnowledge {
 		server: true,
 		indexed: true,
 		exported: [],
+		others: [],
 		history: {
 			[`${h}/getting-started.md`]: [
 				version(
@@ -295,6 +299,32 @@ export function pageRestore(
 	if (!files[path]) throw `${path} does not exist`;
 	putText(files, path, text, null, false);
 	return null;
+}
+
+/**
+ * `doc_add_file`: a copy of the chosen file in the documents folder. A taken name gets a number.
+ * A Word file stays Word (`review.docx` holds it); a Markdown page goes to the files; any other
+ * file is only listed (`others`).
+ */
+export function docAddFile(
+	k: MockKnowledge,
+	docx: Record<string, Paragraph[]>,
+	source: string,
+	click: boolean,
+): PageEntry {
+	if (!click) throw "this change needs the click of a person";
+	const name = source.split(/[\\/]/).pop() ?? "";
+	if (!name || name.startsWith(".")) throw `${source} is not a file`;
+	const dot = name.lastIndexOf(".");
+	const [stem, ext] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
+	const taken = (p: string) => p in k.files || p in docx || k.others.includes(p);
+	let path = `${FOLDERS.documents}/${name}`;
+	for (let n = 2; taken(path); n++) path = `${FOLDERS.documents}/${stem}-${n}${ext}`;
+	if (ext === ".docx") docx[path] = [{ heading: 0, text: stem }];
+	else if (ext === ".md") k.files[path] = file(`# ${stem}\n`);
+	else k.others.push(path);
+	const file_ = path.slice(FOLDERS.documents.length + 1);
+	return { path, title: ext === ".docx" ? file_.slice(0, -5) : file_ };
 }
 
 /** The `doc:` entities and citations of the pages. */
@@ -626,3 +656,7 @@ export function exportSheet(
 	k.exported.push({ kind: "sheet", path });
 	return null;
 }
+
+/** `doc_docx_list`: the Word files and the other files of the documents folder. */
+export const docOthers = (k: MockKnowledge): PageEntry[] =>
+	k.others.map((path) => ({ path, title: path.slice(FOLDERS.documents.length + 1) }));

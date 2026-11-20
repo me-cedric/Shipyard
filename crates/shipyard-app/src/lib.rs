@@ -222,6 +222,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::page_history::page_restore,
             crate::documents::doc_search,
             crate::documents::doc_docx_list,
+            crate::documents::doc_add_file,
             crate::documents::doc_docx_read,
             crate::decks::deck_list,
             crate::decks::deck_pdf,

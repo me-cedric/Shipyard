@@ -172,6 +172,8 @@ export const commands = {
 	pageRestore: (path: string, sha: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("page_restore", { path, sha, click })),
 	docSearch: (query: string) => typedError<DocHit[], AppError_Serialize>(__TAURI_INVOKE("doc_search", { query })),
 	docDocxList: () => typedError<PageEntry[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_list")),
+	/**  Copies a file that the person chose into the documents folder, after the click of a person. */
+	docAddFile: (source: string, click: boolean) => typedError<PageEntry, AppError_Serialize>(__TAURI_INVOKE("doc_add_file", { source, click })),
 	docDocxRead: (path: string) => typedError<Paragraph[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_read", { path })),
 	deckList: () => typedError<PageEntry[], AppError_Serialize>(__TAURI_INVOKE("deck_list")),
 	/**  Prints the deck with its print style sheet to a PDF at `dest`, one page per slide. */

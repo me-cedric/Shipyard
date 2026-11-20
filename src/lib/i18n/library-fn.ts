@@ -1,5 +1,6 @@
 /** The strings of the controls that `spec:library-functions` adds to Library. */
 export const libraryFnEn = {
+	documents: { addFile: "Add a file", open: "Open" },
 	history: {
 		title: "Earlier versions",
 		open: "History",
@@ -15,6 +16,7 @@ export const libraryFnEn = {
 };
 
 export const libraryFnFr: typeof libraryFnEn = {
+	documents: { addFile: "Ajouter un fichier", open: "Ouvrir" },
 	history: {
 		title: "Versions précédentes",
 		open: "Historique",

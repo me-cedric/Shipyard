@@ -2628,7 +2628,11 @@ const handlers: Handlers = {
 			sha,
 			click,
 		),
-	docDocxList: () => rv.docxList(review()),
+	docDocxList: () =>
+		[...rv.docxList(review()), ...kw.docOthers(need(state.knowledge))].sort((a, b) =>
+			a.path.localeCompare(b.path),
+		),
+	docAddFile: (source, click) => kw.docAddFile(need(state.knowledge), review().docx, source, click),
 	docDocxRead: (path) => rv.docxRead(review(), path),
 	specsRequirements: () => specs.requirementRows(need(state.specs)),
 	specsTestplanGenerate: (capability, click) =>

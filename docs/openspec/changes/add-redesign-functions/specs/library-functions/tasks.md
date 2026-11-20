@@ -18,7 +18,7 @@ Plan: [plan.md](plan.md)
 
 - [x] T001 [P] Tests for REQ-001 (F26, Opened last keeps items): each scenario of the spec, beside `src/features/library/recent.ts`, `src/features/library/library-home.tsx`. REQ-001.
 - [x] T002 Tests for REQ-002 (F27, Earlier versions and History): each scenario of the spec, beside `crates/shipyard-git/`, `crates/shipyard-app/src/page_history.rs`. REQ-002.
-- [ ] T003 Tests for REQ-003 (F28, Add a file to Documents): each scenario of the spec, beside `src/features/knowledge/documents.tsx`, `crates/shipyard-app/src/documents.rs`. REQ-003.
+- [x] T003 Tests for REQ-003 (F28, Add a file to Documents): each scenario of the spec, beside `src/features/knowledge/documents.tsx`, `crates/shipyard-app/src/documents.rs`. REQ-003.
 - [ ] T004 Tests for REQ-004 (F29, Slides of a Markdown deck): each scenario of the spec, beside `src/features/knowledge/slides.tsx`, `src/features/knowledge/work-slides.ts`. REQ-004.
 - [ ] T005 Tests for REQ-005 (F30, Learn: Experts, Add a word and the second pill): each scenario of the spec, beside `src/features/knowledge/learn.tsx`, `src/features/knowledge/learn-paths.tsx`. REQ-005.
 - [ ] T006 Tests for REQ-006 (F31, PDF and Markdown output of reports): each scenario of the spec, beside `crates/shipyard-app/src/reports.rs`, `crates/shipyard-app/src/decks.rs`. REQ-006.
@@ -31,7 +31,7 @@ Plan: [plan.md](plan.md)
 - [ ] T013 [P] Tests for REQ-013 (F39, Link from an endpoint to its feature): each scenario of the spec, beside `src/features/design/api.tsx`. REQ-013.
 - [x] T014 [P] Build REQ-001 (F26, Opened last keeps items): `src/features/library/recent.ts`, `src/features/library/library-home.tsx`. REQ-001.
 - [x] T015 Build REQ-002 (F27, Earlier versions and History): `crates/shipyard-git/`, `crates/shipyard-app/src/page_history.rs`, `src/features/knowledge/pages.tsx`, `src/features/specs/`, `src/lib/ipc/mock-knowledge.ts`. REQ-002.
-- [ ] T016 Build REQ-003 (F28, Add a file to Documents): `src/features/knowledge/documents.tsx`, `crates/shipyard-app/src/documents.rs`, `src/lib/ipc/mock-knowledge.ts`. REQ-003.
+- [x] T016 Build REQ-003 (F28, Add a file to Documents): `src/features/knowledge/documents.tsx`, `crates/shipyard-app/src/documents.rs`, `src/lib/ipc/mock-knowledge.ts`. REQ-003.
 - [ ] T017 Build REQ-004 (F29, Slides of a Markdown deck): `src/features/knowledge/slides.tsx`, `src/features/knowledge/work-slides.ts`, `crates/shipyard-app/src/decks.rs`, `src/lib/ipc/mock-knowledge.ts`. REQ-004.
 - [ ] T018 Build REQ-005 (F30, Learn: Experts, Add a word and the second pill): `src/features/knowledge/learn.tsx`, `src/features/knowledge/learn-paths.tsx`, `crates/shipyard-app/src/knowledge.rs`, `crates/shipyard-app/src/learning.rs`, `src/lib/ipc/mock-learning.ts`. REQ-005.
 - [ ] T019 Build REQ-006 (F31, PDF and Markdown output of reports): `crates/shipyard-app/src/reports.rs`, `crates/shipyard-app/src/decks.rs`, `src/features/reports/reports-page.tsx`, `src/features/reports/forms.tsx`, `src/features/reports/export-menu.tsx`, `src/lib/ipc/mock-reports.ts`. REQ-006.

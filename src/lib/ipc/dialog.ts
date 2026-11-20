@@ -67,6 +67,14 @@ export async function saveAs(name: string, ext: string): Promise<string | null> 
 	return path;
 }
 
+/** The native picker for any file. Returns null when the person cancels. */
+export async function pickAnyFile(): Promise<string | null> {
+	if (!isTauri()) return pickFileMock() || null;
+	const { open } = await import("@tauri-apps/plugin-dialog");
+	const path = await open({ multiple: false });
+	return typeof path === "string" ? path : null;
+}
+
 const IMAGE = [{ name: "Image", extensions: ["png", "jpg", "jpeg"] }];
 
 /** The native picker for a PNG or JPEG picture. Returns null when the person cancels. */
