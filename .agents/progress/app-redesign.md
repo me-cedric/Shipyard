@@ -423,3 +423,47 @@ Docs:
 - The deltas of `sync` (REQ-013, REQ-017), `projects` (REQ-013), `code` (REQ-007, REQ-014) and `ux-declutter` (REQ-010, REQ-012, REQ-013) name the new homes. The delta of `ux-declutter` needs the archive of `change:update-ux-declutter` first: the capability has no base spec yet. The Purpose text of the base specs still says "status bar": the archive merges only the requirement blocks.
 - The delta of `spec:design-system#REQ-001` gives the radii, the type sizes and the elevation tokens of `src/ui/tokens/tokens.css`.
 - `q:Q-001` (Switzer) is folded with the answer "use Inter"; the delta of `design-system` replaces that answer with Geist.
+
+## Look pass 2, Today and Ask (2026-11-19)
+
+The pass rebuilt the screens of the group Today and Ask from the design pictures and checked each one by picture. Commits `31cad7ad`, `135e3678`, `8784f994` and `57065d01`.
+
+### What the pass did
+
+- Today (pictures 1, 19, 62, 65, 66, 92): the first view is "Needs you", with one question card (and the field "Another answer"), a short queue with "N more", Working now, one small setup card and one slim time card. News has "Tell me when" and one action for each kind of news. The role panels have role chips and the link "Panels for my role". The new page Role views is in Setup. A product owner sees the plan cards on Today.
+- Ask (pictures 9, 63, 70): the answer of the Ask bar has Reply, Go to and Do, with "Start an agent on a ticket" and "Sync now". The full assistant is the page Ask (`/ask`) with "Small bar", three columns, the Codex trust card and Undo for the changed files. A link in the text of a manual page opens the card that explains it.
+- Menu bar panel (picture 20): the project and the sync mark in the heading, the same list as Today, Agents with the spend, a pinned footer.
+- Projects (pictures 18, 60, 61, 68, 98): the open project card and "Opened before" with Details. New project is a page with five steps and "All steps". "No project is open" is one card. The first run has the order of roles of the design with "I only look".
+- Manual (picture 79): the pages by place, "Start", F1 for every role, the buttons under a page.
+- Shell: the count shows on Today only; the account row shows the name; the account menu opens beside the rail; the Switch and the Dialog take the look of the design.
+
+### Decisions
+
+- The first view of Today is "Needs you".
+- The time reminder and the setup card are small cards.
+- Role views is in Setup, at `/setup/role-views`.
+- New project is a page, and it makes the project at the end.
+- The first run is for a first launch only. "No project is open" is a card (`spec:projects#REQ-001`, `spec:shell#REQ-019`).
+- The Codex trust card keeps its sentence behind "What this writes". Nothing is written before the click.
+- Shell changes: count on Today only, account row with the name, account menu beside the rail, the look of Switch and Dialog. See `adr:0023`.
+- Spec deltas: `spec:projects#REQ-001` (first run), `spec:shell#REQ-019` (first launch only), `spec:app-redesign#REQ-005` (no "keep" for changed files).
+- New screens: SCR-100 `home-dark`, SCR-101 `link-card`, SCR-102 `home-product-owner`, SCR-103 `role-views`, SCR-104 `home-panels`, SCR-105 `new-project-all-steps`. The other screens of the group updated their old entries.
+
+### Open
+
+Known differences from the design:
+
+- Shortcuts and What is new stay dialogs: the design has no card part beside a menu.
+- No Sign out row: the app has no such action.
+- The Health row stays in the account menu.
+- The tenth role "Other" stays in the first run.
+- "Keep" for changed files does not exist, and `spec:app-redesign#REQ-005` still names it. Owner decision: add a keep operation, or change the requirement.
+- The cards of earlier projects have no "needs you" chip: a project that is not open has no data.
+- The Folder row and the multi-line brief texts stay in All steps.
+- The Enter hint on the first row of the Ask list is not shown: Enter sends the text to the assistant unless an arrow key chose a row.
+- The top row buttons and the project chevron stay: picture 001 shows them, other pictures do not.
+- The Ask and Manual pages keep the top row.
+- The section switch stays on the three views of Today (`spec:app-redesign#REQ-008`).
+- The lead adds the screenshot scenes for the six new screens.
+
+Checks: see the final report.

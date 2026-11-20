@@ -156,3 +156,7 @@ A report shows only when your role can see the page that holds its export. The N
 ### Manual
 
 Manual is this guide. Open it with Manual in the account menu, with F1, with the Ask bar or with the Manual chip of Library. It comes with the app, in the language of the interface, and works without a project. Type a word in the search field to find every section that has it. Open the manual for this page, in the Ask bar, opens the page of the place and the section that you see.
+
+The manual has one page for each place, in the order of the rail, and it opens on Start. Each page has a picture. F1 opens the manual for every role, also for a role that does not see Library: the manual is help. Under a page, Ask about this page puts a question about the page in the assistant, Shortcuts opens the keyboard shortcuts, and Handbook of the project opens the handbook of the project.
+
+A link in the text of a page, such as `adr:0003`, opens a card that explains it. The card says whether the item is in the project, and what it is linked to. Open and Explain with an agent sit side by side. More shows the other actions, and Copy the ref copies the name of the item.

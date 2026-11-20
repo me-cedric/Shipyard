@@ -23,7 +23,7 @@ The shell is a rail and a page area. The rail shows the project switch, the six 
 - REQ-012: The native menu SHALL offer the global actions: open project, switch project, sync, commit, open palette, toggle inspector, check for updates and quit. Each item SHALL run the same action as the Ask bar.
 - REQ-017: Every shell action SHALL be reachable with the keyboard, SHALL show a focus ring and SHALL have a label for assistive technology. The person SHALL move between places with a shortcut.
 - REQ-018: The account row SHALL open the account menu. The menu SHALL hold a header row with the name and the role of the person that opens Setup / Me, the theme (Light, Dark, System), the language, the manual of the page, the keyboard shortcuts, What's new, Replay the tour, Check for updates, the version of the app, and the project health with the count of its findings. F1 SHALL still open the manual.
-- REQ-019: The first run and the page "No project is open" SHALL show alone: no rail and no top row. The skip link, the shortcuts, the folder drop, the close guard and the dialogs SHALL stay active on these pages.
+- REQ-019: The first run and the page "No project is open" SHALL show alone: no rail and no top row. The skip link, the shortcuts, the folder drop, the close guard and the dialogs SHALL stay active on these pages. The first run SHALL show at a first launch only; after Close project, "No project is open" SHALL show as one card.
 - REQ-020: Each control of the top bar and of the status bar of before this change SHALL stay reachable in its new home, with the same role and the same name. An inventory test SHALL find each control.
 - REQ-021: The shell SHALL NOT have a top bar or a status bar. The page area SHALL start with one top row: the rail toggle, Back, Forward, the Ask bar and the sync mark. The sync mark SHALL say the state of the repository in words. It SHALL open a card with what waits (the changed files, the lines added and removed, the watch notice, the sync failure with its retry action), the working branch, and the actions Sync, Fetch only, Push and Commit. Sync SHALL show the ahead and behind counts. While the card is closed, the top row SHALL still announce the watch notice and the sync failure. The card, the Ask bar and the native menu SHALL run the same commit action and the same sync action. The rail SHALL show the count of the live runs on Flow, and the account menu SHALL show the project health.
 - REQ-007 (removed): the status bar. REQ-021 replaces it.
@@ -175,7 +175,7 @@ Screen: SCR-028
 
 ### Requirement: REQ-019 Pages without the shell
 
-The first run and the page "No project is open" SHALL show alone: no rail and no top row. The skip link, the shortcuts, the folder drop, the close guard and the dialogs SHALL stay active on these pages.
+The first run and the page "No project is open" SHALL show alone: no rail and no top row. The skip link, the shortcuts, the folder drop, the close guard and the dialogs SHALL stay active on these pages. The first run SHALL show at a first launch only; after Close project, "No project is open" SHALL show as one card.
 
 Screen: SCR-030
 
@@ -183,6 +183,11 @@ Screen: SCR-030
 - GIVEN the app starts for the first time
 - WHEN the first screen renders
 - THEN the page shows no rail and no top row
+
+#### Scenario: Close project
+- GIVEN the person has opened a project before
+- WHEN the person closes the project
+- THEN the card "No project is open" shows and the first run does not
 
 #### Scenario: No project is open
 - GIVEN the person closed the project

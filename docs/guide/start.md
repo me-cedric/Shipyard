@@ -9,27 +9,27 @@ Shipyard helps a team deliver a software project: the features, the plan, the pe
 - The inspector on the right shows the item that you select.
 - The sidebar also holds the project name at its top and your account at its foot.
   - The project name opens a menu with your projects and the Projects page.
-  - Your account opens the account menu: the theme, the language, the manual, the version of Shipyard and Health.
+  - Your account opens the account menu, beside the rail. The account row shows your name and your initials.
 - The top row of each page holds the sidebar button, Back and Forward, the bar Ask or tell Shipyard and the sync mark. The window has no top bar and no status bar.
   - The sync mark shows the state of the repository. Click it to see the changed files, the branch, Sync and Commit. See the page Code, Sync.
   - Ask or tell Shipyard is the one bar for a question, a place and an action. See the page The Ask bar.
-  - The account menu (your picture) holds Setup / Me, Theme (Light, Dark, System), Manual, Shortcuts, What's new and Replay the tour.
+  - The account menu holds your name and role with Change (Setup / Me), Theme (Light, Dark, System), Language, Manual, Shortcuts, What is new, Show the tour again, Check for an update, About Shipyard with the version, and Health. Shortcuts and What is new open as dialogs.
 - Under 1100 px, the Files and Terminal buttons sit in the More menu.
 
 The window opens at the size where you closed it. To keep the data of the app next to the app (on a USB key, for example), put an empty file named `portable` next to the app.
 
 ## The menu bar item
 
-- The Shipyard icon sits in the menu bar (the system tray on Windows and Linux).
+- A click opens a small panel. The header names the project and the sync state (In sync, or Sync failed). Then come the things that need you (the same list as Today), Working now with two runs, All n in its heading row for the rest, each run with Stop, the reminder to log time, Agents with the spend of today and of the month and the agents switch, Sync, and Open Shipyard. The footer stays at the bottom while the middle scrolls.
 - A click opens a small panel: the spend of today and of the month, the active runs with Stop, the things that need you (the same list as Today), the reminder to log time, the agents switch, the sync state, the project and Open Shipyard.
 - The panel asks for the same click as the app for each action that writes.
 - In Setup, then Me, turn the menu bar item off.
 
 ## First launch
 
-The first-run page asks for your role. Pick it, then click Continue. Then open a folder, clone a repository or start a new project. With no project open, each place shows this same choice. See the page Projects.
+The first-run page shows at the first launch only. It asks one question: which role fits you? Pick one tile (Product owner, Project manager, Architect, Tech lead, Business analyst, Developer, Tester, Designer, Viewer or Other), then click Continue. The viewer tile says "I only look". Then open a project, clone a repository or start a new project, or pick a recent project. After that, when no project is open (for example after Close project), one card says No project is open, with New project and Open a project. See the page Projects.
 
-On Today, one Get started checklist lists the next steps in order: project, AI tool, models, issue tracker, code host, team, permissions, first decision, first spec, first assigned ticket and first run. Each item has one action that names the real next step, such as Install, Sign in, Choose or Connect. Setup / Start shows the same steps, one question at a time. On Today the checklist hides when nothing is left to do.
+On Today, one small setup card names the next step of the list: project, AI tool, models, issue tracker, code host, team, permissions, first decision, first spec, first assigned ticket and first run. Each step has one action that names the real next step, such as Install, Sign in, Choose or Connect. Continue on the card opens Setup / Start, which shows the same steps, one question at a time. On Today the card hides when nothing is left to do.
 
 ## The tour
 
@@ -63,7 +63,7 @@ In Setup, then Me, choose your role. The role sets the page that opens first and
 | Developer | Flow |
 | Tester | Library / Test plans |
 | Designer | Library / Screens |
-| Viewer | Today |
+| Viewer (I only look) | Today |
 
 When your role cannot see its first page, Today opens. With no role, Today opens.
 

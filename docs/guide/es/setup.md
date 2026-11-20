@@ -115,6 +115,10 @@ Yo contiene tus propios ajustes. Valen en cada proyecto.
 
 Notificaciones: cada origen tiene su propio interruptor, activado por defecto. Los orígenes son una pregunta, una aprobación, una ejecución que te espera, una sincronización fallida, una actualización, una rama remota movida, una ejecución que termina, los controles de tus pull requests, un escaneo fallido que no iniciaste, y un borrador de revisión de agente listo para publicar. Un interruptor desactivado detiene la entrada en Novedades y el aviso del sistema. El sistema muestra un aviso mientras la ventana está en segundo plano.
 
+### Vistas por rol
+
+Vistas por rol está en `/setup/role-views`. Todas las vistas por rol, en la página de los paneles de Hoy, la abre. Muestra una tarjeta por rol: la página en la que empieza el rol (Empieza en Flujo, por ejemplo) y los lugares que el rol ve. Un lugar que el rol no ve aparece tachado. La tarjeta de tu rol lleva la etiqueta Mi vista, y el rol de lector se llama Solo miro. El botón Derechos de cada rol abre Equipo / Derechos, donde se fijan los derechos. Las tarjetas son iguales en cada proyecto que tiene los mismos derechos.
+
 ### Aspecto y disposición
 
 Aspecto y disposición contiene las fuentes, el lado de la barra y de los cajones, el color de acento, el formato de fecha y tu foto.

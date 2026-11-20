@@ -9,27 +9,27 @@ Shipyard ayuda a un equipo a entregar un proyecto de software: las funcionalidad
 - El inspector de la derecha muestra el elemento que seleccionas.
 - La barra lateral contiene también el nombre del proyecto arriba y tu cuenta abajo.
   - El nombre del proyecto abre un menú con tus proyectos y la página Proyectos.
-  - Tu cuenta abre el menú de la cuenta: el tema, el idioma, el manual, la versión de Shipyard y Salud.
+  - Tu cuenta abre el menú de la cuenta, junto a la barra lateral. La fila de la cuenta muestra tu nombre y tus iniciales.
 - La fila superior de cada página contiene el botón de la barra lateral, Atrás y Adelante, la barra Preguntar o indicar a Shipyard y la marca de sincronización. La ventana no tiene barra superior ni barra de estado.
   - La marca de sincronización muestra el estado del repositorio. Haz clic en ella para ver los archivos modificados, la rama, la sincronización y el commit. Consulta la página Código, Sincronizar.
   - Preguntar o indicar a Shipyard es la única barra para una pregunta, un lugar y una acción. Consulta la página La barra Preguntar.
-  - El menú de la cuenta (tu foto) contiene Configuración / Yo, Tema (Claro, Oscuro, Sistema), Manual, Atajos, Novedades y Repetir el recorrido.
+  - El menú de la cuenta contiene tu nombre y tu rol con Cambiar (Configuración / Yo), Tema (Claro, Oscuro, Sistema), Idioma, Manual, Atajos, Novedades, Repetir el recorrido, Buscar una actualización, Acerca de Shipyard con la versión, y Salud. Atajos y Novedades se abren como cuadros de diálogo.
 - Por debajo de 1100 px, los botones Archivos y Terminal están en el menú Más.
 
 La ventana se abre con el tamaño con el que la cerraste. Para guardar los datos de la aplicación junto a la aplicación (en una memoria USB, por ejemplo), pon un archivo vacío llamado `portable` junto a la aplicación.
 
 ## El elemento de la barra de menús
 
-- El icono de Shipyard está en la barra de menús (la bandeja del sistema en Windows y Linux).
+- Un clic abre un panel pequeño. La cabecera nombra el proyecto y el estado de sincronización (Sincronizado, o Falló la sincronización). Después vienen las cosas que te esperan (la misma lista que Hoy), En curso con dos ejecuciones, Ver todo (n) en su fila de título para el resto, cada una con Detener, el recordatorio de registrar el tiempo, Agentes con el gasto de hoy y del mes y el interruptor de agentes, Sincronizar, y Abrir Shipyard. El pie se queda abajo mientras el centro se desplaza.
 - Un clic abre un panel pequeño: el gasto de hoy y del mes, las ejecuciones activas con Detener, lo que te espera (la misma lista que en Hoy), el recordatorio de registrar el tiempo, el interruptor de agentes, el estado de la sincronización, el proyecto y Abrir Shipyard.
 - El panel pide el mismo clic que la aplicación para cada acción que escribe.
 - En Configuración, luego Yo, desactiva el elemento de la barra de menús.
 
 ## Primer inicio
 
-La página del primer inicio pregunta tu rol. Elígelo y haz clic en Continuar. Después abre una carpeta, clona un repositorio o empieza un proyecto nuevo. Sin proyecto abierto, cada lugar muestra esta misma elección. Consulta la página Proyectos.
+La página del primer inicio se muestra solo en el primer inicio. Hace una pregunta: ¿qué rol te corresponde? Elige un icono (Product owner, Jefe de proyecto, Arquitecto, Responsable técnico, Analista de negocio, Desarrollador, Tester, Diseñador, Lector u Otro) y haz clic en Continuar. El icono del lector dice «Solo miro». Después abre un proyecto, clona un repositorio o empieza un proyecto nuevo, o elige un proyecto reciente. Después de eso, cuando no hay ningún proyecto abierto (por ejemplo tras Cerrar proyecto), una tarjeta dice No hay ningún proyecto abierto, con Nuevo proyecto y Abrir un proyecto. Consulta la página Proyectos.
 
-En Hoy, una lista Empezar da los pasos siguientes en orden: proyecto, herramienta de IA, modelos, gestor de tickets, plataforma de código, equipo, permisos, primera decisión, primera especificación, primer ticket asignado y primera ejecución. Cada elemento tiene una acción que nombra el paso siguiente real, como Instalar, Iniciar sesión, Elegir o Conectar. Configuración / Inicio muestra los mismos pasos, una pregunta cada vez. En Hoy la lista se oculta cuando no queda nada por hacer.
+En Hoy, una tarjeta pequeña de configuración nombra el paso siguiente de la lista: proyecto, herramienta de IA, modelos, gestor de tickets, plataforma de código, equipo, permisos, primera decisión, primera especificación, primer ticket asignado y primera ejecución. Cada paso tiene una acción que nombra el paso siguiente real, como Instalar, Iniciar sesión, Elegir o Conectar. Continuar, en la tarjeta, abre Configuración / Inicio, que muestra los mismos pasos, una pregunta cada vez. En Hoy la tarjeta se oculta cuando no queda nada por hacer.
 
 ## El recorrido
 
@@ -63,7 +63,7 @@ En Configuración, luego Yo, elige tu rol. El rol fija la página que se abre pr
 | Desarrollador | Flujo |
 | Tester | Biblioteca / Planes de pruebas |
 | Diseñador | Biblioteca / Pantallas |
-| Lector | Hoy |
+| Lector (Solo miro) | Hoy |
 
 Cuando tu rol no ve su primera página, se abre Hoy. Sin rol, se abre Hoy.
 

@@ -156,3 +156,7 @@ Un rapport s'affiche seulement quand votre rôle voit la page qui contient son e
 ### Mode d'emploi
 
 Mode d'emploi est ce guide. Ouvrez-le avec Mode d'emploi dans le menu du compte, avec F1, avec la barre Demander ou avec la pastille Mode d'emploi de Bibliothèque. Il vient avec l'application, dans la langue de l'interface, et marche sans projet. Tapez un mot dans le champ de recherche pour trouver chaque section qui le contient. Ouvrir le mode d'emploi de cette page, dans la barre Demander, ouvre la page du lieu et la section que vous voyez.
+
+Le manuel a une page par lieu, dans l'ordre de la barre latérale, et il s'ouvre sur Démarrer. Chaque page a une image. F1 ouvre le manuel pour chaque rôle, même pour un rôle qui ne voit pas Bibliothèque : le manuel est une aide. Sous une page, Poser une question sur cette page met une question sur la page dans l'assistant, Raccourcis ouvre les raccourcis clavier, et Manuel du projet ouvre le manuel du projet.
+
+Un lien dans le texte d'une page, comme `adr:0003`, ouvre une carte qui l'explique. La carte dit si l'élément est dans le projet, et à quoi il est lié. Ouvrir et Expliquer avec un agent sont côte à côte. Plus montre les autres actions, et Copier la référence copie le nom de l'élément.

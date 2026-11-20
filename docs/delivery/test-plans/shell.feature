@@ -245,6 +245,12 @@ Feature: shell
     Then the page shows no rail and no top row
 
   @spec:shell#REQ-019
+  Scenario: Pages without the shell: Close project
+    Given the person has opened a project before
+    When the person closes the project
+    Then the card "No project is open" shows and the first run does not
+
+  @spec:shell#REQ-019
   Scenario: Pages without the shell: No project is open
     Given the person closed the project
     When the page "No project is open" renders

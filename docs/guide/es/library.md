@@ -156,3 +156,7 @@ Un informe se muestra solo cuando tu rol puede ver la página que contiene su ex
 ### Manual
 
 Manual es esta guía. Ábrelo con Manual en el menú de la cuenta, con F1, con la barra Preguntar o con la ficha Manual de Biblioteca. Viene con la aplicación, en el idioma de la interfaz, y funciona sin proyecto. Escribe una palabra en el campo de búsqueda para encontrar cada sección que la contiene. Abrir el manual de esta página, en la barra Preguntar, abre la página del lugar y la sección que ves.
+
+El manual tiene una página por lugar, en el orden de la barra lateral, y se abre en Inicio. Cada página tiene una imagen. F1 abre el manual para cada rol, también para un rol que no ve Biblioteca: el manual es ayuda. Bajo una página, Preguntar sobre esta página pone una pregunta sobre la página en el asistente, Atajos abre los atajos de teclado, y Guía del proyecto abre la guía del proyecto.
+
+Un enlace en el texto de una página, como `adr:0003`, abre una tarjeta que lo explica. La tarjeta dice si el elemento está en el proyecto y a qué está vinculado. Abrir y Explicar con un agente están lado a lado. Más muestra las otras acciones, y Copiar la referencia copia el nombre del elemento.

@@ -9,27 +9,27 @@ Shipyard aide une équipe à livrer un projet logiciel : les fonctionnalités, l
 - L'inspecteur à droite montre l'élément que vous sélectionnez.
 - La barre latérale contient aussi le nom du projet en haut et votre compte en bas.
   - Le nom du projet ouvre un menu avec vos projets et la page Projets.
-  - Votre compte ouvre le menu du compte : le thème, la langue, le mode d'emploi, la version de Shipyard et Santé.
+  - Votre compte ouvre le menu du compte, à côté de la barre latérale. La rangée du compte montre votre nom et vos initiales.
 - La rangée du haut de chaque page contient le bouton de la barre latérale, Précédent et Suivant, la barre Demander ou dire à Shipyard et la marque de synchronisation. La fenêtre n'a pas de barre du haut ni de barre d'état.
   - La marque de synchronisation montre l'état du dépôt. Cliquez dessus pour voir les fichiers modifiés, la branche, la synchronisation et le commit. Voir la page Code, Synchroniser.
   - Demander ou dire à Shipyard est la seule barre pour une question, un lieu et une action. Voir la page La barre Demander.
-  - Le menu du compte (votre image) contient Configuration / Moi, Thème (Clair, Sombre, Système), Mode d'emploi, Raccourcis, Nouveautés et Revoir la visite.
+  - Le menu du compte contient votre nom et votre rôle avec Modifier (Configuration / Moi), Thème (Clair, Sombre, Système), Langue, Manuel, Raccourcis, Nouveautés, Revoir la visite, Rechercher une mise à jour, À propos de Shipyard avec la version, et Santé. Raccourcis et Nouveautés s'ouvrent en boîtes de dialogue.
 - Sous 1100 px, les boutons Fichiers et Terminal sont dans le menu Plus.
 
 La fenêtre s'ouvre à la taille où vous l'avez fermée. Pour garder les données de l'application à côté de l'application (sur une clé USB, par exemple), placez un fichier vide nommé `portable` à côté de l'application.
 
 ## L'élément de la barre de menus
 
-- L'icône Shipyard est dans la barre de menus (la zone de notification sous Windows et Linux).
+- Un clic ouvre un petit panneau. L'en-tête nomme le projet et l'état de la synchronisation (À jour, ou Échec de la synchronisation). Viennent ensuite les choses qui vous attendent (la même liste qu'Aujourd'hui), En cours avec deux exécutions, Tout voir (n) dans sa rangée de titre pour le reste, chacune avec Arrêter, le rappel de saisir le temps, Agents avec les dépenses du jour et du mois et l'interrupteur des agents, Synchroniser, et Ouvrir Shipyard. Le pied reste en bas pendant que le milieu défile.
 - Un clic ouvre un petit panneau : les dépenses du jour et du mois, les exécutions actives avec Arrêter, ce qui vous attend (la même liste que dans Aujourd'hui), le rappel de saisie du temps, l'interrupteur des agents, l'état de la synchronisation, le projet et Ouvrir Shipyard.
 - Le panneau demande le même clic que l'application pour chaque action qui écrit.
 - Dans Configuration, puis Moi, désactivez l'élément de la barre de menus.
 
 ## Premier lancement
 
-La page du premier lancement demande votre rôle. Choisissez-le, puis cliquez sur Continuer. Ensuite, ouvrez un dossier, clonez un dépôt ou créez un projet. Sans projet ouvert, chaque lieu montre ce même choix. Voir la page Projets.
+La page du premier lancement s'affiche seulement au premier lancement. Elle pose une question : quel rôle vous convient ? Choisissez une tuile (Responsable produit, Chef de projet, Architecte, Responsable technique, Analyste métier, Développeur, Testeur, Designer, Lecteur ou Autre), puis cliquez sur Continuer. La tuile du lecteur dit « Je regarde seulement ». Ensuite, ouvrez un projet, clonez un dépôt ou créez un projet, ou choisissez un projet récent. Après cela, quand aucun projet n'est ouvert (par exemple après Fermer le projet), une carte dit Aucun projet n'est ouvert, avec Nouveau projet et Ouvrir un projet. Voir la page Projets.
 
-Dans Aujourd'hui, une liste Pour commencer donne les prochaines étapes dans l'ordre : projet, outil d'IA, modèles, outil de suivi, hébergeur de code, équipe, autorisations, première décision, première spec, premier ticket attribué et première exécution. Chaque élément a une action qui nomme la vraie étape suivante, comme Installer, Se connecter, Choisir ou Connecter. Configuration / Démarrage montre les mêmes étapes, une question à la fois. Dans Aujourd'hui, la liste se masque quand il ne reste rien à faire.
+Dans Aujourd'hui, une petite carte de configuration nomme l'étape suivante de la liste : projet, outil d'IA, modèles, outil de suivi, hébergeur de code, équipe, autorisations, première décision, première spec, premier ticket attribué et première exécution. Chaque étape a une action qui nomme la vraie étape suivante, comme Installer, Se connecter, Choisir ou Connecter. Continuer, sur la carte, ouvre Configuration / Démarrage, qui montre les mêmes étapes, une question à la fois. Dans Aujourd'hui, la carte se masque quand il ne reste rien à faire.
 
 ## La visite
 
@@ -63,7 +63,7 @@ Dans Configuration, puis Moi, choisissez votre rôle. Le rôle fixe la page qui 
 | Développeur | Flux |
 | Testeur | Bibliothèque / Plans de test |
 | Designer | Bibliothèque / Écrans |
-| Lecteur | Aujourd'hui |
+| Lecteur (Je regarde seulement) | Aujourd'hui |
 
 Quand votre rôle ne voit pas sa première page, Aujourd'hui s'ouvre. Sans rôle, Aujourd'hui s'ouvre.
 

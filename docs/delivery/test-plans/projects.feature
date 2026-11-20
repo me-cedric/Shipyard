@@ -4,8 +4,7 @@ Feature: projects
   Scenario: First run: Empty install
     Given no project in the registry
     When a person starts Shipyard
-    Then the first run shows the role choice and the three starts with icon and noun labels
-    And only Open a local folder is a primary action
+    Then the first run asks the role, then shows the three starts with icon and noun labels
 
   @spec:projects#REQ-001
   Scenario: First run: Return start

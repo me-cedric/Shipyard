@@ -156,3 +156,7 @@ Ein Bericht zeigt sich nur, wenn Ihre Rolle die Seite sieht, die seinen Export e
 ### Anleitung
 
 Anleitung ist dieser Leitfaden. Öffnen Sie ihn mit Anleitung im Kontomenü, mit F1, mit der Fragen-Leiste oder mit dem Chip Anleitung von Bibliothek. Er kommt mit der App, in der Sprache der Oberfläche, und funktioniert ohne Projekt. Tippen Sie ein Wort in das Suchfeld, um jeden Abschnitt zu finden, der es enthält. Anleitung zu dieser Seite öffnen, in der Fragen-Leiste, öffnet die Seite des Ortes und den Abschnitt, den Sie sehen.
+
+Die Anleitung hat eine Seite für jeden Ort, in der Reihenfolge der Seitenleiste, und sie öffnet mit Start. Jede Seite hat ein Bild. F1 öffnet die Anleitung für jede Rolle, auch für eine Rolle, die Bibliothek nicht sieht: Die Anleitung ist Hilfe. Unter einer Seite setzt Zu dieser Seite fragen eine Frage zur Seite in den Assistenten, Tastenkürzel öffnet die Tastenkürzel, und Handbuch des Projekts öffnet das Handbuch des Projekts.
+
+Ein Link im Text einer Seite, zum Beispiel `adr:0003`, öffnet eine Karte, die ihn erklärt. Die Karte sagt, ob das Element im Projekt ist und womit es verknüpft ist. Öffnen und Mit einem Agenten erklären stehen nebeneinander. Mehr zeigt die anderen Aktionen, und Referenz kopieren kopiert den Namen des Elements.

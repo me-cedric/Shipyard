@@ -115,6 +115,10 @@ Ich enthält Ihre eigenen Einstellungen. Sie gelten in jedem Projekt.
 
 Benachrichtigungen: Jede Quelle hat ihren eigenen Schalter, standardmäßig an. Die Quellen sind eine Frage, eine Freigabe, ein Lauf, der auf Sie wartet, ein fehlgeschlagener Sync, ein Update, ein verschobener Remote-Branch, ein Lauf, der endet, die Prüfungen Ihrer Pull Requests, ein fehlgeschlagener Scan, den Sie nicht gestartet haben, und ein Entwurf einer Agenten-Prüfung, der zum Senden bereit ist. Ein ausgeschalteter Schalter stoppt den Eintrag in Neuigkeiten und den Hinweis des Systems. Das System zeigt einen Hinweis, solange das Fenster im Hintergrund ist.
 
+### Rollenansichten
+
+Rollenansichten liegt unter `/setup/role-views`. Alle Rollenansichten, auf der Seite der Panels von Heute, öffnet sie. Sie zeigt eine Karte für jede Rolle: die Seite, mit der die Rolle beginnt (zum Beispiel Beginnt mit Ablauf), und die Orte, die die Rolle sieht. Ein Ort, den die Rolle nicht sieht, ist durchgestrichen. Die Karte Ihrer Rolle hat das Etikett Meine Ansicht, und die Rolle Leser heißt Ich schaue nur. Die Schaltfläche Rechte jeder Rolle öffnet Team / Rechte, wo die Rechte eingestellt werden. Die Karten sind in jedem Projekt mit denselben Rechten gleich.
+
 ### Aussehen und Layout
 
 Aussehen und Layout enthält die Schriften, die Seite der Leiste und der Schubladen, die Akzentfarbe, das Datumsformat und Ihr Bild.

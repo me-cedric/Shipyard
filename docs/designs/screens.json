@@ -4,12 +4,13 @@
     {
       "id": "SCR-001",
       "slug": "home",
-      "title": "Today: the count of what needs the person in the title, one card with who asks, the feature and the answer, Later, the queue of the next things, Working now with the spend of today, the reminder to log time, the panels of the role, My items, Since you were away; the Ask bar in the top row of the page",
+      "title": "Today, Needs you: the count in the title, one card with who asks, the feature, one large line and the answer (with Another answer for a free answer, and Later), a short queue with \"N more\", Working now, one small setup card, one slim time reminder and the link Panels for my role; the Ask bar in the top row of the page",
       "artifacts": [
         "spec:shell",
         "spec:home-today",
         "spec:ux-declutter",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "adr:0023"
       ],
       "file": "docs/assets/screenshots/home.png"
     },
@@ -117,21 +118,23 @@
     {
       "id": "SCR-011",
       "slug": "projects",
-      "title": "Projects: the page behind the project switch of the rail, with the open project, the projects opened before, New project, Open a local folder, Clone a repository and Import a project",
+      "title": "Projects: the page behind the project switch of the rail, with the open project as a card (what needs you, the agents at work, Open and Close), Opened before with a card for each earlier project (Open, Remove from the list, Details), Import projects, Open a folder, Clone from the code host and New project",
       "artifacts": [
         "spec:projects",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "adr:0023"
       ],
       "file": "docs/assets/screenshots/projects.png"
     },
     {
       "id": "SCR-012",
       "slug": "menu-bar-panel",
-      "title": "Menu bar panel: the same things that need the person as Today, the spend, the runs with Stop, the agents switch, the sync, the project, and Open Shipyard",
+      "title": "Menu bar panel: the project and the sync mark in the heading, the things that need the person as on Today, Working now with two runs and All n, Agents with the spend and the agents switch, Sync and Open Shipyard in a pinned footer",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "adr:0023"
       ],
       "file": "docs/assets/screenshots/menu-bar-panel.png"
     },
@@ -149,10 +152,11 @@
     {
       "id": "SCR-014",
       "slug": "assistant-composer",
-      "title": "Full assistant: the threads (new, rename, delete), the message box, then one bar with attach, the mode, the model and effort menu, the permission, the context ring and Send; the trace, the changed files with keep and undo, and the side and width of the panel",
+      "title": "Ask, the full assistant as a page at /ask: the threads on the left, the thread with the message box in the middle, the tools on the right (This screen, The assistant may, the Codex trust card with What this writes, Panel); the changed files in the answer with a preview and Undo; Small bar goes back to the side panel",
       "artifacts": [
         "spec:assistant",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "adr:0023"
       ],
       "file": "docs/assets/screenshots/assistant-composer.png"
     },
@@ -236,11 +240,12 @@
     {
       "id": "SCR-021",
       "slug": "new-project",
-      "title": "New project: the five steps of the creator, the preview of the files and the start choice",
+      "title": "New project, a page at /projects/new: one question for each of five steps (Name, Kind of product, Tools, Team, Ready), Back, All steps and Continue; the project is made at the end with Create the project",
       "artifacts": [
         "spec:project-creator",
         "spec:projects",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "adr:0023"
       ],
       "file": "docs/assets/screenshots/new-project.png"
     },
@@ -290,44 +295,48 @@
     {
       "id": "SCR-027",
       "slug": "activity-panel",
-      "title": "Today / Activity: the live runs with Stop and the sessions with Stop, as a view of Today (it replaces the old Activity panel)",
+      "title": "Today / Activity: the live runs with Stop and the sessions with Stop, as a view of Today",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "adr:0023"
       ],
       "file": "docs/assets/screenshots/activity-panel.png"
     },
     {
       "id": "SCR-028",
       "slug": "account-menu",
-      "title": "Account menu, from the account row at the foot of the rail: the name and the role with Change (Setup / Me), Theme (Light, Dark, System), Language, the manual of the page, Keyboard shortcuts, What's new, Replay the tour, Check for updates, About Shipyard with the version, and Health with the count of its findings",
+      "title": "Account menu, beside the rail from the account row with the name: the name and the role with Change (Setup / Me), Theme (Light, Dark, System), Language, Manual, Shortcuts, What is new, Show the tour again, Check for an update, About Shipyard with the version, and Health with the count of its findings",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "adr:0023"
       ],
       "file": "docs/assets/screenshots/account-menu.png"
     },
     {
       "id": "SCR-029",
       "slug": "no-project",
-      "title": "No project is open: a bare page without the rail and the top row, with one card that holds New project, Clone a repository, Open a local folder and the link to the Projects page",
+      "title": "No project is open: a bare page without the rail and the top row, with one card that holds New project and Open a project (a menu with the recent projects, Projects, Open a folder and Clone a repository)",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "adr:0023"
       ],
       "file": "docs/assets/screenshots/no-project.png"
     },
     {
       "id": "SCR-030",
       "slug": "first-run",
-      "title": "First run: a bare page without the rail and the top row, with the step bar, the role question as tiles and Continue, then the start step (open, clone, new project, the recent projects), then the clone step",
+      "title": "First run, at a first launch only: a bare page without the rail and the top row, with the step bar, the role question as tiles (with \"I only look\") and Continue, then the start step (open a folder, clone, new project, the recent projects), then the clone step",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "adr:0023"
       ],
       "file": "docs/assets/screenshots/first-run.png"
     },
@@ -378,7 +387,7 @@
     {
       "id": "SCR-037",
       "slug": "today-news",
-      "title": "Today / News: the notifications by day with the action of each one, Mark all as read and Clear; the only list of notifications",
+      "title": "Today / News: the notifications by day with who, the title, the feature and one action for each kind, Older news, Mark all as read and Clear; Tell me when with five switches and More in Setup; the only list of notifications",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -388,7 +397,7 @@
     {
       "id": "SCR-038",
       "slug": "ask-bar",
-      "title": "Ask bar, open: one centred column over the page, with the answer that names each blocked feature with its action, Reply, Go to with places and search results, Do with the actions and the prompts of the page, Open the full assistant",
+      "title": "Ask bar, open: one centred column over the page, with the answer that names each blocked feature with its action, Reply, Go to with places and search results, Do with the actions and the prompts of the page (Start an agent on a ticket, Sync now), Open the full assistant",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -681,7 +690,7 @@
     {
       "id": "SCR-080",
       "slug": "library-manual",
-      "title": "Library / Manual: the guide of Shipyard by place; F1 opens the help of the current page",
+      "title": "Library / Manual: the guide of Shipyard by place, with a large page title and its picture, Ask about this page, Shortcuts and Handbook of the project under the page; F1 opens the help of the current page for every role",
       "artifacts": [
         "spec:knowledge",
         "spec:app-redesign",
@@ -875,6 +884,75 @@
         "spec:app-redesign",
         "adr:0023"
       ]
+    },
+    {
+      "id": "SCR-100",
+      "slug": "home-dark",
+      "title": "Today, Dark theme: the same page as Today, Needs you, in the Dark theme",
+      "artifacts": [
+        "spec:shell",
+        "spec:home-today",
+        "spec:design-system",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/home-dark.png"
+    },
+    {
+      "id": "SCR-101",
+      "slug": "link-card",
+      "title": "Card that explains a link: the name and kind of the item, whether it is in the project, what it is linked to, Open and Explain with an agent side by side, More for the other actions, and Copy the ref",
+      "artifacts": [
+        "spec:refs",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/link-card.png"
+    },
+    {
+      "id": "SCR-102",
+      "slug": "home-product-owner",
+      "title": "Today for a product owner: the cards of the plan above Working now, beside the card of the first thing that needs the person",
+      "artifacts": [
+        "spec:home-today",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/home-product-owner.png"
+    },
+    {
+      "id": "SCR-103",
+      "slug": "role-views",
+      "title": "Setup / Role views: one card for each role with the page it starts on and the places it sees, a struck-through place for a place the role does not see, the tag My view on the card of the person, I only look for the viewer, and Rights of each role",
+      "artifacts": [
+        "spec:team-rights",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/role-views.png"
+    },
+    {
+      "id": "SCR-104",
+      "slug": "home-panels",
+      "title": "Today, for a role: one chip for each role, the panels of the chosen role as small cards with Open, the time reminder, My work, Since you were away, the panels of the other roles, and All role views",
+      "artifacts": [
+        "spec:home-today",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/home-panels.png"
+    },
+    {
+      "id": "SCR-105",
+      "slug": "new-project-all-steps",
+      "title": "New project, All steps: the five parts on one page (Project, Brief, Team, Where the code lives, Start), each member with Remove (off on the first row, with its reason), and Create the project",
+      "artifacts": [
+        "spec:project-creator",
+        "spec:projects",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/new-project-all-steps.png"
     }
   ]
 }

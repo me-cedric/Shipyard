@@ -115,6 +115,10 @@ Me holds your own settings. They apply in every project.
 
 Notifications: each source has its own switch, on by default. The sources are a question, an approval, a run that needs you, a failed sync, an update, a moved remote branch, a run that ends, the checks of your pull requests, a failed scan that you did not start, and an agent review draft that is ready to post. A switch that is off stops the entry in News and the system notice. The system shows a notice while the window is in the background.
 
+### Role views
+
+Role views is at `/setup/role-views`. All role views on the page of the panels of Today opens it. It shows one card for each role: the page that the role starts on (Starts on Flow, for example) and the places that the role sees. A place that the role does not see is struck through. The card of your role has the tag My view, and the viewer role is named I only look. The button Rights of each role opens Crew / Rights, where the rights are set. The cards are the same in every project that has the same rights.
+
 ### Look and layout
 
 Look and layout holds the fonts, the side of the bar and of the drawers, the accent colour, the date format and your picture.

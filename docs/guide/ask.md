@@ -12,21 +12,29 @@ Choose Ask the assistant to put those items as context in the message box of the
 
 ## Do
 
-Do starts an action or a prompt for the page that you see. Examples: New feature, Open the manual for this page, Replay the tour. An action that your role cannot use does not show.
+Do starts an action or a prompt for the page that you see. Examples: New feature, Start an agent on a ticket (it opens the page New feature), Sync now, Open the manual for this page, Replay the tour. An action that your role cannot use does not show.
 
 ## Ask
 
-Ask what blocks, what stopped or what needs you. The answer names each feature and gives its action: Reply, Unblock, Add budget, Try again, Resume or Close as done.
+Ask what blocks, what stopped or what needs you. The answer names each feature and gives its action: Reply, Unblock, Add budget, Try again, Resume or Close as done. Reply opens one field in the answer: type the text, then click Send. Go to and Do sit under the answer, and Open the full assistant opens the page Ask.
 
 Any other text goes to the assistant when you press Enter.
 
 ## The assistant
 
-The assistant opens on the side. Ask it a question about the project. Each conversation is a tab, and a dot marks a tab with a new reply.
+The assistant opens on the side. Ask it a question about the project. Each conversation is a tab, and a dot marks a tab with a new reply. The answer shows how it found the result under How I found this.
 
 - Under the message box, one bar has the attach button, one button with the model and the effort (it opens the models of the AI tool, the effort levels and the models of the other AI tools), the permission, the context ring and Send.
-- In Agent mode the permission is Edit with approval, Auto (accepts edits) or Bypass permissions. Bypass skips every approval of Claude Code or Codex: Shipyard asks you the first time in each project, shows it in red while it is on, and refuses it in a read-only project and while the agents switch is off.
+- In the mode Do the permission is Edit with approval, Auto (accepts edits) or Bypass permissions. Bypass skips every approval of Claude Code or Codex: Shipyard asks you the first time in each project, shows it in red while it is on, and refuses it in a read-only project and while the agents switch is off.
 - Type `/` at the start of a message to list the commands of the selected AI tool. The text goes to the AI tool as you typed it.
 - Each conversation keeps one agent session, so a later message continues the earlier work.
-- Undo drops the changes that the assistant made to the files. Without Undo, the changes stay.
-- Select a text in a page to send it to the assistant, or to Flow as a new work item.
+- The changed files sit in the answer, each with a preview and Undo. Undo drops the changes that the assistant made to that file, after you confirm. Without Undo, the changes stay.
+- Select a text in a page to send it to the assistant, or to an agent with Send to an agent.
+
+## The page Ask
+
+The full assistant is the page Ask, at `/ask`. Open the full assistant in the Ask bar, or the side panel, opens it. Small bar goes back to the side panel.
+
+- The page has three columns: the conversations on the left, the thread with the message box in the middle, and the tools on the right.
+- The tools are This screen (what the assistant can see, with Add), The assistant may (Edit files alone, and Run commands alone for an AI tool that has it) and Panel (the side and the width of the side panel).
+- With Codex as the AI tool, a card asks: Codex asks: trust this folder? Not now hides the card for this visit. Trust this folder adds the folder to the Codex config file. What this writes shows the exact change, and nothing is written before you click.

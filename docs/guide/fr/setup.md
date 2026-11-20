@@ -115,6 +115,10 @@ Moi contient vos propres réglages. Ils valent dans chaque projet.
 
 Notifications : chaque source a son propre interrupteur, activé par défaut. Les sources sont une question, une approbation, une exécution qui vous attend, un échec de synchronisation, une mise à jour, une branche distante déplacée, une exécution qui se termine, les contrôles de vos pull requests, un scan en échec que vous n'avez pas lancé, et un brouillon de revue d'agent prêt à publier. Un interrupteur désactivé arrête l'entrée dans Nouvelles et l'avis du système. Le système montre un avis tant que la fenêtre est en arrière-plan.
 
+### Vues par rôle
+
+Vues par rôle est à l'adresse `/setup/role-views`. Toutes les vues par rôle, sur la page des panneaux d'Aujourd'hui, l'ouvre. Elle montre une carte par rôle : la page sur laquelle le rôle commence (Commence sur Flux, par exemple) et les lieux que le rôle voit. Un lieu que le rôle ne voit pas est barré. La carte de votre rôle a l'étiquette Ma vue, et le rôle de lecteur se nomme Je regarde seulement. Le bouton Droits de chaque rôle ouvre Équipe / Droits, où les droits se règlent. Les cartes sont les mêmes dans chaque projet qui a les mêmes droits.
+
 ### Apparence et disposition
 
 Apparence et disposition contient les polices, le côté de la barre et des tiroirs, la couleur d'accent, le format de date et votre image.
