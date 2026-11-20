@@ -286,7 +286,7 @@ function Form({ view }: { view: AutomationView }) {
 				<div className="flex flex-col items-start gap-2 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2">
 					<ButtonLink
 						href="/today/today"
-						className="h-(--control-h) border-0 bg-transparent px-0 text-accent-text shadow-none hover:bg-transparent"
+						className="h-(--control-h) border-0 bg-transparent px-0 text-accent-text hover:bg-transparent"
 					>
 						{k.today}
 					</ButtonLink>

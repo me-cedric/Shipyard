@@ -269,27 +269,43 @@
 	);
 }
 
-:root[data-accent="blue"],
+:root[data-accent="blue"] {
+	--accent-hue: 265;
+}
+
+:root[data-accent="violet"] {
+	--accent-hue: 295;
+}
+
+:root[data-accent="green"] {
+	--accent-hue: 150;
+}
+
+:root[data-accent="orange"] {
+	--accent-hue: 55;
+}
+
+:root[data-accent="rose"] {
+	--accent-hue: 10;
+}
+
+/* The colour swatches of Setup / Look and layout show each accent, whatever accent is active. */
 [data-accent-swatch="blue"] {
 	--accent-hue: 265;
 }
 
-:root[data-accent="violet"],
 [data-accent-swatch="violet"] {
 	--accent-hue: 295;
 }
 
-:root[data-accent="green"],
 [data-accent-swatch="green"] {
 	--accent-hue: 150;
 }
 
-:root[data-accent="orange"],
 [data-accent-swatch="orange"] {
 	--accent-hue: 55;
 }
 
-:root[data-accent="rose"],
 [data-accent-swatch="rose"] {
 	--accent-hue: 10;
 }

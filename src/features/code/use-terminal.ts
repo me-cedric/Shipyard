@@ -82,7 +82,7 @@ export function useTerminal(
 					cursorBlink: true,
 					// The output sits on the dark card: no black box of its own.
 					allowTransparency: true,
-					theme: { background: "#00000000" },
+					theme: { background: "transparent" },
 					scrollback: 10000,
 					fontSize: prefs?.terminalFontSize ?? 13,
 					fontFamily: prefs?.terminalFont ? `${prefs.terminalFont}, ${stack}` : stack,

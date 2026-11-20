@@ -574,3 +574,57 @@ Result of the last fresh-context check (round 5, 2026-11-20). Two fixes came aft
 - The shared `PageHeader` (`src/ui/molecules/page-header.tsx`) keeps its action row and menu on one line now: this changes the header of every page.
 - The zoom controls (`zoom-frame.tsx`) and the Mermaid viewer are shared with the Design section of the feature page.
 - The pictures of the Library scenes are retaken from this tree. Scene `tile-build` now opens the edit page of the dashboard.
+## Look pass 2, Code and Setup (2026-11-20)
+
+The pass rebuilt the 19 Code and Setup pages from the design source (`T047`). Branch `feature/app-redesign-look-2-code-setup`, base `feature/app-ui-ux-redesign-df0d13` (108fb9c4). Screen ids SCR-180 to SCR-184.
+
+What changed:
+
+- Code / Now is a short summary: the files to commit, the pull requests and the Product health row. The staging tool is the page `/code/changes` with a back link to Code.
+- History shows five commits and "Older commits". Branches is a grid of branch cards. Terminal has the Files card, the tabs and the command bar with "Ask an agent to run it".
+- Setup keeps the title "Setup". Each scope has pills for its sub-pages and two columns of cards. No door replaces the page, and no anchor bar shows.
+- New pages: `/setup/project?page=automation` and `/setup/project?page=plugins` (screen 88). The old page id `connections` of This project goes to the card on Details.
+- The health of this computer counts a missing required tool as a problem, with "Fix it". Before, it said "Nothing to fix".
+- The Setup parts are in `src/features/settings/parts/`: `Columns`, `SetupCard`, `SetupRow`, `ValueButton`, `Stepper`, `Toggle`, `StatePill`, `SetupPills`.
+
+Picture check: an agent in a fresh context compared each capture with its design picture at the same size.
+
+| Screen | Address | Result |
+|---|---|---|
+| 7 Code | `/code/now` | match |
+| 52 Local changes | `/code/changes` | match |
+| 48 History | `/code/history` | match |
+| 49 Branches | `/code/branches` | difference: the line "main is the default branch of origin" stays (a safety notice); no owner badge (the branch data has no owner); Rename stays on a merged card |
+| 51 Terminal | `/code/terminal` | match |
+| 8 Setup | `/setup/start` | match |
+| 54 This project | `/setup/project` | difference: the More card holds the rows of today, so "Import a project" is below the height of the picture |
+| 55 This computer | `/setup/computer` | difference: the Security card starts below the height of the picture |
+| 56 Models and rules | `/setup/computer?page=models` | match |
+| 57 Extensions | `/setup/project?page=extensions` | difference: the Automation pill shows (design 54 has it); the row "Plugins and rule packs" is below the height of the picture |
+| 58 Me | `/setup/me` | match (no "A budget reaches 80 %" row: no such event exists) |
+| 59 Health of this computer | `/setup/computer?page=health` | match |
+| 76 Automation | `/setup/project?page=automation` | difference: the limits by stage and the full status mapping stay behind "Edit" (the setting is per state, not per stage); the note "Off means: the agent asks in Today" is not shown (no helper text) |
+| 82 Look and layout | `/setup/me?page=look` | match |
+| 87 Share Shipyard | `/setup/computer?page=share` | match |
+| 88 Plugins and rule packs | `/setup/project?page=plugins` | difference: the review keeps a check box for each item, the refused list and the previews (a person can apply a part of a plugin); the buttons show the count |
+| 89 Tickets | `/setup/project?page=tickets` | difference: Unit has a third choice "None" (else "no estimate" cannot be set); no "Add" for the kinds (four fixed kinds) |
+| 91 Health of this project | `/setup/project?page=health` | match |
+| 100 Logs and feedback | `/setup/computer?page=logs` | difference: one more card of today below Personas and Feedback |
+
+Not built, because no command, setting or data exists: Sign out, Sound, Release channel, Portable mode, Change of the data folder, Attach a file, Remove of a connected AI tool, the model button of an agent role.
+
+Shared files touched: `src/app/router.tsx`, the i18n files of the areas (four languages), `src/lib/ipc/mock.ts`, `mock-code.ts`, `mock-agents.ts`, `mock-extensions.ts`, `mock-factory.ts` (a budget on the demo recipe), `mock-delivery.ts`, 9 e2e specs, the developer and tester walks, `scripts/screenshots.ts`, `docs/designs/screens.json`, the guide of Code and Setup in four languages, both changelogs, the spec delta, `tasks.md`. Smallest fixes in `src/ui/`: `tokens/tokens.css` (the accent swatches read the accent token) and `molecules/attention-card.tsx` (exports the outline classes), so that the tokens test keeps its rules. Join edits in `src/features/work/ticket-detail.tsx`, `src/features/projects/project-details.tsx` and the tests of home, reports, rights and shell.
+
+Shared parts that lack something:
+
+- `Segmented` has no width prop and no name for each item.
+- `SetupCard` has no slot for a big title or a pill. `SetupRow` has no row that runs an action with a chevron.
+- No dark card, tab pill, warning icon, swatch or theme tile in `src/ui/`: the pages use local classes.
+- `Button` draws a disabled primary button grey: the Commit button looks grey while the message is empty.
+
+Open:
+
+- The plugin that waits for review is kept in `localStorage` (`shipyard.plugin-waiting`), because no command holds it.
+- "Ask an agent to run it" and Rename of a branch open the assistant with the text filled in; the person sends it.
+- The demo data holds a conflict file, so Commit in the card of the sync mark is off until the conflict is solved.
+- The rtk hook rewrites `pnpm lint` to eslint: run `rtk proxy pnpm lint`.

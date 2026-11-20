@@ -11,7 +11,7 @@ import type { ShellHandle } from "./use-terminal";
 const TAB =
 	"min-h-control rounded-lg px-3.5 font-medium text-n-11 hover:text-n-12 aria-pressed:bg-surface-3 aria-pressed:text-n-12";
 const RUN =
-	"min-h-control rounded-lg border border-n-6 bg-surface-3 px-4 font-bold text-n-12 hover:bg-n-3";
+	"min-h-control rounded-lg border border-n-6 bg-surface-3 px-4 font-semibold text-n-12 hover:bg-n-3";
 
 /**
  * Code / Terminal: the files of the project at the left, the shells at the right in tabs, and a

@@ -157,7 +157,6 @@ steps:
     action: open_pr
     needs: [review]
 limits:
-  budget_usd: 3
   stall_s: 300
 `,
 	"docs-update": `# A docs update: one agent brings one stale doc up to date, then a pull request. A person starts it.

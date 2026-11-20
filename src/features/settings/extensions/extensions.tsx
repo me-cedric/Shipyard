@@ -849,7 +849,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 						<div className="flex min-h-15 items-center justify-start border-n-6 border-t px-6">
 							<ButtonLink
 								href="/setup/computer?page=rules"
-								className="border-0 bg-transparent px-0 text-accent-text shadow-none hover:bg-transparent"
+								className="border-0 bg-transparent px-0 text-accent-text hover:bg-transparent"
 							>
 								{d.allSkills}
 							</ButtonLink>

@@ -673,6 +673,10 @@ function seedDemo(p: ProjectEntry_Serialize) {
 	state.secrets[id] = "demo";
 	// The menu bar panel shows the sync chip once a tick ran.
 	state.sync.lastOk[id] = Math.floor(Date.now() / 1000);
+	// In the demo build the recipe of a feature has a budget, so that "Fix all with an agent" can start.
+	const feature = state.factory.workflows.feature;
+	if (demo && feature && !feature.includes("budget_usd"))
+		state.factory.workflows.feature = feature.replace("limits:\n", "limits:\n  budget_usd: 3\n");
 	state.files[p.id] = {
 		name: p.name,
 		key: p.key,
