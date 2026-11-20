@@ -41,7 +41,10 @@ describe("Code / Now", () => {
 		const pulls = await screen.findByRole("region", { name: "Pull requests" });
 		for (const r of open)
 			expect(within(pulls).getByRole("link", { name: (n) => n.includes(r.title) })).toBeVisible();
-		expect(within(pulls).getByRole("button", { name: "Merged and closed" })).toBeInTheDocument();
+		expect(within(pulls).getByRole("link", { name: "Merged and closed" })).toHaveAttribute(
+			"href",
+			"/code/pull-requests",
+		);
 		await idle(router);
 	});
 

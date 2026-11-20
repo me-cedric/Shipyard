@@ -108,7 +108,7 @@ function Page({
 	const key = keyOf(parts.ticket);
 	const item = useWorkItems({}).data?.find((i) => i.key === key);
 	const fromList = !!useMatchRoute()({ to: "/code/pull-requests/$pullId" });
-	const toFlow = () => void navigate({ to: fromList ? "/code/now" : "/flow/flow" });
+	const toFlow = () => void navigate({ to: fromList ? "/code/pull-requests" : "/flow/flow" });
 	const planning = scope?.run.state === "PlanReview";
 	// The ticket page: a ticket of the issue tracker with no spec and no pull request, and no agent
 	// that can go on.
@@ -163,7 +163,7 @@ function Page({
 						}
 						render={(props) => (
 							<Link
-								to={fromList ? "/code/now" : "/flow/flow"}
+								to={fromList ? "/code/pull-requests" : "/flow/flow"}
 								aria-keyshortcuts="Escape"
 								onClick={(e) => {
 									if (!canBack || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;

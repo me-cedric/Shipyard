@@ -48,7 +48,7 @@ describe("Run address", () => {
 		const router = mountApp(`/factory/runs/${run.id}`);
 		expect(await screen.findByRole("region", { name: "ACME-2" })).toBeInTheDocument();
 		const rail = screen.getByRole("navigation", { name: "Sidebar" });
-		expect(within(rail).getByRole("link", { name: "Flow 6", current: "page" })).toBeInTheDocument();
+		expect(within(rail).getByRole("link", { name: "Flow", current: "page" })).toBeInTheDocument();
 		// The feature page draws its own switch of sections, not the one of the places (Flow, List, Done, Health).
 		expect(screen.queryByRole("navigation", { name: "Tabs" })).toBeNull();
 		// The board and its columns do not show above the run.

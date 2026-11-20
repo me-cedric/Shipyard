@@ -55,7 +55,10 @@ describe("Flow / New feature", () => {
 
 	it("has a back link to Flow, pills for the kind and a recipe by its name", async () => {
 		await open();
-		expect(screen.getByRole("link", { name: "Flow" })).toHaveAttribute("href", "/flow/flow");
+		expect(within(screen.getByRole("main")).getByRole("link", { name: "Flow" })).toHaveAttribute(
+			"href",
+			"/flow/flow",
+		);
 		expect(screen.getByRole("button", { name: "Feature" })).toHaveAttribute("aria-pressed", "true");
 		expect(screen.getByRole("button", { name: "An agent writes the spec" })).toHaveAttribute(
 			"aria-pressed",

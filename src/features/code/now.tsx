@@ -1,5 +1,4 @@
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useActions } from "@/features/shell/actions";
 import { WithProject } from "@/features/shell/no-project";
 import { type PrRowView, usePulls } from "@/lib/code";
@@ -10,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button, buttonVariants } from "@/ui/atoms/button";
-import { LinkButton } from "@/ui/atoms/link-button";
+import { linkClass } from "@/ui/atoms/link-button";
 import { CodeBracketIcon, ShieldCheckIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { ContextMenu } from "@/ui/molecules/context-menu";
@@ -18,7 +17,7 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { BranchSelector } from "./branch-selector";
 import { FilesCard } from "./changes";
-import { OpenDialog } from "./open-pull";
+
 import { PullList } from "./pull-requests";
 
 /** The checks pass and no review asks for a change: the merge box of the pull request can merge it. */
@@ -76,16 +75,16 @@ function PullRow({ r }: { r: PrRowView }) {
 }
 
 /**
- * The pull requests of Code / Now: the open ones, one row each. "Merged and closed" opens the full
- * list, with its search and its filter. A search or a filter in the address opens it too, and a
- * project with no pull request shows the full list, which says how to get the first one.
+ * The pull requests of Code / Now: the open ones, one row each. "Merged and closed" opens the page
+ * Pull requests (screen 53), with its search and its filter. A project with no pull request shows
+ * the full list, which says how to get the first one.
  */
-function PullsCard({ full, onFull }: { full: boolean; onFull: () => void }) {
+function PullsCard() {
 	const { t } = useI18n();
 	const rows = usePulls().data;
 	if (!rows) return null;
 	const card = "min-w-0 flex-[1_1_420px] rounded-lg bg-surface-2 shadow-2";
-	if (full || rows.length === 0)
+	if (rows.length === 0)
 		return (
 			<div className={cn(card, "p-6")}>
 				<PullList />
@@ -102,9 +101,9 @@ function PullsCard({ full, onFull }: { full: boolean; onFull: () => void }) {
 					<PullRow key={r.reference} r={r} />
 				))}
 			<Row>
-				<LinkButton aria-expanded={false} onClick={onFull}>
+				<Link to="/code/pull-requests" className={linkClass}>
 					{t.forge.now.past}
-				</LinkButton>
+				</Link>
 			</Row>
 		</section>
 	);
@@ -115,18 +114,14 @@ function Page() {
 	const { t } = useI18n();
 	const { setFilesOpen, terminalOpen } = useShell();
 	const { terminal } = useActions();
-	const search: { q?: string; filter?: string } = useSearch({ strict: false });
-	const [asked, setAsked] = useState(false);
-	const [opening, setOpening] = useState(false);
 	const pulls = usePulls().data;
-	const full = asked || search.q !== undefined || search.filter !== undefined;
 	return (
 		<div className="flex flex-col">
 			<PageHeader title={t.ui.place.code} />
 			<div className="flex flex-col gap-6 px-4 pt-3 pb-10">
 				<div className="flex flex-wrap items-start gap-6">
 					<FilesCard />
-					<PullsCard full={full} onFull={() => setAsked(true)} />
+					<PullsCard />
 				</div>
 				<Card className="flex flex-wrap items-center gap-4 px-6 py-5">
 					<ShieldCheckIcon size={28} />
@@ -147,12 +142,13 @@ function Page() {
 					</Button>
 					<Button onClick={() => setFilesOpen(true)}>{t.forge.files}</Button>
 					{/* The full list has this button itself, and a project with no pull request offers the first one. */}
-					{pulls?.length && !full ? (
-						<Button onClick={() => setOpening(true)}>{t.forge.openPull}</Button>
+					{pulls?.length ? (
+						<Link to="/code/pull-requests/new" className={buttonVariants()}>
+							{t.forge.openPull}
+						</Link>
 					) : null}
 				</div>
 			</div>
-			{opening ? <OpenDialog open onOpenChange={setOpening} /> : null}
 		</div>
 	);
 }

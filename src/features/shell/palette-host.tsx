@@ -128,7 +128,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		{
 			id: "go-code-pull-requests",
 			label: `${t.ui.place.code}, ${tabLabel(t, "code", "pull-requests")}`,
-			href: "/code/now#code-now-pulls",
+			href: "/code/pull-requests",
 			Icon: PLACE_ICON.code,
 			hidden: hiddenSection(level, "code", "now"),
 		},

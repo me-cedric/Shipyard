@@ -9,7 +9,6 @@ import { renderChange, renderSpecs } from "./test-harness";
 
 const files = () => mockState().specs.files;
 const CH = "docs/openspec/changes";
-const row = (name: RegExp) => screen.findByRole("button", { name });
 /** The files of the change, as their page draws them. The result is the card "State of each file". */
 const open = async (_user: ReturnType<typeof userEvent.setup>, id: string) => {
 	await renderChange(id);

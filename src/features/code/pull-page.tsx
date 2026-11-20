@@ -241,7 +241,7 @@ export function PullPart({ part }: { part: PullPartName }) {
 				icon={<ArrowsRightLeftIcon size={28} />}
 				action={{
 					label: t.forge.now.pulls,
-					onClick: () => void navigate({ to: "/code/now" }),
+					onClick: () => void navigate({ to: "/code/pull-requests" }),
 				}}
 			/>
 		);

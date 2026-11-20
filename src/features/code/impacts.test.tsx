@@ -53,7 +53,10 @@ describe("Code / Impacts", () => {
 		await unwrap(commands.filesCreateFile("docs/openspec/x/spec.md", true));
 		const router = mountApp("/flow/impacts");
 		expect(await screen.findByRole("heading", { name: "What this change touches" })).toBeVisible();
-		expect(screen.getByRole("link", { name: "Flow" })).toHaveAttribute("href", "/flow/flow");
+		expect(within(screen.getByRole("main")).getByRole("link", { name: "Flow" })).toHaveAttribute(
+			"href",
+			"/flow/flow",
+		);
 		expect(screen.getByText("Compare")).toBeVisible();
 		// Both sides of the compare are selects with a chevron (screen 50).
 		expect(screen.getByRole("combobox", { name: "My changes" })).toBeVisible();

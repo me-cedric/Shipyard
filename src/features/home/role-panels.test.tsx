@@ -128,14 +128,18 @@ describe("Inbox routing (team-rights REQ-014)", () => {
 			return screen.findByRole("menuitemcheckbox", { name: "Everyone" });
 		};
 		await screen.findByRole("list", { name: "Needs you" });
-		const queue = () => within(screen.getByRole("list", { name: "Needs you" }));
-		expect(queue().queryByRole("button", { name: /Post a comment on ACME-1/ })).toBeNull();
+		// The queue shows three things: "N more" shows the rest in place.
+		const queue = async () => {
+			const list = within(await screen.findByRole("list", { name: "Needs you" }));
+			const more = list.queryByRole("button", { name: /^\d+ more$/ });
+			if (more) await user.click(more);
+			return list;
+		};
+		expect((await queue()).queryByRole("button", { name: /Post a comment on ACME-1/ })).toBeNull();
 		expect(screen.queryByRole("region", { name: "Post a comment on ACME-1" })).toBeNull();
 		await user.click(await everyone());
 		await user.click(
-			await within(await screen.findByRole("list", { name: "Needs you" })).findByRole("button", {
-				name: /Post a comment on ACME-1/,
-			}),
+			await (await queue()).findByRole("button", { name: /Post a comment on ACME-1/ }),
 		);
 		const on = within((await screen.findAllByRole("article"))[0] as HTMLElement);
 		expect(

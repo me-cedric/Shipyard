@@ -20,13 +20,12 @@ const files = (page: Page) => page.getByRole("list", { name: "Files" });
 const commitBox = (page: Page) => page.getByRole("form", { name: "Commit" });
 // The changed files are a page of their own: the link of the Changes section opens it.
 const filesPage = (page: Page) => page.getByRole("link", { name: /commits?, all files$/ }).click();
-const unstaged = (page: Page) => page.getByRole("region", { name: "Unstaged" });
 const heading = (page: Page, name: string) => page.getByRole("heading", { name });
 // A section of the feature page, from its switch. A pull request opens on Changes.
 const section = (page: Page, name: string) =>
 	page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name }).click();
-// Code Now shows the open pull requests only: "Merged and closed" opens the full list.
-const fullList = (page: Page) => page.getByRole("button", { name: "Merged and closed" }).click();
+// Code Now shows the open pull requests only: "Merged and closed" opens the page Pull requests.
+const fullList = (page: Page) => page.getByRole("link", { name: "Merged and closed" }).click();
 
 test("chooses a file, commits it from /code/changes and finds it in History", async ({ page }) => {
 	await openCode(page, "Now");
@@ -149,21 +148,29 @@ test("rebases a branch in Code / Branches and asks before a force publish", asyn
 	await expect(page.getByRole("menuitem", { name: "Force publish" })).toHaveCount(0);
 });
 
-// The list holds the factory pull requests (#40 to #47) and the forge mock ones (#141 to #143).
-// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- `n` is a number
-// A row is a link to the page of the pull request.
-const pull = (page: Page, n: number) => page.getByRole("link", { name: new RegExp(`^#${n} `) });
+// The page Pull requests holds the factory pull requests (#40 to #47) and the forge mock ones (#141 to #143).
+// A row selects the pull request: the title in the review panel opens its page.
+const titles: Record<number, string> = {
+	46: "Update the CI cache key",
+	141: "add the health route",
+	142: "refuse an empty token",
+	143: "show the pull requests",
+};
+const pull = (page: Page, n: number) => page.getByRole("button", { name: titles[n] });
+const openPull = async (page: Page, n: number) => {
+	await pull(page, n).click();
+	await page.getByRole("link", { name: titles[n] }).click();
+};
 
 test("lists the pull requests by state, opens one and comments", async ({ page }) => {
 	await openCode(page, "Now");
 	await fullList(page);
-	await expect(heading(page, "Open (9)")).toBeVisible();
-	await page.getByRole("button", { name: "Merged and closed" }).click();
-	await expect(heading(page, "Merged (1)")).toBeVisible();
-	await expect(heading(page, "Closed (1)")).toBeVisible();
+	await expect(heading(page, "Open, 9")).toBeVisible();
+	await expect(heading(page, "Merged")).toBeVisible();
+	await expect(heading(page, "Closed")).toBeVisible();
 	await expect(pull(page, 46)).toContainText("Draft");
 
-	await pull(page, 142).click();
+	await openPull(page, 142);
 	await expect(page).toHaveURL(/\/code\/pull-requests\/github-demo-142$/);
 	await expect(
 		page.getByRole("heading", { level: 1, name: /refuse an empty token/ }),
@@ -197,7 +204,7 @@ test("lists the pull requests by state, opens one and comments", async ({ page }
 test("approves a pull request from Submit review", async ({ page }) => {
 	await openCode(page, "Now");
 	await fullList(page);
-	await pull(page, 141).click();
+	await openPull(page, 141);
 	// The write box of Chat has Submit review (the review bar has it while a comment waits).
 	await section(page, "Chat");
 	await page.getByRole("button", { name: "Submit review" }).click();
@@ -215,17 +222,19 @@ test("approves a pull request from Submit review", async ({ page }) => {
 test("goes Back from a pull request to the list with its search kept", async ({ page }) => {
 	await openCode(page, "Now");
 	await fullList(page);
-	await page.getByRole("searchbox", { name: "Search pull requests" }).fill("token");
-	await pull(page, 142).click();
+	await page.getByRole("searchbox", { name: "Search the pull requests" }).fill("token");
+	await openPull(page, 142);
 	await page.getByRole("link", { name: "Pull requests", exact: true }).click();
-	await expect(page.getByRole("searchbox", { name: "Search pull requests" })).toHaveValue("token");
+	await expect(page.getByRole("searchbox", { name: "Search the pull requests" })).toHaveValue(
+		"token",
+	);
 	await expect(pull(page, 142)).toBeVisible();
 });
 
 test("marks a draft ready", async ({ page }) => {
 	await openCode(page, "Now");
 	await fullList(page);
-	await pull(page, 143).click();
+	await openPull(page, 143);
 	const merge = page.getByRole("button", { name: "Merge pull request", exact: true });
 	const box = page.getByRole("region", { name: "Merge", exact: true });
 	await expect(merge).toBeDisabled();
@@ -242,7 +251,7 @@ test("marks a draft ready", async ({ page }) => {
 test("merges only after the confirm click", async ({ page }) => {
 	await openCode(page, "Now");
 	await fullList(page);
-	await pull(page, 142).click();
+	await openPull(page, 142);
 	const merge = page.getByRole("button", { name: "Merge pull request", exact: true });
 	await merge.click();
 	// The first click only asks: the merge has not run. The checks fail: the confirm names the risk.
@@ -259,7 +268,7 @@ test("merges only after the confirm click", async ({ page }) => {
 test("opens a file of a pull request in the viewer", async ({ page }) => {
 	await openCode(page, "Now");
 	await fullList(page);
-	await pull(page, 142).click();
+	await openPull(page, 142);
 	await filesPage(page);
 	// The page opens the first file: its row is open and Expand all has nothing left to open.
 	await expect(page.getByRole("button", { name: /^src\/app\.ts/ })).toHaveAttribute(
@@ -285,7 +294,7 @@ const plusOf = async (page: Page, line: number) => {
 test("comments on a line of a pull request: pending first, then one at once", async ({ page }) => {
 	await openCode(page, "Now");
 	await fullList(page);
-	await pull(page, 142).click();
+	await openPull(page, 142);
 	await filesPage(page);
 	// The file has one thread, so its row says so while it is closed.
 	await expect(page.getByText("1 comment").first()).toBeVisible();

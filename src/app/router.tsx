@@ -306,8 +306,27 @@ function placeRoute<P extends PlaceId>(place: P) {
 				? { validateSearch: textSearch("sheet", "page", "task", "tab") }
 				: {}),
 			...(view === "plan/time" ? { validateSearch: textSearch("page", "week", "member") } : {}),
-			// The bar of Pull requests (ux-declutter REQ-042): search and filter, kept in the address.
-			...(view === "code/now" ? { validateSearch: pullsSearch } : {}),
+			// The search and the filter of the pull requests (ux-declutter REQ-042) moved to their page:
+			// an old address of Code / Now with one of them opens Pull requests with the same search.
+			...(view === "code/now"
+				? {
+						validateSearch: pullsSearch,
+						beforeLoad: ({
+							search,
+							location,
+						}: {
+							search: { q?: string; filter?: string };
+							location: ParsedLocation;
+						}) => {
+							if (search.q === undefined && search.filter === undefined) return;
+							const hash = location.hash ? `#${location.hash}` : "";
+							throw redirect({
+								href: `/code/pull-requests${location.searchStr}${hash}`,
+								replace: true,
+							});
+						},
+					}
+				: {}),
 			// An anchor of This project or of Me that moved to a sub-page opens that page.
 			...(view === "setup/project" || view === "setup/me" ? { beforeLoad: toPlace } : {}),
 		});

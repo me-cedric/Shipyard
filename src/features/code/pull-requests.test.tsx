@@ -33,19 +33,19 @@ const idle = (router: ReturnType<typeof mountApp>) =>
 describe("Code / Now, the pull requests", () => {
 	it("lists the mirror by state with counts", async () => {
 		await demo();
-		mountApp("/code/now");
+		const router = mountApp("/code/now");
 		const user = userEvent.setup();
 		await row(/health route/);
-		// Code Now shows the open ones only. "Merged and closed" opens the full list.
-		expect(screen.queryByRole("heading", { name: "Open (9)" })).toBeNull();
-		await user.click(screen.getByRole("button", { name: "Merged and closed" }));
-		expect(await screen.findByRole("heading", { name: "Open (9)" })).toBeInTheDocument();
-		// The merged and the closed ones stay folded until the person asks.
-		expect(screen.queryByRole("heading", { name: "Merged (1)" })).toBeNull();
-		await user.click(screen.getByRole("button", { name: "Merged and closed" }));
-		expect(screen.getByRole("heading", { name: "Merged (1)" })).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "Closed (1)" })).toBeInTheDocument();
-		expect(screen.getAllByRole("img", { name: "CI failing" }).length).toBeGreaterThan(0);
+		// Code Now shows the open ones only, with their checks. "Merged and closed" opens the page.
+		expect(screen.queryByRole("heading", { name: "Open, 9" })).toBeNull();
+		const past = screen.getByRole("link", { name: "Merged and closed" });
+		expect(past).toHaveAttribute("href", "/code/pull-requests");
+		await user.click(past);
+		expect(await screen.findByRole("heading", { name: "Open, 9" })).toBeInTheDocument();
+		expect(router.state.location.pathname).toBe("/code/pull-requests");
+		expect(screen.getByRole("heading", { name: "Merged" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Closed" })).toBeInTheDocument();
+		await idle(router);
 	});
 
 	/** The factory mock gives its pull requests to the first project that asks: the second has none. */
@@ -224,20 +224,20 @@ describe("Code / Now, the pull requests", () => {
 		const router = mountApp("/code/pull-requests/github-demo-999");
 		expect(await screen.findByText("No such pull request")).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Pull requests" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/code/now"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/code/pull-requests"));
 		await idle(router);
 	});
 
 	it("goes Back to the list with its search and filter kept", async () => {
 		const user = userEvent.setup();
 		await demo();
-		const router = mountApp("/code/now?q=split&filter=needs");
-		await user.click(await row(/split the pages/));
+		const router = mountApp("/code/pull-requests?q=split&filter=needs");
+		await user.click(await screen.findByRole("link", { name: /split the pages/ }));
 		await screen.findByRole("heading", { level: 1, name: /split the pages/ });
 		await user.click(screen.getByRole("link", { name: "Pull requests" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/code/now"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/code/pull-requests"));
 		expect(router.state.location.search).toEqual({ q: "split", filter: "needs" });
-		expect(await screen.findByRole("searchbox", { name: "Search pull requests" })).toHaveValue(
+		expect(await screen.findByRole("searchbox", { name: "Search the pull requests" })).toHaveValue(
 			"split",
 		);
 		await idle(router);
@@ -246,16 +246,15 @@ describe("Code / Now, the pull requests", () => {
 	it("searches the list and keeps the text in the address", async () => {
 		const user = userEvent.setup();
 		await demo();
-		const router = mountApp("/code/now");
-		await row(/health route/);
-		await user.click(screen.getByRole("button", { name: "Merged and closed" }));
+		const router = mountApp("/code/pull-requests");
+		await screen.findByRole("button", { name: /health route/ });
 		await user.type(
-			await screen.findByRole("searchbox", { name: "Search pull requests" }),
+			await screen.findByRole("searchbox", { name: "Search the pull requests" }),
 			"empty tok",
 		);
-		expect(await screen.findByRole("heading", { name: "Open (1)" })).toBeInTheDocument();
-		expect(screen.queryByRole("link", { name: /health route/ })).toBeNull();
-		expect(screen.getByRole("link", { name: /refuse an empty token/ })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Open, 1" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: /health route/ })).toBeNull();
+		expect(screen.getByRole("button", { name: /refuse an empty token/ })).toBeInTheDocument();
 		expect(router.state.location.search).toEqual({ q: "empty tok" });
 		await idle(router);
 	});
@@ -264,33 +263,27 @@ describe("Code / Now, the pull requests", () => {
 		await demo();
 		const merged = (await unwrap(commands.pullsList())).find((p) => p.state === "merged");
 		if (!merged) throw new Error("the demo has a merged pull request");
-		const router = mountApp(`/code/now?q=${encodeURIComponent(merged.title)}`);
-		expect(await screen.findByRole("heading", { name: "Merged (1)" })).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "Open (0)" })).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: new RegExp(merged.title) })).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Merged and closed" })).toHaveAttribute(
-			"aria-expanded",
-			"true",
-		);
+		const router = mountApp(`/code/pull-requests?q=${encodeURIComponent(merged.title)}`);
+		expect(await screen.findByRole("heading", { name: "Open, 0" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Merged" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: new RegExp(merged.title) })).toBeInTheDocument();
 		await idle(router);
 	});
 
 	it("filters the list to what needs a review", async () => {
 		const user = userEvent.setup();
 		await demo();
-		const router = mountApp("/code/now");
-		await row(/health route/);
-		await user.click(screen.getByRole("button", { name: "Merged and closed" }));
-		await user.click(await screen.findByRole("button", { name: "Merged and closed" }));
-		await user.click(screen.getByRole("button", { name: "Needs review" }));
+		const router = mountApp("/code/pull-requests");
+		await screen.findByRole("button", { name: /health route/ });
+		await user.click(screen.getByRole("button", { name: "Needs my review" }));
 		await waitFor(() => expect(router.state.location.search).toEqual({ filter: "needs" }));
 		// Open, not a draft, lane in_review: its checks still run. A draft, requested changes, an approved pull
 		// request that is ready to merge, and a merged one all leave.
-		expect(screen.getByRole("link", { name: /split the pages/ })).toBeInTheDocument();
-		expect(screen.queryByRole("link", { name: /health route/ })).toBeNull();
-		expect(screen.queryByRole("link", { name: /show the pull requests/ })).toBeNull();
-		expect(screen.queryByRole("link", { name: /refuse an empty token/ })).toBeNull();
-		expect(screen.getByRole("heading", { name: "Merged (0)" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: /split the pages/ })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: /health route/ })).toBeNull();
+		expect(screen.queryByRole("button", { name: /show the pull requests/ })).toBeNull();
+		expect(screen.queryByRole("button", { name: /refuse an empty token/ })).toBeNull();
+		expect(screen.getByRole("heading", { name: "Merged" })).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "All" }));
 		await waitFor(() => expect(router.state.location.search).toEqual({}));
 		await idle(router);
@@ -307,18 +300,22 @@ describe("Code / Now, the pull requests", () => {
 		await idle(router);
 	});
 
-	it("shows the number, the draft mark and the checks and review chips on a row", async () => {
+	it("shows the draft mark and the state in words on a row, on Now and on the page", async () => {
 		await demo();
 		const router = mountApp("/code/now");
-		await row(/show the pull requests/);
-		await userEvent.setup().click(screen.getByRole("button", { name: "Merged and closed" }));
 		const draft = await row(/show the pull requests/);
 		expect(within(draft).getByText("Draft")).toBeInTheDocument();
-		expect(within(draft).getByText(/^#143$/)).toBeInTheDocument();
 		expect(draft).toHaveAttribute("href", "/code/pull-requests/github-demo-143");
 		const failing = await row(/refuse an empty token/);
-		expect(within(failing).getByRole("img", { name: "CI failing" })).toBeInTheDocument();
-		expect(within(failing).getByRole("img", { name: "Changes requested" })).toBeInTheDocument();
+		expect(within(failing).getByText("Checks fail")).toBeInTheDocument();
+		await userEvent.setup().click(screen.getByRole("link", { name: "Merged and closed" }));
+		const onPage = await screen.findByRole("button", { name: /show the pull requests/ });
+		expect(within(onPage).getByText("Draft")).toBeInTheDocument();
+		expect(
+			within(screen.getByRole("button", { name: /refuse an empty token/ })).getByText(
+				"Checks fail",
+			),
+		).toBeInTheDocument();
 		await idle(router);
 	});
 
@@ -596,7 +593,9 @@ describe("Code / Pull requests, the page", () => {
 		expect(await screen.findByRole("heading", { name: "Open, 9" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Merged" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Closed" })).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: "Code" })).toBeInTheDocument();
+		expect(
+			within(screen.getByRole("main")).getByRole("link", { name: "Code" }),
+		).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "New pull request" })).toHaveAttribute(
 			"href",
 			"/code/pull-requests/new",
