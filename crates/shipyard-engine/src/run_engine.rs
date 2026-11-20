@@ -210,6 +210,9 @@ pub struct RunInfo {
     pub escalation: Option<Escalation>,
     /// The day budget paused the run, with no escalation: the next day resumes it (REQ-022).
     pub day_pause: bool,
+    /// The team role that approves the plan of the run, when a human step names one and waits
+    /// (`runs-recipes` REQ-008).
+    pub approver: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -1050,6 +1053,12 @@ impl Inner {
             worktree_kept: r.d.kept.clone(),
             escalation: r.escalation.clone(),
             day_pause: r.c.day_pause.is_some(),
+            approver: r
+                .steps
+                .iter()
+                .find(|(_, s)| s.state == StepState::Gate)
+                .and_then(|(id, _)| r.wf.step(id))
+                .and_then(|s| s.approver.clone()),
         }
     }
 

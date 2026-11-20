@@ -774,6 +774,10 @@ pub struct RunView {
     pub reason: Option<String>,
     /// The main action of the stop (`app-redesign` REQ-014). `None`: the run waits on no stop.
     pub stop: Option<shipyard_core::feature::Stop>,
+    /// The team role that approves the plan that waits (`runs-recipes` REQ-008). `None`: any
+    /// person with the right to approve.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approver: Option<String>,
 }
 
 /// The state of a pull request row of the mirror.
@@ -854,6 +858,7 @@ fn run_view(r: &RunInfo, pulls: &[PrRowView], questions: u32, approvals: u32) ->
         approvals,
         reason: None,
         stop,
+        approver: r.approver.clone(),
     }
 }
 
@@ -1431,6 +1436,20 @@ pub fn close_done(s: &AppState, run: &str) -> Res<()> {
     )
 }
 
+/// A human step that names a role: only a person with that role approves or rejects it
+/// (`runs-recipes` REQ-008).
+fn require_approver(s: &AppState, run: &str) -> Res<()> {
+    let Some(role) = s.factory.factory.run_info(run).and_then(|r| r.approver) else {
+        return Ok(());
+    };
+    let person = crate::rights::current(s)?.person;
+    if shipyard_core::rights::may_approve_as(&person, &role) {
+        Ok(())
+    } else {
+        Err(format!("only the role {role} approves this step"))
+    }
+}
+
 pub fn approve_plan(s: &AppState, run: &str) -> Res<()> {
     crate::rights::require(
         s,
@@ -1438,11 +1457,13 @@ pub fn approve_plan(s: &AppState, run: &str) -> Res<()> {
         "run_plan_approve",
         run,
     )?;
+    require_approver(s, run)?;
     done(s, s.factory.factory.approve_plan(run))
 }
 
 pub fn reject_plan(s: &AppState, run: &str, note: &str) -> Res<()> {
     crate::rights::require(s, crate::rights::Right::RunsApprove, "run_plan_reject", run)?;
+    require_approver(s, run)?;
     done(s, s.factory.factory.reject_plan(run, note))
 }
 

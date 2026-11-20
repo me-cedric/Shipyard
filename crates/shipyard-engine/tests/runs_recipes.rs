@@ -330,3 +330,33 @@ fn a_file_of_the_person_is_context_for_the_next_turn_as_data() {
     fx.f.cancel(&run).unwrap();
     assert!(fx.f.add_context(&run, "the file `a.md`", "x").is_err());
 }
+
+// ---- REQ-008 Role of a human step
+
+const GATED: &str = "
+id: gated
+steps:
+  - { id: plan, role: planner, mode: plan, gate: human, approver: techlead, tools: [report] }
+limits: { max_turns: 50, budget_usd: 100, stall_s: 10000000 }
+";
+
+#[test]
+fn the_plan_that_waits_names_the_role_that_approves_it() {
+    let fx = Fx::build(writes(true), &[GATED], Config::default(), |p| {
+        p.default_workflow = "gated".into();
+    });
+    let run = fx.start("SHIP-1", &[]);
+    assert_eq!(
+        fx.f.run_info(&run).unwrap().approver,
+        None,
+        "no plan waits yet"
+    );
+    fx.done(&run, "plan");
+    assert_eq!(fx.state(&run), RunState::PlanReview);
+    assert_eq!(
+        fx.f.run_info(&run).unwrap().approver.as_deref(),
+        Some("techlead")
+    );
+    fx.f.approve_plan(&run).unwrap();
+    assert_eq!(fx.f.run_info(&run).unwrap().approver, None);
+}

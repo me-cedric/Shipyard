@@ -688,6 +688,16 @@ pub fn person(
     }
 }
 
+/// Does `person` approve a step that names `role` (`runs-recipes` REQ-008)? Only a member with that
+/// role does. A solo person has every right and approves each step.
+pub fn may_approve_as(person: &Person, role: &str) -> bool {
+    person.found == Found::Solo
+        || person
+            .roles
+            .iter()
+            .any(|r| r.as_str().eq_ignore_ascii_case(role))
+}
+
 /// A person that Shipyard cannot place: the team file cannot be read. Fail closed: the defaults
 /// of `viewer`.
 pub fn unknown(read_only: bool) -> Person {

@@ -329,3 +329,22 @@ fn a_ref_names_its_area() {
     assert_eq!(ref_area("doc:docs/a.md"), Some(Area::Knowledge));
     assert_eq!(ref_area("project:x"), None);
 }
+
+// `runs-recipes` REQ-008: the role of a human step.
+
+#[test]
+fn only_a_member_with_the_role_approves_a_step_that_names_it_and_a_solo_person_approves_each() {
+    let t = team(vec![member("ana", "techlead"), member("bo", "developer")]);
+    let by = |email: &str| person(&t, &[], Some(email), None, false);
+    let (lead, dev) = (by("ana@example.com"), by("bo@example.com"));
+    assert!(may_approve_as(&lead, "techlead"));
+    assert!(may_approve_as(&lead, "Techlead"));
+    assert!(!may_approve_as(&dev, "techlead"));
+    assert!(may_approve_as(&dev, "developer"));
+    // An admin without the role does not approve a step of that role: only the role does.
+    let admin = by("root@example.com");
+    assert!(admin.admin && admin.roles.iter().all(|r| r.as_str() == "techlead"));
+    // No team file: solo, with every right.
+    let solo = person(&team(vec![]), &[], Some("x@example.com"), None, false);
+    assert!(may_approve_as(&solo, "techlead"));
+}
