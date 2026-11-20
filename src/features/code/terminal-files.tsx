@@ -41,7 +41,7 @@ export function TerminalFiles() {
 	});
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
-	const [chosen, setChosen] = useState<{ path: string; folder: boolean } | null>(null);
+	const [picked, setChosen] = useState<{ path: string; folder: boolean } | null>(null);
 	const [action, setAction] = useState<FileAction | null>(null);
 	const [made, setMade] = useState<string[]>([]);
 	const [error, setError] = useState<unknown>(null);
@@ -61,6 +61,9 @@ export function TerminalFiles() {
 		if (!next.delete(path)) next.add(path);
 		setOpen(next);
 	};
+	// With no pick, the first changed file is chosen, so that its actions are ready.
+	const first = list.find((r) => !r.folder && changed.has(r.path));
+	const chosen = picked ?? (first ? { path: first.path, folder: false } : null);
 	const file = chosen && !chosen.folder ? chosen.path : null;
 	// New items go inside a chosen folder, beside a chosen file, else at the root.
 	const here = chosen ? (chosen.folder ? chosen.path : parentOf(chosen.path)) : "";

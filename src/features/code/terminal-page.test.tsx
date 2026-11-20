@@ -48,7 +48,8 @@ describe("Code / Terminal page", () => {
 		mountApp("/code/terminal");
 		const files = await screen.findByRole("region", { name: "Files" });
 		const srcRow = await within(files).findByRole("button", { name: /^src/ });
-		expect(within(files).getByRole("button", { name: "Rename" })).toBeDisabled();
+		// The first changed file in view is chosen at the start.
+		expect(within(files).getByRole("button", { name: "Rename" })).toBeEnabled();
 		await user.click(srcRow);
 		const app = await within(files).findByRole("button", { name: /app\.ts/ });
 		expect(app).toHaveTextContent("Changed");
@@ -65,6 +66,9 @@ describe("Code / Terminal page", () => {
 		mountApp("/code/terminal");
 		const tabs = await screen.findByRole("group", { name: "Terminal tabs" });
 		await waitFor(() => expect(fake.written.join("")).toContain("$ "));
+		// An empty command runs nothing.
+		await user.click(screen.getByRole("button", { name: "Run" }));
+		expect(fake.written.join("")).not.toContain("\r\n");
 		await user.type(screen.getByRole("textbox", { name: "Command" }), "ls");
 		await user.click(screen.getByRole("button", { name: "Run" }));
 		await waitFor(() => expect(fake.written.join("")).toContain("ls\r\n"));

@@ -105,6 +105,7 @@ export const personalDe: typeof personalEn = {
 		updates: "Updates",
 		tools: "Werkzeuge",
 		shortcuts: "Tastenkürzel ändern",
+		roleView: "Meine Rollenansicht",
 		eachNotification: "Jede Benachrichtigung",
 		notify: {
 			agent: "Ein Agent braucht mich",

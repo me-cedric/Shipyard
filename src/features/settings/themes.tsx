@@ -146,8 +146,8 @@ function ThemeTile({
 			aria-pressed={selected}
 			onClick={onClick}
 			className={cn(
-				"flex min-h-control cursor-pointer flex-col gap-3 rounded-lg border border-n-7 bg-surface-1 p-4 text-left font-semibold text-n-12",
-				selected && "bg-accent-tint outline-2 outline-accent",
+				"flex min-h-control cursor-pointer flex-col gap-3 rounded-lg border-2 border-transparent bg-surface-1 p-4 text-left font-semibold whitespace-nowrap text-n-12 shadow-1",
+				selected && "border-accent bg-accent-tint",
 			)}
 		>
 			<span aria-hidden="true" className="flex h-14 overflow-hidden rounded-md border border-n-6">
@@ -163,9 +163,8 @@ function ThemeTile({
 /** Setup / Me, Theme: one tile for each theme and one to import a theme. Export and Remove are under the files row. */
 export function ThemeCard() {
 	const { t } = useI18n();
-	const l = t.extras.look;
 	const { theme, customTheme, overridden, setPrefs } = usePrefs();
-	const { library, importTheme, exportTheme, remove, dialog } = useThemeFiles();
+	const { library, importTheme, dialog } = useThemeFiles();
 	const custom = library.find((x) => x.id === customTheme);
 	return (
 		<section
@@ -187,7 +186,7 @@ export function ThemeCard() {
 				role="group"
 				aria-label={t.prefs.theme}
 				className={cn(
-					"grid grid-cols-[repeat(auto-fill,minmax(min(150px,100%),1fr))] gap-3 px-6 pt-3 pb-4",
+					"grid grid-cols-[repeat(auto-fit,minmax(min(130px,100%),1fr))] gap-3 px-6 pt-3 pb-4",
 				)}
 			>
 				{BUILT_IN.map((id) => (
@@ -211,7 +210,7 @@ export function ThemeCard() {
 				<button
 					type="button"
 					onClick={() => importTheme().catch(logError)}
-					className="flex min-h-control cursor-pointer flex-col gap-3 rounded-lg border border-n-7 bg-surface-1 p-4 text-left font-semibold text-n-12"
+					className="flex min-h-control cursor-pointer flex-col gap-3 rounded-lg border-2 border-transparent bg-surface-1 p-4 text-left font-semibold whitespace-nowrap text-n-12 shadow-1"
 				>
 					<span
 						aria-hidden="true"
@@ -222,25 +221,34 @@ export function ThemeCard() {
 					{t.personal.setup.importTheme}
 				</button>
 			</div>
-			<Fold label={l.themeFiles}>
-				<SetupRow label={l.exportTheme}>
-					<Button variant="secondary" onClick={() => exportTheme().catch(logError)}>
-						<ArrowDownTrayIcon size={14} />
-						{l.exportTheme}
-					</Button>
-				</SetupRow>
-				{library.map((x) => (
-					<SetupRow key={x.id} label={x.name}>
-						<IconButton
-							label={format(l.removeTheme, { name: x.name })}
-							onClick={() => remove(x).catch(logError)}
-						>
-							<TrashIcon size={14} />
-						</IconButton>
-					</SetupRow>
-				))}
-			</Fold>
 			{dialog}
 		</section>
+	);
+}
+
+/** Export and Remove of the themes: a row of the More card of Setup / Me. */
+export function ThemeFiles() {
+	const { t } = useI18n();
+	const l = t.extras.look;
+	const { library, exportTheme, remove } = useThemeFiles();
+	return (
+		<Fold label={l.themeFiles}>
+			<SetupRow label={l.exportTheme}>
+				<Button variant="secondary" onClick={() => exportTheme().catch(logError)}>
+					<ArrowDownTrayIcon size={14} />
+					{l.exportTheme}
+				</Button>
+			</SetupRow>
+			{library.map((x) => (
+				<SetupRow key={x.id} label={x.name}>
+					<IconButton
+						label={format(l.removeTheme, { name: x.name })}
+						onClick={() => remove(x).catch(logError)}
+					>
+						<TrashIcon size={14} />
+					</IconButton>
+				</SetupRow>
+			))}
+		</Fold>
 	);
 }

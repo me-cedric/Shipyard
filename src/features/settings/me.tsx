@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PermissionsCard } from "@/features/onboarding";
+import { PermissionsCard, ReplayTour } from "@/features/onboarding";
 import { LANGS, useI18n } from "@/lib/i18n";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
@@ -10,17 +10,17 @@ import { useTeam } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
-import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ChevronRightIcon } from "@/ui/icons";
 import { Row } from "@/ui/molecules/row";
 import { Fold } from "./connections/fold";
-import { LanguageRows } from "./languages";
+import { LanguageFiles, LanguageRows } from "./languages";
 import { textSizeShown } from "./look-rows";
 import { DefaultAgentSelect, DefaultModelSelect, TerminalAppSelect } from "./me/personal";
+import { ValueSelect } from "./me/value-select";
 import { Column, Columns, SetupCard, SetupRow, Stepper, Toggle } from "./parts";
 import { PictureField, usePicture } from "./picture-field";
-import { ThemeCard } from "./themes";
+import { ThemeCard, ThemeFiles } from "./themes";
 
 /** Where the update check reads the latest release. It saves when the field loses focus. */
 function ReleaseUrl() {
@@ -91,10 +91,11 @@ function useNotifyOff() {
 	return { off, set };
 }
 
-function Notifications() {
+type Notify = ReturnType<typeof useNotifyOff>;
+
+function Notifications({ notify: { off, set } }: { notify: Notify }) {
 	const { t } = useI18n();
 	const s = t.personal.setup;
-	const { off, set } = useNotifyOff();
 	return (
 		<SetupCard id="section-notifications" title={t.notifications.title}>
 			{GROUPS.map((g) => (
@@ -106,18 +107,25 @@ function Notifications() {
 					/>
 				</SetupRow>
 			))}
-			<Fold label={s.eachNotification}>
-				{GROUPS.flatMap((g) => g.sources).map((x) => (
-					<SetupRow key={x} label={t.notifications.source[x]}>
-						<Toggle
-							label={t.notifications.source[x]}
-							checked={!off.includes(x)}
-							onCheckedChange={(on) => set([x], on)}
-						/>
-					</SetupRow>
-				))}
-			</Fold>
 		</SetupCard>
+	);
+}
+
+/** One switch for each notification: a row of the More card of Setup / Me. */
+function EachNotification({ notify: { off, set } }: { notify: Notify }) {
+	const { t } = useI18n();
+	return (
+		<Fold label={t.personal.setup.eachNotification}>
+			{GROUPS.flatMap((g) => g.sources).map((x) => (
+				<SetupRow key={x} label={t.notifications.source[x]}>
+					<Toggle
+						label={t.notifications.source[x]}
+						checked={!off.includes(x)}
+						onCheckedChange={(on) => set([x], on)}
+					/>
+				</SetupRow>
+			))}
+		</Fold>
 	);
 }
 
@@ -159,6 +167,7 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 	const person = useTeam().data?.team.members.find((m) => m.handle === handle)?.name;
 	const name = person ?? t.shell.account;
 	const { setShortcutsOpen } = useShell();
+	const notify = useNotifyOff();
 	// The mark: the active project sets this value, and it replaces the one below.
 	const marked = (key: Overridable, control: React.ReactNode) => (
 		<>
@@ -182,8 +191,8 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 								</span>
 							}
 						/>
-						<SetupRow label={t.prefs.role}>
-							<Select
+						<SetupRow label={s.roleView}>
+							<ValueSelect
 								label={t.prefs.role}
 								value={role}
 								onValueChange={(v) => setPrefs({ role: v as Role })}
@@ -194,7 +203,7 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 					<SetupCard id="section-language" title={t.prefs.language}>
 						<LanguageRows />
 						<SetupRow label={t.prefs.promptLang}>
-							<Select
+							<ValueSelect
 								label={t.prefs.promptLang}
 								value={promptLang || "follow"}
 								onValueChange={(v) => setPrefs({ promptLang: v === "follow" ? "" : v })}
@@ -205,7 +214,7 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 							/>
 						</SetupRow>
 						<SetupRow label={t.prefs.diagramFormat}>
-							<Select
+							<ValueSelect
 								label={t.prefs.diagramFormat}
 								value={diagramFormat || "excalidraw"}
 								onValueChange={(v) => setPrefs({ diagramFormat: v })}
@@ -256,7 +265,7 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 					</SetupCard>
 				</Column>
 				<Column>
-					<Notifications />
+					<Notifications notify={notify} />
 					<SetupCard id="section-updates" title={s.updates}>
 						<SetupRow label={t.prefs.autoUpdate}>
 							<Toggle
@@ -289,6 +298,14 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 					{permissions ? <PermissionsCard /> : null}
 				</Column>
 			</Columns>
+			<div className="px-4 pb-10">
+				<SetupCard title={t.ui.more}>
+					<ThemeFiles />
+					<LanguageFiles />
+					<EachNotification notify={notify} />
+					{permissions ? <ReplayTour /> : null}
+				</SetupCard>
+			</div>
 		</>
 	);
 }

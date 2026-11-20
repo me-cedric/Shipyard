@@ -116,14 +116,6 @@ function Detail({ sha }: { sha: string }) {
 						{format(h.feature, { title: feature.title })}
 					</Link>
 				) : null}
-				<LinkButton
-					className="self-start"
-					aria-expanded={more}
-					aria-controls={moreId}
-					onClick={() => setMore(!more)}
-				>
-					{t.ui.more}
-				</LinkButton>
 			</Card>
 			<Card className="py-2">
 				<section aria-label={t.code.files}>
@@ -206,6 +198,14 @@ function Detail({ sha }: { sha: string }) {
 					</ol>
 				</Card>
 			) : null}
+			<LinkButton
+				className="self-start"
+				aria-expanded={more}
+				aria-controls={moreId}
+				onClick={() => setMore(!more)}
+			>
+				{t.ui.more}
+			</LinkButton>
 			{more ? (
 				<div id={moreId} className="flex flex-wrap items-center gap-2">
 					<Badge className="font-mono">{info.short}</Badge>
@@ -267,7 +267,7 @@ function HistoryView() {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 			<PageHeader title={t.tabs.code.history} />
-			<div className="flex flex-wrap items-center gap-4 px-4 pb-6">
+			<div className="flex flex-wrap items-center gap-4 px-4 pt-3.5 pb-5.5">
 				<BranchSelector />
 				<div className="shrink-0">
 					<Segmented

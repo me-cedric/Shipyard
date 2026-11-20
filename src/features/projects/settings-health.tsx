@@ -28,8 +28,11 @@ type Preview = { path: string; content: string };
 function Finding({
 	finding,
 	extra,
+	showSource,
 }: {
 	finding: Finding_Serialize;
+	/** The reference of the finding shows with the full list, not in the short card. */
+	showSource?: boolean;
 	/** A button of the card that sits before Fix, such as Show all. */
 	extra?: ReactNode;
 }) {
@@ -73,7 +76,7 @@ function Finding({
 				<span className="min-w-0 flex-[1_1_8rem]">
 					{format(message, { detail: finding.detail ?? "" })}
 				</span>
-				{finding.source ? (
+				{finding.source && showSource ? (
 					<RefChip refId={finding.source} state="resolved" onOpen={openRef} />
 				) : null}
 			</div>
@@ -123,6 +126,7 @@ function GroupCard({ group, rows }: { group: Group; rows: Finding_Serialize[] })
 					<Finding
 						key={f.id}
 						finding={f}
+						showSource={all}
 						extra={
 							i === 0 && rows.length > SHOWN ? (
 								<Button variant="secondary" aria-pressed={all} onClick={() => setAll(!all)}>
@@ -169,6 +173,8 @@ function ProjectHealth() {
 			<SetupCard title={h.also}>
 				<SetupRow label={h.product} href="/flow/health" />
 				<SetupRow label={h.computer} href="/setup/computer?page=health" />
+			</SetupCard>
+			<SetupCard title={t.ui.more}>
 				<Fold id="doctor-skills" label={t.doctor.skills.title} value={h.showAll}>
 					<DoctorCompliance />
 				</Fold>
@@ -227,7 +233,7 @@ function Area({
 			className={`flex min-h-40 min-w-0 flex-[1_1_180px] flex-col items-start gap-3 rounded-lg bg-surface-2 p-5 shadow-2 hover:bg-n-3 ${state === "fix" ? "outline-2 outline-attention" : ""}`}
 		>
 			<span
-				className={`flex size-12 items-center justify-center rounded-md ${state === "fix" ? "bg-attention-subtle text-attention-text" : "bg-accent-subtle text-accent-text"}`}
+				className={`flex size-12 items-center justify-center rounded-md ${state === "fix" ? "bg-attention-subtle text-attention-text" : "bg-success-subtle text-success-text"}`}
 			>
 				<Glyph shape={icon} />
 			</span>
@@ -350,9 +356,6 @@ function ComputerHealth() {
 								</Button>
 							</SetupRow>
 							<SetupRow label={t.settings.pages.logs} href="/setup/computer?page=logs" />
-							<Fold id="tools" label={t.settings.tools.title} value={h.details}>
-								<DoctorTools />
-							</Fold>
 						</SetupCard>
 					</Column>
 					<Column>
@@ -377,6 +380,11 @@ function ComputerHealth() {
 									{h.manual}
 								</Button>
 							</div>
+						</SetupCard>
+						<SetupCard title={t.ui.more}>
+							<Fold id="tools" label={t.settings.tools.title} value={h.details}>
+								<DoctorTools />
+							</Fold>
 						</SetupCard>
 					</Column>
 				</Columns>

@@ -9,8 +9,10 @@ import { Chip } from "@/ui/atoms/chip";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { ClipboardIcon } from "@/ui/icons";
+import { Row } from "@/ui/molecules/row";
 import { SettingsRow } from "@/ui/molecules/settings-row";
-import { SetupCard, SetupRow, StatePill, Toggle, ValueButton } from "../parts";
+import { ValueSelect } from "../me/value-select";
+import { SetupCard, SetupRow, StatePill, Toggle } from "../parts";
 import { Fold } from "./fold";
 import { message } from "./keys";
 import { McpWiring, wiringKey } from "./mcp-wiring";
@@ -39,7 +41,7 @@ function Address({ url }: { url: string }) {
 	const p = t.personal.setup;
 	const [copied, setCopied] = useState(false);
 	return (
-		<div className="flex min-h-15 flex-wrap items-center gap-2.5 px-6">
+		<Row className="gap-2.5">
 			<span className="mr-auto min-w-0 break-all font-mono text-ui">{url}</span>
 			<Button
 				variant="secondary"
@@ -51,7 +53,7 @@ function Address({ url }: { url: string }) {
 			>
 				{copied ? p.copied : p.copy}
 			</Button>
-		</div>
+		</Row>
 	);
 }
 
@@ -68,7 +70,7 @@ export function OutsideCard() {
 					{s.running ? o.running : o.stopped}
 				</StatePill>
 			</SetupRow>
-			<Address url={s.url} />
+			<Address url={s.url || `http://127.0.0.1:${s.gates.port}/mcp`} />
 			<SetupRow label={t.personal.setup.share} href="/setup/computer?page=share" />
 		</SetupCard>
 	);
@@ -142,37 +144,78 @@ export function McpOutsideGroup() {
 		</Button>
 	) : null;
 	return (
-		<div className="flex flex-wrap items-start gap-6 px-4 pb-10">
-			<div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
-				<McpWiring />
-				<SetupCard
-					id="connections-outside"
-					title={p.mayUse}
-					className="px-6 pb-6 [&>div:first-child]:px-0"
-				>
-					<div className="flex flex-wrap gap-2 pt-1.5">
-						{GROUPS.map((name) => (
-							<Chip
-								key={name}
-								selected={g[name]}
-								onClick={() => setDraft({ ...g, [name]: !g[name] })}
-							>
-								{o[name]}
-							</Chip>
-						))}
-					</div>
-					{apply ? <div className="flex flex-wrap items-center gap-2 pt-3">{apply}</div> : null}
-					{note ? (
-						<p role="status" className="pt-2 text-ui text-success-text">
-							{note}
-						</p>
+		<>
+			<div className="flex flex-wrap items-start gap-6 px-4 pb-6">
+				<div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
+					<McpWiring />
+					<SetupCard
+						id="connections-outside"
+						title={p.mayUse}
+						className="px-6 pb-6 [&>div:first-child]:px-0"
+					>
+						<div className="flex flex-wrap gap-2 pt-1.5">
+							{GROUPS.map((name) => (
+								<Chip
+									key={name}
+									selected={g[name]}
+									onClick={() => setDraft({ ...g, [name]: !g[name] })}
+								>
+									{o[name]}
+								</Chip>
+							))}
+						</div>
+						{apply ? <div className="flex flex-wrap items-center gap-2 pt-3">{apply}</div> : null}
+						{note ? (
+							<p role="status" className="pt-2 text-ui text-success-text">
+								{note}
+							</p>
+						) : null}
+						{s.error || error ? (
+							<p role="alert" className="pt-2 text-ui text-danger-text">
+								{error ?? s.error}
+							</p>
+						) : null}
+					</SetupCard>
+				</div>
+				<div className="flex min-w-0 flex-[2_1_320px] flex-col gap-4">
+					<SetupCard title={p.address}>
+						<Address url={s.url || `http://127.0.0.1:${s.gates.port}/mcp`} />
+					</SetupCard>
+					{chosen ? (
+						<SetupCard>
+							<h2 className="px-6 pt-3.5 text-20 font-semibold text-n-12">{p.bring}</h2>
+							<div className="flex flex-wrap items-center gap-2.5 px-6 pt-3 pb-4">
+								<ValueSelect
+									label={p.bringFrom}
+									value={keyOf(chosen)}
+									onValueChange={setPick}
+									items={others.map((e) => ({
+										value: keyOf(e),
+										label: others.length < 2 ? e.name : `${e.name} (${e.source})`,
+									}))}
+								/>
+								<Button
+									variant="primary"
+									aria-label={format(o.import, { name: chosen.name })}
+									title={[chosen.command, ...chosen.args].join(" ")}
+									onClick={() =>
+										void attempt(async () => {
+											await unwrap(commands.mcpElsewhereImport(chosen.source, chosen.name));
+											await qc.invalidateQueries({ queryKey: ["mcp"] });
+											return format(o.imported, { name: chosen.name });
+										})
+									}
+								>
+									{p.import}
+								</Button>
+							</div>
+						</SetupCard>
 					) : null}
-					{s.error || error ? (
-						<p role="alert" className="pt-2 text-ui text-danger-text">
-							{error ?? s.error}
-						</p>
-					) : null}
-					<Fold label={t.ui.more} className="-mx-6 mt-3 border-t border-n-6">
+				</div>
+			</div>
+			<div className="px-4 pb-10">
+				<SetupCard title={t.ui.more}>
+					<Fold label={p.mayUse}>
 						<SetupRow label={o.enabled}>
 							<StatePill state={s.running ? "ready" : "off"}>
 								{s.running ? o.running : o.stopped}
@@ -236,47 +279,6 @@ export function McpOutsideGroup() {
 					</Fold>
 				</SetupCard>
 			</div>
-			<div className="flex min-w-0 flex-[2_1_320px] flex-col gap-4">
-				<SetupCard title={p.address}>
-					<Address url={s.url || `http://127.0.0.1:${s.gates.port}/mcp`} />
-				</SetupCard>
-				{chosen ? (
-					<SetupCard>
-						<h2 className="px-6 pt-3.5 text-20 font-semibold text-n-12">{p.bring}</h2>
-						<div className="flex flex-wrap items-center gap-2.5 px-6 pt-3 pb-4">
-							{others.length < 2 ? (
-								<ValueButton disabled aria-label={p.bringFrom}>
-									{chosen.name}
-								</ValueButton>
-							) : (
-								<Select
-									label={p.bringFrom}
-									value={keyOf(chosen)}
-									onValueChange={setPick}
-									items={others.map((e) => ({
-										value: keyOf(e),
-										label: `${e.name} (${e.source})`,
-									}))}
-								/>
-							)}
-							<Button
-								variant="primary"
-								aria-label={format(o.import, { name: chosen.name })}
-								title={[chosen.command, ...chosen.args].join(" ")}
-								onClick={() =>
-									void attempt(async () => {
-										await unwrap(commands.mcpElsewhereImport(chosen.source, chosen.name));
-										await qc.invalidateQueries({ queryKey: ["mcp"] });
-										return format(o.imported, { name: chosen.name });
-									})
-								}
-							>
-								{p.import}
-							</Button>
-						</div>
-					</SetupCard>
-				) : null}
-			</div>
-		</div>
+		</>
 	);
 }

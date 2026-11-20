@@ -17,6 +17,7 @@ import { Row } from "@/ui/molecules/row";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { Fold } from "./connections/fold";
 import { runnerKeys } from "./connections/keys";
+import { ValueSelect } from "./me/value-select";
 import { Column, Columns, SetupCard, SetupRow, StatePill, Toggle } from "./parts";
 import { ProviderRows } from "./provider-rows";
 
@@ -37,6 +38,7 @@ function TierRow({
 	detected,
 	split,
 	extra,
+	children,
 }: {
 	row: RunnerTiers_Serialize;
 	detected: boolean;
@@ -44,6 +46,8 @@ function TierRow({
 	split?: boolean;
 	/** More rows of the More row of a split card. */
 	extra?: ReactNode;
+	/** Rows of a split card between the tier rows and the More row. */
+	children?: ReactNode;
 }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
@@ -84,7 +88,7 @@ function TierRow({
 				{listed ? (
 					<span className="flex flex-col gap-1">
 						{part === "effort" ? null : (
-							<Select
+							<ValueSelect
 								label={name}
 								className="w-full"
 								value={draft[tier] || AUTO}
@@ -149,6 +153,7 @@ function TierRow({
 					</SetupRow>
 				))}
 				{alert}
+				{children}
 				<Fold label={t.ui.more}>
 					{TIERS.map((tier) => {
 						const control = cell(tier, "effort");
@@ -188,13 +193,10 @@ const WAIT_CAP = 5 * 60_000;
 const WAIT_STEP = 3000;
 
 /**
- * One row for each coding tool: name, version, sign-in state and one action. "Sign in" runs the
- * login of the tool in the integrated terminal (Q-133) and then asks the status command until the
- * tool says signed in. A missing tool offers its install. Shipyard never reads a token.
+ * The sign-in of the coding tools. "Sign in" runs the login of the tool in the integrated terminal
+ * (Q-133) and then asks the status command until the tool says signed in. Shipyard never reads a token.
  */
-function ToolRows() {
-	const { t } = useI18n();
-	const s = t.settings.signIn;
+function useSignIn() {
 	const { runInTerminal } = useShell();
 	const { failure, run } = useGuard();
 	const [waiting, setWaiting] = useState<string | null>(null);
@@ -223,10 +225,17 @@ function ToolRows() {
 			setKeyForm(false);
 			await runners.refetch();
 		});
+	return { runners, waiting, failure, keyForm, setKeyForm, key, setKey, signIn, saveKey };
+}
+
+type SignIn = ReturnType<typeof useSignIn>;
+
+/** One row for each coding tool: name, sign-in state and one action. A missing tool shows "Not installed". */
+function ToolRows({ sign }: { sign: SignIn }) {
+	const { t } = useI18n();
+	const s = t.settings.signIn;
+	const { runners, waiting, failure, signIn } = sign;
 	const rows = runners.data ?? [];
-	const codex = rows.find(
-		(r) => r.id === "codex" && r.state !== "missing" && r.auth !== "signedIn",
-	);
 	return (
 		<SetupCard id="tools" title={t.personal.setup.toolSignIn}>
 			{rows.map((r) => {
@@ -238,64 +247,73 @@ function ToolRows() {
 						: s[r.auth];
 				const out = !missing && r.auth !== "signedIn";
 				return (
-					<div key={r.id} className="contents">
-						<SetupRow label={<span title={r.version ?? undefined}>{r.label}</span>}>
-							<StatePill
-								state={
-									missing
-										? "off"
-										: r.auth === "signedIn"
-											? "ready"
-											: out && r.auth === "signedOut"
-												? "fix"
-												: "off"
-								}
-							>
-								{label}
-							</StatePill>
-							{missing ? null : out ? (
-								<Button variant="primary" onClick={() => void signIn(r.id, false)}>
-									{s.action}
-								</Button>
-							) : null}
-						</SetupRow>
-					</div>
+					<SetupRow key={r.id} label={<span title={r.version ?? undefined}>{r.label}</span>}>
+						<StatePill
+							state={
+								missing
+									? "off"
+									: r.auth === "signedIn"
+										? "ready"
+										: out && r.auth === "signedOut"
+											? "fix"
+											: "off"
+							}
+						>
+							{label}
+						</StatePill>
+						{missing ? null : out ? (
+							<Button variant="primary" onClick={() => void signIn(r.id, false)}>
+								{s.action}
+							</Button>
+						) : null}
+					</SetupRow>
 				);
 			})}
-			{codex ? (
-				<Fold aria-label={`${codex.label}: ${t.ui.more}`} label={t.ui.more}>
-					<div className="flex flex-wrap gap-2 px-6 pb-2">
-						<Button onClick={() => void signIn(codex.id, true)}>{s.code}</Button>
-						<Button aria-expanded={keyForm} onClick={() => setKeyForm(!keyForm)}>
-							{s.apiKey}
-						</Button>
-					</div>
-					{keyForm ? (
-						<form
-							className="flex flex-wrap items-end gap-2 px-6 py-2"
-							onSubmit={(e) => {
-								e.preventDefault();
-								void saveKey();
-							}}
-						>
-							<Input
-								autoFocus
-								label={s.apiKeyField}
-								type="password"
-								autoComplete="off"
-								value={key}
-								onChange={(e) => setKey(e.target.value)}
-								className="w-72"
-							/>
-							<Button type="submit" variant="primary" disabled={!key.trim()}>
-								{s.save}
-							</Button>
-						</form>
-					) : null}
-				</Fold>
-			) : null}
 			<ErrorNotice error={failure} className="px-6" />
 		</SetupCard>
+	);
+}
+
+/** The other ways to sign in to Codex: a code, or an API key. A row of the More card of the page. */
+function ToolMore({ sign }: { sign: SignIn }) {
+	const { t } = useI18n();
+	const s = t.settings.signIn;
+	const { runners, keyForm, setKeyForm, key, setKey, signIn, saveKey } = sign;
+	const codex = (runners.data ?? []).find(
+		(r) => r.id === "codex" && r.state !== "missing" && r.auth !== "signedIn",
+	);
+	if (!codex) return null;
+	return (
+		<Fold aria-label={`${codex.label}: ${t.ui.more}`} label={codex.label}>
+			<div className="flex flex-wrap gap-2 px-6 pb-2">
+				<Button onClick={() => void signIn(codex.id, true)}>{s.code}</Button>
+				<Button aria-expanded={keyForm} onClick={() => setKeyForm(!keyForm)}>
+					{s.apiKey}
+				</Button>
+			</div>
+			{keyForm ? (
+				<form
+					className="flex flex-wrap items-end gap-2 px-6 py-2"
+					onSubmit={(e) => {
+						e.preventDefault();
+						void saveKey();
+					}}
+				>
+					<Input
+						autoFocus
+						label={s.apiKeyField}
+						type="password"
+						autoComplete="off"
+						value={key}
+						onChange={(e) => setKey(e.target.value)}
+						className="w-72"
+					/>
+					<Button type="submit" variant="primary" disabled={!key.trim()}>
+						{s.save}
+					</Button>
+				</form>
+			) : null}
+		</Fold>
 	);
 }
 
@@ -336,19 +354,33 @@ function ModelsCard() {
 							</div>
 						</>
 					}
-				/>
+				>
+					<SetupRow label={t.prefs.promptLang}>
+						<ValueSelect
+							label={t.prefs.promptLang}
+							value={promptLang || "follow"}
+							onValueChange={(v) => setPrefs({ promptLang: v === "follow" ? "" : v })}
+							items={[
+								{ value: "follow", label: t.prefs.promptFollow },
+								...LANGS.map((l) => ({ value: l, label: t.lang[l] })),
+							]}
+						/>
+					</SetupRow>
+				</TierRow>
 			) : null}
-			<SetupRow label={t.prefs.promptLang}>
-				<Select
-					label={t.prefs.promptLang}
-					value={promptLang || "follow"}
-					onValueChange={(v) => setPrefs({ promptLang: v === "follow" ? "" : v })}
-					items={[
-						{ value: "follow", label: t.prefs.promptFollow },
-						...LANGS.map((l) => ({ value: l, label: t.lang[l] })),
-					]}
-				/>
-			</SetupRow>
+			{main ? null : (
+				<SetupRow label={t.prefs.promptLang}>
+					<ValueSelect
+						label={t.prefs.promptLang}
+						value={promptLang || "follow"}
+						onValueChange={(v) => setPrefs({ promptLang: v === "follow" ? "" : v })}
+						items={[
+							{ value: "follow", label: t.prefs.promptFollow },
+							...LANGS.map((l) => ({ value: l, label: t.lang[l] })),
+						]}
+					/>
+				</SetupRow>
+			)}
 		</SetupCard>
 	);
 }
@@ -422,29 +454,42 @@ function RulesCard({ children }: { children: ReactNode }) {
 export function AgentsRules() {
 	const { t } = useI18n();
 	const router = useRouter();
+	const sign = useSignIn();
+	const more = (sign.runners.data ?? []).some(
+		(r) => r.id === "codex" && r.state !== "missing" && r.auth !== "signedIn",
+	);
 	return (
-		<Columns>
-			<Column>
-				<ToolRows />
-				<ModelsCard />
-			</Column>
-			<Column>
-				<RolesCard />
-				<RulesCard>
-					<Button
-						variant="secondary"
-						onClick={() => router.history.push("/setup/computer?page=rules")}
-					>
-						{t.personal.setup.editText}
-					</Button>
-					<Button
-						variant="secondary"
-						onClick={() => router.history.push("/library/specs/constitution")}
-					>
-						{t.personal.setup.projectRules}
-					</Button>
-				</RulesCard>
-			</Column>
-		</Columns>
+		<>
+			<Columns>
+				<Column>
+					<ToolRows sign={sign} />
+					<ModelsCard />
+				</Column>
+				<Column>
+					<RolesCard />
+					<RulesCard>
+						<Button
+							variant="secondary"
+							onClick={() => router.history.push("/setup/computer?page=rules")}
+						>
+							{t.personal.setup.editText}
+						</Button>
+						<Button
+							variant="secondary"
+							onClick={() => router.history.push("/library/specs/constitution")}
+						>
+							{t.personal.setup.projectRules}
+						</Button>
+					</RulesCard>
+				</Column>
+			</Columns>
+			{more ? (
+				<div className="px-4 pb-10">
+					<SetupCard title={t.ui.more}>
+						<ToolMore sign={sign} />
+					</SetupCard>
+				</div>
+			) : null}
+		</>
 	);
 }

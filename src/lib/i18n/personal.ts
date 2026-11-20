@@ -103,6 +103,7 @@ export const personalEn = {
 		updates: "Updates",
 		tools: "Tools",
 		shortcuts: "Change the shortcuts",
+		roleView: "My role view",
 		eachNotification: "Each notification",
 		notify: {
 			agent: "An agent needs me",
@@ -239,6 +240,7 @@ export const personalFr: typeof personalEn = {
 		updates: "Mises à jour",
 		tools: "Outils",
 		shortcuts: "Changer les raccourcis",
+		roleView: "Ma vue de rôle",
 		eachNotification: "Chaque notification",
 		notify: {
 			agent: "Un agent a besoin de moi",

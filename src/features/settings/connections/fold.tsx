@@ -12,12 +12,15 @@ export const LINE = "[&+&]:border-t [&+&]:border-n-6";
 export function Fold({
 	label,
 	state,
+	quiet,
 	className,
 	children,
 	...props
 }: Omit<ComponentProps<"details">, "children"> & {
 	label: ReactNode;
 	state?: ReactNode;
+	/** No chevron: the row looks like a plain row of the design, and still opens. */
+	quiet?: boolean;
 	children: ReactNode;
 }) {
 	return (
@@ -25,12 +28,14 @@ export function Fold({
 			<summary className="flex min-h-15 cursor-pointer list-none items-center gap-3 px-6 font-semibold text-n-12 select-none hover:bg-n-3 [&::-webkit-details-marker]:hidden">
 				<span className="min-w-0 flex-1">{label}</span>
 				{state}
-				<span
-					aria-hidden="true"
-					className="flex text-n-11 transition-transform duration-(--duration-fast) group-open/fold:rotate-90"
-				>
-					<ChevronRightIcon size={20} />
-				</span>
+				{quiet ? null : (
+					<span
+						aria-hidden="true"
+						className="flex text-n-11 transition-transform duration-(--duration-fast) group-open/fold:rotate-90"
+					>
+						<ChevronRightIcon size={20} />
+					</span>
+				)}
 			</summary>
 			<div className="flex flex-col pb-2">{children}</div>
 		</details>

@@ -107,7 +107,10 @@ describe("Settings / Agents and rules and Extensions: language", () => {
 		await unwrap(commands.prefsSet({ lang: "fr" }));
 		const router = await mountTab("extensions");
 		expect(await screen.findByRole("region", { name: "Projets enfants" })).toBeInTheDocument();
-		expect(await screen.findByText("4 sur 5")).toBeInTheDocument();
+		const card = await screen.findByRole("region", { name: "Projets enfants" });
+		await userEvent.click(await within(card).findByRole("button", { name: "Ouvrir" }));
+		const panel = await screen.findByRole("complementary", { name: "API gateway" });
+		expect(await within(panel).findByText("4 sur 6")).toBeInTheDocument();
 		router.history.push("/setup/project?page=plugins");
 		expect(
 			await screen.findByRole("textbox", { name: "Chemin de l'archive du plugin" }),

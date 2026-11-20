@@ -45,7 +45,7 @@ describe("Settings / Connections / Outside agents", () => {
 			expect((await unwrap(commands.mcpOutsideGet())).active).toEqual(["git_status"]),
 		);
 		// The read only preset keeps the tools that change nothing.
-		await user.click(box.getByRole("combobox", { name: "Allow list" }));
+		await user.click(box.getByRole("combobox", { name: "Allowed tools" }));
 		await user.click(await screen.findByRole("option", { name: "Read only" }));
 		await user.click(box.getByRole("button", { name: "Apply" }));
 		await waitFor(async () =>

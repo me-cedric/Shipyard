@@ -48,16 +48,17 @@ import { SectionNav } from "@/ui/molecules/section-nav";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { SyncStatus } from "@/ui/molecules/sync-status";
 import { SETTINGS_PAGE } from "@/ui/templates/settings";
-import { Column, Columns } from "../parts";
+import { Column, Columns, SetupCard } from "../parts";
 import { CertsGroup } from "./certs-group";
 import { ADD_TYPES, type AddType, ConnectionForm, GROUPS } from "./connection-form";
+import { Fold } from "./fold";
 import { GitlabTools } from "./gitlab-tools";
 import { connectionKeys, message, useMcpServers, useProviders } from "./keys";
-import { McpAddForm, McpGroup } from "./mcp-group";
+import { McpAddForm, McpGroup, McpMore } from "./mcp-group";
 import { OutsideCard } from "./mcp-outside-group";
 import { ProviderForm, ProvidersGroup } from "./providers-group";
 import { Repair } from "./repair";
-import { RunnersGroup } from "./runners-group";
+import { RunnersGroup, RunnersMore } from "./runners-group";
 
 const STATE_SHAPE: Record<ConnectionState, Status> = {
 	untested: "idle",
@@ -558,6 +559,7 @@ function Scoped({ scope }: { scope: "project" | "computer" }) {
  * and the security. One form is open at a time.
  */
 function Computer() {
+	const { t } = useI18n();
 	const router = useRouter();
 	const [editing, setEditing] = useState(false);
 	// The form of an issue tracker or a code host is under This project: a link of before that
@@ -569,17 +571,27 @@ function Computer() {
 	useFormIntent("connection", toProject("connection"));
 	useFormIntent("connection:forge", toProject("connection:forge"));
 	return (
-		<Columns>
-			<Column>
-				<RunnersGroup />
-				<ProvidersGroup formOpen={editing} onForm={setEditing} />
-			</Column>
-			<Column>
-				<McpGroup formOpen={editing} onForm={setEditing} />
-				<OutsideCard />
-				<CertsGroup />
-			</Column>
-		</Columns>
+		<>
+			<Columns>
+				<Column>
+					<RunnersGroup />
+					<ProvidersGroup formOpen={editing} onForm={setEditing} />
+				</Column>
+				<Column>
+					<McpGroup formOpen={editing} onForm={setEditing} />
+					<OutsideCard />
+					<CertsGroup />
+				</Column>
+			</Columns>
+			<div className="px-4 pb-10">
+				<SetupCard title={t.ui.more}>
+					<Fold label={t.connections.advanced}>
+						<RunnersMore />
+						<McpMore />
+					</Fold>
+				</SetupCard>
+			</div>
+		</>
 	);
 }
 

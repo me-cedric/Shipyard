@@ -141,7 +141,18 @@ export function seedExtensions(): MockExtensions {
 		].map((c) => (c.id === "agents/openspec-guidance" ? { ...c, id: GUIDANCE } : c)),
 		files: ["AGENTS.md", "README.md"],
 		plugin: null,
-		installed: [],
+		// One plugin in the demo, so that the installed list shows a row with its switch.
+		installed: [
+			{
+				name: "docs-kit",
+				version: "1.2.0",
+				files: [],
+				settings: [],
+				mcp: [],
+				enabled: true,
+				source: null,
+			},
+		],
 		pluginSettings: {},
 		packaged: [],
 		openedLines: [],
@@ -305,6 +316,7 @@ export function pluginApply(m: MockExtensions, path: string, accepted: string[])
 				},
 			]
 		: saved;
+	const others = m.installed.filter((p) => p.name !== "team-kit");
 	m.installed = [
 		{
 			name: "team-kit",
@@ -315,6 +327,7 @@ export function pluginApply(m: MockExtensions, path: string, accepted: string[])
 			enabled: true,
 			source: path,
 		},
+		...others,
 	];
 	return {
 		report,

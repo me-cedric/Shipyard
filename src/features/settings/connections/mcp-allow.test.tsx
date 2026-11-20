@@ -13,7 +13,7 @@ describe("Settings / Connections / MCP servers: allow list", () => {
 		await unwrap(commands.mcpEnable("context7", true));
 		mountApp("/setup/computer");
 		const ctx = await screen.findByRole("group", { name: "Context7" });
-		const select = within(ctx).getByRole("combobox", { name: "Allow list: Context7" });
+		const select = within(ctx).getByRole("combobox", { name: "Allowed tools: Context7" });
 		expect(tools()).toEqual({ kind: "all" });
 
 		await user.click(select);
@@ -69,7 +69,7 @@ describe("Settings / Connections / MCP servers: allow list", () => {
 		const spy = vi.spyOn(commands, "mcpTest").mockRejectedValue(new Error("no answer"));
 		mountApp("/setup/computer");
 		const ctx = await screen.findByRole("group", { name: "Context7" });
-		await user.click(within(ctx).getByRole("combobox", { name: "Allow list: Context7" }));
+		await user.click(within(ctx).getByRole("combobox", { name: "Allowed tools: Context7" }));
 		await user.click(await screen.findByRole("option", { name: "Custom" }));
 		expect(await within(ctx).findByRole("alert")).toBeInTheDocument();
 		expect(tools()).toEqual({ kind: "all" });

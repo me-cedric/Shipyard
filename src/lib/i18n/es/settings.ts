@@ -95,7 +95,7 @@ export const settingsEs: typeof settingsEn = {
 		write: "Escribir el archivo",
 		cancel: "Cancelar",
 		wired: "Escrito en {path}",
-		allowList: "Lista de permitidas",
+		allowList: "Herramientas permitidas",
 		allowAll: "Todas las herramientas",
 		allowRead: "Solo lectura",
 		allowCustom: "Personalizada",

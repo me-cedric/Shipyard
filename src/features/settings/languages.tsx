@@ -87,11 +87,11 @@ export function useLanguageFiles() {
 	return { importPack, exportBase, remove, dialog };
 }
 
-/** The built-in languages and each installed pack as one choice, then the import of a pack. The files are under a row. */
+/** The built-in languages and each installed pack as one choice, then the import of a pack. */
 export function LanguageRows() {
-	const { t, lang, pack, packs, setLang, setPack, marked, setMarked } = useI18n();
+	const { t, lang, pack, packs, setLang, setPack } = useI18n();
 	const p = t.prefs;
-	const { importPack, exportBase, remove, dialog } = useLanguageFiles();
+	const { importPack, dialog } = useLanguageFiles();
 	const items = [
 		...LANGS.map((l) => ({ value: l as string, label: t.lang[l] })),
 		...packs.map((x) => ({ value: PACK + x.code, label: x.name })),
@@ -114,30 +114,39 @@ export function LanguageRows() {
 					{t.personal.setup.importLanguage}
 				</Button>
 			</div>
-			<Fold label={p.languageFiles}>
-				<SetupRow label={p.exportLanguage}>
-					<Button variant="secondary" onClick={() => exportBase().catch(logError)}>
-						<ArrowDownTrayIcon size={14} />
-						{p.exportLanguage}
-					</Button>
-				</SetupRow>
-				{pack ? (
-					<SetupRow label={p.markUntranslated}>
-						<Toggle label={p.markUntranslated} checked={marked} onCheckedChange={setMarked} />
-					</SetupRow>
-				) : null}
-				{packs.map((x) => (
-					<SetupRow key={x.code} label={x.name}>
-						<IconButton
-							label={format(p.removeLanguage, { name: x.name })}
-							onClick={() => remove(x.code).catch(logError)}
-						>
-							<TrashIcon size={14} />
-						</IconButton>
-					</SetupRow>
-				))}
-			</Fold>
 			{dialog}
 		</>
+	);
+}
+
+/** Export, mark and Remove of the language files: a row of the More card of Setup / Me. */
+export function LanguageFiles() {
+	const { t, pack, packs, marked, setMarked } = useI18n();
+	const p = t.prefs;
+	const { exportBase, remove } = useLanguageFiles();
+	return (
+		<Fold label={p.languageFiles}>
+			<SetupRow label={p.exportLanguage}>
+				<Button variant="secondary" onClick={() => exportBase().catch(logError)}>
+					<ArrowDownTrayIcon size={14} />
+					{p.exportLanguage}
+				</Button>
+			</SetupRow>
+			{pack ? (
+				<SetupRow label={p.markUntranslated}>
+					<Toggle label={p.markUntranslated} checked={marked} onCheckedChange={setMarked} />
+				</SetupRow>
+			) : null}
+			{packs.map((x) => (
+				<SetupRow key={x.code} label={x.name}>
+					<IconButton
+						label={format(p.removeLanguage, { name: x.name })}
+						onClick={() => remove(x.code).catch(logError)}
+					>
+						<TrashIcon size={14} />
+					</IconButton>
+				</SetupRow>
+			))}
+		</Fold>
 	);
 }

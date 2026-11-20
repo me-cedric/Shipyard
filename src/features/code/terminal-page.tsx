@@ -11,7 +11,7 @@ import type { ShellHandle } from "./use-terminal";
 const TAB =
 	"min-h-control rounded-lg px-3.5 font-medium text-n-11 hover:text-n-12 aria-pressed:bg-surface-3 aria-pressed:text-n-12";
 const RUN =
-	"min-h-control rounded-lg border border-n-6 bg-surface-3 px-4 font-semibold text-n-12 hover:bg-n-3 disabled:opacity-50";
+	"min-h-control rounded-lg border border-n-6 bg-surface-3 px-4 font-bold text-n-12 hover:bg-n-3";
 
 /**
  * Code / Terminal: the files of the project at the left, the shells at the right in tabs, and a
@@ -120,16 +120,16 @@ export function TerminalPage() {
 							placeholder={tp.command}
 							value={command}
 							onChange={(e) => setCommand(e.target.value)}
-							className="min-h-control min-w-40 flex-[1_1_200px] rounded-lg border border-n-6 bg-surface-2 px-3 font-mono text-n-12"
+							className="min-h-control min-w-40 flex-[1_1_200px] rounded-lg border border-n-6 bg-surface-2 px-3 font-mono text-n-12 placeholder:font-sans"
 						/>
-						<button type="submit" className={RUN} disabled={!command.trim()}>
+						<button type="submit" className={RUN}>
 							{tp.run}
 						</button>
 						<button
 							type="button"
-							disabled={!command.trim()}
-							className="min-h-control rounded-lg bg-n-12 px-4 font-semibold text-surface-0 disabled:opacity-50"
+							className="min-h-control rounded-lg bg-n-12 px-4 font-semibold text-surface-0"
 							onClick={() => {
+								if (!command.trim()) return;
 								ask(format(tp.askRun, { command: command.trim() }));
 								setCommand("");
 							}}

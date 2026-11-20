@@ -54,7 +54,7 @@ function Kinds({ group }: { group: ConnectionGroup }) {
 		<div
 			role="group"
 			aria-label={t.connections.field.kind}
-			className="grid grid-cols-[repeat(auto-fill,minmax(min(150px,100%),1fr))] gap-3"
+			className="grid grid-cols-[repeat(auto-fill,minmax(min(180px,100%),1fr))] gap-3"
 		>
 			{KINDS[group].map((k) => (
 				<button

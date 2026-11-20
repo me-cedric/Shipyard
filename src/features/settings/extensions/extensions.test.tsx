@@ -127,14 +127,19 @@ describe("Settings / Extensions", () => {
 	it("lists the child projects with n of m, adds and clones one", async () => {
 		const user = userEvent.setup();
 		await mountTab("extensions");
-		expect(await screen.findByRole("region", { name: "Child projects" })).toBeInTheDocument();
-		expect(await screen.findByText("4 of 5")).toBeInTheDocument();
+		const card = await screen.findByRole("region", { name: "Child projects" });
+		await user.click(await within(card).findByRole("button", { name: "Open" }));
+		const panel = await screen.findByRole("complementary", { name: "API gateway" });
+		expect(await within(panel).findByText("4 of 6")).toBeInTheDocument();
 		await user.type(screen.getByRole("textbox", { name: "Child project name" }), "Billing");
 		await user.type(
 			screen.getByRole("textbox", { name: "Repository address" }),
 			"https://example.com/a/b.git",
 		);
 		await user.click(screen.getByRole("button", { name: "Add" }));
+		await user.click(
+			(await within(card).findAllByRole("button", { name: "Open" }))[1] as HTMLElement,
+		);
 		await user.click(await screen.findByRole("button", { name: "Clone Billing" }));
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Clone Billing" })).toBeNull());
 	});

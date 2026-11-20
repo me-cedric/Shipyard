@@ -66,7 +66,7 @@ export const seedDelivery = (): MockDelivery => ({
 		estimateField: "",
 		hoursPerDay: 7,
 		labels: [],
-		specBaseUrl: "",
+		specBaseUrl: "https://example.com/acme/specs",
 		hierarchy: "feature",
 	},
 });

@@ -108,115 +108,121 @@ function McpRow({
 	const start = () => run(() => unwrap(commands.mcpStart(s.id)));
 
 	return (
-		<Fold
-			aria-label={s.label}
-			label={
-				<>
-					{s.label}
-					{s.custom ? (
-						<span className="pl-2 font-normal text-n-11">{t.connections.mcp.custom}</span>
-					) : null}
-				</>
-			}
-			state={
-				<StatePill state={STATE_PILL[s.state.state]}>
-					{t.connections.mcp.state[s.state.state]}
-				</StatePill>
-			}
-		>
-			<div className="flex flex-wrap items-center gap-2 px-6 pb-2">
-				{live ? (
-					<IconButton
-						label={t.connections.mcp.stop}
-						variant="outline"
-						disabled={s.state.state === "starting"}
-						onClick={() => run(() => unwrap(commands.mcpStop(s.id)))}
-					>
-						<StopIcon size={14} />
-					</IconButton>
-				) : (
-					<IconButton
-						label={t.connections.mcp.start}
-						variant="outline"
-						disabled={busy || s.missing.length > 0}
-						onClick={start}
-					>
-						<PlayIcon size={14} />
-					</IconButton>
-				)}
-				<Button
-					variant="secondary"
-					aria-label={format(t.extensions.mcp.testName, { name: s.label })}
-					disabled={check.busy || s.state.state === "starting"}
-					onClick={() => void check.test()}
-				>
-					{t.extensions.mcp.test}
-				</Button>
-				{s.fields.length > 0 ? (
-					<IconButton
-						label={t.connections.edit}
-						variant="outline"
-						disabled={formOpen && panel !== "edit"}
-						onClick={() => show("edit")}
-					>
-						<Cog6ToothIcon size={14} />
-					</IconButton>
-				) : null}
-				<IconButton label={t.connections.remove} variant="outline" onClick={() => show("remove")}>
-					<XMarkIcon size={14} />
-				</IconButton>
-			</div>
-			{s.missing.map((d) => (
-				<p key={d.command} className="flex items-center gap-2 px-6 pb-2 text-ui text-warning-text">
-					{format(t.connections.mcp.missing, { name: d.label })}
-					{d.installable ? (
+		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
+		<div role="group" aria-label={s.label} className={LINE}>
+			<Fold
+				quiet
+				label={
+					<>
+						{s.label}
+						{s.custom ? (
+							<span className="pl-2 font-normal text-n-11">{t.connections.mcp.custom}</span>
+						) : null}
+					</>
+				}
+				state={
+					<StatePill state={STATE_PILL[s.state.state]}>
+						{t.connections.mcp.state[s.state.state]}
+					</StatePill>
+				}
+			>
+				<div className="flex flex-wrap items-center gap-2 px-6 pb-2">
+					{live ? (
 						<IconButton
-							label={format(t.connections.mcp.install, { name: d.label })}
-							disabled={busy}
-							onClick={() => run(() => unwrap(commands.mcpInstall(d.command)))}
+							label={t.connections.mcp.stop}
+							variant="outline"
+							disabled={s.state.state === "starting"}
+							onClick={() => run(() => unwrap(commands.mcpStop(s.id)))}
 						>
-							<ArrowDownTrayIcon size={14} />
+							<StopIcon size={14} />
+						</IconButton>
+					) : (
+						<IconButton
+							label={t.connections.mcp.start}
+							variant="outline"
+							disabled={busy || s.missing.length > 0}
+							onClick={start}
+						>
+							<PlayIcon size={14} />
+						</IconButton>
+					)}
+					<Button
+						variant="secondary"
+						aria-label={format(t.extensions.mcp.testName, { name: s.label })}
+						disabled={check.busy || s.state.state === "starting"}
+						onClick={() => void check.test()}
+					>
+						{t.extensions.mcp.test}
+					</Button>
+					{s.fields.length > 0 ? (
+						<IconButton
+							label={t.connections.edit}
+							variant="outline"
+							disabled={formOpen && panel !== "edit"}
+							onClick={() => show("edit")}
+						>
+							<Cog6ToothIcon size={14} />
 						</IconButton>
 					) : null}
-				</p>
-			))}
-			{check.result ? <McpTestResult name={s.label} result={check.result} /> : null}
-			<McpAllow server={s} list={check.test} />
-			{s.state.state === "failed" || error ? (
-				<ErrorNotice
-					error={error ?? (s.state.state === "failed" ? s.state.reason : "")}
-					className="px-6 pb-2"
-				/>
-			) : null}
-			{panel === "edit" ? (
-				<Fields
-					server={s}
-					onSave={async (values) => {
-						await run(async () => {
-							for (const [key, value] of Object.entries(values))
-								if (value.trim()) await unwrap(commands.mcpSetField(s.id, key, value));
-							setPanel(null);
-							onForm(false);
-						});
-					}}
-				/>
-			) : null}
-			{panel === "remove" ? (
-				<div className="flex gap-2 px-6 pb-2">
-					<Button
-						variant="danger"
-						onClick={() =>
-							run(() => unwrap(s.custom ? commands.mcpRemove(s.id) : commands.mcpForget(s.id)))
-						}
-					>
-						{t.connections.confirm}
-					</Button>
-					<Button variant="ghost" onClick={() => show("remove")}>
-						{t.connections.cancel}
-					</Button>
+					<IconButton label={t.connections.remove} variant="outline" onClick={() => show("remove")}>
+						<XMarkIcon size={14} />
+					</IconButton>
 				</div>
-			) : null}
-		</Fold>
+				{s.missing.map((d) => (
+					<p
+						key={d.command}
+						className="flex items-center gap-2 px-6 pb-2 text-ui text-warning-text"
+					>
+						{format(t.connections.mcp.missing, { name: d.label })}
+						{d.installable ? (
+							<IconButton
+								label={format(t.connections.mcp.install, { name: d.label })}
+								disabled={busy}
+								onClick={() => run(() => unwrap(commands.mcpInstall(d.command)))}
+							>
+								<ArrowDownTrayIcon size={14} />
+							</IconButton>
+						) : null}
+					</p>
+				))}
+				{check.result ? <McpTestResult name={s.label} result={check.result} /> : null}
+				{s.state.state === "failed" || error ? (
+					<ErrorNotice
+						error={error ?? (s.state.state === "failed" ? s.state.reason : "")}
+						className="px-6 pb-2"
+					/>
+				) : null}
+				{panel === "edit" ? (
+					<Fields
+						server={s}
+						onSave={async (values) => {
+							await run(async () => {
+								for (const [key, value] of Object.entries(values))
+									if (value.trim()) await unwrap(commands.mcpSetField(s.id, key, value));
+								setPanel(null);
+								onForm(false);
+							});
+						}}
+					/>
+				) : null}
+				{panel === "remove" ? (
+					<div className="flex gap-2 px-6 pb-2">
+						<Button
+							variant="danger"
+							onClick={() =>
+								run(() => unwrap(s.custom ? commands.mcpRemove(s.id) : commands.mcpForget(s.id)))
+							}
+						>
+							{t.connections.confirm}
+						</Button>
+						<Button variant="ghost" onClick={() => show("remove")}>
+							{t.connections.cancel}
+						</Button>
+					</div>
+				) : null}
+			</Fold>
+			<McpAllow server={s} list={check.test} />
+		</div>
 	);
 }
 
@@ -229,28 +235,17 @@ export function McpGroup({
 	onForm: (open: boolean) => void;
 }) {
 	const { t } = useI18n();
-	const qc = useQueryClient();
-	const [error, setError] = useState<unknown>(null);
 	const [adding, setAdding] = useState(false);
 	const all = useMcpServers().data ?? [];
 	const rows = all.filter((s) => s.enabled);
 	const categoryName = useCategoryName();
 	const categories = [...new Set(rows.map((s) => s.category))].sort();
-	const startable = rows.filter((s) => s.state.state !== "running" && s.missing.length === 0);
-	const startAll = async () => {
-		setError(null);
-		const done = await Promise.allSettled(startable.map((s) => unwrap(commands.mcpStart(s.id))));
-		const failed = done.find((d) => d.status === "rejected");
-		if (failed?.status === "rejected") setError(message(failed.reason));
-		await qc.invalidateQueries({ queryKey: mcpKeys.list });
-	};
 	const add = (next: boolean) => {
 		setAdding(next);
 		onForm(next);
 	};
 	return (
 		<SetupCard id="connections-mcp" title={t.connections.group.mcp}>
-			{error ? <ErrorNotice error={error} className="px-6 text-ui text-danger-text" /> : null}
 			{categories.map((c) => (
 				<section key={c} aria-label={categoryName(c)} className={LINE}>
 					{categories.length > 1 ? <h3 className="sr-only">{categoryName(c)}</h3> : null}
@@ -272,22 +267,37 @@ export function McpGroup({
 					</LinkButton>
 				</Row>
 			)}
-			<Fold label={t.ui.more}>
-				<div className="flex flex-col gap-2 px-6">
-					<McpGroupTools rows={all} />
-					<div>
-						<Button
-							variant="ghost"
-							disabled={startable.length === 0}
-							onClick={() => void startAll()}
-						>
-							<PlayIcon size={14} />
-							{t.connections.mcp.startAll}
-						</Button>
-					</div>
-				</div>
-			</Fold>
 		</SetupCard>
+	);
+}
+
+/** Test all, Add the recommended set and Start all: under the More card of the page, not in the card of the servers. */
+export function McpMore() {
+	const { t } = useI18n();
+	const qc = useQueryClient();
+	const [error, setError] = useState<unknown>(null);
+	const all = useMcpServers().data ?? [];
+	const startable = all.filter(
+		(s) => s.enabled && s.state.state !== "running" && s.missing.length === 0,
+	);
+	const startAll = async () => {
+		setError(null);
+		const done = await Promise.allSettled(startable.map((s) => unwrap(commands.mcpStart(s.id))));
+		const failed = done.find((d) => d.status === "rejected");
+		if (failed?.status === "rejected") setError(message(failed.reason));
+		await qc.invalidateQueries({ queryKey: mcpKeys.list });
+	};
+	return (
+		<div className="flex flex-col gap-2 px-6">
+			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
+			<McpGroupTools rows={all} />
+			<div>
+				<Button variant="ghost" disabled={startable.length === 0} onClick={() => void startAll()}>
+					<PlayIcon size={14} />
+					{t.connections.mcp.startAll}
+				</Button>
+			</div>
+		</div>
 	);
 }
 

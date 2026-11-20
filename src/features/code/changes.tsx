@@ -94,6 +94,7 @@ export function FilesCard() {
 			{rows.slice(0, 3).map((r) => (
 				<Row
 					key={r.path}
+					className="min-h-14"
 					render={(row) => (
 						<Link
 							to="/code/changes"
@@ -108,7 +109,7 @@ export function FilesCard() {
 				</Row>
 			))}
 			{more > 0 ? (
-				<Row>
+				<Row className="min-h-14">
 					<Link to="/code/changes" className={linkClass}>
 						{more === 1 ? t.forge.now.moreOne : format(t.forge.now.more, { count: more })}
 					</Link>
@@ -533,7 +534,7 @@ export function WorkingCopy({ changes }: { changes: ChangesData }) {
 										<Checkbox
 											label={format(t.code.select, { name: r.path })}
 											hideLabel
-											className="aria-checked:border-transparent aria-checked:bg-accent aria-checked:text-accent-fg"
+											className="transition-none aria-checked:border-transparent aria-checked:bg-accent aria-checked:text-accent-fg"
 											checked={r.staged && !r.unstaged}
 											indeterminate={r.staged && r.unstaged}
 											disabled={r.conflict || write.disabled}

@@ -1,6 +1,6 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useContext, useMemo } from "react";
-import { PermissionsCard } from "@/features/onboarding";
+import { PermissionsCard, ReplayTour } from "@/features/onboarding";
 import { DebugConsole } from "@/features/projects/debug-console";
 import { FindingsOverTime } from "@/features/projects/doctor-ledger";
 import { HealthFeedback } from "@/features/projects/health-feedback";
@@ -13,7 +13,7 @@ import { AgentsRules } from "./agents-rules";
 import { Connections } from "./connections";
 import { McpOutsideGroup } from "./connections/mcp-outside-group";
 import { Compass } from "./extensions/compass";
-import { Column, Columns } from "./parts";
+import { Column, Columns, SetupCard, SetupPills } from "./parts";
 import { SetupScope } from "./setup-scope";
 
 const HEALTH = "/setup/computer?page=health";
@@ -23,18 +23,36 @@ const HEALTH = "/setup/computer?page=health";
  * what the system allows and the feedback at the right.
  */
 export function Logs() {
+	const { t } = useI18n();
+	const pills = t.settings.pills;
+	const at = (page?: string) => (page ? `/setup/computer?page=${page}` : "/setup/computer");
 	return (
-		<Columns>
-			<Column>
-				<DebugConsole />
-				<FindingsOverTime />
-				<PersonasCard />
-			</Column>
-			<Column>
-				<PermissionsCard />
-				<HealthFeedback />
-			</Column>
-		</Columns>
+		<>
+			<SetupPills
+				label={t.settings.scope.computer}
+				items={[
+					{ id: "connections", label: pills.connections, href: at() },
+					{ id: "models", label: pills.models, href: at("models") },
+					{ id: "health", label: pills.health, href: at("health"), current: true },
+				]}
+			/>
+			<Columns>
+				<Column>
+					<DebugConsole />
+					<FindingsOverTime />
+					<PersonasCard />
+				</Column>
+				<Column>
+					<PermissionsCard />
+					<HealthFeedback />
+				</Column>
+			</Columns>
+			<div className="px-4 pb-10">
+				<SetupCard title={t.ui.more}>
+					<ReplayTour />
+				</SetupCard>
+			</div>
+		</>
 	);
 }
 

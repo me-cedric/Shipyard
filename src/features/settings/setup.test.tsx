@@ -211,6 +211,41 @@ describe("Setup scopes (spec:app-redesign#REQ-024)", () => {
 	});
 });
 
+describe("Setup, look pass 2: rows of the design, the other controls under More", () => {
+	it("has the pills on Logs and feedback, with Health as the open one", async () => {
+		mountApp("/setup/computer?page=logs");
+		const nav = await screen.findByRole("navigation", { name: en.settings.scope.computer });
+		expect(within(nav).getByRole("link", { name: en.settings.pills.health })).toHaveAttribute(
+			"aria-current",
+			"page",
+		);
+	});
+
+	it("keeps the advanced controls of This computer in the More card, not in the cards of the design", async () => {
+		mountApp("/setup/computer");
+		const more = await screen.findByRole("region", { name: en.ui.more });
+		expect(within(more).getByText(en.connections.advanced)).toBeInTheDocument();
+		expect(
+			within(more).getByRole("button", { name: en.connections.runner.detect }),
+		).toBeInTheDocument();
+		const tools = await screen.findByRole("region", { name: en.connections.group.runner });
+		expect(within(tools).queryByText(en.connections.advanced)).toBeNull();
+	});
+
+	it("keeps the theme files, the language files and each notification in the More card of Me", async () => {
+		mountApp("/setup/me");
+		const more = await screen.findByRole("region", { name: en.ui.more });
+		for (const label of [
+			en.extras.look.themeFiles,
+			en.prefs.languageFiles,
+			en.personal.setup.eachNotification,
+		])
+			expect(within(more).getByText(label)).toBeInTheDocument();
+		const theme = screen.getByRole("region", { name: en.prefs.theme });
+		expect(within(theme).queryByText(en.extras.look.themeFiles)).toBeNull();
+	});
+});
+
 describe("setupAddress", () => {
 	it.each([
 		["project", "", "/setup/project"],

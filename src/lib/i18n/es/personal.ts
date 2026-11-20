@@ -104,6 +104,7 @@ export const personalEs: typeof personalEn = {
 		updates: "Actualizaciones",
 		tools: "Herramientas",
 		shortcuts: "Cambiar los atajos",
+		roleView: "Mi vista de rol",
 		eachNotification: "Cada notificación",
 		notify: {
 			agent: "Un agente me necesita",

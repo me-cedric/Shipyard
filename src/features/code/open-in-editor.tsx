@@ -23,7 +23,7 @@ export function OpenInEditor({
 	return (
 		<>
 			<Button
-				variant="ghost"
+				variant={plain ? undefined : "ghost"}
 				onClick={async () => {
 					try {
 						setError(null);

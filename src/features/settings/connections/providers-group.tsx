@@ -211,7 +211,7 @@ function ProviderRow({
 			})}
 		>
 			{/* biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box */}
-			<div role="group" aria-label={p.name} className={LINE}>
+			<div role="group" aria-label={p.name} className="border-t border-n-6">
 				<Row>
 					<span title={p.model} className="min-w-0 flex-1 font-semibold">
 						{p.name}
@@ -305,9 +305,12 @@ export function ProvidersGroup({
 	};
 	return (
 		<SetupCard id="connections-provider" title={t.connections.group.provider}>
-			{rows.map((p) => (
-				<ProviderRow key={p.id} provider={p} formOpen={formOpen} onForm={onForm} />
-			))}
+			{/* The context menu wraps each row: the first row has no line above it. */}
+			<div className="[&>span:first-child>[role=group]]:border-t-0">
+				{rows.map((p) => (
+					<ProviderRow key={p.id} provider={p} formOpen={formOpen} onForm={onForm} />
+				))}
+			</div>
 			{adding ? (
 				<div className={LINE}>
 					<ProviderForm onDone={() => add(false)} />

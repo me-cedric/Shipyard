@@ -48,7 +48,11 @@ export function TerminalScreen({
 						<Button onClick={restart}>{t.forge.terminal.restart}</Button>
 					</div>
 				) : null}
-				<section ref={host} aria-label={t.forge.terminal.label} className="min-h-0 flex-1 p-3" />
+				<section
+					ref={host}
+					aria-label={t.forge.terminal.label}
+					className="min-h-0 flex-1 p-6 [&_.xterm-viewport]:bg-transparent!"
+				/>
 			</div>
 		</>
 	);

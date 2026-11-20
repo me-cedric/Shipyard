@@ -306,6 +306,20 @@ export function ChecklistControl({
 	const ai = () => {
 		// No default tool, or a missing one: what the old Install an agent step offered.
 		const gone = tool ? (tool.state === "missing" ? tool : undefined) : missing;
+		// The step pane of Setup / Start has one main action: install, else choose, else sign in.
+		// The other doors are on Setup / This computer.
+		if (pane)
+			return gone ? (
+				<OneClick
+					label={format(s.action.install, { name: gone.label })}
+					confirm={format(s.action.installConfirm, { name: gone.label, command: gone.install })}
+					run={() => unwrap(commands.runnerInstall(gone.id, true))}
+				/>
+			) : !tool ? (
+				open(s.action.choose, "/setup/me", "section-agent")
+			) : (
+				open(s.action.signIn, MODELS, "tools")
+			);
 		return (
 			<>
 				{!tool && !pick ? open(s.action.choose, "/setup/me", "section-agent") : null}

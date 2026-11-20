@@ -5,8 +5,8 @@ import { logError } from "@/lib/log";
 import { usePrefs } from "@/lib/prefs";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Input } from "@/ui/atoms/input";
-import { Select } from "@/ui/atoms/select";
 import { ValueButton } from "../parts";
+import { ValueSelect } from "./value-select";
 
 const DEFAULT = "default";
 const back = (v: string) => (v === DEFAULT ? "" : v);
@@ -67,7 +67,7 @@ export function DefaultAgentSelect() {
 	const prefs = usePrefs();
 	const runners = useRunners();
 	return (
-		<Select
+		<ValueSelect
 			label={t.personal.prefs.defaultAgent}
 			value={prefs.defaultAgent || DEFAULT}
 			onValueChange={(v) => prefs.setPrefs({ defaultAgent: back(v), defaultModel: "" })}
@@ -98,7 +98,7 @@ export function TerminalAppSelect() {
 	const prefs = usePrefs();
 	const apps = useTerminalApps();
 	return (
-		<Select
+		<ValueSelect
 			label={t.reports.terminal.app}
 			value={prefs.terminalApp || DEFAULT}
 			onValueChange={(v) => prefs.setPrefs({ terminalApp: back(v) })}
@@ -116,7 +116,7 @@ export function DefaultModelSelect() {
 	const prefs = usePrefs();
 	const models = useRunners().find((r) => r.runner === prefs.defaultAgent)?.models ?? [];
 	return (
-		<Select
+		<ValueSelect
 			label={t.personal.prefs.defaultModel}
 			value={prefs.defaultModel || DEFAULT}
 			onValueChange={(v) => prefs.setPrefs({ defaultModel: back(v) })}

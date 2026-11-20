@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { DoctorBootstrap } from "@/features/projects/doctor-bootstrap";
 import { Columns, SetupCard, SetupRow, Toggle, ValueButton } from "@/features/settings/parts";
@@ -35,6 +34,7 @@ import {
 	FolderOpenIcon,
 	PlayIcon,
 	PlusIcon,
+	PuzzlePieceIcon,
 	TrashIcon,
 } from "@/ui/icons";
 import { EntryRow } from "@/ui/molecules/entry-row";
@@ -127,22 +127,68 @@ function ComponentDetail({ id }: { id: string }) {
 	);
 }
 
-/** The entries that a child lacks, in the inspector. */
+/** A child project in the inspector: how many entries it holds, the clone, the removal and the entries that it lacks. */
 function ChildDetail({ id }: { id: string }) {
 	const { t } = useI18n();
+	const x = t.extensions;
+	const qc = useQueryClient();
+	const { error, run } = useGuard();
 	const children = useQuery({
 		queryKey: ["children"],
 		queryFn: () => unwrap(commands.childList()),
 	});
-	const proposed = children.data?.find((c) => c.id === id)?.proposed ?? [];
+	const c = children.data?.find((ch) => ch.id === id);
+	const proposed = c?.proposed ?? [];
+	const refresh = () => qc.invalidateQueries({ queryKey: ["children"] });
 	return (
-		<GroupSection name={t.extensions.children.proposed} count={proposed.length}>
-			<ul className="font-mono text-12">
-				{proposed.map((k) => (
-					<li key={k}>{k}</li>
-				))}
-			</ul>
-		</GroupSection>
+		<>
+			{error ? (
+				<p role="alert" className="text-ui text-danger-text">
+					{error}
+				</p>
+			) : null}
+			{c ? (
+				<div className="flex flex-wrap items-center gap-2">
+					<Badge variant={c.cloned && c.held === c.total ? "success" : "neutral"}>
+						{format(x.children.held, { held: c.held, total: c.total })}
+					</Badge>
+					{c.cloned ? null : (
+						<Button
+							aria-label={format(x.children.cloneName, { name: c.name })}
+							onClick={() =>
+								void run(async () => {
+									await unwrap(commands.childClone(c.id));
+									await refresh();
+								})
+							}
+						>
+							<ArrowDownTrayIcon size={14} />
+							{x.children.clone}
+						</Button>
+					)}
+					<Button
+						variant="ghost"
+						aria-label={format(x.children.removeName, { name: c.name })}
+						onClick={() =>
+							void run(async () => {
+								await unwrap(commands.childRemove(c.id));
+								await refresh();
+							})
+						}
+					>
+						<TrashIcon size={14} />
+						{x.children.remove}
+					</Button>
+				</div>
+			) : null}
+			<GroupSection name={x.children.proposed} count={proposed.length}>
+				<ul className="font-mono text-12">
+					{proposed.map((k) => (
+						<li key={k}>{k}</li>
+					))}
+				</ul>
+			</GroupSection>
+		</>
 	);
 }
 
@@ -181,7 +227,6 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 		queryFn: () => unwrap(commands.pluginList()),
 	});
 	const { openDetail } = useShell();
-	const router = useRouter();
 	const compass = useQuery({ queryKey: ["compass"], queryFn: () => unwrap(commands.compassGet()) });
 
 	const [path, setPath] = useState("");
@@ -568,7 +613,8 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 			</Columns>
 		);
 
-	const tile = "flex min-w-0 flex-col items-start gap-3 rounded-lg bg-surface-2 p-4.5 shadow-2";
+	const tile =
+		"flex min-w-0 flex-col items-start justify-between gap-3 rounded-lg bg-surface-2 p-4.5 shadow-2";
 	const tileIcon = (icon: ReactNode) => (
 		<span className="flex size-12 items-center justify-center rounded-md bg-accent-subtle text-accent-text">
 			{icon}
@@ -582,11 +628,11 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 	return (
 		<div className="flex flex-col gap-4 pb-10">
 			{errorLine}
-			<h2 className="px-4 text-20 font-semibold text-n-12">{d.add}</h2>
+			<h2 className="px-4 text-13 font-semibold text-n-11">{d.add}</h2>
 			<div className="grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-3.5 px-4">
 				{offered.map((c) => (
 					<section key={c.id} aria-label={c.name} className={tile}>
-						{tileIcon(<PlusIcon size={20} />)}
+						{tileIcon(<PuzzlePieceIcon size={20} />)}
 						<span className="text-20 font-semibold text-n-12">{c.name}</span>
 						<Button
 							variant="secondary"
@@ -610,38 +656,6 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 						{d.choose}
 					</Button>
 				</section>
-			</div>
-			<div className="px-4">
-				<Fold id="plugin-add-more" label={t.ui.more} value={d.zip}>
-					<div className="flex flex-wrap items-center gap-3">
-						<span className="font-semibold">{d.zip}</span>
-						<ValueButton
-							onClick={() =>
-								void run(async () => {
-									const f = await pickPlugin();
-									if (!f) return;
-									setPath(f);
-									await look(f);
-								})
-							}
-						>
-							{d.choose}
-						</ValueButton>
-					</div>
-					<div className="flex flex-wrap items-center gap-3">
-						<span className="font-semibold">{d.fresh}</span>
-						<ValueButton
-							onClick={() =>
-								void run(async () => {
-									await newPlugin();
-									router.history.push("/setup/project?page=plugins");
-								})
-							}
-						>
-							{d.create}
-						</ValueButton>
-					</div>
-				</Fold>
 			</div>
 			{reviewShown ? (
 				<div className="px-4">
@@ -743,44 +757,6 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 									{d.openChild}
 								</ValueButton>
 							</SetupRow>
-							<details className="px-6 pb-2">
-								<summary className="min-h-control cursor-pointer text-12 text-n-11">
-									{t.ui.more}
-								</summary>
-								<div className="flex flex-wrap items-center gap-2">
-									<Badge variant={c.cloned && c.held === c.total ? "success" : "neutral"}>
-										{format(x.children.held, { held: c.held, total: c.total })}
-									</Badge>
-									{c.cloned ? null : (
-										<Button
-											aria-label={format(x.children.cloneName, { name: c.name })}
-											onClick={() =>
-												void run(async () => {
-													await unwrap(commands.childClone(c.id));
-													await refresh();
-												})
-											}
-										>
-											<ArrowDownTrayIcon size={14} />
-											{x.children.clone}
-										</Button>
-									)}
-									<Button
-										variant="ghost"
-										aria-label={format(x.children.removeName, { name: c.name })}
-										onClick={() =>
-											void run(async () => {
-												await unwrap(commands.childRemove(c.id));
-												setChosen(flip(chosen, c.id, false));
-												await refresh();
-											})
-										}
-									>
-										<TrashIcon size={14} />
-										{x.children.remove}
-									</Button>
-								</div>
-							</details>
 						</div>
 					))}
 					<details id="child-add" className="border-n-6 border-t">

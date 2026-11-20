@@ -10,6 +10,7 @@ import { useRights } from "@/lib/rights";
 import { Button } from "@/ui/atoms/button";
 import { BellIcon, FolderOpenIcon } from "@/ui/icons";
 import { Loading } from "@/ui/molecules/loading";
+import { Row } from "@/ui/molecules/row";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { openTour } from "./tour-store";
 
@@ -133,7 +134,7 @@ export function PermissionsCard() {
 				</SetupRow>
 			))}
 			{opener ? (
-				<SetupRow label={m.permissions.settings}>
+				<Row className="justify-end">
 					<Button
 						className="min-h-control"
 						onClick={() =>
@@ -142,15 +143,23 @@ export function PermissionsCard() {
 					>
 						{m.permissions.settings}
 					</Button>
-				</SetupRow>
+				</Row>
 			) : null}
-			<Fold label={t.ui.more}>
-				<SetupRow id="tour" label={m.tour}>
-					<Button className="min-h-control" onClick={openTour}>
-						{m.replay}
-					</Button>
-				</SetupRow>
-			</Fold>
 		</SetupCard>
+	);
+}
+
+/** Replay the tour: a row of the More card of the page that holds the permissions. */
+export function ReplayTour() {
+	const { t } = useI18n();
+	const m = t.onboarding;
+	return (
+		<Fold label={m.tour}>
+			<SetupRow id="tour" label={m.tour}>
+				<Button className="min-h-control" onClick={openTour}>
+					{m.replay}
+				</Button>
+			</SetupRow>
+		</Fold>
 	);
 }
