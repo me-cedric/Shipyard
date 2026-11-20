@@ -17,13 +17,13 @@ async function replay(page: Page) {
 	await expect(page.getByRole("dialog", { name: FIRST })).toBeVisible();
 }
 
-test("replays the tour, skips it with Close and ends it on Done", async ({ page }) => {
+test("replays the tour, skips it with Skip the tour and ends it on Done", async ({ page }) => {
 	await page.goto(START);
 	await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
 	await replay(page);
 	await page.getByRole("button", { name: "Next" }).click();
 	await expect(page.getByRole("dialog", { name: "Open a project" })).toBeVisible();
-	await page.getByRole("button", { name: "Close" }).click();
+	await page.getByRole("button", { name: "Skip the tour" }).click();
 	await expect(openDialogs(page)).toHaveCount(0);
 
 	await replay(page);

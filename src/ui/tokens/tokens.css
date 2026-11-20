@@ -222,7 +222,7 @@
 	--info-soft: color-mix(in oklch, var(--info) 14%, transparent);
 	--attention-soft: color-mix(in oklch, var(--attention) 16%, transparent);
 	/* The attention text on the inverted panel (the dark session panel of Light, the light one of Dark). */
-	--attention-on-panel: light-dark(#ffc79a, #9a3f06);
+	--attention-on-panel: light-dark(#ffc79a, #843505);
 }
 
 :root[data-theme="light"] {
