@@ -12,7 +12,7 @@ test("junior", async ({ page }) => {
 		async () => {
 			await w.landsOn("Today", "Needs you");
 			await w.go("Library", "Learn");
-			await w.see(page.getByText("0/10"), "no progress on the path");
+			await w.see(page.getByText("0 of 10"), "no progress on the path");
 		},
 	);
 
@@ -46,12 +46,9 @@ test("junior", async ({ page }) => {
 			page.getByText("the act of a person who proves who they are"),
 			"no definition for login",
 		);
-		// The chip of the word, not the one of a step of the path.
+		// The word opens its spec.
 		await w.click(
-			page
-				.getByRole("list", { name: "Glossary" })
-				.getByRole("button", { name: /spec:auth/ })
-				.first(),
+			page.getByRole("list", { name: "Glossary" }).getByRole("button", { name: "login" }),
 		);
 	});
 
@@ -135,6 +132,9 @@ test("junior", async ({ page }) => {
 		"Knowledge, Graph",
 		async () => {
 			await w.go("Library", "Map");
+			// The graph is in the page menu.
+			await w.click(page.getByRole("main").getByRole("button", { name: "More", exact: true }));
+			await w.click(page.getByRole("menuitem", { name: "Graph" }));
 			await w.see(page.getByRole("button", { name: "Table view" }), "no table view of the graph");
 		},
 		true,

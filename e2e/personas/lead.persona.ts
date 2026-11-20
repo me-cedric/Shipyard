@@ -37,6 +37,9 @@ test("functional lead", async ({ page }) => {
 
 	await w.step("List the open questions", "Questions, the Status filter", async () => {
 		await w.go("Library", "Questions");
+		// The filters are in the page menu.
+		await w.click(page.getByRole("main").getByRole("button", { name: "More", exact: true }));
+		await w.click(page.getByRole("menuitem", { name: "Filters" }));
 		await w.click(page.getByRole("combobox", { name: "Status" }));
 		await w.click(page.getByRole("option", { name: "open" }));
 		await w.see(
@@ -53,7 +56,7 @@ test("functional lead", async ({ page }) => {
 		await w.go("Library", "Decisions");
 		await w.click(page.getByRole("button", { name: /Use Tauri/ }));
 		await w.see(
-			page.getByRole("textbox", { name: "Context and problem statement" }),
+			page.getByRole("region", { name: "Context and problem statement" }),
 			"the record has no readable text",
 		);
 	});
@@ -75,7 +78,9 @@ test("functional lead", async ({ page }) => {
 		"Knowledge, Documents, Export Functional documentation",
 		async () => {
 			await w.go("Library", "Documents");
-			await w.click(page.getByRole("button", { name: "Export Functional documentation" }));
+			// The documents that Shipyard writes are in the page menu.
+			await w.click(page.getByRole("main").getByRole("button", { name: "More", exact: true }));
+			await w.click(page.getByRole("menuitem", { name: "Export Functional documentation" }));
 			await w.see(page.getByText(/^Exported:/), "no sign that the export finished");
 		},
 	);
@@ -97,7 +102,8 @@ test("functional lead", async ({ page }) => {
 					"the Runs tile shows state codes (WaitingForAnswer, ChangesRequested), not words",
 				);
 			}
-			await w.click(page.getByRole("button", { name: "Pin to Today" }).first());
+			await w.click(page.getByRole("button", { name: /^More / }).first());
+			await w.click(page.getByRole("menuitem", { name: "Pin to Today" }));
 		},
 		true,
 	);

@@ -19,13 +19,27 @@ export function sectionAt(path: string): string {
 	return view ? tabLabel(en, ...view) : "";
 }
 
-/** A page of Library: the sidebar link opens the four doors, then the chip of the page opens it. */
+/** The address of a page of Library, by the English name of its section. */
+export function libraryPath(name: string): string {
+	const tab = sections("library").find(([s, t]) => tabLabel(en, s, t) === name)?.[1];
+	if (!tab) throw new Error(`Library has no page ${name}`);
+	return `/library/${tab}`;
+}
+
+/**
+ * A page of Library: the sidebar link opens the four doors, then the chip of the page opens it.
+ * A chip can carry a count ("3 open questions", "Learn, 0 of 10"): the chip is found by its address.
+ */
 export async function openLibrary(page: Page, name: string) {
 	await page
 		.getByRole("navigation", { name: "Sidebar" })
 		.getByRole("link", { name: "Library" })
 		.click();
-	await page.getByRole("main").getByRole("link", { name, exact: true }).click();
+	await page
+		.getByRole("main")
+		.locator(`a[href="${libraryPath(name)}"]`)
+		.first()
+		.click();
 }
 /** Opens an address with no reload: the mock project lives in the memory of the page. */
 export const visit = (page: Page, href: string) =>

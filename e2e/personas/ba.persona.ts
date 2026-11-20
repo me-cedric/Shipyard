@@ -71,11 +71,16 @@ test("business analyst", async ({ page }) => {
 	await w.step("Read a capability", "Capabilities, auth, the requirements", async () => {
 		await w.go("Library", "Specs");
 		await w.click(page.getByRole("button", { name: /^auth/ }));
-		await w.see(page.getByText("REQ-001"), "no requirement list");
-		await w.see(page.getByText("Backlinks"), "no link from a requirement to its tests and items");
-		await w.click(page.getByRole("tab", { name: "Spec", exact: true }));
+		await w.see(page.getByRole("list", { name: "Requirements" }), "no requirement list");
 		await w.see(
-			page.getByRole("article", { name: "Spec" }),
+			page.getByRole("region", { name: "Linked" }),
+			"no link from a requirement to its tests and items",
+		);
+		await w.click(page.getByRole("group", { name: "View" }).getByRole("button", { name: "Read" }));
+		await w.see(
+			page
+				.getByRole("group", { name: "View" })
+				.getByRole("button", { name: "Read", pressed: true }),
 			"the capability does not open as a page to read",
 		);
 	});
@@ -97,23 +102,15 @@ test("business analyst", async ({ page }) => {
 		await w.until(() => page.getByRole("dialog").count(), 0, "the dialog stays open");
 	});
 
-	await w.step("Answer an open question", "the question row, the Status field", async () => {
-		const dialog = page.getByRole("dialog");
-		const answered = page.getByText("answered", { exact: true });
+	await w.step("Answer an open question", "the question card, the Answer field", async () => {
+		const title = "Which export formats ship first?";
+		const answered = page.getByText("Answered", { exact: true });
 		const before = await answered.count();
-		await w.click(page.getByText("Which export formats ship first?"));
-		await w.click(dialog.getByRole("combobox", { name: "Status" }));
-		await w.click(page.getByRole("option", { name: "answered" }));
-		const answer = dialog.getByRole("textbox", { name: "Answer" });
+		const answer = page.getByRole("textbox", { name: `Answer: ${title}` });
 		await w.see(answer, "the question has no field for the answer");
-		await w.until(
-			() => answer.evaluate((e) => e === document.activeElement),
-			true,
-			"the cursor is not in the Answer field",
-		);
 		await w.fill(answer, "CSV first, then the spreadsheet.");
-		await w.click(dialog.getByRole("button", { name: "Save" }));
-		await w.until(() => answered.count(), before + 1, "the card still reads open after Save");
+		await w.click(page.getByRole("button", { name: `Answer: ${title}`, exact: true }));
+		await w.until(() => answered.count(), before + 1, "the card still reads open after Answer");
 	});
 
 	await w.step(

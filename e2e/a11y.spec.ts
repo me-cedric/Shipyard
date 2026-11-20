@@ -4,7 +4,7 @@ import { barSections, PLACE_IDS } from "../src/features/shell/places";
 import { openFirstFolder, pickDarkTheme } from "./first-run";
 import { visit } from "./places";
 
-// The pages that no section switch holds: Projects, Impacts, and the pages behind the doors of Setup.
+// The pages that no section switch holds: Projects, Impacts, the pages behind the doors of Setup and the full pages of Library.
 const OFF_SWITCH = [
 	"/projects",
 	"/flow/impacts",
@@ -18,6 +18,12 @@ const OFF_SWITCH = [
 	"/setup/computer?page=health",
 	"/setup/computer?page=logs",
 	"/setup/me?page=look",
+	// The pages of Library with a back link: no chip of the home opens them.
+	"/library/flows/matrix",
+	"/library/dashboards/team/edit",
+	"/library/test-plans/coverage",
+	"/library/reports/change-request",
+	"/library/graph?source=code",
 ];
 
 // The sub-pages of Crew and Plan (look pass 2): each one has its own address.

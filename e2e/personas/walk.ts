@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import { sectionAt } from "../places";
+import { libraryPath, sectionAt } from "../places";
 
 type Result = "ok" | "confusing" | "dead end" | "error";
 const OUT = resolve(process.env.PERSONAS_OUT ?? "test-results/personas");
@@ -144,7 +144,8 @@ export class Walk {
 	private library = async (tab: string) => {
 		const main = this.page.getByRole("main");
 		const back = main.getByRole("link", { name: "Library", exact: true });
-		const chip = main.getByRole("link", { name: tab, exact: true });
+		// A chip can carry a count ("3 open questions"): it is found by its address.
+		const chip = main.locator(`a[href="${libraryPath(tab)}"]`).first();
 		const inside = () => new URL(this.page.url()).pathname.startsWith("/library/");
 		if (!inside()) {
 			await this.click(
