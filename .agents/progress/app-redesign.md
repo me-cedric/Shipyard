@@ -530,34 +530,34 @@ The pass rebuilt each page of Library from its design file, on the shared parts 
 
 ### Screens
 
-Result of the last fresh-context check (round 3). The fixes of the third round were not checked again by a fresh agent. "Differs" lists what stays.
+Result of the last fresh-context check (round 5, 2026-11-20). Two fixes came after it and were checked by the lead on a capture: the Mermaid preview of Diagrams (038) and the tile title in edit mode (086). "Differs" lists what stays and why. A "..." page menu on each page holds the controls that the design does not show: that difference is accepted on each screen.
 
 | Screen | Address or steps | Result |
 |---|---|---|
-| 006 Library | `/library/home` | Match, except the Opened last rows: pages, not items with a kind pill (no per-item history) |
-| 015 Map | `/library/graph` | Differs: the Knowledge segment padding is in `src/ui/atoms/segmented` |
-| 016 Architecture | `/library/architecture` | Differs: zoom buttons and node size fixed in round 3, not rechecked |
-| 033 Specs | `/library/capabilities` | Differs: no Build pill on a change row (no stage); the demo has no change in progress on the first spec |
-| 034 Questions | `/library/questions` | Match, except the upload icon of Export (`PageExport`, in `src/features/reports/`) |
-| 035 Test plan | `/library/test-plans` | Match |
-| 036 Project rules | `/library/constitution` | Differs: no Earlier versions card (no history function) |
-| 037 Decisions | `/library/decisions` | Differs: the demo shows the section names of the file |
-| 038 Diagrams | `/library/diagrams` | Differs: no Zoom and Fit rows on the grid page |
-| 039 API | `/library/api` | Differs: no csv/json chips on Try it, no Add export endpoint link |
-| 040 Data | `/library/data` | Match after round 3, not rechecked |
-| 041 Network flows | `/library/flows` | Differs: Linked chevrons come from `LinkedRow` in `page-parts.tsx` |
-| 042 Screens | `/library/screens` | Differs: the demo has no screen without artifacts, so Not built does not show |
+| 006 Library | `/library/home` | Match |
+| 015 Map | `/library/graph` | Close: the Knowledge segment is tight (`src/ui/atoms/segmented`) |
+| 016 Architecture | `/library/architecture` | Differs on purpose: opens on Picture, the design shows Both. `spec:app-redesign#REQ-021` wins. A fourth zoom button (Fit) keeps the fit function |
+| 033 Specs | `/library/capabilities` | Differs: no Changes in progress card in the demo (the demo change broke mock tests of other areas); no Build pill (no stage) |
+| 034 Questions | `/library/questions` | Close: Export has an icon (`PageExport`) |
+| 035 Test plan | `/library/test-plans` | Close |
+| 036 Project rules | `/library/constitution` | Close: no Earlier versions card (no history function) |
+| 037 Decisions | `/library/decisions` | Close: the demo shows the section names of its file |
+| 038 Diagrams | `/library/diagrams` | Differs: no Zoom and Fit rows on the grid page (they live on the open canvas) |
+| 039 API | `/library/api` | Differs: Try it keeps the server, method and path fields of today; no Add export endpoint link (no function) |
+| 040 Data | `/library/data` | Close: a fourth zoom button (Fit) |
+| 041 Network flows | `/library/flows` | Close |
+| 042 Screens | `/library/screens` | Close |
 | 043 Handbook | `/library/handbook` | Differs: no History and author line (no function) |
-| 044 Documents | `/library/documents` | Differs: no Add a file and no Word or PDF download for one document |
-| 045 Slides | `/library/slides` | Differs: no Speaker notes and no Edit; Find a deck stays |
+| 044 Documents | `/library/documents` | Differs: no Add a file and no Word or PDF download of one document (no function) |
+| 045 Slides | `/library/slides` | Differs: no Speaker notes, Edit, Planning and Costing slides on a Markdown deck (no function); Find a deck stays |
 | 046 Learn | `/library/learn` | Differs: no Experts card, no Add a word, no person chip and New path in the header, no second pill on a step |
-| 047 Dashboards | `/library/dashboards` | Differs: no Reports segment and no release picker |
-| 071 Reports | `/library/reports` | Differs: no PDF and Markdown formats, no Pages that link to a report, no dates in Written for you |
-| 075 Map of the code | `/library/graph?source=code` | Differs: no Stale chip (no flag on code), other files are chips, not cards |
-| 077 Flow matrix | `/library/flows/matrix` | Differs: no Check against the code and no alert card (no function) |
-| 086 Edit a dashboard | `/library/dashboards/team/edit` | Differs: no Pin to Today for a whole dashboard; the kind chips wrap |
-| 095 What is tested | `/library/test-plans/coverage` | Match |
-| 096 Report forms | `/library/reports/change-request`, `/library/reports/work-done` | Differs: no PDF switch, no Fill row for the complete dossier; the Written card shows after a click |
+| 047 Dashboards | `/library/dashboards` | Differs: no Reports segment and no release picker; tiles show the bar lists of today, not a chart box |
+| 071 Reports | `/library/reports` | Differs: no PDF and Markdown formats, no dates in Written for you, no Costing card (the reports of today are listed) |
+| 075 Map of the code | `/library/graph?source=code` | Differs: no Stale chip (no flag on code), no Who calls it when the symbol has no caller |
+| 077 Flow matrix | `/library/flows/matrix` | Differs: no Check against the code, no Not in the code chip and no alert card (no function) |
+| 086 Edit a dashboard | `/library/dashboards/team/edit` | Differs: no Pin to Today for a whole dashboard; the kind chips of today wrap the Build button to a second row |
+| 095 What is tested | `/library/test-plans/coverage` | Differs: a long Not covered card makes its row tall, so the second row is below the fold |
+| 096 Report forms | `/library/reports/change-request`, `/library/reports/work-done` | Differs: no PDF switch and no Fill row for the complete dossier (no function); the Written card shows after a write |
 
 ### Shared parts that lack something
 
@@ -571,5 +571,6 @@ Result of the last fresh-context check (round 3). The fixes of the third round w
 - A person name for the avatar of Written for you: the row shows "Shipyard".
 - The demo mock has no finished change, no screen without artifacts and a Reports dashboard (the slugs are `team`, `team-delivery`, `team-quality`, `team-agents`).
 - Not built, no function: Add a word, Add a file, History of a page, Earlier versions of the rules, Speaker notes, PDF and Markdown reports, Check against the code in the matrix.
-- `e2e/library.spec.ts` and the persona walks use old labels and dialogs (a later agent moves them).
+- The shared `PageHeader` (`src/ui/molecules/page-header.tsx`) keeps its action row and menu on one line now: this changes the header of every page.
+- The zoom controls (`zoom-frame.tsx`) and the Mermaid viewer are shared with the Design section of the feature page.
 - The pictures of the Library scenes are retaken from this tree. Scene `tile-build` now opens the edit page of the dashboard.
