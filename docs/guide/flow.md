@@ -31,6 +31,8 @@ New opens a page of its own, with the link Flow back to the board and one questi
 3. Pick the way: An agent writes the spec, I write the spec, or Build now, no spec.
 4. Click Create.
 
+Add a document sits beside the kinds. It takes a Markdown, PDF or Word file, up to 20 MiB, and the page refuses another kind. Create copies each document into the `inputs` folder of the change, as input for the spec writer. Limit sits beside the recipe, for the ways that make a ticket. It is the most money that all the runs of the feature may spend, in dollars. It goes into `.shipyard/automation.yaml` by the key of the ticket.
+
 Or start from a ticket, under the three ways: find a ticket that has no run, then click Start an agent. Start from a ticket in More on Flow opens it.
 
 Each way first makes a spec change with your text as its title. A way is off when you lack the right that it needs.
@@ -101,7 +103,7 @@ Checks shows the gates of the run, the checks of the pull request with the CI st
 
 ### Chat
 
-Chat shows the conversation of the agent session (the live terminal and the requests are under For developers), the conversation of the pull request and the comments of the ticket. The pull request conversation lists the general comments and the review threads in time order. Click Reply to answer a thread, Resolve to close it and Reopen to open it again. The write box has Write and Preview. Comment posts a general comment. Send back to the agent shows for a pull request that a run opened.
+Chat has a + button beside the message field. It copies a file into the run folder as context: the next turn of the agent reads it. A text file goes up to 200 KiB and an image up to 2 MiB, and the chat says which limit a larger file breaks. Pause is on the Agent card, between Talk and Stop. The agent ends its turn, then the run is paused by a person, keeps its place in the limits and waits for Resume. Chat shows the conversation of the agent session (the live terminal and the requests are under For developers), the conversation of the pull request and the comments of the ticket. The pull request conversation lists the general comments and the review threads in time order. Click Reply to answer a thread, Resolve to close it and Reopen to open it again. The write box has Write and Preview. Comment posts a general comment. Send back to the agent shows for a pull request that a run opened.
 
 ## Approvals
 
@@ -126,6 +128,7 @@ Then the run stops, and the feature needs you. The page says the state in plain 
 | Unblock | The run is blocked. Type a message: the run gets one more round and reads it. |
 | Add budget | The run spent its budget or its turns. Raise the budget, then the run goes on. |
 | Resume | The run is paused. |
+| Take it over | The run is blocked. The run ends as cancelled with the reason "Taken over by" and your name, the branch and the worktree stay, the ticket is yours and the worktree opens in your editor. |
 | Try again | The run failed or was cancelled. A new run starts. |
 | Close as done | The run changed no file and the work is already there. |
 

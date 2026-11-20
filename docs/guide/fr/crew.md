@@ -18,6 +18,7 @@ Une recette est la liste des étapes qu'un agent suit sur une fonctionnalité. R
 
 Une recette s'ouvre dans un formulaire. Utilisez Formulaire et Texte pour passer du formulaire au texte YAML. Les deux modifient le même fichier.
 
+- La page d'une étape montre aussi Type (agent, personne ou contrôle, selon l'étape), Tourne en même temps que d'autres étapes (activé quand l'étape n'attend aucune étape), Les sous-étapes tournent côte à côte et Mode. Une étape qui attend une personne a Qui approuve : seule une personne avec ce rôle l'approuve, et seul ce rôle reçoit sa carte dans Aujourd'hui. Dans Personnes, Peut écrire est Demande d'abord ou Seul : Seul est l'approbation « Ne plus demander pour cette recette ».
 - Étapes : chaque étape est une carte avec les groupes Qui, Personnes, Fonctionnement et Limites. Fixez le rôle ou l'action, le niveau de modèle, l'effort, le mode, les prérequis, les outils et le contrôle de chaque étape. Plus montre les autres champs : espace de travail, pour chaque, enfants en parallèle, essais, limite de temps, budget, compétence, contexte neuf et tours de revue. Ajoutez, retirez et déplacez une étape vers le haut ou le bas.
 - Limites : le délai de blocage en secondes. Activez Budget pour arrêter chaque exécution à un montant en USD, et Limite de tours pour mettre chaque exécution en pause après un nombre de tours. Les deux sont désactivés par défaut.
 - Le formulaire vérifie la recette à chaque changement. Enregistrer reste désactivé tant qu'il montre un problème.
@@ -38,8 +39,8 @@ Dépenses montre les jetons et l'argent que les agents ont utilisés, par jour e
 - Cliquez sur une exécution pour ouvrir sa fonctionnalité.
 - Itérations compte les requêtes que chaque exécution a envoyées au modèle.
 - Les montants s'affichent par défaut. Désactivez Afficher les prix pour les masquer : une tuile d'argent montre alors le nombre de jetons. L'application retient l'interrupteur pour chaque projet.
-- Une alerte s'affiche à 80 pour cent d'un budget.
-- Une exécution se met en pause à 100 pour cent. Augmentez le budget pour continuer.
+- Prévenir à est le pourcentage d'un budget où l'alerte s'affiche. C'est 80 pour cent pour le projet, jusqu'à ce que vous cliquiez sur Modifier et fixiez un autre pourcentage de 1 à 100.
+- Chaque limite d'une fonctionnalité, d'un jour et d'une personne a un choix Ensuite : Arrêter et demander (par défaut), Mettre en pause, Me demander ou Continuer. L'exécution s'arrête à 100 pour cent avec les trois premiers. Arrêter et demander écrit aussi un commentaire sur le ticket, Me demander demande dans l'application seulement, et Mettre en pause s'arrête sans question. Augmentez le budget pour continuer. Continuer fait du budget un simple avertissement : l'exécution continue, et l'alerte s'affiche une fois. Tout arrêter, le délai d'inactivité et le nombre maximal de tours arrêtent toujours l'exécution.
 
 ## Droits
 

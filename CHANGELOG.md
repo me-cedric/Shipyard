@@ -76,6 +76,11 @@
 - The page of a feature has six sections (Story, Brief, Design, Changes, Checks, Chat), a ticket page, one plan card with Approve the plan and Send back, and a stop card with one action; What happened is in More, and the files of the change and the changed files of the pull request open on pages of their own.
 - The impacts of a feature and the full impact report open as pages, with the docs that go stale and Fix the stale docs with an agent.
 - Pull requests and New pull request are pages of Code, and New feature is a page with Or start from a ticket.
+- A person can pause an agent at the end of its turn and resume it, take over a blocked run (the branch and the worktree stay, the ticket becomes yours and the worktree opens in your editor), and attach a file to the chat with the agent.
+- New feature takes a document (Markdown, PDF or Word) for the spec writer and a limit for the whole feature, which sits in the automation file by ticket key.
+- Spend edits Warn at for the project, and each limit of a feature, a day and a person has a choice Then: Stop and ask, Pause, Ask me or Go on. Go on makes the budget a warning only.
+- Automation has limits for the stages Plan, Build and Review beside the limits by status: a run waits where it is while its next stage is full.
+- A recipe step shows its Kind, Runs beside other steps, Child steps run side by side and Mode. A step that waits for a person can name a role: only that role approves it and gets its card on Today. May write: Alone is the approval "Do not ask again for this recipe".
 
 ## [0.1.0]
 - Resume takes the limits that the workflow has now, so a budget that you removed no longer stops a run, and Resume with an empty amount works again.

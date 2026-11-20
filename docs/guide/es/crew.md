@@ -18,6 +18,7 @@ Una receta es la lista de pasos que un agente sigue en una funcionalidad. Receta
 
 Una receta se abre en un formulario. Usa Formulario y Texto para pasar del formulario al texto YAML. Los dos editan el mismo archivo.
 
+- La página de un paso también muestra Tipo (agente, persona o control, según el paso), Se ejecuta junto a otros pasos (activado cuando el paso no espera a ningún paso), Los subpasos se ejecutan en paralelo y Modo. Un paso que espera a una persona tiene Quién aprueba: solo una persona con ese rol lo aprueba, y solo ese rol recibe su tarjeta en Hoy. En Personas, Puede escribir es Pregunta primero o Solo: Solo es la aprobación «No volver a preguntar por esta receta».
 - Pasos: cada paso es una tarjeta con los grupos Quién, Personas, Cómo funciona y Límites. Fija el rol o la acción, el nivel de modelo, el esfuerzo, el modo, los requisitos, las herramientas y el control de cada paso. Más muestra los otros campos: espacio de trabajo, para cada, hijos en paralelo, reintentos, límite de tiempo, presupuesto, skill, contexto nuevo y rondas de revisión. Añade, quita y mueve un paso arriba o abajo.
 - Límites: el tiempo de espera por bloqueo en segundos. Activa Presupuesto para detener cada ejecución en un importe en USD, y Límite de turnos para pausar cada ejecución después de un número de turnos. Los dos están desactivados por defecto.
 - El formulario comprueba la receta en cada cambio. Guardar queda desactivado mientras muestra un problema.
@@ -38,8 +39,8 @@ Gasto muestra los tokens y el dinero que usaron los agentes, por día y por pers
 - Haz clic en una ejecución para abrir su funcionalidad.
 - Iteraciones cuenta las peticiones que cada ejecución envió al modelo.
 - Los importes se muestran por defecto. Desactiva Mostrar precios para ocultarlos: un mosaico de dinero muestra entonces el número de tokens. La aplicación recuerda el interruptor para cada proyecto.
-- Una alerta se muestra al 80 por ciento de un presupuesto.
-- Una ejecución se pausa al 100 por ciento. Sube el presupuesto para seguir.
+- Avisar al es el porcentaje de un presupuesto en el que se muestra la alerta. Es 80 por ciento para el proyecto hasta que hagas clic en Editar y fijes otro porcentaje de 1 a 100.
+- Cada límite de una funcionalidad, de un día y de una persona tiene una opción Después: Parar y preguntar (por defecto), Pausar, Preguntarme o Seguir. La ejecución se detiene al 100 por ciento con las tres primeras. Parar y preguntar también escribe un comentario en el ticket, Preguntarme pregunta solo en la aplicación y Pausar se detiene sin preguntar. Sube el presupuesto para seguir. Seguir convierte el presupuesto en un simple aviso: la ejecución sigue y la alerta se muestra una vez. Detener todos los agentes, el tiempo de inactividad y el máximo de turnos siguen deteniendo la ejecución.
 
 ## Derechos
 

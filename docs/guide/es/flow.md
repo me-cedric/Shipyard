@@ -31,6 +31,8 @@ Nuevo abre una página propia, con un enlace de vuelta al tablero y una pregunta
 3. Elige la manera: Un agente escribe la especificación, Yo escribo la especificación, o Construir ya, sin especificación.
 4. Haz clic en Crear.
 
+Añadir un documento está junto a los tipos. Acepta un archivo Markdown, PDF o Word, hasta 20 MiB, y la página rechaza otro tipo. Crear copia cada documento en la carpeta `inputs` del cambio, como entrada para quien escribe la especificación. Límite está junto a la receta, para las vías que crean un ticket. Es lo máximo que pueden gastar todas las ejecuciones de la funcionalidad, en dólares. Va a `.shipyard/automation.yaml` con la clave del ticket.
+
 O empieza desde un ticket, bajo las tres maneras: busca un ticket sin ejecución y haz clic en Iniciar un agente. Empezar desde un ticket, en Más de Flujo, la abre.
 
 Cada manera crea primero un cambio de especificación con tu texto como título. Una manera está desactivada cuando te falta el derecho que necesita.
@@ -101,7 +103,7 @@ Controles muestra los pasos de control de la ejecución, los controles de la pul
 
 ### Charla
 
-Charla muestra la conversación de la sesión del agente (el terminal en vivo y las peticiones están en Para desarrolladores), la conversación de la pull request y los comentarios del ticket. La conversación de la pull request lista los comentarios generales y los hilos de revisión en orden de tiempo. Haz clic en Responder para responder a un hilo, en Resolver para cerrarlo y en Reabrir para abrirlo de nuevo. El cuadro de escritura tiene Escribir y Vista previa. Comentar publica un comentario general. Devolver al agente se muestra para una pull request que abrió una ejecución.
+Charla tiene un botón + junto al campo de mensaje. Copia un archivo como contexto en la carpeta de la ejecución: el siguiente turno del agente lo lee. Un archivo de texto llega hasta 200 KiB y una imagen hasta 2 MiB, y la charla dice qué límite rompe un archivo mayor. Pausar está en la tarjeta Agente, entre Hablar y Detener. El agente termina su turno, luego la ejecución queda en pausa por una persona, conserva su lugar en los límites y espera Reanudar. Charla muestra la conversación de la sesión del agente (el terminal en vivo y las peticiones están en Para desarrolladores), la conversación de la pull request y los comentarios del ticket. La conversación de la pull request lista los comentarios generales y los hilos de revisión en orden de tiempo. Haz clic en Responder para responder a un hilo, en Resolver para cerrarlo y en Reabrir para abrirlo de nuevo. El cuadro de escritura tiene Escribir y Vista previa. Comentar publica un comentario general. Devolver al agente se muestra para una pull request que abrió una ejecución.
 
 ## Aprobaciones
 
@@ -126,6 +128,7 @@ Después la ejecución se detiene, y la funcionalidad te espera. La página dice
 | Desbloquear | La ejecución está bloqueada. Escribe un mensaje: la ejecución recibe una ronda más y lo lee. |
 | Añadir presupuesto | La ejecución gastó su presupuesto o sus turnos. Sube el presupuesto, y la ejecución sigue. |
 | Reanudar | La ejecución está en pausa. |
+| Tomar el control | La ejecución está bloqueada. Termina como cancelada con el motivo «Tomada por» y tu nombre, la rama y el worktree se quedan, el ticket es tuyo y el worktree se abre en tu editor. |
 | Reintentar | La ejecución falló o se canceló. Empieza una ejecución nueva. |
 | Cerrar como terminada | La ejecución no cambió ningún archivo y el trabajo ya está hecho. |
 

@@ -76,6 +76,11 @@
 - La page d'une fonctionnalité a six sections (Histoire, Cahier, Conception, Changements, Contrôles, Discussion), une page du ticket, une carte du plan avec Approuver le plan et Renvoyer, et une carte d'arrêt avec une seule action ; Ce qui s'est passé est dans Plus, et les fichiers du changement et les fichiers modifiés de la pull request s'ouvrent sur des pages à part.
 - Les impacts d'une fonctionnalité et le rapport d'impact complet s'ouvrent comme des pages, avec les docs qui deviennent périmées et Corriger les documents périmés avec un agent.
 - Pull requests et Nouvelle pull request sont des pages de Code, et Nouvelle fonctionnalité est une page avec Ou partir d'un ticket.
+- Une personne peut mettre un agent en pause à la fin de son tour puis le reprendre, reprendre la main sur une exécution bloquée (la branche et le worktree restent, le ticket devient le vôtre et le worktree s'ouvre dans votre éditeur), et joindre un fichier à la discussion avec l'agent.
+- Nouvelle fonctionnalité accepte un document (Markdown, PDF ou Word) pour l'auteur de la spec et une limite pour toute la fonctionnalité, gardée dans le fichier d'automatisation par clé de ticket.
+- Dépenses modifie Prévenir à pour le projet, et chaque limite d'une fonctionnalité, d'un jour et d'une personne a un choix Ensuite : Arrêter et demander, Mettre en pause, Me demander ou Continuer. Continuer fait du budget un simple avertissement.
+- Automatisation a des limites pour les étapes Plan, Construction et Revue à côté des limites par statut : une exécution attend où elle est tant que son étape suivante est pleine.
+- L'étape d'une recette montre son Type, Tourne en même temps que d'autres étapes, Les sous-étapes tournent côte à côte et Mode. Une étape qui attend une personne peut nommer un rôle : seul ce rôle l'approuve et reçoit sa carte dans Aujourd'hui. Peut écrire : Seul est l'approbation « Ne plus demander pour cette recette ».
 
 ## [0.1.0]
 - Reprendre applique les limites actuelles du workflow : un budget retiré n’arrête plus une exécution, et Reprendre sans montant fonctionne de nouveau.

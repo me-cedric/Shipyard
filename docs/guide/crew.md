@@ -19,6 +19,7 @@ A recipe is the list of steps that an agent follows on a feature. Recipes lists 
 A recipe opens in a form. Use Form and Text to switch between the form and the YAML text. Both edit the same file.
 
 - Steps: each step is a card with the groups Who, People, How it works and Limits. Set the role or the action, the model tier, the effort, the mode, the needs, the tools and the gate of each step. More shows the other fields: workspace, for each, parallel children, retries, time limit, budget, skill, fresh context and review rounds. Add, remove and move a step up or down.
+- A step page also shows Kind (agent, person or check, from the step), Runs beside other steps (on when the step has no step to wait for), Child steps run side by side and Mode. A step that waits for a person has Who approves: only a person with that role approves it, and only that role gets its card on Today. In People, May write is Asks first or Alone: Alone is the approval "Do not ask again for this recipe".
 - Limits: the stall timeout in seconds. Turn on Budget to stop each run at an amount in USD, and Turn limit to pause each run after a number of turns. Both are off by default.
 - The form checks the recipe at each change. Save stays off while it shows an issue.
 - New makes a recipe from a preset: feature, bug, spike, docs-update, review-only, spec-split or bootstrap. The More actions menu of the open recipe has Duplicate, Rename and Delete. Rename and Delete refuse the default recipe of the project and a recipe that a run uses. Delete asks you to confirm.
@@ -38,8 +39,8 @@ Spend shows the tokens and the money that the agents used, by day and by person,
 - Click a run to open its feature.
 - Iterations counts the requests that each run sent to the model.
 - The amounts show by default. Switch Show prices off to hide them: a money tile then shows the token count. The app remembers the switch for each project.
-- An alert shows at 80 percent of a budget.
-- A run pauses at 100 percent. Raise the budget to go on.
+- Warn at is the percent of a budget where the alert shows. It is 80 percent for the project until you click Edit and set another percent from 1 to 100.
+- Each limit of a feature, a day and a person has a Then choice: Stop and ask (the default), Pause, Ask me or Go on. The run stops at 100 percent with the first three. Stop and ask also writes a comment on the ticket, Ask me asks in the app only, and Pause stops with no question. Raise the budget to go on. Go on turns the budget into a warning: the run goes on, and the alert shows once. Stop all agents, the stall timeout and the most turns still stop the run.
 
 ## Rights
 

@@ -218,12 +218,13 @@
     {
       "id": "SCR-020",
       "slug": "factory-workflows",
-      "title": "Crew / Recipes: each recipe and each agent role as a card; a recipe opens as a page with its steps, and a step opens as its own page; the files of the roles are in the More menu; the old Factory / Workflows address opens it (design picture 027, /crew/recipes?recipe=feature)",
+      "title": "Crew / Recipes: each recipe and each agent role as a card; a recipe opens as a page with its steps, and a step opens as its own page; the files of the roles are in the More menu; the old Factory / Workflows address opens it (design picture 027, /crew/recipes?recipe=feature). A step that waits for a person shows its role.",
       "artifacts": [
         "spec:factory",
         "spec:workflow-editor",
         "spec:ux-declutter",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/workflows.png"
     },
@@ -263,11 +264,12 @@
     {
       "id": "SCR-026",
       "slug": "factory-run",
-      "title": "Flow / Feature, Story: the page of one feature, with the stage line, the one action of the state, one question for its approvals (Each step, Do not ask again), and the sections Story, Brief, Design, Changes, Checks and Chat; the Story shows the events in plain sentences, and What happened, the requests and the live terminal open on demand; the old run address opens it",
+      "title": "Flow / Feature, Story: the page of one feature, with the stage line, the one action of the state, one question for its approvals (Each step, Do not ask again), and the sections Story, Brief, Design, Changes, Checks and Chat; the Story shows the events in plain sentences, and What happened, the requests and the live terminal open on demand; the old run address opens it. Pause sits between Talk and Stop on the Agent card.",
       "artifacts": [
         "spec:factory",
         "spec:ux-declutter",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/run.png"
     },
@@ -284,11 +286,12 @@
     {
       "id": "SCR-032",
       "slug": "factory-usage",
-      "title": "Crew / Spend: the spend of the six features with the most spend, the budgets and the alerts, and Stop all agents; How agents do and Budgets are sub-pages, and the tables of usage are in the More menu; the old Factory / Usage address opens it (design picture 013, /crew/spend)",
+      "title": "Crew / Spend: the spend of the six features with the most spend, the budgets and the alerts, and Stop all agents; How agents do and Budgets are sub-pages, and the tables of usage are in the More menu; the old Factory / Usage address opens it (design picture 013, /crew/spend). Warn at has Edit.",
       "artifacts": [
         "spec:factory",
         "spec:ux-declutter",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/usage.png"
     },
@@ -417,10 +420,11 @@
     {
       "id": "SCR-040",
       "slug": "flow-new",
-      "title": "New feature: a page with the Flow back link, what to build, the kind, three ways (an agent writes the spec, I write the spec, build now), and Or start from a ticket with Start an agent",
+      "title": "New feature: a page with the Flow back link, what to build, the kind, three ways (an agent writes the spec, I write the spec, build now), and Or start from a ticket with Start an agent. Add a document takes a Markdown, PDF or Word file, and Limit sits beside the recipe.",
       "artifacts": [
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/new-feature.png"
     },
@@ -779,11 +783,12 @@
     {
       "id": "SCR-088",
       "slug": "feature-chat",
-      "title": "Flow / Feature, Chat: the talk with the agent of the feature, the pull request conversation and the ticket comments; the live terminal and the requests are under For developers",
+      "title": "Flow / Feature, Chat: the talk with the agent of the feature, the pull request conversation and the ticket comments; the live terminal and the requests are under For developers. The message field has a + button that attaches a file as context for the next turn.",
       "artifacts": [
         "spec:factory",
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/feature-chat.png"
     },
@@ -967,9 +972,10 @@
     {
       "id": "SCR-141",
       "slug": "crew-recipe-step",
-      "title": "Crew / Recipes / one step: the page of a step with who runs it, how it works and its limits, and a back link to the recipe (design picture 080, /crew/recipes?recipe=feature&step=build)",
+      "title": "Crew / Recipes / one step: the page of a step with who runs it, how it works and its limits, and a back link to the recipe (design picture 080, /crew/recipes?recipe=feature&step=build). The page of a step shows Kind, Runs beside other steps, Child steps run side by side, Mode and May write with Asks first and Alone.",
       "artifacts": [
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/crew-recipe-step.png"
     },
@@ -994,9 +1000,10 @@
     {
       "id": "SCR-144",
       "slug": "crew-spend-budgets",
-      "title": "Crew / Spend / Budgets: one row for each kind of limit with its value and Edit; Add a limit (design picture 083, /crew/spend?page=budgets)",
+      "title": "Crew / Spend / Budgets: one row for each kind of limit with its value and Edit; Add a limit (design picture 083, /crew/spend?page=budgets). Warn at has Edit, and each limit of a feature, a day and a person has a Then choice.",
       "artifacts": [
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/crew-spend-budgets.png"
     },
@@ -1197,11 +1204,12 @@
     {
       "id": "SCR-182",
       "slug": "setup-automation",
-      "title": "Setup / This project, Automation: the main switch, the pickup rows, the steppers, the steps of the status mapping, what agents may write and the limits of spend",
+      "title": "Setup / This project, Automation: the main switch, the pickup rows, the steppers, the steps of the status mapping, what agents may write and the limits of spend. How many at once also has Plan, Build and Review.",
       "artifacts": [
         "spec:sync",
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/setup-automation.png"
     },
@@ -1229,10 +1237,11 @@
     {
       "id": "SCR-120",
       "slug": "feature-ticket",
-      "title": "Flow / Feature, ticket page: the ticket of the feature with an editable title and text, its facts, the comments, the sync mark with the issue tracker and Open in the issue tracker; Back returns to the feature",
+      "title": "Flow / Feature, ticket page: the ticket of the feature with an editable title and text, its facts, the comments, the sync mark with the issue tracker and Open in the issue tracker; Back returns to the feature. The blocked card has Take it over beside Unblock.",
       "artifacts": [
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/feature-ticket.png"
     },
@@ -1249,10 +1258,11 @@
     {
       "id": "SCR-122",
       "slug": "feature-stop",
-      "title": "Flow / Feature, stop card: the state in plain words, the cause in one sentence and one action (Reply, Unblock, Add budget, Resume, Try again or Close as done); What happened is in More",
+      "title": "Flow / Feature, stop card: the state in plain words, the cause in one sentence and one action (Reply, Unblock, Add budget, Resume, Try again or Close as done); What happened is in More. A blocked run also has Take it over, and a run that a person paused has Resume.",
       "artifacts": [
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/feature-stop.png"
     },

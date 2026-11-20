@@ -18,6 +18,7 @@ Ein Rezept ist die Liste der Schritte, denen ein Agent bei einem Feature folgt. 
 
 Ein Rezept öffnet sich in einem Formular. Nutzen Sie Formular und Text, um zwischen dem Formular und dem YAML-Text zu wechseln. Beide bearbeiten dieselbe Datei.
 
+- Die Seite eines Schritts zeigt auch Art (Agent, Person oder Prüfung, vom Schritt), Läuft neben anderen Schritten (an, wenn der Schritt auf keinen Schritt wartet), Unterschritte laufen nebeneinander und Modus. Ein Schritt, der auf eine Person wartet, hat Wer genehmigt: Nur eine Person mit dieser Rolle genehmigt ihn, und nur diese Rolle erhält seine Karte in Heute. Unter Personen ist Darf schreiben Fragt zuerst oder Allein: Allein ist die Freigabe „Für dieses Rezept nicht mehr fragen“.
 - Schritte: Jeder Schritt ist eine Karte mit den Gruppen Wer, Personen, Ablauf und Limits. Legen Sie die Rolle oder die Aktion, die Modellstufe, den Aufwand, den Modus, die Voraussetzungen, die Werkzeuge und den Prüfschritt jedes Schritts fest. Mehr zeigt die anderen Felder: Arbeitsbereich, für jedes, parallele Kinder, Wiederholungen, Zeitlimit, Budget, Skill, frischer Kontext und Prüfrunden. Fügen Sie einen Schritt hinzu, entfernen Sie ihn und schieben Sie ihn nach oben oder unten.
 - Limits: das Stillstands-Zeitlimit in Sekunden. Schalten Sie Budget ein, um jeden Lauf bei einem Betrag in USD zu stoppen, und Rundenlimit, um jeden Lauf nach einer Zahl von Runden zu pausieren. Beide sind standardmäßig aus.
 - Das Formular prüft das Rezept bei jeder Änderung. Speichern bleibt aus, solange es ein Problem zeigt.
@@ -38,8 +39,8 @@ Ausgaben zeigt die Tokens und das Geld, die die Agenten verbraucht haben, pro Ta
 - Klicken Sie auf einen Lauf, um sein Feature zu öffnen.
 - Iterationen zählt die Anfragen, die jeder Lauf an das Modell gesendet hat.
 - Die Beträge zeigen sich standardmäßig. Schalten Sie Preise anzeigen aus, um sie zu verbergen: Eine Geld-Kachel zeigt dann die Token-Zahl. Die App merkt sich den Schalter für jedes Projekt.
-- Eine Warnung zeigt sich bei 80 Prozent eines Budgets.
-- Ein Lauf pausiert bei 100 Prozent. Erhöhen Sie das Budget, um fortzufahren.
+- Warnen bei ist der Prozentsatz eines Budgets, bei dem die Warnung erscheint. Er beträgt 80 Prozent für das Projekt, bis Sie auf Bearbeiten klicken und einen anderen Prozentsatz von 1 bis 100 setzen.
+- Jedes Limit eines Features, eines Tages und einer Person hat eine Wahl Danach: Anhalten und fragen (Standard), Pausieren, Mich fragen oder Weitermachen. Mit den ersten drei stoppt der Lauf bei 100 Prozent. Anhalten und fragen schreibt auch einen Kommentar am Ticket, Mich fragen fragt nur in der App, und Pausieren stoppt ohne Frage. Erhöhen Sie das Budget, um fortzufahren. Weitermachen macht das Budget zu einer reinen Warnung: Der Lauf geht weiter, und die Warnung erscheint einmal. Alle Agenten stoppen, das Leerlauf-Zeitlimit und die höchste Rundenzahl stoppen den Lauf weiterhin.
 
 ## Rechte
 

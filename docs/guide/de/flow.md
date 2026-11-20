@@ -31,6 +31,8 @@ Neu öffnet eine eigene Seite, mit einem Link zurück zum Board und einer Frage:
 3. Wählen Sie den Weg: Ein Agent schreibt die Spezifikation, Ich schreibe die Spezifikation, oder Sofort bauen, ohne Spezifikation.
 4. Klicken Sie auf Erstellen.
 
+Dokument hinzufügen steht neben den Arten. Es nimmt eine Markdown-, PDF- oder Word-Datei bis 20 MiB, und die Seite lehnt eine andere Art ab. Erstellen kopiert jedes Dokument in den Ordner `inputs` der Änderung, als Eingabe für den Spezifikationsautor. Limit steht neben dem Rezept, für die Wege, die ein Ticket anlegen. Es ist das meiste Geld, das alle Läufe des Features ausgeben dürfen, in Dollar. Es steht in `.shipyard/automation.yaml` unter dem Schlüssel des Tickets.
+
 Oder beginnen Sie mit einem Ticket, unter den drei Wegen: Suchen Sie ein Ticket ohne Lauf, dann klicken Sie auf Agent starten. Von einem Ticket starten, unter Mehr bei Ablauf, öffnet sie.
 
 Jeder Weg legt zuerst eine Spezifikationsänderung mit Ihrem Text als Titel an. Ein Weg ist aus, wenn Ihnen das nötige Recht fehlt.
@@ -101,7 +103,7 @@ Prüfungen zeigt die Prüfschritte des Laufs, die Prüfungen des Pull Requests m
 
 ### Gespräch
 
-Gespräch zeigt das Gespräch der Agenten-Sitzung (das Live-Terminal und die Anfragen sind unter Für Entwickler), das Gespräch des Pull Requests und die Kommentare des Tickets. Das Gespräch des Pull Requests listet die allgemeinen Kommentare und die Review-Threads in zeitlicher Reihenfolge. Klicken Sie auf Antworten, um auf einen Thread zu antworten, auf Lösen, um ihn zu schließen, und auf Wieder öffnen, um ihn erneut zu öffnen. Das Schreibfeld hat Schreiben und Vorschau. Kommentieren sendet einen allgemeinen Kommentar. An den Agenten zurücksenden zeigt sich bei einem Pull Request, den ein Lauf geöffnet hat.
+Gespräch hat neben dem Nachrichtenfeld eine Schaltfläche +. Sie kopiert eine Datei als Kontext in den Ordner des Laufs: Die nächste Runde des Agenten liest sie. Eine Textdatei darf bis 200 KiB groß sein, ein Bild bis 2 MiB, und das Gespräch sagt, welche Grenze eine größere Datei bricht. Pausieren steht auf der Karte Agent, zwischen Sprechen und Stoppen. Der Agent beendet seine Runde, dann ist der Lauf von einer Person pausiert, behält seinen Platz in den Grenzen und wartet auf Fortsetzen. Gespräch zeigt das Gespräch der Agenten-Sitzung (das Live-Terminal und die Anfragen sind unter Für Entwickler), das Gespräch des Pull Requests und die Kommentare des Tickets. Das Gespräch des Pull Requests listet die allgemeinen Kommentare und die Review-Threads in zeitlicher Reihenfolge. Klicken Sie auf Antworten, um auf einen Thread zu antworten, auf Lösen, um ihn zu schließen, und auf Wieder öffnen, um ihn erneut zu öffnen. Das Schreibfeld hat Schreiben und Vorschau. Kommentieren sendet einen allgemeinen Kommentar. An den Agenten zurücksenden zeigt sich bei einem Pull Request, den ein Lauf geöffnet hat.
 
 ## Freigaben
 
@@ -126,6 +128,7 @@ Dann stoppt der Lauf, und das Feature wartet auf Sie. Die Seite sagt den Zustand
 | Entblocken | Der Lauf ist blockiert. Tippen Sie eine Nachricht: Der Lauf erhält eine weitere Runde und liest sie. |
 | Budget hinzufügen | Der Lauf hat sein Budget oder seine Runden verbraucht. Erhöhen Sie das Budget, dann läuft er weiter. |
 | Fortsetzen | Der Lauf ist pausiert. |
+| Übernehmen | Der Lauf ist blockiert. Er endet als abgebrochen mit dem Grund „Übernommen von“ und Ihrem Namen, der Branch und der Worktree bleiben, das Ticket gehört Ihnen und der Worktree öffnet sich in Ihrem Editor. |
 | Erneut versuchen | Der Lauf ist fehlgeschlagen oder wurde abgebrochen. Ein neuer Lauf startet. |
 | Als erledigt schließen | Der Lauf hat keine Datei geändert und die Arbeit ist schon da. |
 

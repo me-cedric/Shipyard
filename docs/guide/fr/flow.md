@@ -31,6 +31,8 @@ Nouveau ouvre une page à part, avec un lien de retour vers le tableau et une qu
 3. Choisissez la manière : Un agent écrit la spec, J'écris la spec, ou Construire tout de suite, sans spec.
 4. Cliquez sur Créer.
 
+Ajouter un document est à côté des types. Il prend un fichier Markdown, PDF ou Word, jusqu'à 20 Mio, et la page refuse un autre type. Créer copie chaque document dans le dossier `inputs` du changement, comme entrée de l'auteur de la spec. Limite est à côté de la recette, pour les voies qui font un ticket. C'est le plus d'argent que toutes les exécutions de la fonctionnalité peuvent dépenser, en dollars. Elle va dans `.shipyard/automation.yaml` par la clé du ticket.
+
 Ou partez d'un ticket, sous les trois manières : trouvez un ticket sans exécution, puis cliquez sur Lancer un agent. Partir d'un ticket, dans Plus sur Flux, l'ouvre.
 
 Chaque manière crée d'abord un changement de spec avec votre texte comme titre. Une manière est désactivée quand il vous manque le droit qu'elle demande.
@@ -101,7 +103,7 @@ Contrôles montre les étapes de contrôle de l'exécution, les contrôles de la
 
 ### Discussion
 
-Discussion montre la conversation de la session de l'agent (le terminal en direct et les requêtes sont sous Pour les développeurs), la conversation de la pull request et les commentaires du ticket. La conversation de la pull request liste les commentaires généraux et les fils de revue dans l'ordre du temps. Cliquez sur Répondre pour répondre à un fil, sur Résoudre pour le fermer et sur Rouvrir pour l'ouvrir à nouveau. La zone d'écriture a Écrire et Aperçu. Commenter publie un commentaire général. Renvoyer à l'agent s'affiche pour une pull request qu'une exécution a ouverte.
+Discussion a un bouton + à côté du champ de message. Il copie un fichier dans le dossier de l'exécution comme contexte : le prochain tour de l'agent le lit. Un fichier texte va jusqu'à 200 Kio et une image jusqu'à 2 Mio, et la discussion dit quelle limite un fichier plus gros dépasse. Mettre en pause est sur la carte Agent, entre Parler et Arrêter. L'agent finit son tour, puis l'exécution est en pause par une personne, garde sa place dans les limites et attend Reprendre. Discussion montre la conversation de la session de l'agent (le terminal en direct et les requêtes sont sous Pour les développeurs), la conversation de la pull request et les commentaires du ticket. La conversation de la pull request liste les commentaires généraux et les fils de revue dans l'ordre du temps. Cliquez sur Répondre pour répondre à un fil, sur Résoudre pour le fermer et sur Rouvrir pour l'ouvrir à nouveau. La zone d'écriture a Écrire et Aperçu. Commenter publie un commentaire général. Renvoyer à l'agent s'affiche pour une pull request qu'une exécution a ouverte.
 
 ## Approbations
 
@@ -126,6 +128,7 @@ Ensuite l'exécution s'arrête, et la fonctionnalité vous attend. La page dit l
 | Débloquer | L'exécution est bloquée. Tapez un message : l'exécution reçoit un tour de plus et le lit. |
 | Ajouter du budget | L'exécution a dépensé son budget ou ses tours. Augmentez le budget, puis l'exécution continue. |
 | Reprendre | L'exécution est en pause. |
+| Reprendre la main | L'exécution est bloquée. Elle se termine comme annulée avec la raison « Repris par » et votre nom, la branche et le worktree restent, le ticket est à vous et le worktree s'ouvre dans votre éditeur. |
 | Réessayer | L'exécution a échoué ou a été annulée. Une nouvelle exécution commence. |
 | Clore comme terminée | L'exécution n'a changé aucun fichier et le travail est déjà là. |
 
