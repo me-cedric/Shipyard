@@ -3,6 +3,7 @@ import { useState } from "react";
 import { DetailColumn, LibraryPage, PageColumns, SideCards } from "@/features/library/page-parts";
 import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
+import type { StepKind } from "@/lib/ipc";
 import { useLearn } from "@/lib/knowledge";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
@@ -14,7 +15,8 @@ import { AcademicCapIcon, ArrowPathIcon, CheckIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
-import { LearnCard, LearnFeeds } from "./learn-feeds";
+import { AddWord } from "./add-word";
+import { LearnCard, LearnFeeds, useLearning } from "./learn-feeds";
 import { blankStep, type Draft, LearnActions, LearnPaths } from "./learn-paths";
 
 const DONE = "shipyard.learn.done";
@@ -51,6 +53,12 @@ export function Learn() {
 	const { openRef } = useShell();
 	const learn = useLearn().data;
 	const { done, mark } = useDone();
+	// The kind of the learning step that is about an item of the path: its second pill.
+	const second = new Map(
+		(useLearning().data?.paths ?? []).flatMap((p) =>
+			p.steps.flatMap((s) => (s.ref ? [[s.ref, s.kind] as const] : [])),
+		),
+	);
 	const [picked, setPicked] = useState<string | null>(null);
 	const [editing, setEditing] = useState<Draft | null>(null);
 	if (active === undefined) return <Loading title={k.title} icon={<AcademicCapIcon size={16} />} />;
@@ -134,6 +142,9 @@ export function Learn() {
 												{s.title}
 											</button>
 											<Badge>{kinds[s.kind] ?? s.kind}</Badge>
+											{second.has(s.ref) ? (
+												<Badge variant="accent">{k.kind[second.get(s.ref) as StepKind]}</Badge>
+											) : null}
 											{now ? (
 												<Button
 													variant="primary"
@@ -148,7 +159,13 @@ export function Learn() {
 								})}
 							</ol>
 						</Card>
-						<LearnPaths part="paths" picked={picked} editing={editing} onEdit={setEditing} />
+						<LearnPaths
+							part="paths"
+							picked={picked}
+							editing={editing}
+							onEdit={setEditing}
+							items={path.map((s) => ({ ref: s.ref, title: s.title }))}
+						/>
 					</DetailColumn>
 					<SideCards className="flex-[2_1_320px]">
 						<LearnCard title={k.glossary}>
@@ -167,6 +184,7 @@ export function Learn() {
 									</li>
 								))}
 							</ul>
+							<AddWord />
 						</LearnCard>
 						<LearnPaths part="experts" />
 						<LearnPaths part="team" />

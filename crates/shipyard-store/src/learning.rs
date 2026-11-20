@@ -40,6 +40,10 @@ pub struct LearningStep {
     /// An `https` address of the course or the exam.
     #[serde(default)]
     pub url: Option<String>,
+    /// The item of the project that the step is about (`spec:auth`). Its step in Learn gets the
+    /// kind of this step as a second pill (`spec:library-functions#REQ-005`).
+    #[serde(default, rename = "ref", skip_serializing_if = "Option::is_none")]
+    pub target: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -167,6 +171,16 @@ pub fn path_save(root: &Path, mut p: LearningPath) -> Result<Learning> {
             .filter(|u| !u.is_empty());
         if let Some(u) = &s.url {
             check_address(u)?;
+        }
+        s.target = s
+            .target
+            .take()
+            .map(|r| r.trim().to_string())
+            .filter(|r| !r.is_empty());
+        if let Some(r) = &s.target
+            && (!r.contains(':') || r.len() > 200 || r.chars().any(char::is_whitespace))
+        {
+            return Err(format!("bad ref: {r}").into());
         }
     }
     p.experts.retain(|e| !e.trim().is_empty());
@@ -463,18 +477,26 @@ mod tests {
                     kind: StepKind::Course,
                     title: "The book".into(),
                     url: Some("https://doc.rust-lang.org/book/".into()),
+                    target: Some(" spec:auth ".into()),
                 },
                 LearningStep {
                     id: String::new(),
                     kind: StepKind::Certification,
                     title: "Exam".into(),
                     url: None,
+                    target: None,
                 },
             ],
         };
         let l = path_save(root, path.clone()).unwrap();
         assert_eq!(l.paths[0].id, "rust-basics");
         assert_eq!(l.paths[0].steps[0].id, "the-book");
+        // The item of a step is kept as a trimmed ref; a text that is no ref is refused.
+        assert_eq!(l.paths[0].steps[0].target.as_deref(), Some("spec:auth"));
+        assert_eq!(l.paths[0].steps[1].target, None);
+        let mut no_ref = path.clone();
+        no_ref.steps[0].target = Some("auth".into());
+        assert!(path_save(root, no_ref).is_err());
         let mut bad = path.clone();
         bad.steps[0].url = Some("javascript:alert(1)".into());
         assert!(path_save(root, bad).is_err());

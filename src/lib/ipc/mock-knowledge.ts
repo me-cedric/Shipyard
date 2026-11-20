@@ -42,6 +42,7 @@ const YAML = { indentSeq: false };
 const VERSION = 1;
 const FOLDERS = { handbook: "docs/handbook", documents: "docs/documents", slides: "docs/slides" };
 const DASH = "docs/dashboards";
+export const GLOSSARY = "docs/glossary.md";
 const THEME = `${FOLDERS.slides}/theme.yaml`;
 const TILES = [
 	"work",
@@ -326,6 +327,34 @@ export function docAddFile(
 	else k.others.push(path);
 	const file_ = path.slice(FOLDERS.documents.length + 1);
 	return { path, title: ext === ".docx" ? file_.slice(0, -5) : file_ };
+}
+
+/**
+ * `glossary_add_word`: a line `- word: meaning` under `### Glossary` in `docs/glossary.md`.
+ * `known` is the glossary that the specs and the file give now: a word in it is refused.
+ */
+export function glossaryAdd(
+	k: MockKnowledge,
+	known: { term: string }[],
+	term: string,
+	meaning: string,
+	click: boolean,
+): null {
+	if (!click) throw "this change needs the click of a person";
+	const [w, m] = [term.trim(), meaning.trim()];
+	const plain = (x: string) => x !== "" && x.length <= 500 && !/[\r\n]/.test(x);
+	if (!plain(w) || !plain(m) || w.includes(":") || w.length > 80)
+		throw "a word has a name with no colon and a meaning, each on one line";
+	if (known.some((g) => g.term.toLowerCase() === w.toLowerCase()))
+		throw `${w} is already in the glossary`;
+	const line = `- ${w}: ${m}\n`;
+	const old = k.files[GLOSSARY]?.text;
+	const text =
+		old === undefined
+			? `# Glossary\n\n### Glossary\n\n${line}`
+			: `${old.endsWith("\n") ? old : `${old}\n`}${/^### Glossary\s*$/m.test(old) ? "" : "\n### Glossary\n\n"}${line}`;
+	putText(k.files, GLOSSARY, text, null, old === undefined);
+	return null;
 }
 
 /** The `doc:` entities and citations of the pages. */

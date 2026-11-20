@@ -113,7 +113,10 @@ const member = (
 const seedTeam = (): Team_Serialize => ({
 	members: [
 		member("Ada Lovelace", "ada", "dev", ["api", "rust"], 520),
-		member("Grace Hopper", "grace", "dev", ["api", "web", "ui"], 500, 4),
+		{
+			...member("Grace Hopper", "grace", "dev", ["api", "web", "ui"], 500, 4),
+			topics: ["Billing"],
+		},
 		member("Alan Turing", "alan", "qa", ["test", "security"], 420),
 		member("Margaret Hamilton", "margaret", "lead", ["api", "plan"], 700, 3, {
 			absences: [{ from: "2026-11-16", to: "2026-11-20" }],
@@ -561,6 +564,7 @@ const normMember = (m: Member_Deserialize): Member_Serialize => ({
 	...(m.rights?.length ? { rights: m.rights } : {}),
 	capacity: m.capacity ?? 0,
 	skills: m.skills ?? [],
+	...(m.topics?.length ? { topics: m.topics } : {}),
 	...(m.dayRate != null ? { dayRate: m.dayRate } : {}),
 	availability: normAvailability(m.availability),
 });

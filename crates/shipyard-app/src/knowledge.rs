@@ -782,10 +782,88 @@ pub fn learn(s: &AppState) -> Res<Learn> {
             Some((n.target.clone(), text))
         })
         .collect();
+    // The words that a person added sit beside the specs: a spec defines a term first.
+    let mut sources = specs;
+    if let Ok(text) = std::fs::read_to_string(p.root.join(GLOSSARY)) {
+        sources.push((format!("doc:{GLOSSARY}"), text));
+    }
     Ok(Learn {
         path,
-        glossary: glossary(&specs),
+        glossary: glossary(&sources),
     })
+}
+
+/// The glossary file of the project: the words that a person added in Learn.
+const GLOSSARY: &str = "docs/glossary.md";
+
+/// Adds a word and its meaning to `docs/glossary.md` as the line `- word: meaning` under
+/// `### Glossary`. A word that a spec or the file already defines is refused.
+pub fn glossary_add(s: &AppState, term: &str, meaning: &str, click: bool) -> Res<()> {
+    crate::work::need_click(
+        s,
+        click,
+        crate::rights::Right::KnowledgeEdit,
+        "glossary_add",
+        term,
+    )?;
+    let (term, meaning) = (term.trim(), meaning.trim());
+    let plain = |t: &str| !t.is_empty() && t.len() <= 500 && !t.contains(['\n', '\r']);
+    if !plain(term) || !plain(meaning) || term.contains(':') || term.len() > 80 {
+        return Err("a word has a name with no colon and a meaning, each on one line".into());
+    }
+    if learn(s)?
+        .glossary
+        .iter()
+        .any(|g| g.term.to_lowercase() == term.to_lowercase())
+    {
+        return Err(format!("{term} is already in the glossary"));
+    }
+    let p = project(s)?;
+    let full = p.root.join(GLOSSARY);
+    let line = format!("- {term}: {meaning}\n");
+    match read_text(&full, GLOSSARY) {
+        Ok(old) => {
+            // The reader looks under `### Glossary`: a file with no such heading gets it first.
+            let heading = if old.text.lines().any(|l| l.trim_end() == "### Glossary") {
+                ""
+            } else {
+                "\n### Glossary\n\n"
+            };
+            let text = format!("{}{heading}{line}", with_final_newline(&old.text));
+            let w = put(
+                s,
+                &full,
+                &text,
+                Some(&old.stamp),
+                false,
+                crate::rights::Right::KnowledgeEdit,
+            )?;
+            if w.conflict {
+                return Err("the glossary changed on disk: try again".into());
+            }
+        }
+        Err(_) if !full.exists() => {
+            let text = format!("# Glossary\n\n### Glossary\n\n{line}");
+            put(
+                s,
+                &full,
+                &text,
+                None,
+                true,
+                crate::rights::Right::KnowledgeEdit,
+            )?;
+        }
+        Err(e) => return Err(e),
+    }
+    Ok(())
+}
+
+fn with_final_newline(text: &str) -> String {
+    if text.ends_with('\n') {
+        text.to_string()
+    } else {
+        format!("{text}\n")
+    }
 }
 
 // ---------------------------------------------------------------- exports
@@ -1379,6 +1457,18 @@ pub async fn learn_get(app: AppHandle) -> Api<Learn> {
     blocking(app, learn).await
 }
 
+/// Adds a word to the glossary file, after the click of a person.
+#[tauri::command]
+#[specta::specta]
+pub async fn glossary_add_word(
+    app: AppHandle,
+    term: String,
+    meaning: String,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| glossary_add(s, &term, &meaning, click)).await
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn export_dossier_file(
@@ -1535,6 +1625,49 @@ mod tests {
         assert_eq!(steps, ["model:core", "adr:0004", "spec:work"]);
         assert_eq!(l.glossary[0].term, "run");
         assert_eq!(l.glossary[0].spec, "spec:work");
+    }
+
+    #[test]
+    fn a_word_goes_into_the_glossary_file_and_the_glossary_reads_it() {
+        let (repo, _d, s) = setup();
+        assert!(glossary_add(&s, "Recipe", "the steps of an agent", false).is_err());
+        glossary_add(&s, "Recipe", "the steps of an agent", true).unwrap();
+        glossary_add(&s, "Wave", "a group of tasks", true).unwrap();
+        let file = std::fs::read_to_string(repo.path().join("docs/glossary.md")).unwrap();
+        assert!(file.contains("- Recipe: the steps of an agent\n- Wave: a group of tasks\n"));
+        // A file that a person wrote with no heading keeps its text and gets the heading.
+        std::fs::write(repo.path().join("docs/glossary.md"), "# Words\n").unwrap();
+        glossary_add(&s, "Slot", "a place for a run", true).unwrap();
+        let file = std::fs::read_to_string(repo.path().join("docs/glossary.md")).unwrap();
+        assert_eq!(
+            file,
+            "# Words\n\n### Glossary\n\n- Slot: a place for a run\n"
+        );
+        std::fs::remove_file(repo.path().join("docs/glossary.md")).unwrap();
+        glossary_add(&s, "Recipe", "the steps of an agent", true).unwrap();
+        glossary_add(&s, "Wave", "a group of tasks", true).unwrap();
+        let l = learn(&s).unwrap();
+        let recipe = l.glossary.iter().find(|t| t.term == "Recipe").unwrap();
+        assert_eq!(recipe.meaning, "the steps of an agent");
+        assert_eq!(recipe.spec, "doc:docs/glossary.md");
+        // The terms of the specs stay, and the file never replaces one of them.
+        assert_eq!(
+            l.glossary.iter().find(|t| t.term == "run").unwrap().spec,
+            "spec:work"
+        );
+        for (term, meaning) in [
+            ("RUN", "again"),
+            ("recipe", "again"),
+            ("", "x"),
+            ("a: b", "x"),
+            ("word", ""),
+            ("word", "two\nlines"),
+        ] {
+            assert!(
+                glossary_add(&s, term, meaning, true).is_err(),
+                "{term} {meaning}"
+            );
+        }
     }
 
     #[test]

@@ -1,5 +1,5 @@
 import { Menu } from "@base-ui/react/menu";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
@@ -23,7 +23,7 @@ import { Select } from "@/ui/atoms/select";
 import { LinkIcon, PencilIcon, PlusIcon, TrashIcon, XMarkIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuList } from "@/ui/molecules/menu-button";
-import { LearnCard, learningKey, openAddress } from "./learn-feeds";
+import { LearnCard, learningKey, openAddress, useLearning } from "./learn-feeds";
 
 const KINDS: StepKind[] = ["course", "certification", "reading"];
 const stepKey = (p: LearningPath, s: LearningStep) => `${p.id}/${s.id}`;
@@ -35,10 +35,13 @@ export const blankStep = (): LearningStep => ({ id: "", kind: "course", title: "
 function PathForm({
 	start,
 	people,
+	items,
 	onDone,
 }: {
 	start: Draft;
 	people: { handle: string; name: string }[];
+	/** The items of the path of the project: a step can be about one of them. */
+	items: { ref: string; title: string }[];
 	onDone: () => void;
 }) {
 	const { t } = useI18n();
@@ -101,6 +104,16 @@ function PathForm({
 							value={s.kind}
 							onValueChange={(v) => setStep(i, { kind: v as StepKind })}
 							items={KINDS.map((x) => ({ value: x, label: k.kind[x] }))}
+						/>
+						<Select
+							label={t.library.fn.learn.stepItem}
+							value={s.ref ?? ""}
+							placeholder="—"
+							onValueChange={(v) => setStep(i, { ref: v || undefined })}
+							items={[
+								{ value: "", label: "—" },
+								...items.map((x) => ({ value: x.ref, label: x.title })),
+							]}
 						/>
 						<Input
 							label={k.stepName}
@@ -207,24 +220,21 @@ export function LearnPaths({
 	picked = null,
 	editing = null,
 	onEdit = () => undefined,
+	items = [],
 }: {
 	part: "paths" | "team" | "experts";
 	picked?: string | null;
 	editing?: Draft | null;
 	onEdit?: (d: Draft | null) => void;
+	items?: { ref: string; title: string }[];
 }) {
 	const { t } = useI18n();
 	const k = t.knowledge.learn;
 	const qc = useQueryClient();
 	const { failure, run } = useGuard();
-	const learning = useQuery({
-		queryKey: learningKey,
-		queryFn: () => unwrap(commands.learningGet()),
-	});
-	const people = (useTeam().data?.team.members ?? []).map((m) => ({
-		handle: m.handle,
-		name: m.name,
-	}));
+	const learning = useLearning();
+	const members = useTeam().data?.team.members ?? [];
+	const people = members.map((m) => ({ handle: m.handle, name: m.name }));
 	const who = picked ?? people[0]?.handle ?? "";
 	const setEditing = onEdit;
 	const [removing, setRemoving] = useState<string | null>(null);
@@ -238,8 +248,9 @@ export function LearnPaths({
 		});
 
 	if (part === "experts") {
-		// An expert of several paths shows each path name as the topic.
+		// An expert is a person of the team file with topics. The paths that the person can help with count as topics too.
 		const topics = new Map<string, string[]>();
+		for (const m of members) if (m.topics?.length) topics.set(m.handle, [...m.topics]);
 		for (const p of paths)
 			for (const e of p.experts) topics.set(e, [...(topics.get(e) ?? []), p.title]);
 		if (!topics.size) return null;
@@ -289,7 +300,7 @@ export function LearnPaths({
 	return (
 		<LearnCard title={k.paths}>
 			{editing ? (
-				<PathForm start={editing} people={people} onDone={() => setEditing(null)} />
+				<PathForm start={editing} people={people} items={items} onDone={() => setEditing(null)} />
 			) : null}
 			<ErrorNotice error={failure} />
 			{paths.map((p) => {

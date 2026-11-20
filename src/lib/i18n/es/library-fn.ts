@@ -2,6 +2,13 @@ import type { libraryFnEn } from "../library-fn";
 
 export const libraryFnEs: typeof libraryFnEn = {
 	documents: { addFile: "Añadir un archivo", open: "Abrir" },
+	learn: {
+		addWord: "Añadir una palabra",
+		word: "Palabra",
+		meaning: "Significado",
+		add: "Añadir",
+		stepItem: "Elemento",
+	},
 	slides: {
 		edit: "Editar",
 		done: "Listo",

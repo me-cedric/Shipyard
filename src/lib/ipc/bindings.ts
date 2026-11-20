@@ -496,6 +496,8 @@ export const commands = {
 	dashboardSaveOne: (slug: string, dashboard: Dashboard_Deserialize, stamp: string | null) => typedError<Written_Serialize, AppError_Serialize>(__TAURI_INVOKE("dashboard_save_one", { slug, dashboard, stamp })),
 	dashboardTile: (kind: string) => typedError<TileData_Serialize, AppError_Serialize>(__TAURI_INVOKE("dashboard_tile", { kind })),
 	learnGet: () => typedError<Learn, AppError_Serialize>(__TAURI_INVOKE("learn_get")),
+	/**  Adds a word to the glossary file, after the click of a person. */
+	glossaryAddWord: (term: string, meaning: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("glossary_add_word", { term, meaning, click })),
 	learningGet: () => typedError<Learning_Serialize, AppError_Serialize>(__TAURI_INVOKE("learning_get")),
 	/**  Reads each feed of the project. `refresh` reads again even when the copy is fresh. */
 	learningFeedsRead: (refresh: boolean) => typedError<FeedRead_Serialize[], AppError_Serialize>(__TAURI_INVOKE("learning_feeds_read", { refresh })),
@@ -2975,6 +2977,11 @@ export type LearningStep_Deserialize = {
 	title: string,
 	/**  An `https` address of the course or the exam. */
 	url?: string | null,
+	/**
+	 *  The item of the project that the step is about (`spec:auth`). Its step in Learn gets the
+	 *  kind of this step as a second pill (`spec:library-functions#REQ-005`).
+	 */
+	ref?: string | null,
 };
 
 export type LearningStep_Serialize = {
@@ -2984,6 +2991,11 @@ export type LearningStep_Serialize = {
 	title: string,
 	/**  An `https` address of the course or the exam. */
 	url: string | null,
+	/**
+	 *  The item of the project that the step is about (`spec:auth`). Its step in Learn gets the
+	 *  kind of this step as a second pill (`spec:library-functions#REQ-005`).
+	 */
+	ref?: string,
 };
 
 export type Learning_Deserialize = {
@@ -3361,6 +3373,8 @@ export type Member_Deserialize = {
 	/**  Days per week. */
 	capacity?: number | null,
 	skills?: string[],
+	/**  What this person can teach: the topics of the Experts card of Learn. */
+	topics?: string[],
 	/**  `None` when the file has none, or when the seal is on and this machine has no passphrase. */
 	dayRate?: number | null,
 	availability?: Availability_Deserialize,
@@ -3388,6 +3402,8 @@ export type Member_Serialize = {
 	/**  Days per week. */
 	capacity: number | null,
 	skills: string[],
+	/**  What this person can teach: the topics of the Experts card of Learn. */
+	topics?: string[],
 	/**  `None` when the file has none, or when the seal is on and this machine has no passphrase. */
 	dayRate?: number | null,
 	availability: Availability_Serialize,

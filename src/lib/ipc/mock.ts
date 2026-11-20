@@ -579,7 +579,12 @@ function knowledgeEnv(): kw.Env {
 		specs: Object.entries(state.specs.files)
 			.map(([p, f]) => [/\/specs\/([^/]+)\/spec\.md$/.exec(p)?.[1], f.text] as const)
 			.filter((x): x is readonly [string, string] => !!x[0])
-			.map(([cap, text]) => [`spec:${cap}`, text]),
+			.map(([cap, text]) => [`spec:${cap}`, text] as [string, string])
+			.concat(
+				state.knowledge?.files[kw.GLOSSARY]
+					? [[`doc:${kw.GLOSSARY}`, state.knowledge.files[kw.GLOSSARY]?.text ?? ""]]
+					: [],
+			),
 		tiles: {
 			work: mirror.map((t) => t.status),
 			runs: fx.runsList(state.factory, project).map((r) => r.state),
@@ -2277,6 +2282,14 @@ const handlers: Handlers = {
 			budgetUsd,
 		),
 	learnGet: () => kw.learnGet(knowledgeEnv()),
+	glossaryAddWord: (term, meaning, click) =>
+		kw.glossaryAdd(
+			need(state.knowledge),
+			kw.learnGet(knowledgeEnv()).glossary,
+			term,
+			meaning,
+			click,
+		),
 	learningGet: () => lrn.learningGet(need(state.learning)),
 	learningFeedsRead: () => lrn.feedsRead(need(state.learning)),
 	learningFeedAdd: (url, click) => lrn.feedAdd(need(state.learning), url, click),

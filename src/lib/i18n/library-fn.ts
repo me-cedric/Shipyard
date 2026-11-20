@@ -1,6 +1,7 @@
 /** The strings of the controls that `spec:library-functions` adds to Library. */
 export const libraryFnEn = {
 	documents: { addFile: "Add a file", open: "Open" },
+	learn: { addWord: "Add a word", word: "Word", meaning: "Meaning", add: "Add", stepItem: "Item" },
 	slides: { edit: "Edit", done: "Done", notes: "Speaker notes", noNote: "No note on this slide" },
 	history: {
 		title: "Earlier versions",
@@ -18,6 +19,13 @@ export const libraryFnEn = {
 
 export const libraryFnFr: typeof libraryFnEn = {
 	documents: { addFile: "Ajouter un fichier", open: "Ouvrir" },
+	learn: {
+		addWord: "Ajouter un mot",
+		word: "Mot",
+		meaning: "Sens",
+		add: "Ajouter",
+		stepItem: "Élément",
+	},
 	slides: {
 		edit: "Modifier",
 		done: "Terminé",

@@ -506,6 +506,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             kw::dashboard_save_one,
             kw::dashboard_tile,
             kw::learn_get,
+            kw::glossary_add_word,
             crate::learning::learning_get,
             crate::learning::learning_feeds_read,
             crate::learning::learning_feed_add,

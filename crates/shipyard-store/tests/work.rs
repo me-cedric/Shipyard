@@ -14,6 +14,7 @@ members:
     role: dev
     capacity: 4
     skills: [api, rust]
+    topics: [billing, invoices]
     dayRate: 600
     availability:
       from: 2026-11-02
@@ -54,6 +55,9 @@ fn a_team_file_reads_every_field() {
     );
     assert_eq!(ana.trackers, ["ana-gh", "5b10a2844c20165700ede21g"]);
     assert_eq!(ana.skills, ["api", "rust"]);
+    // The topics of an expert (`spec:library-functions#REQ-005`).
+    assert_eq!(ana.topics, ["billing", "invoices"]);
+    assert!(t.members[1].topics.is_empty());
     assert_eq!(ana.day_rate, Some(600.0));
     assert_eq!(ana.availability.from.as_deref(), Some("2026-11-02"));
     assert_eq!(ana.availability.absences[0].to, "2026-12-31");

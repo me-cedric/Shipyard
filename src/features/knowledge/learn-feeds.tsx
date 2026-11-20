@@ -13,6 +13,10 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 export const learningKey = ["knowledge", "learning"] as const;
 const feedsKey = ["knowledge", "learning", "feeds"] as const;
 
+/** The learning file of the project: the paths, the experts and the progress of each person. */
+export const useLearning = () =>
+	useQuery({ queryKey: learningKey, queryFn: () => unwrap(commands.learningGet()) });
+
 /** Opens an address in the browser of the system. The backend accepts http and https only. */
 export const openAddress = (url: string) => void unwrap(commands.openLink(url)).catch(() => {});
 
