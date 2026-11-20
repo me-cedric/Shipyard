@@ -445,6 +445,13 @@ const scenes: Scene[] = [
 	{ name: "setup-plugins", run: (p) => go(p, "/setup/project?page=plugins") },
 	{ name: "setup-look", run: (p) => go(p, "/setup/me?page=look") },
 	{ name: "code-changes", run: (p) => go(p, "/code/changes") },
+	{
+		name: "sync-card",
+		run: async (p) => {
+			await p.getByRole("button", { name: /: Changed files/ }).click();
+			await p.getByRole("dialog").waitFor();
+		},
+	},
 	// The mock has a blocked run (ACME-9), a failed run (ACME-11) and a plan in review (ACME-4).
 	{
 		name: "feature-ticket",

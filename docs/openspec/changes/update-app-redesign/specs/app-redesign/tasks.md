@@ -82,7 +82,7 @@ Look pass 1, shell, tokens and shared parts
 - [x] T042 First run and "No project is open" as bare pages without the shell (`src/features/projects/first-run.tsx`, `src/features/shell/no-project.tsx`, `src/features/shell/bare.ts`). `spec:shell#REQ-019`.
 - [x] T043 Move the unit tests, the e2e specs, the persona walks and `scripts/screenshots.ts` to the new shell (`src/`, `e2e/`).
 - [x] T044 Docs: the deltas of `shell` and `design-system`, the test plans, `docs/designs/screens.json`, `README.md`, `docs/design/visual-language-v2.md`, `docs/guide/` in four languages, `CHANGELOG.md` and `CHANGELOG.fr.md`, `.agents/progress/app-redesign.md`.
-- [ ] T045 Retake the pictures of `docs/assets/screenshots/` and add the picture of SCR-097.
+- [x] T045 Retake the pictures of `docs/assets/screenshots/` and add the picture of SCR-097.
 - [ ] T046 Owner decision on the open points of look pass 1 in `.agents/progress/app-redesign.md` (the field border under 3:1, the Sign out action, the narrow bar preference).
 - [x] T047 Look pass 2, Code and Setup: rebuild Code Now, local changes, History, Branches, Terminal and the pages of Setup to their design pictures (`src/features/code/`, `src/features/settings/`, `src/features/projects/`, `src/features/sync/`). `spec:app-redesign#REQ-024`.
 - [x] T048 Retake the pictures of the 19 screens of look pass 2 Code and Setup with `scripts/screenshots.ts` and compare each one with its design picture in a fresh context.

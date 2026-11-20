@@ -101,7 +101,7 @@ Look pass 2, Library
 ### Non-Goals
 
 - No change to the engine, the run states, the sync, the stores or the command surface, except what a new view needs to read.
-- No new function other than the three agent actions of REQ-030 to REQ-033 (`q:Q-170`).
+- No new function other than the three agent actions of REQ-030 to REQ-033 (`q:Q-170`). The design shows some controls that the app does not have, for example Sign out, Pause, Take it over and the PDF switch of the dossier. This change does not build them. `.agents/progress/app-redesign.md` lists each one. Each one needs a change of its own.
 - No change to the files of a project in the repository.
 - No mobile layout. The window keeps its minimum size.
 

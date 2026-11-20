@@ -883,7 +883,8 @@
         "spec:code",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/sync-card.png"
     },
     {
       "id": "SCR-100",
