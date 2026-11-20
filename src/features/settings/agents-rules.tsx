@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { useGuard } from "@/features/work/guard";
+import { factoryKeys, useRoles } from "@/lib/factory";
 import { format, LANGS, useI18n } from "@/lib/i18n";
 import { commands, type RunnerTiers_Serialize, unwrap } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
@@ -384,23 +385,67 @@ function ModelsCard() {
 	);
 }
 
-/** The roles that the agents of the project load, each with its letter. */
+/**
+ * The roles that the agents of the project load, each with its letter, its description and the
+ * model tier that a person changes (`spec:shell-setup-rights#REQ-006`). A change of a bundled role
+ * that has no file in the project writes that file. A choice saves at once and needs `project.settings`.
+ */
 function RolesCard() {
 	const { t } = useI18n();
-	const roles = useQuery({
+	const qc = useQueryClient();
+	const { error, run } = useGuard();
+	const gate = useRights().gate("project.settings");
+	const tiers = useRoles().data ?? [];
+	const named = useQuery({
 		queryKey: ["roles-skills"],
 		queryFn: () => unwrap(commands.rolesSkillsGet()),
 	});
-	const rows = (roles.data ?? []).filter((r) => r.kind === "role");
-	if (!rows.length) return null;
+	const names = (named.data ?? []).filter((r) => r.kind === "role");
+	if (!tiers.length && !names.length) return null;
+	const f = t.shellFn.roles;
+	const items = (model: string | null) => [
+		...TIERS.map((v) => ({ value: v as string, label: f[v] })),
+		// A role that names a model and not a tier keeps its text.
+		...(model && !(TIERS as readonly string[]).includes(model) ? [{ value: model, label: model }] : []),
+	];
+	const set = (id: string, tier: string) =>
+		run(async () => {
+			await unwrap(commands.roleModelSet(id, tier));
+			await qc.invalidateQueries({ queryKey: factoryKeys.roles });
+		});
 	return (
 		<SetupCard id="compass-roles" title={t.personal.setup.roles}>
-			{rows.map((r) => (
-				<Row key={r.name}>
-					<Avatar agent name={r.name} />
-					<span className="min-w-0 font-semibold">{r.name}</span>
-				</Row>
-			))}
+			{tiers.length
+				? tiers.map((r) => {
+						const name = r.id.charAt(0).toUpperCase() + r.id.slice(1);
+						return (
+							<Row key={r.id}>
+								<Avatar agent name={name} />
+								<span className="min-w-0 flex-1 font-semibold">
+									{r.description ? `${name}, ${r.description}` : name}
+								</span>
+								<fieldset disabled={gate.disabled} title={gate.reason} className="shrink-0">
+									<ValueSelect
+										label={format(f.tier, { name })}
+										value={r.model ?? "mid"}
+										onValueChange={(v) => void set(r.id, v)}
+										items={items(r.model)}
+									/>
+								</fieldset>
+							</Row>
+						);
+					})
+				: names.map((r) => (
+						<Row key={r.name}>
+							<Avatar agent name={r.name} />
+							<span className="min-w-0 font-semibold">{r.name}</span>
+						</Row>
+					))}
+			{error ? (
+				<p role="alert" className="px-6 text-ui text-danger-text">
+					{error}
+				</p>
+			) : null}
 		</SetupCard>
 	);
 }

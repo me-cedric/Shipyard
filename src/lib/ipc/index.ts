@@ -5,6 +5,7 @@ export {
 	errorDialog,
 	pickAnyFile,
 	pickCertificate,
+	pickFile,
 	pickFolder,
 	pickImage,
 	pickPlugin,

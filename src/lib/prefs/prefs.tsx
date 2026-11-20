@@ -53,6 +53,8 @@ export type Prefs = Pick<
 	| "defaultAgent"
 	| "defaultModel"
 	| "autoUpdateCheck"
+	| "releaseChannel"
+	| "sound"
 	| "promptLang"
 	| "diagramFormat"
 	| "accent"
@@ -103,6 +105,8 @@ const DEFAULTS: Prefs = {
 	defaultAgent: "",
 	defaultModel: "",
 	autoUpdateCheck: true,
+	releaseChannel: "stable",
+	sound: true,
 	promptLang: "",
 	diagramFormat: "",
 	accent: null,

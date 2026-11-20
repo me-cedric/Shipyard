@@ -30,6 +30,7 @@ const SOURCES: Record<string, EventSource> = {
 	"pr-checks": "pr-checks",
 	"scan-failed": "scan-failed",
 	"review-draft": "review-draft",
+	budget: "budget",
 };
 
 /** These sources reach the system only when the notice is `needs-you`. The older ones always do. */

@@ -245,6 +245,8 @@ export function useWorkActions() {
 			exportExcel: (slug: string, path: string) => run(commands.excelExport(slug, path)),
 			saveDecisions: (d: Decisions_Deserialize) => run(commands.planDecisionsSave(d)),
 			saveCalendar: (c: Calendar_Deserialize) => run(commands.planCalendarSave(c)),
+			/** Fill from my work: the runs of my tickets and my commits of the day become entries. */
+			fillTime: (member: string | null, day: string) => run(commands.timeFillDay(member, day, true)),
 			addTime: (
 				member: string | null,
 				day: string,

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Fold } from "@/features/settings/connections/fold";
 import { SetupCard } from "@/features/settings/parts";
 import { useI18n } from "@/lib/i18n";
-import { commands, type FeedbackKind, unwrap } from "@/lib/ipc";
+import { commands, type FeedbackKind, pickFile, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
@@ -22,6 +22,7 @@ export function HealthFeedback() {
 	const [title, setTitle] = useState("");
 	const [details, setDetails] = useState("");
 	const [error, setError] = useState<unknown>(null);
+	const [attached, setAttached] = useState(false);
 	const send = async (job: () => Promise<unknown>) => {
 		setError(null);
 		try {
@@ -54,7 +55,26 @@ export function HealthFeedback() {
 					value={details}
 					onChange={(e) => setDetails(e.target.value)}
 				/>
-				<div className="flex flex-wrap gap-2.5">
+				<div className="flex flex-wrap items-center gap-2.5">
+					{/* The app sends nothing: the file shows in the file manager, and the person drags it into the form. */}
+					<Button
+						onClick={() =>
+							void send(async () => {
+								setAttached(false);
+								const path = await pickFile();
+								if (!path) return;
+								await unwrap(commands.revealPath(await unwrap(commands.feedbackAttach(path, true))));
+								setAttached(true);
+							})
+						}
+					>
+						{t.shellFn.feedback.attach}
+					</Button>
+					{attached ? (
+						<span role="status" className="text-ui text-n-11">
+							{t.shellFn.feedback.attached}
+						</span>
+					) : null}
 					<Button
 						variant="primary"
 						className="ml-auto"

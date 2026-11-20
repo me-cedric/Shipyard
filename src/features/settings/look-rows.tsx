@@ -1,17 +1,21 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import {
 	type Accent,
 	commands,
+	confirmDialog,
 	type FocusRing,
 	type Motion,
 	type PanelSide,
+	pickFolder,
 	unwrap,
 } from "@/lib/ipc";
+import { logError } from "@/lib/log";
 import { CODE_FONTS, formatDay, UI_FONTS, usePrefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
+import { Button } from "@/ui/atoms/button";
 import { Segmented } from "@/ui/atoms/segmented";
 import { SPRING, useReducedMotionPref } from "@/ui/motion";
 import { Fold } from "./connections/fold";
@@ -255,10 +259,31 @@ function Computer() {
 	const l = t.extras.look;
 	const f = t.personal.prefs;
 	const p = usePrefs();
+	const qc = useQueryClient();
 	const folder = useQuery({
 		queryKey: ["app", "data-folder"],
 		queryFn: () => unwrap(commands.appDataFolder()),
 	}).data;
+	// Change (`spec:shell-setup-rights#REQ-008`): pick a folder, ask, then move the data and restart.
+	const change = async () => {
+		try {
+			const path = await pickFolder();
+			if (!path) return;
+			if (!(await confirmDialog(format(t.shellFn.data.confirmMove, { path })))) return;
+			await unwrap(commands.appDataFolderMove(path, true));
+		} catch (e) {
+			logError(e);
+		}
+	};
+	const portable = async (on: boolean) => {
+		try {
+			await unwrap(commands.appPortableSet(on, true));
+		} catch (e) {
+			logError(e);
+		} finally {
+			await qc.invalidateQueries({ queryKey: ["app", "data-folder"] });
+		}
+	};
 	return (
 		<SetupCard title={t.personal.setup.moreComputer}>
 			<SetupRow label={f.shell}>
@@ -275,6 +300,22 @@ function Computer() {
 						{folder.path}
 					</span>
 					{folder.portable ? <Badge variant="info">{l.portable}</Badge> : null}
+					<Button
+						className="min-h-control"
+						aria-label={t.shellFn.data.changeTo}
+						onClick={() => void change()}
+					>
+						{t.shellFn.data.change}
+					</Button>
+				</SetupRow>
+			) : null}
+			{folder ? (
+				<SetupRow id="portable-mode" label={t.shellFn.data.portable}>
+					<Toggle
+						label={t.shellFn.data.portable}
+						checked={folder.marker}
+						onCheckedChange={(on) => void portable(on)}
+					/>
 				</SetupRow>
 			) : null}
 			<SetupRow id="close-push" label={t.personal.setup.closePush}>

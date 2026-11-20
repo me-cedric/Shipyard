@@ -502,7 +502,10 @@ const localPath = (path: string) => {
 		(e) => e.path === path,
 	);
 	const project = active()?.path;
-	const inside = !path.startsWith("/") || (project !== undefined && path.startsWith(`${project}/`));
+	const inside =
+		!path.startsWith("/") ||
+		(project !== undefined && path.startsWith(`${project}/`)) ||
+		path.startsWith(`${xt.DATA_PATH}/`);
 	if (!path || path.startsWith("-") || path.split("/").includes("..") || !(wrote || inside))
 		throw `path not allowed: ${path}`;
 	return null;
@@ -1716,6 +1719,7 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 	doctorBootstrapApply: (answers, click) =>
 		bs.bootstrapApply(state.bootstrap, answers, state.doctor.tools, click),
 	feedbackOpen: (kind, title, details, click) => fl.feedbackOpen(kind, title, details, click),
+	feedbackAttach: (path, click) => xt.feedbackAttach(state.extras, path, click),
 	debugLog: () => state.log.lines,
 	assistantAttach: (id, name, bytes) => ai.attach(state.assistant, assistantEnv(), id, name, bytes),
 	shellMenu: (labels) => {
@@ -1765,14 +1769,16 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 			throw "no settings pane for this permission";
 		return null;
 	},
-	// A release address with `newer` in it has a newer version; one with `broken` fails.
+	// A release address with `newer` in it has a newer version; one with `broken` fails. One with
+	// `prerelease` holds a pre-release that only the Preview channel considers.
 	updateCheck: () => {
 		const url = state.prefs.releaseUrl;
 		if (url.includes("broken")) throw "the release answer holds no version";
-		const newer = url.includes("newer");
+		const pre = url.includes("prerelease") && state.prefs.releaseChannel === "preview";
+		const newer = pre || url.includes("newer");
 		return {
 			current: "0.1.0",
-			latest: newer ? "0.2.0" : "0.1.0",
+			latest: pre ? "0.3.0-beta.1" : newer ? "0.2.0" : "0.1.0",
 			newer,
 			url: "https://example.com/releases/latest",
 			// The sections after the last version that ran, up to the running one.
@@ -2607,9 +2613,9 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 		ai.send(state.assistant, assistantEnv(), id, text, quotes, context),
 	assistantStop: () => null,
 	assistantLive: (thread) => xt.live(state.extras, thread),
-	appDataFolder: xt.dataFolder,
-	appPortableSet: (on, click) => xt.portableSet(on, click),
-	appDataFolderMove: (to, click) => xt.dataFolderMove(to, click),
+	appDataFolder: () => xt.dataFolder(state.extras),
+	appPortableSet: (on, click) => xt.portableSet(state.extras, on, click),
+	appDataFolderMove: (to, click) => xt.dataFolderMove(state.extras, to, click),
 	pictureGet: (which) => xt.pictureGet(state.extras, which),
 	pictureSet: (which, path, click) => {
 		if (which === "logo") need(true);

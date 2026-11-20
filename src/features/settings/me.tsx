@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { PermissionsCard, ReplayTour } from "@/features/onboarding";
+import { useBudgetStatus } from "@/features/shell/budget-notice";
 import { useSignOut } from "@/features/shell/sign-out";
-import { LANGS, useI18n } from "@/lib/i18n";
+import { format, LANGS, useI18n } from "@/lib/i18n";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import { type Overridable, ROLES, type Role, usePrefs } from "@/lib/prefs";
@@ -98,6 +99,10 @@ type Notify = ReturnType<typeof useNotifyOff>;
 function Notifications({ notify: { off, set } }: { notify: Notify }) {
 	const { t } = useI18n();
 	const s = t.personal.setup;
+	const { sound, setPrefs } = usePrefs();
+	// The level of the budget notice is Warn at of the budgets.
+	const percent = useBudgetStatus().data?.warnPercent ?? 80;
+	const budget = format(t.shellFn.notify.budget, { percent });
 	return (
 		<SetupCard id="section-notifications" title={t.notifications.title}>
 			{/* The design shows the two groups that need a person; the other sources have a switch under More. */}
@@ -110,6 +115,20 @@ function Notifications({ notify: { off, set } }: { notify: Notify }) {
 					/>
 				</SetupRow>
 			))}
+			<SetupRow label={budget}>
+				<Toggle
+					label={budget}
+					checked={!off.includes("budget")}
+					onCheckedChange={(on) => set(["budget"], on)}
+				/>
+			</SetupRow>
+			<SetupRow label={t.shellFn.notify.sound}>
+				<Toggle
+					label={t.shellFn.notify.sound}
+					checked={sound}
+					onCheckedChange={(on) => setPrefs({ sound: on })}
+				/>
+			</SetupRow>
 		</SetupCard>
 	);
 }
@@ -282,6 +301,17 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 								label={t.prefs.autoUpdate}
 								checked={prefs.autoUpdateCheck}
 								onCheckedChange={(c) => setPrefs({ autoUpdateCheck: c })}
+							/>
+						</SetupRow>
+						<SetupRow label={t.shellFn.notify.channel}>
+							<Segmented
+								label={t.shellFn.notify.channel}
+								value={prefs.releaseChannel}
+								onValueChange={(v) => setPrefs({ releaseChannel: v })}
+								items={[
+									{ value: "stable", label: t.shellFn.notify.stable },
+									{ value: "preview", label: t.shellFn.notify.preview },
+								]}
 							/>
 						</SetupRow>
 						<Fold label={t.ui.more}>

@@ -122,6 +122,8 @@ export function PlanTime() {
 	/** The cell whose change did not go through: its field shows the stored hours again. */
 	const [undone, setUndone] = useState({ cell: "", n: 0 });
 	const [adding, setAdding] = useState(false);
+	/** What the last Fill from my work did, as a sentence. */
+	const [filled, setFilled] = useState<string | null>(null);
 	const [reduce, setReduce] = useState(false);
 	/** The entry that goes to the tracker now. One send at a time: a second click waits for it. */
 	const [sending, setSending] = useState<string | null>(null);
@@ -482,6 +484,29 @@ export function PlanTime() {
 			items={members.map((m) => ({ value: m.handle, label: m.name }))}
 		/>
 	);
+	// Fill from my work (`spec:shell-setup-rights#REQ-005`): the entries of today show in the week of today.
+	const fill = (
+		<RightButton
+			right="work.edit"
+			disabled={!data}
+			busy={busy}
+			onClick={() =>
+				void run(async () => {
+					const out = await act.fillTime(handle, ctx.today);
+					setFetched({});
+					setMonth(null);
+					setWeek(null);
+					setFilled(
+						out.entries.length
+							? format(t.shellFn.time.filled, { count: out.entries.length })
+							: t.shellFn.time.nothing,
+					);
+				})
+			}
+		>
+			{t.shellFn.time.fill}
+		</RightButton>
+	);
 	const readMonth = (
 		<RightButton right="work.edit" disabled={!data} busy={busy} onClick={() => void fetchAll()}>
 			{p.time.readMonth}
@@ -669,8 +694,14 @@ export function PlanTime() {
 					)}
 					<span className="flex-1" />
 					{memberSelect}
+					{fill}
 					{readMonth}
 				</div>
+				{filled ? (
+					<p role="status" className="text-ui text-n-11">
+						{filled}
+					</p>
+				) : null}
 				{data ? (
 					<Card pad className="flex shrink-0 flex-wrap items-center gap-4">
 						<span className="font-semibold">{monthLabel(shownMonth, lang)}</span>

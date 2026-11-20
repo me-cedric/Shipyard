@@ -313,6 +313,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::creator::creator_bootstrap,
             crate::assistant_attach::assistant_attach,
             crate::feedback::feedback_open,
+            crate::feedback::feedback_attach,
             crate::applog::debug_log,
             ag::tiers_get,
             ag::tiers_set,

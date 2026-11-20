@@ -507,3 +507,41 @@ describe("Plan / Time", () => {
 		});
 	});
 });
+
+// spec:shell-setup-rights#REQ-005: Fill from my work makes rows from my runs and my commits.
+describe("Plan / Time: Fill from my work", () => {
+	it("adds the rows of the day once, and the sheet has no Save button", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await importAll();
+		const router = mountApp("/plan/time");
+		const before = mockState().work.time.ada?.length ?? 0;
+		await user.click(await screen.findByRole("button", { name: "Fill from my work" }));
+		expect(await screen.findByText("2 rows added")).toBeVisible();
+		expect(mockState().work.time.ada).toHaveLength(before + 2);
+		expect(mockState().work.time.ada?.some((e) => e.note === "Fix login")).toBe(true);
+		// A second Fill adds nothing.
+		await user.click(screen.getByRole("button", { name: "Fill from my work" }));
+		expect(await screen.findByText("Nothing to add")).toBeVisible();
+		expect(mockState().work.time.ada).toHaveLength(before + 2);
+		// Each field saves when the person leaves it: the sheet has no Save button.
+		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+		await idle(router);
+	});
+
+	it("is off for a person who may not change work", async () => {
+		await withTracker();
+		await importAll();
+		mockState().person = {
+			member: "ada",
+			found: "email",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		mountApp("/plan/time");
+		const fill = await screen.findByRole("button", { name: "Fill from my work" });
+		await waitFor(() => expect(fill).toBeDisabled());
+	});
+});

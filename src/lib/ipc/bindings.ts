@@ -287,6 +287,8 @@ export const commands = {
 	creatorBootstrap: (click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("creator_bootstrap", { click })),
 	assistantAttach: (thread: string, name: string, bytes: number[]) => typedError<Attachment, AppError_Serialize>(__TAURI_INVOKE("assistant_attach", { thread, name, bytes })),
 	feedbackOpen: (kind: FeedbackKind, title: string, details: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("feedback_open", { kind, title, details, click })),
+	/**  Copy a file for the feedback and give the copy to show. */
+	feedbackAttach: (path: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("feedback_attach", { path, click })),
 	debugLog: () => typedError<LogLine[], AppError_Serialize>(__TAURI_INVOKE("debug_log")),
 	/**  The model of each tier for each runner (`factory` REQ-012). Settings / Connections edits it. */
 	tiersGet: () => typedError<RunnerTiers_Serialize[], AppError_Serialize>(__TAURI_INVOKE("tiers_get")),

@@ -92,6 +92,7 @@ function designerTeam() {
 				admin: true,
 				capacity: 5,
 				skills: [],
+				availability: { absences: [] },
 			},
 			{
 				name: "Dee",
@@ -101,6 +102,7 @@ function designerTeam() {
 				role: "designer",
 				capacity: 5,
 				skills: [],
+				availability: { absences: [] },
 			},
 		],
 	};

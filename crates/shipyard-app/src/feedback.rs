@@ -5,7 +5,9 @@
 
 use specta::Type;
 
-use crate::commands::{Api, Res, blocking};
+use std::path::{Path, PathBuf};
+
+use crate::commands::{Api, AppState, Res, blocking, err};
 
 const REPO: &str = "https://github.com/me-cedric/Shipyard";
 const MAX: usize = 4000;
@@ -73,6 +75,67 @@ pub(crate) fn open(url: &str) -> Res<()> {
     Ok(())
 }
 
+/// The most that an attached file may weigh.
+const MAX_ATTACH: u64 = 25 * 1024 * 1024;
+
+/// Attach a file to the feedback (`shell-setup-rights` REQ-009). The app sends nothing: it copies
+/// the file that the person picked into the `feedback` folder of the app data, and the view shows
+/// that copy in the file manager, beside the text of the feedback. The person drags it into the
+/// form in the browser. The copy never holds more than 25 MB, and the name keeps plain characters.
+pub fn attach(s: &AppState, path: &str, click: bool) -> Res<PathBuf> {
+    crate::rights::need_click_local(s, click)?;
+    let from = Path::new(path);
+    if !from.is_absolute() {
+        return Err("the file needs a full path".into());
+    }
+    let meta = std::fs::metadata(from).map_err(err)?;
+    if !meta.is_file() {
+        return Err("this is not a file".into());
+    }
+    if meta.len() > MAX_ATTACH {
+        return Err("the file is over 25 MB".into());
+    }
+    let name: String = from
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default()
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || matches!(c, '.' | '-' | '_' | ' ') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    let name = name.trim_matches('.').trim();
+    if name.is_empty() {
+        return Err("the file has no name".into());
+    }
+    let dir = s.dir.join("feedback");
+    std::fs::create_dir_all(&dir).map_err(err)?;
+    // A second file with the same name keeps its own copy.
+    let mut to = dir.join(name);
+    for n in 1.. {
+        if !to.exists() {
+            break;
+        }
+        to = dir.join(format!("{n}-{name}"));
+    }
+    std::fs::copy(from, &to).map_err(err)?;
+    Ok(to)
+}
+
+/// Copy a file for the feedback and give the copy to show.
+#[tauri::command]
+#[specta::specta]
+pub async fn feedback_attach(app: tauri::AppHandle, path: String, click: bool) -> Api<String> {
+    blocking(app, move |s| {
+        Ok(attach(s, &path, click)?.display().to_string())
+    })
+    .await
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn feedback_open(
@@ -107,6 +170,38 @@ mod tests {
                 .unwrap()
                 .contains("labels=enhancement")
         );
+    }
+
+    #[test]
+    fn an_attached_file_is_copied_into_the_data_folder_and_nothing_leaves() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = AppState::new(dir.path().join("data"));
+        let shot = dir.path().join("shot 1.png");
+        std::fs::write(&shot, "png").unwrap();
+        let a = attach(&s, shot.to_str().unwrap(), true).unwrap();
+        assert!(a.starts_with(dir.path().join("data/feedback")));
+        assert_eq!(std::fs::read_to_string(&a).unwrap(), "png");
+        assert!(shot.exists(), "the file of the person stays");
+        // The same name keeps a second copy, and a strange name gets plain characters.
+        let b = attach(&s, shot.to_str().unwrap(), true).unwrap();
+        assert_ne!(a, b);
+        let odd = dir.path().join("a;b$c.txt");
+        std::fs::write(&odd, "x").unwrap();
+        let c = attach(&s, odd.to_str().unwrap(), true).unwrap();
+        assert_eq!(c.file_name().unwrap(), "a_b_c.txt");
+    }
+
+    #[test]
+    fn an_attach_needs_a_click_a_full_path_and_a_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = AppState::new(dir.path().join("data"));
+        let f = dir.path().join("a.txt");
+        std::fs::write(&f, "x").unwrap();
+        assert!(attach(&s, f.to_str().unwrap(), false).is_err());
+        assert!(attach(&s, "a.txt", true).is_err());
+        assert!(attach(&s, dir.path().to_str().unwrap(), true).is_err());
+        assert!(attach(&s, dir.path().join("none").to_str().unwrap(), true).is_err());
+        assert!(!dir.path().join("data/feedback").exists());
     }
 
     #[test]

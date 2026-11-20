@@ -9,6 +9,14 @@ export async function pickFolder(): Promise<string | null> {
 	return typeof path === "string" ? path : null;
 }
 
+/** The native picker for any file. Returns null when the person cancels. */
+export async function pickFile(): Promise<string | null> {
+	if (!isTauri()) return pickFileMock();
+	const { open } = await import("@tauri-apps/plugin-dialog");
+	const path = await open({ multiple: false });
+	return typeof path === "string" ? path : null;
+}
+
 const EXCEL = [{ name: "Excel", extensions: ["xlsx"] }];
 
 /** The native picker for a workbook to read. Returns null when the person cancels. */

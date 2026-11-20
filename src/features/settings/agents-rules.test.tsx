@@ -233,3 +233,50 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 		save.mockRestore();
 	});
 });
+
+// spec:shell-setup-rights#REQ-006: each role shows its description and its model tier, and a person changes the tier.
+describe("Settings / Agents and rules: a model for each agent role", () => {
+	it("shows the tier of each role and writes the project file of a bundled role on a change", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		delete mockState().factory.roles.scout;
+		expect(mockState().factory.roles.scout).toBeUndefined();
+		mountApp("/setup/computer?page=models");
+		const scout = await screen.findByRole("combobox", { name: "Model of Scout" });
+		expect(scout).toHaveTextContent("Fast");
+		expect(await screen.findByRole("combobox", { name: "Model of Worker" })).toHaveTextContent(
+			"Standard",
+		);
+		await user.click(scout);
+		await user.click(await screen.findByRole("option", { name: "Standard" }));
+		await waitFor(() => expect(mockState().factory.roles.scout).toContain("model: mid"));
+		// The description of the bundled role stays in the file.
+		expect(mockState().factory.roles.scout).toContain("description:");
+		await waitFor(() =>
+			expect(screen.getByRole("combobox", { name: "Model of Scout" })).toHaveTextContent("Standard"),
+		);
+	});
+
+	it("is off without the right to change the settings of the project", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mockState().person = {
+			member: "ada",
+			found: "email",
+			role: "developer",
+			admin: false,
+			readOnly: false,
+			rights: ["work.edit"],
+		};
+		mountApp("/setup/computer?page=models");
+		const worker = await screen.findByRole("combobox", { name: "Model of Worker" });
+		await waitFor(() => expect(worker.closest("fieldset")).toBeDisabled());
+		await expect(unwrap(commands.roleModelSet("worker", "top"))).rejects.toBeDefined();
+		expect(mockState().factory.roles.worker).toBeUndefined();
+	});
+
+	it("refuses a tier that does not exist and a role file that is not a name", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await expect(unwrap(commands.roleModelSet("worker", "huge"))).rejects.toBeDefined();
+		await expect(unwrap(commands.roleModelSet("../x", "mid"))).rejects.toBeDefined();
+	});
+});
