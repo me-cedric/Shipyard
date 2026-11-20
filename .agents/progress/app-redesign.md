@@ -705,3 +705,24 @@ Open for the owner:
 - The archive of this change needs `update-ux-declutter` archived first: its delta modifies the spec `ux-declutter`, which exists only in that change.
 
 Checks of the lead on the final tree: see the last commit and the final report of the session.
+
+## Build of the design controls, `add-redesign-functions` (2026-11-21)
+
+The owner chose to build the 46 controls of the design that the app did not have (`q:Q-173`). The spec is `docs/openspec/changes/add-redesign-functions/`, with `adr:0024` and `q:Q-174` to `q:Q-176`. A workflow built the four capabilities in four worktrees from `45288ede`.
+
+The weekly spend limit stopped the workflow. It resets on 2026-11-25 at 15:00 (Europe/Paris).
+
+| Capability | State | Branch and worktree | Tasks |
+| --- | --- | --- | --- |
+| `runs-recipes` | Joined on this branch. All gates passed (see `.agents/progress/fn-runs-recipes.md`). | Removed | 22 done |
+| `code-host-tickets` | Stopped in the finish pass. Last commit is a WIP commit; the gates did not run on it. | `fn/code-host-tickets`, `.claude/worktrees/fn-code-host-tickets` | 23 done, 6 open |
+| `library-functions` | Stopped in the build pass (F26 to F34 committed; F35 Pin to Today in the WIP commit). | `fn/library-functions`, `.claude/worktrees/fn-library-functions` | 16 done, 17 open |
+| `shell-setup-rights` | Stopped in the build pass. Backend and views committed; the tasks are not ticked. | `fn/shell-setup-rights`, `.claude/worktrees/fn-shell-setup-rights` | 0 ticked, 31 open |
+
+To resume:
+
+1. In each of the three worktrees, read the WIP commit, finish the open tasks of `tasks.md` and run all gates. Resume the workflow with its script file and run id `wf_fbec4111-618`, or start one session for each worktree.
+2. Wire F36 (the release picker of Dashboards) to the release command of `code-host-tickets`, and the budget notice of F41 to Warn at of `runs-recipes`.
+3. Join the three branches here by cherry-pick, run all gates, run a review in a fresh context and a visual check of the changed screens.
+
+Known items of `runs-recipes`: the test `commands::setup::tests::a_link_to_a_connection_that_is_gone_is_replaced_by_the_only_tracker` reads the real keychain and hangs when no one is at the screen (older than this change).
