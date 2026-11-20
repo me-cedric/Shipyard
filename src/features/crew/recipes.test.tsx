@@ -138,6 +138,14 @@ describe("Workflows: the form", () => {
 		// The needs and the tools are chips: a chip removes its id, and Add lists the others.
 		const how = within(screen.getByRole("region", { name: "How it works" }));
 		expect(how.getByRole("button", { name: "Remove Plan" })).toBeInTheDocument();
+		// The rounds stepper shows the run cap, not a dash, when the step sets none, and stops there:
+		// a step only lowers the cap of the recipe.
+		const rounds = within(
+			screen.getAllByRole("group", { name: "Review rounds" }).at(-1) as HTMLElement,
+		);
+		expect(rounds.getByText("4")).toBeVisible();
+		expect(rounds.getByRole("button", { name: "Review rounds, more" })).toBeDisabled();
+		expect(rounds.getByRole("button", { name: "Review rounds, less" })).toBeEnabled();
 		const name = screen.getByRole("textbox", { name: "Name of the step" });
 		await user.clear(name);
 		await user.type(name, "Make it{Enter}");

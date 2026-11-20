@@ -386,6 +386,19 @@ describe("Home / Today", () => {
 		expect(screen.queryByRole("heading", { name: /^Since you were away/ })).toBeNull();
 	});
 
+	it("shows the empty state beside the time reminder", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		vi.spyOn(commands, "questionsList").mockResolvedValue(ok([]));
+		vi.spyOn(commands, "approvalsList").mockResolvedValue(ok([]));
+		vi.spyOn(commands, "messagesList").mockResolvedValue(ok([]));
+		vi.spyOn(commands, "prReviewWaiting").mockResolvedValue(ok([]));
+		vi.spyOn(commands, "runsList").mockResolvedValue(ok([]));
+		mountApp("/home/today");
+		expect(await screen.findByText("Log your time for today")).toBeInTheDocument();
+		expect(screen.getByText("Nothing needs you")).toBeInTheDocument();
+		vi.restoreAllMocks();
+	});
+
 	it("shows one empty state with Open the backlog when nothing is there", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));

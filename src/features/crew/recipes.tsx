@@ -149,7 +149,7 @@ export function Recipes() {
 				className={
 					stepOpen
 						? "contents"
-						: "flex min-h-0 flex-1 flex-wrap content-start items-start gap-6 overflow-auto px-4 pb-4"
+						: "flex min-h-0 flex-1 flex-wrap content-start items-start gap-6 overflow-auto px-4 pt-1 pb-4"
 				}
 			>
 				{stepOpen ? null : (

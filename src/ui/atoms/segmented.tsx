@@ -30,7 +30,7 @@ export function Segmented<V extends string>({
 				// A pressed choice stays pressed.
 				if (v[0]) onValueChange(v[0] as V);
 			}}
-			className="relative isolate flex w-full items-center rounded-md bg-n-4 p-1"
+			className="relative isolate grid w-full auto-cols-fr grid-flow-col items-center rounded-md bg-n-4 p-1"
 		>
 			<span
 				aria-hidden="true"
@@ -45,7 +45,7 @@ export function Segmented<V extends string>({
 				<Toggle
 					key={i.value}
 					value={i.value}
-					className="min-h-control flex-1 rounded-sm px-3.5 font-medium text-n-10 transition-colors duration-(--duration-fast) hover:text-n-12 data-[pressed]:text-n-12"
+					className="min-h-control rounded-sm px-3.5 font-medium whitespace-nowrap text-n-10 transition-colors duration-(--duration-fast) hover:text-n-12 data-[pressed]:text-n-12"
 				>
 					{i.label}
 				</Toggle>

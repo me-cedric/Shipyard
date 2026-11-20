@@ -237,7 +237,7 @@ function Area({
 			<span
 				className={`flex size-12 items-center justify-center rounded-md ${state === "fix" ? ATTENTION_ICON : "bg-success-subtle text-success-text"}`}
 			>
-				<Glyph shape={icon} />
+				<Glyph shape={state === "fix" ? "warn" : icon} />
 			</span>
 			<span className="text-20 font-semibold text-n-12">{label}</span>
 			<Badge variant={state === "ready" ? "success" : state === "fix" ? "you" : "neutral"}>
@@ -273,7 +273,8 @@ function ComputerHealth({ below }: { below?: ReactNode }) {
 	// A finding of a missing tool names its tool: the banner of the tool already says it.
 	const named = new Set(problems.map((p) => p.id));
 	const others = health.data.filter((f) => f.group === "tools" && !named.has(f.detail ?? ""));
-	const count = problems.length + others.length;
+	// The title counts every problem that a tile names, so it never says less than the tiles.
+	const count = problems.length + others.length + staleSkills + setupOpen;
 	const title =
 		count === 0 ? h.problemNone : count === 1 ? h.problemOne : format(h.problems, { count });
 	const toolsMissing = problems.length;
@@ -319,7 +320,7 @@ function ComputerHealth({ below }: { below?: ReactNode }) {
 						href="/setup/computer?page=health#tools"
 						label={h.tools}
 						state={toolsMissing ? "fix" : "ready"}
-						icon="warn"
+						icon="ok"
 					>
 						{toolsMissing ? format(h.missingN, { count: toolsMissing }) : h.ready}
 					</Area>

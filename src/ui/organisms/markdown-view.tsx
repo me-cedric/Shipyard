@@ -252,7 +252,7 @@ export function MarkdownView({
 			aria-label={label}
 			className={cn(
 				"flex flex-col gap-2 text-ui",
-				reading && "gap-3 text-14 leading-6 text-n-12 [&_h2]:mt-2 [&_h2]:text-20",
+				reading && "gap-3 text-17 leading-7 text-n-12 [&_h2]:mt-2 [&_h2]:text-20",
 			)}
 		>
 			{blocks(source).map((b, i) => {

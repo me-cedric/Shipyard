@@ -44,10 +44,16 @@ export function KnowledgeMap({
 	const [picked, setPicked] = useState<string | null>(null);
 	const [open, setOpen] = useState<string[]>([]);
 	const nodes = only ? graph.nodes.filter((n) => n[only]) : graph.nodes;
+	// The design starts with Specs, Decisions, Features and Questions; the other kinds follow.
+	const rank = (kind: string) => {
+		const i = ["spec", "adr", "feature", "q"].indexOf(kind);
+		return i < 0 ? 4 : i;
+	};
+	const ordered = [...nodes].sort((a, b) => rank(a.kind) - rank(b.kind));
 	const groups = new Map<string, typeof nodes>();
-	for (const n of nodes) groups.set(n.kind, [...(groups.get(n.kind) ?? []), n]);
+	for (const n of ordered) groups.set(n.kind, [...(groups.get(n.kind) ?? []), n]);
 	const want = picked ?? focus;
-	const chosen = nodes.find((n) => n.ref === want) ?? nodes[0];
+	const chosen = ordered.find((n) => n.ref === want) ?? ordered[0];
 	const linked = chosen
 		? graph.edges.flatMap((e) =>
 				e.source === chosen.ref ? [e.target] : e.target === chosen.ref ? [e.source] : [],
@@ -283,7 +289,9 @@ export function CodeMap({
 								>
 									<span className="break-all text-17 font-semibold">{f.key}</span>
 									<span className="text-n-10">
-										{format(k.graph.files, { count: f.members.length })}
+										{f.members.length === 1
+											? k.graph.fileOne
+											: format(k.graph.files, { count: f.members.length })}
 									</span>
 								</button>
 							))}

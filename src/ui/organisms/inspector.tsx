@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { usePanelSize } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,15 @@ export function Inspector({
 		if (ref.current?.contains(document.activeElement)) document.querySelector("main")?.focus();
 		onClose();
 	};
+	// The link card closes on Escape wherever the focus is: the page under it stays in use.
+	useEffect(() => {
+		if (!(card && open)) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape" && !e.defaultPrevented) close();
+		};
+		document.addEventListener("keydown", onKey);
+		return () => document.removeEventListener("keydown", onKey);
+	});
 	// The card needs the width of its two buttons.
 	const width = card ? Math.max(panel.size, 476) : panel.size;
 	return (

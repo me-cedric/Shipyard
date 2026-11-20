@@ -416,7 +416,11 @@ export function RolePanelsPage() {
 		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
 			<NoSwitch>
 				<PageHeader
-					title={role ? format(t.home.forRole, { role: t.rights.role[role] }) : t.ui.place.today}
+					title={
+						role
+							? format(t.home.forRole, { role: t.rights.role[role].toLowerCase() })
+							: t.ui.place.today
+					}
 					action={
 						<Link to="/setup/role-views" className={cn(buttonVariants(), "min-h-control")}>
 							{t.home.roleViews}

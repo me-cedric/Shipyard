@@ -25,6 +25,7 @@ describe("ZoomFrame", () => {
 		expect(at.y).toBeCloseTo(125);
 		const small = fitTo({ width: 400, height: 300 }, { width: 100, height: 300 });
 		expect(small.at.x).toBeCloseTo(150);
+		expect(small.scale).toBe(1);
 		expect(fitTo({ width: 0, height: 0 }, { width: 10, height: 10 })).toEqual({
 			scale: 1,
 			at: { x: 0, y: 0 },

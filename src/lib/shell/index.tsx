@@ -128,7 +128,11 @@ export function ShellProvider({
 	);
 	const viewChanged = useCallback((path: string) => {
 		if (landing.current === path) landing.current = null;
-		else setSelectedRef(null);
+		else {
+			setSelectedRef(null);
+			setDetail(null);
+			setInspectorOpen(false);
+		}
 	}, []);
 	const explain = useCallback((ref: string) => {
 		setSelectedRef(ref);

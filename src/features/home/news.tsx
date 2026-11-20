@@ -65,7 +65,10 @@ function NewsRow({ row, time, unread }: { row: Notice; time: string; unread: boo
 							<ArrowPathIcon size={16} />
 						</span>
 					) : (
-						<Avatar agent={row.kind !== "needs-you"} name={row.title} />
+						<Avatar
+							agent={row.kind !== "needs-you"}
+							name={row.kind === "needs-you" ? row.title : (row.title.split(/\s+/)[0] ?? row.title)}
+						/>
 					)}
 				</span>
 				<span className="flex min-w-0 flex-[1_1_220px] flex-col">

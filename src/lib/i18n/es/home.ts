@@ -69,6 +69,7 @@ export const homeEs: typeof homeEn = {
 	},
 	send: "Enviar",
 	recommended: "Recomendado",
+	pick: "Elección del agente",
 	answer: "Tu respuesta",
 	unclear: "Responde para decidir",
 	edited: "La respuesta cambió",

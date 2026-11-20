@@ -24,8 +24,8 @@ const WRITE_KEY = {
 const MARK = "shipyard";
 const PICKUP = ["statuses", "label", "assignee", "component", "priority"] as const;
 
-/** A row label in regular weight, as the design draws the Automation page. */
-const plain = (label: ReactNode) => <span className="font-normal">{label}</span>;
+/** A row label in medium weight, as the design draws the Automation page. */
+const plain = (label: ReactNode) => <span className="font-medium">{label}</span>;
 
 /** `name=2, other=1` as pairs, or null when a part is not `name=number`. */
 const pairs = (text: string): [string, number][] | null => {

@@ -168,7 +168,7 @@ export function BudgetsPage() {
 					},
 				]}
 			/>
-			<div className="flex flex-wrap items-stretch gap-5 px-4 pb-4">
+			<div className="flex flex-wrap items-start gap-5 px-4 pb-4">
 				<div className="flex flex-[2_1_21rem] flex-col gap-5">
 					{b.error || error ? (
 						<p role="alert" className="text-ui text-danger-text">

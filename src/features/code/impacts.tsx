@@ -181,7 +181,7 @@ export function ImpactsPage({
 					</p>
 				) : null}
 				{rows.length > 0 ? (
-					<AttentionCard who={i.health.you} title={heading}>
+					<AttentionCard who={t.factory.agent} title={heading}>
 						<div className="flex flex-wrap gap-3">{actions}</div>
 					</AttentionCard>
 				) : (

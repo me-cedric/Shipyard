@@ -14,17 +14,17 @@ import { StepBar } from "@/ui/atoms/step-bar";
 import {
 	ArrowDownTrayIcon,
 	BookOpenIcon,
-	ChatBubbleIcon,
+	CalendarDaysIcon,
+	ClipboardIcon,
 	CodeBracketIcon,
 	CpuChipIcon,
 	DocumentTextIcon,
 	FolderOpenIcon,
+	PencilIcon,
 	PlusIcon,
-	ShieldCheckIcon,
+	PuzzlePieceIcon,
 	Squares2X2Icon,
-	SwatchIcon,
 	UserCircleIcon,
-	ViewColumnsIcon,
 } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
@@ -38,14 +38,14 @@ type Step = "role" | "start" | "clone";
 
 type IconProps = { size?: number };
 const ROLE_ICON: Record<Role, ComponentType<IconProps>> = {
-	po: ChatBubbleIcon,
-	pm: ViewColumnsIcon,
-	architect: Squares2X2Icon,
+	po: Squares2X2Icon,
+	pm: CalendarDaysIcon,
+	architect: PuzzlePieceIcon,
 	techlead: CpuChipIcon,
 	ba: DocumentTextIcon,
 	developer: CodeBracketIcon,
-	qa: ShieldCheckIcon,
-	designer: SwatchIcon,
+	qa: ClipboardIcon,
+	designer: PencilIcon,
 	viewer: BookOpenIcon,
 	none: UserCircleIcon,
 };

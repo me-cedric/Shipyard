@@ -430,7 +430,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 				: null}
 			{review?.refused.length ? (
 				<GroupSection name={x.plugin.refused} count={review.refused.length}>
-					<ul>
+					<ul className="px-3">
 						{review.refused.map((r) => (
 							<EntryRow key={r} name={r} status="danger" statusLabel={x.plugin.refused} />
 						))}

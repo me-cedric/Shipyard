@@ -46,11 +46,11 @@ export function CodexTrust({ card }: { card?: boolean } = {}): ReactNode {
 					</summary>
 					<p>{t.assistant.codexTrust.body}</p>
 				</details>
-				<div className="flex gap-2.5">
-					<Button className="flex-1" onClick={() => setLater(true)}>
+				<div className="flex flex-wrap gap-2.5">
+					<Button className="flex-auto" onClick={() => setLater(true)}>
 						{t.assistant.codexTrust.notNow}
 					</Button>
-					<Button variant="primary" className="flex-1" onClick={() => void trust()}>
+					<Button variant="primary" className="flex-auto" onClick={() => void trust()}>
 						{t.assistant.codexTrust.button}
 					</Button>
 				</div>

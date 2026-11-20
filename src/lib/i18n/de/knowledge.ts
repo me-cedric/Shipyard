@@ -43,6 +43,7 @@ export const knowledgeDe: typeof knowledgeEn = {
 		linked: "Verknüpft mit",
 		copy: "Kopieren",
 		files: "{count} Dateien",
+		fileOne: "1 Datei",
 		callers: "Wer es aufruft",
 		callees: "Was es aufruft",
 		file: "Datei",

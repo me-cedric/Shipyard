@@ -70,7 +70,7 @@ function BarButton({
 				onMove((e.key === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 7 : 1));
 			}}
 			style={{ ...style, translate: dx }}
-			className="group absolute inset-y-0 flex min-w-28 touch-none items-center rounded-full outline-none"
+			className="group absolute inset-y-0 z-10 flex min-w-28 touch-none items-center rounded-full outline-none"
 		>
 			<span
 				// The name of the button starts with the text of the pill; the rest is for a screen reader.

@@ -26,6 +26,8 @@ import { type AgentRow, useAgentRows } from "./live";
 import { EndedCard, MachineRows, modelName, OrcaCard, SIDE_HEAD } from "./sessions-side";
 
 const live = (r: AgentRow) => r.session.state === "running" || r.session.state === "gate";
+/** A button on the dark session panel: dark, like the design. */
+const ON_PANEL = "border-primary-fg/20 bg-primary-fg/15 text-primary-fg hover:bg-primary-fg/25";
 const idOf = (s: SessionView) => `${s.run}/${s.step}`;
 
 /** Crew / Sessions (`spec:app-redesign#REQ-016`): the sessions of this machine, the one shown, and the ended ones on `page=ended`. */
@@ -202,7 +204,7 @@ export function CrewSessions() {
 							<Badge className="bg-primary-fg/15 text-primary-fg">{s.readOnly}</Badge>
 							{/* Open shows the page of the work. Taking over the terminal of an agent has no command. */}
 							{opens(shown.session) ? (
-								<Button className="min-h-control" onClick={() => open(shown.session)}>
+								<Button className={`min-h-control ${ON_PANEL}`} onClick={() => open(shown.session)}>
 									{t.inspector.open}
 								</Button>
 							) : null}
@@ -211,7 +213,7 @@ export function CrewSessions() {
 								<RightButton
 									right="runs.start"
 									aria-label={format(f.machine.stop, { name: shown.session.key })}
-									className="min-h-control"
+									className={`min-h-control ${ON_PANEL}`}
 									onClick={() => stop(shown.session)}
 								>
 									{s.stop}
@@ -222,7 +224,7 @@ export function CrewSessions() {
 							shown.session.step !== "tile" &&
 							shown.session.state === "running" ? (
 								<ConfirmButton
-									className="min-h-control"
+									className={`min-h-control ${ON_PANEL}`}
 									{...gate("runs.start")}
 									confirm={format(f.machine.confirmStop, { name: shown.session.key })}
 									onConfirm={() => void run(() => act.cancel(shown.session.run))}

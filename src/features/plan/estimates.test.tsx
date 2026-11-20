@@ -308,6 +308,8 @@ describe("Plan / Estimates", () => {
 		const choose = await button("Choose a file");
 		expect(choose).toBeEnabled();
 		expect(screen.getByText("1. File")).toBeInTheDocument();
+		// The import page keeps the section switch (design 94).
+		expect(screen.getAllByRole("link", { name: "Timeline" }).length).toBeGreaterThan(0);
 		expect(screen.queryByRole("button", { name: "Make a new sheet" })).toBeNull();
 		expect(screen.queryByRole("heading", { name: /^Rows that/ })).toBeNull();
 		expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();

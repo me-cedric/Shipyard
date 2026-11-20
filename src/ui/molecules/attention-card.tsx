@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "../atoms/badge";
+import { Avatar } from "../atoms/avatar";
 
 /** The look of a chip that names the items that wait. */
 export const ATTENTION_CHIP = "bg-attention-subtle font-semibold text-attention-text";
@@ -62,9 +62,10 @@ export function AttentionCard({
 				? null
 				: (head ??
 					(who ? (
-						<Badge variant="you" className="self-start">
+						<p className="flex items-center gap-3 font-semibold text-n-12">
+							<Avatar agent name={who.split(" ")[0] ?? who} />
 							{who}
-						</Badge>
+						</p>
 					) : null))}
 			{icon}
 			{/* tabIndex -1: the focus lands here when the card changes. */}

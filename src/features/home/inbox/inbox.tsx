@@ -138,9 +138,7 @@ export function OpenQuestion({ item, onLater }: { item: QuestionItem; onLater?: 
 						key={label}
 						selected={n === i + 1 && !text.trim()}
 						onClick={() => pick(i + 1)}
-						trailing={
-							i + 1 === q.recommended ? <Badge variant="accent">{h.recommended}</Badge> : null
-						}
+						trailing={i + 1 === q.recommended ? <Badge variant="accent">{h.pick}</Badge> : null}
 					>
 						{label}
 					</Option>

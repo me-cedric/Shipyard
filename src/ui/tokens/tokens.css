@@ -227,8 +227,14 @@
 	color-scheme: dark;
 }
 
-.canvas-dark {
+.canvas-dark,
+[data-scheme="dark"] {
 	color-scheme: dark;
+}
+
+/* A sample of a theme sets its scheme in a rule, so the light-dark() pairs flip inside it. */
+[data-scheme="light"] {
+	color-scheme: light;
 }
 
 /*
@@ -299,11 +305,11 @@
 }
 
 [data-accent-swatch="green"] {
-	--accent-hue: 150;
+	--accent-hue: 195;
 }
 
 [data-accent-swatch="orange"] {
-	--accent-hue: 55;
+	--accent-hue: 62;
 }
 
 [data-accent-swatch="rose"] {

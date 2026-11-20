@@ -105,7 +105,7 @@ export function People() {
 					{p.send}
 				</RightButton>
 			</div>
-			<div className="flex min-h-0 flex-1 flex-wrap content-start items-start gap-6 overflow-y-auto px-4 pb-4">
+			<div className="flex min-h-0 flex-1 flex-wrap content-start items-start gap-6 overflow-y-auto px-4 pt-1 pb-4">
 				<Card className="flex-[3_1_32rem] overflow-x-auto px-6 py-2">
 					<h2 className="sr-only">{c.capacity}</h2>
 					<div className="min-w-140">

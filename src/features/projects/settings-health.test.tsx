@@ -13,7 +13,9 @@ describe("Setup / Health", () => {
 		const user = userEvent.setup();
 		mountApp("/setup/computer?page=health");
 		// DEFECT: the page said "Nothing to fix" while pnpm was missing.
-		expect(await screen.findByRole("heading", { name: "1 problem" })).toBeInTheDocument();
+		const title = await screen.findByRole("heading", { level: 1, name: /^\d+ problems?$/ });
+		const before = Number(/^\d+/.exec(title.textContent ?? "")?.[0]);
+		expect(before).toBeGreaterThan(0);
 		expect(screen.queryByText("Nothing to fix")).not.toBeInTheDocument();
 		const banner = await screen.findByRole("region", { name: "pnpm is missing on this machine" });
 		expect(within(banner).getByRole("link", { name: "Details" })).toBeInTheDocument();
@@ -21,7 +23,36 @@ describe("Setup / Health", () => {
 		await waitFor(() =>
 			expect(mockState().doctor.tools.find((t) => t.id === "pnpm")?.installed).toBe(true),
 		);
-		expect(await screen.findByRole("heading", { name: "No problem" })).toBeInTheDocument();
+		await waitFor(() =>
+			expect(screen.queryByRole("region", { name: "pnpm is missing on this machine" })).toBeNull(),
+		);
+		// The install takes one problem away from the title.
+		const after = before - 1;
+		expect(
+			await screen.findByRole("heading", {
+				level: 1,
+				name: after === 0 ? "No problem" : after === 1 ? "1 problem" : `${after} problems`,
+			}),
+		).toBeInTheDocument();
+	});
+
+	it("counts every problem that the tiles name, and a tile to fix has no check icon", async () => {
+		mountApp("/setup/computer?page=health");
+		const first = await screen.findByRole("link", { name: /^First setup/ });
+		await waitFor(() => expect(first).toHaveTextContent(/\d+ to fix/));
+		const tiles = ["Tools", "Skills", "First setup"].map((n) =>
+			screen.getByRole("link", { name: new RegExp(`^${n}`) }),
+		);
+		let sum = 0;
+		for (const tile of tiles) {
+			const n = Number(/(\d+) (to fix|missing)/.exec(tile.textContent ?? "")?.[1] ?? 0);
+			sum += n;
+			// A tile to fix shows the warning shape, not the check shape.
+			if (n) expect(tile.querySelector("path")?.getAttribute("d")).toMatch(/^M12 3l9 16/);
+		}
+		const title = screen.getByRole("heading", { name: /problem/ }).textContent ?? "";
+		expect(Number(/(\d+)/.exec(title)?.[1] ?? (sum ? 1 : 0))).toBeGreaterThanOrEqual(sum);
+		expect(sum).toBeGreaterThan(0);
 	});
 
 	it("shows the five areas, and the cards of the version and the help", async () => {

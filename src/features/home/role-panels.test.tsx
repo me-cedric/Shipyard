@@ -36,7 +36,7 @@ describe("Home / Today role panels (team-rights REQ-012)", () => {
 		expect(todo.length).toBeGreaterThan(0);
 		mountApp("/today/panels");
 		expect(
-			await screen.findByRole("heading", { level: 1, name: "Today, for a Product owner" }),
+			await screen.findByRole("heading", { level: 1, name: "Today, for a product owner" }),
 		).toBeInTheDocument();
 		// The panel is a small card: the title, the count and Open.
 		const panel = within(await screen.findByRole("region", { name: "Ready items" }));
@@ -48,7 +48,7 @@ describe("Home / Today role panels (team-rights REQ-012)", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		person("pm", ["work.edit"]);
 		mountApp("/today/panels");
-		await screen.findByRole("heading", { level: 1, name: "Today, for a Project manager" });
+		await screen.findByRole("heading", { level: 1, name: "Today, for a project manager" });
 		expect(screen.queryByRole("region", { name: "Spend this month" })).toBeNull();
 	});
 

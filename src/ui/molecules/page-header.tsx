@@ -43,7 +43,7 @@ export function PageHeader({
 	const claim = slot?.claim;
 	useLayoutEffect(() => claim?.(), [claim]);
 	return (
-		<div data-page-header className="flex shrink-0 flex-col px-4 pb-3">
+		<div data-page-header className="flex shrink-0 flex-col px-4 pb-6">
 			{back}
 			<div className="flex items-center gap-4">
 				<div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1">

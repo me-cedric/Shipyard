@@ -777,11 +777,7 @@ export function JoinAsked() {
 		),
 	].filter((h) => !members.some((m) => m.handle === h));
 	return asked.map((h) => (
-		<AttentionCard
-			key={h}
-			who={t.rights.today.you}
-			title={format(t.rights.team.asks, { name: h })}
-		/>
+		<AttentionCard key={h} who={h} title={format(t.rights.team.asks, { name: h })} />
 	));
 }
 

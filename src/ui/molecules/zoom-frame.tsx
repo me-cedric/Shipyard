@@ -28,7 +28,11 @@ const KEEP = 48;
 export function fitTo(box: Size, content: Size): { scale: number; at: At } {
 	if (!(box.width > 0 && box.height > 0 && content.width > 0 && content.height > 0))
 		return { scale: 1, at: { x: 0, y: 0 } };
-	const scale = zoomBy(1, Math.min(box.width / content.width, box.height / content.height));
+	// The fit shrinks a picture to the frame; it never enlarges one past its own size.
+	const scale = Math.min(
+		1,
+		zoomBy(1, Math.min(box.width / content.width, box.height / content.height)),
+	);
 	return {
 		scale,
 		at: {

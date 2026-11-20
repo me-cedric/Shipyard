@@ -192,7 +192,6 @@ export function PlanEstimates() {
 					}}
 				/>
 			</>,
-			true,
 		);
 
 	const taskId = typeof search.task === "string" ? search.task : null;
@@ -242,12 +241,12 @@ export function PlanEstimates() {
 	// The seal buttons wait for the sheet, so they keep their place once the page shows them.
 	const seals =
 		view === "costing" || !sheet ? null : (
-			<>
+			<span className="flex items-center gap-2">
 				<Button onClick={() => go({ tab: "costing" })}>{p.openSeal}</Button>
 				<Button variant="primary" onClick={() => go({ tab: "costing" })}>
 					{t.work.seal.seal}
 				</Button>
-			</>
+			</span>
 		);
 	const lots = list.map((s) => ({
 		id: s.slug,

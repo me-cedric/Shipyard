@@ -61,7 +61,7 @@ export function Today() {
 	const role = useRights().role;
 	const who = useWho();
 	const [everyone, setEveryone] = useState(false);
-	const { items, loading, timesheet } = useNeedsYou(everyone);
+	const { items, loading } = useNeedsYou(everyone);
 	const [later, setLater] = useState<string[]>([]);
 	const [picked, setPicked] = useState<string | null>(null);
 	// The queue shows the next three things; "N more" shows the rest in place.
@@ -99,7 +99,7 @@ export function Today() {
 		setLater([...later.filter((x) => x !== id), id]);
 		setPicked(null);
 	};
-	const nothing = items.length === 0 && mine.length === 0 && !timesheet;
+	const nothing = items.length === 0 && mine.length === 0;
 	const toEnd = ordered.length > 1 && first ? () => toLater(first.id) : undefined;
 	return (
 		// tabIndex -1: where the focus lands when the last thing leaves (`Leave`).

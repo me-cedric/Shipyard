@@ -33,7 +33,7 @@ export function Fr({ label, children }: { label: ReactNode; children: ReactNode 
 			aria-labelledby={id}
 			className="flex min-h-15 flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-n-5 px-6 py-2 first:border-t-0"
 		>
-			<span id={id} className="min-w-32 flex-[1_1_12rem] font-medium text-n-12">
+			<span id={id} className="min-w-32 flex-[1_1_9rem] font-medium text-n-12">
 				{label}
 			</span>
 			<div className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2">
@@ -45,6 +45,9 @@ export function Fr({ label, children }: { label: ReactNode; children: ReactNode 
 
 /** A segmented control that is wide enough for its words. */
 const WIDE = "w-[min(100%,30rem)]";
+
+/** The default cap of review rounds of the engine (`REVIEW_ROUNDS`), when the recipe sets none. */
+const ROUNDS = 4;
 
 /** The id that a typed name gives: "Self review" gives "self-review". */
 export const idOf = (name: string) =>
@@ -147,11 +150,14 @@ function Stepper({
 	label,
 	value,
 	min = 0,
+	max,
 	onChange,
 }: {
 	label: string;
 	value: number | undefined;
 	min?: number;
+	/** The highest value: + is off there. */
+	max?: number;
 	onChange: (v: number | undefined) => void;
 }) {
 	const { t } = useI18n();
@@ -177,6 +183,7 @@ function Stepper({
 			<button
 				type="button"
 				aria-label={format(p.more, { name: label })}
+				disabled={max !== undefined && value !== undefined && value >= max}
 				onClick={() => onChange((value ?? min - 1) + 1)}
 				className={side}
 			>
@@ -451,7 +458,9 @@ export function StepCards({
 						<Stepper
 							label={w.rounds}
 							min={1}
-							value={step.max_rounds}
+							// `max_rounds` only lowers the cap of the recipe: a step that sets none shows the cap.
+							max={limits.review_rounds ?? ROUNDS}
+							value={step.max_rounds ?? limits.review_rounds ?? ROUNDS}
 							onChange={(v) => set({ max_rounds: v })}
 						/>
 					</Fr>
@@ -537,6 +546,8 @@ export function StepCards({
 					>
 						{w.down}
 					</Button>
+				</Fr>
+				<div className="border-t border-n-5 px-6 py-2">
 					<Button
 						className="text-danger-text"
 						onClick={() => {
@@ -546,7 +557,7 @@ export function StepCards({
 					>
 						{w.remove}
 					</Button>
-				</Fr>
+				</div>
 			</Part>
 		</div>
 	);

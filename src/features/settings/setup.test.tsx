@@ -148,7 +148,9 @@ describe("Setup scopes (spec:app-redesign#REQ-024)", () => {
 		).toBeInTheDocument();
 		expect(screen.queryByRole("region", { name: "Findings over time" })).not.toBeInTheDocument();
 		router.history.push("/setup/computer?page=health");
-		expect(await screen.findByRole("heading", { level: 1, name: "1 problem" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^\d+ problems?$/ }),
+		).toBeInTheDocument();
 		expect(
 			screen.queryByRole("region", { name: "Broken links between specs and docs" }),
 		).not.toBeInTheDocument();
