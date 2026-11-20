@@ -960,7 +960,8 @@
       "title": "Crew / one person: the name, the handle, the role with its rights, the days a week, the skills and the day rate; Save and Remove from the team (design picture 101, /crew/crew?member=ada)",
       "artifacts": [
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/crew-member.png"
     },
     {
       "id": "SCR-141",
@@ -968,7 +969,8 @@
       "title": "Crew / Recipes / one step: the page of a step with who runs it, how it works and its limits, and a back link to the recipe (design picture 080, /crew/recipes?recipe=feature&step=build)",
       "artifacts": [
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/crew-recipe-step.png"
     },
     {
       "id": "SCR-142",
@@ -976,7 +978,8 @@
       "title": "Crew / Rights / the team file: who Shipyard found, Ask to join, the move of the roles of this computer and the rights of each person (design picture 084, /crew/rights?page=team)",
       "artifacts": [
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/crew-rights-team.png"
     },
     {
       "id": "SCR-143",
@@ -984,7 +987,8 @@
       "title": "Crew / Spend / How agents do: the success rate, the requests of one run as a tree or a flame, and the use of this computer (design picture 078, /crew/spend?page=how)",
       "artifacts": [
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/crew-spend-how.png"
     },
     {
       "id": "SCR-144",
@@ -992,7 +996,8 @@
       "title": "Crew / Spend / Budgets: one row for each kind of limit with its value and Edit; Add a limit (design picture 083, /crew/spend?page=budgets)",
       "artifacts": [
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/crew-spend-budgets.png"
     },
     {
       "id": "SCR-145",
@@ -1000,7 +1005,8 @@
       "title": "Plan / Timeline: the title gives the day that the release ends; the Gantt chart of the sheet; one card names the people with too much work with Apply and Rebalance (design picture 005, /plan/timeline)",
       "artifacts": [
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/plan-timeline.png"
     },
     {
       "id": "SCR-146",
@@ -1008,7 +1014,8 @@
       "title": "Plan / Timeline / Dates and days off: the working days and the public holidays, with a back link to Timeline (design picture 099, /plan/timeline?page=dates)",
       "artifacts": [
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/plan-dates.png"
     },
     {
       "id": "SCR-147",
@@ -1016,7 +1023,8 @@
       "title": "Plan / People / Send to the issue tracker: the preview with New, Changed and Stays the same, and Create (design picture 093, /plan/people?page=send)",
       "artifacts": [
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/plan-send.png"
     },
     {
       "id": "SCR-148",
@@ -1024,7 +1032,8 @@
       "title": "Plan / Estimates / Summary: the estimate sheets side by side with their totals (design picture 069, /plan/estimates?tab=summary)",
       "artifacts": [
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/plan-estimate-sheets.png"
     },
     {
       "id": "SCR-149",
@@ -1032,7 +1041,8 @@
       "title": "Plan / Estimates / Costing: the price, the cost and the margin from the day rates, and the seal of the sheet (design picture 072, /plan/estimates?tab=costing)",
       "artifacts": [
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/plan-costing.png"
     },
     {
       "id": "SCR-150",
@@ -1040,7 +1050,8 @@
       "title": "Plan / Estimates / one estimate: the page of one task with its Best, Likely and Worst values and Save (design picture 085, /plan/estimates?task=<id>)",
       "artifacts": [
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/plan-estimate-one.png"
     },
     {
       "id": "SCR-151",
@@ -1048,7 +1059,53 @@
       "title": "Plan / Estimates / Import from Excel: the file, the columns that the app read and the cards of the result (design picture 094, /plan/estimates?page=import)",
       "artifacts": [
         "spec:app-redesign"
-      ]
+      ],
+      "file": "docs/assets/screenshots/plan-estimate-import.png"
+    },
+    {
+      "id": "SCR-152",
+      "slug": "crew-sessions-ended",
+      "title": "Crew / Sessions, ended: the sessions that ended, newest first, with a way back to Sessions",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/crew-sessions-ended.png"
+    },
+    {
+      "id": "SCR-153",
+      "slug": "crew-rights-levels",
+      "title": "Crew / Rights, the levels of each person: the table of the rights that result from the roles of each member",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/crew-rights-levels.png"
+    },
+    {
+      "id": "SCR-154",
+      "slug": "crew-spend-usage",
+      "title": "Crew / Spend, usage: the tiles, the spend by day and the usage by run, by day and by member, with Show prices",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/crew-spend-usage.png"
+    },
+    {
+      "id": "SCR-155",
+      "slug": "plan-time-entries",
+      "title": "Plan / Time, entries: each time entry of the month with Send, Edit and Delete, and the counts",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/plan-time-entries.png"
+    },
+    {
+      "id": "SCR-156",
+      "slug": "plan-time-team",
+      "title": "Plan / Time, the time of the team: the hours of each person in the week",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/plan-time-team.png"
     }
   ]
 }

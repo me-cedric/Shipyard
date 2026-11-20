@@ -476,7 +476,7 @@ Branch `feature/app-redesign-look-2-crew-plan`, base `108fb9c4`. Three picture c
 - Crew and Plan now match their design pictures: 21 screens (4, 30, 101, 27, 80, 28, 29, 84, 13, 78, 83, 5, 99, 31, 93, 32, 14, 69, 72, 85, 94).
 - Sub-pages with their own address and a back link, and no section switch: one person (`/crew/crew?member=`), a recipe step (`/crew/recipes?recipe=&step=`), the team file (`/crew/rights?page=team`), How agents do (`/crew/spend?page=how`), Budgets (`?page=budgets`), the usage tables (`?page=usage`), the ended sessions (`/crew/sessions?page=ended`), Dates and days off (`/plan/timeline?page=dates`), Send (`/plan/people?page=send`), one estimate (`/plan/estimates?task=`), the import (`?page=import`), the sheets (`?tab=summary`) and Costing (`?tab=costing`).
 - New command `agents_stop_all` (Rust, binding and mock): it cancels each active run, review and estimate, and leaves the agents on.
-- Docs: SCR-140 to SCR-151 added (no `file` yet), nine entries retitled, the guide in four languages, three changelog bullets in each language, a sentence and a scenario each in REQ-016 and REQ-033.
+- Docs: SCR-140 to SCR-156 added with their pictures, nine entries retitled, the guide in four languages, three changelog bullets in each language, a sentence and a scenario each in REQ-016 and REQ-033.
 
 ### Decisions
 
@@ -499,10 +499,18 @@ Source: the accepted list of the picture checks.
 
 - `AttentionCard`: `who` cannot be an agent avatar with bold text (013).
 - `Switch`: the 52 by 30 px track is not ported.
-- `PageHeader`: the back link sits above the title; `action` draws after the section switch; a menu item has no `reason`.
+- `PageHeader`: the back link sits above the title; `action` draws after the section switch. A menu item got an optional `reason` in this pass, and `attention-card.tsx` exports `ATTENTION_FRAME`, `ATTENTION_TINT` and `ATTENTION_FILL` so that a page keeps the attention colour rule.
 - `Select`: no outlined button look (078).
 
 ### Open points
 
-- SCR-140 to SCR-151 have no picture: add them to `scripts/screenshots.ts` and `docs/assets/screenshots/`.
 - Guide pages describe addresses and menus from the page sources; no one has read them against a running window.
+- `agents_stop_all` stops runs, reviews, estimates and tile builds. A "Fix all with an agent" run is a run, so it stops too.
+- The weekday buttons of Dates are read as their short name ("Mon"): a long name failed the axe check in French and German.
+- The e2e ports 4174 and 4175 can be held by the server of another worktree. Run the e2e with a copy of the config on a free port in that case, and never stop the server of another session.
+
+### Checks, run by the lead on the final tree
+
+- Passed: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --no-fail-fast` (2064), `pnpm typecheck`, `pnpm lint`, `pnpm ipc:check`, `pnpm test:personas` (7), `openspec validate update-app-redesign --strict`.
+- `pnpm test`: 2544 of 2545 in the full run; the one failure (`flow/board.test.tsx`, a 15 s timeout under load) passed alone, 16 of 16.
+- `CI=1 npx playwright test` (on port 4213, see above): 144 of 145; the one failure (the gallery lost its dev server on the port 4175 that another worktree shares) passed alone, 19 of 19.
