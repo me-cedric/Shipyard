@@ -298,7 +298,7 @@ export function FlowMatrix({
 												render={
 													<Button
 														variant="ghost"
-														className="-my-3 h-8 min-h-0 w-8 min-w-0 px-0"
+														className="-my-3 px-0"
 														aria-label={(labels.rowMenu ?? "{name}").replace(
 															"{name}",
 															`${r.sourceName || r.source} ${r.destinationName || r.destination}`,

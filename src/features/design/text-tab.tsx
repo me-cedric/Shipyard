@@ -73,7 +73,7 @@ function Body({
 	const { sides, choose } = useSides(
 		`design-${p.kind}`,
 		created || file.conflict || error?.line != null,
-		p.kind === "model" ? "both" : "preview",
+		"preview",
 	);
 	const { area, edit } = useEdit(() => sides.editor || choose("both"));
 	const item = { ref: a.reference, title: a.title, path: a.path };
@@ -102,6 +102,8 @@ function Body({
 			{frame.alerts}
 			<div ref={area} className="contents">
 				<Reader>
+					{/* The open file by name, for a reader of the screen. */}
+					<h2 className="sr-only">{a.title}</h2>
 					{p.view({ frame, shown: sides.preview, files })}
 					{sides.editor ? (
 						<TextCard name={fileName(a.path)} save={frame.save}>

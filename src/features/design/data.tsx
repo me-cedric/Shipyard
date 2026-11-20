@@ -76,9 +76,9 @@ function Tables({ frame, shown, files }: ReaderView) {
 										x.name === picked && "outline-2 outline-accent",
 									)}
 								>
-									<h3 className="bg-accent px-4 py-3 text-15 font-semibold text-accent-fg">
+									<h2 className="bg-accent px-4 py-3 text-15 font-semibold text-accent-fg">
 										{x.name}
-									</h3>
+									</h2>
 									<ul>
 										{x.fields.map((f) => {
 											const ref = model?.refs.find((r) => r.from === `${x.name}.${f.name}`);

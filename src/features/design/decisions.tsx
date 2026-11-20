@@ -169,7 +169,7 @@ function Decision({ adr, frame }: { adr: Adr; frame: Frame }) {
 		</>
 	);
 	return adr.status === "proposed" ? (
-		<AttentionCard head={headRow} title={adr.title} titleClass="text-30 font-semibold">
+		<AttentionCard head={headRow} title={adr.title} titleClass="text-30 font-semibold" heading="h2">
 			{body}
 		</AttentionCard>
 	) : (

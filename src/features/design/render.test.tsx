@@ -286,9 +286,7 @@ describe("Design / Architecture", () => {
 		await user.click(await row("system"));
 		const view = await screen.findByRole("img", { name: "Model" });
 		await waitFor(() => expect(view).toHaveTextContent("shipyard = system"));
-		// A model opens on both sides, as the design shows.
-		expect(screen.getByRole("textbox", { name: "Model text" })).toBeInTheDocument();
-		await user.click(screen.getByRole("button", { name: "Picture" }));
+		// A model opens on the picture alone.
 		expect(screen.queryByRole("textbox", { name: "Model text" })).toBeNull();
 		await user.click(screen.getByRole("button", { name: "Text" }));
 		expect(screen.getByRole("textbox", { name: "Model text" })).toHaveValue(

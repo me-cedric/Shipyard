@@ -20,6 +20,7 @@ export function AttentionCard({
 	head,
 	title,
 	titleClass = "text-20 font-semibold",
+	heading: Heading = "h3",
 	className = "",
 	icon,
 	action,
@@ -32,6 +33,8 @@ export function AttentionCard({
 	/** Left out when `head` holds the title. */
 	title?: string;
 	titleClass?: string;
+	/** The heading element: "h2" where the page title is the only heading above the card. */
+	heading?: "h2" | "h3";
 	/** Layout classes of the card, such as `h-full` in a grid of equal cards. */
 	className?: string;
 	/** The row layout: the picture at the start. */
@@ -62,12 +65,12 @@ export function AttentionCard({
 			{icon}
 			{/* tabIndex -1: the focus lands here when the card changes. */}
 			{title ? (
-				<h3
+				<Heading
 					tabIndex={-1}
 					className={cn(titleClass, "text-n-12 outline-none", row && "min-w-0 flex-[1_1_180px]")}
 				>
 					{title}
-				</h3>
+				</Heading>
 			) : null}
 			{action}
 			{children}

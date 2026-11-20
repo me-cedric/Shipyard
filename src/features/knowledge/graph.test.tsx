@@ -81,7 +81,7 @@ describe("Library / Map", () => {
 	it("opens the code map from the address: folders, files, symbols, callers and callees", async () => {
 		const user = userEvent.setup();
 		await mountMap("?source=code");
-		await user.click(await screen.findByRole("button", { name: "Folder src/features/home" }));
+		await user.click(await screen.findByRole("button", { name: /^src\/features\/home/ }));
 		await user.click(
 			await screen.findByRole("button", { name: "File src/features/home/today.tsx" }),
 		);

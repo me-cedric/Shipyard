@@ -276,7 +276,6 @@ export function CodeMap({
 								<button
 									key={f.id}
 									type="button"
-									aria-label={`${k.graph.folder} ${f.key}`}
 									className="flex min-h-control cursor-pointer flex-col gap-3 rounded-lg bg-n-4 p-4.5 text-left text-n-12"
 									onClick={() => {
 										setFolder(f.key);

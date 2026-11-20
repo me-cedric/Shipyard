@@ -94,7 +94,7 @@ function OpenCard({
 			}
 		>
 			{/* The title opens the form of the item: the card has no Edit button. */}
-			<h3 className="text-20 font-semibold text-n-12">
+			<h2 className="text-20 font-semibold text-n-12">
 				<button
 					type="button"
 					aria-label={format(p.editItem, { name: q.title })}
@@ -103,7 +103,7 @@ function OpenCard({
 				>
 					{q.title}
 				</button>
-			</h3>
+			</h2>
 			<form
 				className="mt-auto flex flex-wrap items-center gap-2.5"
 				onSubmit={(e) => {

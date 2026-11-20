@@ -108,6 +108,8 @@ function Face({ a }: { a: Artifact | undefined }) {
 		return (
 			<span
 				aria-hidden="true"
+				// inert: the viewer inside holds a focusable node, and the card is a button.
+				inert
 				className={`${box} [&_[role=img]]:h-28 [&_[role=img]]:min-h-0 [&_[role=img]]:overflow-hidden [&_[role=img]]:border-0 [&_[role=img]]:bg-transparent [&_[role=img]]:p-0 [&_svg]:max-h-28${
 					format === "mermaid" ? " [&_svg]:h-full! [&_svg]:w-full! [&_svg]:max-w-none!" : ""
 				}`}

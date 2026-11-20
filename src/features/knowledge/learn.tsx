@@ -147,7 +147,7 @@ export function Learn() {
 											type="button"
 											data-nav=""
 											onClick={() => openRef(g.spec)}
-											className="min-h-6 w-fit max-w-full text-left font-semibold text-n-12 hover:underline"
+											className="min-h-control w-fit max-w-full text-left font-semibold text-n-12 hover:underline"
 										>
 											{g.term}
 										</button>
