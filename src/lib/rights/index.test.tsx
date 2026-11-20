@@ -36,6 +36,7 @@ describe("rights", () => {
 			rights: [...dev.rights],
 			access: {
 				work: "write",
+				plan: "write",
 				specs: "read",
 				design: "write",
 				knowledge: "write",

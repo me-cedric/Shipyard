@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { PermissionsCard, ReplayTour } from "@/features/onboarding";
+import { useSignOut } from "@/features/shell/sign-out";
 import { LANGS, useI18n } from "@/lib/i18n";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
@@ -8,6 +9,7 @@ import { useRightsView } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useTeam } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
+import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
 import { StatusDot } from "@/ui/atoms/status-dot";
@@ -168,6 +170,7 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 	const person = useTeam().data?.team.members.find((m) => m.handle === handle)?.name;
 	const name = person ?? t.shell.account;
 	const { setShortcutsOpen } = useShell();
+	const signOut = useSignOut();
 	const notify = useNotifyOff();
 	// The mark: the active project sets this value, and it replaces the one below.
 	const marked = (key: Overridable, control: React.ReactNode) => (
@@ -191,7 +194,11 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 									{name}
 								</span>
 							}
-						/>
+						>
+							<Button className="min-h-control text-danger-text" onClick={() => void signOut()}>
+								{t.shellFn.signOut.label}
+							</Button>
+						</SetupRow>
 						<SetupRow label={s.roleView}>
 							<ValueSelect
 								label={t.prefs.role}

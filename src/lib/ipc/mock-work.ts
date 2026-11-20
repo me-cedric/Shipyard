@@ -1217,6 +1217,41 @@ export function timeList(
 	return { member: handle, month, rows: reconcile(entries, []), canSend };
 }
 
+/**
+ * Fill from my work: a row for the run of a ticket and one for a commit of the day. The rows that
+ * the day has already are left out, so a second Fill adds none (`work/fill.rs`).
+ */
+export function timeFill(
+	w: MockWork,
+	mirror: Mirror,
+	member: string | null,
+	day: string,
+	click: boolean,
+): { entries: TimeEntry_Serialize[] } {
+	if (!click) throw "this change needs the click of a person";
+	const handle = memberOf(w, member);
+	if (parseDay(day) === null) throw `\`${day}\` is not a date`;
+	const ticket = mirror[0];
+	const rows: [string | undefined, string, number][] = [
+		...(ticket ? [[ticket.key, ticket.title, 40] as [string, string, number]] : []),
+		[undefined, "Fix login", 15],
+	];
+	const have = w.time[handle] ?? [];
+	const entries: TimeEntry_Serialize[] = rows
+		.filter(
+			([key, note]) => !have.some((e) => e.day === day && e.ticket === key && e.note === note),
+		)
+		.map(([key, note, minutes]) => ({
+			id: `t${++w.counter}`,
+			day,
+			minutes,
+			note,
+			...(key ? { ticket: key } : {}),
+		}));
+	w.time[handle] = [...have, ...entries].sort(byDay);
+	return { entries };
+}
+
 export function timeAdd(
 	w: MockWork,
 	mirror: Mirror,

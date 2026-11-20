@@ -13,6 +13,7 @@ import { Kbd } from "@/ui/atoms/kbd";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import { MENU_ITEM, MENU_POPUP } from "@/ui/molecules/menu-button";
 import { useActions } from "./actions";
+import { useSignOut } from "./sign-out";
 
 // A row of the menu card: 60 px, with a line between two rows.
 const ROW = "flex min-h-15 items-center gap-3 border-n-6 px-6 text-n-12 [&+&]:border-t";
@@ -33,6 +34,7 @@ export function AccountMenu({ compact }: { compact?: boolean }) {
 	const navigate = useNavigate();
 	const avatar = usePicture("avatar").data;
 	const { list } = useActions();
+	const signOut = useSignOut();
 	const handle = useRightsView().data?.person.member;
 	// The full name of the team file. A person with no team file has no name here.
 	const person = useTeam().data?.team.members.find((m) => m.handle === handle)?.name;
@@ -197,6 +199,10 @@ export function AccountMenu({ compact }: { compact?: boolean }) {
 						>
 							{format(t.count, { name: t.shell.health, count: findings.length })}
 							<StatusDot status={status} className="ml-auto" />
+						</Menu.Item>
+						{/* The last row: red, with the confirmation of what it removes. */}
+						<Menu.Item className={cn(ITEM, "text-danger-text")} onClick={() => void signOut()}>
+							{t.shellFn.signOut.label}
 						</Menu.Item>
 					</Menu.Popup>
 				</Menu.Positioner>

@@ -105,6 +105,9 @@ export type PlacePath = { [P in PlaceId]: `/${P}/${TabOf<(typeof PLACES)[P][numb
 
 export const PLACE_IDS = Object.keys(PLACES) as PlaceId[];
 
+/** The places that a role can hide: Today and Setup always show (`HIDEABLE` of `rights.rs`). */
+export const HIDEABLE_PLACES: PlaceId[] = ["flow", "plan", "crew", "library", "code"];
+
 export const PLACE_ICON: Record<PlaceId, ComponentType<{ size?: number }>> = {
 	today: TodayIcon,
 	flow: FlowIcon,
@@ -145,10 +148,12 @@ export const placeOfView = (space: SpaceId, tab: string) =>
  */
 export const hiddenSection = (level: LevelOf, space: SectionSpace, tab: string) => {
 	const views = viewsOf(space, tab);
+	if (`${space}/${tab}` === "flow/health") return false;
+	// A place that the roles of the person hide takes each of its sections with it.
+	const place = PLACE_IDS.find((p) => (PLACES[p] as readonly string[]).includes(`${space}/${tab}`));
+	if (place && HIDEABLE_PLACES.includes(place) && level.hidden?.includes(place)) return true;
 	return (
-		`${space}/${tab}` !== "flow/health" &&
-		views.length > 0 &&
-		views.every((v) => hiddenTab(level, ...(v.split("/") as [SpaceId, string])))
+		views.length > 0 && views.every((v) => hiddenTab(level, ...(v.split("/") as [SpaceId, string])))
 	);
 };
 

@@ -10,6 +10,10 @@ type Run = { run: string; key: string; title?: string };
 
 const BOX = "flex items-center gap-3 rounded-md bg-n-3 px-4 py-3";
 
+/** A tool in plain words: `mcp__shipyard__read_ticket` reads "read ticket". */
+export const toolLabel = (name: string) =>
+	(name.split("__").at(-1) ?? name).replaceAll("_", " ").replaceAll("-", " ");
+
 /**
  * The requests of one run (picture 078): the run, its steps and the requests of each step with
  * tokens and cost, as a tree or as a flame graph. `run` is the run in the address; none picks the first.
@@ -67,6 +71,16 @@ export function RequestTree({
 											<span>{money.format(st.usd ?? 0)}</span>
 										</summary>
 										<ul className="ml-6 mt-2 flex flex-col gap-2">
+											{st.tools.map((c, i) => (
+												<li
+													// biome-ignore lint/suspicious/noArrayIndexKey: calls repeat, and the list never reorders
+													key={`${c.name}:${i}`}
+													title={c.target || undefined}
+													className={`${BOX} font-mono text-12`}
+												>
+													<span className="flex-1">{toolLabel(c.name)}</span>
+												</li>
+											))}
 											{st.requests.map((r) => (
 												<li
 													key={r.at}

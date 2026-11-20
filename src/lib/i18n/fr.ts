@@ -23,6 +23,7 @@ import { reportsFr } from "./reports";
 import { reviewFr } from "./review";
 import { rightsFr } from "./rights";
 import { settingsFr } from "./settings";
+import { shellFnFr } from "./shell-fn";
 import { specsFr } from "./specs";
 import { uiFr } from "./ui";
 import { workspaceFr } from "./workspace";
@@ -950,6 +951,7 @@ export const fr: Messages = {
 			"pr-checks": "Contrôles des pull requests",
 			"scan-failed": "Analyse échouée",
 			"review-draft": "Brouillon de revue",
+			budget: "Budget",
 		},
 		runDone: "{key} : exécution terminée",
 		runFailed: "{key} : exécution échouée",
@@ -1009,6 +1011,7 @@ export const fr: Messages = {
 	editing: editingFr,
 	review: reviewFr,
 	rights: rightsFr,
+	shellFn: shellFnFr,
 	extras: extrasFr,
 	onboarding: onboardingFr,
 };

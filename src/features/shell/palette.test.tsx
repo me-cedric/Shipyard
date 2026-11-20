@@ -73,6 +73,7 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 			rights: [],
 			access: {
 				work: "read",
+				plan: "read",
 				specs: "read",
 				design: "read",
 				knowledge: "read",

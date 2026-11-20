@@ -13,6 +13,7 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { ChevronRightIcon, StopIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { Row } from "@/ui/molecules/row";
+import { resumeLine, useTakeMachine } from "./take-control";
 
 const HEAD = "px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11";
 const SHAPE = { working: "accent", idle: "warning", done: "neutral", unknown: "neutral" } as const;
@@ -27,6 +28,7 @@ export function MachineRows() {
 	const m = t.factory.machine;
 	const rows = useMachineSessions().data ?? [];
 	const writes = useMachineWrites();
+	const take = useTakeMachine();
 	const { error, run } = useGuard();
 	return (
 		<>
@@ -47,6 +49,15 @@ export function MachineRows() {
 					<Badge variant={s.state === "working" ? "accent" : "neutral"}>
 						{m.state[s.state === "working" || s.state === "idle" ? s.state : "done"]}
 					</Badge>
+					{s.pid !== null && resumeLine(s.runner, s.session) ? (
+						<Button
+							className="min-h-control"
+							aria-label={format(t.shellFn.sessions.takeOf, { name: `${s.runner} ${s.project}` })}
+							onClick={() => void run(() => take(s))}
+						>
+							{t.shellFn.sessions.take}
+						</Button>
+					) : null}
 					{s.pid === null ? null : (
 						<IconButton
 							label={format(m.stop, { name: `${s.runner} ${s.project}` })}

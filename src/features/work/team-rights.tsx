@@ -111,6 +111,7 @@ const levels = (l: string, merge = false, approve = false): Access => {
 		runs: at(5),
 		settings: at(6),
 		costs: at(7),
+		plan: at(0),
 		merge,
 		approve,
 	};
@@ -141,6 +142,7 @@ const RIGHT_AT: Record<Right, [keyof Access, Level]> = {
 	"runs.approve": ["approve", "write"],
 	"project.settings": ["settings", "write"],
 	"costs.view": ["costs", "read"],
+	"plan.edit": ["plan", "write"],
 };
 
 const isRole = (r: string): r is TeamRole => (TEAM_ROLES as string[]).includes(r);

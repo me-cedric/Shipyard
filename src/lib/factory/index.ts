@@ -233,6 +233,15 @@ export const machineKeys = {
 	spend: (days: number) => ["machine", "spend", days] as const,
 };
 
+/** The processor and memory of the agent processes only. It reads again every 5 s. */
+export function useMachineLoad() {
+	return useQuery({
+		queryKey: ["machine", "load"],
+		queryFn: () => unwrap(commands.machineLoad()),
+		refetchInterval: 5000,
+	});
+}
+
 /** Every AI session on this computer, not only the factory runs. It reads again every 5 s. */
 export function useMachineSessions() {
 	return useQuery({
@@ -312,6 +321,7 @@ export function useMachineWrites() {
 		};
 		return {
 			stop: (pid: number) => run(commands.machineSessionStop(pid, true)),
+			take: (pid: number) => run(commands.machineSessionTake(pid, true)),
 			budget: (runner: string, usd: number | null) => run(commands.machineBudgetSet(runner, usd)),
 		};
 	}, [qc]);

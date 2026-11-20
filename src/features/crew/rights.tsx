@@ -1,6 +1,6 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { NoProject } from "@/features/shell/no-project";
-import { PeopleCard, RoleCard, useRolesSave } from "@/features/work/team-rights";
+import { PeopleCard, useRolesSave } from "@/features/work/team-rights";
 import { format, useI18n } from "@/lib/i18n";
 import type { TeamRole } from "@/lib/ipc";
 import { TEAM_ROLES } from "@/lib/prefs";
@@ -9,6 +9,7 @@ import { useRights } from "@/lib/rights";
 import { useTeam } from "@/lib/work";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
+import { RoleCard } from "./role-card";
 import { LevelsPage, TeamPage } from "./team-page";
 
 const isRole = (r: unknown): r is TeamRole => (TEAM_ROLES as unknown[]).includes(r);
@@ -53,7 +54,6 @@ export function Rights() {
 					<PeopleCard roles={roles} />
 					<RoleCard
 						role={role}
-						roles={roles}
 						onRole={(next) =>
 							void navigate({ to: "/crew/rights", search: { role: next } as never, replace: true })
 						}

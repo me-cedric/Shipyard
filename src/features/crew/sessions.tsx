@@ -3,12 +3,12 @@ import { useContext, useMemo } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
-import { useFactoryWrites, useRunActions, useSessions } from "@/lib/factory";
+import { useFactoryWrites, useRunActions, useRuns, useSessions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, type SessionView, unwrap } from "@/lib/ipc";
+import { commands, type SessionView, type UnitView, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton, useRights } from "@/lib/rights";
-import { runHref } from "@/lib/shell";
+import { runHref, useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
@@ -25,6 +25,7 @@ import { Row } from "@/ui/molecules/row";
 import { usePlainDay } from "../plan/capacity";
 import { type AgentRow, useAgentRows } from "./live";
 import { EndedCard, MachineRows, modelName, OrcaCard, SIDE_HEAD } from "./sessions-side";
+import { resumeLine, takeLine, useLiveOutput } from "./take-control";
 
 const live = (r: AgentRow) => r.session.state === "running" || r.session.state === "gate";
 /** A button on the dark session panel: dark, like the design. */
@@ -33,6 +34,56 @@ const ON_PANEL = `${PANEL_BUTTON} text-primary-fg`;
 /** The Stop button on that panel: light orange, like the design (dark orange on the light panel of the dark theme). */
 const STOP_ON_PANEL = `${PANEL_BUTTON} ${ATTENTION_ON_PANEL}`;
 const idOf = (s: SessionView) => `${s.run}/${s.step}`;
+
+/** The live output of a session: what its tool wrote, or the words that say it writes none. */
+function SessionOutput({ unit }: { unit?: UnitView }) {
+	const { t } = useI18n();
+	const lines = useLiveOutput(unit?.runner, unit?.session);
+	if (lines.length === 0) return <p>{t.factory.sessionsPage.noOutput}</p>;
+	return (
+		<pre className="m-0 flex-1 overflow-auto whitespace-pre-wrap leading-[1.8]">
+			{lines.join("\n")}
+		</pre>
+	);
+}
+
+/**
+ * Take control (`spec:shell-setup-rights#REQ-002`): it stops the run and opens the session of
+ * Claude Code or Codex again in the Shipyard terminal. It shows only for a session with a folder
+ * and an id that the tool can resume.
+ */
+function TakeControl({
+	session,
+	unit,
+	name,
+}: {
+	session: SessionView;
+	unit?: UnitView;
+	name: string;
+}) {
+	const { t } = useI18n();
+	const { runInTerminal } = useShell();
+	const act = useRunActions();
+	const { gate } = useRights();
+	const { run } = useGuard();
+	const command = unit ? resumeLine(unit.runner, unit.session) : null;
+	if (!unit || !command || !unit.dir) return null;
+	return (
+		<ConfirmButton
+			className={`min-h-control ${ON_PANEL}`}
+			{...gate("runs.start")}
+			confirm={format(t.shellFn.sessions.confirmTake, { name })}
+			onConfirm={() =>
+				void run(async () => {
+					await act.cancel(session.run);
+					runInTerminal(takeLine(unit.dir, command));
+				})
+			}
+		>
+			{t.shellFn.sessions.take}
+		</ConfirmButton>
+	);
+}
 
 /** Crew / Sessions (`spec:app-redesign#REQ-016`): the sessions of this machine, the one shown, and the ended ones on `page=ended`. */
 export function CrewSessions() {
@@ -47,6 +98,7 @@ export function CrewSessions() {
 	const writes = useFactoryWrites();
 	const { error, run } = useGuard();
 	const act = useRunActions();
+	const runs = useRuns().data;
 	const { gate } = useRights();
 	const slot = useContext(PageSwitchContext);
 	// The page of the ended sessions has no section switch: it claims the switch and draws none.
@@ -136,6 +188,13 @@ export function CrewSessions() {
 	const here = rows.filter(live).toSorted((a, b) => a.id.localeCompare(b.id, lang));
 	const shown = here.find((r) => idOf(r.session) === search.session) ?? here[0];
 	const none = here.length === 0 && !sessions.isPending;
+	// The unit of the session shown: it knows the tool, the folder and the session id.
+	const unit = shown
+		? runs
+				?.find((r) => r.id === shown.session.run)
+				?.steps.flatMap((s) => s.units)
+				.find((u) => u.id === shown.session.step)
+		: undefined;
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 			<PageHeader title={t.ui.place.crew} />
@@ -212,6 +271,9 @@ export function CrewSessions() {
 									{t.inspector.open}
 								</Button>
 							) : null}
+							{shown.session.state === "running" ? (
+								<TakeControl session={shown.session} unit={unit} name={name(shown)} />
+							) : null}
 							{(shown.session.pull != null || shown.session.step === "estimate") &&
 							shown.session.state === "running" ? (
 								<RightButton
@@ -242,7 +304,7 @@ export function CrewSessions() {
 							{shown.session.costUsd === null ? null : (
 								<p>{`$${shown.session.costUsd.toFixed(2)}`}</p>
 							)}
-							<p>{s.noOutput}</p>
+							<SessionOutput unit={unit} />
 						</div>
 					</section>
 				) : null}

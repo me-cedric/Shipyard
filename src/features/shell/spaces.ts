@@ -145,7 +145,10 @@ const TAB_ICON: Record<string, TabIcon> = {
 export const tabIcon = (space: SectionSpace, tab: string) => TAB_ICON[`${space}/${tab}`];
 
 /** The level of the person in an area (`useRights().level`). */
-export type LevelOf = (area: Area) => Level;
+export type LevelOf = ((area: Area) => Level) & {
+	/** The places that the roles of the person do not see (`spec:shell-setup-rights#REQ-011`). */
+	hidden?: readonly string[];
+};
 
 /** The area of each space (`team-rights`). Home has none: it always shows. */
 const SPACE_AREA: Partial<Record<SpaceId, Area>> = {

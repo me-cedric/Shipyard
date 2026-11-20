@@ -393,6 +393,7 @@ describe("Feature page events (REQ-015)", () => {
 			rights: [],
 			access: {
 				work: "read",
+				plan: "read",
 				specs: "read",
 				design: "read",
 				knowledge: "read",

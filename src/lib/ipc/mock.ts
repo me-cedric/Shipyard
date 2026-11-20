@@ -190,6 +190,8 @@ type State = {
 	platform?: string;
 	cursor: number;
 	confirm: boolean;
+	/** The questions that the app asked with `confirmDialog`, oldest first. */
+	asked: string[];
 	connections: Connection_Serialize[];
 	/** The pages that the app opened in the browser: the token pages. */
 	openedPages: string[];
@@ -296,6 +298,8 @@ const fresh = (): State => ({
 		defaultAgent: "",
 		defaultModel: "",
 		autoUpdateCheck: true,
+		releaseChannel: "stable",
+		sound: true,
 		promptLang: "",
 		diagramFormat: "",
 		accent: null,
@@ -324,6 +328,7 @@ const fresh = (): State => ({
 	fixed: [],
 	cursor: 0,
 	confirm: true,
+	asked: [],
 	connections: [],
 	openedPages: [],
 	logins: [],
@@ -396,7 +401,10 @@ export function saveMock(fallback: string): string | null {
 	return f || null;
 }
 
-export const confirmMock = () => state.confirm;
+export const confirmMock = (message?: string) => {
+	if (message !== undefined) state.asked.push(message);
+	return state.confirm;
+};
 
 // The refs of the app come from the repository files. The mock reads its seeded files.
 const entities = () => [
@@ -960,13 +968,26 @@ const RIGHTS: Right[] = [
 	"runs.approve",
 	"project.settings",
 	"costs.view",
+	"plan.edit",
 ];
 
 type Area = Exclude<keyof Access, "merge" | "approve">;
-type MockPerson = Omit<RightsPerson_Serialize, "access" | "roles"> &
-	Partial<Pick<RightsPerson_Serialize, "access" | "roles">>;
+type MockPerson = Omit<RightsPerson_Serialize, "access" | "roles" | "hidden"> &
+	Partial<Pick<RightsPerson_Serialize, "access" | "roles" | "hidden">>;
 
-const AREAS: Area[] = ["work", "specs", "design", "knowledge", "code", "runs", "settings", "costs"];
+const AREAS: Area[] = [
+	"work",
+	"specs",
+	"design",
+	"knowledge",
+	"code",
+	"runs",
+	"settings",
+	"costs",
+	"plan",
+];
+/** The places that a role can hide (`HIDEABLE` of `crates/shipyard-core/src/rights.rs`). */
+const HIDEABLE = ["flow", "plan", "crew", "library", "code"];
 const RANK: Record<Level, number> = { none: 0, read: 1, write: 2 };
 /** The area of each right, and the level that it needs (`Right::area`, `Right::need`). */
 const RIGHT_AREA: Record<Right, Area> = {
@@ -980,6 +1001,7 @@ const RIGHT_AREA: Record<Right, Area> = {
 	"runs.approve": "runs",
 	"project.settings": "settings",
 	"costs.view": "costs",
+	"plan.edit": "plan",
 };
 const needOf = (r: Right): Level => (r === "costs.view" ? "read" : "write");
 
@@ -987,6 +1009,8 @@ const access = (l: string, merge = false, approve = false): Access => {
 	const level = (c: string): Level => (c === "W" ? "write" : c === "R" ? "read" : "none");
 	return {
 		...(Object.fromEntries(AREAS.map((a, i) => [a, level(l[i] ?? "N")])) as Record<Area, Level>),
+		// The default Plan level of a role is its Work level.
+		plan: level(l[0] ?? "N"),
 		merge,
 		approve,
 	};
@@ -1039,15 +1063,23 @@ function roleTable(): [TeamRole, Access][] {
 	});
 }
 
+/** The places that a role does not see: the `hide` cell of its block, in the order of `HIDEABLE`. */
+function roleHidden(role: TeamRole): string[] {
+	const cell = state.work.team.roles?.[role]?.hide;
+	const named = typeof cell === "string" ? cell.split(",").map((x) => x.trim()) : [];
+	return HIDEABLE.filter((p) => named.includes(p));
+}
+
 /** A person set by a test with rights only: each area `read`, `write` where a right needs it. */
 function withAccess(p: MockPerson): RightsPerson_Serialize {
-	if (p.access) return { roles: p.role ? [p.role] : [], ...p, access: p.access };
+	if (p.access)
+		return { roles: p.role ? [p.role] : [], ...p, access: p.access, hidden: p.hidden ?? [] };
 	const a = access("RRRRRRRN");
 	for (const r of p.rights) if (needOf(r) === "write") a[RIGHT_AREA[r]] = "write";
 	if (p.rights.includes("costs.view")) a.costs = "read";
 	a.merge = p.rights.includes("code.merge");
 	a.approve = p.rights.includes("runs.approve");
-	return { roles: p.role ? [p.role] : [], ...p, access: a };
+	return { roles: p.role ? [p.role] : [], ...p, access: a, hidden: p.hidden ?? [] };
 }
 
 const SOLO: RightsPerson_Serialize = {
@@ -1056,6 +1088,7 @@ const SOLO: RightsPerson_Serialize = {
 	role: null,
 	roles: [],
 	admin: true,
+	hidden: [],
 	readOnly: false,
 	access: ADMIN,
 	rights: RIGHTS,
@@ -1078,6 +1111,7 @@ function teamPerson(): RightsPerson_Serialize {
 			role: "viewer",
 			roles: ["viewer"],
 			admin: false,
+			hidden: [],
 			readOnly: false,
 			access: a,
 			rights: rightsOf(a),
@@ -1118,6 +1152,8 @@ function teamPerson(): RightsPerson_Serialize {
 		role: roles[0] ?? "viewer",
 		roles,
 		admin: me.admin === true,
+		// A person sees a place when one of the roles sees it. An admin sees each place.
+		hidden: me.admin ? [] : HIDEABLE.filter((p) => roles.every((r) => roleHidden(r).includes(p))),
 		readOnly: false,
 		access: a,
 		rights: rightsOf(a),
@@ -1132,6 +1168,9 @@ function approverOnly(run: string) {
 	if (me.found === "solo" || me.roles.some((r) => r === role)) return;
 	throw `only the role ${role} approves this step`;
 }
+
+/** The person of `rightsGet`, for the handlers that check a right. */
+const mePerson = () => (handlers.rightsGet() as { person: RightsPerson_Serialize }).person;
 
 // A missing key fails `tsc`: each generated command needs a handler.
 const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesList> } = {
@@ -1262,6 +1301,18 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 		for (const x of state.projects) x.active = false;
 		return null;
 	},
+	projectsCloseState: () => fx.projectRuns(state.factory, active()?.id ?? null),
+	projectsCloseStop: () => {
+		// A person who may not stop runs keeps the project open, as `close_stopping` does.
+		const me = mePerson();
+		if (
+			fx.projectRuns(state.factory, active()?.id ?? null).length &&
+			!me.rights.includes("runs.start")
+		)
+			throw `missing right runs.start (${me.admin ? "admin" : (me.role ?? "admin")})`;
+		fx.projectRunsStop(state.factory, active()?.id ?? null);
+		return handlers.projectsClose();
+	},
 	projectsRemove: (id) => {
 		if (!state.projects.some((x) => x.id === id)) throw `unknown project: ${id}`;
 		state.projects = state.projects.filter((x) => x.id !== id);
@@ -1349,7 +1400,12 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 			branch: null,
 			fetched: null,
 			warnings: [],
-			roles: roleTable().map(([role, a]) => ({ role, access: a, rights: rightsOf(a) })),
+			roles: roleTable().map(([role, a]) => ({
+				role,
+				access: a,
+				rights: rightsOf(a),
+				hidden: roleHidden(role),
+			})),
 		};
 	},
 	rightsRolesSave: (table, members) => {
@@ -1379,6 +1435,13 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 			const cells: Record<string, string | boolean> = {};
 			for (const k of AREAS) if (a[k] !== base[k]) cells[k] = a[k];
 			for (const k of ["merge", "approve"] as const) if (a[k] !== base[k]) cells[k] = a[k];
+			// `hidden` replaces the places of the role; no list keeps them (`roles_save`).
+			const given = [...table].reverse().find((r) => r.role === role)?.hidden;
+			const hide = given == null ? roleHidden(role) : given;
+			if (hide.some((p) => !HIDEABLE.includes(p)))
+				throw `a role hides only: ${HIDEABLE.join(", ")}`;
+			const list = HIDEABLE.filter((p) => hide.includes(p));
+			if (list.length) cells.hide = list.join(",");
 			if (Object.keys(cells).length) roles[role] = cells;
 		}
 		state.work.team = { members: next, ...(Object.keys(roles).length ? { roles } : {}) };
@@ -1416,6 +1479,20 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 				return c?.tracker === id || c?.forge === id;
 			})
 			.map((p) => ({ id: p.id, name: p.name, key: p.key })),
+	accountSignOutList: () => state.connections.filter((c) => c.secret),
+	accountSignOut: (click) => {
+		if (!click) throw "this change needs the click of a person";
+		if (active()?.overrides.readOnly === true) throw "the profile of this project is read only";
+		// The AI tools and OpenRouter are no connection: their sign-in stays.
+		const gone = state.connections.filter((c) => c.secret);
+		for (const c of gone) {
+			c.secret = false;
+			c.state = "untested";
+			c.scopes = [];
+			delete state.secrets[c.id];
+		}
+		return gone.map((c) => c.name);
+	},
 	connectionsRemove: (id) => {
 		const c = conn(id);
 		state.connections = state.connections.filter((x) => x !== c);
@@ -1606,6 +1683,10 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 	mcpRecommended: () => mt.mcpRecommended(state.agents),
 	mcpRecommendedEnable: (click) => mt.mcpRecommendedEnable(state.agents, click),
 	machineSessions: () => state.machine.sessions,
+	machineSessionTake: (pid, click) => mc.machineTake(state.machine, pid, click),
+	machineSessionOutput: (runner, session) => mc.machineOutput(state.machine, runner, session),
+	machineLoad: () => mc.machineLoad(state.machine),
+	budgetStatus: () => mc.budgetStatus(state.machine),
 	machineSessionStop: (pid, click) => {
 		if (!click) throw "this change needs the click of a person";
 		return mc.machineStop(state.machine, pid);
@@ -1886,6 +1967,12 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 	},
 	timeList: (member, month) =>
 		work.timeList(need(state.work), member, month, syncSources().length > 0),
+	timeFillDay: (member, day, click) => {
+		const me = mePerson();
+		if (!me.rights.includes("work.edit"))
+			throw `missing right work.edit (${me.admin ? "admin" : (me.role ?? "admin")})`;
+		return work.timeFill(need(state.work), state.sync.mirror, member, day, click);
+	},
 	timeAdd: (member, day, minutes, note, ticket, offset, reduce) =>
 		work.timeAdd(
 			need(state.work),
@@ -2447,6 +2534,12 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 	rolesList: () => fx.rolesList(need(state.factory)),
 	roleGet: (id) => fx.roleGet(need(state.factory), id),
 	roleWrite: (id, text) => fx.roleWrite(need(state.factory), id, text),
+	roleModelSet: (id, tier) => {
+		const me = mePerson();
+		if (!me.rights.includes("project.settings"))
+			throw `missing right project.settings (${me.admin ? "admin" : (me.role ?? "admin")})`;
+		return fx.roleModelSet(need(state.factory), id, tier);
+	},
 	questionsList: () => fx.questionsList(state.factory, active()?.id ?? null),
 	questionAnswer: (run, id, choice) => fx.questionAnswer(state.factory, run, id, choice),
 	messagesList: () => fx.messagesList(state.factory, active()?.id ?? null),
@@ -2515,6 +2608,8 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 	assistantStop: () => null,
 	assistantLive: (thread) => xt.live(state.extras, thread),
 	appDataFolder: xt.dataFolder,
+	appPortableSet: (on, click) => xt.portableSet(on, click),
+	appDataFolderMove: (to, click) => xt.dataFolderMove(to, click),
 	pictureGet: (which) => xt.pictureGet(state.extras, which),
 	pictureSet: (which, path, click) => {
 		if (which === "logo") need(true);

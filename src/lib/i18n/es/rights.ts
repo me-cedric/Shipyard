@@ -71,6 +71,7 @@ export const rightsEs: typeof rightsEn = {
 			runs: "Iniciar y detener agentes",
 			settings: "Configuración",
 			costs: "Presupuestos",
+			plan: "Plan y estimaciones",
 		},
 		level: { none: "Oculto", read: "Lectura", write: "Lectura y escritura" },
 		merge: "Fusión",

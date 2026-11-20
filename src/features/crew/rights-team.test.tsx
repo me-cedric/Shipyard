@@ -29,10 +29,11 @@ describe("Crew / Rights: the team file", () => {
 		const router = mountApp("/crew/rights?role=viewer");
 		expect(await screen.findByRole("heading", { name: "Viewer can" })).toBeInTheDocument();
 		// The viewer does not see Code and the costs by default (spec:app-redesign#REQ-006).
-		expect(pressed("See")).toHaveLength(6);
-		// Two hidden areas, and no merge and no approval.
-		expect(pressed("No")).toHaveLength(4);
-		expect((await row("Code")).getByRole("button", { name: "No" })).toHaveAttribute(
+		// Six areas and Plan, which follows Work: See.
+		expect(pressed("See")).toHaveLength(7);
+		// Two hidden areas, and no approval. Merge is a switch beside the code level.
+		expect(pressed("No")).toHaveLength(3);
+		expect((await row("Code and merge")).getByRole("button", { name: "No" })).toHaveAttribute(
 			"aria-pressed",
 			"true",
 		);
@@ -68,12 +69,10 @@ describe("Crew / Rights: the team file", () => {
 				"true",
 			),
 		);
-		await user.click(screen.getByRole("button", { name: "Viewer" }));
-		await user.click((await row("Merge")).getByRole("button", { name: "Yes" }));
+		await user.click(await screen.findByRole("switch", { name: "Developer Merge" }));
 		await waitFor(() =>
 			expect(mockState().work.team.roles).toEqual({
-				developer: { costs: "read" },
-				viewer: { merge: true },
+				developer: { costs: "read", merge: true },
 			}),
 		);
 		await idle(router);

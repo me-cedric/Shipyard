@@ -1676,6 +1676,49 @@ export function roleWrite(f: MockFactory, id: string, text: string): null {
 	return null;
 }
 
+const TIERS = ["top", "mid", "small"];
+
+/** `text` with `model: <tier>` in its frontmatter, as `with_tier` of `role_model.rs`. */
+export function withTier(text: string, tier: string): string {
+	const line = `model: ${tier}`;
+	if (!text.startsWith("---\n")) return `---\n${line}\n---\n${text}`;
+	const out = ["---\n"];
+	let set = false;
+	let closed = false;
+	for (const l of text.slice(4).split(/(?<=\n)/)) {
+		if (!closed && l.trimEnd() === "---") {
+			if (!set) out.push(`${line}\n`);
+			closed = true;
+		} else if (!closed && l.startsWith("model:")) {
+			out.push(`${line}\n`);
+			set = true;
+			continue;
+		}
+		out.push(l);
+	}
+	return out.join("");
+}
+
+/** Set the tier of a role. A bundled role with no project file gets one. */
+export function roleModelSet(f: MockFactory, id: string, tier: string): null {
+	if (!TIERS.includes(tier)) throw `a tier is one of: ${TIERS.join(", ")}`;
+	const file = roleFile(f, fileId(id));
+	f.roles[id] = withTier(file.text, tier);
+	return null;
+}
+
+/** The runs of the project that have not ended: the question of a project close lists them. */
+export const projectRuns = (f: MockFactory, project: string | null) =>
+	runsOf(f, project)
+		.filter((r) => !FINAL.includes(r.state))
+		.map((r) => ({ run: r.id, key: r.key }));
+
+/** Stop each run of the project, as `close_stopping` does before it closes the project. */
+export function projectRunsStop(f: MockFactory, project: string | null): null {
+	for (const r of projectRuns(f, project)) runCancel(f, r.run);
+	return null;
+}
+
 // ------------------------------------------------------------------ sessions, usage, diff
 
 const cents = (n: number) => Math.round(n * 100) / 100;
@@ -1749,6 +1792,11 @@ export function usageTreeGet(f: MockFactory, project: string | null, run: string
 			tokens: requests.reduce((a, x) => a + x.inputTokens + x.outputTokens, 0),
 			usd: cents(requests.reduce((a, x) => a + x.usd, 0)),
 			requests,
+			// The runner records the tool calls of each step in the run log.
+			tools: [
+				{ name: "read_ticket", target: r.key },
+				{ name: "read_ref", target: `spec:${r.key.toLowerCase()}#REQ-1` },
+			],
 		};
 	});
 	return {

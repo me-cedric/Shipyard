@@ -23,6 +23,7 @@ import { reportsEs } from "./reports";
 import { reviewEs } from "./review";
 import { rightsEs } from "./rights";
 import { settingsEs } from "./settings";
+import { shellFnEs } from "./shell-fn";
 import { specsEs } from "./specs";
 import { uiEs } from "./ui";
 import { workspaceEs } from "./workspace";
@@ -956,6 +957,7 @@ export const es: Messages = {
 			"pr-checks": "Comprobaciones del pull request",
 			"scan-failed": "Análisis fallido",
 			"review-draft": "Borrador de revisión",
+			budget: "Presupuesto",
 		},
 		runDone: "{key}: ejecución terminada",
 		runFailed: "{key}: ejecución fallida",
@@ -1010,6 +1012,7 @@ export const es: Messages = {
 	editing: editingEs,
 	review: reviewEs,
 	rights: rightsEs,
+	shellFn: shellFnEs,
 	extras: extrasEs,
 	onboarding: onboardingEs,
 };

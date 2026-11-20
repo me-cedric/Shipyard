@@ -86,7 +86,7 @@ export async function pickImage(): Promise<string | null> {
 }
 
 export async function confirmDialog(message: string): Promise<boolean> {
-	if (!isTauri()) return confirmMock();
+	if (!isTauri()) return confirmMock(message);
 	const { ask } = await import("@tauri-apps/plugin-dialog");
 	return ask(message, { kind: "info" });
 }

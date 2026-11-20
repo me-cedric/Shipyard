@@ -22,6 +22,7 @@ import { reportsEn } from "./reports";
 import { reviewEn } from "./review";
 import { rightsEn } from "./rights";
 import { settingsEn } from "./settings";
+import { shellFnEn } from "./shell-fn";
 import { specsEn } from "./specs";
 import { uiEn } from "./ui";
 import { workspaceEn } from "./workspace";
@@ -935,6 +936,7 @@ export const en = {
 			"pr-checks": "Pull request checks",
 			"scan-failed": "Failed scan",
 			"review-draft": "Review draft",
+			budget: "Budget",
 		},
 		runDone: "{key}: run done",
 		runFailed: "{key}: run failed",
@@ -989,6 +991,7 @@ export const en = {
 	editing: editingEn,
 	review: reviewEn,
 	rights: rightsEn,
+	shellFn: shellFnEn,
 	extras: extrasEn,
 	onboarding: onboardingEn,
 };

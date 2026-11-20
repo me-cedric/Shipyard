@@ -108,6 +108,7 @@ describe("Flow / Health for every role (spec:app-redesign#REQ-023)", () => {
 			rights: [],
 			access: {
 				work: "read",
+				plan: "read",
 				specs: "read",
 				design: "read",
 				knowledge: "read",

@@ -57,10 +57,37 @@ export function pictureSet(m: MockExtras, which: Picture, path: string | null, o
 	return null;
 }
 
+const DATA_PATH = "/Users/ada/Library/Application Support/dev.shipyard.app";
+/** The folder after a Change, and whether the marker is next to the app: the next start uses them. */
+let moved: string | null = null;
+let marker = false;
+
 export const dataFolder = (): DataFolder => ({
-	path: "/Users/ada/Library/Application Support/dev.shipyard.app",
+	path: DATA_PATH,
 	portable: false,
+	marker,
 });
+
+/** The Portable switch writes or removes the marker. It needs the click of a person. */
+export function portableSet(on: boolean, click: boolean): DataFolder {
+	if (!click) throw "this change needs the click of a person";
+	marker = on;
+	return dataFolder();
+}
+
+/** Change moves the data: a full path, not the data folder, and the app restarts. */
+export function dataFolderMove(to: string, click: boolean): null {
+	if (!click) throw "this change needs the click of a person";
+	if (!to.startsWith("/")) throw "the new folder needs a full path";
+	if (to === DATA_PATH || to.startsWith(`${DATA_PATH}/`))
+		throw "the new folder is the data folder, or is inside it";
+	if (marker) throw "turn off the portable mode first";
+	moved = to;
+	return null;
+}
+
+/** The folder that the next start uses, for a test. */
+export const dataFolderAfterRestart = () => moved ?? DATA_PATH;
 
 export function feedbackMail(m: MockExtras, title: string, details: string, ok: boolean) {
 	if (!ok) throw "this action needs the click of a person";

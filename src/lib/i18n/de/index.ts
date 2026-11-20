@@ -23,6 +23,7 @@ import { reportsDe } from "./reports";
 import { reviewDe } from "./review";
 import { rightsDe } from "./rights";
 import { settingsDe } from "./settings";
+import { shellFnDe } from "./shell-fn";
 import { specsDe } from "./specs";
 import { uiDe } from "./ui";
 import { workspaceDe } from "./workspace";
@@ -967,6 +968,7 @@ export const de: Messages = {
 			"pr-checks": "Pull-Request-Prüfungen",
 			"scan-failed": "Fehlgeschlagener Scan",
 			"review-draft": "Review-Entwurf",
+			budget: "Budget",
 		},
 		runDone: "{key}: Lauf beendet",
 		runFailed: "{key}: Lauf fehlgeschlagen",
@@ -1026,6 +1028,7 @@ export const de: Messages = {
 	editing: editingDe,
 	review: reviewDe,
 	rights: rightsDe,
+	shellFn: shellFnDe,
 	extras: extrasDe,
 	onboarding: onboardingDe,
 };

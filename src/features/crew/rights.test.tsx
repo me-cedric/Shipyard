@@ -30,15 +30,15 @@ describe("Crew / Rights", () => {
 			9,
 		);
 		expect(main.getByRole("heading", { level: 2, name: "Developer can" })).toBeInTheDocument();
-		// Ten rows: "Code and merge" of the design is two rights.
+		// Ten rows: Plan and estimates, and "Code and merge" as one row (spec:shell-setup-rights#REQ-004).
 		for (const row of [
 			"Flow and tickets",
 			"Specs",
 			"Design",
+			"Plan and estimates",
 			"Start and stop agents",
 			"Approve agent actions",
-			"Code",
-			"Merge",
+			"Code and merge",
 			"Library",
 			"Budgets",
 			"Setup",

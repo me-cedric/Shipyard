@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { RequestTree } from "@/features/factory/usage/request-tree";
-import { useMachineSpend, useRuns, useSessions, useUsage } from "@/lib/factory";
+import { useMachineLoad, useMachineSpend, useRuns, useSessions, useUsage } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
@@ -36,6 +36,29 @@ function ToolBars({ price }: { price: (text: string) => ReactNode }) {
 				<Progress value={usd} max={top} label={runnerName(runner)} />
 			</div>
 		));
+}
+
+/** The load of the agent processes: Processor and Memory, each a bar. The whole computer does not count. */
+function LoadBars() {
+	const { t, lang } = useI18n();
+	const l = t.shellFn.load;
+	const load = useMachineLoad().data;
+	if (!load) return null;
+	const bytes = load.memoryBytes ?? 0;
+	const memory = `${new Intl.NumberFormat(lang, { maximumFractionDigits: 1 }).format(bytes / 1e9)} GB`;
+	const cpu = Math.round(load.cpuPercent ?? 0);
+	return (
+		<>
+			<div className="flex flex-col gap-1.5">
+				<span className="font-semibold">{format(l.processor, { percent: cpu })}</span>
+				<Progress value={cpu} max={100} label={l.processorBar} />
+			</div>
+			<div className="flex flex-col gap-1.5">
+				<span className="font-semibold">{format(l.memory, { value: memory })}</span>
+				<Progress value={bytes} max={load.memoryTotal || bytes} label={l.memoryBar} />
+			</div>
+		</>
+	);
 }
 
 /**
@@ -98,6 +121,7 @@ export function SpendHow({ run }: { run: string | null }) {
 				/>
 				<Card pad className="flex flex-[1_1_18rem] flex-col gap-3.5">
 					<h2 className="text-13 font-semibold text-n-11">{s.machine}</h2>
+					<LoadBars />
 					<ToolBars price={price} />
 					<Row className="px-0" render={(props) => <Link to="/crew/sessions" {...props} />}>
 						<span className="flex-1 font-semibold">

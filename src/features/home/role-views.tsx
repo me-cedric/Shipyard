@@ -58,7 +58,9 @@ export function RoleViews() {
 				{ORDER.map((role) => {
 					const access = rights.find((r) => r.role === role)?.access;
 					// With no rights of the project (a solo person), each role sees each place.
-					const level = (area: Area): Level => access?.[area] ?? "write";
+					const level = Object.assign((area: Area): Level => access?.[area] ?? "write", {
+						hidden: rights.find((r) => r.role === role)?.hidden ?? [],
+					});
 					const seen = visiblePlaces(level);
 					const first = firstPath(role, level);
 					const [, place, slug] = first.split("/") as [string, PlaceId, string];
