@@ -364,6 +364,10 @@ describe("Home / Today", () => {
 		mockState().prefs.todaySeen = seen;
 		mountApp("/today/panels");
 		const away = within(await screen.findByRole("region", { name: "Since you were away" }));
+		// Three rows show first; "N more" shows the others, up to 20.
+		await waitFor(() => expect(away.getAllByRole("listitem")).toHaveLength(Math.min(3, newer)));
+		const more = away.queryByRole("button", { name: /^\d+ more$/ });
+		if (newer > 3) await userEvent.setup().click(more as HTMLElement);
 		await waitFor(() => expect(away.getAllByRole("listitem")).toHaveLength(Math.min(20, newer)));
 	});
 
