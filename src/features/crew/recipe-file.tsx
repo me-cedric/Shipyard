@@ -24,6 +24,7 @@ import { linkClass } from "@/ui/atoms/link-button";
 import { Select, type SelectItem } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ClipboardIcon } from "@/ui/icons";
+import { ATTENTION_TINT } from "@/ui/molecules/attention-card";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { CodeEditor } from "@/ui/molecules/code-editor";
@@ -170,7 +171,7 @@ function Chain({ workflow, alone }: { workflow: Workflow; alone: boolean }) {
 						{s.gate === "human" ? (
 							<>
 								{line}
-								<div className={cn(STEP, "bg-attention-subtle")}>
+								<div className={cn(STEP, ATTENTION_TINT)}>
 									<Avatar name={p.you} />
 									<b className={STEP_NAME}>{format(p.review, { name: name.toLowerCase() })}</b>
 									<Badge variant="you">{t.factory.wf.gate}</Badge>

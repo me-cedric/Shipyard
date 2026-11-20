@@ -7,6 +7,7 @@ import { addDays, memberName, useSheet, useTeam, useWorkActions } from "@/lib/wo
 import { Avatar } from "@/ui/atoms/avatar";
 import { buttonVariants } from "@/ui/atoms/button";
 import { CalendarDaysIcon } from "@/ui/icons";
+import { ATTENTION_TINT } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { ATTENTION_FRAME, usePlainDay, usePlanSheet, useProposals } from "./capacity";
@@ -114,7 +115,7 @@ export function Timeline() {
 								<Avatar
 									key={m.handle}
 									name={memberName(members, m.handle)}
-									className="size-9 border-2 border-surface-2 bg-attention-subtle"
+									className={`size-9 border-2 border-surface-2 ${ATTENTION_TINT}`}
 								/>
 							))}
 						</span>

@@ -54,8 +54,6 @@ function BarButton({
 		// The button is as tall as the row, so the target is 44 px or more. The pill inside is the mark.
 		<button
 			type="button"
-			aria-label={name}
-			title={bar.name}
 			onPointerDown={down}
 			onPointerMove={track}
 			onPointerUp={up}
@@ -75,8 +73,7 @@ function BarButton({
 			className="group absolute inset-y-0 flex min-w-28 touch-none items-center rounded-full outline-none"
 		>
 			<span
-				// The button name says all of it: the pill is the same text, drawn.
-				aria-hidden="true"
+				// The name of the button starts with the text of the pill; the rest is for a screen reader.
 				className={cn(
 					"flex h-9 w-full items-center gap-2 overflow-hidden rounded-full px-1.5 text-14 font-semibold whitespace-nowrap group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-accent",
 					bar.over
@@ -88,12 +85,15 @@ function BarButton({
 			>
 				{bar.owner ? (
 					<>
-						<Avatar name={bar.owner} size="s" className="bg-surface-1" />
+						<span aria-hidden="true" className="flex">
+							<Avatar name={bar.owner} size="s" className="bg-surface-1" />
+						</span>
 						{firstName(bar.owner)}
 					</>
 				) : (
 					<span className="px-2">{unstaffed}</span>
 				)}
+				<span className="sr-only">{`, ${name}`}</span>
 			</span>
 		</button>
 	);

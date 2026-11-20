@@ -9,6 +9,8 @@ export type PageMenuItem = {
 	icon?: ReactNode;
 	onClick: () => void;
 	disabled?: boolean;
+	/** Why the item is off. */
+	reason?: string;
 };
 
 /** The section switch of the place. `claim` tells the shell that a page header draws it; its result releases it. */
@@ -72,6 +74,8 @@ export function PageHeader({
 											key={m.label}
 											className={MENU_ITEM}
 											disabled={m.disabled}
+											title={m.disabled ? m.reason : undefined}
+											aria-description={m.disabled ? m.reason : undefined}
 											onClick={m.onClick}
 										>
 											{m.icon ? (

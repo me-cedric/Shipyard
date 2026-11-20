@@ -10,7 +10,7 @@ import { useActiveProject } from "@/lib/projects";
 import { useRights } from "@/lib/rights";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/ui/atoms/button";
-import { AttentionCard } from "@/ui/molecules/attention-card";
+import { ATTENTION_FILL, AttentionCard } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { EmptyState } from "@/ui/molecules/empty-state";
@@ -158,7 +158,7 @@ function SpendMain() {
 						) : (
 							<>
 								<div className="flex flex-wrap items-baseline gap-3 pb-3.5">
-									<span className="text-[56px] leading-none font-semibold tracking-tight text-n-12">
+									<span className="text-44 leading-none font-semibold text-n-12">
 										{price(money(total))}
 									</span>
 									<span className="text-n-11">
@@ -189,7 +189,7 @@ function SpendMain() {
 														style={{ width: `${(r.usd / scale) * 100}%` }}
 														className={cn(
 															"h-full rounded-full",
-															over ? "bg-attention-strong" : "bg-accent",
+															over ? ATTENTION_FILL : "bg-accent",
 														)}
 													/>
 													{limit === null ? null : (

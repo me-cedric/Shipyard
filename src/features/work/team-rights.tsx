@@ -228,7 +228,7 @@ function Frame({ label, children }: { label: string; children: ReactNode }) {
 }
 
 const HEAD = "px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-10";
-const TITLE = "text-30 font-bold text-n-12";
+const TITLE = "text-30 font-semibold text-n-12";
 
 /** The save of the roles table and of the roles of the members: one command, then a new read (REQ-019). */
 export function useRolesSave() {

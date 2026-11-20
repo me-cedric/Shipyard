@@ -90,7 +90,7 @@ export function PlanEstimates() {
 		run,
 	});
 
-	const { can } = useRights();
+	const { can, gate } = useRights();
 	const exportRun = useExportRun();
 	const exportItems = useExportItems().costing;
 	const [amounts, setAmounts] = useState(false);
@@ -275,6 +275,7 @@ export function PlanEstimates() {
 							{
 								label: p.addTask,
 								disabled: frozen || !can("work.edit"),
+								reason: gate("work.edit").reason,
 								onClick: () => go({ page: "task" }),
 							},
 							...(sheet ? [...sheetExport, ...exportItems] : []).map((x) => ({

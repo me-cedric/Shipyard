@@ -271,7 +271,7 @@ export function CrewPage() {
 							})}
 							<li className={`${CARD} justify-between`}>
 								<span className="text-13 font-semibold text-n-11">{c.spendOpen}</span>
-								<span className="text-[2.5rem] leading-tight font-semibold text-n-12">
+								<span className="text-44 leading-tight font-semibold text-n-12">
 									{price(`$${spend.toFixed(2)}`)}
 								</span>
 								{limits.length ? (

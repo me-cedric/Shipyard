@@ -20,7 +20,8 @@ async function openCrew(page: Page) {
 
 /** The item "Add a person" of the More menu of Crew. */
 const addItem = (page: Page) => page.getByRole("menuitem", { name: "Add a person" });
-const openMore = (page: Page) => main(page).getByRole("button", { name: "More", exact: true }).click();
+const openMore = (page: Page) =>
+	main(page).getByRole("button", { name: "More", exact: true }).click();
 
 /** Adds a member on the member page of Crew, saves, and goes back to the cards. */
 async function addMember(page: Page, name: string, handle: string, role: string, admin = false) {

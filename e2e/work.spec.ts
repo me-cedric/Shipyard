@@ -80,7 +80,7 @@ test("estimates a task and sees the summary move", async ({ page }) => {
 	// The tasks are sections by feature, with one row for each task.
 	const section = page.getByRole("region", { name: "Authentication", exact: true });
 	await expect(section.getByRole("heading", { name: "Authentication" })).toBeVisible();
-	await expect(section.getByRole("row")).toHaveCount(4);
+	await expect(section.getByRole("listitem")).toHaveCount(4);
 	// A task is a page of its own (`?task=<id>`).
 	await page.getByRole("button", { name: "Export endpoint", exact: true }).click();
 	await expect(page).toHaveURL(/\/plan\/estimates\?task=/);
@@ -89,7 +89,9 @@ test("estimates a task and sees the summary move", async ({ page }) => {
 	await expect(likely).toHaveValue("6");
 	await likely.fill("8");
 	await page.getByRole("button", { name: "Save" }).click();
-	await expect(page.getByRole("group", { name: "Export endpoint", exact: true })).toContainText("8");
+	await expect(page.getByRole("group", { name: "Export endpoint", exact: true })).toContainText(
+		"8",
+	);
 	// Summary, Spread and Portfolio are one view; the amounts are on Costing. The Spread is a chart of the months.
 	await page.getByRole("button", { name: "Summary", exact: true }).click();
 	await expect(page.getByRole("heading", { name: "Summary", exact: true })).toBeVisible();
@@ -102,11 +104,11 @@ test("estimates a task and sees the summary move", async ({ page }) => {
 test("plans with the keyboard and applies the sheet to the tracker", async ({ page }) => {
 	await openWork(page, "Timeline");
 	await expect(page).toHaveURL(/\/plan\/timeline$/);
-	const bar = page.getByRole("button", { name: /^Token API,/ });
+	const bar = page.getByRole("button", { name: /(^|, )Token API,/ });
 	await expect(bar).toHaveAccessibleName(/2 Nov to/);
 	await bar.focus();
 	await page.keyboard.press("ArrowRight");
-	await expect(page.getByRole("button", { name: /^Token API,/ })).toHaveAccessibleName(
+	await expect(page.getByRole("button", { name: /(^|, )Token API,/ })).toHaveAccessibleName(
 		/3 Nov to/,
 	);
 
@@ -252,7 +254,7 @@ test("Plan gives the end date in its title and one capacity card with proposals"
 	await later.click();
 	await expect(later).toHaveCount(0);
 	await tabs(page).getByRole("link", { name: "Timeline" }).click();
-	await expect(page.getByRole("button", { name: /^Export endpoint,/ })).toHaveAccessibleName(
+	await expect(page.getByRole("button", { name: /(^|, )Export endpoint,/ })).toHaveAccessibleName(
 		/13 Nov to /,
 	);
 	await tabs(page).getByRole("link", { name: "People" }).click();

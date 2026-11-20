@@ -71,8 +71,7 @@ export function usePlanSheet(title: string) {
 export const ZOOM = { day: 18, week: 6, month: 2 } as const;
 export type Zoom = keyof typeof ZOOM;
 
-/** The frame of a block that a person must act on, where the layout of `AttentionCard` does not fit. */
-export const ATTENTION_FRAME = "outline-2 outline-attention";
+export { ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 
 export const firstName = (name: string) => name.split(/\s+/)[0] ?? name;
 

@@ -15,7 +15,8 @@ const openDates = async (user: ReturnType<typeof userEvent.setup>) => {
 	await screen.findByRole("heading", { name: "Working days" });
 };
 // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- test input is a fixed name
-const bar = (name: string) => screen.getByRole("button", { name: new RegExp(`^${name},`) });
+// The name of a bar starts with the first name in the pill, then the task name and its days.
+const bar = (name: string) => screen.getByRole("button", { name: new RegExp(`(^|, )${name},`) });
 
 describe("Plan / Timeline and People", () => {
 	it("draws a bar for each task of the sheet, with the today marker", async () => {

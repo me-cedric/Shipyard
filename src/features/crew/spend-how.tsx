@@ -9,6 +9,7 @@ import { runnerName } from "@/ui/atoms/brand-icon";
 import { buttonVariants } from "@/ui/atoms/button";
 import { Progress } from "@/ui/atoms/progress";
 import { ChevronRightIcon } from "@/ui/icons";
+import { ATTENTION_FILL } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
@@ -63,7 +64,7 @@ export function SpendHow({ run }: { run: string | null }) {
 			<div className="flex flex-wrap items-start gap-5 px-4 pb-4">
 				<Card pad className="flex flex-[1_1_18rem] flex-col gap-3.5">
 					<h2 className="text-13 font-semibold text-n-11">{t.factory.successRate}</h2>
-					<span className="text-[56px] leading-none font-semibold tracking-tight text-n-12">
+					<span className="text-44 leading-none font-semibold text-n-12">
 						{ended.length ? `${Math.round((won / ended.length) * 100)} %` : "-"}
 					</span>
 					<div
@@ -77,7 +78,7 @@ export function SpendHow({ run }: { run: string | null }) {
 								style={{ height: wonState(r.state) ? "100%" : "55%" }}
 								className={cn(
 									"flex-1 rounded-sm",
-									wonState(r.state) ? "bg-success-text" : "bg-attention-strong",
+									wonState(r.state) ? "bg-success-text" : ATTENTION_FILL,
 								)}
 							/>
 						))}

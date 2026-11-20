@@ -9,7 +9,7 @@ import { Avatar } from "@/ui/atoms/avatar";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
 import { CalendarDaysIcon, ChevronRightIcon } from "@/ui/icons";
-import { AttentionCard } from "@/ui/molecules/attention-card";
+import { ATTENTION_FILL, ATTENTION_TINT, AttentionCard } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
@@ -176,10 +176,10 @@ export function People() {
 														role="img"
 														aria-label={label}
 														title={label}
-														className={`flex h-10 items-end overflow-hidden rounded-[10px] ${isOver ? "bg-attention-subtle" : "bg-n-3"}`}
+														className={`flex h-10 items-end overflow-hidden rounded-[10px] ${isOver ? ATTENTION_TINT : "bg-n-3"}`}
 													>
 														<i
-															className={`block w-full ${isOver ? "bg-attention-strong" : "bg-accent/45"}`}
+															className={`block w-full ${isOver ? ATTENTION_FILL : "bg-accent/45"}`}
 															style={{
 																height: `${Math.min(1, used / Math.max(capacity, 1e-9)) * 100}%`,
 															}}

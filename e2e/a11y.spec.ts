@@ -165,7 +165,9 @@ for (const scheme of ["light", "dark"] as const) {
 			expect(found).toEqual([]);
 		});
 	}
-	test(`has no axe violation: the sub-pages of Crew and Plan, ${scheme} theme`, async ({ page }) => {
+	test(`has no axe violation: the sub-pages of Crew and Plan, ${scheme} theme`, async ({
+		page,
+	}) => {
 		test.setTimeout(120_000);
 		page.setDefaultTimeout(10_000);
 		await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });

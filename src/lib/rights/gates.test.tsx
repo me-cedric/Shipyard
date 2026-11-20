@@ -22,7 +22,6 @@ const needs = (right: string) => `Needs the right ${right} (your role: Viewer)`;
 /** Each case: a route, the name of one write control and the right that the backend asks for. */
 const CASES = [
 	["Code", "/code/branches", "Branch", "code.write"],
-	["Work", "/work/estimates", "Task", "work.edit"],
 	["Factory", "/factory/runs", "Start run", "runs.start"],
 	["Specs", "/specs/changes", "New change", "specs.edit"],
 	["Knowledge", "/knowledge/handbook", "New page", "knowledge.edit"],
@@ -36,6 +35,18 @@ describe("a viewer sees the write controls off, with the reason", () => {
 		const button = await screen.findByRole("button", { name });
 		expect(button).toBeDisabled();
 		expect(button).toHaveAccessibleDescription(needs(right));
+	});
+});
+
+describe("a viewer on Plan / Estimates", () => {
+	it("sees Add a task off, with the reason", async () => {
+		const user = userEvent.setup();
+		await viewer();
+		mountApp("/work/estimates");
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		const item = await screen.findByRole("menuitem", { name: "Add a task" });
+		expect(item).toHaveAttribute("aria-disabled", "true");
+		expect(item).toHaveAccessibleDescription(needs("work.edit"));
 	});
 });
 
@@ -137,8 +148,8 @@ describe("Costs", () => {
 			rights: [],
 		};
 		mountApp("/work/estimates");
-		await user.click(await screen.findByRole("tab", { name: "Summary" }));
-		const cost = await screen.findByText("Cost", { selector: "dt" });
+		await user.click(await screen.findByRole("button", { name: "Costing" }));
+		const cost = await screen.findByText("Cost", { selector: "span" });
 		expect(cost.nextElementSibling).toHaveTextContent("—");
 		expect(screen.queryByText(/€/)).toBeNull();
 	});

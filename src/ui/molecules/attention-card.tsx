@@ -5,6 +5,12 @@ import { Badge } from "../atoms/badge";
 /** The look of a chip that names the items that wait. */
 export const ATTENTION_CHIP = "bg-attention-subtle font-semibold text-attention-text";
 
+/** The frame of a block that a person must act on, where the layout of `AttentionCard` does not fit. */
+export const ATTENTION_FRAME = "outline-2 outline-attention";
+/** The soft ground and the full fill of a meter or a block that is over its limit. */
+export const ATTENTION_TINT = "bg-attention-subtle";
+export const ATTENTION_FILL = "bg-attention-strong";
+
 /**
  * A card for a thing that a person must act on. The only user of the attention colour. With `icon`
  * or `action` it is one row (icon, title, action) and has no tag.

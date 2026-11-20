@@ -82,18 +82,25 @@ test("project manager", async ({ page }) => {
 		);
 	});
 
-	await w.step("Read the estimate", "the Summary view for days, the Costing view: cost, price", async () => {
-		await w.go("Plan", "Estimates");
-		await w.click(page.getByRole("button", { name: "Summary", exact: true }));
-		await w.see(page.getByRole("heading", { name: "Summary", exact: true }), "no summary of days");
-		await w.click(page.getByRole("button", { name: "Costing", exact: true }));
-		await w.see(page.getByText("Price", { exact: true }), "no price figure");
-		if (await page.getByText("€0").first().isVisible()) {
-			w.confusing(
-				"cost and price read €0; the only hint (Unrated) is small text at the foot of the page, and Crew already holds day rates",
+	await w.step(
+		"Read the estimate",
+		"the Summary view for days, the Costing view: cost, price",
+		async () => {
+			await w.go("Plan", "Estimates");
+			await w.click(page.getByRole("button", { name: "Summary", exact: true }));
+			await w.see(
+				page.getByRole("heading", { name: "Summary", exact: true }),
+				"no summary of days",
 			);
-		}
-	});
+			await w.click(page.getByRole("button", { name: "Costing", exact: true }));
+			await w.see(page.getByText("Price", { exact: true }), "no price figure");
+			if (await page.getByText("€0").first().isVisible()) {
+				w.confusing(
+					"cost and price read €0; the only hint (Unrated) is small text at the foot of the page, and Crew already holds day rates",
+				);
+			}
+		},
+	);
 
 	await w.step(
 		"Ask an agent to estimate",
