@@ -361,8 +361,8 @@ mod tests {
     use super::*;
     use crate::connections::Connections;
 
-    /// The running slots and the limit are global: the tests that start an estimate take turns.
-    static TURN: Mutex<()> = Mutex::new(());
+    /// The review tests count in the same limit: both kinds of test take turns on one lock.
+    use crate::pr_agent::tests::TURN;
 
     struct Fx {
         data: tempfile::TempDir,

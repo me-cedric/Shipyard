@@ -1139,7 +1139,7 @@ pub async fn pr_write_text(app: AppHandle, base: Option<String>, click: bool) ->
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use std::sync::Arc;
 
     use shipyard_agents::fake::program;
@@ -1150,8 +1150,9 @@ mod tests {
     use super::*;
     use crate::connections::Connections;
 
-    /// The running slots and the limit are global: the tests that start a review take turns.
-    static TURN: Mutex<()> = Mutex::new(());
+    /// The running slots and the limit are global, and the estimates count in them: the tests of
+    /// reviews and of estimates take turns on one lock.
+    pub(crate) static TURN: Mutex<()> = Mutex::new(());
 
     pub(super) fn turn() -> std::sync::MutexGuard<'static, ()> {
         TURN.lock().unwrap_or_else(|e| e.into_inner())
