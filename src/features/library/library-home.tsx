@@ -2,14 +2,18 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { WithProject } from "@/features/shell/no-project";
 import { sectionPath, visibleSections } from "@/features/shell/places";
+import { docTarget, featureOfRef, refPage, refSelection } from "@/features/shell/ref-page";
 import { tabLabel } from "@/features/shell/spaces";
 import { StaleBadge, useStalePages } from "@/features/specs/chain-badge";
 import { useDesignList } from "@/lib/design";
 import { format, useI18n } from "@/lib/i18n";
 import { useLearn } from "@/lib/knowledge";
+import { useResolvedRef } from "@/lib/refs";
 import { useRights } from "@/lib/rights";
+import { rememberSelection } from "@/lib/shell/selection";
 import { useQuestions } from "@/lib/specs";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { linkClass } from "@/ui/atoms/link-button";
 import { BookOpenIcon } from "@/ui/icons";
@@ -95,6 +99,40 @@ function learnDone(): string[] {
 	}
 }
 
+/** One row of an item with a ref (a spec, a decision, a diagram, a document): its kind, its name and Pin. */
+function ItemRow({
+	refId,
+	pinned,
+	toggle,
+}: {
+	refId: string;
+	pinned: boolean;
+	toggle: () => void;
+}) {
+	const { t } = useI18n();
+	const l = t.library;
+	const kind = refId.slice(0, refId.indexOf(":"));
+	const name = useResolvedRef(refId).data?.title ?? refId.slice(kind.length + 1);
+	const doc = docTarget(refId);
+	const target = featureOfRef(refId) ?? { to: doc?.page ?? refPage(refId) ?? "/library/home" };
+	const open = doc ? [doc.scope, doc.id] : refSelection(t, refId);
+	return (
+		<Row>
+			<Badge className="self-center">{(t.refKind as Record<string, string>)[kind] ?? kind}</Badge>
+			<Link
+				{...(target as { to: "/library/home" })}
+				onClick={() => open && rememberSelection(open[0] as string, open[1] as string)}
+				className={cn(linkClass, "mr-auto self-center")}
+			>
+				{name}
+			</Link>
+			<Button aria-label={format(pinned ? l.unpinPage : l.pinPage, { name })} onClick={toggle}>
+				{pinned ? l.unpin : l.pin}
+			</Button>
+		</Row>
+	);
+}
+
 /** Library opens on four doors that name what a person looks for (`spec:app-redesign#REQ-020`). */
 export function LibraryHome() {
 	const { t } = useI18n();
@@ -165,6 +203,10 @@ function Doors() {
 	};
 
 	const pageRow = (slug: string) => {
+		if (slug.includes(":"))
+			return (
+				<ItemRow key={slug} refId={slug} pinned={pins.includes(slug)} toggle={() => toggle(slug)} />
+			);
 		const label = name(slug);
 		const pinned = pins.includes(slug);
 		return (
@@ -181,7 +223,8 @@ function Doors() {
 			</Row>
 		);
 	};
-	const seen = (slugs: string[]) => slugs.filter((s) => view(s));
+	// An item has a ref: the role sees it through the page of its kind.
+	const seen = (slugs: string[]) => slugs.filter((s) => s.includes(":") || view(s));
 	const pinned = seen(pins);
 	const last = seen(recent);
 
