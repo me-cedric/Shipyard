@@ -137,11 +137,14 @@ export function TicketDetail({
 			</Prop>
 
 			<Prop label={t.work.thread.labels}>
-				<TicketLabels itemKey={item.key} />
+				{/* The chips and the field share one line in the narrow column. */}
+				<div className="[&_button]:px-3 [&_input]:w-28">
+					<TicketLabels itemKey={item.key} />
+				</div>
 			</Prop>
 
 			<Prop label={d.agent}>
-				<div className="flex flex-wrap items-center gap-2">
+				<div className="flex flex-wrap items-center gap-2 [&_button]:px-3">
 					<RightButton
 						right="work.edit"
 						disabled={markReason !== null || marked}

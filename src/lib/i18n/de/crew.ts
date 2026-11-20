@@ -27,6 +27,7 @@ export const crewDe: typeof crewEn = {
 	workGroup: "Arbeit",
 	when: "Wann",
 	extraRights: "Rechte mehr oder weniger als die Rolle",
+	adminOfTeam: "Admin des Teams",
 	removeMember: "Aus dem Team entfernen",
 	limit: "Limit von {usd} pro Feature",
 	atWorkCount: "{count} Agenten bei der Arbeit",

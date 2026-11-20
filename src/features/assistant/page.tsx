@@ -163,7 +163,7 @@ export function AssistantPage() {
 						<Composer a={a} inputRef={input} full onOpenRef={openRef} />
 					)}
 				</div>
-				<div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto">
+				<div className="-m-1 flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto p-1">
 					<SelectionCard a={a} />
 					<May a={a} />
 					{a.current?.thread.settings.runner === "codex" ? <CodexTrust card /> : null}

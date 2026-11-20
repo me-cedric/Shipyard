@@ -122,7 +122,7 @@ function TicketText({ item }: { item: WorkItemView_Serialize }) {
 }
 
 /** The comments: one row each (the author, then the text), and one line with Send. */
-function TicketThread({ itemKey }: { itemKey: string }) {
+export function TicketThread({ itemKey }: { itemKey: string }) {
 	const { t } = useI18n();
 	const d = t.work.thread;
 	const caps = useWorkContext().data?.capabilities;

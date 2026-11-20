@@ -266,7 +266,7 @@ function HistoryView() {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 			<PageHeader title={t.tabs.code.history} />
-			<div className="flex flex-wrap items-center gap-4 px-4 pt-3.5 pb-5.5">
+			<div className="flex flex-wrap items-center gap-4 px-4 pt-1 pb-5.5">
 				<BranchSelector />
 				<div className="w-56 shrink-0 [&_button]:flex-[1_1_0]">
 					<Segmented

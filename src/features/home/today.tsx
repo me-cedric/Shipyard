@@ -103,7 +103,11 @@ export function Today() {
 	const toEnd = ordered.length > 1 && first ? () => toLater(first.id) : undefined;
 	return (
 		// tabIndex -1: where the focus lands when the last thing leaves (`Leave`).
-		<div ref={page} tabIndex={-1} className="flex min-h-0 flex-1 flex-col gap-4 pb-4 outline-none">
+		<div
+			ref={page}
+			tabIndex={-1}
+			className="flex min-h-0 flex-1 flex-col gap-4 pb-4 [&>[data-page-header]]:-mb-4 outline-none"
+		>
 			<PageHeader
 				icon={<ClockIcon size={16} />}
 				title={

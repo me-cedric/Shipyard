@@ -40,7 +40,10 @@ export function GateNotice({ push }: { push: boolean }) {
 	const warnings = chain;
 	if (lines.length === 0 && warnings.length === 0) return null;
 	return (
-		<div role="status" className="flex flex-col gap-1 px-4 pt-1 pb-3 text-ui text-warning-text">
+		<div
+			role="status"
+			className="mx-4 mb-3 flex flex-col gap-2 rounded-lg border border-warning bg-warning-subtle px-4 py-3 text-ui text-n-12"
+		>
 			{lines.map((l) => (
 				<p key={l}>{l}</p>
 			))}
@@ -56,7 +59,6 @@ export function GateNotice({ push }: { push: boolean }) {
 							})}
 						</p>
 						<Button
-							variant="ghost"
 							aria-label={format(c18.acknowledgeName, { name: to })}
 							onClick={() => setAsking({ from: c.from, to: c.to, name: to })}
 						>

@@ -31,8 +31,11 @@ describe("Notification centre", () => {
 		await router.navigate({ to: "/today/news" });
 		const list = within(await screen.findByRole("region", { name: /^Today/ }));
 		expect(list.getAllByText("Update available: 0.2.0")).toHaveLength(1);
-		// Opening News reads each event.
-		expect(await screen.findByRole("button", { name: "Mark all as read" })).toBeDisabled();
+		// Opening News reads each event; the rows that were new keep their mark until Mark all as read.
+		const markAll = await screen.findByRole("button", { name: "Mark all as read" });
+		expect(markAll).toBeEnabled();
+		await user.click(markAll);
+		await waitFor(() => expect(markAll).toBeDisabled());
 		// A manual check finds the same version: still one entry.
 		await runAction(user, "Check for updates");
 		await router.navigate({ to: "/today/news" });

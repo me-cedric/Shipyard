@@ -91,6 +91,7 @@
 	--color-accent-subtle: var(--accent-subtle);
 	--color-accent-text: var(--accent-text);
 	--color-accent-tint: var(--accent-tint);
+	--color-project-name: var(--project-name);
 	--color-primary: var(--primary);
 	--color-primary-fg: var(--primary-fg);
 
@@ -99,6 +100,7 @@
 	--color-attention-subtle: var(--attention-subtle);
 	--color-attention-text: var(--attention-text);
 	--color-attention-soft: var(--attention-soft);
+	--color-attention-on-panel: var(--attention-on-panel);
 
 	--color-success: var(--success);
 	--color-success-subtle: var(--success-subtle);
@@ -166,6 +168,8 @@
 	--accent-text: light-dark(#1a3ba8, #c3d1ff);
 	/* The ground of a selected option or tile. */
 	--accent-tint: light-dark(#f1f5ff, #16234a);
+	/* The project name in the rail: the text colour in light, the soft accent in dark. */
+	--project-name: light-dark(var(--n-12), var(--accent-text));
 
 	/* Primary: the main button, the avatar of an agent, a done step. It follows the text colour. */
 	--primary: var(--n-12);
@@ -217,6 +221,8 @@
 	--danger-soft: color-mix(in oklch, var(--danger) 14%, transparent);
 	--info-soft: color-mix(in oklch, var(--info) 14%, transparent);
 	--attention-soft: color-mix(in oklch, var(--attention) 16%, transparent);
+	/* The attention text on the inverted panel (the dark session panel of Light, the light one of Dark). */
+	--attention-on-panel: light-dark(#ffc79a, #9a3f06);
 }
 
 :root[data-theme="light"] {

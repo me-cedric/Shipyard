@@ -14,6 +14,7 @@ import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { runnerName } from "@/ui/atoms/brand-icon";
 import { Button } from "@/ui/atoms/button";
+import { ATTENTION_ON_PANEL } from "@/ui/molecules/attention-card";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
@@ -27,7 +28,10 @@ import { EndedCard, MachineRows, modelName, OrcaCard, SIDE_HEAD } from "./sessio
 
 const live = (r: AgentRow) => r.session.state === "running" || r.session.state === "gate";
 /** A button on the dark session panel: dark, like the design. */
-const ON_PANEL = "border-primary-fg/20 bg-primary-fg/15 text-primary-fg hover:bg-primary-fg/25";
+const PANEL_BUTTON = "border-primary-fg/20 bg-primary-fg/15 hover:bg-primary-fg/25";
+const ON_PANEL = `${PANEL_BUTTON} text-primary-fg`;
+/** The Stop button on that panel: light orange, like the design (dark orange on the light panel of the dark theme). */
+const STOP_ON_PANEL = `${PANEL_BUTTON} ${ATTENTION_ON_PANEL}`;
 const idOf = (s: SessionView) => `${s.run}/${s.step}`;
 
 /** Crew / Sessions (`spec:app-redesign#REQ-016`): the sessions of this machine, the one shown, and the ended ones on `page=ended`. */
@@ -149,7 +153,7 @@ export function CrewSessions() {
 						/>
 					) : null}
 					<Card className="py-2">
-						<section aria-label={s.here} className="max-h-[26rem] overflow-y-auto">
+						<section aria-label={s.here}>
 							<h2 className={SIDE_HEAD}>{s.here}</h2>
 							{here.map((r) => (
 								<Row
@@ -213,7 +217,7 @@ export function CrewSessions() {
 								<RightButton
 									right="runs.start"
 									aria-label={format(f.machine.stop, { name: shown.session.key })}
-									className={`min-h-control ${ON_PANEL}`}
+									className={`min-h-control ${STOP_ON_PANEL}`}
 									onClick={() => stop(shown.session)}
 								>
 									{s.stop}
@@ -224,7 +228,7 @@ export function CrewSessions() {
 							shown.session.step !== "tile" &&
 							shown.session.state === "running" ? (
 								<ConfirmButton
-									className={`min-h-control ${ON_PANEL}`}
+									className={`min-h-control ${STOP_ON_PANEL}`}
 									{...gate("runs.start")}
 									confirm={format(f.machine.confirmStop, { name: shown.session.key })}
 									onConfirm={() => void run(() => act.cancel(shown.session.run))}

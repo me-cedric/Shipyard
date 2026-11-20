@@ -219,7 +219,7 @@ export function FlowMatrix({
 
 	return (
 		<div className="flex flex-col gap-6">
-			<search className="flex flex-wrap items-center gap-2">
+			<search className="flex flex-wrap items-end gap-2">
 				<fieldset aria-label={labels.show ?? labels.action} className="contents">
 					{[all, ...actions].map((a) => (
 						<Chip
@@ -242,12 +242,14 @@ export function FlowMatrix({
 					/>
 				</div>
 				<Select
+					caption
 					label={labels.network}
 					items={pick("network")}
 					value={filter.network}
 					onValueChange={(network) => setFilter({ ...filter, network })}
 				/>
 				<Select
+					caption
 					label={labels.protocol}
 					items={pick("protocol")}
 					value={filter.protocol}

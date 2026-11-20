@@ -299,9 +299,9 @@ export function Composer({
 						{s ? <ModelMenu split runners={a.runners} settings={s} onChange={change} /> : null}
 						<span className="ml-auto flex flex-wrap items-center gap-2.5">
 							<SendToFactory a={a} variant="secondary" />
-							{send}
 						</span>
 					</div>
+					<div>{send}</div>
 					{a.current ? <GaugeBars gauge={a.current.gauge} /> : null}
 				</>
 			) : (

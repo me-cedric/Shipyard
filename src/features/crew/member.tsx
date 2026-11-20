@@ -260,6 +260,7 @@ export function MemberForm({
 							<h2 className={H2}>{c.who}</h2>
 							<SettingsRow id={index < 0 ? "add-member" : undefined} label={m.name}>
 								<Input
+									className="w-64"
 									label={m.name}
 									form={id}
 									value={draft.name}
@@ -268,6 +269,7 @@ export function MemberForm({
 							</SettingsRow>
 							<SettingsRow label={m.handle}>
 								<Input
+									className="w-64"
 									label={m.handle}
 									form={id}
 									value={draft.handle}
@@ -290,16 +292,17 @@ export function MemberForm({
 									]}
 								/>
 							</SettingsRow>
-							<SettingsRow label={t.rights.team.admin}>
+							<SettingsRow label={c.adminOfTeam}>
 								<Switch
 									iconOnly
-									label={t.rights.team.admin}
+									label={c.adminOfTeam}
 									checked={draft.admin === true}
 									onCheckedChange={(admin) => set({ admin })}
 								/>
 							</SettingsRow>
 							<SettingsRow label={t.rights.team.emails}>
 								<Input
+									className="w-64"
 									label={t.rights.team.emails}
 									form={id}
 									value={emails}
@@ -308,6 +311,7 @@ export function MemberForm({
 							</SettingsRow>
 							<SettingsRow label={c.accounts}>
 								<Input
+									className="w-64"
 									label={c.accounts}
 									form={id}
 									value={accounts}

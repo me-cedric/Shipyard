@@ -186,9 +186,13 @@ export function News() {
 	const { items, unread, markRead, clear } = useNotifications();
 	const [older, setOlder] = useState(false);
 	// The entries that were unread on arrival keep their mark for this visit.
-	const fresh = useRef(new Set(items.filter((i) => !i.read).map((i) => i.id)));
+	const [fresh, setFresh] = useState(() => new Set(items.filter((i) => !i.read).map((i) => i.id)));
 	// biome-ignore lint/correctness/useExhaustiveDependencies: mark once, when the view opens
 	useEffect(() => markRead(), []);
+	const readAll = () => {
+		markRead();
+		setFresh(new Set());
+	};
 	const midnight = new Date().setHours(0, 0, 0, 0);
 	const earlier = items.filter((i) => i.time < midnight);
 	const groups: [string, Notice[], Intl.DateTimeFormat][] = [
@@ -204,11 +208,15 @@ export function News() {
 		],
 	];
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
+		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4 [&>[data-page-header]]:-mb-4">
 			<PageHeader
 				title={items.length ? format(t.home.newsTitle, { count: items.length }) : t.tabs.home.news}
 				action={
-					<Button className="min-h-control" disabled={unread === 0} onClick={markRead}>
+					<Button
+						className="min-h-control"
+						disabled={unread === 0 && !items.some((i) => fresh.has(i.id))}
+						onClick={readAll}
+					>
 						{t.home.markAllRead}
 					</Button>
 				}
@@ -226,7 +234,7 @@ export function News() {
 											<NewsRow
 												row={row}
 												time={time.format(row.time)}
-												unread={!row.read || fresh.current.has(row.id)}
+												unread={!row.read || fresh.has(row.id)}
 											/>
 										</Leave>
 									))}

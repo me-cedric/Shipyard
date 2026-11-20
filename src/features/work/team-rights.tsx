@@ -314,7 +314,7 @@ export function RoleCard({
 							<fieldset
 								disabled={off.disabled}
 								title={off.reason}
-								className="w-48 shrink-0 disabled:opacity-60"
+								className="w-64 shrink-0 disabled:opacity-60"
 							>
 								{k === "merge" || k === "approve" ? (
 									<Segmented
@@ -692,7 +692,7 @@ export function TeamFileCard() {
 	return (
 		<Card pad>
 			<section aria-label={r.fileTitle} className="flex flex-col gap-3.5">
-				<h2 className={TITLE}>{r.fileTitle}</h2>
+				<h2 className="text-20 font-semibold text-n-12">{r.fileTitle}</h2>
 				{p.members.length ? (
 					<ul aria-label={r.migrate} className="flex flex-col">
 						{p.members.map((m) => (

@@ -128,7 +128,7 @@ export function Prop({ label, children }: { label: string; children: ReactNode }
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
 		<div role="group" aria-labelledby={id} className="flex flex-wrap gap-x-3 gap-y-1 py-2">
-			<span id={id} className="w-20 shrink-0 pt-1 text-12 text-n-11">
+			<span id={id} className="w-28 shrink-0 pt-1 text-12 text-n-11">
 				{label}
 			</span>
 			<div className="flex min-w-0 flex-[1_1_9rem] flex-col gap-1">{children}</div>

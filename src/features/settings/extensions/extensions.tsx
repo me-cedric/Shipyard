@@ -706,7 +706,13 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 				<SetupCard id="extensions-installed" title={d.installed}>
 					{(plugins.data ?? []).map((p) => (
 						<div key={p.name}>
-							<SetupRow label={p.name}>
+							<SetupRow
+								label={
+									<>
+										{p.name} <span className="font-mono font-normal text-n-11">{p.version}</span>
+									</>
+								}
+							>
 								<Toggle
 									label={format(x.plugin.enable, { name: p.name })}
 									{...gate("project.settings")}
@@ -720,7 +726,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 									}
 								/>
 							</SetupRow>
-							<Fold label={p.version} mono value={t.ui.more}>
+							<Fold label={x.plugin.settings} value={t.ui.more}>
 								<div className="flex flex-wrap items-center gap-2">
 									{p.settings.length ? (
 										<Button

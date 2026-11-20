@@ -11,7 +11,7 @@ import type { ShellHandle } from "./use-terminal";
 const TAB =
 	"min-h-control rounded-lg px-3.5 font-medium text-n-11 hover:text-n-12 aria-pressed:bg-surface-3 aria-pressed:text-n-12";
 const RUN =
-	"min-h-control rounded-lg border border-n-6 bg-surface-3 px-4 font-semibold text-n-12 hover:bg-n-3";
+	"min-h-control rounded-md border border-n-6 bg-surface-3 px-4 font-semibold text-n-12 hover:bg-n-3";
 
 /**
  * Code / Terminal: the files of the project at the left, the shells at the right in tabs, and a
@@ -64,7 +64,7 @@ export function TerminalPage() {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 			<PageHeader title={t.tabs.code.terminal} />
-			<div className="flex flex-wrap items-stretch gap-6 px-4 pt-3 pb-10">
+			<div className="flex flex-wrap items-stretch gap-6 px-4 pb-10">
 				<TerminalFiles />
 				<div className="canvas-dark flex h-150 min-w-0 flex-[3_1_480px] flex-col overflow-hidden rounded-[20px] bg-surface-0 text-n-12">
 					{/* biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box */}
@@ -127,7 +127,7 @@ export function TerminalPage() {
 						</button>
 						<button
 							type="button"
-							className="min-h-control rounded-lg bg-n-12 px-4 font-semibold text-surface-0"
+							className="min-h-control rounded-md bg-n-12 px-4 font-semibold text-surface-0"
 							onClick={() => {
 								if (!command.trim()) return;
 								ask(format(tp.askRun, { command: command.trim() }));

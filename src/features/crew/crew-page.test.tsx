@@ -311,7 +311,7 @@ describe("Crew", () => {
 			"href",
 			"/crew/rights",
 		);
-		await user.click(panel.getByRole("switch", { name: "Admin" }));
+		await user.click(panel.getByRole("switch", { name: "Admin of the team" }));
 		await user.click(panel.getByRole("button", { name: "Change" }));
 		await user.type(panel.getByRole("textbox", { name: /^Right changes/ }), "-code.merge");
 		await user.click(panel.getByRole("button", { name: "Save" }));

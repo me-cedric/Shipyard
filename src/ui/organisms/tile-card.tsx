@@ -1,6 +1,8 @@
+import { Menu } from "@base-ui/react/menu";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { MenuButton } from "../molecules/menu-button";
+import { Button } from "../atoms/button";
+import { MenuList } from "../molecules/menu-button";
 
 export type TileLabels = {
 	table: string;
@@ -79,32 +81,41 @@ export function TileCard({
 				{/* Show as table and the pin: one quiet menu, so that a tile in read mode has no icon row. */}
 				{/* Edit mode shows Settings and Remove only: the menu stays in read mode. */}
 				{edit || (off && !onPin) ? null : (
-					<MenuButton
-						iconOnly
-						label={`${labels.more} ${title}`}
-						icon={
+					<Menu.Root>
+						<Menu.Trigger
+							render={
+								<Button
+									variant="ghost"
+									className="px-2.5"
+									aria-label={`${labels.more} ${title}`}
+									title={`${labels.more} ${title}`}
+								/>
+							}
+						>
 							<svg aria-hidden="true" viewBox="0 0 16 16" className="size-4" fill="currentColor">
 								<circle cx="3" cy="8" r="1.25" />
 								<circle cx="8" cy="8" r="1.25" />
 								<circle cx="13" cy="8" r="1.25" />
 							</svg>
-						}
-						items={[
-							...(off
-								? []
-								: [
-										{
-											id: "table",
-											label: labels.table,
-											checked: table,
-											onSelect: () => setTable(!table),
-										},
-									]),
-							...(onPin
-								? [{ id: "pin", label: pinned ? labels.unpin : labels.pin, onSelect: onPin }]
-								: []),
-						]}
-					/>
+						</Menu.Trigger>
+						<MenuList
+							items={[
+								...(off
+									? []
+									: [
+											{
+												id: "table",
+												label: labels.table,
+												checked: table,
+												onSelect: () => setTable(!table),
+											},
+										]),
+								...(onPin
+									? [{ id: "pin", label: pinned ? labels.unpin : labels.pin, onSelect: onPin }]
+									: []),
+							]}
+						/>
+					</Menu.Root>
 				)}
 			</header>
 			{/* tabIndex 0: a keyboard reader scrolls the body. */}

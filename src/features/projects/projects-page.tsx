@@ -163,7 +163,7 @@ export function ProjectsPage() {
 	);
 	const grid = "grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3.5";
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
+		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4 [&>[data-page-header]]:-mb-4">
 			<PageHeader
 				icon={<FolderOpenIcon size={16} />}
 				title={title}

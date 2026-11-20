@@ -92,7 +92,9 @@ export function ProjectSwitcher({
 			)}
 			{compact ? null : (
 				<>
-					<span className="min-w-0 truncate text-17">{active?.name ?? t.projects.switcher}</span>
+					<span className="min-w-0 truncate text-17 text-project-name">
+						{active?.name ?? t.projects.switcher}
+					</span>
 					<ChevronRightIcon size={16} className="ml-auto shrink-0 rotate-90 text-n-10" />
 				</>
 			)}

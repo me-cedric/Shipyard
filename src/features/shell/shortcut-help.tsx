@@ -46,6 +46,7 @@ export function ShortcutHelp({ actions }: { actions: Action[] }) {
 
 	return (
 		<Dialog
+			card
 			open={shortcutsOpen}
 			onOpenChange={(open) => {
 				setShortcutsOpen(open);

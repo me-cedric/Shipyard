@@ -36,6 +36,7 @@ export function WhatsNew() {
 	const title = format(t.shell.whatsNew.title, { version: current });
 	return (
 		<Dialog
+			card
 			open={open}
 			onOpenChange={(o) => {
 				if (o) return;

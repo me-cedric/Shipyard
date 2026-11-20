@@ -126,7 +126,7 @@ export function SetupStart() {
 	const toConnect = (["tracker", "forge"] as const).filter((i) => state.done[i] === false).length;
 	const ready = runners?.filter((r) => r.state === "detected").length ?? 0;
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
+		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4 [&>[data-page-header]]:-mb-4">
 			<PageHeader icon={<Cog6ToothIcon size={16} />} title={t.ui.place.setup} />
 			<div className="mx-4 flex flex-wrap rounded-lg bg-surface-2 shadow-2">
 				<ol

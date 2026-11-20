@@ -31,9 +31,9 @@ export function Fr({ label, children }: { label: ReactNode; children: ReactNode 
 		<div
 			role="group"
 			aria-labelledby={id}
-			className="flex min-h-15 flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-n-5 px-6 py-2 first:border-t-0"
+			className="flex min-h-15 flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-n-5 px-6 py-2 first:border-t-0 [h2+&]:border-t-0"
 		>
-			<span id={id} className="min-w-32 flex-[1_1_9rem] font-medium text-n-12">
+			<span id={id} className="min-w-24 flex-[1_1_6rem] font-medium text-n-12">
 				{label}
 			</span>
 			<div className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2">
@@ -44,7 +44,7 @@ export function Fr({ label, children }: { label: ReactNode; children: ReactNode 
 }
 
 /** A segmented control that is wide enough for its words. */
-const WIDE = "w-[min(100%,30rem)]";
+const WIDE = "w-100 max-w-full";
 
 /** The default cap of review rounds of the engine (`REVIEW_ROUNDS`), when the recipe sets none. */
 const ROUNDS = 4;

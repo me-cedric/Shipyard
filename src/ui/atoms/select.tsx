@@ -44,7 +44,7 @@ export function Select({
 				aria-label={label}
 				aria-description={disabled ? reason : undefined}
 				className={cn(
-					"inline-flex min-h-control min-w-24 shrink-0 items-center justify-between gap-2 rounded-md whitespace-nowrap border border-n-7 bg-surface-1 px-4 text-n-12",
+					"inline-flex min-h-control min-w-24 shrink-0 items-center justify-between gap-2 rounded-md whitespace-nowrap border border-n-7 bg-surface-1 px-4.5 font-semibold text-n-12",
 					className,
 				)}
 			>

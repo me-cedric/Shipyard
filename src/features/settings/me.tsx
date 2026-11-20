@@ -301,7 +301,7 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 					{permissions ? <PermissionsCard /> : null}
 				</Column>
 			</Columns>
-			<div className="px-4 pb-10">
+			<div className="-mt-6 px-4 pb-10">
 				<SetupCard title={t.ui.more}>
 					<ThemeFiles />
 					<LanguageFiles />

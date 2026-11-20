@@ -44,6 +44,18 @@ describe("Onboarding tour", () => {
 		await waitFor(() => expect(mockState().prefs.tourSeen).toBe(true));
 	});
 
+	it("skips the tour with Skip the tour and marks it as seen", async () => {
+		const user = userEvent.setup();
+		mockState().prefs.tourSeen = false;
+		await openProject();
+		mountApp("/home/today");
+		const dialog = await screen.findByRole("dialog", { name: titles[0] });
+		expect(within(dialog).queryByRole("button", { name: en.common.close })).toBeNull();
+		await user.click(within(dialog).getByRole("button", { name: o.skip }));
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		await waitFor(() => expect(mockState().prefs.tourSeen).toBe(true));
+	});
+
 	it("stays closed once seen, replays from the palette at step 1 and ends on the manual", async () => {
 		const user = userEvent.setup();
 		// The first run shows without the shell: the Ask bar needs an open project.

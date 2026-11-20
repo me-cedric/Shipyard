@@ -48,10 +48,23 @@ export function BpmnViewer({
 			viewer = v;
 			try {
 				await v.importXML(text);
-				(v.get("canvas") as { zoom: (to: string, center: string) => void }).zoom(
-					"fit-viewport",
-					"auto",
-				);
+				const canvas = v.get("canvas") as {
+					zoom: (to: string, center: string) => void;
+					viewbox: (box?: object) => {
+						scale: number;
+						inner: { x: number; y: number; width: number; height: number };
+					};
+				};
+				canvas.zoom("fit-viewport", "auto");
+				// Keep room under the diagram: the bpmn.io mark sits bottom right and must stay clear.
+				const { scale, inner } = canvas.viewbox();
+				const pad = 8 / scale;
+				canvas.viewbox({
+					x: inner.x - pad,
+					y: inner.y - pad,
+					width: inner.width + 2 * pad,
+					height: inner.height + pad + 32 / scale,
+				});
 				if (!stale) report.current?.(null);
 				v.on("commandStack.changed", async () => {
 					const { xml } = await v.saveXML({ format: true });

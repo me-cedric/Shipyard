@@ -41,6 +41,7 @@ function Proposal({ proposal, here }: { proposal: WorkflowProposal; here: boolea
 			<h2 className="sr-only">{w.proposal}</h2>
 			<AttentionCard
 				who={t.factory.agent}
+				inline
 				title={here ? p.proposes : format(p.proposesFor, { name: nameOf(proposal.id) })}
 			>
 				<Button onClick={() => setOpen(true)}>{p.showChange}</Button>

@@ -26,6 +26,19 @@ describe("Today / News (spec:app-redesign#REQ-008)", () => {
 		expect(screen.getByRole("heading", { level: 1, name: "News" })).toBeInTheDocument();
 	});
 
+	it("keeps Mark all as read on while the opened page still shows unread news", async () => {
+		const user = userEvent.setup();
+		mockState().prefs.releaseUrl = NEWER;
+		mountApp("/today");
+		// The entry is already in the list when the person opens News.
+		await screen.findByText("Update available: 0.2.0");
+		await user.click(await screen.findByRole("link", { name: /^News/ }));
+		const markAll = await screen.findByRole("button", { name: "Mark all as read" });
+		expect(markAll).toBeEnabled();
+		await user.click(markAll);
+		await waitFor(() => expect(markAll).toBeDisabled());
+	});
+
 	it("removes one entry with its Dismiss control", async () => {
 		const user = userEvent.setup();
 		mockState().prefs.releaseUrl = NEWER;

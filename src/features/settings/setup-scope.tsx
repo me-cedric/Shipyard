@@ -145,7 +145,7 @@ function Rows({ pages, address }: { pages: ScopePage[]; address: (id: string) =>
 	const { t } = useI18n();
 	if (!pages.length) return null;
 	return (
-		<div className="px-4 pb-10">
+		<div className="-mt-6 px-4 pb-10">
 			<SetupCard title={t.ui.more}>
 				{pages.map((p) => (
 					<SetupRow key={p.id} label={p.label} href={address(p.id)} />

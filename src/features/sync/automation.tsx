@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { Columns, SetupCard, SetupRow, Stepper, Toggle } from "@/features/settings/parts";
-import { ButtonLink, Fold } from "@/features/settings/project/fold";
+import { Fold } from "@/features/settings/project/fold";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap, type WriteKind } from "@/lib/ipc";
@@ -283,15 +283,8 @@ function Form({ view }: { view: AutomationView }) {
 						))}
 					</SetupCard>
 				) : null}
-				<div className="flex flex-col items-start gap-2 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2">
-					<ButtonLink
-						href="/today/today"
-						className="h-(--control-h) border-0 bg-transparent px-0 text-accent-text hover:bg-transparent"
-					>
-						{k.today}
-					</ButtonLink>
-				</div>
 				<SetupCard>
+					<SetupRow label={plain(k.today)} href="/today/today" />
 					<SetupRow label={plain(k.mark)} href="/flow/list" />
 					<SetupRow label={plain(k.spend)} href="/crew/spend" />
 				</SetupCard>

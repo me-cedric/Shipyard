@@ -188,7 +188,7 @@ function Doors() {
 	return (
 		<>
 			<PageHeader title={l.title} />
-			<div className="flex flex-col gap-6 px-4 pt-3 pb-10">
+			<div className="flex flex-col gap-6 px-4 pb-10">
 				<div className="grid grid-cols-[repeat(auto-fill,minmax(min(460px,100%),1fr))] gap-4">
 					{DOORS.map(({ id, chips }) => {
 						const links = chips.flatMap(chip).filter(Boolean);

@@ -6,6 +6,7 @@ export const onboardingEn = {
 	next: "Next",
 	continue: "Continue",
 	back: "Back",
+	skip: "Skip the tour",
 	done: "Done",
 	manual: "Open the manual",
 	steps: {
@@ -131,6 +132,7 @@ export const onboardingFr: typeof onboardingEn = {
 	next: "Suivant",
 	continue: "Continuer",
 	back: "Retour",
+	skip: "Passer la visite",
 	done: "Terminé",
 	manual: "Ouvrir le manuel",
 	steps: {

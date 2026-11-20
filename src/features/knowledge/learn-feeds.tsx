@@ -42,7 +42,7 @@ export function LearnCard({
  * the view. A feed that fails shows its error and keeps its last copy.
  */
 export function LearnFeeds() {
-	const { t } = useI18n();
+	const { t, code } = useI18n();
 	const k = t.knowledge.learn;
 	const qc = useQueryClient();
 	const { failure, run } = useGuard();
@@ -114,7 +114,11 @@ export function LearnFeeds() {
 										<span className="truncate text-ui text-n-12">{item.title}</span>
 									)}
 									{item.published ? (
-										<span className="font-mono text-12 text-n-10">{item.published}</span>
+										<span className="text-12 text-n-10">
+											{Number.isNaN(Date.parse(item.published))
+												? item.published
+												: new Date(item.published).toLocaleDateString(code, { dateStyle: "long" })}
+										</span>
 									) : null}
 									{item.summary ? (
 										<span className="line-clamp-2 text-12 text-n-11">{item.summary}</span>

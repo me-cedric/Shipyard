@@ -389,7 +389,7 @@ function FlowPage({ view }: { view: "flow" | "list" | "done" }) {
 					</>
 				}
 			/>
-			<div className="flex flex-1 flex-col gap-6 px-4 pt-3 pb-10">
+			<div className="flex flex-1 flex-col gap-6 px-4 pb-10">
 				{view === "done" ? (
 					<div className="flex shrink-0 flex-wrap items-center gap-4">
 						<Input

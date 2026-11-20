@@ -64,7 +64,7 @@ export function FeatureCard({ feature: f, menu }: { feature: Feature; menu: Menu
 						<button
 							type="button"
 							onClick={() => open(f)}
-							className="flex min-h-control items-start text-left after:absolute after:inset-0 after:rounded-field"
+							className="flex items-start text-left after:absolute after:inset-0 after:rounded-field"
 						>
 							{f.title}
 							{said}

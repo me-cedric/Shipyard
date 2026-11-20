@@ -117,8 +117,8 @@ function Page() {
 	const pulls = usePulls().data;
 	return (
 		<div className="flex flex-col">
-			<PageHeader title={t.ui.place.code} />
-			<div className="flex flex-col gap-6 px-4 pt-3 pb-10">
+			<PageHeader title={t.ui.place.code} action={<BranchSelector />} />
+			<div className="flex flex-col gap-6 px-4 pb-10">
 				<div className="flex flex-wrap items-start gap-6">
 					<FilesCard />
 					<PullsCard />
@@ -134,9 +134,8 @@ function Page() {
 						{t.forge.now.open}
 					</Link>
 				</Card>
-				{/* The branch, the terminal and the files left the old top bar: they stay here, with the new pull request. */}
+				{/* The branch, the terminal and the files left the old top bar: they stay here, with the new pull request; the branch sits in the header. */}
 				<div className="flex flex-wrap items-center gap-2.5">
-					<BranchSelector />
 					<Button aria-pressed={terminalOpen} disabled={terminal.disabled} onClick={terminal.run}>
 						{terminal.label}
 					</Button>

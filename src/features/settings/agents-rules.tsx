@@ -483,7 +483,7 @@ export function AgentsRules() {
 				</Column>
 			</Columns>
 			{more ? (
-				<div className="px-4 pb-10">
+				<div className="-mt-6 px-4 pb-10">
 					<SetupCard title={t.ui.more}>
 						<ToolMore sign={sign} />
 					</SetupCard>

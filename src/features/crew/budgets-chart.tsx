@@ -70,7 +70,7 @@ export function SpendChart({ prices }: { prices: boolean }) {
 			</div>
 			<div
 				aria-hidden="true"
-				className="flex justify-between gap-3 text-13 font-semibold text-n-12"
+				className="flex justify-between gap-3 text-13 font-semibold text-n-11"
 			>
 				{lines.map((l) => (
 					<span

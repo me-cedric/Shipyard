@@ -9,6 +9,7 @@ import { revealPath } from "@/lib/menus";
 import { useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { DocumentTextIcon } from "@/ui/icons";
@@ -111,6 +112,9 @@ export function Documents() {
 			below={(row) => (
 				<>
 					<Card pad className="flex flex-wrap items-center gap-3">
+						<span aria-hidden="true">
+							<Avatar agent name="P" />
+						</span>
 						<h2 className="min-w-50 flex-1 text-17 font-semibold">{k.planner}</h2>
 						<Button
 							className="min-h-control"

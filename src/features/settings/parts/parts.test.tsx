@@ -36,8 +36,10 @@ describe("the parts of the Setup pages (look pass 2)", () => {
 		const group = within(await screen.findByRole("group", { name: "Agents at once" }));
 		const less = group.getByRole("button", { name: "Less: Agents at once" });
 		const more = group.getByRole("button", { name: "More: Agents at once" });
-		for (const b of [less, more]) expect(b).toHaveClass("size-(--control-h)", "border");
-		expect(less.parentElement).not.toHaveClass("border");
+		for (const b of [less, more]) expect(b).toHaveClass("size-(--control-h)");
+		// One bordered group, not three boxes.
+		for (const b of [less, more]) expect(b).not.toHaveClass("border");
+		expect(less.parentElement).toHaveClass("border");
 		expect(group.getByRole("status")).toHaveTextContent("2");
 		await user.click(more);
 		expect(group.getByRole("status")).toHaveTextContent("3");

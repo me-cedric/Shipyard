@@ -31,6 +31,12 @@ export function DebugConsole() {
 		>
 			<div className="flex min-h-15 flex-wrap items-center gap-3 px-6 py-2">
 				<h2 className="mr-auto font-semibold text-n-12">{t.personal.setup.console}</h2>
+				<Button
+					variant="secondary"
+					onClick={() => copyText(lines.map((l) => `${l.at} [${l.level}] ${l.message}`).join("\n"))}
+				>
+					{d.copy}
+				</Button>
 				<span className="inline-flex">
 					<Segmented
 						label={d.level}
@@ -39,12 +45,6 @@ export function DebugConsole() {
 						items={LEVELS.map((v) => ({ value: v, label: d[v] }))}
 					/>
 				</span>
-				<Button
-					variant="secondary"
-					onClick={() => copyText(lines.map((l) => `${l.at} [${l.level}] ${l.message}`).join("\n"))}
-				>
-					{d.copy}
-				</Button>
 			</div>
 			{/* The log block is dark in each theme, as a terminal. */}
 			<ol

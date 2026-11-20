@@ -7,7 +7,6 @@ import { agentOf } from "@/features/factory/runs/run-summary";
 import { UnitTranscript } from "@/features/factory/runs/unit-chat";
 import { transcript } from "@/features/factory/runs/unit-transcript";
 import { QuestionRow } from "@/features/home/inbox/inbox";
-import { TicketComments } from "@/features/sync/ticket-thread";
 import { useGuard } from "@/features/work/guard";
 import { type ApprovalItem, useInboxActions } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
@@ -26,6 +25,7 @@ import { stopAction } from "../stop-action";
 import { Developers, DevPanel, type Open } from "./chat-developers";
 import { Mark } from "./checks";
 import { keyOf, StartAgent } from "./start";
+import { TicketThread } from "./ticket-page";
 import type { Parts } from "./use-feature";
 
 /** A message of the agent: its tile and a bubble. */
@@ -283,7 +283,7 @@ export function Chat({ parts }: { parts: Parts }) {
 						<EmptyState title={t.flow.feature.noChat} extra={<StartAgent parts={parts} />} />
 					) : null}
 					{parts.pr ? <PullPart part="chat" /> : null}
-					{key ? <TicketComments itemKey={key} /> : null}
+					{key ? <TicketThread itemKey={key} /> : null}
 				</div>
 				{scope ? (
 					<div className="flex min-w-0 flex-[2_1_300px] flex-col gap-4">

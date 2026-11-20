@@ -98,7 +98,7 @@ export function Timeline() {
 					</>
 				}
 			/>
-			<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pt-1 pb-4">
+			<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pb-4">
 				{error || proposed.error ? (
 					<p role="alert" className="text-ui text-danger-text">
 						{error ?? proposed.error}

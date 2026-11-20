@@ -47,7 +47,7 @@ export function Logs() {
 					<HealthFeedback />
 				</Column>
 			</Columns>
-			<div className="px-4 pb-10">
+			<div className="-mt-6 px-4 pb-10">
 				<SetupCard title={t.ui.more}>
 					<ReplayTour />
 				</SetupCard>

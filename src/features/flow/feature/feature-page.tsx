@@ -189,7 +189,12 @@ function Page({
 				{/* The stage line shows on Story, Brief, Changes, the plan and the ticket page; Design, Checks and Chat show none. */}
 				{mode || section === "story" || section === "brief" || section === "changes" ? (
 					// The plan in review shows the stage dot only: its card says what waits.
-					<StageLine stage={feature.stage} mark={planning ? null : feature.mark} />
+					<StageLine
+						stage={feature.stage}
+						mark={
+							planning ? null : (feature.mark ?? (feature.runState === "Failed" ? "stopped" : null))
+						}
+					/>
 				) : null}
 				{mode ? null : (
 					<SectionSwitch

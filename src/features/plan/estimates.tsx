@@ -303,7 +303,7 @@ export function PlanEstimates() {
 		/>,
 		<>
 			<div
-				className={`flex shrink-0 flex-wrap items-center gap-2 px-4 pb-6 [&_button]:px-3.5 ${CONTROLS}`}
+				className={`flex shrink-0 flex-wrap items-center gap-2 px-4 pb-6 [&_button]:px-3 ${CONTROLS}`}
 			>
 				<span className="mr-auto">
 					<Segmented

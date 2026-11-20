@@ -7,6 +7,7 @@ export const onboardingEs: typeof onboardingEn = {
 	next: "Siguiente",
 	continue: "Continuar",
 	back: "Atrás",
+	skip: "Omitir el recorrido",
 	done: "Listo",
 	manual: "Abrir el manual",
 	steps: {

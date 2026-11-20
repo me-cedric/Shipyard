@@ -184,7 +184,7 @@ export function LangSelect({
 				value: l,
 				label: t.creator.lang[l as keyof typeof t.creator.lang] ?? l,
 			}))}
-			className="w-48"
+			className="w-48!"
 		/>
 	);
 }
@@ -207,7 +207,8 @@ export function BriefStep(p: {
 						label={t.creator[f]}
 						value={p.brief[f]}
 						onChange={(e) => p.setField(f, e.target.value)}
-						rows={f === "vision" ? 2 : 4}
+						rows={1}
+						className="min-h-control"
 					/>
 				</SettingsRow>
 			))}
@@ -323,6 +324,7 @@ export function RemoteStep(p: {
 				value={p.forge || NONE}
 				onValueChange={(v) => p.setForge(v === NONE ? "" : v)}
 				items={items}
+				className="w-auto!"
 			/>
 		</SettingsRow>
 	);
@@ -376,6 +378,7 @@ export function RemoteStep(p: {
 						{ value: NONE, label: t.projects.noConnection },
 						...p.trackers.map((c) => ({ value: c.id, label: c.name })),
 					]}
+					className="w-auto!"
 				/>
 			</SettingsRow>
 			{p.tracker ? (

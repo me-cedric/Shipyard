@@ -119,13 +119,16 @@ function StaleDoc({ c }: { c: ChainWarning_Serialize }) {
 			{c.to in DOC_PAGE ? (
 				<Link
 					to={DOC_PAGE[c.to as keyof typeof DOC_PAGE]}
-					className="min-h-control self-start font-semibold text-accent-text underline"
+					className="min-h-control self-start font-semibold text-accent-text"
 				>
 					{name}
 				</Link>
 			) : (
 				<span className="font-semibold">{name}</span>
 			)}
+			<div className="flex">
+				<DocsUpdate to={c.to} name={name} range="unpushed" primary={x.updateIt} />
+			</div>
 			<form
 				className="flex items-end gap-2.5"
 				onSubmit={(e) => {
@@ -141,7 +144,6 @@ function StaleDoc({ c }: { c: ChainWarning_Serialize }) {
 						onChange={(e) => setReason(e.target.value)}
 					/>
 				</div>
-				<DocsUpdate to={c.to} name={name} range="unpushed" primary={x.updateIt} />
 				<Button type="submit" disabled={!reason.trim()}>
 					{x.leaveIt}
 				</Button>

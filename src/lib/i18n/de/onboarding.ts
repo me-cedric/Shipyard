@@ -7,6 +7,7 @@ export const onboardingDe: typeof onboardingEn = {
 	next: "Weiter",
 	continue: "Fortfahren",
 	back: "Zurück",
+	skip: "Tour überspringen",
 	done: "Fertig",
 	manual: "Anleitung öffnen",
 	steps: {

@@ -195,7 +195,7 @@ export function People() {
 				</Card>
 				<div className="flex min-w-0 flex-[2_1_19rem] flex-col gap-3.5">
 					{proposed.list.length > 0 ? (
-						<AttentionCard who={p.planner} title={p.people.proposes}>
+						<AttentionCard who={p.planner} inline title={p.people.proposes}>
 							{proposed.list.map((x) => (
 								<div
 									key={x.task}

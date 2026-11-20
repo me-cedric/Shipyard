@@ -115,6 +115,19 @@ describe("Feature page (REQ-012)", () => {
 		await idle(router);
 	});
 
+	it("marks the stage of a failed run as stopped, like a blocked or stopped one", async () => {
+		const { build } = await setup();
+		vi.spyOn(commands, "featuresList").mockResolvedValue({
+			status: "ok",
+			data: [{ ...build, runState: "Failed" }],
+		});
+		const router = mountApp("/flow/feature/wi%3AACME-2");
+		const page = await screen.findByRole("region", { name: "ACME-2" });
+		const stages = within(within(page).getByRole("list", { name: "Stages" }));
+		expect(await stages.findByText("Build, stopped")).toBeVisible();
+		await idle(router);
+	});
+
 	it("shows the stage line on Story, Brief and Changes, and not on Design, Checks and Chat", async () => {
 		const user = userEvent.setup();
 		await setup();

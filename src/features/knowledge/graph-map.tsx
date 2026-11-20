@@ -129,7 +129,9 @@ export function KnowledgeMap({
 									className={WIDE}
 									render={(p) => <button type="button" onClick={() => setPicked(n.ref)} {...p} />}
 								>
-									<Badge>{kindNames[n.kind] ?? n.kind}</Badge>
+									<Badge variant={n.kind === "q" ? "you" : "neutral"}>
+										{kindNames[n.kind] ?? n.kind}
+									</Badge>
 									<span className="min-w-0 text-left font-semibold">{n.title || n.ref}</span>
 								</Row>
 							))}

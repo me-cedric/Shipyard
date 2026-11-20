@@ -38,17 +38,6 @@ export function RequestTree({
 		<Card pad className="flex max-h-[34rem] flex-[1.5_1_24rem] flex-col gap-2 overflow-hidden">
 			<div className="flex flex-wrap items-center gap-3">
 				<h2 className="mr-auto text-13 font-semibold text-n-11">{s.requests}</h2>
-				<div className="w-44">
-					<Segmented
-						label={s.picture}
-						value={view}
-						onValueChange={setView}
-						items={[
-							{ value: "tree", label: s.tree },
-							{ value: "flame", label: s.flame },
-						]}
-					/>
-				</div>
 				<Select
 					label={f.treeRun}
 					className="min-h-control"
@@ -95,6 +84,17 @@ export function RequestTree({
 						</ul>
 					</>
 				)}
+			</div>
+			<div className="w-44 shrink-0">
+				<Segmented
+					label={s.picture}
+					value={view}
+					onValueChange={setView}
+					items={[
+						{ value: "tree", label: s.tree },
+						{ value: "flame", label: s.flame },
+					]}
+				/>
 			</div>
 		</Card>
 	);

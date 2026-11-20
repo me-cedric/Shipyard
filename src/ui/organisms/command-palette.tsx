@@ -178,11 +178,7 @@ export function CommandPalette({
 															close();
 															inputRef.current?.blur();
 														}}
-														className={cn(
-															row.className,
-															"cursor-pointer hover:bg-n-2",
-															arrowed && "data-[selected=true]:bg-n-3",
-														)}
+														className={cn(row.className, "cursor-pointer hover:bg-n-2")}
 													>
 														{row.children}
 													</Command.Item>

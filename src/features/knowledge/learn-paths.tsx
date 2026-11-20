@@ -15,6 +15,7 @@ import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Checkbox } from "@/ui/atoms/checkbox";
+import { Chip } from "@/ui/atoms/chip";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Progress } from "@/ui/atoms/progress";
@@ -167,12 +168,19 @@ export function LearnActions({
 	return (
 		<>
 			{people.length ? (
-				<Select
-					label={k.person}
-					value={picked ?? people[0]?.value ?? ""}
-					onValueChange={onPick}
-					items={people}
-				/>
+				<fieldset aria-label={k.person} className="flex flex-wrap gap-2">
+					{people.map((m) => (
+						<Chip
+							key={m.value}
+							selected={m.value === (picked ?? people[0]?.value)}
+							onClick={() => onPick(m.value)}
+							className="gap-2 pl-1.5"
+						>
+							<Avatar name={m.label} size="s" />
+							{m.label.split(" ")[0]}
+						</Chip>
+					))}
+				</fieldset>
 			) : null}
 			<RightButton right="knowledge.edit" variant="primary" disabled={editing} onClick={onNew}>
 				<PlusIcon size={14} />
