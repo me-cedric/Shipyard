@@ -262,6 +262,7 @@ fn schema_matches_the_model() {
         workspace: Workspace::Worktree,
         needs: vec!["a".into()],
         gate: Gate::Human,
+        approver: Some("techlead".into()),
         for_each: Some("a.items".into()),
         max_parallel: Some(2),
         retry: 1,
@@ -332,4 +333,46 @@ fn caps_default_and_reject_zero() {
             field: "limits.review_rounds".into()
         }]
     );
+}
+
+// `runs-recipes` REQ-008 and REQ-009.
+
+#[test]
+fn only_a_human_step_has_a_role_that_is_a_team_role() {
+    let wf = with_steps(
+        "  - { id: plan, role: planner, gate: human, approver: techlead }\n\
+         \x20 - { id: a, role: worker, approver: techlead }\n\
+         \x20 - { id: b, role: worker, gate: human, approver: wizard }\n",
+    );
+    assert_eq!(
+        wf.check(&roles()),
+        [
+            WorkflowIssue::BadValue {
+                field: "steps.a.approver".into()
+            },
+            WorkflowIssue::BadValue {
+                field: "steps.b.approver".into()
+            },
+        ]
+    );
+    assert_eq!(wf.step("plan").unwrap().approver.as_deref(), Some("techlead"));
+}
+
+#[test]
+fn the_role_of_a_step_is_optional_and_stays_out_of_the_file_when_absent() {
+    let wf = parse(FEATURE);
+    assert!(wf.steps.iter().all(|s| s.approver.is_none()));
+    assert!(!serde_norway::to_string(&wf).unwrap().contains("approver"));
+}
+
+#[test]
+fn the_kind_of_a_step_comes_from_the_step() {
+    let wf = parse(FEATURE);
+    let kind = |id: &str| wf.step(id).unwrap().kind();
+    assert_eq!(kind("grill"), StepKind::Agent);
+    assert_eq!(kind("build"), StepKind::Agent);
+    // A gate that waits for a person makes the step a person step.
+    assert_eq!(kind("plan"), StepKind::Person);
+    assert_eq!(kind("review"), StepKind::Check);
+    assert_eq!(kind("pr"), StepKind::Check);
 }

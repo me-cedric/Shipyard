@@ -191,15 +191,33 @@ impl Inner {
         };
         let today = day_of(self.clock.now());
         let member = self.member_of(run_id);
+        let warn = b.warn();
+        let level = |spent: f64, usd: f64, then| {
+            crate::run_engine::soften(run::budget_level_at(spent, usd, warn), then)
+        };
         let day = b.for_day(&today).map(|usd| {
             let spent = s.days.get(&today).map_or(0.0, |d| d.1);
-            (format!("day:{today}"), run::budget_level(spent, usd))
+            (format!("day:{today}"), level(spent, usd, b.then.day))
         });
         let who = b.for_member(&member).map(|usd| {
             let spent = s.members.get(&member).map_or(0.0, |d| d.1);
-            (format!("member:{member}"), run::budget_level(spent, usd))
+            (format!("member:{member}"), level(spent, usd, b.then.member))
         });
-        day.into_iter().chain(who).collect()
+        // The limit of a feature covers every run of its ticket, the ended ones too
+        // (`runs-recipes` REQ-005). A raise at a resume counts for this run.
+        let feature = b.for_feature(&r.key).map(|usd| {
+            let spent: f64 = self
+                .runs
+                .values()
+                .filter(|x| x.project == r.project && x.key == r.key)
+                .map(|x| x.cost)
+                .sum();
+            (
+                format!("feature:{}", r.key),
+                level(spent, usd + r.extra_usd, b.then.feature),
+            )
+        });
+        day.into_iter().chain(who).chain(feature).collect()
     }
 }
 

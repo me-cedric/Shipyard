@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::project::Issue;
-use crate::run::RunState;
+use crate::run::{Run, RunState};
 use crate::work_item::{Comment, Status, StatusCategory, WorkItem};
 
 /// Repository path of the automation file.
@@ -71,6 +71,78 @@ pub struct Limits {
     /// By ticket status name at pickup.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub per_status: BTreeMap<String, u32>,
+    /// By stage of the run, beside the limits by status (`runs-recipes` REQ-007).
+    #[serde(skip_serializing_if = "StageLimits::is_empty")]
+    pub per_stage: StageLimits,
+}
+
+/// The fixed stages of the run limits (`runs-recipes` REQ-007).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum LimitStage {
+    Plan,
+    Build,
+    Review,
+}
+
+impl LimitStage {
+    /// The stage of a run state. `None` for a state that holds no stage: it waits to start, or it
+    /// ended. A side state holds the stage of its return state (`of_run`).
+    pub fn of(state: RunState) -> Option<Self> {
+        use RunState as S;
+        match state {
+            S::Planning | S::PlanReview => Some(Self::Plan),
+            S::Working | S::SelfReview => Some(Self::Build),
+            S::PROpen | S::ChangesRequested => Some(Self::Review),
+            _ => None,
+        }
+    }
+
+    pub fn of_run(run: Run) -> Option<Self> {
+        Self::of(run.state).or_else(|| {
+            if run.state.is_side() {
+                run.return_to.and_then(Self::of)
+            } else {
+                None
+            }
+        })
+    }
+}
+
+/// The number of active runs that each stage may hold at once. `None`: no limit.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(deny_unknown_fields, default)]
+pub struct StageLimits {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub review: Option<u32>,
+}
+
+impl StageLimits {
+    pub fn is_empty(&self) -> bool {
+        *self == Self::default()
+    }
+
+    pub fn of(&self, stage: LimitStage) -> Option<u32> {
+        match stage {
+            LimitStage::Plan => self.plan,
+            LimitStage::Build => self.build,
+            LimitStage::Review => self.review,
+        }
+    }
+
+    /// Is `stage` at its limit for these runs? A run of another stage that wants in waits.
+    pub fn full(&self, stage: LimitStage, runs: impl IntoIterator<Item = Run>) -> bool {
+        self.of(stage).is_some_and(|n| {
+            runs.into_iter()
+                .filter(|r| LimitStage::of_run(*r) == Some(stage))
+                .count()
+                >= n as usize
+        })
+    }
 }
 
 impl Default for Limits {
@@ -79,6 +151,7 @@ impl Default for Limits {
             global: DEFAULT_CONCURRENCY,
             per_project: None,
             per_status: BTreeMap::new(),
+            per_stage: StageLimits::default(),
         }
     }
 }
@@ -147,11 +220,65 @@ pub struct Budgets {
     pub day: BTreeMap<String, f64>,
     /// Key: the name of the ticket assignee.
     pub member: BTreeMap<String, f64>,
+    /// Key: a ticket key. The limit covers all runs of the feature (`runs-recipes` REQ-005).
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub feature: BTreeMap<String, f64>,
+    /// The percent of a budget where the alert shows, for the project. Default 80
+    /// (`runs-recipes` REQ-006).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub warn_at: Option<u32>,
+    /// What happens at the limit of each kind of budget.
+    #[serde(skip_serializing_if = "Thens::is_default")]
+    pub then: Thens,
+}
+
+/// What a run does when a budget is spent (`runs-recipes` REQ-006, `adr:0024`).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum Then {
+    /// The run pauses and the report asks a person (the default).
+    #[default]
+    StopAsk,
+    /// The run pauses and keeps the report to itself.
+    Pause,
+    /// The run pauses and only the app asks: no comment on the issue tracker.
+    Ask,
+    /// The budget is a warning only. The run goes on.
+    GoOn,
+}
+
+/// The choice `Then` of each kind of budget. A run budget (recipe) and a feature limit are both
+/// `feature`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(deny_unknown_fields, default)]
+pub struct Thens {
+    pub feature: Then,
+    pub day: Then,
+    pub member: Then,
+}
+
+impl Thens {
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
 }
 
 impl Budgets {
     pub fn is_empty(&self) -> bool {
-        self.day.is_empty() && self.member.is_empty()
+        self.day.is_empty()
+            && self.member.is_empty()
+            && self.feature.is_empty()
+            && self.warn_at.is_none()
+            && self.then.is_default()
+    }
+
+    /// The share of a budget where the alert shows, 0 to 1.
+    pub fn warn(&self) -> f64 {
+        self.warn_at.map_or(crate::run::BUDGET_ALERT, |p| f64::from(p) / 100.0)
+    }
+
+    pub fn for_feature(&self, key: &str) -> Option<f64> {
+        self.feature.get(key).copied()
     }
 
     pub fn for_day(&self, day: &str) -> Option<f64> {
@@ -306,6 +433,18 @@ impl Automation {
                 });
             }
         }
+        for (name, n) in [
+            ("plan", self.concurrency.per_stage.plan),
+            ("build", self.concurrency.per_stage.build),
+            ("review", self.concurrency.per_stage.review),
+        ] {
+            if n == Some(0) {
+                out.push(Issue {
+                    field: format!("concurrency.per_stage.{name}"),
+                    value: "0".into(),
+                });
+            }
+        }
         for key in self.recipe_writes.keys() {
             if key.trim().is_empty() {
                 out.push(Issue {
@@ -327,6 +466,17 @@ impl Automation {
             if !(usd.is_finite() && *usd > 0.0) || key.is_empty() {
                 out.push(bad("member", key, *usd));
             }
+        }
+        for (key, usd) in &self.budgets.feature {
+            if !(usd.is_finite() && *usd > 0.0) || key.is_empty() {
+                out.push(bad("feature", key, *usd));
+            }
+        }
+        if let Some(p) = self.budgets.warn_at.filter(|p| !(1..=100).contains(p)) {
+            out.push(Issue {
+                field: "budgets.warn_at".into(),
+                value: p.to_string(),
+            });
         }
         // The reminder comes first: a reminder after the escalation has no use.
         let q = self.questions;
@@ -666,6 +816,15 @@ pub fn pickup<'a>(input: &PickupInput<'a>) -> Vec<&'a Ticket> {
         })
         .collect();
 
+    // A new run starts in `Planning`: the Plan limit counts the runs of the project in Plan.
+    // shortcut: a side state holds no Plan slot here, the engine counts it by its return state.
+    let mut plan_free = lim.per_stage.plan.map(|n| {
+        let used = mine()
+            .filter(|r| LimitStage::of(r.state) == Some(LimitStage::Plan))
+            .count();
+        (n as usize).saturating_sub(used)
+    });
+
     let mut candidates: Vec<&Ticket> = input
         .tickets
         .iter()
@@ -680,10 +839,11 @@ pub fn pickup<'a>(input: &PickupInput<'a>) -> Vec<&'a Ticket> {
     for t in candidates {
         let status = t.item.status.name.to_ascii_lowercase();
         let status_free = per_status.get(&status).is_none_or(|n| *n > 0);
-        if global == 0 || per_project == Some(0) || !status_free {
+        if global == 0 || per_project == Some(0) || plan_free == Some(0) || !status_free {
             continue;
         }
         global -= 1;
+        plan_free = plan_free.map(|n| n - 1);
         per_project = per_project.map(|n| n - 1);
         if let Some(n) = per_status.get_mut(&status) {
             *n -= 1;

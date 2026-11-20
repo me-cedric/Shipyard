@@ -157,6 +157,7 @@ fn usage_sums_by_day_and_member_with_budgets_and_sessions_show_the_steps() {
     let budgets = Budgets {
         day: [("2026-10-29".to_string(), 10.0)].into(),
         member: [("Alice".to_string(), 5.0)].into(),
+        ..Budgets::default()
     };
     let fx = fx(budgets);
     let mut ticket = todo("SHIP-1");

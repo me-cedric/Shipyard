@@ -313,6 +313,9 @@ fn step_value(s: &Step) -> Result<Value> {
     if s.gate != Gate::None {
         put("gate", val(&s.gate)?);
     }
+    if let Some(x) = &s.approver {
+        put("approver", x.clone().into());
+    }
     if s.workspace != Workspace::Shared {
         put("workspace", val(&s.workspace)?);
     }

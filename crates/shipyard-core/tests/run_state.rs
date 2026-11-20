@@ -399,3 +399,43 @@ fn run_serializes_with_state_names() {
     );
     assert_eq!(serde_json::from_str::<Run>(&json).unwrap(), run);
 }
+
+// `runs-recipes` REQ-001 and REQ-006.
+
+#[test]
+fn a_person_pauses_a_working_run_and_resume_returns_to_the_same_state() {
+    let run = walk(&TO_WORKING);
+    let paused = run.apply(RunEvent::Pause).unwrap();
+    assert_eq!(paused.state, RunState::Paused);
+    assert_eq!(paused.return_to, Some(RunState::Working));
+    let back = paused.apply(RunEvent::Resume { budget_left: true }).unwrap();
+    assert_eq!(back.state, RunState::Working);
+    // Pause waits for an agent: a state with no agent refuses it, and a final state too.
+    assert!(Run::new().apply(RunEvent::Pause).is_err());
+    assert!(paused.apply(RunEvent::Pause).is_err());
+    let open = walk(&[
+        RunEvent::Claim,
+        RunEvent::Start,
+        RunEvent::PlanReady { gate: false },
+        RunEvent::BuildDone,
+        RunEvent::PrOpened,
+    ]);
+    assert!(open.apply(RunEvent::Pause).is_err());
+}
+
+#[test]
+fn a_paused_run_keeps_its_stage_for_the_stage_limits() {
+    use shipyard_core::pickup::LimitStage;
+    let paused = walk(&TO_WORKING).apply(RunEvent::Pause).unwrap();
+    assert_eq!(LimitStage::of_run(paused), Some(LimitStage::Build));
+    assert_eq!(LimitStage::of(RunState::Queued), None);
+    assert_eq!(LimitStage::of(RunState::Done), None);
+}
+
+#[test]
+fn the_alert_follows_the_share_that_the_project_set() {
+    assert_eq!(budget_level_at(6.9, 10.0, 0.7), BudgetLevel::Under);
+    assert_eq!(budget_level_at(7.0, 10.0, 0.7), BudgetLevel::Alert);
+    assert_eq!(budget_level_at(10.0, 10.0, 0.7), BudgetLevel::Spent);
+    assert_eq!(budget_level(4.0, 5.0), budget_level_at(4.0, 5.0, BUDGET_ALERT));
+}

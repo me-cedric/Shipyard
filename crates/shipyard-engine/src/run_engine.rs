@@ -23,7 +23,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use shipyard_core::pickup::{ActiveRun, Automation, SyncEvent};
+use shipyard_core::pickup::{ActiveRun, Automation, LimitStage, SyncEvent, Then, Thens};
 use shipyard_core::rights::{Area, Right};
 use shipyard_core::run::{self, BudgetLevel, Cause, Escalation, Run, RunEvent, RunState};
 use shipyard_core::work::Team;
@@ -324,6 +324,12 @@ pub(crate) struct Counts {
     pub top_tier: bool,
     /// A pause of the day budget of this key (`day:<date>`): the next day resumes it.
     pub day_pause: Option<String>,
+    /// A person asked for a pause: the run moves to `Paused` at the end of the turn
+    /// (`runs-recipes` REQ-001).
+    pub pause: bool,
+    /// The stage that the run waits to enter, because it is at its limit (`runs-recipes`
+    /// REQ-007). It sets the note of the log once.
+    pub held: Option<LimitStage>,
 }
 
 impl Counts {
@@ -417,6 +423,14 @@ pub(crate) fn kind_of(s: &Step) -> Kind {
         Kind::Plan
     } else {
         Kind::Build
+    }
+}
+
+/// Go on turns `Spent` into a warning (`adr:0024`).
+pub(crate) fn soften(l: BudgetLevel, then: Then) -> BudgetLevel {
+    match (l, then) {
+        (BudgetLevel::Spent, Then::GoOn) => BudgetLevel::Alert,
+        _ => l,
     }
 }
 
@@ -750,6 +764,28 @@ impl Factory {
         Ok(inner.rec(run_id).run.state)
     }
 
+    /// A person pauses a working run (`runs-recipes` REQ-001). The agent ends its turn, then the
+    /// run moves to `Paused` with the cause Person and keeps its slot. With no agent in a turn
+    /// the run pauses at once. A run in another state refuses it.
+    pub fn pause(&self, run_id: &str) -> Result<(), String> {
+        let mut inner = self.lock();
+        let rec = inner.run(run_id)?;
+        if !rec.run.state.clocks_run() {
+            return Err(format!("refused Pause in {}", rec.run.state.as_str()));
+        }
+        let live = rec
+            .steps
+            .values()
+            .flat_map(|s| &s.units)
+            .any(|u| u.agent.is_some());
+        inner.rec(run_id).c.pause = true;
+        inner.log(run_id, None, kind::NOTE, json!({"pause": "requested"}));
+        if !live {
+            inner.pause_now(run_id);
+        }
+        Ok(())
+    }
+
     /// A person clears the cause of `Blocked` (`q:Q-025` option 1, the click).
     pub fn unblock(&self, run_id: &str) -> Result<(), String> {
         self.unblock_with(run_id, None)
@@ -1032,6 +1068,10 @@ impl Inner {
             }
         };
         rec.run = to;
+        // A request to pause ends with the turn, and with any move out of the clock states.
+        if !to.state.clocks_run() {
+            rec.c.pause = false;
+        }
         let stopped = if to.state.clocks_run() {
             Vec::new()
         } else {
@@ -1232,6 +1272,10 @@ impl Inner {
                     let why = format!("max turns ({max_turns})");
                     self.escalate(run_id, Cause::MaxTurns, &[why]);
                 }
+                // The turn ended: a request of a person to pause lands here, with no work lost.
+                if self.runs[run_id].c.pause && self.clocks(run_id) {
+                    self.pause_now(run_id);
+                }
             }
             AgentEvent::Usage {
                 input_tokens,
@@ -1264,26 +1308,38 @@ impl Inner {
         }
     }
 
-    /// The level of the budgets of the run itself, and of the shared ones by key.
+    /// The choices `Then` and the share of the alert that the project set (`runs-recipes`
+    /// REQ-006). A project that is not open has the defaults.
+    pub(crate) fn budget_rules(&self, run_id: &str) -> (Thens, f64) {
+        self.project_of(run_id).map_or((Thens::default(), run::BUDGET_ALERT), |p| {
+            (p.automation.budgets.then, p.automation.budgets.warn())
+        })
+    }
+
+    /// The level of the budgets of the run itself, and of the shared ones by key. A budget that a
+    /// person set to Go on never reaches `Spent`: it stays a warning (`adr:0024`).
     fn budget_levels(&self, run_id: &str) -> (BudgetLevel, Vec<(String, BudgetLevel)>) {
         let rec = &self.runs[run_id];
-        let money = rec.wf.limits.budget_usd.map_or(BudgetLevel::Under, |b| {
-            run::budget_level(rec.cost, b + rec.extra_usd)
-        });
+        let (thens, warn) = self.budget_rules(run_id);
+        let level = |spent: f64, budget: f64| run::budget_level_at(spent, budget, warn);
+        let money = rec
+            .wf
+            .limits
+            .budget_usd
+            .map_or(BudgetLevel::Under, |b| level(rec.cost, b + rec.extra_usd));
         let tokens = self.cfg.max_tokens.map_or(BudgetLevel::Under, |m| {
-            run::budget_level(rec.tokens as f64, (m + rec.extra_tokens) as f64)
+            level(rec.tokens as f64, (m + rec.extra_tokens) as f64)
         });
         let steps = rec.wf.steps.iter().filter_map(|s| {
             let spent: f64 = rec.steps[&s.id].units.iter().map(|u| u.cost).sum();
-            s.budget
-                .map(|b| run::budget_level(spent, b + rec.extra_usd))
+            s.budget.map(|b| level(spent, b + rec.extra_usd))
         });
         let own = [money, tokens]
             .into_iter()
             .chain(steps)
             .max_by_key(|l| rank(*l))
             .unwrap_or(BudgetLevel::Under);
-        (own, self.spend_levels(run_id))
+        (soften(own, thens.feature), self.spend_levels(run_id))
     }
 
     pub(crate) fn budget_level(&self, run_id: &str) -> BudgetLevel {
@@ -1313,8 +1369,10 @@ impl Inner {
                 keys.push(key.clone());
             }
         }
+        let (_, warn) = self.budget_rules(run_id);
+        let share = format!("{} %", (warn * 100.0).round());
         for key in keys {
-            let payload = json!({"budget": "80 %", "key": key, "cost_usd": cost, "tokens": tokens});
+            let payload = json!({"budget": share, "key": key, "cost_usd": cost, "tokens": tokens});
             self.log(run_id, None, ALERT, payload);
         }
         if stop {
@@ -1458,7 +1516,10 @@ impl Inner {
                 .map(|(k, s)| (k.clone(), s.state))
                 .collect();
             if let Some(sid) = workflow::runnable(&rec.wf, &states).into_iter().next() {
-                self.start_step(run_id, &sid);
+                // A stage at its limit keeps the run where it is: it starts the step later.
+                if !self.start_step(run_id, &sid) {
+                    return;
+                }
                 continue;
             }
             let mut next = None;
@@ -1504,11 +1565,48 @@ impl Inner {
         }
     }
 
-    fn start_step(&mut self, run_id: &str, sid: &str) {
+    /// The run wants into a stage that is at its limit (`runs-recipes` REQ-007). It enters a stage
+    /// when the state of the step needs one that the run does not hold. The count is the active
+    /// runs of the project in that stage, a paused run included by its return state.
+    fn stage_held(&mut self, run_id: &str, k: Kind) -> bool {
+        let target = match k {
+            Kind::Plan => return false,
+            Kind::Build | Kind::Review => LimitStage::Build,
+            Kind::Action => LimitStage::Review,
+        };
+        let rec = &self.runs[run_id];
+        if LimitStage::of_run(rec.run) == Some(target) {
+            return false;
+        }
+        let Some(p) = self.project_of(run_id) else {
+            return false;
+        };
+        let others = self
+            .runs
+            .values()
+            .filter(|r| r.project == rec.project && r.id != run_id && !r.run.state.is_final())
+            .map(|r| r.run);
+        let full = p.automation.concurrency.per_stage.full(target, others);
+        let rec = self.rec(run_id);
+        if !full {
+            rec.c.held = None;
+        } else if rec.c.held != Some(target) {
+            rec.c.held = Some(target);
+            let note = json!({"queued": format!("{target:?} limit").to_lowercase()});
+            self.log(run_id, None, kind::NOTE, note);
+        }
+        full
+    }
+
+    /// `false`: the stage of the step is at its limit and the step did not start.
+    fn start_step(&mut self, run_id: &str, sid: &str) -> bool {
         let step = self.runs[run_id].wf.step(sid).cloned().expect("step");
+        if self.stage_held(run_id, kind_of(&step)) {
+            return false;
+        }
         self.phase(run_id, kind_of(&step));
         if !self.clocks(run_id) {
-            return;
+            return true;
         }
         if step.action.is_some() {
             let s = self.rec(run_id).steps.get_mut(sid).expect("step");
@@ -1517,7 +1615,7 @@ impl Inner {
             s.units = vec![u];
             s.state = StepState::Running;
             self.advance_pr(run_id);
-            return;
+            return true;
         }
         let in_run = self.runs[run_id].steps[sid].in_run;
         let units = match step.source().filter(|_| !in_run) {
@@ -1538,7 +1636,7 @@ impl Inner {
                         self.rec(run_id).steps.get_mut(sid).expect("step").state =
                             StepState::Failed;
                         self.escalate(run_id, Cause::Attempts, &[why]);
-                        return;
+                        return true;
                     }
                 }
             }
@@ -1553,6 +1651,7 @@ impl Inner {
             s.output = json!({"children": []});
         }
         s.units = units;
+        true
     }
 
     /// Start the agent of one unit. `false` when the run stopped.
@@ -1714,10 +1813,30 @@ impl Inner {
         Ok(())
     }
 
+    /// The run moves to `Paused` for a person: the record names the cause, no stop report goes to
+    /// the issue tracker (the person did it). The agents keep their sessions.
+    fn pause_now(&mut self, run_id: &str) {
+        let record = self.record(run_id, Cause::Person, &[]);
+        let note = json!({"stop": Cause::Person.text(), "cause": Cause::Person, "escalation": record});
+        self.log(run_id, None, kind::NOTE, note);
+        self.transition(run_id, RunEvent::Pause);
+    }
+
     /// The one way to stop a run for a person (REQ-053): the agents stop, the run keeps one
     /// record and posts one stop report. `Blocked`, or `Paused` for a budget or max turns. The
     /// questions loop calls it too. `false` when the table refuses the move.
     pub(crate) fn escalate(&mut self, run_id: &str, cause: Cause, lines: &[String]) -> bool {
+        self.escalate_with(run_id, cause, lines, true)
+    }
+
+    /// `escalate`. `report` false keeps the stop report off the issue tracker: the app asks alone.
+    pub(crate) fn escalate_with(
+        &mut self,
+        run_id: &str,
+        cause: Cause,
+        lines: &[String],
+        report: bool,
+    ) -> bool {
         let Some(rec) = self.runs.get(run_id) else {
             return false;
         };
@@ -1738,7 +1857,9 @@ impl Inner {
         let note = json!({what: why, "cause": cause, "escalation": record});
         self.log(run_id, None, kind::NOTE, note);
         self.transition(run_id, event);
-        self.stop_report(run_id, &record);
+        if report {
+            self.stop_report(run_id, &record);
+        }
         true
     }
 
@@ -1773,6 +1894,7 @@ impl Inner {
         let action = match cause {
             Cause::Budget => "Raise the budget, then resume the run.",
             Cause::MaxTurns => "Resume the run: it gets one more set of turns.",
+            Cause::Person => "Resume the run when you are ready: it starts a new turn.",
             Cause::NothingToDeliver => {
                 "Reply on the ticket or use Unblock with a message, or close the run as done."
             }
