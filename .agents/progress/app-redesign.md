@@ -466,4 +466,4 @@ Known differences from the design:
 - The section switch stays on the three views of Today (`spec:app-redesign#REQ-008`).
 - The lead adds the screenshot scenes for the six new screens.
 
-Checks: see the final report.
+Checks, run by the lead on the final tree: passed `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --no-fail-fast` (app library 531; no Rust file changed in this pass), `pnpm typecheck`, `pnpm lint`, `pnpm test` (282 files, 2537 tests), `CI=1 npx playwright test` (143, on port 4211 through a scratch config because port 4174 was held by another session), `pnpm test:personas` (7), `openspec validate update-app-redesign --strict`. Picture check in a fresh context, four rounds: 61, 66 and 68 match; 9, 20, 60 and 63 are close; the others keep the differences of the Open list.
