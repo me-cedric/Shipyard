@@ -88,6 +88,8 @@ pub enum EventSource {
     Update,
     /// The remote head moved.
     RemoteHead,
+    /// A budget reached its Warn at level (`shell-setup-rights` REQ-007).
+    Budget,
     /// A run ended, done or failed.
     RunEnded,
     /// The checks of a pull request of the person passed or failed.
@@ -96,6 +98,15 @@ pub enum EventSource {
     ScanFailed,
     /// An agent review draft is ready to post.
     ReviewDraft,
+}
+
+/// Which releases the update check follows: the stable ones, or the pre-releases too.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum ReleaseChannel {
+    #[default]
+    Stable,
+    Preview,
 }
 
 /// Where the terminal drawer docks.
@@ -213,6 +224,13 @@ pub struct Prefs {
     /// Whether the app checks for a new version at start and every 6 hours.
     #[serde(default = "yes")]
     pub auto_update_check: bool,
+    /// The releases that the check follows. Preview reads the pre-releases of the same release
+    /// address (`shell-setup-rights` REQ-007).
+    #[serde(default)]
+    pub release_channel: ReleaseChannel,
+    /// A system notification makes a sound.
+    #[serde(default = "yes")]
+    pub sound: bool,
     /// Language of the prompts that the assistant sends: `en` or `fr`. Empty follows the interface.
     #[serde(default)]
     pub prompt_lang: String,
@@ -345,6 +363,8 @@ impl Default for Prefs {
             default_agent: String::new(),
             default_model: String::new(),
             auto_update_check: true,
+            release_channel: ReleaseChannel::Stable,
+            sound: true,
             prompt_lang: String::new(),
             diagram_format: String::new(),
             accent: None,
@@ -394,6 +414,8 @@ pub struct PrefsPatch {
     pub default_agent: Option<String>,
     pub default_model: Option<String>,
     pub auto_update_check: Option<bool>,
+    pub release_channel: Option<ReleaseChannel>,
+    pub sound: Option<bool>,
     pub prompt_lang: Option<String>,
     pub diagram_format: Option<String>,
     /// `Some(None)` is not sent by the view: a patch with `clear_accent` goes back to the theme.
@@ -503,6 +525,8 @@ impl Prefs {
             self.default_model = clean_font(&v);
         }
         self.auto_update_check = p.auto_update_check.unwrap_or(self.auto_update_check);
+        self.release_channel = p.release_channel.unwrap_or(self.release_channel);
+        self.sound = p.sound.unwrap_or(self.sound);
         // Only a known value stays. An unknown one goes back to the default.
         if let Some(v) = p.prompt_lang {
             self.prompt_lang = if matches!(v.as_str(), "en" | "fr" | "de" | "es") {
@@ -899,6 +923,42 @@ mod tests {
             Prefs::load(dir.path()).notify_off.is_empty(),
             "an old file: all on"
         );
+    }
+
+    #[test]
+    fn sound_and_the_channel_start_on_stable_and_a_patch_changes_them() {
+        let mut p = Prefs::default();
+        assert!(p.sound);
+        assert_eq!(p.release_channel, ReleaseChannel::Stable);
+        p.apply(PrefsPatch {
+            sound: Some(false),
+            release_channel: Some(ReleaseChannel::Preview),
+            ..PrefsPatch::default()
+        });
+        assert!(!p.sound);
+        assert_eq!(p.release_channel, ReleaseChannel::Preview);
+        // An old file with neither key reads the defaults.
+        let old: Prefs = serde_json::from_str(
+            &serde_json::to_string(&Prefs::default())
+                .unwrap()
+                .replace(",\"releaseChannel\":\"stable\"", "")
+                .replace(",\"sound\":true", ""),
+        )
+        .unwrap();
+        assert!(old.sound && old.release_channel == ReleaseChannel::Stable);
+        assert_eq!(
+            serde_json::to_string(&ReleaseChannel::Preview).unwrap(),
+            "\"preview\""
+        );
+    }
+
+    #[test]
+    fn the_budget_source_has_a_kebab_name_and_starts_on() {
+        assert_eq!(
+            serde_json::to_string(&EventSource::Budget).unwrap(),
+            "\"budget\""
+        );
+        assert!(!Prefs::default().notify_off.contains(&EventSource::Budget));
     }
 
     #[test]

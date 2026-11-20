@@ -50,6 +50,7 @@ pub mod questions;
 mod reports;
 pub mod request_tree;
 pub mod rights;
+pub mod role_model;
 pub mod runner_setup;
 pub mod runner_signin;
 pub mod sbom;
@@ -136,6 +137,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             conn::connections_add,
             conn::connections_edit,
             conn::connections_remove,
+            conn::account_sign_out_list,
+            conn::account_sign_out,
             conn::connections_users,
             conn::connections_set_secret,
             conn::connections_test,
@@ -281,6 +284,9 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::estimate_agent::estimate_agent_stop,
             crate::pr_agent::tile::dashboard_tile_build,
             crate::machine::machine_sessions,
+            crate::machine::machine_session_take,
+            crate::machine::machine_session_output,
+            crate::machine::machine_load,
             crate::machine::machine_session_stop,
             crate::machine::machine_spend,
             crate::machine::machine_budget_set,
@@ -368,6 +374,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             costing::plan_calendar_get,
             work::plan_decisions_save,
             work::plan_calendar_save,
+            work::time_fill_day,
             work::time_list,
             work::time_add,
             work::time_update,
@@ -418,6 +425,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             factory::roles_list,
             factory::role_get,
             factory::role_write,
+            crate::role_model::role_model_set,
             questions::questions_list,
             questions::question_answer,
             questions::messages_list,
@@ -571,9 +579,13 @@ fn specta_builder() -> Builder<tauri::Wry> {
             auto_commit::auto_commit_set,
             auto_commit::auto_commit_run,
             close_guard::close_guard_state,
+            close_guard::projects_close_state,
+            close_guard::projects_close_stop,
             close_guard::close_anyway,
             close_guard::close_guard_drafts,
             window::app_data_folder,
+            window::app_portable_set,
+            window::app_data_folder_move,
             branding::picture_get,
             branding::picture_set,
             branding::feedback_mail,
@@ -593,6 +605,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             permissions::permissions_request,
             permissions::permissions_open_settings,
             sh::update_check,
+            crate::shell::budget::budget_status,
             tray::tray_close,
             tray::tray_open,
         ])

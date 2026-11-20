@@ -96,6 +96,21 @@ pub async fn connections_remove(app: AppHandle, id: String) -> Api<()> {
     .await
 }
 
+/// The connections that Sign out would remove the token of: the list of its confirmation.
+#[tauri::command]
+#[specta::specta]
+pub async fn account_sign_out_list(app: AppHandle) -> Api<Vec<Connection>> {
+    blocking(app, |s| s.connections.signed_in()).await
+}
+
+/// Sign out: remove the tokens of the code host and the issue tracker from the keychain of this
+/// computer. The sign-in of an AI tool or of OpenRouter stays. It needs the click of a person.
+#[tauri::command]
+#[specta::specta]
+pub async fn account_sign_out(app: AppHandle, click: bool) -> Api<Vec<String>> {
+    blocking(app, move |s| crate::connections::sign_out(s, click)).await
+}
+
 /// Write-only: the secret goes to the keychain and no command returns it.
 #[tauri::command]
 #[specta::specta]

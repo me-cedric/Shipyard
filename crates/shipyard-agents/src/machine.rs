@@ -52,6 +52,8 @@ pub struct MachineSession {
     pub cost_usd: f64,
     /// The process to stop, for a running session.
     pub pid: Option<u32>,
+    /// The id that the tool resumes the session with. Empty: the tool wrote no history.
+    pub session: String,
 }
 
 /// The use of one model by one runner on one day in one project.
@@ -90,6 +92,8 @@ pub struct Transcript {
     pub title: String,
     pub model: String,
     pub modified: Option<SystemTime>,
+    /// The history file that was read.
+    pub path: PathBuf,
     /// `(day, model)` to its tokens.
     by_day: BTreeMap<(String, String), Tokens>,
 }
@@ -384,6 +388,7 @@ fn load_disk(file: &Path) -> bool {
             title: e.title,
             model: e.model,
             modified: Some(modified),
+            path: e.path.clone(),
             by_day,
         };
         c.entry(e.path).or_insert((e.len, modified, t));
@@ -468,6 +473,7 @@ fn read_transcript(
         parse_codex(&id, lines)
     };
     t.modified = Some(modified);
+    t.path = path.to_path_buf();
     parsed.fetch_add(1, Ordering::Relaxed);
     if let Ok(mut c) = CACHE.lock() {
         c.insert(path.to_path_buf(), (len, modified, t.clone()));
@@ -834,6 +840,7 @@ pub fn join(
             tokens,
             cost_usd,
             pid,
+            session: t.id.clone(),
         }
     };
     let mut out = Vec::new();
@@ -887,6 +894,190 @@ pub fn sessions(roots: &Roots) -> Vec<MachineSession> {
     join(&agents, &folders, &scan(roots, RECENT, now), now)
 }
 
+/* ---------- Live output, resume and load ---------- */
+
+/// The command that opens a session of this tool again. `None` for a tool that has no resume
+/// command here, and for an id with a character that a shell could read as more than a name.
+pub fn resume_command(runner: &str, session: &str) -> Option<String> {
+    let plain = !session.is_empty()
+        && session
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    match (runner, plain) {
+        ("claude", true) => Some(format!("claude --resume {session}")),
+        ("codex", true) => Some(format!("codex resume {session}")),
+        _ => None,
+    }
+}
+
+/// The most that a pane keeps of one entry of a history.
+const LINE_CHARS: usize = 600;
+/// The most that the live output reads from the end of a history file.
+const TAIL_BYTES: u64 = 512 * 1024;
+
+fn clip(s: &str) -> String {
+    s.trim().chars().take(LINE_CHARS).collect()
+}
+
+/// The text of the content of a Claude Code message: a string, or its `text` blocks and the name
+/// of each tool call.
+fn claude_content(content: &Value) -> Vec<String> {
+    match content {
+        Value::String(t) => vec![clip(t)],
+        Value::Array(blocks) => blocks
+            .iter()
+            .filter_map(|b| match text(b, "type") {
+                "text" => Some(clip(text(b, "text"))),
+                "tool_use" => Some(format!("[{}]", text(b, "name"))),
+                _ => None,
+            })
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// The lines of the live output: what the person and the agent said, and the tool calls, from
+/// the entries of a history. The entries are in file order.
+pub fn output_lines(runner: &str, entries: impl Iterator<Item = String>) -> Vec<String> {
+    let mut out = Vec::new();
+    for line in entries {
+        let Ok(e) = serde_json::from_str::<Value>(&line) else {
+            continue;
+        };
+        let p = e.get("payload").unwrap_or(&Value::Null);
+        let found: Vec<String> = match (runner, text(&e, "type")) {
+            ("claude", "user") => e
+                .pointer("/message/content")
+                .map(|c| {
+                    claude_content(c)
+                        .into_iter()
+                        .map(|t| format!("> {t}"))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            ("claude", "assistant") => e
+                .pointer("/message/content")
+                .map(claude_content)
+                .unwrap_or_default(),
+            ("codex", "event_msg") => match text(p, "type") {
+                "user_message" => vec![format!("> {}", clip(text(p, "message")))],
+                "agent_message" => vec![clip(text(p, "message"))],
+                _ => Vec::new(),
+            },
+            ("codex", "response_item") if text(p, "type") == "function_call" => {
+                vec![format!("[{}]", text(p, "name"))]
+            }
+            _ => Vec::new(),
+        };
+        out.extend(found.into_iter().filter(|l| !l.is_empty() && l != "> "));
+    }
+    out
+}
+
+/// The last `max` lines of the live output of one session, `[]` when its tool wrote no history
+/// that this reader knows. A tool that is not Claude Code or Codex has none.
+pub fn live_output(roots: &Roots, runner: &str, session: &str, max: usize) -> Vec<String> {
+    let found = scan(roots, RECENT, SystemTime::now())
+        .into_iter()
+        .find(|t| t.runner == runner && t.id == session);
+    let Some(file) = found.and_then(|t| std::fs::File::open(&t.path).ok()) else {
+        return Vec::new();
+    };
+    let Ok(len) = file.metadata().map(|m| m.len()) else {
+        return Vec::new();
+    };
+    let mut reader = BufReader::new(file);
+    let from = len.saturating_sub(TAIL_BYTES);
+    if from > 0 {
+        use std::io::{Read, Seek, SeekFrom};
+        if reader.seek(SeekFrom::Start(from)).is_err() {
+            return Vec::new();
+        }
+        // The first line of a cut read is partial: drop it.
+        let mut part = Vec::new();
+        let _ = reader
+            .by_ref()
+            .take(TAIL_BYTES)
+            .read_until(b'\n', &mut part);
+        let _ = reader.seek(SeekFrom::Start(from + part.len() as u64));
+    }
+    let lines = reader.lines().map_while(Result::ok);
+    let all = output_lines(runner, lines);
+    all[all.len().saturating_sub(max)..].to_vec()
+}
+
+/// The load of the agent processes: the sum of their processor use and memory, with the size of
+/// the computer, so a view can draw each as a share (`shell-setup-rights` REQ-003).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MachineLoad {
+    /// The agent processes at work now.
+    pub processes: u32,
+    /// The share of all processor cores that they use, from 0 to 100.
+    pub cpu_percent: f64,
+    pub memory_bytes: f64,
+    /// The memory of the computer. 0 when the system does not say.
+    pub memory_total: f64,
+}
+
+/// One `ps` row: the process id, the processor use in percent of one core and the resident set in KiB.
+type PsRow = (u32, f64, u64);
+
+/// The sum for these processes only. A row of another process does not count.
+pub fn sum_load(pids: &[u32], rows: &[PsRow], cores: f64, memory_total: f64) -> MachineLoad {
+    let mine: Vec<&PsRow> = rows.iter().filter(|r| pids.contains(&r.0)).collect();
+    let cpu: f64 = mine.iter().map(|r| r.1).sum();
+    MachineLoad {
+        processes: mine.len() as u32,
+        cpu_percent: (cpu / cores.max(1.0)).clamp(0.0, 100.0),
+        memory_bytes: mine.iter().map(|r| r.2 as f64 * 1024.0).sum(),
+        memory_total,
+    }
+}
+
+fn ps_rows() -> Vec<PsRow> {
+    if cfg!(windows) {
+        return Vec::new();
+    }
+    let Some(out) = output("ps", &["-axo", "pid=,pcpu=,rss="]) else {
+        return Vec::new();
+    };
+    out.lines()
+        .filter_map(|l| {
+            let mut p = l.split_whitespace();
+            Some((
+                p.next()?.parse().ok()?,
+                p.next()?.parse().ok()?,
+                p.next()?.parse().ok()?,
+            ))
+        })
+        .collect()
+}
+
+/// The memory of the computer in bytes, `0` when the system does not say.
+fn total_memory() -> f64 {
+    if let Some(t) = output("sysctl", &["-n", "hw.memsize"]) {
+        return t.trim().parse().unwrap_or(0.0);
+    }
+    std::fs::read_to_string("/proc/meminfo")
+        .ok()
+        .and_then(|t| {
+            let kb = t.lines().find(|l| l.starts_with("MemTotal:"))?;
+            kb.split_whitespace().nth(1)?.parse::<f64>().ok()
+        })
+        .map_or(0.0, |kb| kb * 1024.0)
+}
+
+/// The load of the agent processes of this computer, not of the whole computer.
+pub fn load() -> MachineLoad {
+    let pids: Vec<u32> = agent_procs(&processes())
+        .iter()
+        .map(|(p, _)| p.pid)
+        .collect();
+    let cores = std::thread::available_parallelism().map_or(1.0, |n| n.get() as f64);
+    sum_load(&pids, &ps_rows(), cores, total_memory())
+}
+
 /// End a running session. `Err` when the process is not an agent session now: a stale or forged
 /// pid must never end another program.
 pub fn stop(pid: u32) -> Result<(), String> {
@@ -906,6 +1097,94 @@ pub fn stop(pid: u32) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_load_counts_the_agent_processes_and_not_the_computer() {
+        let rows = [(10, 40.0, 1024), (11, 20.0, 2048), (12, 300.0, 999_999)];
+        let l = sum_load(&[10, 11], &rows, 4.0, 8.0e9);
+        assert_eq!(l.processes, 2);
+        assert_eq!(l.cpu_percent, 15.0);
+        assert_eq!(l.memory_bytes, 3072.0 * 1024.0);
+        assert_eq!(l.memory_total, 8.0e9);
+        let none = sum_load(&[], &rows, 4.0, 0.0);
+        assert_eq!(
+            (none.processes, none.cpu_percent, none.memory_bytes),
+            (0, 0.0, 0.0)
+        );
+        assert_eq!(
+            sum_load(&[12], &rows, 1.0, 0.0).cpu_percent,
+            100.0,
+            "capped"
+        );
+    }
+
+    #[test]
+    fn a_tool_that_resumes_gives_a_command_and_a_strange_id_gives_none() {
+        assert_eq!(
+            resume_command("claude", "0f3a-bc_1").as_deref(),
+            Some("claude --resume 0f3a-bc_1")
+        );
+        assert_eq!(
+            resume_command("codex", "abc").as_deref(),
+            Some("codex resume abc")
+        );
+        assert_eq!(resume_command("gemini", "abc"), None);
+        assert_eq!(resume_command("claude", ""), None);
+        assert_eq!(resume_command("claude", "a; b"), None);
+    }
+
+    #[test]
+    fn the_live_output_has_the_words_and_the_tool_calls_of_each_tool() {
+        let claude = r#"{"type":"user","message":{"content":"Fix login"}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"On it."},{"type":"tool_use","name":"Read","input":{}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","content":"x"}]}}
+not json"#;
+        assert_eq!(
+            output_lines("claude", claude.lines().map(str::to_string)),
+            ["> Fix login", "On it.", "[Read]"]
+        );
+        let codex = r#"{"type":"event_msg","payload":{"type":"user_message","message":"Hi"}}
+{"type":"response_item","payload":{"type":"function_call","name":"shell"}}
+{"type":"event_msg","payload":{"type":"agent_message","message":"Done"}}"#;
+        assert_eq!(
+            output_lines("codex", codex.lines().map(str::to_string)),
+            ["> Hi", "[shell]", "Done"]
+        );
+        assert!(output_lines("gemini", claude.lines().map(str::to_string)).is_empty());
+    }
+
+    #[test]
+    fn a_session_with_no_history_file_has_no_live_output() {
+        let dir = tempfile::tempdir().unwrap();
+        let roots = Roots {
+            claude: dir.path().join("c"),
+            codex: dir.path().join("x"),
+            cache: None,
+        };
+        assert!(live_output(&roots, "claude", "nope", 20).is_empty());
+        assert!(live_output(&roots, "gemini", "nope", 20).is_empty());
+    }
+
+    #[test]
+    fn the_live_output_reads_the_end_of_the_history_of_a_session() {
+        let dir = tempfile::tempdir().unwrap();
+        let claude = dir.path().join("c/proj");
+        std::fs::create_dir_all(&claude).unwrap();
+        let mut text = String::new();
+        for n in 0..30 {
+            text += &format!(
+                "{{\"type\":\"assistant\",\"cwd\":\"/w\",\"message\":{{\"content\":[{{\"type\":\"text\",\"text\":\"line {n}\"}}]}}}}\n"
+            );
+        }
+        std::fs::write(claude.join("sess-1.jsonl"), text).unwrap();
+        let roots = Roots {
+            claude: dir.path().join("c"),
+            codex: dir.path().join("x"),
+            cache: None,
+        };
+        let out = live_output(&roots, "claude", "sess-1", 3);
+        assert_eq!(out, ["line 27", "line 28", "line 29"]);
+    }
 
     fn lines(s: &str) -> impl Iterator<Item = String> + '_ {
         s.lines().map(str::to_string)

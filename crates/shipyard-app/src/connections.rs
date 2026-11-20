@@ -210,6 +210,13 @@ pub struct RepoPage {
     pub next: Option<String>,
 }
 
+/// The Sign out command: it needs the click of a person, and the read-only profile of the open
+/// project refuses it like any other setting of this machine.
+pub fn sign_out(s: &crate::commands::AppState, click: bool) -> Res<Vec<String>> {
+    crate::rights::need_click_local(s, click)?;
+    s.connections.sign_out()
+}
+
 pub struct Connections {
     path: PathBuf,
     secrets: Arc<dyn SecretStore>,
@@ -661,6 +668,42 @@ impl Connections {
         })
     }
 
+    /// The connections that hold a token now: what Sign out removes (`shell-setup-rights` REQ-001).
+    pub fn signed_in(&self) -> Res<Vec<Connection>> {
+        Ok(self
+            .load()?
+            .connections
+            .iter()
+            .filter(|r| r.secret)
+            .map(Connection::from)
+            .collect())
+    }
+
+    /// Sign out: the keychain entries of each code host and issue tracker connection go, and the
+    /// connections stay without a secret. The sign-in of an AI tool or of OpenRouter is not a
+    /// connection and stays. Returns the names that lost a token. The first keychain error stops
+    /// it, and what went stays gone.
+    pub fn sign_out(&self) -> Res<Vec<String>> {
+        self.with_file(|file| {
+            let holders: Vec<(String, String)> = file
+                .connections
+                .iter()
+                .filter(|r| r.secret)
+                .map(|r| (r.holder().to_string(), r.name.clone()))
+                .collect();
+            let mut done = Vec::new();
+            let mut seen: Vec<&str> = Vec::new();
+            for (holder, _) in &holders {
+                if !seen.contains(&holder.as_str()) {
+                    seen.push(holder);
+                    self.drop_entry(file, holder)?;
+                }
+            }
+            done.extend(holders.into_iter().map(|(_, name)| name));
+            Ok(done)
+        })
+    }
+
     /// Git credentials for a remote address: the saved secret of the forge connection that has
     /// the same host. Only `https` gets one, so a token never goes out in clear text. No match
     /// gives [`Auth::none`]: the git credential helper and the SSH agent apply then.
@@ -897,6 +940,86 @@ mod tests {
         assert_eq!(https_host("http://github.com/a/b"), None);
         assert_eq!(https_host("git@github.com:a/b.git"), None);
         assert_eq!(https_host("/local/path"), None);
+    }
+
+    #[test]
+    fn sign_out_removes_each_token_and_keeps_the_connections() {
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::MemoryStore;
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(MemoryStore::default());
+        let c = Connections::new(dir.path(), store.clone(), Arc::new(FakeHttp::new()));
+        let draft = |name: &str, group, kind, url: &str| ConnectionDraft {
+            name: name.into(),
+            group,
+            kind,
+            url: url.into(),
+            user: Some("me@example.com".into()),
+        };
+        let host = c
+            .add(draft(
+                "Code",
+                ConnectionGroup::Forge,
+                ConnectionKind::GitHub,
+                "https://github.com",
+            ))
+            .unwrap();
+        let issues = c
+            .add(draft(
+                "Issues",
+                ConnectionGroup::Tracker,
+                ConnectionKind::Linear,
+                "",
+            ))
+            .unwrap();
+        c.add(draft(
+            "Empty",
+            ConnectionGroup::Tracker,
+            ConnectionKind::JiraCloud,
+            "https://a.atlassian.net",
+        ))
+        .unwrap();
+        // An AI tool sign-in lives in the keychain under another account name.
+        store
+            .set("runner:claude", &Secret::new("ai-token"))
+            .unwrap();
+        c.set_secret(&host.id, Secret::new("tok-code")).unwrap();
+        c.set_secret(&issues.id, Secret::new("tok-issues")).unwrap();
+        let names: Vec<String> = c.signed_in().unwrap().into_iter().map(|x| x.name).collect();
+        assert_eq!(names, ["Code", "Issues"]);
+        assert_eq!(c.sign_out().unwrap(), ["Code", "Issues"]);
+        assert!(store.get(&conn_account(&host.id)).unwrap().is_none());
+        assert!(store.get(&conn_account(&issues.id)).unwrap().is_none());
+        assert!(store.get("runner:claude").unwrap().is_some());
+        assert!(c.signed_in().unwrap().is_empty());
+        assert_eq!(c.list().unwrap().len(), 3);
+        // A second sign out finds nothing.
+        assert!(c.sign_out().unwrap().is_empty());
+    }
+
+    #[test]
+    fn the_sign_out_command_needs_a_click_and_a_cancel_removes_nothing() {
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::MemoryStore;
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(MemoryStore::default());
+        let c = Connections::new(dir.path(), store.clone(), Arc::new(FakeHttp::new()));
+        let id = c
+            .add(ConnectionDraft {
+                name: "Code".into(),
+                group: ConnectionGroup::Forge,
+                kind: ConnectionKind::GitHub,
+                url: "https://github.com".into(),
+                user: None,
+            })
+            .unwrap()
+            .id;
+        c.set_secret(&id, Secret::new("tok")).unwrap();
+        let s = crate::commands::AppState::with_connections(dir.path().join("data"), Arc::new(c));
+        assert!(sign_out(&s, false).is_err());
+        assert!(store.get(&conn_account(&id)).unwrap().is_some());
+        assert_eq!(sign_out(&s, true).unwrap(), ["Code"]);
+        assert!(store.get(&conn_account(&id)).unwrap().is_none());
     }
 
     #[test]

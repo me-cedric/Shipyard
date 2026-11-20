@@ -107,7 +107,7 @@ fn an_unknown_person_gets_a_refusal_that_names_each_right() {
     };
     refused(
         crate::work::calendar_save(s, &Calendar::default()),
-        "work.edit",
+        "plan.edit",
     );
     refused(
         crate::commands::delivery_docs::personas_set(s, &[]),
@@ -175,7 +175,7 @@ fn an_unknown_person_gets_a_refusal_that_names_each_right() {
     // The refusals are in the audit log, which a viewer cannot read.
     assert!(audit_tail(s).is_err());
     let lines = audit_lines(s).unwrap();
-    assert!(lines.iter().any(|l| l.right == Right::WorkEdit
+    assert!(lines.iter().any(|l| l.right == Right::PlanEdit
         && l.result == "refused"
         && l.found == Found::Unknown
         && l.member.is_none()));
@@ -450,6 +450,7 @@ fn the_roles_save_writes_the_block_and_the_roles_of_the_members() {
     let table = [RoleAccess {
         role: Role::Developer,
         access: dev,
+        hidden: None,
     }];
     let ana = MemberRoles {
         handle: "ana".into(),
@@ -503,4 +504,136 @@ fn the_roles_save_needs_project_settings_and_a_hidden_area_goes_to_the_actor() {
     assert_eq!(v.person.access.hidden(), [rights::Area::Costs]);
     let id = f.s.registry().unwrap().active().unwrap().id.clone();
     assert_eq!(actor(&f.s, &id).unwrap().hidden, [rights::Area::Costs]);
+}
+
+// ---- shell-setup-rights REQ-004: the Plan right gates the plan commands
+
+/// A project whose member `bo` has the role `developer`, with a Plan level of the block.
+fn plan_level(level: &str) -> Fx {
+    let f = fx();
+    let mut admin = member("root", "techlead");
+    admin.admin = true;
+    let team = Team {
+        members: vec![member("bo", "developer"), admin],
+        roles: [(
+            "developer".to_string(),
+            [(
+                "plan".to_string(),
+                shipyard_core::rights::Cell::Text(level.into()),
+            )]
+            .into(),
+        )]
+        .into(),
+        ..Team::default()
+    };
+    std::fs::create_dir_all(f.root.join(".shipyard")).unwrap();
+    std::fs::write(f.root.join(TEAM_PATH), write_team(&team, None).unwrap()).unwrap();
+    f
+}
+
+fn lot() -> shipyard_core::work::Sheet {
+    shipyard_core::work::Sheet {
+        name: "Lot".into(),
+        currency: "EUR".into(),
+        ..Default::default()
+    }
+}
+
+#[test]
+fn plan_see_refuses_the_three_plan_commands_and_plan_change_saves() {
+    let f = plan_level("read");
+    let s = &f.s;
+    let no = "missing right plan.edit (developer)";
+    assert_eq!(crate::work::sheet_save(s, "lot", lot()).unwrap_err(), no);
+    assert_eq!(
+        crate::work::calendar_save(s, &Calendar::default()).unwrap_err(),
+        no
+    );
+    assert_eq!(
+        crate::work::apply(s, &["lot".into()], true).unwrap_err(),
+        no
+    );
+    // The refusals have audit lines.
+    let refused = audit_lines(s)
+        .unwrap()
+        .iter()
+        .filter(|l| l.right == Right::PlanEdit && l.result == "refused")
+        .map(|l| l.what.clone())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        refused,
+        ["estimate_save", "plan_calendar_save", "apply_run"]
+    );
+    let g = plan_level("write");
+    crate::work::sheet_save(&g.s, "lot", lot()).unwrap();
+    crate::work::calendar_save(&g.s, &Calendar::default()).unwrap();
+}
+
+#[test]
+fn a_time_entry_stays_personal_with_plan_no() {
+    let f = plan_level("none");
+    assert!(!allows(&f.s, Right::PlanEdit) && allows(&f.s, Right::WorkEdit));
+    let entry = crate::work::time_write(&f.s, Some("bo"), "2026-11-20", 60, "work", None).unwrap();
+    assert_eq!(entry.minutes, 60);
+}
+
+#[test]
+fn the_default_plan_level_follows_the_work_level() {
+    let f = developer_bo();
+    assert!(allows(&f.s, Right::PlanEdit));
+    let v = current(&f.s).unwrap();
+    assert!(v.roles.iter().all(|r| r.hidden.is_empty()));
+    assert!(v.person.hidden.is_empty());
+}
+
+#[test]
+fn hidden_places_save_in_the_block_and_reach_the_person() {
+    let f = fx();
+    let mut bo = member("bo", "designer");
+    bo.admin = true;
+    team_file(&f.root, vec![bo, member("dee", "designer")]);
+    let table = [RoleAccess {
+        role: Role::Designer,
+        access: Role::Designer.defaults(),
+        hidden: Some(vec!["code".into(), "plan".into()]),
+    }];
+    let v = roles_save(&f.s, &table, &[]).unwrap();
+    let row = v.roles.iter().find(|r| r.role == Role::Designer).unwrap();
+    assert_eq!(row.hidden, ["plan", "code"]);
+    // The admin sees each place, and the default rights stay.
+    assert!(v.person.hidden.is_empty());
+    assert_eq!(row.access, Role::Designer.defaults());
+    // A save with no list keeps the places.
+    let keep = [RoleAccess {
+        role: Role::Designer,
+        access: Role::Designer.defaults(),
+        hidden: None,
+    }];
+    let v = roles_save(&f.s, &keep, &[]).unwrap();
+    assert_eq!(
+        v.roles
+            .iter()
+            .find(|r| r.role == Role::Designer)
+            .unwrap()
+            .hidden,
+        ["plan", "code"]
+    );
+    // An empty list shows each place again, and Setup is refused.
+    let bad = [RoleAccess {
+        role: Role::Designer,
+        access: Role::Designer.defaults(),
+        hidden: Some(vec!["setup".into()]),
+    }];
+    assert!(
+        roles_save(&f.s, &bad, &[])
+            .unwrap_err()
+            .contains("a role hides only")
+    );
+    let none = [RoleAccess {
+        role: Role::Designer,
+        access: Role::Designer.defaults(),
+        hidden: Some(Vec::new()),
+    }];
+    let v = roles_save(&f.s, &none, &[]).unwrap();
+    assert!(v.roles.iter().all(|r| r.hidden.is_empty()));
 }

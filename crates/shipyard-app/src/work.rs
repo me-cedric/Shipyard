@@ -42,6 +42,9 @@ use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::connections::{Connection, slug_text};
 use crate::rights::Right;
 
+mod fill;
+pub use fill::{Filled, time_fill};
+
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
@@ -1297,6 +1300,8 @@ pub fn sheet_get(s: &AppState, slug: &str) -> Res<SheetView> {
 
 /// Write a sheet. It holds the entries and no total (REQ-010). A sealed project seals the file.
 pub fn sheet_save(s: &AppState, slug: &str, sheet: Sheet) -> Res<SheetView> {
+    // The Plan right gates the command, not the page (`shell-setup-rights` REQ-004).
+    crate::rights::require(s, crate::rights::Right::PlanEdit, "estimate_save", slug)?;
     let c = ctx(s)?;
     let rel = sheet_path(slug).map_err(err)?;
     // A frozen sheet takes one change: the unfreeze, with every entry as it was.
@@ -1470,6 +1475,7 @@ pub fn decisions_save(s: &AppState, decisions: &Decisions) -> Res<()> {
 }
 
 pub fn calendar_save(s: &AppState, calendar: &Calendar) -> Res<()> {
+    crate::rights::require(s, crate::rights::Right::PlanEdit, "plan_calendar_save", "")?;
     let c = ctx(s)?;
     let text = write_calendar(calendar).map_err(err)?;
     if c.json_only(CALENDAR_PATH, LAYOUT_CALENDAR) {
@@ -2039,7 +2045,7 @@ pub(crate) fn container(t: &Target) -> Res<&str> {
 /// again from the sheets and the mirror, so a stale preview writes nothing that the sheets no
 /// longer say. A failed row keeps the rows before it. Status and assignee are never written.
 pub fn apply(s: &AppState, slugs: &[String], click: bool) -> Res<Vec<ApplyRow>> {
-    need_click(s, click, crate::rights::Right::WorkEdit, "apply_run", "")?;
+    need_click(s, click, crate::rights::Right::PlanEdit, "apply_run", "")?;
     let c = ctx(s)?;
     let t = tracker(s)?;
     container(&t)?;
@@ -2067,7 +2073,7 @@ pub fn apply_rows(
     need_click(
         s,
         click,
-        crate::rights::Right::WorkEdit,
+        crate::rights::Right::PlanEdit,
         "apply_run_rows",
         "",
     )?;
@@ -2388,6 +2394,18 @@ pub async fn plan_decisions_save(app: AppHandle, decisions: Decisions) -> Api<()
 #[specta::specta]
 pub async fn plan_calendar_save(app: AppHandle, calendar: Calendar) -> Api<()> {
     blocking(app, move |s| calendar_save(s, &calendar)).await
+}
+
+/// Fill my time from my work: the runs of my tickets and my commits of the day.
+#[tauri::command]
+#[specta::specta]
+pub async fn time_fill_day(
+    app: AppHandle,
+    member: Option<String>,
+    day: String,
+    click: bool,
+) -> Api<Filled> {
+    blocking(app, move |s| time_fill(s, member.as_deref(), &day, click)).await
 }
 
 #[tauri::command]
