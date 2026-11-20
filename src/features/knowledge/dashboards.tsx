@@ -16,6 +16,7 @@ import {
 	useTile,
 	useTileBuild,
 } from "@/lib/knowledge";
+import { usePinnedDashboards } from "@/lib/knowledge/pinned-dashboards";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
@@ -472,6 +473,7 @@ const GRIP = (
 export function DashboardEdit() {
 	const { t } = useI18n();
 	const k = t.knowledge.dashboards;
+	const f = t.library.fn;
 	const { slug } = useParams({ strict: false }) as { slug: string };
 	last = slug;
 	const active = useActiveProject().data;
@@ -482,6 +484,7 @@ export function DashboardEdit() {
 	const [building, setBuilding] = useState(false);
 	const [name, setName] = useState<string | null>(null);
 	const build = useTileBuild(slug);
+	const onToday = usePinnedDashboards();
 	// The tile in the air and the column of the tile that the pointer holds.
 	const drag = useRef<{ id: string; grab: number } | null>(null);
 	if (active === undefined) return <Loading title={k.title} icon={<Squares2X2Icon size={16} />} />;
@@ -543,6 +546,13 @@ export function DashboardEdit() {
 							{k.rename}
 						</RightButton>
 					)}
+					<Button
+						className="min-h-control"
+						aria-pressed={onToday.pinned(slug)}
+						onClick={() => onToday.toggle(slug)}
+					>
+						{onToday.pinned(slug) ? f.dashboards.unpinToday : f.dashboards.pinToday}
+					</Button>
 					<Link
 						to="/library/dashboards"
 						className={cn(buttonVariants({ variant: "primary" }), "min-h-control")}

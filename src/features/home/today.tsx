@@ -16,7 +16,7 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { NeedsRow, OpenQuestion } from "./inbox/inbox";
-import { PlanCards } from "./role-panels";
+import { PinnedDashboards, PlanCards } from "./role-panels";
 import { useMyItems } from "./stats";
 import { TimeReminder } from "./time-reminder";
 import { WorkingNow } from "./working-now";
@@ -202,6 +202,7 @@ export function Today() {
 							) : null}
 						</ul>
 					) : null}
+					<PinnedDashboards />
 					{nothing && !loading ? (
 						<EmptyState
 							title={t.empty.needsYou}

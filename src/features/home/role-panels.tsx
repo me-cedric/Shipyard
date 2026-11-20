@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useFeatures } from "@/features/flow/feature";
+import { Tile } from "@/features/knowledge/dashboards";
 import { overloaded } from "@/features/plan/proposals";
 import {
 	type PlaceId,
@@ -14,6 +15,8 @@ import { useDesignList } from "@/lib/design";
 import { useDailySpend, useRuns } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import type { TeamRole } from "@/lib/ipc";
+import { useDashboard } from "@/lib/knowledge";
+import { usePinnedDashboards } from "@/lib/knowledge/pinned-dashboards";
 import { useDay, usePrefs } from "@/lib/prefs";
 import { useHealth } from "@/lib/projects";
 import { useRights } from "@/lib/rights";
@@ -483,4 +486,29 @@ export function RolePanelsPage() {
 			</div>
 		</div>
 	);
+}
+
+/** One card for a pinned dashboard: its tiles. A dashboard that is gone shows no card. */
+function PinnedDashboard({ slug }: { slug: string }) {
+	const { view } = useDashboard(slug);
+	if (!view) return null;
+	const title = view.value.title || slug;
+	return (
+		<section aria-label={title} className={cn(SURFACE, "flex flex-col gap-3.5 px-6 py-5.5")}>
+			<h2 className="text-17 font-semibold text-n-12">{title}</h2>
+			<ul className="grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-3">
+				{view.value.tiles.map((x) => (
+					<li key={x.id} className="h-48 min-w-0">
+						<Tile kind={x.kind} title={x.title} chart={x.chart} />
+					</li>
+				))}
+			</ul>
+		</section>
+	);
+}
+
+/** The dashboards that the person pinned to Today, one card each (`spec:library-functions#REQ-009`). */
+export function PinnedDashboards() {
+	const { slugs } = usePinnedDashboards();
+	return slugs.map((slug) => <PinnedDashboard key={slug} slug={slug} />);
 }
