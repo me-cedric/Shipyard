@@ -155,7 +155,7 @@
     {
       "id": "SCR-014",
       "slug": "assistant-composer",
-      "title": "Ask, the full assistant as a page at /ask: the threads on the left, the thread with the message box in the middle, the tools on the right (This screen, The assistant may, the Codex trust card with What this writes, Panel); the changed files in the answer with a preview and Undo; Small bar goes back to the side panel",
+      "title": "Ask, the full assistant as a page at /ask: the threads on the left, the thread with the message box in the middle, the tools on the right (This screen, The assistant may, the Codex trust card with What this writes, Panel); the changed files in the answer with a preview and Undo; Small bar goes back to the side panel; Keep beside Undo on each changed file, and Keep all",
       "artifacts": [
         "spec:assistant",
         "spec:app-redesign",
@@ -780,7 +780,7 @@
     {
       "id": "SCR-087",
       "slug": "feature-checks",
-      "title": "Flow / Feature, Checks: the checks of the code host and of the project with Fix with an agent, the test plan, the docs that the change makes stale and the row Impacts on other code",
+      "title": "Flow / Feature, Checks: the checks of the code host and of the project with Fix with an agent, the test plan, the docs that the change makes stale and the row Impacts on other code; Run again beside Fix with an agent",
       "artifacts": [
         "spec:code",
         "spec:app-redesign",
@@ -803,7 +803,7 @@
     {
       "id": "SCR-089",
       "slug": "setup-tickets",
-      "title": "Setup / This project, Tickets: the kinds of ticket, what holds what, the unit of size with the hours in a day, the statuses of the mirror, and a More card",
+      "title": "Setup / This project, Tickets: the kinds of ticket, what holds what, the unit of size with the hours in a day, the statuses of the mirror, and a More card; Add after the kinds of ticket",
       "artifacts": [
         "spec:projects",
         "spec:app-redesign",
@@ -991,7 +991,7 @@
     {
       "id": "SCR-142",
       "slug": "crew-rights-team",
-      "title": "Crew / Rights / the team file: who Shipyard found, Ask to join, the move of the roles of this computer and the rights of each person (design picture 084, /crew/rights?page=team)",
+      "title": "Crew / Rights / the team file: who Shipyard found, Ask to join, the move of the roles of this computer and the rights of each person (design picture 084, /crew/rights?page=team); a card for each join request with As role, Refuse and Accept",
       "artifacts": [
         "spec:app-redesign"
       ],
@@ -1028,7 +1028,7 @@
     {
       "id": "SCR-146",
       "slug": "plan-dates",
-      "title": "Plan / Timeline / Dates and days off: the working days and the public holidays, with a back link to Timeline (design picture 099, /plan/timeline?page=dates)",
+      "title": "Plan / Timeline / Dates and days off: the working days and the public holidays, with a back link to Timeline (design picture 099, /plan/timeline?page=dates); the card Calendar of the plan with Release, Estimate sheet and Go to Today",
       "artifacts": [
         "spec:app-redesign"
       ],
@@ -1249,7 +1249,7 @@
     {
       "id": "SCR-120",
       "slug": "feature-ticket",
-      "title": "Flow / Feature, ticket page: the ticket of the feature with an editable title and text, its facts, the comments, the sync mark with the issue tracker and Open in the issue tracker; Back returns to the feature. The blocked card has Take it over beside Unblock.",
+      "title": "Flow / Feature, ticket page: the ticket of the feature with an editable title and text, its facts, the comments, the sync mark with the issue tracker and Open in the issue tracker; Back returns to the feature; the rows Recipe and Release. The blocked card has Take it over beside Unblock.",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023",
@@ -1291,7 +1291,7 @@
     {
       "id": "SCR-124",
       "slug": "feature-impact-report",
-      "title": "Flow / Feature, Impact report: the size of the change by Code, Specs, Docs, Tests and People, the action plan, the digest, Past reports, Write the report again and Copy the brief",
+      "title": "Flow / Feature, Impact report: the size of the change by Code, Specs, Docs, Tests and People, the action plan, the digest, Past reports, Write the report again and Copy the brief; a check box and an owner on each line of the action plan, and Add a line",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -1321,7 +1321,7 @@
     {
       "id": "SCR-127",
       "slug": "pull-requests",
-      "title": "Code / Pull requests: a page with the Code back link, a search, the filter All and Needs my review, New pull request, the open ones first and the merged and closed ones behind one button; the selected pull request shows its review",
+      "title": "Code / Pull requests: a page with the Code back link, a search, the filter All and Needs my review, New pull request, the open ones first and the merged and closed ones behind one button; the selected pull request shows its review; the avatar of the author on each row",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -1331,7 +1331,7 @@
     {
       "id": "SCR-128",
       "slug": "pull-new",
-      "title": "Code / New pull request: a page with the Pull requests back link, the title, the description with Write it for me, Into (the base branch), Draft, Labels and Open the pull request; a note before the push names the files not committed and the stale docs",
+      "title": "Code / New pull request: a page with the Pull requests back link, the title, the description with Write it for me, Into (the base branch), Draft, Labels and Open the pull request; a note before the push names the files not committed and the stale docs; Reviewers, Merge with, and after the open Close the pull request and Mark as ready",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"

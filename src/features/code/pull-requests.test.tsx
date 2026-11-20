@@ -119,9 +119,9 @@ describe("Code / Now, the pull requests", () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/now");
-		await user.click(await row(/Rename the Work tab/));
+		await user.click(await row(/refuse an empty token/));
 		expect(
-			await screen.findByRole("heading", { level: 1, name: /Rename the Work tab/ }),
+			await screen.findByRole("heading", { level: 1, name: /refuse an empty token/ }),
 		).toBeVisible();
 		expect(router.state.location.pathname).toBe("/code/pull-requests/github-demo-142");
 		expect(await screen.findByText("feat/demo/pr-142 to main")).toBeInTheDocument();
@@ -254,7 +254,7 @@ describe("Code / Now, the pull requests", () => {
 		);
 		expect(await screen.findByRole("heading", { name: "Open, 1" })).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: /health route/ })).toBeNull();
-		expect(screen.getByRole("button", { name: /Rename the Work tab/ })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: /refuse an empty token/ })).toBeInTheDocument();
 		expect(router.state.location.search).toEqual({ q: "empty tok" });
 		await idle(router);
 	});
@@ -282,7 +282,7 @@ describe("Code / Now, the pull requests", () => {
 		expect(screen.getByRole("button", { name: /split the pages/ })).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: /health route/ })).toBeNull();
 		expect(screen.queryByRole("button", { name: /show the pull requests/ })).toBeNull();
-		expect(screen.queryByRole("button", { name: /Rename the Work tab/ })).toBeNull();
+		expect(screen.queryByRole("button", { name: /refuse an empty token/ })).toBeNull();
 		expect(screen.getByRole("heading", { name: "Merged" })).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "All" }));
 		await waitFor(() => expect(router.state.location.search).toEqual({}));
@@ -306,13 +306,15 @@ describe("Code / Now, the pull requests", () => {
 		const draft = await row(/show the pull requests/);
 		expect(within(draft).getByText("Draft")).toBeInTheDocument();
 		expect(draft).toHaveAttribute("href", "/code/pull-requests/github-demo-143");
-		const failing = await row(/Rename the Work tab/);
+		const failing = await row(/refuse an empty token/);
 		expect(within(failing).getByText("Checks fail")).toBeInTheDocument();
 		await userEvent.setup().click(screen.getByRole("link", { name: "Merged and closed" }));
 		const onPage = await screen.findByRole("button", { name: /show the pull requests/ });
 		expect(within(onPage).getByText("Draft")).toBeInTheDocument();
 		expect(
-			within(screen.getByRole("button", { name: /Rename the Work tab/ })).getByText("Checks fail"),
+			within(screen.getByRole("button", { name: /refuse an empty token/ })).getByText(
+				"Checks fail",
+			),
 		).toBeInTheDocument();
 		await idle(router);
 	});

@@ -111,6 +111,7 @@ fn a_work_item_holds_no_tracker_field() {
             "kind",
             "labels",
             "parent",
+            "release",
             "status",
             "time",
             "title",

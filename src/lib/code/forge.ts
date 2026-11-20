@@ -60,6 +60,8 @@ export function useReviewers() {
 		queryKey: ["code", "reviewers"],
 		queryFn: () => unwrap(commands.codePullReviewers()),
 		staleTime: 60_000,
+		// A project with no code host answers with an error: the list is empty, and no retry helps.
+		retry: false,
 	});
 }
 
