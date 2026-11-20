@@ -2,6 +2,34 @@ import type { libraryFnEn } from "../library-fn";
 
 export const libraryFnDe: typeof libraryFnEn = {
 	documents: { addFile: "Datei hinzufügen", open: "Öffnen" },
+	charts: {
+		number: "Zahl",
+		bars: "Balken",
+		line: "Linie",
+		list: "Liste",
+		stages: "Flussstufen",
+		spend: "Ausgaben",
+		health: "Zustand",
+	},
+	dashboards: {
+		chart: "Diagramm",
+		pinToday: "An Heute anheften",
+		unpinToday: "Von Heute lösen",
+		release: "Release",
+		allReleases: "Alle Releases",
+	},
+	reports: {
+		pdf: "PDF",
+		word: "Word",
+		excel: "Excel",
+		markdown: "Markdown",
+		pdfOff: "PDF funktioniert vorerst nur auf macOS",
+		download: "Herunterladen als",
+		wordMarkdown: "Word und Markdown",
+		linking: "Seiten, die auf einen Bericht verweisen",
+		client: "Kunde",
+		date: "Datum",
+	},
 	learn: {
 		addWord: "Wort hinzufügen",
 		word: "Wort",

@@ -174,6 +174,8 @@ export const commands = {
 	docDocxList: () => typedError<PageEntry[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_list")),
 	/**  Copies a file that the person chose into the documents folder, after the click of a person. */
 	docAddFile: (source: string, click: boolean) => typedError<PageEntry, AppError_Serialize>(__TAURI_INVOKE("doc_add_file", { source, click })),
+	/**  One document as a Word file or as a PDF (macOS first), at the path of a save dialog. */
+	docDownload: (path: string, dest: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("doc_download", { path, dest, click })),
 	docDocxRead: (path: string) => typedError<Paragraph[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_read", { path })),
 	deckList: () => typedError<PageEntry[], AppError_Serialize>(__TAURI_INVOKE("deck_list")),
 	/**  Prints the deck with its print style sheet to a PDF at `dest`, one page per slide. */
@@ -508,30 +510,36 @@ export const commands = {
 	/**  `step` is `<path>/<step>`. */
 	learningProgressSet: (person: string, step: string, done: boolean, click: boolean) => typedError<Learning_Serialize, AppError_Serialize>(__TAURI_INVOKE("learning_progress_set", { person, step, done, click })),
 	exportDiagramsGet: () => typedError<DiagramSource[], AppError_Serialize>(__TAURI_INVOKE("export_diagrams_get")),
-	exportDossierFile: (text: ExportText, views: ViewImage[], path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_dossier_file", { text, views, path })),
-	exportFunctionalFile: (text: ExportText, path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_functional_file", { text, path })),
-	exportSheetFile: (text: ExportText, sheets: SheetIn[], path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_sheet_file", { text, sheets, path })),
+	exportDossierFile: (text: ExportText_Deserialize, views: ViewImage[], path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_dossier_file", { text, views, path })),
+	exportFunctionalFile: (text: ExportText_Deserialize, path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_functional_file", { text, path })),
+	exportSheetFile: (text: ExportText_Deserialize, sheets: SheetIn[], path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_sheet_file", { text, sheets, path })),
 	/**
 	 *  The dossier with every section gathered by the app. Seven titles in `text.sections`. It needs
 	 *  the click of a person. `views` may be empty.
 	 */
-	exportDossierCompleteFile: (text: ExportText, views: ViewImage[], path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_dossier_complete_file", { text, views, path, click })),
+	exportDossierCompleteFile: (text: ExportText_Deserialize, views: ViewImage[], path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_dossier_complete_file", { text, views, path, click })),
 	/**  The estimate sheets as an `.xlsx`: days, no money. */
-	exportCostingFile: (text: ExportText, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_costing_file", { text, path, click })),
+	exportCostingFile: (text: ExportText_Deserialize, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_costing_file", { text, path, click })),
 	/**  The network flows as an `.xlsx`, one worksheet for each flow file. */
-	exportFlowsFile: (text: ExportText, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_flows_file", { text, path, click })),
+	exportFlowsFile: (text: ExportText_Deserialize, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_flows_file", { text, path, click })),
 	/**  The RAID register as an `.xlsx`. */
-	exportRaidFile: (text: ExportText, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_raid_file", { text, path, click })),
+	exportRaidFile: (text: ExportText_Deserialize, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_raid_file", { text, path, click })),
 	/**  The plan of one estimate sheet as an `.xlsx`. */
-	exportScheduleFile: (text: ExportText, slug: string, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_schedule_file", { text, slug, path, click })),
+	exportScheduleFile: (text: ExportText_Deserialize, slug: string, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_schedule_file", { text, slug, path, click })),
 	/**  The Gantt of one estimate sheet as an `.svg`. */
-	exportGanttFile: (text: ExportText, slug: string, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_gantt_file", { text, slug, path, click })),
+	exportGanttFile: (text: ExportText_Deserialize, slug: string, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_gantt_file", { text, slug, path, click })),
 	/**  The security findings as an `.xlsx`, one worksheet for each scanner. */
-	exportSecurityFile: (text: ExportText, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_security_file", { text, path, click })),
+	exportSecurityFile: (text: ExportText_Deserialize, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_security_file", { text, path, click })),
 	/**  The work done between two refs as an `.xlsx`. `from` and `to` are `YYYY-MM-DD` and required. */
-	exportWorkDoneFile: (text: ExportText, base: string, head: string, from: string, to: string, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_work_done_file", { text, base, head, from, to, path, click })),
+	exportWorkDoneFile: (text: ExportText_Deserialize, base: string, head: string, from: string, to: string, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_work_done_file", { text, base, head, from, to, path, click })),
 	/**  Writes the change request files in the delivery folder of the project. */
-	exportChangeRequestFiles: (title: string, base: string, head: string, approvers: string[], click: boolean) => typedError<ChangeRequestOut, AppError_Serialize>(__TAURI_INVOKE("export_change_request_files", { title, base, head, approvers, click })),
+	exportChangeRequestFiles: (title: string, base: string, head: string, approvers: string[], click: boolean) => typedError<ChangeRequestOut_Serialize, AppError_Serialize>(__TAURI_INVOKE("export_change_request_files", { title, base, head, approvers, click })),
+	/**  Writes the change request as Markdown and PDF in the delivery folder (macOS first). */
+	exportChangeRequestPdfFiles: (title: string, base: string, head: string, approvers: string[], click: boolean) => typedError<ChangeRequestOut_Serialize, AppError_Serialize>(__TAURI_INVOKE("export_change_request_pdf_files", { title, base, head, approvers, click })),
+	/**  The reports that a person wrote, the last one of each. */
+	reportsWrittenGet: () => typedError<WrittenReport[], AppError_Serialize>(__TAURI_INVOKE("reports_written_get")),
+	/**  Notes that the person wrote a report: the Written for you rows show the person and the day. */
+	reportsWrittenAdd: (report: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("reports_written_add", { report, click })),
 	compassGet: () => typedError<Compass_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("compass_get")),
 	compassPreview: (kind: EntryKind, id: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("compass_preview", { kind, id })),
 	compassApply: (entries: string[]) => typedError<CompassApplied, AppError_Serialize>(__TAURI_INVOKE("compass_apply", { entries })),
@@ -1435,11 +1443,28 @@ export type ChainWatch_Serialize = {
 };
 
 /**  The files of one change request, as paths relative to the project. */
-export type ChangeRequestOut = {
+export type ChangeRequestOut = ChangeRequestOut_Serialize | ChangeRequestOut_Deserialize;
+
+/**  The files of one change request, as paths relative to the project. */
+export type ChangeRequestOut_Deserialize = {
 	/**  `CR-003`. */
 	id: string,
 	markdown: string,
+	/**  Empty when the report is a PDF. */
 	docx: string,
+	/**  The PDF of a report that was written as PDF. */
+	pdf?: string | null,
+};
+
+/**  The files of one change request, as paths relative to the project. */
+export type ChangeRequestOut_Serialize = {
+	/**  `CR-003`. */
+	id: string,
+	markdown: string,
+	/**  Empty when the report is a PDF. */
+	docx: string,
+	/**  The PDF of a report that was written as PDF. */
+	pdf: string | null,
 };
 
 export type ChangeView = ChangeView_Serialize | ChangeView_Deserialize;
@@ -2242,7 +2267,13 @@ export type ExplainContext_Serialize = {
  *  The words of a document, in the language of the person. `sections` holds one title for each
  *  section: five for the dossier, four for the functional documentation.
  */
-export type ExportText = {
+export type ExportText = ExportText_Serialize | ExportText_Deserialize;
+
+/**
+ *  The words of a document, in the language of the person. `sections` holds one title for each
+ *  section: five for the dossier, four for the functional documentation.
+ */
+export type ExportText_Deserialize = {
 	title: string,
 	empty: string,
 	gap: string,
@@ -2250,6 +2281,28 @@ export type ExportText = {
 	/**  The title of the contents list. */
 	contents: string,
 	sections: string[],
+	/**  The client of the report: it goes on the cover with the project (`spec:library-functions#REQ-007`). */
+	client?: string | null,
+	/**  The day of the cover, `YYYY-MM-DD`. Another text gives today. */
+	date?: string | null,
+};
+
+/**
+ *  The words of a document, in the language of the person. `sections` holds one title for each
+ *  section: five for the dossier, four for the functional documentation.
+ */
+export type ExportText_Serialize = {
+	title: string,
+	empty: string,
+	gap: string,
+	generated: string,
+	/**  The title of the contents list. */
+	contents: string,
+	sections: string[],
+	/**  The client of the report: it goes on the cover with the project (`spec:library-functions#REQ-007`). */
+	client: string | null,
+	/**  The day of the cover, `YYYY-MM-DD`. Another text gives today. */
+	date: string | null,
 };
 
 export type ExternalSource = {
@@ -6659,6 +6712,8 @@ export type Tile_Deserialize = {
 	h: number,
 	/**  A name that a person gave the tile. Empty for the name of its kind. */
 	title?: string,
+	/**  The chart kind of the tile (`shipyard_core::tile::CHARTS`). Empty: the default chart of its kind. */
+	chart?: string,
 };
 
 export type Tile_Serialize = {
@@ -6670,6 +6725,8 @@ export type Tile_Serialize = {
 	h: number,
 	/**  A name that a person gave the tile. Empty for the name of its kind. */
 	title?: string,
+	/**  The chart kind of the tile (`shipyard_core::tile::CHARTS`). Empty: the default chart of its kind. */
+	chart?: string,
 };
 
 /**  A time entry that a person wrote (REQ-020, REQ-021). */
@@ -7279,6 +7336,14 @@ export type Writes_Serialize = {
 
 /**  The result of a write. With `conflict`, nothing was written and `stamp` is the stamp on disk. */
 export type Written = Written_Serialize | Written_Deserialize;
+
+/**  One report that a person wrote: its id (`dossier`), the person and the day. */
+export type WrittenReport = {
+	report: string,
+	who: string,
+	/**  `YYYY-MM-DD`. */
+	date: string,
+};
 
 /**  The result of a write. With `conflict`, nothing was written and `stamp` is the stamp on disk. */
 export type Written_Deserialize = {

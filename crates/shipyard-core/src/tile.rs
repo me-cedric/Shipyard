@@ -98,6 +98,33 @@ pub fn parse(reply: &str, kinds: &[&str]) -> Result<TileProposal, String> {
     })
 }
 
+/// The chart kinds of a tile (`spec:library-functions#REQ-008`). Each one draws the same rows.
+pub const CHARTS: [&str; 7] = [
+    "number", "bars", "line", "list", "stages", "spend", "health",
+];
+
+/// The chart that a tile shows when its person picked none: the data kind picks it. The view keeps
+/// a copy of this table (`defaultChart` in `src/ui/organisms/tile-chart.tsx`).
+pub fn default_chart(kind: &str) -> &'static str {
+    match kind {
+        "work" | "tracker-status" => "stages",
+        "questions" | "impact" => "list",
+        "estimates" => "spend",
+        "quality" => "health",
+        "tracker-open" => "number",
+        _ => "bars",
+    }
+}
+
+/// A tile has no chart of its own (the empty text: the default one) or a chart of the catalogue.
+pub fn check_chart(chart: &str) -> Result<(), String> {
+    if chart.is_empty() || CHARTS.contains(&chart) {
+        Ok(())
+    } else {
+        Err(format!("unknown chart: {chart}"))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -167,5 +194,30 @@ mod tests {
         assert!(words(&"x".repeat(WORDS_MAX + 1)).is_err());
         let r = request(&KINDS);
         assert!(r.contains("work, runs, questions"));
+    }
+
+    #[test]
+    fn the_data_kind_picks_the_default_chart_and_a_chart_of_another_name_is_refused() {
+        assert_eq!(default_chart("runs"), "bars");
+        assert_eq!(default_chart("work"), "stages");
+        assert_eq!(default_chart("quality"), "health");
+        assert_eq!(default_chart("tracker-open"), "number");
+        // Each default is a chart of the catalogue.
+        for kind in [
+            "work",
+            "runs",
+            "questions",
+            "specs",
+            "estimates",
+            "quality",
+            "impact",
+            "tracker-open",
+            "tracker-status",
+            "tracker-assignee",
+        ] {
+            assert!(CHARTS.contains(&default_chart(kind)), "{kind}");
+        }
+        assert!(check_chart("").is_ok() && check_chart("line").is_ok());
+        assert_eq!(check_chart("pie").unwrap_err(), "unknown chart: pie");
     }
 }

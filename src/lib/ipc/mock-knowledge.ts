@@ -68,7 +68,7 @@ export type MockKnowledge = {
 	indexed: boolean;
 	/** The files that the export commands "wrote": kind and path. */
 	exported: {
-		kind: "dossier" | "functional" | "sheet" | "pdf";
+		kind: "dossier" | "functional" | "sheet" | "pdf" | "document";
 		path: string;
 		views?: ViewImage[];
 	}[];
@@ -300,6 +300,26 @@ export function pageRestore(
 	const text = versionOf(k, path, sha);
 	if (!files[path]) throw `${path} does not exist`;
 	putText(files, path, text, null, false);
+	return null;
+}
+
+/**
+ * `doc_download`: one document as Word or PDF. A Markdown document goes to either; a Word file is
+ * copied and has no PDF form.
+ */
+export function docDownload(
+	k: MockKnowledge,
+	docx: Record<string, unknown>,
+	path: string,
+	dest: string,
+	click: boolean,
+): null {
+	if (!click) throw "this change needs the click of a person";
+	const word = path.endsWith(".docx") && path in docx;
+	if (!word && !(path.endsWith(".md") && path in k.files)) throw `path not allowed: ${path}`;
+	checkTextPath(dest);
+	if (word && dest.toLowerCase().endsWith(".pdf")) throw `${path} is not a Markdown document`;
+	k.exported.push({ kind: "document", path: dest });
 	return null;
 }
 
@@ -652,6 +672,13 @@ export const checkTitles = (text: ExportText, n: number) => {
 	if (text.sections.length !== n) throw `expected ${n} section titles`;
 };
 
+/** A text report is a Word file, a Markdown file or a PDF: the extension of the path picks it. */
+export function checkTextPath(path: string) {
+	const ext = path.split(".").pop()?.toLowerCase() ?? "";
+	if (!["docx", "md", "pdf"].includes(ext)) throw "the file is not a .docx or .md or .pdf file";
+	checkExport(path, ext);
+}
+
 export function exportDossier(
 	k: MockKnowledge,
 	text: ExportText,
@@ -659,7 +686,7 @@ export function exportDossier(
 	path: string,
 ): null {
 	checkTitles(text, 5);
-	checkExport(path, "docx");
+	checkTextPath(path);
 	k.exported.push({ kind: "dossier", path, views });
 	return null;
 }
@@ -671,7 +698,7 @@ export const exportDiagrams = (): DiagramSource[] => [
 
 export function exportFunctional(k: MockKnowledge, text: ExportText, path: string): null {
 	checkTitles(text, 4);
-	checkExport(path, "docx");
+	checkTextPath(path);
 	k.exported.push({ kind: "functional", path });
 	return null;
 }

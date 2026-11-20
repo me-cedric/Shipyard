@@ -6,6 +6,7 @@ use std::path::Path;
 use serde::Serialize;
 use shipyard_store::design::resolve_in;
 use shipyard_store::docx_view::{self, Paragraph};
+use shipyard_store::export::{Block, Meta, markdown_blocks};
 use shipyard_store::knowledge::PageEntry;
 use specta::Type;
 use tauri::AppHandle;
@@ -149,6 +150,58 @@ pub fn add_file(s: &AppState, source: &str, click: bool) -> Res<PageEntry> {
     unreachable!("the loop returns")
 }
 
+/// The cover and the blocks of a Markdown document, for Word or PDF. The title is the first heading
+/// of the text, or the name of the file; it sits on the cover, so the text does not repeat it.
+pub(crate) fn document_doc(s: &AppState, rel: &str) -> Res<(Meta, Vec<Block>)> {
+    let p = project(s)?;
+    if !rel.ends_with(".md") {
+        return Err(format!("{rel} is not a Markdown document"));
+    }
+    let full = resolve_in(&p.root, &p.file, rel, &["documents"])?;
+    let text = crate::design::read_text(&full, rel)?.text;
+    let mut blocks = markdown_blocks(&text, 1);
+    let title = match blocks.first() {
+        Some(Block::Heading(_, h)) => {
+            let h = h.clone();
+            blocks.remove(0);
+            h
+        }
+        _ => Path::new(rel)
+            .file_stem()
+            .map_or_else(String::new, |n| n.to_string_lossy().into_owned()),
+    };
+    let meta = Meta {
+        title: title.clone(),
+        project: p.file.name.clone(),
+        generated_on: crate::work::today(s),
+        empty: String::new(),
+        gap: String::new(),
+        generated: "Generated".into(),
+        contents: "Contents".into(),
+    };
+    let mut all = vec![Block::Title(title), Block::Subtitle(meta.project.clone())];
+    all.extend(blocks);
+    Ok((meta, all))
+}
+
+/// One document as a Word file at `dest` (a `.docx` path). A Markdown document is converted; a
+/// Word document is copied as it is. A PDF goes through the print window: see `doc_download`.
+pub fn download_document(s: &AppState, rel: &str, dest: &str, click: bool) -> Res<()> {
+    crate::reports::need_export_click(s, dest, click)?;
+    if rel.ends_with(".docx") {
+        let p = project(s)?;
+        let full = resolve_in(&p.root, &p.file, rel, &FOLDERS)?;
+        let meta = std::fs::metadata(&full).map_err(|e| format!("{rel}: {e}"))?;
+        if !meta.is_file() || meta.len() > MAX_DOCX {
+            return Err(format!("{rel}: not a file or too big"));
+        }
+        let bytes = std::fs::read(&full).map_err(err)?;
+        return crate::knowledge::write_export(s, dest, "docx", &bytes);
+    }
+    let (m, blocks) = document_doc(s, rel)?;
+    crate::knowledge::write_doc(s, dest, &m, &blocks)
+}
+
 /// The paragraphs of a `.docx` file. The file stays unchanged.
 pub fn docx_read(s: &AppState, rel: &str) -> Res<Vec<Paragraph>> {
     let p = project(s)?;
@@ -181,6 +234,21 @@ pub async fn doc_docx_list(app: AppHandle) -> Api<Vec<PageEntry>> {
 #[specta::specta]
 pub async fn doc_add_file(app: AppHandle, source: String, click: bool) -> Api<PageEntry> {
     blocking(app, move |s| add_file(s, &source, click)).await
+}
+
+/// One document as a Word file or as a PDF (macOS first), at the path of a save dialog.
+#[tauri::command]
+#[specta::specta]
+pub async fn doc_download(app: AppHandle, path: String, dest: String, click: bool) -> Api<()> {
+    if crate::knowledge::is_pdf(&dest) {
+        let to = dest.clone();
+        return crate::knowledge::pdf_report(app, dest, move |s| {
+            crate::reports::need_export_click(s, &to, click)?;
+            document_doc(s, &path)
+        })
+        .await;
+    }
+    blocking(app, move |s| download_document(s, &path, &dest, click)).await
 }
 
 #[tauri::command]
@@ -234,6 +302,56 @@ mod tests {
         );
         assert!(docx_read(&s, "docs/documents/brief.md").is_err());
         assert!(docx_read(&s, "../x.docx").is_err());
+    }
+
+    #[test]
+    fn a_document_downloads_as_word_and_a_word_file_stays_word() {
+        let f = crate::work::tests::fx();
+        let docs = f.repo.path().join("docs/documents");
+        std::fs::create_dir_all(&docs).unwrap();
+        std::fs::write(
+            docs.join("brief.md"),
+            "# Brief\n\nScope: **wide**.\n\n- a\n- b\n",
+        )
+        .unwrap();
+        std::fs::write(docs.join("plan.docx"), b"PK word bytes").unwrap();
+        let out = tempfile::tempdir().unwrap();
+        let word = out.path().join("brief.docx");
+        assert!(
+            download_document(
+                &f.s,
+                "docs/documents/brief.md",
+                word.to_str().unwrap(),
+                false
+            )
+            .is_err()
+        );
+        download_document(
+            &f.s,
+            "docs/documents/brief.md",
+            word.to_str().unwrap(),
+            true,
+        )
+        .unwrap();
+        assert!(std::fs::read(&word).unwrap().starts_with(b"PK"));
+        let (m, blocks) = document_doc(&f.s, "docs/documents/brief.md").unwrap();
+        assert_eq!(m.title, "Brief");
+        assert!(blocks.contains(&Block::Bullets(vec!["a".into(), "b".into()])));
+        // The title is on the cover once: the first heading of the text does not repeat it.
+        assert!(!blocks.contains(&Block::Heading(1, "Brief".into())));
+        // A Word file is copied as it is, and has no PDF form here.
+        let copy = out.path().join("plan.docx");
+        download_document(
+            &f.s,
+            "docs/documents/plan.docx",
+            copy.to_str().unwrap(),
+            true,
+        )
+        .unwrap();
+        assert_eq!(std::fs::read(&copy).unwrap(), b"PK word bytes");
+        assert!(document_doc(&f.s, "docs/documents/plan.docx").is_err());
+        // Only a file of the documents folder.
+        assert!(document_doc(&f.s, "docs/handbook/x.md").is_err());
     }
 
     #[test]

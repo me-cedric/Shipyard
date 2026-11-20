@@ -16,7 +16,8 @@ use shipyard_core::knowledge::{Stamp, Term, glossary, marks, path_order};
 use shipyard_mcp::proxy::{Proxy, SEP};
 use shipyard_store::design::{self, resolve_in};
 use shipyard_store::export::{
-    self, Content, Item, Meta, Section, SheetOut, annex_item, assemble, docx_bytes, image_item,
+    self, Block, Content, Item, Meta, Section, SheetOut, annex_item, assemble, docx_bytes,
+    image_item,
 };
 use shipyard_store::knowledge::{
     self as kn, Dashboard, DeckTheme, GraphEdge, GraphNode, Loaded, PageEntry,
@@ -870,7 +871,7 @@ fn with_final_newline(text: &str) -> String {
 
 /// The words of a document, in the language of the person. `sections` holds one title for each
 /// section: five for the dossier, four for the functional documentation.
-#[derive(Debug, Clone, Deserialize, Type)]
+#[derive(Debug, Clone, Default, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ExportText {
     pub title: String,
@@ -880,6 +881,12 @@ pub struct ExportText {
     /// The title of the contents list.
     pub contents: String,
     pub sections: Vec<String>,
+    /// The client of the report: it goes on the cover with the project (`spec:library-functions#REQ-007`).
+    #[serde(default)]
+    pub client: Option<String>,
+    /// The day of the cover, `YYYY-MM-DD`. Another text gives today.
+    #[serde(default)]
+    pub date: Option<String>,
 }
 
 /// One architecture view that the view rendered at the click.
@@ -965,10 +972,15 @@ fn view_item(v: &ViewImage) -> Item {
 }
 
 pub(crate) fn meta(s: &AppState, p: &crate::design::Proj, t: &ExportText) -> Meta {
+    let client = t.client.as_deref().map(str::trim).filter(|c| !c.is_empty());
+    let day = t
+        .date
+        .as_deref()
+        .filter(|d| shipyard_core::work::parse_day(d).is_some());
     Meta {
         title: t.title.clone(),
-        project: p.file.name.clone(),
-        generated_on: crate::work::today(s),
+        project: client.map_or_else(|| p.file.name.clone(), |c| format!("{c} - {}", p.file.name)),
+        generated_on: day.map_or_else(|| crate::work::today(s), String::from),
         empty: t.empty.clone(),
         gap: t.gap.clone(),
         generated: t.generated.clone(),
@@ -999,15 +1011,22 @@ fn named(sections: &[String], n: usize) -> Res<Vec<&str>> {
 /// The architecture dossier: the views, the decisions, the data models, the flows and the API
 /// contracts (REQ-013). Each source is read now. A source that fails is a gap.
 pub fn export_dossier(s: &AppState, t: &ExportText, views: &[ViewImage], path: &str) -> Res<()> {
+    let (m, blocks) = dossier_doc(s, t, views)?;
+    write_doc(s, path, &m, &blocks)
+}
+
+/// The cover and the blocks of the dossier, for any output.
+pub(crate) fn dossier_doc(
+    s: &AppState,
+    t: &ExportText,
+    views: &[ViewImage],
+) -> Res<(Meta, Vec<Block>)> {
     let titles = named(&t.sections, 5)?;
     let p = project(s)?;
     let sections = dossier_sections(&p, &titles, views.iter().map(view_item).collect());
-    write_export(
-        s,
-        path,
-        "docx",
-        &docx_bytes(&meta(s, &p, t), &assemble(&meta(s, &p, t), &sections)).map_err(err)?,
-    )
+    let m = meta(s, &p, t);
+    let blocks = assemble(&m, &sections);
+    Ok((m, blocks))
 }
 
 /// The five sections of the dossier. `views` are the rendered architecture views.
@@ -1159,16 +1178,23 @@ pub fn export_dossier_complete(
     path: &str,
     click: bool,
 ) -> Res<()> {
-    let titles = named(&t.sections, 7)?;
     crate::reports::need_export_click(s, path, click)?;
+    let (m, blocks) = dossier_complete_doc(s, t, views)?;
+    write_doc(s, path, &m, &blocks)
+}
+
+/// The cover and the blocks of the complete dossier, for any output.
+pub(crate) fn dossier_complete_doc(
+    s: &AppState,
+    t: &ExportText,
+    views: &[ViewImage],
+) -> Res<(Meta, Vec<Block>)> {
+    let titles = named(&t.sections, 7)?;
     let p = project(s)?;
     let sections = dossier_complete_sections(s, &p, &titles, views)?;
-    write_export(
-        s,
-        path,
-        "docx",
-        &docx_bytes(&meta(s, &p, t), &assemble(&meta(s, &p, t), &sections)).map_err(err)?,
-    )
+    let m = meta(s, &p, t);
+    let blocks = assemble(&m, &sections);
+    Ok((m, blocks))
 }
 
 fn dossier_complete_sections(
@@ -1211,6 +1237,12 @@ fn dossier_complete_sections(
 /// The functional documentation: the specs, the design document, the screens and the estimate
 /// annex (REQ-014). The annex holds tasks and days and no day rate.
 pub fn export_functional(s: &AppState, t: &ExportText, path: &str) -> Res<()> {
+    let (m, blocks) = functional_doc(s, t)?;
+    write_doc(s, path, &m, &blocks)
+}
+
+/// The cover and the blocks of the functional documentation, for any output.
+pub(crate) fn functional_doc(s: &AppState, t: &ExportText) -> Res<(Meta, Vec<Block>)> {
     let titles = named(&t.sections, 4)?;
     let p = project(s)?;
     let (nodes, _) = with_index(s, |i| i.graph())?;
@@ -1267,12 +1299,9 @@ pub fn export_functional(s: &AppState, t: &ExportText, path: &str) -> Res<()> {
             items: annex,
         },
     ];
-    write_export(
-        s,
-        path,
-        "docx",
-        &docx_bytes(&meta(s, &p, t), &assemble(&meta(s, &p, t), &sections)).map_err(err)?,
-    )
+    let m = meta(s, &p, t);
+    let blocks = assemble(&m, &sections);
+    Ok((m, blocks))
 }
 
 #[derive(Debug, Clone, Deserialize, Type)]
@@ -1305,19 +1334,70 @@ pub fn export_sheet(s: &AppState, t: &ExportText, sheets: Vec<SheetIn>, path: &s
 /// An absolute path with the right extension, in a folder that exists. The write is atomic.
 /// The path joins the exports (the person may reveal it) only after the write worked.
 pub(crate) fn write_export(s: &AppState, path: &str, ext: &str, bytes: &[u8]) -> Res<()> {
+    let p = check_export_path(path, &[ext])?;
+    write_atomic(&p, bytes).map_err(err)?;
+    s.exports().insert(path.into());
+    Ok(())
+}
+
+/// An absolute path with one of the extensions, in a folder that exists.
+fn check_export_path(path: &str, exts: &[&str]) -> Res<std::path::PathBuf> {
     let p = std::path::PathBuf::from(path);
     if !p.is_absolute() || p.is_dir() {
         return Err("the path is not an absolute file path".into());
     }
-    if !p.extension().is_some_and(|e| e.eq_ignore_ascii_case(ext)) {
-        return Err(format!("the file is not a .{ext} file"));
+    if !p
+        .extension()
+        .is_some_and(|e| exts.iter().any(|x| e.eq_ignore_ascii_case(x)))
+    {
+        return Err(format!("the file is not a .{} file", exts.join(" or .")));
     }
     if !p.parent().is_some_and(Path::is_dir) {
         return Err("the folder of the path does not exist".into());
     }
-    write_atomic(&p, bytes).map_err(err)?;
-    s.exports().insert(path.into());
-    Ok(())
+    Ok(p)
+}
+
+/// A text report in the form of the extension of `path`: `.docx` or `.md`. A `.pdf` needs the
+/// print window of the app: the command goes through `pdf_report`.
+pub(crate) fn write_doc(s: &AppState, path: &str, m: &Meta, blocks: &[Block]) -> Res<()> {
+    let ext = check_export_path(path, &["docx", "md"])?
+        .extension()
+        .map(|e| e.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    if ext == "md" {
+        write_export(s, path, "md", export::markdown_text(blocks).as_bytes())
+    } else {
+        write_export(s, path, "docx", &docx_bytes(m, blocks).map_err(err)?)
+    }
+}
+
+/// The path ends in `.pdf`, in any case.
+pub(crate) fn is_pdf(path: &str) -> bool {
+    Path::new(path)
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("pdf"))
+}
+
+/// A text report as a PDF on macOS: `build` reads the sources, the page prints in the hidden
+/// window (`decks::print_html`), and the bytes go to `path`. A path or a click that is wrong
+/// fails before the print.
+pub(crate) async fn pdf_report(
+    app: AppHandle,
+    path: String,
+    build: impl FnOnce(&AppState) -> Res<(Meta, Vec<Block>)> + Send + 'static,
+) -> Api<()> {
+    let to = path.clone();
+    let html = blocking(app.clone(), move |s| {
+        check_export_path(&to, &["pdf"])?;
+        let (m, blocks) = build(s)?;
+        Ok(export::html_page(&m, &blocks))
+    })
+    .await?;
+    let bytes = crate::decks::print_html(&app, html, crate::decks::Paper::A4)
+        .await
+        .map_err(crate::errors::AppError::from)?;
+    blocking(app, move |s| write_export(s, &path, "pdf", &bytes)).await
 }
 
 // ---------------------------------------------------------------- commands
@@ -1477,6 +1557,9 @@ pub async fn export_dossier_file(
     views: Vec<ViewImage>,
     path: String,
 ) -> Api<()> {
+    if is_pdf(&path) {
+        return pdf_report(app, path, move |s| dossier_doc(s, &text, &views)).await;
+    }
     blocking(app, move |s| export_dossier(s, &text, &views, &path)).await
 }
 
@@ -1491,6 +1574,13 @@ pub async fn export_dossier_complete_file(
     path: String,
     click: bool,
 ) -> Api<()> {
+    if is_pdf(&path) {
+        return pdf_report(app, path.clone(), move |s| {
+            crate::reports::need_export_click(s, &path, click)?;
+            dossier_complete_doc(s, &text, &views)
+        })
+        .await;
+    }
     blocking(app, move |s| {
         export_dossier_complete(s, &text, &views, &path, click)
     })
@@ -1500,6 +1590,9 @@ pub async fn export_dossier_complete_file(
 #[tauri::command]
 #[specta::specta]
 pub async fn export_functional_file(app: AppHandle, text: ExportText, path: String) -> Api<()> {
+    if is_pdf(&path) {
+        return pdf_report(app, path, move |s| functional_doc(s, &text)).await;
+    }
     blocking(app, move |s| export_functional(s, &text, &path)).await
 }
 
@@ -1718,6 +1811,25 @@ mod tests {
         assert!(dashboard_get(&s, "future").unwrap().loaded.read_only);
         assert!(dashboard_save(&s, "future", &dash("Mine"), None).is_err());
         assert!(dashboard_save(&s, "../x", &dash("x"), None).is_err());
+        // The chart of a tile is kept in the file; a chart outside the catalogue is refused.
+        let mut lined = dash("Lined");
+        lined.tiles.push(kn::Tile {
+            id: "runs".into(),
+            kind: "runs".into(),
+            x: 0,
+            y: 0,
+            w: 4,
+            h: 3,
+            title: String::new(),
+            chart: "line".into(),
+        });
+        dashboard_save(&s, "lined", &lined, None).unwrap();
+        assert_eq!(
+            dashboard_get(&s, "lined").unwrap().loaded.value.tiles[0].chart,
+            "line"
+        );
+        lined.tiles[0].chart = "pie".into();
+        assert!(dashboard_save(&s, "lined", &lined, None).is_err());
         let log = Command::new("git")
             .arg("-C")
             .arg(repo.path())
@@ -1818,6 +1930,7 @@ mod tests {
             generated: "Generated".into(),
             contents: "Contents".into(),
             sections: titles.map(String::from).to_vec(),
+            ..Default::default()
         };
         let go = |click| export_dossier_complete(&s, &t, &[], file.to_str().unwrap(), click);
         assert!(go(false).unwrap_err().contains("click"));
@@ -1844,6 +1957,7 @@ mod tests {
             generated: "Generated".into(),
             contents: "Contents".into(),
             sections: ["A", "B", "C", "D", "E"].map(String::from).to_vec(),
+            ..Default::default()
         };
         let file = out.path().join("dossier.docx");
         export_dossier(&s, &t, &[], file.to_str().unwrap()).unwrap();
@@ -1864,6 +1978,46 @@ mod tests {
         let doc = out.path().join("functional.docx");
         export_functional(&s, &four, doc.to_str().unwrap()).unwrap();
         assert!(doc.exists());
+        // The complete dossier says its client and its day on the cover.
+        let seven = ExportText {
+            title: "Handover".into(),
+            sections: ["A", "B", "C", "D", "E", "F", "G"]
+                .map(String::from)
+                .to_vec(),
+            client: Some(" Acme ".into()),
+            date: Some("2026-11-18".into()),
+            ..t.clone()
+        };
+        let full = out.path().join("full.md");
+        export_dossier_complete(&s, &seven, &[], full.to_str().unwrap(), true).unwrap();
+        let text = std::fs::read_to_string(&full).unwrap();
+        assert!(text.starts_with("# Handover\n\n*Acme - "), "{text}");
+        assert!(text.contains("*Generated: 2026-11-18*"));
+        // A date that is not a day gives today.
+        let bad = ExportText {
+            date: Some("18/11/2026".into()),
+            ..seven.clone()
+        };
+        export_dossier_complete(&s, &bad, &[], full.to_str().unwrap(), true).unwrap();
+        let today = crate::work::today(&s);
+        assert!(
+            std::fs::read_to_string(&full)
+                .unwrap()
+                .contains(&format!("*Generated: {today}*"))
+        );
+        // The same report as Markdown: the cover title, then a heading for each section.
+        let md = out.path().join("dossier.md");
+        export_dossier(&s, &t, &[], md.to_str().unwrap()).unwrap();
+        let text = std::fs::read_to_string(&md).unwrap();
+        assert!(text.starts_with("# Dossier\n"), "{text}");
+        assert!(text.contains("\n# A\n") && text.contains("\n# E\n"));
+        let fmd = out.path().join("functional.md");
+        export_functional(&s, &four, fmd.to_str().unwrap()).unwrap();
+        assert!(std::fs::read_to_string(&fmd).unwrap().contains("\n# D\n"));
+        assert!(
+            !out.path().join("x.pdf").exists(),
+            "a PDF goes through the print window"
+        );
         let book = out.path().join("deliverable.xlsx");
         let sheet = SheetIn {
             name: "Scan".into(),

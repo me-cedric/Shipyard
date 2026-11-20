@@ -352,6 +352,7 @@ pub fn dashboard(v: &Value, fallback: &str) -> (knowledge::Dashboard, Vec<String
             w: n("w", 4).max(1),
             h: n("h", 3).max(1),
             title: String::new(),
+            chart: String::new(),
         });
     }
     let title = Some(text(v, "name"))

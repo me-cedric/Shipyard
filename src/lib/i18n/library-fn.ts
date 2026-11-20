@@ -1,6 +1,34 @@
 /** The strings of the controls that `spec:library-functions` adds to Library. */
 export const libraryFnEn = {
 	documents: { addFile: "Add a file", open: "Open" },
+	charts: {
+		number: "Number",
+		bars: "Bars",
+		line: "Line",
+		list: "List",
+		stages: "Flow stages",
+		spend: "Spend",
+		health: "Health",
+	},
+	dashboards: {
+		chart: "Chart",
+		pinToday: "Pin to Today",
+		unpinToday: "Unpin from Today",
+		release: "Release",
+		allReleases: "All releases",
+	},
+	reports: {
+		pdf: "PDF",
+		word: "Word",
+		excel: "Excel",
+		markdown: "Markdown",
+		pdfOff: "PDF works on macOS for now",
+		download: "Download as",
+		wordMarkdown: "Word and Markdown",
+		linking: "Pages that link to a report",
+		client: "Client",
+		date: "Date",
+	},
 	learn: { addWord: "Add a word", word: "Word", meaning: "Meaning", add: "Add", stepItem: "Item" },
 	slides: { edit: "Edit", done: "Done", notes: "Speaker notes", noNote: "No note on this slide" },
 	history: {
@@ -19,6 +47,34 @@ export const libraryFnEn = {
 
 export const libraryFnFr: typeof libraryFnEn = {
 	documents: { addFile: "Ajouter un fichier", open: "Ouvrir" },
+	charts: {
+		number: "Nombre",
+		bars: "Barres",
+		line: "Courbe",
+		list: "Liste",
+		stages: "Étapes du flux",
+		spend: "Dépense",
+		health: "Santé",
+	},
+	dashboards: {
+		chart: "Graphique",
+		pinToday: "Épingler à Aujourd'hui",
+		unpinToday: "Retirer d'Aujourd'hui",
+		release: "Version",
+		allReleases: "Toutes les versions",
+	},
+	reports: {
+		pdf: "PDF",
+		word: "Word",
+		excel: "Excel",
+		markdown: "Markdown",
+		pdfOff: "Le PDF fonctionne sur macOS pour l'instant",
+		download: "Télécharger en",
+		wordMarkdown: "Word et Markdown",
+		linking: "Pages qui pointent vers un rapport",
+		client: "Client",
+		date: "Date",
+	},
 	learn: {
 		addWord: "Ajouter un mot",
 		word: "Mot",

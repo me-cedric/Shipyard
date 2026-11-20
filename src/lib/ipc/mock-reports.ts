@@ -1,8 +1,13 @@
 // Mock only. The client exports and the outside terminal launcher. They apply the rules of
 // `crates/shipyard-app/src/reports.rs` and `terminals.rs`: a click, the read-only lock for a file in
 // the project, the checks of the path, the refs and the period, and the number of a change request.
-import type { ChangeRequestOut, ExportText, TerminalApp } from "./bindings";
-import { checkExport, checkTitles } from "./mock-knowledge";
+import type {
+	ChangeRequestOut_Serialize as ChangeRequestOut,
+	ExportText,
+	TerminalApp,
+	WrittenReport,
+} from "./bindings";
+import { checkExport, checkTextPath, checkTitles } from "./mock-knowledge";
 
 export type ExportKind =
 	| "dossier-complete"
@@ -22,6 +27,8 @@ export type MockReports = {
 	launched: { id: string; folder: string }[];
 	/** The apps that are "installed" on this mock machine. */
 	installed: TerminalApp[];
+	/** The log of the written reports: the last writing of each report. */
+	written: WrittenReport[];
 };
 
 export const seedReports = (): MockReports => ({
@@ -33,6 +40,7 @@ export const seedReports = (): MockReports => ({
 		{ id: "iterm2", label: "iTerm2" },
 		{ id: "kitty", label: "kitty" },
 	],
+	written: [{ report: "dossier", who: "Ada Lovelace", date: "2026-11-18" }],
 });
 
 /** The ids of the table of `terminals.rs`. */
@@ -87,7 +95,10 @@ export const exportDossierComplete = (
 	click: boolean,
 ) => {
 	checkTitles(text, 7);
-	return file(r, env, "dossier-complete", "docx", path, click);
+	write(env, path, click);
+	checkTextPath(path);
+	r.exported.push({ kind: "dossier-complete", path });
+	return null;
 };
 
 export const exportPage = (
@@ -160,7 +171,36 @@ export function exportChangeRequest(
 	const id = `CR-${String(r.changeRequests.length + 1).padStart(3, "0")}`;
 	r.changeRequests.push(id);
 	const stem = `docs/delivery/change-requests/${id}`;
-	return { id, markdown: `${stem}.md`, docx: `${stem}.docx` };
+	return { id, markdown: `${stem}.md`, docx: `${stem}.docx`, pdf: null };
+}
+
+/** The change request as Markdown and PDF: the Markdown holds the number. */
+export function exportChangeRequestPdf(
+	r: MockReports,
+	env: Env,
+	title: string,
+	base: string,
+	head: string,
+	click: boolean,
+): ChangeRequestOut {
+	const out = exportChangeRequest(r, env, title, base, head, click);
+	return { ...out, docx: "", pdf: out.markdown.replace(/\.md$/, ".pdf") };
+}
+
+export const writtenGet = (r: MockReports): WrittenReport[] => structuredClone(r.written);
+
+/** The last writing of each report, by the person of this mock machine and today. */
+export function writtenAdd(
+	r: MockReports,
+	who: string,
+	today: string,
+	report: string,
+	click: boolean,
+) {
+	needClick(click);
+	if (!/^[a-z0-9-]{1,64}$/.test(report)) throw `not a report id: ${report}`;
+	r.written = [...r.written.filter((w) => w.report !== report), { report, who, date: today }];
+	return null;
 }
 
 export const terminalApps = (r: MockReports) => r.installed;

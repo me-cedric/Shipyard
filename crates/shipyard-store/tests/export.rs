@@ -7,8 +7,8 @@ use base64::Engine as _;
 use calamine::{Reader, Xlsx};
 use shipyard_core::work::{Feature, Sheet, Task};
 use shipyard_store::export::{
-    Block, Content, Item, Meta, Section, SheetOut, annex_item, assemble, docx_bytes,
-    markdown_blocks, xlsx_bytes,
+    Block, Content, Item, Meta, Section, SheetOut, annex_item, assemble, docx_bytes, html_page,
+    markdown_blocks, markdown_text, xlsx_bytes,
 };
 use shipyard_store::seal;
 use shipyard_store::work::{read_sheet, write_sheet};
@@ -394,4 +394,56 @@ fn bold_and_links_in_markdown_become_bold_runs_and_hyperlinks() {
     assert!(!rels.contains("javascript:"));
     assert!(!xml.contains("**strong**") && !xml.contains("**cell**"));
     assert!(xml.contains("[bad](javascript:alert(1))") && xml.contains("**code**"));
+}
+
+// ---- Markdown and PDF output of a text report (spec `library-functions`, REQ-006)
+
+fn blocks() -> Vec<Block> {
+    vec![
+        Block::Title("Report <1>".into()),
+        Block::Subtitle("Shipyard".into()),
+        Block::Toc("Contents".into()),
+        Block::PageBreak,
+        Block::Heading(1, "Scope".into()),
+        Block::Para("Text with a | bar & <b>.".into()),
+        Block::Bullets(vec!["one".into(), "two".into()]),
+        Block::Code("let x = 1;".into()),
+        Block::Table {
+            headers: vec!["File".into(), "Days".into()],
+            rows: vec![vec!["a|b".into(), "3".into()]],
+        },
+        Block::Gap("Not readable: x".into()),
+        Block::Image {
+            png: base64::engine::general_purpose::STANDARD
+                .decode(PNG)
+                .unwrap(),
+        },
+    ]
+}
+
+#[test]
+fn a_report_is_written_as_markdown_with_its_blocks_in_order() {
+    let md = markdown_text(&blocks());
+    assert_eq!(
+        md,
+        "# Report <1>\n\n*Shipyard*\n\n# Scope\n\nText with a | bar & <b>.\n\n- one\n- two\n\n```\nlet x = 1;\n```\n\n| File | Days |\n| --- | --- |\n| a\\|b | 3 |\n\n> Not readable: x\n"
+    );
+}
+
+#[test]
+fn a_report_is_printed_from_an_escaped_html_page_with_its_picture_inline() {
+    let html = html_page(&meta(), &blocks());
+    assert!(
+        html.contains("<h1 class=\"title\">Report &lt;1&gt;</h1>"),
+        "{html}"
+    );
+    assert!(html.contains("<h1>Scope</h1>"));
+    assert!(html.contains("Text with a | bar &amp; &lt;b&gt;."));
+    assert!(html.contains("<ul><li>one</li><li>two</li></ul>"));
+    assert!(html.contains("<pre>let x = 1;</pre>"));
+    assert!(html.contains("<th>File</th>") && html.contains("<td>a|b</td>"));
+    assert!(html.contains("<img alt=\"\" src=\"data:image/png;base64,"));
+    assert!(html.contains("break-after:page"), "a page break");
+    assert!(!html.contains("<script") && !html.contains("<b>"));
+    assert!(html.contains("size:A4"));
 }

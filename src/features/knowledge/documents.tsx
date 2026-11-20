@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { DownloadAs } from "@/features/reports/download-as";
 import { SavedActions } from "@/features/reports/export-menu";
 import { PageExport } from "@/features/reports/page-export";
 import { format, useI18n } from "@/lib/i18n";
@@ -168,6 +169,7 @@ export function Documents() {
 								<PageExport page="documents" />
 							</span>
 						</Row>
+						<DownloadAs path={row.path} title={row.title} />
 					</Card>
 				</>
 			)}

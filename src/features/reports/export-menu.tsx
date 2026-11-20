@@ -1,10 +1,14 @@
 import { Menu } from "@base-ui/react/menu";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type Right, saveAs, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+
+/** The file of a text report: Word, Markdown or PDF. The extension of the path picks it. */
+export type TextOut = "docx" | "md" | "pdf";
 
 export type ExportItem = {
 	id: string;
@@ -17,6 +21,10 @@ export type ExportItem = {
 	};
 	/** The report asks first: its form is the page `/library/reports/<id>`. */
 	form?: boolean;
+	/** One click with the default values, with no save dialog: the paths of the files it wrote. */
+	quick?: (out: TextOut) => Promise<string[]>;
+	/** A job that is not a report of the log "Written for you". */
+	quiet?: boolean;
 	/** The right that the button of the Reports page needs. The backend refuses a write anyway. */
 	right?: Right;
 };
@@ -58,18 +66,44 @@ export function useExportRun() {
 	const [saved, setSaved] = useState<string | null>(null);
 	const [failure, setFailure] = useState<unknown>(null);
 	const navigate = useNavigate();
-	const pick = async (x: ExportItem) => {
+	const qc = useQueryClient();
+	// The log of the written reports: the Reports page shows the person and the day.
+	const log = (x: ExportItem) => {
+		if (x.quiet) return;
+		unwrap(commands.reportsWrittenAdd(x.id, true))
+			.then(() => qc.invalidateQueries({ queryKey: ["reports", "written"] }))
+			.catch(() => {});
+	};
+	/** `ext` is the file of a text report, when the person picked another one than the own one. */
+	const pick = async (x: ExportItem, ext?: TextOut) => {
 		setNote(null);
 		setSaved(null);
 		setFailure(null);
-		if (x.form) return void navigate({ to: "/library/reports/$form", params: { form: x.id } });
-		if (!x.save) return;
+		if (!x.save)
+			return x.form
+				? void navigate({ to: "/library/reports/$form", params: { form: x.id } })
+				: undefined;
 		try {
-			const path = await saveAs(x.save.name, x.save.ext);
+			const path = await saveAs(x.save.name, ext ?? x.save.ext);
 			if (!path) return;
 			await x.save.job(path);
 			setNote(format(t.reports.exported, { path }));
 			setSaved(path);
+			log(x);
+		} catch (e) {
+			setFailure(e);
+		}
+	};
+	/** A one-click export with default values: it shows the files that it wrote. */
+	const quick = async (x: ExportItem, out: TextOut) => {
+		setNote(null);
+		setSaved(null);
+		setFailure(null);
+		try {
+			const paths = (await x.quick?.(out)) ?? [];
+			setNote(format(t.reports.exported, { path: paths.join(", ") }));
+			setSaved(paths[0] ?? null);
+			log(x);
 		} catch (e) {
 			setFailure(e);
 		}
@@ -86,7 +120,7 @@ export function useExportRun() {
 			<ErrorNotice error={failure} />
 		</>
 	);
-	return { pick, status };
+	return { pick, quick, status };
 }
 
 /** One Export menu. A choice starts the export (`useExportRun`). */

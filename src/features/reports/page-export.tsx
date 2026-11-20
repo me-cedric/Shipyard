@@ -39,6 +39,8 @@ export function useExportItems(slug?: string): Record<ExportPage, ExportItem[]> 
 			{
 				id: "dossier-complete",
 				label: r.dossierComplete,
+				// A form asks the title, the client and the day first. Export keeps the default values.
+				form: true,
 				save: {
 					name: "dossier",
 					ext: "docx",
@@ -57,6 +59,16 @@ export function useExportItems(slug?: string): Record<ExportPage, ExportItem[]> 
 				id: "change-request",
 				label: r.changeRequest,
 				form: true,
+				// One click with the default title and versions, as the form starts.
+				quick: async (out) => {
+					const ask = [r.changeRequest, "main", "HEAD", [] as string[], true] as const;
+					const o = await unwrap(
+						out === "pdf"
+							? commands.exportChangeRequestPdfFiles(...ask)
+							: commands.exportChangeRequestFiles(...ask),
+					);
+					return [o.markdown, out === "pdf" ? (o.pdf ?? "") : o.docx];
+				},
 			},
 		],
 		workDone: [

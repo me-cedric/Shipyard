@@ -259,22 +259,47 @@ fn decode(text: &str) -> Option<String> {
     String::from_utf8(out).ok()
 }
 
+/// The report pages that the print window may load, by their `print-<n>` name. A page lives from
+/// `keep_page` to `drop_page`: the PDF export of a text report prints it.
+static PAGES: std::sync::Mutex<Vec<(String, String)>> = std::sync::Mutex::new(Vec::new());
+
+fn keep_page(html: String) -> String {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static N: AtomicU64 = AtomicU64::new(0);
+    let token = format!("print-{}", N.fetch_add(1, Ordering::Relaxed));
+    PAGES.lock().expect("pages").push((token.clone(), html));
+    token
+}
+
+fn drop_page(token: &str) {
+    PAGES.lock().expect("pages").retain(|(t, _)| t != token);
+}
+
+/// The bytes that the deck protocol gives for `rel`: a report page that was kept, a deck of the
+/// slides folder, or a Markdown deck as its print page.
+fn body_of(s: &AppState, rel: &str) -> Res<Vec<u8>> {
+    if rel.starts_with("print-") {
+        return PAGES
+            .lock()
+            .expect("pages")
+            .iter()
+            .find(|(t, _)| t == rel)
+            .map(|(_, html)| html.clone().into_bytes())
+            .ok_or_else(|| "no such page".to_string());
+    }
+    let bytes = std::fs::read(deck_file(s, rel)?).map_err(err)?;
+    if !rel.ends_with(".md") {
+        return Ok(bytes);
+    }
+    let text = String::from_utf8(bytes).map_err(err)?;
+    Ok(print_page(&text, &crate::knowledge::theme_get(s)?.loaded.value).into_bytes())
+}
+
 /// The answer of the `deck` protocol for the path of a request (`/<encoded repository path>`).
 pub fn respond(s: &AppState, uri_path: &str) -> Response<Vec<u8>> {
     let read = decode(uri_path.trim_start_matches('/'))
         .ok_or_else(|| "bad path".to_string())
-        .and_then(|rel| deck_file(s, &rel).map(|full| (rel, full)))
-        .and_then(|(rel, full)| {
-            let bytes = std::fs::read(full).map_err(err)?;
-            // A Markdown deck is served as the print page that the PDF export loads.
-            if rel.ends_with(".md") {
-                let text = String::from_utf8(bytes).map_err(err)?;
-                return Ok(
-                    print_page(&text, &crate::knowledge::theme_get(s)?.loaded.value).into_bytes(),
-                );
-            }
-            Ok(bytes)
-        });
+        .and_then(|rel| body_of(s, &rel));
     let (status, body) = match read {
         Ok(bytes) => (StatusCode::OK, bytes),
         Err(_) => (StatusCode::NOT_FOUND, Vec::new()),
@@ -312,7 +337,7 @@ pub async fn deck_pdf(app: AppHandle, path: String, dest: String) -> Api<()> {
     })
     .await?;
     let (handle, out) = (app.clone(), tmp.clone());
-    tauri::async_runtime::spawn_blocking(move || print_pdf(&handle, &path, &out))
+    tauri::async_runtime::spawn_blocking(move || print_pdf(&handle, &path, &out, Paper::Slide))
         .await
         .map_err(err)??;
     blocking(app, move |s| {
@@ -323,17 +348,46 @@ pub async fn deck_pdf(app: AppHandle, path: String, dest: String) -> Api<()> {
     .await
 }
 
+/// The page of a PDF: a 16:9 slide with no margin, or an A4 page of a text report.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Paper {
+    Slide,
+    A4,
+}
+
+/// The PDF of an HTML page, printed in the hidden window like a deck. The page is kept for the
+/// print window only while it prints (`spec:library-functions#REQ-006`, macOS first).
+pub(crate) async fn print_html(app: &AppHandle, html: String, paper: Paper) -> Res<Vec<u8>> {
+    let token = keep_page(html);
+    let (handle, name) = (app.clone(), token.clone());
+    let tmp = {
+        let state = app.state::<AppState>();
+        state
+            .dir
+            .join(format!("report-print-{}.pdf", std::process::id()))
+    };
+    let out = tmp.clone();
+    let done = tauri::async_runtime::spawn_blocking(move || print_pdf(&handle, &name, &out, paper))
+        .await
+        .map_err(err);
+    drop_page(&token);
+    done??;
+    let bytes = std::fs::read(&tmp).map_err(err);
+    let _ = std::fs::remove_file(&tmp);
+    bytes
+}
+
 /// shortcut: macOS only. Windows (WebView2 `PrintToPdf`) and Linux (WebKitGTK print operation)
 /// need their own call; add them when a person exports a deck there.
 #[cfg(not(target_os = "macos"))]
-fn print_pdf(_app: &AppHandle, _rel: &str, _out: &Path) -> Res<()> {
+fn print_pdf(_app: &AppHandle, _rel: &str, _out: &Path, _paper: Paper) -> Res<()> {
     Err("the PDF export of a deck works on macOS only for now".into())
 }
 
 /// A hidden window with JavaScript off loads the deck from the `deck` protocol. WebKit prints it
 /// to `out` with the print style sheet of the deck: the text stays vector text.
 #[cfg(target_os = "macos")]
-fn print_pdf(app: &AppHandle, rel: &str, out: &Path) -> Res<()> {
+fn print_pdf(app: &AppHandle, rel: &str, out: &Path, paper: Paper) -> Res<()> {
     use std::time::Duration;
     use tauri::webview::PageLoadEvent;
     use tauri::{WebviewUrl, WebviewWindowBuilder};
@@ -359,7 +413,7 @@ fn print_pdf(app: &AppHandle, rel: &str, out: &Path) -> Res<()> {
             let to = out.to_path_buf();
             // Safety: on macOS the platform webview is a `WKWebView`; the call runs on the main thread.
             window
-                .with_webview(move |v| unsafe { print_to(v.inner().cast(), &to) })
+                .with_webview(move |v| unsafe { print_to(v.inner().cast(), &to, paper) })
                 .map_err(err)
         })
         .and_then(|()| wait_for(out, Duration::from_secs(60)));
@@ -412,7 +466,7 @@ fn pdf_done(out: &Path) -> bool {
 
 /// A save job to `out` on a 16:9 page with no margin, without a panel.
 #[cfg(target_os = "macos")]
-unsafe fn print_to(view: *mut objc2_web_kit::WKWebView, out: &Path) {
+unsafe fn print_to(view: *mut objc2_web_kit::WKWebView, out: &Path, paper: Paper) {
     use objc2_app_kit::{
         NSPrintInfo, NSPrintJobSavingURL, NSPrintSaveJob, NSPrintingPaginationMode,
     };
@@ -427,12 +481,17 @@ unsafe fn print_to(view: *mut objc2_web_kit::WKWebView, out: &Path) {
         info.setJobDisposition(NSPrintSaveJob);
         info.dictionary().insert(NSPrintJobSavingURL, &url);
     }
-    // A slide is 1920 x 1080 CSS pixels: 1440 x 810 points.
-    info.setPaperSize(NSSize::new(1440.0, 810.0));
-    info.setTopMargin(0.0);
-    info.setBottomMargin(0.0);
-    info.setLeftMargin(0.0);
-    info.setRightMargin(0.0);
+    // A slide is 1920 x 1080 CSS pixels: 1440 x 810 points, with no margin. A report is A4 with a
+    // margin of 50 points, and its text flows over the pages.
+    let (size, margin) = match paper {
+        Paper::Slide => (NSSize::new(1440.0, 810.0), 0.0),
+        Paper::A4 => (NSSize::new(595.0, 842.0), 50.0),
+    };
+    info.setPaperSize(size);
+    info.setTopMargin(margin);
+    info.setBottomMargin(margin);
+    info.setLeftMargin(margin);
+    info.setRightMargin(margin);
     info.setHorizontalPagination(NSPrintingPaginationMode::Fit);
     // Safety: the operation and the window belong to this view, on the main thread.
     unsafe {
@@ -517,6 +576,31 @@ mod tests {
                 .to_str()
                 .unwrap()
                 .starts_with("default-src 'none'")
+        );
+    }
+
+    #[test]
+    fn a_report_page_is_served_once_to_the_print_window_under_the_strict_policy() {
+        let f = fx();
+        let token = keep_page("<p>report</p>".into());
+        let ok = respond(&f.s, &format!("/{}", encode(&token)));
+        assert_eq!(ok.status(), StatusCode::OK);
+        assert_eq!(ok.body(), b"<p>report</p>");
+        assert!(
+            ok.headers()[header::CONTENT_SECURITY_POLICY]
+                .to_str()
+                .unwrap()
+                .starts_with("default-src 'none'")
+        );
+        drop_page(&token);
+        assert_eq!(
+            respond(&f.s, &format!("/{}", encode(&token))).status(),
+            StatusCode::NOT_FOUND
+        );
+        // A page that was never kept is not found, and no path of the project is read for it.
+        assert_eq!(
+            respond(&f.s, "/print-nothing").status(),
+            StatusCode::NOT_FOUND
         );
     }
 

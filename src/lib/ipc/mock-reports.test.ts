@@ -93,6 +93,7 @@ describe("mock client exports", () => {
 			id: "CR-001",
 			markdown: "docs/delivery/change-requests/CR-001.md",
 			docx: "docs/delivery/change-requests/CR-001.docx",
+			pdf: null,
 		});
 		expect((await run("Second")).id).toBe("CR-002");
 		const o = await unwrap(commands.projectsActive());

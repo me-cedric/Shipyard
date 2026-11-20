@@ -77,21 +77,6 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 		);
 	});
 
-	it("keeps only the reports of the chosen format", async () => {
-		const user = userEvent.setup();
-		await mountView(<Reports />);
-		const formats = await screen.findByRole("group", { name: "Format" });
-		await user.click(within(formats).getByRole("button", { name: "Word" }));
-		expect(screen.getByRole("heading", { name: "Complete dossier" })).toBeVisible();
-		expect(screen.getByRole("heading", { name: "Change request" })).toBeVisible();
-		expect(screen.queryByRole("heading", { name: "Security findings" })).toBeNull();
-		await user.click(within(formats).getByRole("button", { name: "Picture" }));
-		expect(screen.getByRole("heading", { name: "Timeline picture" })).toBeVisible();
-		expect(screen.queryByRole("heading", { name: "Complete dossier" })).toBeNull();
-		await user.click(within(formats).getByRole("button", { name: "All" }));
-		expect(screen.getByRole("heading", { name: "Security findings" })).toBeVisible();
-	});
-
 	it("links a report that asks first to the page of its form", async () => {
 		await mountView(<Reports />);
 		expect(

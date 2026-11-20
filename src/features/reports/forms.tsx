@@ -17,13 +17,16 @@ import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button, buttonVariants } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { Segmented } from "@/ui/atoms/segmented";
 import { DocumentTextIcon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { Row } from "@/ui/molecules/row";
-import { SavedActions } from "./export-menu";
+import { SavedActions, type TextOut } from "./export-menu";
+import { renderViews } from "./export-views";
+import { usePdfAvailable } from "./pdf";
 import { useReports } from "./reports-page";
 
 const FIELD = "w-56 flex-none";
@@ -47,10 +50,13 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 function Sheet({
 	ready,
 	run,
+	format,
 	children,
 }: {
 	ready: boolean;
 	run: () => Promise<string[]>;
+	/** The choice of the file, beside the button that writes. */
+	format?: ReactNode;
 	children: ReactNode;
 }) {
 	const { t } = useI18n();
@@ -63,6 +69,7 @@ function Sheet({
 			<Card className="py-2">
 				{children}
 				<Field label="">
+					{format}
 					<Button
 						variant="primary"
 						busy={busy}
@@ -116,9 +123,23 @@ function ChangeRequest() {
 	const [picked, setPicked] = useState<string[]>([]);
 	// A project with no team keeps the typed list of names.
 	const [typed, setTyped] = useState("");
+	const [file, setFile] = useState<"word" | "pdf">("word");
+	const pdf = usePdfAvailable();
+	const g = t.library.fn.reports;
 	return (
 		<Sheet
 			ready={Boolean(title.trim() && base.trim() && head.trim())}
+			format={
+				<Segmented
+					label={t.reports.format}
+					value={file}
+					onValueChange={setFile}
+					items={[
+						{ value: "word", label: g.wordMarkdown },
+						{ value: "pdf", label: g.pdf, disabled: !pdf, reason: g.pdfOff },
+					]}
+				/>
+			}
 			run={async () => {
 				const names = members.length
 					? picked
@@ -126,10 +147,13 @@ function ChangeRequest() {
 							.split(",")
 							.map((a) => a.trim())
 							.filter(Boolean);
+				const ask = [title, base.trim(), head.trim(), names, true] as const;
 				const out = await unwrap(
-					commands.exportChangeRequestFiles(title, base.trim(), head.trim(), names, true),
+					file === "pdf"
+						? commands.exportChangeRequestPdfFiles(...ask)
+						: commands.exportChangeRequestFiles(...ask),
 				);
-				return [out.markdown, out.docx];
+				return [out.markdown, file === "pdf" ? (out.pdf ?? "") : out.docx];
 			}}
 		>
 			<Field label={f.title}>
@@ -249,9 +273,78 @@ function WorkDone() {
 	);
 }
 
+/** The complete dossier: the title, the client and the day on the cover, then the file. */
+function DossierComplete() {
+	const { t } = useI18n();
+	const r = t.reports;
+	const g = t.library.fn.reports;
+	const [title, setTitle] = useState(r.dossierComplete);
+	const [client, setClient] = useState("");
+	const [date, setDate] = useState(day(0));
+	const [file, setFile] = useState<TextOut>("docx");
+	const pdf = usePdfAvailable();
+	return (
+		<Sheet
+			ready={Boolean(title.trim() && client.trim() && date)}
+			format={
+				<Segmented
+					label={r.format}
+					value={file}
+					onValueChange={setFile}
+					items={[
+						{ value: "docx", label: g.word },
+						{ value: "md", label: g.markdown },
+						{ value: "pdf", label: g.pdf, disabled: !pdf, reason: g.pdfOff },
+					]}
+				/>
+			}
+			run={async () => {
+				const path = await saveAs("dossier", file);
+				if (!path) return [];
+				const text = {
+					title: title.trim(),
+					...r.text,
+					sections: r.dossierSections,
+					client: client.trim(),
+					date,
+				};
+				await unwrap(commands.exportDossierCompleteFile(text, await renderViews(), path, true));
+				return [path];
+			}}
+		>
+			<Field label={t.reports.form.title}>
+				<Input
+					label={t.reports.form.title}
+					className={TITLE}
+					value={title}
+					onChange={(e) => setTitle(e.target.value)}
+				/>
+			</Field>
+			<Field label={g.client}>
+				<Input
+					label={g.client}
+					className={FIELD}
+					value={client}
+					onChange={(e) => setClient(e.target.value)}
+				/>
+			</Field>
+			<Field label={g.date}>
+				<Input
+					type="date"
+					label={g.date}
+					className={FIELD}
+					value={date}
+					onChange={(e) => setDate(e.target.value)}
+				/>
+			</Field>
+		</Sheet>
+	);
+}
+
 const FORMS: Record<string, () => ReactNode> = {
 	"change-request": ChangeRequest,
 	"work-done": WorkDone,
+	"dossier-complete": DossierComplete,
 };
 
 /**
@@ -301,7 +394,7 @@ export function ReportForm() {
 						) : null}
 						<LinkedRow label={r.all} render={(p) => <Link to="/library/reports" {...p} />} />
 					</LinkedCard>
-					{plain.some((x) => x.item.id === "dossier-complete") ? (
+					{reports.some((x) => x.item.id === "dossier-complete") ? (
 						<LinkedCard title={r.parts}>
 							<Row className="gap-1.5 py-3">
 								{r.dossierSections.map((part) => (

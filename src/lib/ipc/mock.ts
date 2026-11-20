@@ -186,6 +186,8 @@ type State = {
 	nextFolder?: string;
 	/** The path of the next file dialog (a workbook). */
 	nextFile?: string;
+	/** The system that `app_info` reports. A test sets "macos" to turn the PDF choice on. */
+	platform?: string;
 	cursor: number;
 	confirm: boolean;
 	connections: Connection_Serialize[];
@@ -1133,7 +1135,7 @@ function approverOnly(run: string) {
 
 // A missing key fails `tsc`: each generated command needs a handler.
 const handlers: Handlers = {
-	appInfo: () => ({ name: "Shipyard", version: "0.1.0", os: "browser" }),
+	appInfo: () => ({ name: "Shipyard", version: "0.1.0", os: state.platform ?? "browser" }),
 	prefsGet: () => state.prefs,
 	prefsSet: (patch) => {
 		const { clearAccent, ...rest } = patch;
@@ -2336,6 +2338,13 @@ const handlers: Handlers = {
 		rp.exportWorkDone(reports(), reportEnv(), base, head, from, to, path, click),
 	exportChangeRequestFiles: (title, base, head, _approvers, click) =>
 		rp.exportChangeRequest(reports(), reportEnv(), title, base, head, click),
+	exportChangeRequestPdfFiles: (title, base, head, _approvers, click) =>
+		rp.exportChangeRequestPdf(reports(), reportEnv(), title, base, head, click),
+	reportsWrittenGet: () => rp.writtenGet(reports()),
+	reportsWrittenAdd: (report, click) =>
+		rp.writtenAdd(reports(), "Ada Lovelace", new Date().toISOString().slice(0, 10), report, click),
+	docDownload: (path, dest, click) =>
+		kw.docDownload(need(state.knowledge), review().docx, path, dest, click),
 	terminalApps: () => rp.terminalApps(state.reports),
 	terminalLaunch: (folder, click) =>
 		rp.terminalLaunch(state.reports, reportEnv(), state.prefs.terminalApp, folder, click),

@@ -11,6 +11,7 @@ export function useTileLabels(): TileLabels {
 		unpin: k.unpin,
 		cut: k.cut,
 		more: t.ui.more,
+		charts: t.library.fn.charts,
 	};
 }
 

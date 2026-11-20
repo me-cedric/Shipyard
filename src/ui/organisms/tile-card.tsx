@@ -3,6 +3,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "../atoms/button";
 import { MenuList } from "../molecules/menu-button";
+import { type Chart, TileChart } from "./tile-chart";
 
 export type TileLabels = {
 	table: string;
@@ -12,6 +13,8 @@ export type TileLabels = {
 	cut: string;
 	/** The name of the menu of a tile, before its title. */
 	more: string;
+	/** The name of each chart kind, for the accessible name of a chart. */
+	charts: Record<Chart, string>;
 };
 export type TileBody = {
 	columns: string[];
@@ -35,9 +38,12 @@ export function TileCard({
 	actions,
 	lead,
 	edit,
+	chart = "bars",
 }: {
 	title: string;
 	data: TileBody | undefined;
+	/** The chart kind: bars when a tile names none. */
+	chart?: Chart;
 	/** The sentence that names a source that is off. */
 	offText: string;
 	labels: TileLabels;
@@ -52,8 +58,6 @@ export function TileCard({
 }) {
 	const [table, setTable] = useState(false);
 	const off = data?.off != null;
-	const counts = (data?.rows ?? []).map((r) => Number(r[1]) || 0);
-	const max = Math.max(1, ...counts);
 	return (
 		<section
 			aria-label={title}
@@ -153,20 +157,13 @@ export function TileCard({
 						</tbody>
 					</table>
 				) : (
-					<ul aria-label={`${title}, ${labels.chart}`} className="flex flex-col gap-2 text-13">
-						{(data?.rows ?? []).map(([name, n]) => (
-							<li key={name} className="flex items-center gap-2">
-								<span className="w-28 shrink-0 truncate text-n-10">{name}</span>
-								<span aria-hidden="true" className="h-2 flex-1 rounded-full bg-n-4">
-									<span
-										className="block h-2 rounded-full bg-accent"
-										style={{ width: `${((Number(n) || 0) / max) * 100}%` }}
-									/>
-								</span>
-								<span className="w-8 text-right font-semibold text-n-12">{n}</span>
-							</li>
-						))}
-					</ul>
+					<TileChart
+						chart={chart}
+						title={title}
+						rows={data?.rows ?? []}
+						names={labels.charts}
+						barsName={`${title}, ${labels.chart}`}
+					/>
 				)}
 			</div>
 			{data?.cut ? <p className="text-12 text-warning-text">{labels.cut}</p> : null}

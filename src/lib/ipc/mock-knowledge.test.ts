@@ -151,8 +151,13 @@ describe("mock knowledge", () => {
 			unwrap(commands.exportDossierFile(text(4), [], "/tmp/d.docx")),
 		).rejects.toMatchObject({ details: expect.stringContaining("expected 5 section titles") });
 		await expect(
-			unwrap(commands.exportFunctionalFile(text(4), "/tmp/d.pdf")),
-		).rejects.toMatchObject({ details: expect.stringContaining("the file is not a .docx file") });
+			unwrap(commands.exportFunctionalFile(text(4), "/tmp/d.txt")),
+		).rejects.toMatchObject({
+			details: expect.stringContaining("the file is not a .docx or .md or .pdf file"),
+		});
+		// A text report is also Markdown or PDF: the extension picks the file.
+		expect(await unwrap(commands.exportFunctionalFile(text(4), "/tmp/d.md"))).toBeNull();
+		expect(await unwrap(commands.exportFunctionalFile(text(4), "/tmp/d.pdf"))).toBeNull();
 		expect(await unwrap(commands.exportSheetFile(text(0), [], "/tmp/s.xlsx"))).toBeNull();
 	});
 });

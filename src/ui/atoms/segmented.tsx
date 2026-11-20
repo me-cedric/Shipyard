@@ -16,7 +16,8 @@ export function Segmented<V extends string>({
 	label: string;
 	value: V;
 	onValueChange: (value: V) => void;
-	items: { value: V; label: string }[];
+	/** A choice that is `disabled` stays in the list and gives its `reason` as a tooltip. */
+	items: { value: V; label: string; disabled?: boolean; reason?: string }[];
 }) {
 	const at = Math.max(
 		0,
@@ -45,7 +46,9 @@ export function Segmented<V extends string>({
 				<Toggle
 					key={i.value}
 					value={i.value}
-					className="min-h-control rounded-sm px-3.5 font-medium whitespace-nowrap text-n-10 transition-colors duration-(--duration-fast) hover:text-n-12 data-[pressed]:text-n-12"
+					disabled={i.disabled}
+					title={i.disabled ? i.reason : undefined}
+					className="min-h-control rounded-sm px-3.5 font-medium whitespace-nowrap text-n-10 transition-colors duration-(--duration-fast) hover:text-n-12 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[pressed]:text-n-12"
 				>
 					{i.label}
 				</Toggle>
