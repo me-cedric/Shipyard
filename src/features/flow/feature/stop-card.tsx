@@ -310,11 +310,23 @@ export function StopCard({
 				{body}
 			</AgentAsk>
 		);
-	const Frame = view === "resume" || view === "closeDone" ? PlainCard : AttentionCard;
+	if (view === "resume" || view === "closeDone")
+		return (
+			<PlainCard who={s.state[view]} title={title}>
+				{body}
+			</PlainCard>
+		);
 	return (
-		<Frame who={s.state[view]} title={title}>
+		<AttentionCard
+			head={
+				<Badge variant="you" className="self-start">
+					{s.state[view]}
+				</Badge>
+			}
+			title={title}
+		>
 			{body}
-		</Frame>
+		</AttentionCard>
 	);
 }
 
@@ -345,7 +357,7 @@ export function TicketReply({ run }: { run: Pick<RunView, "key" | "url"> }) {
 					label={t.factory.replyOnTicket}
 					caption={false}
 					placeholder=""
-					className="flex-[1_1_240px]"
+					className="min-w-60 flex-[1_1_0%]"
 					value={body}
 					onChange={(e) => setBody(e.target.value)}
 				/>

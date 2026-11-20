@@ -162,7 +162,15 @@ export function GateTile({
 			</h3>
 			<Badge
 				className="self-start"
-				variant={status === "idle" ? "neutral" : status === "active" ? "info" : status}
+				variant={
+					status === "idle"
+						? "neutral"
+						: status === "active"
+							? "info"
+							: status === "success"
+								? "success"
+								: "you"
+				}
 			>
 				{/* The design shows the word only: the named image stays for a screen reader. */}
 				<span className="sr-only">

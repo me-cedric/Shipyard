@@ -13,6 +13,7 @@ import { type ApprovalItem, useInboxActions } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { useRights } from "@/lib/rights";
 import { cn } from "@/lib/utils";
+import { memberName, useTeam } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
 import { LinkButton } from "@/ui/atoms/link-button";
@@ -205,6 +206,8 @@ function Recipe({ run }: { run: RunScopeData["run"] }) {
  * the comments of the ticket. The right column has the Recipe and "For developers". The page is never blank.
  */
 export function Chat({ parts }: { parts: Parts }) {
+	const { person } = useRights();
+	const members = useTeam().data?.team.members ?? [];
 	const { t } = useI18n();
 	const c = t.flow.look.checks;
 	const scope = useRunScope();
@@ -239,7 +242,7 @@ export function Chat({ parts }: { parts: Parts }) {
 							ticket={scope.run.key}
 							running
 							agent={agent}
-							you={c.you}
+							you={person?.member ? memberName(members, person.member) : c.you}
 							after={
 								scope.diff.length > 0 ? (
 									<LinkButton onClick={showChange}>{c.showChange}</LinkButton>

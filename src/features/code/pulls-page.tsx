@@ -96,10 +96,8 @@ function StateCard({
 	rows,
 	picked,
 	onPick,
-	scroll,
 	children,
 }: {
-	scroll?: boolean;
 	title: string;
 	rows: PrRowView[];
 	picked?: string;
@@ -109,11 +107,7 @@ function StateCard({
 	return (
 		<Card className="py-2">
 			<h2 className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">{title}</h2>
-			{/* Four rows show: the other cards stay in view. A scroll area needs a keyboard stop (axe). */}
-			<div
-				tabIndex={scroll ? 0 : undefined}
-				className={scroll ? "max-h-68 overflow-y-auto" : undefined}
-			>
+			<div>
 				{rows.map((r) => (
 					<Row key={r.reference} r={r} on={picked === r.reference} onSelect={() => onPick(r)} />
 				))}
@@ -205,7 +199,6 @@ export const PullRequestsPage = withProject(function PullRequestsView() {
 					<div className="flex flex-wrap items-start gap-6">
 						<div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
 							<StateCard
-								scroll
 								title={format(x.openCount, { count: open.length })}
 								rows={open}
 								picked={selected?.reference}

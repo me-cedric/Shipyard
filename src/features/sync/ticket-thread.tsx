@@ -77,7 +77,7 @@ export function TicketLabels({ itemKey }: { itemKey: string }) {
 	const [label, setLabel] = useState("");
 	if (!(item && edit)) return null;
 	return (
-		<div className="flex flex-col gap-2">
+		<div className="flex flex-wrap items-center justify-end gap-2">
 			<div className="flex flex-wrap items-center gap-1">
 				{item.labels.map((l) =>
 					edit.removeLabel ? (
@@ -102,7 +102,12 @@ export function TicketLabels({ itemKey }: { itemKey: string }) {
 						if (await run(() => act.addLabel(itemKey, label))) setLabel("");
 					}}
 				>
-					<Input label={d.label} value={label} onChange={(e) => setLabel(e.target.value)} />
+					<Input
+						label={d.label}
+						className="w-32"
+						value={label}
+						onChange={(e) => setLabel(e.target.value)}
+					/>
 					<Button type="submit" disabled={label.trim() === ""}>
 						{d.addLabel}
 					</Button>
@@ -187,7 +192,7 @@ export function TicketFields({ itemKey }: { itemKey: string }) {
 				<Prop label={d.priority}>
 					<Select
 						label={d.priority}
-						className="w-full min-w-0 max-w-full shrink"
+						className="w-auto min-w-24 max-w-full shrink"
 						value={priority}
 						onValueChange={(p) =>
 							void run(() => act.setPriority(itemKey, p)).then((ok) => ok && setPriority(p))
@@ -200,6 +205,7 @@ export function TicketFields({ itemKey }: { itemKey: string }) {
 				<Prop label={x.type}>
 					<SaveField
 						label={x.type}
+						className="w-40"
 						value={type}
 						ok={type.trim() !== ""}
 						onChange={setType}
@@ -209,10 +215,11 @@ export function TicketFields({ itemKey }: { itemKey: string }) {
 			) : null}
 			{edit.dueDate ? (
 				<Prop label={x.due}>
-					<div className="flex items-center gap-1">
+					<div className="flex items-center justify-end gap-1">
 						<SaveField
 							label={x.due}
 							type="date"
+							className="w-40"
 							value={due}
 							ok={due !== saved}
 							onChange={setDue}
@@ -229,6 +236,7 @@ export function TicketFields({ itemKey }: { itemKey: string }) {
 					<SaveField
 						label={x.estimate}
 						type="number"
+						className="w-40"
 						min={0}
 						step="0.5"
 						value={days}

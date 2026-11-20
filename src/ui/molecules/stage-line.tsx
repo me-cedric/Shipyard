@@ -2,6 +2,7 @@ import { useI18n } from "@/lib/i18n";
 import type { Mark, Stage } from "@/lib/ipc";
 import { cn } from "@/lib/utils";
 import { CheckIcon } from "../icons";
+import { ATTENTION_FILL, ATTENTION_GLYPH } from "./attention-card";
 
 const STAGES: Stage[] = ["idea", "spec", "build", "review", "ready"];
 // A shape for each mark, so the colour is never the only cue.
@@ -26,7 +27,7 @@ export function StageLine({ stage, mark }: { stage: Stage; mark?: Mark | null })
 							className={cn(
 								"inline-flex items-center gap-2 font-semibold",
 								state === "done" && "text-n-12",
-								state === "current" && "text-accent-text",
+								state === "current" && (mark ? ATTENTION_GLYPH : "text-accent-text"),
 								state === "next" && "text-n-11",
 							)}
 						>
@@ -35,20 +36,22 @@ export function StageLine({ stage, mark }: { stage: Stage; mark?: Mark | null })
 								className={cn(
 									"flex size-7 shrink-0 items-center justify-center rounded-full",
 									state === "done" && "bg-primary text-primary-fg",
-									state === "current" && "bg-accent ring-[5px] ring-accent-subtle",
+									state === "current" &&
+										(mark
+											? `${ATTENTION_FILL} text-13 text-primary-fg ring-[5px] ring-current/15`
+											: "bg-accent ring-[5px] ring-accent-subtle"),
 									state === "next" && "border-2 border-n-8 bg-surface-2",
 								)}
 							>
-								{state === "done" ? <CheckIcon size={16} /> : null}
+								{state === "done" ? (
+									<CheckIcon size={16} />
+								) : state === "current" && mark ? (
+									MARK_SHAPE[mark]
+								) : null}
 							</span>
 							{t.ui.flow[s]}
+							{state === "current" && mark ? `, ${t.ui.flow[mark].toLowerCase()}` : null}
 							{state === "next" ? null : <span className="sr-only"> {t.ui.flow[state]}</span>}
-							{state === "current" && mark ? (
-								<span className="ml-1 inline-flex items-center gap-1 rounded-full border border-n-8 px-2 text-13 text-n-12">
-									<span aria-hidden="true">{MARK_SHAPE[mark]}</span>
-									{t.ui.flow[mark]}
-								</span>
-							) : null}
 						</span>
 						{last ? null : (
 							<span

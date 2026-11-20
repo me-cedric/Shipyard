@@ -91,9 +91,9 @@ describe("StageLine", () => {
 
 	it("shows a mark as text with a shape", () => {
 		renderApp(<StageLine stage="review" mark="needs_you" />);
-		expect(screen.getByText("Needs you")).toBeInTheDocument();
+		expect(screen.getByText("Review, needs you")).toBeInTheDocument();
 		renderApp(<StageLine stage="review" mark="blocked" />);
-		expect(screen.getByText("Blocked")).toBeInTheDocument();
+		expect(screen.getByText("Review, blocked")).toBeInTheDocument();
 		expect(screen.queryByText("Stopped")).toBeNull();
 	});
 });

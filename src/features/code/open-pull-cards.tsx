@@ -92,6 +92,16 @@ function BeforePush() {
 }
 
 /** One stale doc: Update it with an agent, or Leave it with a reason. */
+/** The Library page of each doc kind that has one. */
+const DOC_PAGE = {
+	decisions: "/library/decisions",
+	questions: "/library/questions",
+	diagrams: "/library/diagrams",
+	"test-plans": "/library/test-plans",
+	flows: "/library/flows",
+	models: "/library/architecture",
+} as const;
+
 function StaleDoc({ c }: { c: ChainWarning_Serialize }) {
 	const { t } = useI18n();
 	const x = t.flow.look.pulls;
@@ -106,24 +116,33 @@ function StaleDoc({ c }: { c: ChainWarning_Serialize }) {
 		});
 	return (
 		<div className="flex flex-col gap-3">
-			<span className="font-semibold">{name}</span>
-			<div className="flex flex-wrap items-center gap-2.5">
-				<DocsUpdate to={c.to} name={name} range="unpushed" />
-			</div>
+			{c.to in DOC_PAGE ? (
+				<Link
+					to={DOC_PAGE[c.to as keyof typeof DOC_PAGE]}
+					className="min-h-control self-start font-semibold text-accent-text underline"
+				>
+					{name}
+				</Link>
+			) : (
+				<span className="font-semibold">{name}</span>
+			)}
 			<form
-				className="flex flex-col gap-2"
+				className="flex items-end gap-2.5"
 				onSubmit={(e) => {
 					e.preventDefault();
 					if (reason.trim()) leave();
 				}}
 			>
-				<Input
-					caption
-					label={x.leaveBecause}
-					value={reason}
-					onChange={(e) => setReason(e.target.value)}
-				/>
-				<Button type="submit" className="self-start" disabled={!reason.trim()}>
+				<div className="min-w-0 flex-1">
+					<Input
+						caption
+						label={x.leaveBecause}
+						value={reason}
+						onChange={(e) => setReason(e.target.value)}
+					/>
+				</div>
+				<DocsUpdate to={c.to} name={name} range="unpushed" primary={x.updateIt} />
+				<Button type="submit" disabled={!reason.trim()}>
 					{x.leaveIt}
 				</Button>
 			</form>

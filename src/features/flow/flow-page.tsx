@@ -232,7 +232,7 @@ function FlowPage({ view }: { view: "flow" | "list" | "done" }) {
 			const item = itemOf.get(f.ticket?.replace(/^wi:/, "") ?? "");
 			return !!item && applyFilters([item], { ...filters, text: "" }).length > 0;
 		};
-		return (features.data ?? []).filter(
+		const rows = (features.data ?? []).filter(
 			(f) =>
 				passes(f) &&
 				(q.length === 0 ||
@@ -246,6 +246,8 @@ function FlowPage({ view }: { view: "flow" | "list" | "done" }) {
 						? needsPerson(f)
 						: mineKeys.has(f.ticket?.replace(/^wi:/, "") ?? ""))),
 		);
+		// The List puts the rows that need a person first (picture 012); the sort is stable.
+		return view === "list" ? rows.sort((a, b) => +needsPerson(b) - +needsPerson(a)) : rows;
 	}, [features.data, text, filter, mineKeys, view, filters, itemOf]);
 	const ended = useMemo(() => historyRuns(runs.data ?? []), [runs.data]);
 	const history = useMemo(

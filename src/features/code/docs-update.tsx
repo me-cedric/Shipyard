@@ -18,11 +18,14 @@ export function DocsUpdate({
 	to,
 	name,
 	range,
+	primary,
 }: {
 	to: string;
 	name: string;
 	/** The place that showed the warning: the doc is stale in this range. */
 	range: "staged" | "unpushed" | "branch";
+	/** The page has this one action as its main one: a black button with this text. */
+	primary?: string;
 }) {
 	const { t } = useI18n();
 	const w = t.personal.chain;
@@ -52,11 +55,11 @@ export function DocsUpdate({
 			) : (
 				<RightButton
 					right="runs.start"
-					variant="ghost"
-					aria-label={format(w.updateName, { name })}
+					variant={primary ? "primary" : "ghost"}
+					aria-label={primary ? `${primary}: ${name}` : format(w.updateName, { name })}
 					onClick={() => void start()}
 				>
-					{w.update}
+					{primary ?? w.update}
 				</RightButton>
 			)}
 			<ErrorNotice error={failure} className="px-3 py-2" />

@@ -9,7 +9,7 @@ import { RightButton, useRights } from "@/lib/rights";
 import { useFormIntent, useShell } from "@/lib/shell";
 import { useSpecsActions } from "@/lib/specs";
 import { useBacklogActions, useWorkItems } from "@/lib/sync";
-import { useWorkActions } from "@/lib/work";
+import { memberName, useTeam, useWorkActions } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -50,7 +50,8 @@ export function NewFeature() {
 	const n = t.flow.new;
 	const c = t.flow.look.create;
 	const { openRef } = useShell();
-	const { gate } = useRights();
+	const { gate, person } = useRights();
+	const members = useTeam().data?.team.members ?? [];
 	const specs = useSpecsActions();
 	const work = useWorkActions();
 	const { adopt } = useBacklogActions();
@@ -140,7 +141,18 @@ export function NewFeature() {
 							// The design shows the avatar with no tile behind it: Tile draws one, so strip it here.
 							className="[&>span:first-child]:size-auto [&>span:first-child]:justify-start [&>span:first-child]:bg-transparent"
 							onClick={() => setWay(id)}
-							icon={<Avatar name={c.avatars[id]} agent={id !== "mine"} />}
+							icon={
+								<Avatar
+									name={
+										id === "mine"
+											? person?.member
+												? memberName(members, person.member)
+												: c.avatars[id]
+											: c.avatars[id]
+									}
+									agent={id !== "mine"}
+								/>
+							}
 							label={n.ways[id]}
 						/>
 					))}
