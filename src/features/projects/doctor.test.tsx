@@ -53,6 +53,10 @@ describe("Settings / Health / tools and ledger", () => {
 		await waitFor(async () =>
 			expect((await within(ledger).findAllByText("-1 fixed"))[0]).toBeInTheDocument(),
 		);
+		// The pills follow the date in a row, and no visible total is drawn.
+		const row = within(ledger).getAllByText("-1 fixed")[0]?.parentElement as HTMLElement;
+		expect(row.firstElementChild?.tagName).toBe("TIME");
+		expect(within(row).getByText(/^\d+$/)).toHaveClass("sr-only");
 	});
 
 	it("an unknown tool and a tool with no installer fail with a reason", async () => {

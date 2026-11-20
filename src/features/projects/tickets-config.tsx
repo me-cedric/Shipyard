@@ -1,13 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import {
-	Column,
-	Columns,
-	SetupCard,
-	SetupRow,
-	Stepper,
-	ValueButton,
-} from "@/features/settings/parts";
+import { Column, Columns, SetupCard, SetupRow, Stepper } from "@/features/settings/parts";
 import { ButtonLink, Fold, valueClass } from "@/features/settings/project/fold";
 import { STEPS, toDraft } from "@/features/sync/automation-draft";
 import { format, useI18n } from "@/lib/i18n";
@@ -124,23 +117,14 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 				</SetupCard>
 				<SetupCard id="size" title={d.size}>
 					<SetupRow label={d.unit}>
-						{c.estimateMode === "none" ? (
-							<ValueButton onClick={() => setC({ ...c, estimateMode: "timetracking" })}>
-								{k.modes.none}
-							</ValueButton>
-						) : (
-							<span className="max-w-full">
-								<Segmented
-									label={d.unit}
-									value={c.estimateMode}
-									onValueChange={(v) => setC({ ...c, estimateMode: v })}
-									items={[
-										{ value: "timetracking", label: d.days },
-										{ value: "points", label: d.points },
-									]}
-								/>
-							</span>
-						)}
+						<span className="max-w-full">
+							<Segmented
+								label={d.unit}
+								value={c.estimateMode}
+								onValueChange={(v) => setC({ ...c, estimateMode: v })}
+								items={MODES.map((v) => ({ value: v, label: modeLabel(v, d, k.modes.none) }))}
+							/>
+						</span>
 					</SetupRow>
 					<SetupRow label={d.hours}>
 						<Stepper
@@ -172,18 +156,6 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 							label={k.specUrl}
 							value={c.specBaseUrl}
 							onChange={(e) => setC({ ...c, specBaseUrl: e.target.value })}
-						/>
-					</Fold>
-					<Fold
-						id="size-unit"
-						label={d.size}
-						value={modeLabel(c.estimateMode as (typeof MODES)[number], d, k.modes.none)}
-					>
-						<Select
-							label={d.unit}
-							value={c.estimateMode}
-							onValueChange={(v) => setC({ ...c, estimateMode: v })}
-							items={MODES.map((v) => ({ value: v, label: modeLabel(v, d, k.modes.none) }))}
 						/>
 					</Fold>
 					<SetupRow label={d.every}>

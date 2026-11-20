@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockState } from "@/lib/ipc/mock";
-import { PLUGIN_PATH } from "@/lib/ipc/mock-extensions";
+import { PLUGIN_DIR, PLUGIN_PATH } from "@/lib/ipc/mock-extensions";
 import { mountTab } from "./harness";
 
 const section = async (name: string) => within(await screen.findByRole("region", { name }));
@@ -117,6 +117,19 @@ describe("Settings / Extensions", () => {
 		expect(mockState().extensions.files).toEqual(before);
 	});
 
+	it("opens on the review of a plugin folder that waits, and applies only on a click", async () => {
+		const user = userEvent.setup();
+		const router = await mountTab("extensions");
+		localStorage.setItem("shipyard.plugin-waiting", PLUGIN_DIR);
+		router.history.push("/setup/project?page=plugins");
+		expect(await screen.findByRole("heading", { name: "Adds (3)" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Changes (1)" })).toBeInTheDocument();
+		expect(mockState().extensions.plugin).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Refuse" }));
+		expect(localStorage.getItem("shipyard.plugin-waiting")).toBeNull();
+		expect(mockState().extensions.plugin).toBeNull();
+	});
+
 	it("reviews a plugin and writes only the accepted items", async () => {
 		const user = userEvent.setup();
 		await mountTab("plugins");
@@ -125,7 +138,7 @@ describe("Settings / Extensions", () => {
 			PLUGIN_PATH,
 		);
 		await user.click(screen.getByRole("button", { name: "Review" }));
-		expect(await screen.findByRole("heading", { name: "Adds (4)" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Adds (3)" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Refused (1)" })).toBeInTheDocument();
 		expect(mockState().extensions.files).not.toContain("docs/team.md");
 		await user.click(screen.getByRole("checkbox", { name: "Accept AGENTS.md" }));

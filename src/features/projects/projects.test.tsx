@@ -677,6 +677,9 @@ describe("Settings / Project, delivery files", () => {
 		await open();
 		mountApp("/setup/project");
 		const section = await screen.findByRole("region", { name: "Personas" });
+		// A name shows as plain text and opens its field on a click.
+		await user.click(within(section).getAllByRole("button", { name: /^Name: / })[0] as HTMLElement);
+		expect(within(section).getByRole("textbox", { name: "Name" })).toBeInTheDocument();
 		const rates = within(section).getAllByRole("spinbutton", { name: "Daily sale rate" });
 		await user.clear(rates[0] as HTMLElement);
 		await user.type(rates[0] as HTMLElement, "650");
@@ -684,7 +687,7 @@ describe("Settings / Project, delivery files", () => {
 		await waitFor(() => expect(mockState().delivery.personas[0]?.tjm).toBe(650));
 		// A save resets the draft: the region is a new element.
 		const again = () => within(screen.getByRole("region", { name: "Personas" }));
-		await user.click(await screen.findByRole("button", { name: "Add persona" }));
+		await user.click(await screen.findByRole("button", { name: "Add a persona" }));
 		await user.click(again().getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().delivery.personas).toHaveLength(3));
 		const low = await screen.findAllByRole("spinbutton", { name: "Daily cost" });

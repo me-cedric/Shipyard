@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { DoctorBootstrap } from "@/features/projects/doctor-bootstrap";
 import { Columns, SetupCard, SetupRow, Toggle, ValueButton } from "@/features/settings/parts";
 import { ButtonLink, Fold } from "@/features/settings/project/fold";
@@ -42,6 +42,26 @@ import { GroupSection } from "@/ui/molecules/group-section";
 import { WriteReportView } from "@/ui/molecules/write-report";
 import { CompassSetup } from "./compass-setup";
 import { PluginSettings } from "./plugin-settings";
+
+/** The plugin folder that a person looked at and did not apply or refuse yet. It is the same literal as in the demo mock. */
+const WAITING_KEY = "shipyard.plugin-waiting";
+const waiting = {
+	read: () => {
+		try {
+			return localStorage.getItem(WAITING_KEY);
+		} catch {
+			return null;
+		}
+	},
+	write: (path: string | null) => {
+		try {
+			if (path) localStorage.setItem(WAITING_KEY, path);
+			else localStorage.removeItem(WAITING_KEY);
+		} catch {
+			// A browser that blocks storage forgets the folder: the person chooses it again.
+		}
+	},
+};
 
 const GROUPS: CatalogGroup[] = ["devcontainers", "agents", "devops-security"];
 const CHANGES: PluginChange[] = ["new", "changed", "same", "removed"];
@@ -268,8 +288,17 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 		const m = /^manifest\.json:(\d+): (.*)$/s.exec((e as { details?: string }).details ?? "");
 		if (!m) throw e;
 		setReview(null);
+		waiting.write(null);
 		setFault({ dir, line: Number(m[1]), reason: m[2] ?? "" });
 	};
+	// A folder that waits for review opens in the review state when the page opens.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: once, when the page opens
+	useEffect(() => {
+		const p = view === "plugins" ? waiting.read() : null;
+		if (!p) return;
+		setPath(p);
+		void run(() => look(p)).catch(() => waiting.write(null));
+	}, []);
 	/** Read a zip or a folder and show the review. */
 	const look = async (p: string) => {
 		setFault(null);
@@ -277,6 +306,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 		try {
 			const r = await unwrap(commands.pluginReview(p));
 			setReview(r);
+			waiting.write(p);
 			setApplied(null);
 			setAccepted(
 				new Set(
@@ -413,6 +443,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 						variant="secondary"
 						onClick={() => {
 							setReview(null);
+							waiting.write(null);
 							setAccepted(new Set());
 						}}
 					>
@@ -426,6 +457,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 							void run(async () => {
 								setApplied(await unwrap(commands.pluginApply(path.trim(), [...accepted])));
 								setReview(null);
+								waiting.write(null);
 								await qc.invalidateQueries({ queryKey: ["catalog"] });
 								await qc.invalidateQueries({ queryKey: ["plugins"] });
 								await qc.invalidateQueries({ queryKey: ["themes"] });
@@ -814,10 +846,10 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 								/>
 							</SetupRow>
 						))}
-						<div className="flex min-h-15 items-center justify-center border-n-6 border-t">
+						<div className="flex min-h-15 items-center justify-start border-n-6 border-t px-6">
 							<ButtonLink
 								href="/setup/computer?page=rules"
-								className="border-0 bg-transparent text-accent-text shadow-none hover:bg-transparent"
+								className="border-0 bg-transparent px-0 text-accent-text shadow-none hover:bg-transparent"
 							>
 								{d.allSkills}
 							</ButtonLink>

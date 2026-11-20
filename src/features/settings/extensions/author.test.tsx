@@ -14,7 +14,7 @@ describe("Settings / Extensions: plugin author tools", () => {
 		await user.click(await screen.findByRole("button", { name: "Choose a zip" }));
 		await waitFor(async () => expect(await field()).toHaveValue(PLUGIN_PATH));
 		await user.click(screen.getByRole("button", { name: "Review" }));
-		expect(await screen.findByRole("heading", { name: "Adds (4)" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Adds (3)" })).toBeInTheDocument();
 	});
 
 	it("copies the sample to a picked folder and opens it as a project", async () => {
@@ -31,7 +31,7 @@ describe("Settings / Extensions: plugin author tools", () => {
 		await mountTab("plugins");
 		await user.type(await field(), PLUGIN_DIR);
 		await user.click(screen.getByRole("button", { name: "Try in this project" }));
-		expect(await screen.findByRole("heading", { name: "Adds (4)" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Adds (3)" })).toBeInTheDocument();
 		expect(screen.getByText("Team: core")).toBeInTheDocument();
 		expect(mockState().extensions.files).not.toContain("docs/team.md");
 	});

@@ -40,15 +40,11 @@ export function Stepper({
 }) {
 	const { t } = useI18n();
 	const side =
-		"inline-flex size-(--control-h) items-center justify-center text-20 text-n-12 hover:bg-n-3 disabled:pointer-events-none disabled:opacity-50";
+		"inline-flex size-(--control-h) items-center justify-center rounded-md border border-n-7 bg-surface-1 text-20 text-n-12 hover:bg-n-3 disabled:pointer-events-none disabled:opacity-50";
 	const to = (next: number) => onValueChange(Math.min(max, Math.max(min, next)));
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
-		<span
-			role="group"
-			aria-label={label}
-			className="inline-flex shrink-0 items-center overflow-hidden rounded-md border border-n-7 bg-surface-1"
-		>
+		<span role="group" aria-label={label} className="inline-flex shrink-0 items-center gap-1">
 			<button
 				type="button"
 				aria-label={format(t.settings.parts.less, { name: label })}
@@ -117,7 +113,7 @@ export function StatePill({
 }) {
 	const { t } = useI18n();
 	return (
-		<Badge variant={STATE[state]} dot={state !== "off"}>
+		<Badge variant={STATE[state]} dot={false}>
 			{children ?? t.settings.parts[state]}
 		</Badge>
 	);

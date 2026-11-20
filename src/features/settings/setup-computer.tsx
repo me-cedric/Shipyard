@@ -107,7 +107,7 @@ export function SetupComputer() {
 					{
 						id: "health",
 						label: t.settings.pills.health,
-						view: <Health scope="computer" />,
+						view: (row) => <Health scope="computer" below={row} />,
 					},
 					{
 						id: "logs",

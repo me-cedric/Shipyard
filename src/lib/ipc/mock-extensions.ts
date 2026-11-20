@@ -248,6 +248,16 @@ export function catalogDeploy(m: MockExtensions, id: string): WriteReport {
 
 // ---------------------------------------------------------------- plugins
 
+/** The demo has one plugin folder that waits for review: the plugins page opens on it. Same literal as `extensions.tsx`. */
+export function seedWaitingPlugin() {
+	try {
+		if (!localStorage.getItem("shipyard.plugin-waiting"))
+			localStorage.setItem("shipyard.plugin-waiting", PLUGIN_DIR);
+	} catch {
+		// No storage: the demo opens on the plain page.
+	}
+}
+
 const PLUGIN_ITEMS = (m: MockExtensions): PluginItem_Serialize[] => {
 	const change = m.plugin ? "same" : "new";
 	return [
@@ -264,7 +274,8 @@ const PLUGIN_ITEMS = (m: MockExtensions): PluginItem_Serialize[] => {
 			kind: "file",
 			label: "AGENTS.md",
 			exists: m.files.includes("AGENTS.md"),
-			change,
+			// The file is in the project: the plugin changes it.
+			change: m.plugin ? "same" : "changed",
 			preview: null,
 		},
 		{ id: "setting:team", kind: "setting", label: "team", exists: false, change, preview: null },

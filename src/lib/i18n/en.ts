@@ -413,7 +413,7 @@ export const en = {
 			tjm: "Daily sale rate",
 			cjm: "Daily cost",
 			active: "Active",
-			add: "Add persona",
+			add: "Add a persona",
 			newName: "New persona",
 		},
 		ticketsConfig: {

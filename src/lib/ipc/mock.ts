@@ -2636,6 +2636,7 @@ export function installMockIpc(options: { demo?: boolean } = {}) {
 			},
 		]);
 	}
+	if (demo) ex.seedWaitingPlugin();
 	mockIPC((cmd, args) => {
 		const handler = (handlers as Record<string, ((...a: unknown[]) => unknown) | undefined>)[
 			camel(cmd)

@@ -73,7 +73,7 @@ function Finding({
 		});
 
 	return (
-		<div className="flex flex-col gap-3">
+		<div className="flex flex-1 flex-col gap-3">
 			<div className="flex flex-wrap items-center gap-2 rounded-md bg-n-3 p-4 text-ui text-n-12">
 				<span className="min-w-0 flex-[1_1_8rem]">
 					{format(message, { detail: finding.detail ?? "" })}
@@ -251,7 +251,7 @@ function Area({
  * Setup / Health of this computer: the count of problems as the title, a banner for each required tool
  * that is missing, the five areas, the toolchain behind the Tools area, and the version and help cards.
  */
-function ComputerHealth() {
+function ComputerHealth({ below }: { below?: ReactNode }) {
 	const { t } = useI18n();
 	const h = t.doctor.health;
 	const router = useRouter();
@@ -280,6 +280,7 @@ function ComputerHealth() {
 	return (
 		<div className="flex flex-col">
 			<PageHeader title={title} />
+			{below}
 			<div className="flex flex-col gap-4 px-4 pb-10">
 				{problems.map((p) => (
 					<section
@@ -403,6 +404,7 @@ function ComputerHealth() {
 }
 
 /** Setup / Health: the part of the project under This project, the part of this machine under This computer. */
-export function Health({ scope }: { scope: "project" | "computer" }) {
-	return scope === "project" ? <ProjectHealth /> : <ComputerHealth />;
+/** `below` is the row of pills of Setup: it sits under the title row of the computer page. */
+export function Health({ scope, below }: { scope: "project" | "computer"; below?: ReactNode }) {
+	return scope === "project" ? <ProjectHealth /> : <ComputerHealth below={below} />;
 }

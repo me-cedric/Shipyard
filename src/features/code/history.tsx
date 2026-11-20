@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { featureHref, useFeatures } from "@/features/flow/feature";
 import { PageExport } from "@/features/reports/page-export";
 import {
@@ -41,6 +41,8 @@ import { diffCounts } from "./viewer";
 const LANE = ["bg-accent", "bg-success", "bg-warning", "bg-info", "bg-danger"];
 const lane = (i: number) => LANE[i % LANE.length];
 const STEP = 14;
+/** The commits that show first, and the commits that "Older commits" adds. */
+const PAGE = 5;
 const LABEL = { branch: "accent", remote: "neutral", tag: "warning" } as const;
 
 type FileState = keyof ReturnType<typeof useI18n>["t"]["code"]["state"];
@@ -227,10 +229,10 @@ function HistoryView() {
 	const menu = useMenus();
 	const navigate = useNavigate();
 	const log = useLog();
-	const end = useRef<HTMLDivElement>(null);
 	const { hasNextPage, isFetchingNextPage, fetchNextPage } = log;
 	const [show, setShow] = useState<"commits" | "tags">("commits");
 	const [query, setQuery] = useState("");
+	const [limit, setLimit] = useState(PAGE);
 	const all = log.data?.pages.flatMap((p) => p.commits) ?? [];
 	const needle = query.trim().toLowerCase();
 	// The search and the Tags choice narrow the commits that are loaded. "Older commits" loads more.
@@ -252,16 +254,13 @@ function HistoryView() {
 	// The rail of the graph shows for a history with side lines, on the whole list only.
 	const rail = lanes > 1 && commits.length === all.length;
 
-	// Older commits load when the end of the list scrolls into view. The button does the same by keyboard.
-	useEffect(() => {
-		const node = end.current;
-		if (!(node && hasNextPage) || typeof IntersectionObserver === "undefined") return;
-		const watch = new IntersectionObserver(([hit]) => {
-			if (hit?.isIntersecting && !isFetchingNextPage) void fetchNextPage();
-		});
-		watch.observe(node);
-		return () => watch.disconnect();
-	}, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+	// The selected commit stays in view, even past the limit.
+	const shown = commits.filter((c, i) => i < limit || c.sha === sha);
+	const more = hasNextPage || shown.length < commits.length;
+	const older = () => {
+		setLimit(limit + PAGE);
+		if (hasNextPage && limit + PAGE >= commits.length) void fetchNextPage();
+	};
 
 	const date = new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" });
 	return (
@@ -291,7 +290,7 @@ function HistoryView() {
 			<div className="flex items-start gap-6 px-4 pb-10">
 				<SplitPane id="code-history-width" label={t.forge.resize.history} fallback={688} max={1000}>
 					<Card className="py-2">
-						{commits.map((c) => {
+						{shown.map((c) => {
 							const row = rowOf.get(c.sha);
 							const tags = c.labels.filter((l) => l.kind === "tag");
 							return (
@@ -354,9 +353,9 @@ function HistoryView() {
 						{commits.length === 0 && log.data ? (
 							<p className="px-6 py-4 text-n-11">{h.none}</p>
 						) : null}
-						{hasNextPage ? (
-							<div ref={end} className="border-t border-n-6 px-6 py-2">
-								<LinkButton disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+						{more ? (
+							<div className="border-t border-n-6 px-6 py-2">
+								<LinkButton disabled={isFetchingNextPage} onClick={older}>
 									{h.older}
 								</LinkButton>
 							</div>

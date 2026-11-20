@@ -331,7 +331,11 @@ export function AgentsAlone() {
 			{WRITES.map((w) => (
 				<SetupRow key={w} label={a.write[WRITE_KEY[w]]}>
 					{/* A person with no right sees the choice and cannot change it. */}
-					<fieldset disabled={off.disabled} title={off.reason} className="min-w-0">
+					<fieldset
+						disabled={off.disabled}
+						title={off.reason}
+						className="-my-1 min-w-0 [&_button]:whitespace-nowrap [&_button]:px-3"
+					>
 						<Segmented
 							label={a.write[WRITE_KEY[w]]}
 							value={automation.writes[w] ? "alone" : "asks"}

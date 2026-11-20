@@ -61,7 +61,7 @@ function Tiles({
 		<div
 			role="group"
 			aria-label={label}
-			className="grid grid-cols-[repeat(auto-fill,minmax(min(180px,100%),1fr))] gap-3"
+			className="grid grid-cols-[repeat(4,minmax(0,180px))] gap-3"
 		>
 			{items.map((k) => (
 				<button

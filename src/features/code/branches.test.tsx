@@ -67,10 +67,17 @@ describe("Code / History", () => {
 		}
 		mockState().code = code;
 		mountApp("/code/history");
-		await screen.findByRole("button", { name: /chore: n26/ });
-		expect(screen.queryByRole("button", { name: /chore: n27/ })).toBeNull();
-		await user.click(screen.getByRole("button", { name: "Older commits" }));
-		await screen.findByRole("button", { name: /chore: n36/ });
+		await screen.findByRole("button", { name: /chore: n1(?!\d)/ });
+		expect(screen.queryByRole("button", { name: /chore: n2(?!\d)/ })).toBeNull();
+		// Five more each time, then the next page of the log when the loaded rows are used up.
+		const older = () => screen.getByRole("button", { name: "Older commits" });
+		await user.click(older());
+		await screen.findByRole("button", { name: /chore: n6(?!\d)/ });
+		expect(screen.queryByRole("button", { name: /chore: n7(?!\d)/ })).toBeNull();
+		for (let i = 0; i < 5; i++) await user.click(older());
+		await screen.findByRole("button", { name: /chore: n31(?!\d)/ });
+		await user.click(older());
+		await screen.findByRole("button", { name: /chore: n36(?!\d)/ });
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Older commits" })).toBeNull());
 	});
 });

@@ -32,7 +32,8 @@ export type ScopePage = {
 	id: string;
 	/** The name of the page: the text of its row on the first page, and of a back link to it. */
 	label: string;
-	view: ReactNode;
+	/** A function gets the pill row and draws it under its own title row. */
+	view: ReactNode | ((row: ReactNode) => ReactNode);
 	/** The view has no page header of its own: the scope draws the title row. A view of before draws its own. */
 	bare?: boolean;
 	/** The id of the page that the back link opens. Without it: the first page of the scope. */
@@ -118,8 +119,8 @@ export function SetupScope({
 				) : back ? (
 					<div className="flex px-4">{back}</div>
 				) : null}
-				{back ? null : row}
-				{page.view}
+				{back || typeof page.view === "function" ? null : row}
+				{typeof page.view === "function" ? page.view(back ? null : row) : page.view}
 				<Rows pages={under} address={address} />
 			</div>
 		);
