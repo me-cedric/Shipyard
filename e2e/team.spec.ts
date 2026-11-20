@@ -64,6 +64,8 @@ test("a solo project gets two members with an admin, then an unknown person read
 	// Every view still reads: Setup / This project opens, and its save is off.
 	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "This project" }).click();
+	// The name is a row of the card Project: open the row to reach its field.
+	await page.locator("summary", { hasText: /^Name/ }).click();
 	await page.getByRole("textbox", { name: "Name" }).first().fill("Renamed");
 	const save = page.getByRole("button", { name: "Save", exact: true });
 	await expect(save).toBeDisabled();

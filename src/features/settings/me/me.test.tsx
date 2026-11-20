@@ -44,7 +44,7 @@ describe("Settings / Me fonts, terminal and agent", () => {
 		await waitFor(() => expect(mockState().prefs.uiFont).toBe("serif"));
 		expect(mockState().prefs.codeFont).toBe("menlo");
 		expect(document.documentElement.style.getPropertyValue("--font-sans")).toContain("Charter");
-		await user.click(await screen.findByRole("button", { name: "Shell" }));
+		await user.click(await screen.findByRole("button", { name: /: Shell$/ }));
 		const shell = await screen.findByRole("textbox", { name: "Shell" });
 		await user.type(shell, "/bin/zsh");
 		await user.tab();

@@ -88,7 +88,7 @@ test("fixes a finding in Settings / Health after one confirm click", async ({ pa
 	// The finding of the rules is in its own card, with its count in words.
 	const rules = page.getByRole("region", { name: "Rules and skills of the agents" });
 	await expect(rules).toContainText("1 to fix");
-	await page.getByRole("button", { name: "Write" }).click();
+	await rules.getByRole("button", { name: "Fix", exact: true }).click();
 	await expect(page.getByLabel(".gitignore")).toContainText(".DS_Store");
 	await page.getByRole("button", { name: "Confirm" }).click();
 	// A card with nothing to fix leaves the page.

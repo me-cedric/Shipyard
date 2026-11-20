@@ -35,6 +35,11 @@ async function openWithTracker(page: Page, secret: string | null = "tok-e2e-sync
 	await expect(page.getByRole("group", { name: "Acme" })).toBeVisible();
 	// The only tracker links itself to the project.
 	await tabs(page).getByRole("link", { name: "This project" }).click();
+	// The card says Connected; its Change link opens the choice behind More.
+	await page
+		.getByRole("region", { name: "Issue tracker" })
+		.getByRole("link", { name: "Change" })
+		.click();
 	await expect(page.getByRole("combobox", { name: "Issue tracker", exact: true })).toContainText(
 		"Acme",
 	);
@@ -70,10 +75,10 @@ test("the sync action in the card of the sync mark runs a tick and the connectio
 	await openWithTracker(page);
 	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "This project" }).click();
-	// The card Issue tracker of This project opens, once connected, the page of the connections.
+	// The accounts live on the page of the connections: the card Code host (not connected) opens it.
 	await page
-		.getByRole("region", { name: "Issue tracker" })
-		.getByRole("link", { name: "Change" })
+		.getByRole("region", { name: "Code host" })
+		.getByRole("link", { name: "Connect" })
 		.click();
 	const row = page.getByRole("group", { name: "Acme" });
 	await expect(row.getByRole("status")).toHaveText("Idle");
@@ -102,10 +107,10 @@ test("a failed poll shows the failed state and keeps the mirror", async ({ page 
 	await openWithTracker(page, null);
 	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "This project" }).click();
-	// The card Issue tracker of This project opens, once connected, the page of the connections.
+	// The accounts live on the page of the connections: the card Code host (not connected) opens it.
 	await page
-		.getByRole("region", { name: "Issue tracker" })
-		.getByRole("link", { name: "Change" })
+		.getByRole("region", { name: "Code host" })
+		.getByRole("link", { name: "Connect" })
 		.click();
 	await (await openSync(page)).getByRole("button", { name: "Sync", exact: true }).click();
 	const row = page.getByRole("group", { name: "Acme" });
@@ -126,7 +131,12 @@ test("refuses an interval under 30 s and saves the pickup rules with the write s
 	await open("Look for new tickets");
 	const interval = page.getByRole("spinbutton", { name: "Interval (s)" });
 	await expect(interval).toHaveValue("60");
-	for (const name of ["Push", "Pull request", "Ticket transition", "Ticket comment"])
+	for (const name of [
+		"Push the branch",
+		"Open the pull request",
+		"Move the ticket",
+		"Comment in the issue tracker",
+	])
 		await expect(page.getByRole("switch", { name })).toBeChecked();
 
 	await interval.fill("10");

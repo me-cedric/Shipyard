@@ -51,6 +51,8 @@ test("asks for a permission from the tour and shows the list in Setup / This com
 	await page.goto("/setup/computer?page=logs");
 	const files = page.getByRole("group", { name: "Documents, Desktop and Downloads" });
 	await expect(files.getByRole("button", { name: "Allow" })).toBeVisible();
+	// Replay the tour is a row "Tour" of the More card: open the row, then press its button.
+	await page.locator("summary", { hasText: /^Tour$/ }).click();
 	await page.getByRole("button", { name: "Replay the tour" }).click();
 	await expect(page.getByRole("dialog", { name: FIRST })).toBeVisible();
 });
@@ -75,9 +77,12 @@ test("offers the settings on the steps and lists them in Setup / Start", async (
 	await page.goto("/setup/start");
 	const steps = page.getByRole("list", { name: "Get started" });
 	await expect(steps.getByRole("button")).toHaveCount(11);
-	await steps.getByRole("button", { name: /AI tool/ }).click();
+	const aiStep = steps.getByRole("button", { name: /AI tool/ });
+	await aiStep.click();
 	await expect(page.getByRole("heading", { name: "Which AI tool does the work?" })).toBeVisible();
-	await expect(page.getByText("To do", { exact: true })).toBeVisible();
+	// A step to do has no status text any more: a done step reads "Done", this one does not.
+	await expect(aiStep).toHaveAttribute("aria-current", "step");
+	await expect(aiStep).not.toContainText("Done");
 	await expect(page.getByRole("link", { name: /^This project.+/ })).toHaveAttribute(
 		"href",
 		"/setup/project",

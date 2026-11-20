@@ -681,7 +681,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 						<Button
 							variant="secondary"
 							className="w-full"
-							aria-label={format(x.plugin.enable, { name: c.name })}
+							aria-label={`${d.addBtn}: ${c.name}`}
 							onClick={() => openDetail(c.name, <ComponentDetail key={c.id} id={c.id} />)}
 						>
 							{d.addBtn}

@@ -37,7 +37,7 @@ test("chooses a file, commits it from /code/changes and finds it in History", as
 	await expect(box.getByRole("alert")).toContainText("feat, fix, chore, docs, refactor, test");
 
 	await box.getByRole("textbox", { name: "Commit message" }).fill("docs(guide): update the guide");
-	await box.getByRole("button", { name: "Add a description" }).click();
+	await box.getByRole("button", { name: "More" }).click();
 	await box.getByRole("textbox", { name: "Description" }).fill("why");
 	await box.getByRole("button", { name: "Commit 2 files" }).click();
 	await expect(heading(page, "3 files to commit")).toBeVisible();
@@ -67,10 +67,16 @@ test("commits the staged file from the card of the sync mark with Ctrl/Cmd+Enter
 	await dialog.getByRole("textbox", { name: "Description" }).fill("why");
 	await page.keyboard.press("ControlOrMeta+Enter");
 	await expect(dialog).toBeHidden();
-	await expect(heading(page, "3 files to commit")).toBeVisible();
+	// The staged file also has an unstaged change, so it stays in the list: nothing is left staged.
 	await openSync(page);
 	await expect(commit).toBeDisabled();
 	await page.keyboard.press("Escape");
+
+	await page
+		.getByRole("navigation", { name: "Tabs" })
+		.getByRole("link", { name: "History" })
+		.click();
+	await expect(page.getByRole("button", { name: /docs\(guide\): update the guide/ })).toBeVisible();
 });
 
 test("refuses a switch that would overwrite a change, then switches after a discard", async ({

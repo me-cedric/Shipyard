@@ -8,6 +8,8 @@ test("shows a notification for a newer version, in a toast and in the centre", a
 	await openFirstFolder(page);
 	await visit(page, "/setup/me");
 	// The mock release address with `newer` in it has a newer version.
+	// The field is behind More, in the card Updates.
+	await page.locator("#section-updates summary", { hasText: "More" }).click();
 	const address = page.getByRole("textbox", { name: "Release address" });
 	await address.fill("https://example.com/newer/latest");
 	await address.blur();

@@ -33,6 +33,11 @@ async function openSpecs(page: Page, tab: string) {
 	await expect(page.getByRole("group", { name: "Acme" })).toBeVisible();
 	// The only tracker links itself to the project.
 	await tabs(page).getByRole("link", { name: "This project" }).click();
+	// The card says Connected; its Change link opens the choice behind More.
+	await page
+		.getByRole("region", { name: "Issue tracker" })
+		.getByRole("link", { name: "Change" })
+		.click();
 	await expect(page.getByRole("combobox", { name: "Issue tracker", exact: true })).toContainText(
 		"Acme",
 	);

@@ -30,7 +30,11 @@ export function TextPref({
 	useEffect(() => setV(value), [value]);
 	if (!editing)
 		return (
-			<ValueButton aria-label={label} onClick={() => setEditing(true)}>
+			// The name starts with the visible value and adds the label (WCAG 2.5.3).
+			<ValueButton
+				aria-label={`${value || placeholder}: ${label}`}
+				onClick={() => setEditing(true)}
+			>
 				<span className="truncate font-semibold">{value || placeholder}</span>
 			</ValueButton>
 		);

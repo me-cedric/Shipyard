@@ -74,11 +74,14 @@ test("reviews a plugin, accepts some items and applies them", async ({ page }) =
 test("deploys to a child project on a branch and never pushes", async ({ page }) => {
 	await openSettings(page, "Plugins and rule packs");
 	const select = page.getByRole("checkbox", { name: "Select API gateway" });
-	// The button reads "Send" with nothing chosen, then "Deploy to 1".
+	// Every cloned child project is chosen until a person picks: "Deploy to 1", then "Send" with none.
 	const deploy = page
 		.getByRole("region", { name: "Send to the child projects" })
 		.getByRole("button", { name: /^(Send|Deploy to)/ });
+	await expect(deploy).toHaveText("Deploy to 1");
+	await select.click();
 	await expect(deploy).toBeDisabled();
+	await expect(deploy).toHaveText("Send");
 	await select.click();
 	await expect(deploy).toHaveText("Deploy to 1");
 	await deploy.click();
@@ -102,8 +105,15 @@ test("imports a rules file, applies a policy pack and removes the entry", async 
 
 test("removes a child project", async ({ page }) => {
 	await openSettings(page, "Extensions");
-	const children = page.getByRole("region", { name: "Child projects" });
-	await children.getByRole("button", { name: "Remove API gateway" }).click();
+	// The Remove button is in the inspector of the child project, opened from its row.
+	await page
+		.getByRole("group", { name: "API gateway" })
+		.getByRole("button", { name: "Open" })
+		.click();
+	await page
+		.getByRole("complementary", { name: "API gateway" })
+		.getByRole("button", { name: "Remove API gateway" })
+		.click();
 	// The card has no count: the row of the child project is gone.
-	await expect(children.getByRole("group", { name: "API gateway" })).toHaveCount(0);
+	await expect(page.getByRole("group", { name: "API gateway" })).toHaveCount(0);
 });

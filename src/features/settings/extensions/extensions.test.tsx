@@ -108,10 +108,10 @@ describe("Settings / Extensions", () => {
 		const user = userEvent.setup();
 		const before = [...mockState().extensions.files];
 		await mountTab("extensions");
-		const tile = (await screen.findAllByRole("button", { name: /^Enable / }))[0] as HTMLElement;
+		const tile = (await screen.findAllByRole("button", { name: /^Add: / }))[0] as HTMLElement;
 		await user.click(tile);
 		const panel = await screen.findByRole("complementary", {
-			name: tile.getAttribute("aria-label")?.replace("Enable ", ""),
+			name: tile.getAttribute("aria-label")?.replace("Add: ", ""),
 		});
 		await within(panel).findByRole("button", { name: "Deploy" });
 		expect(mockState().extensions.files).toEqual(before);
