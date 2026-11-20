@@ -5,6 +5,7 @@ import {
 	RouterProvider,
 } from "@tanstack/react-router";
 import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { Providers } from "@/app/providers";
 import { commands, unwrap } from "@/lib/ipc";
@@ -103,5 +104,10 @@ describe("Today parts (spec:app-redesign#REQ-009)", () => {
 		mount(<SinceAway />);
 		const panel = within(await screen.findByRole("region", { name: /^Since you were away/ }));
 		expect(panel.getByRole("link", { name: "All news" })).toBeInTheDocument();
+		// Three rows show first; "N more" shows the rest in place.
+		const rows = () => panel.getAllByRole("listitem");
+		expect(rows()).toHaveLength(3);
+		await userEvent.setup().click(panel.getByRole("button", { name: /^\d+ more$/ }));
+		expect(rows().length).toBeGreaterThan(3);
 	});
 });
