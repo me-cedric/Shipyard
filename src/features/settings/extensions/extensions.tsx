@@ -401,6 +401,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 											name={i.label}
 											status={CHANGE[c]}
 											statusLabel={name}
+											hideLabel
 											// A removed item is never written: it has nothing to accept.
 											check={
 												c === "removed"
@@ -719,10 +720,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 									}
 								/>
 							</SetupRow>
-							<details className="px-6 pb-2">
-								<summary className="min-h-control cursor-pointer text-12 text-n-11">
-									{t.ui.more} {p.version}
-								</summary>
+							<Fold label={p.version} mono value={t.ui.more}>
 								<div className="flex flex-wrap items-center gap-2">
 									{p.settings.length ? (
 										<Button
@@ -768,7 +766,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 										{x.plugin.remove}
 									</RightButton>
 								</div>
-							</details>
+							</Fold>
 							{editing === p.name ? (
 								<PluginSettings
 									name={p.name}

@@ -26,8 +26,8 @@ import { LearnCard, learningKey, openAddress } from "./learn-feeds";
 const KINDS: StepKind[] = ["course", "certification", "reading"];
 const stepKey = (p: LearningPath, s: LearningStep) => `${p.id}/${s.id}`;
 
-type Draft = { id: string; title: string; experts: string[]; steps: LearningStep[] };
-const blankStep = (): LearningStep => ({ id: "", kind: "course", title: "", url: null });
+export type Draft = { id: string; title: string; experts: string[]; steps: LearningStep[] };
+export const blankStep = (): LearningStep => ({ id: "", kind: "course", title: "", url: null });
 
 /** The form of one path: its name, its experts from the team and its steps. */
 function PathForm({
@@ -146,11 +146,57 @@ function PathForm({
 	);
 }
 
+/** The header of Learn: the person whose steps show, and the button for a new path. */
+export function LearnActions({
+	picked,
+	onPick,
+	editing,
+	onNew,
+}: {
+	picked: string | null;
+	onPick: (handle: string) => void;
+	editing: boolean;
+	onNew: () => void;
+}) {
+	const { t } = useI18n();
+	const k = t.knowledge.learn;
+	const people = (useTeam().data?.team.members ?? []).map((m) => ({
+		value: m.handle,
+		label: m.name,
+	}));
+	return (
+		<>
+			{people.length ? (
+				<Select
+					label={k.person}
+					value={picked ?? people[0]?.value ?? ""}
+					onValueChange={onPick}
+					items={people}
+				/>
+			) : null}
+			<RightButton right="knowledge.edit" variant="primary" disabled={editing} onClick={onNew}>
+				<PlusIcon size={14} />
+				{k.newPath}
+			</RightButton>
+		</>
+	);
+}
+
 /**
  * The learning paths of the team: courses, certifications and readings, the experts who can help,
  * and the steps that each person finished. A tick, a save and a delete each need a click.
  */
-export function LearnPaths({ part }: { part: "paths" | "team" }) {
+export function LearnPaths({
+	part,
+	picked = null,
+	editing = null,
+	onEdit = () => undefined,
+}: {
+	part: "paths" | "team";
+	picked?: string | null;
+	editing?: Draft | null;
+	onEdit?: (d: Draft | null) => void;
+}) {
 	const { t } = useI18n();
 	const k = t.knowledge.learn;
 	const qc = useQueryClient();
@@ -163,9 +209,8 @@ export function LearnPaths({ part }: { part: "paths" | "team" }) {
 		handle: m.handle,
 		name: m.name,
 	}));
-	const [picked, setPicked] = useState<string | null>(null);
 	const who = picked ?? people[0]?.handle ?? "";
-	const [editing, setEditing] = useState<Draft | null>(null);
+	const setEditing = onEdit;
 	const [removing, setRemoving] = useState<string | null>(null);
 	const paths = learning.data?.paths ?? [];
 	const progress = learning.data?.progress ?? {};
@@ -206,29 +251,7 @@ export function LearnPaths({ part }: { part: "paths" | "team" }) {
 			</>
 		);
 	return (
-		<LearnCard
-			title={k.paths}
-			toolbar={
-				<span className="flex items-center gap-2">
-					{people.length ? (
-						<Select
-							label={k.person}
-							value={who}
-							onValueChange={setPicked}
-							items={people.map((m) => ({ value: m.handle, label: m.name }))}
-						/>
-					) : null}
-					<RightButton
-						right="knowledge.edit"
-						disabled={editing !== null}
-						onClick={() => setEditing({ id: "", title: "", experts: [], steps: [blankStep()] })}
-					>
-						<PlusIcon size={14} />
-						{k.newPath}
-					</RightButton>
-				</span>
-			}
-		>
+		<LearnCard title={k.paths}>
 			{editing ? (
 				<PathForm start={editing} people={people} onDone={() => setEditing(null)} />
 			) : null}

@@ -332,7 +332,7 @@ function DashboardView({ slug }: { slug: string }) {
 			</div>
 			<ul
 				aria-label={`${k.tiles} (${dash.tiles.length})`}
-				className="grid auto-rows-[80px] gap-4"
+				className="grid auto-rows-[112px] gap-4"
 				style={GRID}
 			>
 				{dash.tiles.map((x) => (
@@ -556,15 +556,17 @@ export function DashboardEdit() {
 			{locked ? null : (
 				<Card pad className="flex flex-col gap-3">
 					<h2 className="text-13 font-semibold text-n-11">{k.add}</h2>
-					<fieldset aria-label={k.add} className="m-0 flex flex-wrap gap-2 border-0 p-0">
-						{TILE_KINDS.map((kind) => (
-							<Chip key={kind} onClick={() => void add(kind)}>
-								{kindName[kind] ?? kind}
-							</Chip>
-						))}
+					<fieldset aria-label={k.add} className="m-0 flex items-start gap-2 border-0 p-0">
+						<div className="flex min-w-0 flex-1 flex-wrap gap-2">
+							{TILE_KINDS.map((kind) => (
+								<Chip key={kind} onClick={() => void add(kind)}>
+									{kindName[kind] ?? kind}
+								</Chip>
+							))}
+						</div>
 						<RightButton
 							right="knowledge.edit"
-							className="ml-auto min-h-control"
+							className="min-h-control shrink-0"
 							aria-expanded={building}
 							disabled={build.working}
 							onClick={() => setBuilding(!building)}
@@ -587,7 +589,7 @@ export function DashboardEdit() {
 			) : null}
 			<ul
 				aria-label={`${k.tiles} (${dash.tiles.length})`}
-				className="grid auto-rows-[80px] gap-4"
+				className="grid auto-rows-[112px] gap-4"
 				onDragOver={(e) => {
 					if (drag.current) e.preventDefault();
 				}}
@@ -630,7 +632,7 @@ export function DashboardEdit() {
 									locked ? null : (
 										<>
 											<Button
-												className="min-h-control"
+												className="min-h-control px-2.5"
 												aria-label={`${k.settings} ${title}`}
 												onClick={() =>
 													openDetail(
@@ -643,7 +645,7 @@ export function DashboardEdit() {
 											</Button>
 											<RightButton
 												right="knowledge.edit"
-												className="min-h-control"
+												className="min-h-control px-2.5"
 												aria-label={`${k.remove} ${title}`}
 												onClick={() => void write(dash.tiles.filter((o) => o.id !== x.id))}
 											>

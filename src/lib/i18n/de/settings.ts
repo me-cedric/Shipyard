@@ -116,7 +116,6 @@ export const settingsDe: typeof settingsEn = {
 		add: "PEM-Bündel hinzufügen",
 		remove: "Zertifikate entfernen",
 		count: "{count} Zertifikate hinzugefügt",
-		none: "Keine hinzugefügt",
 	},
 	tools: {
 		title: "Toolchain",

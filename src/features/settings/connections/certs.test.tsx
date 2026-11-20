@@ -9,7 +9,7 @@ describe("Settings / Connections / Certificates", () => {
 		const user = userEvent.setup();
 		mountApp("/setup/computer");
 		await screen.findByRole("group", { name: "Certificates" });
-		expect(await screen.findByText("None added")).toBeInTheDocument();
+		expect(screen.queryByText("1 certificates added")).not.toBeInTheDocument();
 
 		mockState().nextFile = "/mock/notes.txt";
 		await user.click(screen.getByRole("button", { name: "Add PEM bundle" }));
@@ -20,6 +20,6 @@ describe("Settings / Connections / Certificates", () => {
 		expect(await screen.findByText("1 certificates added")).toBeInTheDocument();
 
 		await user.click(screen.getByRole("button", { name: "Remove certificates" }));
-		await waitFor(() => expect(screen.getByText("None added")).toBeInTheDocument());
+		await waitFor(() => expect(screen.queryByText("1 certificates added")).not.toBeInTheDocument());
 	});
 });

@@ -116,7 +116,6 @@ export const settingsEs: typeof settingsEn = {
 		add: "Añadir paquete PEM",
 		remove: "Quitar certificados",
 		count: "{count} certificados añadidos",
-		none: "Ninguno añadido",
 	},
 	tools: {
 		title: "Herramientas de desarrollo",

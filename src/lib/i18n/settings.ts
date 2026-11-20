@@ -115,7 +115,6 @@ export const settingsEn = {
 		add: "Add PEM bundle",
 		remove: "Remove certificates",
 		count: "{count} certificates added",
-		none: "None added",
 	},
 	tools: {
 		title: "Toolchain",
@@ -259,7 +258,6 @@ export const settingsFr: typeof settingsEn = {
 		add: "Ajouter un bundle PEM",
 		remove: "Retirer les certificats",
 		count: "{count} certificats ajoutés",
-		none: "Aucun ajouté",
 	},
 	tools: {
 		title: "Chaîne d’outils",

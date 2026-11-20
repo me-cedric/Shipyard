@@ -10,6 +10,7 @@ export function EntryRow({
 	name,
 	status,
 	statusLabel,
+	hideLabel,
 	check,
 	onOpen,
 	children,
@@ -17,6 +18,8 @@ export function EntryRow({
 	name: string;
 	status: Status;
 	statusLabel: string;
+	/** The dot names the state to a reader; no word shows (the group heading says it). */
+	hideLabel?: boolean;
 	check?: { label: string; checked: boolean; onChange: (checked: boolean) => void };
 	onOpen?: () => void;
 	/** The badges and the actions. */
@@ -34,7 +37,7 @@ export function EntryRow({
 			) : null}
 			<span className="flex items-center gap-1 text-12 text-n-11">
 				<StatusDot status={status} label={statusLabel} />
-				{statusLabel}
+				{hideLabel ? null : statusLabel}
 			</span>
 			{onOpen ? (
 				<button type="button" onClick={onOpen} className="flex-1 truncate text-left text-ui">

@@ -182,8 +182,17 @@ function CoveragePage() {
 				{STATES.filter((v) => filter === "all" || filter === v).map((v) => {
 					const rows = reqs.filter((r) => stateOf(r) === v);
 					return (
-						<Card key={v} className="py-2">
-							<section aria-label={label(v)}>
+						<Card
+							key={v}
+							className={filter === "all" && v === "not-covered" ? "row-span-2 py-2" : "py-2"}
+						>
+							{/* A long list scrolls inside its card: it keeps the first row short. tabIndex 0: a keyboard reader scrolls it. */}
+							<section
+								aria-label={label(v)}
+								// biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region needs focus.
+								tabIndex={0}
+								className="max-h-80 overflow-y-auto"
+							>
 								<h2 className="flex items-center gap-2.5 px-6 pt-3.5 pb-1.5 text-20 font-semibold text-n-12">
 									{label(v)}
 									<Badge variant={v === "pass" || v === "fail" ? TONE[v] : "neutral"}>

@@ -84,6 +84,30 @@ function Thumb({ format }: { format: string }) {
 	);
 }
 
+/**
+ * Mermaid sizes its view box before the font is final, so an image of it can cut a node. Measure the
+ * drawing in the page and fit the view box to it. A host without layout (a test) keeps the text.
+ */
+function fitSvg(svg: string): string {
+	const host = document.createElement("div");
+	host.style.cssText = "position:absolute;left:-9999px;visibility:hidden";
+	host.innerHTML = svg;
+	document.body.append(host);
+	try {
+		const el = host.querySelector("svg");
+		if (!el || typeof el.getBBox !== "function") return svg;
+		const b = el.getBBox();
+		if (!b.width || !b.height) return svg;
+		el.setAttribute("viewBox", `${b.x - 8} ${b.y - 8} ${b.width + 16} ${b.height + 16}`);
+		el.setAttribute("width", String(b.width + 16));
+		el.setAttribute("height", String(b.height + 16));
+		el.removeAttribute("style");
+		return new XMLSerializer().serializeToString(el);
+	} finally {
+		host.remove();
+	}
+}
+
 /** The face of a diagram in the grid: the real picture when the app renders the file, else the ghost. */
 function Face({ a }: { a: Artifact | undefined }) {
 	const format = a?.format ?? "";
@@ -101,7 +125,7 @@ function Face({ a }: { a: Artifact | undefined }) {
 				? drawioSvg(text ?? "", path.endsWith(".svg"))
 				: format === "mermaid"
 					? // SVG text labels: an image cannot draw the HTML labels of Mermaid.
-						renderMermaid(text ?? "", false, true)
+						renderMermaid(text ?? "", false, true).then(fitSvg)
 					: (await import("@/ui/organisms/excalidraw-canvas")).sceneSvg(text ?? ""),
 		enabled: (format === "excalidraw" || format === "drawio" || format === "mermaid") && !!text,
 	}).data;

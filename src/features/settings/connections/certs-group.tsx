@@ -103,9 +103,9 @@ export function CertsGroup() {
 	return (
 		<SetupCard id="connections-certs" title={p.security}>
 			<SetupRow id="certificates" label={c.title}>
-				<span className="text-13 text-n-11">
-					{status.data.added ? format(c.count, { count: status.data.count }) : c.none}
-				</span>
+				{status.data.added ? (
+					<span className="text-13 text-n-11">{format(c.count, { count: status.data.count })}</span>
+				) : null}
 				<Button variant="secondary" aria-label={c.add} onClick={() => void add()}>
 					{p.add}
 				</Button>

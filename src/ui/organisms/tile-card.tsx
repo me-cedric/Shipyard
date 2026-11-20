@@ -69,7 +69,7 @@ export function TileCard({
 						"min-w-0 flex-1 text-n-12",
 						// In edit mode the title wraps to two lines beside the handle and the two buttons.
 						edit
-							? "line-clamp-2 break-words text-14 font-semibold"
+							? "line-clamp-2 break-words text-15 font-semibold"
 							: "truncate text-17 font-semibold",
 					)}
 				>

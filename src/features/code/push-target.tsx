@@ -40,7 +40,7 @@ export function GateNotice({ push }: { push: boolean }) {
 	const warnings = chain;
 	if (lines.length === 0 && warnings.length === 0) return null;
 	return (
-		<div role="status" className="flex flex-col gap-1 px-3 py-1 text-ui text-warning-text">
+		<div role="status" className="flex flex-col gap-1 px-4 pt-1 pb-3 text-ui text-warning-text">
 			{lines.map((l) => (
 				<p key={l}>{l}</p>
 			))}

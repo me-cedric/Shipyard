@@ -15,7 +15,7 @@ import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
 import { LearnCard, LearnFeeds } from "./learn-feeds";
-import { LearnPaths } from "./learn-paths";
+import { blankStep, type Draft, LearnActions, LearnPaths } from "./learn-paths";
 
 const DONE = "shipyard.learn.done";
 
@@ -51,6 +51,8 @@ export function Learn() {
 	const { openRef } = useShell();
 	const learn = useLearn().data;
 	const { done, mark } = useDone();
+	const [picked, setPicked] = useState<string | null>(null);
+	const [editing, setEditing] = useState<Draft | null>(null);
 	if (active === undefined) return <Loading title={k.title} icon={<AcademicCapIcon size={16} />} />;
 	if (active === null) return <NoProject title={k.title} icon={<AcademicCapIcon size={16} />} />;
 	const path = learn?.path ?? [];
@@ -63,7 +65,17 @@ export function Learn() {
 		openRef(ref);
 	};
 	return (
-		<LibraryPage title={k.heading}>
+		<LibraryPage
+			title={k.heading}
+			action={
+				<LearnActions
+					picked={picked}
+					onPick={setPicked}
+					editing={editing !== null}
+					onNew={() => setEditing({ id: "", title: "", experts: [], steps: [blankStep()] })}
+				/>
+			}
+		>
 			{learn && path.length === 0 && glossary.length === 0 ? (
 				<EmptyState
 					title={t.empty.feeds}
@@ -136,18 +148,18 @@ export function Learn() {
 								})}
 							</ol>
 						</Card>
-						<LearnPaths part="paths" />
+						<LearnPaths part="paths" picked={picked} editing={editing} onEdit={setEditing} />
 					</DetailColumn>
 					<SideCards className="flex-[2_1_320px]">
 						<LearnCard title={k.glossary}>
-							<ul aria-label={k.glossary} className="flex flex-col gap-3">
+							<ul aria-label={k.glossary} className="flex flex-col gap-2">
 								{glossary.map((g) => (
 									<li key={g.term} className="flex flex-col">
 										<button
 											type="button"
 											data-nav=""
 											onClick={() => openRef(g.spec)}
-											className="min-h-control w-fit max-w-full text-left font-semibold text-n-12 hover:underline"
+											className="-mb-3 min-h-control w-fit max-w-full text-left font-semibold text-n-12 hover:underline"
 										>
 											{g.term}
 										</button>
