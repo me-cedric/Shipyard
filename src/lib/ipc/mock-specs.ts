@@ -579,6 +579,25 @@ export function changeCreate(s: MockSpecs, rawTitle: string, today: string): Cha
 	return view(s, id);
 }
 
+const INPUT_KINDS = ["md", "markdown", "pdf", "docx", "doc"];
+const MAX_INPUT = 20 * 1024 * 1024;
+
+/** A document for the spec writer: Markdown, PDF or Word, into `inputs/` of the change. */
+export function changeInputAdd(s: MockSpecs, id: string, name: string, bytes: number[]): string {
+	if (!validChange(id) || id === "archive") throw `invalid change id: ${id}`;
+	const base = name.split(/[\\/]/).pop()?.trim() ?? "";
+	if (!base || base.startsWith(".")) throw "the file name is not valid";
+	const ext = base.split(".").pop()?.toLowerCase() ?? "";
+	if (!INPUT_KINDS.includes(ext))
+		throw `${base} is not a Markdown, PDF or Word file: add one of these three kinds`;
+	if (bytes.length > MAX_INPUT) throw `${base} is larger than ${MAX_INPUT / (1024 * 1024)} MiB`;
+	if (!names(s.files, CH).includes(id)) throw `no change ${id}`;
+	const path = `${CH}/${id}/inputs/${base}`;
+	if (s.files[path]) throw `${base} is already added to ${id}`;
+	putText(s.files, path, String.fromCharCode(...bytes.slice(0, 4096)), null, true);
+	return path;
+}
+
 /** A change from an issue tracker item: the ticket text opens the proposal, the branch is `specs/<id>`. */
 export function changeFromTicket(
 	s: MockSpecs,

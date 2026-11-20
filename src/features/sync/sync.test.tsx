@@ -144,6 +144,25 @@ describe("Settings / Project, group Automation", () => {
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
 	});
 
+	it("sets the limit of a stage beside the limits by status (runs-recipes REQ-007)", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/setup/project?page=automation");
+		const build = await screen.findByRole("group", { name: "Build, at once" });
+		// No limit yet: the stepper shows the limit of the computer, and the file holds none.
+		expect(within(build).getByRole("status")).toHaveTextContent("2");
+		await user.click(screen.getByRole("button", { name: "More: Build, at once" }));
+		await user.click(screen.getByRole("button", { name: "Less: Plan, at once" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(mockState().sync.automation.concurrency?.per_stage).toEqual({ plan: 1, build: 3 }),
+		);
+		// The saved file resets the form, and the stages show their limits.
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
+		expect(within(screen.getByRole("group", { name: "Build, at once" })).getByRole("status")).toHaveTextContent("3");
+		expect(within(screen.getByRole("group", { name: "Review, at once" })).getByRole("status")).toHaveTextContent("2");
+	});
+
 	it("clears the limit of the project again, so the file holds none", async () => {
 		const user = userEvent.setup();
 		await withTracker();

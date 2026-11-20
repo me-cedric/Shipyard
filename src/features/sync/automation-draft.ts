@@ -33,6 +33,9 @@ export const STEPS = [
 	["stopped", ["Paused", "Failed", "Cancelled"]],
 ] as const;
 
+export const STAGES = ["plan", "build", "review"] as const;
+type Stage = (typeof STAGES)[number];
+
 /** What the fields hold while a person types: text, so a half-typed number stays as it is. */
 export type Draft = {
 	interval: string;
@@ -40,6 +43,8 @@ export type Draft = {
 	perProject: string;
 	/** `name=number, name=number` */
 	perStatus: string;
+	/** The limits of the stages Plan, Build and Review. Empty: no limit (`runs-recipes` REQ-007). */
+	perStage: Record<Stage, string>;
 	assignee: string;
 	label: string;
 	statuses: string;
@@ -67,6 +72,11 @@ export const toDraft = (a: Automation): Draft => ({
 	perStatus: Object.entries(a.concurrency.per_status ?? {})
 		.map(([k, v]) => `${k}=${v}`)
 		.join(", "),
+	perStage: {
+		plan: String(a.concurrency.per_stage?.plan ?? ""),
+		build: String(a.concurrency.per_stage?.build ?? ""),
+		review: String(a.concurrency.per_stage?.review ?? ""),
+	},
 	assignee: a.pickup.assignee ?? "",
 	label: a.pickup.label ?? "",
 	statuses: a.pickup.statuses.join(", "),
@@ -116,6 +126,15 @@ export function fromDraft(d: Draft, t: Messages): { automation: Automation } | {
 		if (!name || count === undefined || !whole.test(count)) return { error: a.error.perStatus };
 		perStatus[name] = Number(count);
 	}
+	const per_stage: Partial<Record<Stage, number>> = {};
+	for (const stage of STAGES) {
+		const text = d.perStage[stage].trim();
+		if (!text) continue;
+		// A limit of 0 would hold every run: the file refuses it, so the form does too.
+		if (!whole.test(text) || Number(text) < 1)
+			return { error: format(a.error.number, { name: t.doctor.auto.step[stage] }) };
+		per_stage[stage] = Number(text);
+	}
 	const status_map: Automation["status_map"] = {};
 	for (const [state, row] of Object.entries(d.map)) {
 		const status = row.status.trim();
@@ -139,6 +158,7 @@ export function fromDraft(d: Draft, t: Messages): { automation: Automation } | {
 				global,
 				...(perProject === undefined ? {} : { per_project: perProject }),
 				...(Object.keys(perStatus).length ? { per_status: perStatus } : {}),
+				...(Object.keys(per_stage).length ? { per_stage } : {}),
 			},
 			status_map,
 			writes: d.writes,

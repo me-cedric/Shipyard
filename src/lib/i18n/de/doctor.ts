@@ -68,7 +68,7 @@ export const doctorDe: typeof doctorEn = {
 		each: "Alle {count} Sekunden",
 		look: "Nach neuen Tickets suchen",
 		atOnce: "Wie viele gleichzeitig",
-		byStatus: "Pro Stufe",
+		byStatus: "Pro Status",
 		computer: "Auf diesem Computer",
 		project: "In diesem Projekt",
 		shows: "Was das Ticketsystem für jeden Schritt zeigt",

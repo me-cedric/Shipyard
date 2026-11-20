@@ -35,6 +35,7 @@ import type {
 	Step_Serialize,
 	StepState,
 	StepView_Serialize,
+	Thens_Serialize,
 	UnitView_Serialize,
 	UsageView_Serialize,
 	Workflow_Deserialize,
@@ -413,7 +414,7 @@ function parseWorkflow(
 			needs: list(s("needs") ?? ""),
 			tools: list(s("tools") ?? ""),
 		};
-		for (const k of ["role", "model", "effort", "skill", "for_each", "action"])
+		for (const k of ["role", "model", "effort", "skill", "for_each", "action", "approver"])
 			if (s(k)) Object.assign(step, { [k]: s(k) });
 		for (const k of ["max_parallel", "max_rounds", "timeout"])
 			if (s(k)) Object.assign(step, { [k]: Number(s(k)) });
@@ -508,7 +509,14 @@ export type MockFactory = {
 	approvals: ApprovalView[];
 	tiers: RunnerTiers_Serialize[];
 	/** Money budgets in USD. A day key is `YYYY-MM-DD` or `*`, a member key is a name or `*`. */
-	budgets: { day: Record<string, number>; member: Record<string, number> };
+	budgets: {
+		day: Record<string, number>;
+		member: Record<string, number>;
+		/** By ticket key (`runs-recipes` REQ-005). */
+		feature?: Record<string, number>;
+		warn_at?: number;
+		then?: Thens_Serialize;
+	};
 	kill: boolean;
 	/** The text of each workflow file. */
 	workflows: Record<string, string>;
@@ -1139,6 +1147,57 @@ const refuse = (event: string, r: Rec) => {
 	throw `refused ${event} in ${r.state}`;
 };
 
+/** The states where an agent works: a person can pause them (`runs-recipes` REQ-001). */
+const WORKS: RunState[] = ["Planning", "Working", "SelfReview"];
+
+/** The mock agent ends its turn at once: the run is `Paused` with the cause Person. */
+export function runPause(f: MockFactory, run: string): null {
+	const r = find(f, run);
+	if (!WORKS.includes(r.state)) refuse("Pause", r);
+	push(f, r, null, "note", { stop: "paused by a person", cause: "person" });
+	move(f, r, "Paused", r.state);
+	return null;
+}
+
+/**
+ * Take a run over (`runs-recipes` REQ-002): `Cancelled` with the reason, the branch and the folder
+ * stay. The caller assigns the ticket. Returns the folder that the editor opens.
+ */
+export function runTakeOver(f: MockFactory, run: string, who: string): string {
+	const r = find(f, run);
+	if (FINAL.includes(r.state)) throw "the run ended";
+	cancel(f, r, `Taken over by ${who}`);
+	return `/worktrees/${r.id}`;
+}
+
+/** The limits of `assistant_attach`: 200 KiB of text, 2 MiB of image. */
+const MAX_TEXT = 200 * 1024;
+const MAX_IMAGE = 2 * 1024 * 1024;
+
+/** A file for the chat of a run: kept as context for the next turn. */
+export function runAttach(
+	f: MockFactory,
+	run: string,
+	name: string,
+	bytes: number[],
+): { name: string; kind: string; quote: string; bytes: number } {
+	const r = find(f, run);
+	if (FINAL.includes(r.state)) throw "the run ended";
+	const base = name.split(/[\\/]/).pop()?.trim() ?? "";
+	if (!base || base.startsWith(".")) throw "the file name is not valid";
+	const ext = base.split(".").pop()?.toLowerCase() ?? "";
+	const image = ["png", "jpg", "jpeg", "gif", "webp"].includes(ext);
+	if (image ? bytes.length > MAX_IMAGE : bytes.length > MAX_TEXT)
+		throw `${base} is larger than ${(image ? MAX_IMAGE : MAX_TEXT) / 1024} KiB`;
+	push(f, r, null, "note", { context: `the file \`${base}\`` });
+	return {
+		name: base,
+		kind: image ? "image" : "text",
+		quote: image ? `Image file for this request: /context/${base}` : String.fromCharCode(...bytes),
+		bytes: bytes.length,
+	};
+}
+
 export function runUnblock(f: MockFactory, run: string, note: string | null): null {
 	const r = find(f, run);
 	if (r.state !== "Blocked") refuse("Unblock", r);
@@ -1482,6 +1541,7 @@ export function workflowRender(
 			["mode", st.mode === "plan" ? "plan" : undefined],
 			["needs", st.needs?.length ? flow(st.needs) : undefined],
 			["gate", st.gate === "human" ? "human" : undefined],
+			["approver", st.approver ? sc(st.approver) : undefined],
 			["workspace", st.workspace && st.workspace !== "shared" ? st.workspace : undefined],
 			["for_each", st.for_each ? sc(st.for_each) : undefined],
 			["max_parallel", st.max_parallel ? sc(st.max_parallel) : undefined],
@@ -1740,12 +1800,13 @@ export function usageGet(f: MockFactory, project: string | null): UsageView_Seri
 
 /** Set a budget, or clear it (`usd` is `null`). The rules are those of the automation codec. */
 export function budgetSet(f: MockFactory, scope: string, key: string, usd: number | null): null {
-	if (scope !== "day" && scope !== "member") throw `unknown budget scope \`${scope}\``;
+	if (scope !== "day" && scope !== "member" && scope !== "feature")
+		throw `unknown budget scope \`${scope}\``;
 	if (usd !== null && !(Number.isFinite(usd) && usd > 0))
 		throw `invalid automation file: budgets.${scope}.${key} = ${usd}`;
 	if (scope === "day" ? key !== "*" && !isDay(key) : key === "")
 		throw `invalid automation file: budgets.${scope}.${key} = ${usd}`;
-	const map = f.budgets[scope];
+	const map = (f.budgets[scope] ??= {});
 	if (usd === null) delete map[key];
 	else map[key] = usd;
 	return null;

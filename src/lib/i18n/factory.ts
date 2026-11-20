@@ -1,5 +1,8 @@
 /** The strings of the Factory space. */
+import { runsRecipesEn, runsRecipesFr } from "./runs-recipes";
+
 export const factoryEn = {
+	runsRecipes: runsRecipesEn,
 	resize: {
 		workflows: "Recipes width",
 	},
@@ -379,6 +382,7 @@ export const factoryEn = {
 };
 
 export const factoryFr: typeof factoryEn = {
+	runsRecipes: runsRecipesFr,
 	resize: {
 		workflows: "Largeur des recettes",
 	},

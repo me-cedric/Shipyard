@@ -70,7 +70,7 @@ export const doctorEs: typeof doctorEn = {
 		each: "Cada {count} segundos",
 		look: "Buscar tickets nuevos",
 		atOnce: "Cuántos a la vez",
-		byStatus: "Por etapa",
+		byStatus: "Por estado",
 		computer: "En este ordenador",
 		project: "En este proyecto",
 		shows: "Lo que muestra el gestor de tickets en cada paso",

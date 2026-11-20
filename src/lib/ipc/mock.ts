@@ -2062,6 +2062,7 @@ const handlers: Handlers = {
 	designBytes: (path) => design.designBytes(need(state.design), path),
 	specsChanges: () => specs.changes(need(state.specs)),
 	specsChangeCreate: (id) => specs.changeCreate(need(state.specs), id, state.work.today),
+	specsChangeInputAdd: (id, name, bytes) => specs.changeInputAdd(need(state.specs), id, name, bytes),
 	specsChangeFromTicket: (key, click) => {
 		if (readOnly()) throw "the profile of this project is read only";
 		return specs.changeFromTicket(
@@ -2344,6 +2345,22 @@ const handlers: Handlers = {
 	runResume: (run, addUsd, addTokens, note) =>
 		fx.runResume(state.factory, run, addUsd, addTokens, note),
 	runUnblock: (run, note) => fx.runUnblock(state.factory, run, note),
+	runPause: (run) => fx.runPause(state.factory, run),
+	runAttach: (run, name, bytes) => fx.runAttach(state.factory, run, name, bytes),
+	runTakeOver: (run) => {
+		// The person of this machine: the member that signed in, else the account name.
+		const w = state.work;
+		const who = w.team.members.find((m) => m.handle === w.me)?.name ?? w.account?.name ?? "Ada";
+		const dir = fx.runTakeOver(state.factory, run, who);
+		const key = state.factory.runs.find((r) => r.id === run)?.key;
+		// A ticket that cannot be assigned does not undo the take over.
+		if (key && w.me) {
+			try {
+				work.workAssign(w, state.sync.mirror, key, w.me, true);
+			} catch {}
+		}
+		return dir;
+	},
 	runCloseDone: (run) => fx.runCloseDone(state.factory, run),
 	runPlanApprove: (run) => fx.runPlanApprove(state.factory, run),
 	runPlanReject: (run, note) => fx.runPlanReject(state.factory, run, note),

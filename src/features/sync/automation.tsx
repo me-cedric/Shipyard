@@ -11,7 +11,7 @@ import { type AutomationView, syncKeys, useAutomation } from "@/lib/sync";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { type Draft, fromDraft, RUN_STATES, STEPS, toDraft } from "./automation-draft";
+import { type Draft, fromDraft, RUN_STATES, STAGES, STEPS, toDraft } from "./automation-draft";
 
 const WRITES = ["push", "pull_request", "tracker_transition", "tracker_comment"] as const;
 const WRITE_KEY = {
@@ -187,6 +187,20 @@ function Form({ view }: { view: AutomationView }) {
 							onValueChange={(v) => set({ perProject: String(v) })}
 						/>
 					</SetupRow>
+					{/* A stage with no limit shows the limit of the project: it holds that many at most. */}
+					{STAGES.map((stage) => (
+						<SetupRow key={stage} label={plain(k.step[stage])}>
+							<Stepper
+								label={format(t.factory.runsRecipes.stageAtOnce, { name: k.step[stage] })}
+								min={1}
+								value={
+									Number(draft.perStage[stage]) ||
+									(draft.perProject.trim() ? Number(draft.perProject) || 1 : global)
+								}
+								onValueChange={(v) => set({ perStage: { ...draft.perStage, [stage]: String(v) } })}
+							/>
+						</SetupRow>
+					))}
 					{perStatus.map(([name, count]) => (
 						<SetupRow key={name} label={plain(name)}>
 							<Stepper

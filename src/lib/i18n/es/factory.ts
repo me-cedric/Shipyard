@@ -1,6 +1,8 @@
 import type { factoryEn } from "../factory";
+import { runsRecipesEs } from "./runs-recipes";
 
 export const factoryEs: typeof factoryEn = {
+	runsRecipes: runsRecipesEs,
 	resize: {
 		workflows: "Ancho de las recetas",
 	},

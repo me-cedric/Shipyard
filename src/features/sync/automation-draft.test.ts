@@ -44,6 +44,34 @@ describe("the automation draft", () => {
 		expect(fromDraft(toDraft(a), en)).toEqual({ automation: a });
 	});
 
+	it("keeps the limits by stage and the choices of the budgets (runs-recipes REQ-006, REQ-007)", () => {
+		const a = {
+			...defaultAutomation(),
+			concurrency: { global: 6, per_project: 4, per_stage: { plan: 2, build: 3 } },
+			budgets: {
+				day: {},
+				member: {},
+				feature: { "ACME-1": 3 },
+				warn_at: 70,
+				then: { feature: "stop_ask" as const, day: "go_on" as const, member: "pause" as const },
+			},
+		};
+		const d = toDraft(a);
+		expect(d.perStage).toEqual({ plan: "2", build: "3", review: "" });
+		expect(fromDraft(d, en)).toEqual({ automation: a });
+		// A stage that a person clears has no limit.
+		const cleared = fromDraft({ ...d, perStage: { ...d.perStage, plan: "" } }, en);
+		expect(cleared).toMatchObject({ automation: { concurrency: { per_stage: { build: 3 } } } });
+	});
+
+	it("refuses a stage limit that is not a whole number of one or more", () => {
+		const d = toDraft(defaultAutomation());
+		for (const bad of ["0", "x", "-1", "1.5"])
+			expect(fromDraft({ ...d, perStage: { ...d.perStage, build: bad } }, en)).toEqual({
+				error: "Build: a whole number",
+			});
+	});
+
 	it("has one mapping row for each run state", () => {
 		expect(Object.keys(toDraft(defaultAutomation()).map)).toEqual([...RUN_STATES]);
 	});
