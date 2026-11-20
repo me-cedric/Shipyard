@@ -26,7 +26,6 @@ async function openStep(id: string, name: string) {
 /** The row of a step page: its group comes first when a control of the row has the same name. */
 const row = (name: string) => screen.getAllByRole("group", { name })[0] as HTMLElement;
 const off = (el: HTMLElement) => expect(el).toHaveAttribute("aria-disabled", "true");
-const text = async (id: string) => (await unwrap(commands.workflowGet(id))).text;
 
 describe("Rows of a recipe step (REQ-009)", () => {
 	it("shows Kind from the step: agent, person or check", async () => {
@@ -163,7 +162,7 @@ describe("Role of a human step (REQ-008)", () => {
 		const run = (await unwrap(commands.runsList())).find((r) => r.state === "PlanReview");
 		if (!run) throw new Error("the demo has a plan that waits");
 		expect(run.approver).toBe("techlead");
-		const as = (role: string) => {
+		const as = (role: "developer" | "techlead") => {
 			mockState().person = {
 				member: "bo",
 				found: "email",
