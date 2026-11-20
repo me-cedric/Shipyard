@@ -267,16 +267,16 @@ export function TeamStep({
 						}))}
 						className="w-48"
 					/>
-					{/* The first member stays: a project starts with one person. */}
-					{i > 0 ? (
-						<Button
-							className="min-h-control"
-							aria-label={format(t.creator.removeMember, { name: m.name || String(i + 1) })}
-							onClick={() => setMembers(members.filter((_, j) => j !== i))}
-						>
-							{t.creator.remove}
-						</Button>
-					) : null}
+					{/* The first member (the person) stays: a project starts with one person. */}
+					<Button
+						className="min-h-control"
+						disabled={i === 0}
+						reason={t.creator.keepFirst}
+						aria-label={format(t.creator.removeMember, { name: m.name || String(i + 1) })}
+						onClick={() => setMembers(members.filter((_, j) => j !== i))}
+					>
+						{t.creator.remove}
+					</Button>
 				</Row>
 			))}
 			<Row className="justify-end py-2">

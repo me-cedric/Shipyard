@@ -46,6 +46,7 @@ export const creatorDe: typeof creatorEn = {
 	member: "Mitglied",
 	addMember: "Mitglied hinzufügen",
 	removeMember: "{name} entfernen",
+	keepFirst: "Ein Projekt beginnt mit einer Person",
 	remote: { local: "Nur auf diesem Computer", existing: "Vorhanden", create: "Neues Repository" },
 	slug: "Eigentümer und Name",
 	addCodeHost: "Code-Plattform hinzufügen",

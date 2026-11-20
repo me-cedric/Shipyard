@@ -108,10 +108,15 @@ describe("Menu bar panel", () => {
 		await renderTray();
 		const head = await screen.findByRole("heading", { name: /^\d+ things? need/ });
 		const count = Number(/^(\d+)/.exec(head.textContent ?? "")?.[1]);
-		// Three things show, then one row "All n" opens the rest in Today: no thing is cut.
+		// Three things show, then "All n" in the heading row opens the rest in Today: no thing is cut.
 		expect(count).toBeGreaterThan(3);
 		const more = await screen.findByRole("button", { name: `All ${count}` });
-		expect(screen.getAllByRole("listitem")).toHaveLength(4);
+		expect(screen.getAllByRole("listitem")).toHaveLength(3);
+		expect(
+			within(screen.getByRole("region", { name: "Needs you" })).getByRole("button", {
+				name: `All ${count}`,
+			}),
+		).toBeInTheDocument();
 		await user.click(more);
 		await waitFor(() => expect(emit).toHaveBeenCalledWith("open-path", "/"));
 		await user.keyboard("{Escape}");

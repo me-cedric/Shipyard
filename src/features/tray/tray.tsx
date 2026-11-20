@@ -71,6 +71,7 @@ export function TrayView() {
 	useSyncTick();
 	const panel = useRef<HTMLElement>(null);
 	const content = useRef<HTMLDivElement>(null);
+	const foot = useRef<HTMLDivElement>(null);
 	// Escape closes the panel. The first control gets focus when the panel opens (the window gets focus).
 	// A panel that opens, or a sync tick, reads everything again: the figures are never old.
 	useEffect(() => {
@@ -107,7 +108,10 @@ export function TrayView() {
 			// The frame adds its border to the height of the content.
 			const frame = el.offsetHeight - el.clientHeight;
 			const max = Math.max(MIN_H, Math.round(window.screen.availHeight * MAX_SHARE));
-			const h = Math.min(max, Math.max(MIN_H, Math.ceil(inner.scrollHeight + frame)));
+			const h = Math.min(
+				max,
+				Math.max(MIN_H, Math.ceil(inner.scrollHeight + (foot.current?.offsetHeight ?? 0) + frame)),
+			);
 			void import("@tauri-apps/api/window")
 				.then((m) => m.getCurrentWindow().setSize(new m.LogicalSize(WIDTH, h)))
 				.catch(() => {});
@@ -152,55 +156,43 @@ export function TrayView() {
 	return (
 		<main
 			ref={panel}
-			className="max-h-screen overflow-auto rounded-xl border border-n-6 bg-surface-0/90 text-ui text-n-12"
+			className="flex max-h-screen flex-col overflow-hidden rounded-xl border border-n-6 bg-surface-0/90 text-ui text-n-12"
 		>
-			<div ref={content} className="flex flex-col gap-3 p-4">
-				<div className="flex min-h-control items-center gap-2.5">
-					<span aria-hidden="true" className="size-7 shrink-0 rounded-sm bg-accent" />
-					{/* The name is the project switch. */}
-					<Select
-						label={t.projects.switcher}
-						placeholder={t.projects.switcher}
-						className="min-w-0 max-w-full shrink border-transparent bg-transparent px-1 font-semibold text-17"
-						value={active?.id ?? ""}
-						onValueChange={(id) => void run(() => switchTo(id))}
-						items={projects.map((p) => ({ value: p.id, label: p.name }))}
-					/>
-					{sync.length && (failed || last > 0) ? (
-						<Badge
-							role="status"
-							dot
-							variant={failed ? "danger" : "success"}
-							title={failed ? undefined : format(u.synced, { time: clock(last, lang) })}
-							className="ml-auto shrink-0"
-						>
-							{failed ? u.syncFailed : u.inSync}
-						</Badge>
-					) : null}
-				</div>
-				{needsYou ? (
-					<Card aria-label={t.home.needsYou} role="region" className="py-1">
-						<h2 className="px-4 pt-3 pb-0.5 font-semibold text-13 text-n-11">
-							{format(needsYou === 1 ? t.home.needsOne : t.home.needsMany, {
-								count: needsYou,
-							})}
-						</h2>
-						<ul>
-							{items.slice(0, SHOWN).map((i) => (
-								<li key={i.id} className="[&+&]:border-t [&+&]:border-n-6">
-									<button
-										type="button"
-										onClick={() => void run(() => openItem(i.ref))}
-										className="flex min-h-13 w-full items-center gap-3 px-4 text-left hover:bg-n-2"
-									>
-										<Avatar name={i.by || "Shipyard"} size="s" agent={i.who === "agent"} />
-										<span className="min-w-0 flex-1 truncate font-semibold">{i.text}</span>
-										<ChevronRightIcon size={16} />
-									</button>
-								</li>
-							))}
-							{items.length > SHOWN ? (
-								<li className="border-t border-n-6">
+			{/* Only this middle scrolls, and only when the content is taller than the frame. */}
+			<div className="min-h-0 flex-1 overflow-auto">
+				<div ref={content} className="flex flex-col gap-2 p-3 pb-2">
+					<div className="flex min-h-control items-center gap-2.5">
+						<span aria-hidden="true" className="size-7 shrink-0 rounded-sm bg-accent" />
+						{/* The name is the project switch. */}
+						<Select
+							label={t.projects.switcher}
+							placeholder={t.projects.switcher}
+							className="min-w-0 max-w-full shrink border-transparent bg-transparent px-1 font-semibold text-17"
+							value={active?.id ?? ""}
+							onValueChange={(id) => void run(() => switchTo(id))}
+							items={projects.map((p) => ({ value: p.id, label: p.name }))}
+						/>
+						{sync.length && (failed || last > 0) ? (
+							<Badge
+								role="status"
+								dot
+								variant={failed ? "danger" : "success"}
+								title={failed ? undefined : format(u.synced, { time: clock(last, lang) })}
+								className="ml-auto shrink-0"
+							>
+								{failed ? u.syncFailed : u.inSync}
+							</Badge>
+						) : null}
+					</div>
+					{needsYou ? (
+						<Card aria-label={t.home.needsYou} role="region">
+							<div className="flex h-9 items-center justify-between pr-2 pl-4">
+								<h2 className="font-semibold text-13 text-n-11">
+									{format(needsYou === 1 ? t.home.needsOne : t.home.needsMany, {
+										count: needsYou,
+									})}
+								</h2>
+								{items.length > SHOWN ? (
 									<button
 										type="button"
 										onClick={() =>
@@ -209,147 +201,163 @@ export function TrayView() {
 												if (isTauri()) await emit(OPEN_PATH_EVENT, "/");
 											})
 										}
-										className="flex min-h-13 w-full items-center gap-3 px-4 text-left font-semibold text-accent hover:bg-n-2"
+										className="-my-1 inline-flex min-h-control items-center px-2 font-semibold text-accent"
 									>
-										<span className="min-w-0 flex-1">{format(u.all, { count: items.length })}</span>
-										<ChevronRightIcon size={16} />
+										{format(u.all, { count: items.length })}
 									</button>
-								</li>
-							) : null}
-						</ul>
-					</Card>
-				) : null}
-				{runs.length ? (
-					<Card aria-label={t.shell.runs} role="region" className="py-1">
-						<div className="flex items-center justify-between pr-2 pl-4">
-							<h2 className="pt-3 pb-0.5 font-semibold text-13 text-n-11">{u.running}</h2>
-							{runs.length > SHOWN_RUNS ? (
-								<button
-									type="button"
-									onClick={() =>
-										void run(async () => {
-											await commands.trayOpen();
-											if (isTauri()) await emit(OPEN_PATH_EVENT, "/flow/flow");
-										})
-									}
-									className="inline-flex min-h-control items-center px-2 font-semibold text-accent"
-								>
-									{format(u.all, { count: runs.length })}
-								</button>
-							) : null}
-						</div>
-						{runs.slice(0, SHOWN_RUNS).map((r) => (
-							<div
-								key={r.id}
-								className="flex min-h-13 items-center gap-3 pr-2 pl-4 [&+&]:border-t [&+&]:border-n-6"
-							>
-								<Avatar name={r.workflow || "Shipyard"} size="s" agent />
-								<span className="min-w-0 flex-1 truncate font-semibold">{r.title || r.key}</span>
-								<ConfirmButton
-									className="px-3"
-									confirm={format(t.factory.machine.confirmStop, { name: r.title || r.key })}
-									onConfirm={() => void run(() => cancel(r.id))}
-									aria-label={format(t.factory.machine.stop, { name: r.title || r.key })}
-								>
-									{t.assistant.stop}
-								</ConfirmButton>
+								) : null}
 							</div>
-						))}
-					</Card>
-				) : null}
-				<Card className="flex min-h-14 flex-wrap items-center gap-x-3 px-4">
-					<span className="font-semibold">{u.agents}</span>
-					<button
-						type="button"
-						aria-expanded={chart}
-						aria-label={`${t.ui.spendToday} ${spend.ready ? money.format(todayUsd) : ""}`}
-						onClick={() => setChart((v) => !v)}
-						className="inline-flex min-h-control items-center text-n-11 tabular-nums hover:text-n-12"
-					>
-						{spend.ready ? money.format(todayUsd) : <Skeleton className="h-5 w-12" />}
-					</button>
-					{kill === undefined ? null : (
-						<span className="ml-auto">
-							<Switch
-								iconOnly
-								label={kill ? t.factory.agentsStopped : t.factory.agentsOn}
-								checked={!kill}
-								onCheckedChange={(on) => void run(() => writes.killSwitch(!on))}
-								className={kill ? "border-danger bg-danger-soft" : "data-[checked]:bg-success"}
-							/>
-						</span>
-					)}
-					{chart ? (
-						<section aria-label={t.ui.spendToday} className="flex w-full flex-col gap-2 pb-4">
-							<div className="flex items-end justify-between gap-3">
-								<div className="flex flex-col">
-									<span className="text-13 text-n-11">{t.ui.spendToday}</span>
-									{spend.ready ? (
-										<span className="font-semibold text-20 tabular-nums">
-											{money.format(todayUsd)}
-										</span>
-									) : (
-										<Skeleton className="h-7 w-20" />
-									)}
-								</div>
-								<div className="flex items-baseline gap-1.5">
-									<span className="text-13 text-n-11">{u.month}</span>
-									{spend.ready ? (
-										<span className="tabular-nums">{money.format(month)}</span>
-									) : (
-										<Skeleton className="h-5 w-12" />
-									)}
-								</div>
-							</div>
-							<div aria-hidden="true" className="flex h-10 items-end gap-1">
-								{week.map((v, i) => (
-									<span
-										key={v.day}
-										title={`${v.day}: ${money.format(v.usd)}`}
-										style={{ height: `${Math.max(2, (v.usd / top) * BAR_H)}px` }}
-										className={i === 6 ? "flex-1 rounded-sm bg-accent" : "flex-1 rounded-sm bg-n-6"}
-									/>
+							<ul>
+								{items.slice(0, SHOWN).map((i) => (
+									<li key={i.id} className="[&+&]:border-t [&+&]:border-n-6">
+										<button
+											type="button"
+											onClick={() => void run(() => openItem(i.ref))}
+											className="flex min-h-13 w-full items-center gap-3 px-4 text-left hover:bg-n-2"
+										>
+											<Avatar name={i.by || "Shipyard"} size="s" agent={i.who === "agent"} />
+											<span className="min-w-0 flex-1 truncate font-semibold">{i.text}</span>
+											<ChevronRightIcon size={16} />
+										</button>
+									</li>
 								))}
-							</div>
-							{monthBudget == null ? null : (
-								<Progress value={month} max={monthBudget} label={u.month} />
-							)}
-						</section>
+							</ul>
+						</Card>
 					) : null}
-				</Card>
-				{timesheet ? (
-					<Card
-						role="region"
-						aria-label={t.home.logToday}
-						className="flex min-h-14 items-center gap-3 pr-2 pl-4"
-					>
-						<span className="mr-auto text-n-11">{t.home.logToday}</span>
-						<Button
-							className="px-3"
-							onClick={() =>
-								void run(async () => {
-									await commands.trayOpen();
-									if (isTauri()) await emit(OPEN_PATH_EVENT, "/plan/time");
-								})
-							}
+					{runs.length ? (
+						<Card aria-label={t.shell.runs} role="region">
+							<div className="flex h-9 items-center justify-between pr-2 pl-4">
+								<h2 className="font-semibold text-13 text-n-11">{u.running}</h2>
+								{runs.length > SHOWN_RUNS ? (
+									<button
+										type="button"
+										onClick={() =>
+											void run(async () => {
+												await commands.trayOpen();
+												if (isTauri()) await emit(OPEN_PATH_EVENT, "/flow/flow");
+											})
+										}
+										className="-my-1 inline-flex min-h-control items-center px-2 font-semibold text-accent"
+									>
+										{format(u.all, { count: runs.length })}
+									</button>
+								) : null}
+							</div>
+							{runs.slice(0, SHOWN_RUNS).map((r) => (
+								<div
+									key={r.id}
+									className="flex min-h-13 items-center gap-3 pr-2 pl-4 [&+&]:border-t [&+&]:border-n-6"
+								>
+									<Avatar name={r.workflow || "Shipyard"} size="s" agent />
+									<span className="min-w-0 flex-1 truncate font-semibold">{r.title || r.key}</span>
+									<ConfirmButton
+										className="px-3"
+										confirm={format(t.factory.machine.confirmStop, { name: r.title || r.key })}
+										onConfirm={() => void run(() => cancel(r.id))}
+										aria-label={format(t.factory.machine.stop, { name: r.title || r.key })}
+									>
+										{t.assistant.stop}
+									</ConfirmButton>
+								</div>
+							))}
+						</Card>
+					) : null}
+					<Card className="flex min-h-13 flex-wrap items-center gap-x-3 px-4">
+						<span className="font-semibold">{u.agents}</span>
+						<button
+							type="button"
+							aria-expanded={chart}
+							aria-label={`${t.ui.spendToday} ${spend.ready ? money.format(todayUsd) : ""}`}
+							onClick={() => setChart((v) => !v)}
+							className="inline-flex min-h-control items-center text-n-11 tabular-nums hover:text-n-12"
 						>
-							{t.home.log}
-						</Button>
+							{spend.ready ? money.format(todayUsd) : <Skeleton className="h-5 w-12" />}
+						</button>
+						{kill === undefined ? null : (
+							<span className="ml-auto">
+								<Switch
+									iconOnly
+									label={kill ? t.factory.agentsStopped : t.factory.agentsOn}
+									checked={!kill}
+									onCheckedChange={(on) => void run(() => writes.killSwitch(!on))}
+									className={kill ? "border-danger bg-danger-soft" : "data-[checked]:bg-success"}
+								/>
+							</span>
+						)}
+						{chart ? (
+							<section aria-label={t.ui.spendToday} className="flex w-full flex-col gap-2 pb-4">
+								<div className="flex items-end justify-between gap-3">
+									<div className="flex flex-col">
+										<span className="text-13 text-n-11">{t.ui.spendToday}</span>
+										{spend.ready ? (
+											<span className="font-semibold text-20 tabular-nums">
+												{money.format(todayUsd)}
+											</span>
+										) : (
+											<Skeleton className="h-7 w-20" />
+										)}
+									</div>
+									<div className="flex items-baseline gap-1.5">
+										<span className="text-13 text-n-11">{u.month}</span>
+										{spend.ready ? (
+											<span className="tabular-nums">{money.format(month)}</span>
+										) : (
+											<Skeleton className="h-5 w-12" />
+										)}
+									</div>
+								</div>
+								<div aria-hidden="true" className="flex h-10 items-end gap-1">
+									{week.map((v, i) => (
+										<span
+											key={v.day}
+											title={`${v.day}: ${money.format(v.usd)}`}
+											style={{ height: `${Math.max(2, (v.usd / top) * BAR_H)}px` }}
+											className={
+												i === 6 ? "flex-1 rounded-sm bg-accent" : "flex-1 rounded-sm bg-n-6"
+											}
+										/>
+									))}
+								</div>
+								{monthBudget == null ? null : (
+									<Progress value={month} max={monthBudget} label={u.month} />
+								)}
+							</section>
+						) : null}
 					</Card>
-				) : null}
-				{error ? (
-					<span role="alert" className="text-danger-text">
-						{error}
-					</span>
-				) : null}
-				<div className="sticky bottom-0 -mx-4 -mb-4 flex gap-2.5 bg-surface-0 px-4 pt-2 pb-4">
-					<Button className="flex-1" busy={busy} onClick={() => void run(syncAll)}>
-						{t.shell.sync}
-					</Button>
-					<Button variant="primary" className="flex-[2]" onClick={() => void commands.trayOpen()}>
-						{u.open}
-					</Button>
+					{timesheet ? (
+						<Card
+							role="region"
+							aria-label={t.home.logToday}
+							className="flex min-h-13 items-center gap-3 pr-2 pl-4"
+						>
+							<span className="mr-auto text-n-11">{t.home.logToday}</span>
+							<Button
+								className="px-3"
+								onClick={() =>
+									void run(async () => {
+										await commands.trayOpen();
+										if (isTauri()) await emit(OPEN_PATH_EVENT, "/plan/time");
+									})
+								}
+							>
+								{t.home.log}
+							</Button>
+						</Card>
+					) : null}
+					{error ? (
+						<span role="alert" className="text-danger-text">
+							{error}
+						</span>
+					) : null}
 				</div>
+			</div>
+			<div ref={foot} className="flex shrink-0 gap-2.5 bg-surface-0 px-3 pt-2 pb-3">
+				<Button className="flex-1" busy={busy} onClick={() => void run(syncAll)}>
+					{t.shell.sync}
+				</Button>
+				<Button variant="primary" className="flex-[2]" onClick={() => void commands.trayOpen()}>
+					{u.open}
+				</Button>
 			</div>
 		</main>
 	);

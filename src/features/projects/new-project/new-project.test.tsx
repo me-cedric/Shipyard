@@ -158,7 +158,9 @@ describe("new project", () => {
 		await stepTo(user, "Team");
 		expect(await screen.findByRole("textbox", { name: "Member 1" })).toHaveValue("Ada Lovelace");
 		const team = within(screen.getByRole("group", { name: "Who is in the team?" }));
-		expect(team.queryByRole("button", { name: /^Remove/ })).toBeNull();
+		const own = team.getByRole("button", { name: "Remove Ada Lovelace" });
+		expect(own).toBeDisabled();
+		expect(own).toHaveAccessibleDescription("A project starts with one person");
 		await user.click(screen.getByRole("button", { name: "Add a member" }));
 		await user.type(screen.getByRole("textbox", { name: "Member 2" }), "Grace");
 		const remove = team.getByRole("button", { name: "Remove Grace" });
