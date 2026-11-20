@@ -21,7 +21,7 @@ import { copyText, openUrl } from "@/lib/menus";
 import { TEAM_ROLES } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton, rightsKey, useRights } from "@/lib/rights";
-import { type Member, useTeam, useWorkActions } from "@/lib/work";
+import { type Member, useJoinRequests, useTeam, useWorkActions } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button, buttonVariants } from "@/ui/atoms/button";
@@ -763,24 +763,72 @@ function useAudit() {
 
 const JOIN_BRANCH = "shipyard/join-";
 
+/** One join request on the code host: the role to give, Refuse (closes the pull request) and Accept (sets the role, merges). */
+function JoinCard({ j }: { j: { number: number; name: string; asked: string } }) {
+	const { t } = useI18n();
+	const c = t.codeHost.join;
+	const act = useWorkActions();
+	const { failure, run } = useGuard();
+	const [role, setRole] = useState<string>(isRole(j.asked) ? j.asked : "viewer");
+	return (
+		<AttentionCard who={j.name} title={format(c.title, { name: j.name })}>
+			<div className="flex flex-wrap items-center gap-2.5">
+				<span className="text-n-11">{c.as}</span>
+				<Select
+					label={format(c.role, { name: j.name })}
+					value={role}
+					onValueChange={setRole}
+					items={TEAM_ROLES.map((r) => ({ value: r, label: t.rights.role[r] }))}
+				/>
+				<RightButton
+					right="code.write"
+					className="ml-auto"
+					onClick={() => void run(() => act.refuseJoin(j.number))}
+				>
+					{c.refuse}
+				</RightButton>
+				<RightButton
+					right="code.merge"
+					variant="primary"
+					onClick={() => void run(() => act.acceptJoin(j.number, role))}
+				>
+					{c.accept}
+				</RightButton>
+			</div>
+			<ErrorNotice error={failure} />
+		</AttentionCard>
+	);
+}
+
 /**
- * A person asked to join (REQ-011): the request is a pull request on the team file, and its merge
- * on the code host accepts it. No command accepts or refuses a request from here.
+ * A person asked to join (REQ-011): the request is a pull request on the team file. The join
+ * requests of the code host show with As role, Refuse and Accept. A request that only the audit
+ * knows (no code host to ask) shows as a line.
  */
 export function JoinAsked() {
 	const { t } = useI18n();
 	const lines = useAudit() ?? [];
 	const members = useTeam().data?.team.members ?? [];
+	const requests = useJoinRequests().data ?? [];
 	const asked = [
 		...new Set(
 			lines
 				.filter((l) => l.result === "requested" && l.target.startsWith(JOIN_BRANCH))
 				.map((l) => l.target.slice(JOIN_BRANCH.length)),
 		),
-	].filter((h) => !members.some((m) => m.handle === h));
-	return asked.map((h) => (
-		<AttentionCard key={h} who={h} title={format(t.rights.team.asks, { name: h })} />
-	));
+	].filter((h) => !members.some((m) => m.handle === h) && !requests.some((j) => j.handle === h));
+	return (
+		<>
+			{requests
+				.filter((j) => !members.some((m) => m.handle === j.handle))
+				.map((j) => (
+					<JoinCard key={j.number} j={j} />
+				))}
+			{asked.map((h) => (
+				<AttentionCard key={h} who={h} title={format(t.rights.team.asks, { name: h })} />
+			))}
+		</>
+	);
 }
 
 /** How many changes show before "Older changes". */

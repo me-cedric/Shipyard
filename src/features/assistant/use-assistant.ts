@@ -255,14 +255,12 @@ export function useAssistant({
 				if (!next) setCurrent(null);
 				await refresh(next);
 			}),
-		// Removes the worktree of the open thread with its changes (the only way back).
-		undo: () =>
-			mutate(async () => {
-				const v = await unwrap(commands.assistantWorktreeDiscard(id, true));
-				setCurrent(v);
-				setChanged([]);
-				setThreads(await unwrap(commands.assistantThreads()));
-			}),
+		// Keep: the file leaves the review and stays changed. `null` keeps every file.
+		keep: (path: string | null) =>
+			mutate(async () => setChanged(await unwrap(commands.assistantFileKeep(id, path)))),
+		// Reverts one file to the project content. The other files stay.
+		undoFile: (path: string) =>
+			mutate(async () => setChanged(await unwrap(commands.assistantFileUndo(id, path)))),
 		send: async (text: string, fromDraft = false, quotes: Quote[] = []) => {
 			const v = live.current.current;
 			const body = text.trim();

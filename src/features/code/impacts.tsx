@@ -21,11 +21,18 @@ import { withProject } from "./project-gate";
 import { Elapsed } from "./quality-live";
 import { useRun } from "./use-run";
 
-/** The plan file has three lists: axes (`- name: rating`), stale refs and numbered actions. */
+/** A line of the action plan: a check box and an owner (`code-host-tickets` REQ-009). */
+export type PlanLine = { text: string; done: boolean; owner: string };
+
+/**
+ * The plan file has three lists: axes (`- name: rating`), stale refs and actions. An action is a
+ * numbered line, or a check box line: `- [x] text (owner: name)`.
+ */
 export function parsePlan(text: string) {
 	const axes: [string, string][] = [];
 	const stale: string[] = [];
 	const actions: string[] = [];
+	const lines: PlanLine[] = [];
 	let part = "";
 	for (const line of text.split("\n")) {
 		if (line.startsWith("## ")) part = line.slice(3).trim();
@@ -34,11 +41,15 @@ export function parsePlan(text: string) {
 			if (m?.[1] && m[2]) axes.push([m[1], m[2]]);
 		} else if (part === "Stale refs" && line.startsWith("- ")) stale.push(line.slice(2).trim());
 		else if (part === "Actions") {
-			const m = /^\d+\.\s+(.*)$/.exec(line);
-			if (m?.[1]) actions.push(m[1]);
+			const box = /^[-*]\s+\[([ xX])\]\s+(.*?)(?:\s+\(owner:\s*(.*?)\))?\s*$/.exec(line);
+			const m = box ? null : /^\d+\.\s+(.*)$/.exec(line);
+			const body = box?.[2] ?? m?.[1];
+			if (!body) continue;
+			actions.push(body);
+			lines.push({ text: body, done: box?.[1]?.toLowerCase() === "x", owner: box?.[3] ?? "" });
 		}
 	}
-	return { axes, stale, actions };
+	return { axes, stale, actions, lines };
 }
 
 const COLUMN = "flex min-w-0 flex-1 basis-64 flex-col gap-2.5 rounded-xl p-5";

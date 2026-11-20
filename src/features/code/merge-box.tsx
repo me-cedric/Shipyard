@@ -17,9 +17,9 @@ import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { CloseConfirm } from "./close-confirm";
-import { defaultMergeMethod } from "./merge-default";
 import { FitSegmented } from "./fit-segmented";
 import { focusPullTitle } from "./focus-title";
+import { defaultMergeMethod } from "./merge-default";
 import { usePullAsk } from "./pull-ask";
 import { useRun } from "./use-run";
 

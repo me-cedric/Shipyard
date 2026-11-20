@@ -1,4 +1,4 @@
-import { type CSSProperties, type PointerEvent, useRef, useState } from "react";
+import { type CSSProperties, type PointerEvent, useEffect, useRef, useState } from "react";
 import { weekStart } from "@/features/work/week-focus";
 import { cn } from "@/lib/utils";
 import { addDays, diffDays } from "@/lib/work";
@@ -113,7 +113,10 @@ export function TimelineBars({
 	milestoneLabel,
 	onMove,
 	onOpen,
+	showToday,
 }: {
+	/** The scale takes in the current day and the marker scrolls into view (Go to Today). */
+	showToday?: boolean;
 	bars: PlanBar[];
 	today: string;
 	todayLabel: string;
@@ -126,12 +129,13 @@ export function TimelineBars({
 }) {
 	const day = usePlainDay();
 	// Day text sorts as dates do.
-	const from = weekStart(bars.map((b) => b.start).sort()[0] ?? today);
-	const last =
-		bars
-			.map((b) => b.end)
-			.sort()
-			.at(-1) ?? today;
+	const reveal = showToday ? [today] : [];
+	const from = weekStart([...reveal, ...bars.map((b) => b.start)].sort()[0] ?? today);
+	const last = [...reveal, ...bars.map((b) => b.end)].sort().at(-1) ?? today;
+	const marker = useRef<HTMLSpanElement>(null);
+	useEffect(() => {
+		if (showToday) marker.current?.scrollIntoView?.({ inline: "center", block: "nearest" });
+	}, [showToday]);
 	// Four weeks or more, as the design shows.
 	const weeks = Math.max(4, Math.ceil((diffDays(from, last) + 1) / 7));
 	const days = weeks * 7;
@@ -207,6 +211,7 @@ export function TimelineBars({
 				})}
 				{at >= 0 && at < days ? (
 					<span
+						ref={marker}
 						role="img"
 						aria-label={`${todayLabel} ${day(today)}`}
 						title={`${todayLabel} ${day(today)}`}

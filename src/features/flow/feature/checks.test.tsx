@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import type { FlowFeature_Serialize } from "@/lib/ipc/bindings";
-import { DEMO_FOLDER } from "@/lib/ipc/mock";
+import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 
 // Checks of `spec:app-redesign#REQ-023` (picture 022).
@@ -51,6 +51,56 @@ describe("Checks (REQ-023)", () => {
 		expect(
 			within(panel).getAllByRole("button", { name: "Full log" }).length,
 		).toBeGreaterThanOrEqual(2);
+		await idle(router);
+	});
+
+	it("runs the failed checks again on the code host and leaves the passing one (REQ-001)", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const pull = (await unwrap(commands.pullsList())).find((p) => p.number === 142);
+		if (!pull) throw new Error("the demo has pull request 142");
+		vi.spyOn(commands, "featuresList").mockResolvedValue({
+			status: "ok",
+			data: [feature({ title: pull.title, pr: pull.reference, checks: "failing" })],
+		});
+		const router = mountApp("/code/pull-requests/github-demo-142?section=checks");
+		const panel = await screen.findByRole("tabpanel", { name: "Checks" });
+		const top = await within(panel).findByRole("region", { name: "2 of 3 checks fail" });
+		await user.click(within(top).getByRole("button", { name: "Run again" }));
+		// The two failed checks run again; the third one stays as it was.
+		await waitFor(() =>
+			expect(
+				mockState()
+					.prs?.pulls.find((p) => p.number === 142)
+					?.checks.map((c) => c.state),
+			).toEqual(["passing", "pending", "pending"]),
+		);
+		await idle(router);
+	});
+
+	it("says the permission is missing and sends nothing for a person with no write right", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const pull = (await unwrap(commands.pullsList())).find((p) => p.number === 142);
+		if (!pull) throw new Error("the demo has pull request 142");
+		vi.spyOn(commands, "featuresList").mockResolvedValue({
+			status: "ok",
+			data: [feature({ title: pull.title, pr: pull.reference, checks: "failing" })],
+		});
+		const rerun = vi.spyOn(commands, "codePullRerun");
+		mockState().person = {
+			member: "ada",
+			found: "email",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		const router = mountApp("/code/pull-requests/github-demo-142?section=checks");
+		const panel = await screen.findByRole("tabpanel", { name: "Checks" });
+		const button = await within(panel).findByRole("button", { name: "Run again" });
+		expect(button).toBeDisabled();
+		expect(button).toHaveAccessibleDescription(/right|access|permission/i);
+		expect(rerun).not.toHaveBeenCalled();
 		await idle(router);
 	});
 

@@ -107,6 +107,31 @@ describe("mock assistant", () => {
 		expect(await unwrap(commands.assistantThreads())).toEqual([]);
 	});
 
+	it("keeps one file or all of them and undoes one file, the others stay (REQ-002)", async () => {
+		const id = await thread();
+		const base = (await unwrap(commands.assistantGet(id))).thread.settings;
+		await unwrap(commands.assistantSettingsSet(id, { ...base, mode: "agent" }));
+		await send(id, "deny it");
+		const two = mockState().assistant.threads[0];
+		if (!two) throw new Error("a thread");
+		two.files = [
+			{ path: "a.ts", text: "+a", binary: false, truncated: false },
+			{ path: "b.ts", text: "+b", binary: false, truncated: false },
+			{ path: "c.ts", text: "+c", binary: false, truncated: false },
+		];
+		// Keep one: it leaves the list and the others stay.
+		const left = await unwrap(commands.assistantFileKeep(id, "a.ts"));
+		expect(left.map((f) => f.path)).toEqual(["b.ts", "c.ts"]);
+		// Undo one: only that file goes.
+		const rest = await unwrap(commands.assistantFileUndo(id, "b.ts"));
+		expect(rest.map((f) => f.path)).toEqual(["c.ts"]);
+		// A file that has no change cannot be kept.
+		await expect(unwrap(commands.assistantFileKeep(id, "a.ts"))).rejects.toMatchObject({
+			details: expect.stringContaining("no change"),
+		});
+		expect(await unwrap(commands.assistantFileKeep(id, null))).toEqual([]);
+	});
+
 	it("explains a ref that resolves and says so for one that does not", async () => {
 		const id = await thread();
 		const ok = await unwrap(commands.assistantExplain(id, REF));

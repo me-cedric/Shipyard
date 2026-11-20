@@ -1,11 +1,6 @@
 // The mock of the delivery files: personas, the work split by profile (read only) and the
 // tickets config. It applies the rules of `crates/shipyard-store/src/delivery_docs.rs`.
-import type {
-	Assignments,
-	Persona,
-	TicketsConfig,
-	TicketsConfig_Serialize,
-} from "./bindings";
+import type { Assignments, Persona, TicketsConfig, TicketsConfig_Serialize } from "./bindings";
 
 export type MockDelivery = {
 	personas: Persona[];

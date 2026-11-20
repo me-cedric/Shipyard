@@ -57,15 +57,17 @@ export function checkKinds(saved: TicketsConfig, next: TicketsConfig) {
 
 // ---------------------------------------------------------------- join requests
 
-export const seedJoins = (): JoinRequest[] => [
-	{
-		number: 91,
-		name: "Zed Nobody",
-		handle: "zed",
-		asked: "qa",
-		url: "https://github.com/acme/web/pull/91",
-	},
-];
+/** No request waits at the start: a test or a click of the code host adds one. */
+export const seedJoins = (): JoinRequest[] => [];
+
+/** A join request, as the pull request of a person who asked to join. */
+export const joinOf = (number: number, name: string, asked: string): JoinRequest => ({
+	number,
+	name,
+	handle: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+	asked,
+	url: `https://github.com/acme/web/pull/${number}`,
+});
 
 // ---------------------------------------------------------------- action plan
 
@@ -74,18 +76,13 @@ export function planLine(l: PlanLine): string {
 	const text = l.text.trim();
 	const owner = l.owner.trim();
 	if (!text) throw "an action needs some text";
-	if (/[\r\n]/.test(text) || text.length > 300) throw "an action is one line of 300 characters or fewer";
-	if (/[\r\n()]/.test(owner) || owner.length > 60)
-		throw "an owner is a name with no bracket";
+	if (/[\r\n]/.test(text) || text.length > 300)
+		throw "an action is one line of 300 characters or fewer";
+	if (/[\r\n()]/.test(owner) || owner.length > 60) throw "an owner is a name with no bracket";
 	return `- [${l.done ? "x" : " "}] ${text}${owner ? ` (owner: ${owner})` : ""}`;
 }
 
-export function impactPlanSave(
-	p: MockPrs,
-	path: string,
-	lines: PlanLine[],
-	click: boolean,
-) {
+export function impactPlanSave(p: MockPrs, path: string, lines: PlanLine[], click: boolean) {
 	if (!click) throw CLICK;
 	const old = p.texts[path];
 	if (old === undefined || !p.impacts.some((e) => e.plan === path))

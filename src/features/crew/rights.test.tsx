@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockState } from "@/lib/ipc/mock";
+import { joinOf } from "@/lib/ipc/mock-code-host";
 import { mountApp } from "@/test/mount";
 import { withTracker } from "@/test/tracker";
 
@@ -114,6 +115,60 @@ describe("Crew / Rights", () => {
 		const router = mountApp("/crew/rights?page=team");
 		expect(await screen.findByText("You are not in the team file")).toBeInTheDocument();
 		expect(await screen.findByRole("form", { name: "Ask to join" })).toBeInTheDocument();
+		await idle(router);
+	});
+
+	// spec:code-host-tickets#REQ-010: the join request card has As role, Refuse and Accept.
+	it("lists a join request with As role, Refuse and Accept; Accept sets the role", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().work.joins = [joinOf(91, "Zed Nobody", "qa")];
+		const router = mountApp("/crew/rights?page=team");
+		expect(await screen.findByRole("heading", { name: "Zed Nobody asks to join" })).toBeVisible();
+		// The role that the person asked for is the start; the admin picks another.
+		const role = screen.getByRole("combobox", { name: "Role of Zed Nobody" });
+		expect(role).toHaveTextContent("Tester");
+		await user.click(role);
+		await user.click(await screen.findByRole("option", { name: "Developer" }));
+		await user.click(screen.getByRole("button", { name: "Accept" }));
+		await waitFor(() =>
+			expect(mockState().work.team.members.find((m) => m.handle === "zed-nobody")?.role).toBe(
+				"developer",
+			),
+		);
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Accept" })).toBeNull());
+		expect(mockState().work.joins).toEqual([]);
+		await idle(router);
+	});
+
+	it("closes the pull request on Refuse and leaves the team file as it is", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().work.joins = [joinOf(91, "Zed Nobody", "qa")];
+		const before = mockState().work.team.members.length;
+		const router = mountApp("/crew/rights?page=team");
+		await user.click(await screen.findByRole("button", { name: "Refuse" }));
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Refuse" })).toBeNull());
+		expect(mockState().work.joins).toEqual([]);
+		expect(mockState().work.team.members).toHaveLength(before);
+		await idle(router);
+	});
+
+	it("turns Accept off for a person with no merge right", async () => {
+		await withTracker();
+		mockState().work.joins = [joinOf(91, "Zed Nobody", "qa")];
+		mockState().person = {
+			member: "ada",
+			found: "email",
+			role: "developer",
+			admin: false,
+			readOnly: false,
+			rights: ["work.edit", "code.write"],
+		};
+		const router = mountApp("/crew/rights?page=team");
+		const accept = await screen.findByRole("button", { name: "Accept" });
+		expect(accept).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Refuse" })).toBeEnabled();
 		await idle(router);
 	});
 });

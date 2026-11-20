@@ -27,7 +27,7 @@ export function Timeline() {
 	const c = t.costing.plan;
 	const day = usePlainDay();
 	const navigate = useNavigate();
-	const search: { page?: unknown; task?: unknown } = useSearch({ strict: false });
+	const search: { page?: unknown; task?: unknown; at?: unknown } = useSearch({ strict: false });
 	const { ready, slug, setChosen, plan, blank } = usePlanSheet(t.ui.place.plan);
 	const members = useTeam().data?.team.members ?? [];
 	const act = useWorkActions();
@@ -139,6 +139,7 @@ export function Timeline() {
 				) : null}
 				<Card className="shrink-0 px-6 pt-3 pb-6">
 					<TimelineBars
+						showToday={search.at === "today"}
 						bars={bars}
 						today={plan.today}
 						todayLabel={p.today}

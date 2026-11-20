@@ -22,6 +22,7 @@ import { Assignments } from "./assignments";
 import { ChainWatch } from "./chain-watch";
 import { DeliveryNotes } from "./delivery-notes";
 import { parsePlan, useChain } from "./impacts";
+import { PlanLines } from "./plan-lines";
 import { withProject } from "./project-gate";
 import { useRun } from "./use-run";
 
@@ -146,16 +147,7 @@ function ReportPage({ title, back }: { title: string; back: ReactNode }) {
 									<>
 										<section aria-label={i18n.plan} className={CARD}>
 											<h2 className="text-17 font-semibold text-n-12">{i18n.plan}</h2>
-											<ul className="flex flex-col text-ui">
-												{parsed.actions.map((a) => (
-													<li
-														key={a}
-														className="flex min-h-row items-center border-b py-2 last:border-b-0"
-													>
-														{a}
-													</li>
-												))}
-											</ul>
+											<PlanLines path={entry?.plan ?? ""} lines={parsed.lines} />
 										</section>
 										{details ? (
 											<>

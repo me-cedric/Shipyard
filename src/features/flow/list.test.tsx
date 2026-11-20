@@ -40,6 +40,50 @@ const openTicket = async (user: User, key: string) => {
 	await screen.findByRole("combobox", { name: "Assignee" });
 };
 
+describe("Flow / List: the Recipe and Release rows of a ticket (REQ-003, REQ-004)", () => {
+	it("changes the recipe: the label of the old recipe goes and the label of the new one comes", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await importAll();
+		patch("ACME-3", { labels: ["wf:bug", "shipyard"] });
+		mountApp("/flow/list");
+		await rows();
+		await openTicket(user, "ACME-3");
+		const recipe = await screen.findByRole("combobox", { name: "Recipe" });
+		expect(recipe).toHaveTextContent("bug");
+		await user.click(recipe);
+		await user.click(await screen.findByRole("option", { name: "feature" }));
+		await waitFor(() => {
+			const labels = mockState().sync.mirror.find((t) => t.key === "ACME-3")?.labels ?? [];
+			expect(labels).toContain("wf:feature");
+			expect(labels).not.toContain("wf:bug");
+			expect(labels).toContain("shipyard");
+		});
+	});
+
+	it("sets the one release of a ticket from the list of the issue tracker", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await importAll();
+		patch("ACME-3", { release: null });
+		mountApp("/flow/list");
+		await rows();
+		await openTicket(user, "ACME-3");
+		const release = await screen.findByRole("combobox", { name: "Release" });
+		expect(release).toHaveTextContent("No release");
+		await user.click(release);
+		await user.click(await screen.findByRole("option", { name: "MVP 1" }));
+		await waitFor(() =>
+			expect(mockState().sync.mirror.find((t) => t.key === "ACME-3")?.release).toBe("MVP 1"),
+		);
+		await user.click(screen.getByRole("combobox", { name: "Release" }));
+		await user.click(await screen.findByRole("option", { name: "No release" }));
+		await waitFor(() =>
+			expect(mockState().sync.mirror.find((t) => t.key === "ACME-3")?.release).toBeNull(),
+		);
+	});
+});
+
 describe("Flow / List: the tickets of the backlog", () => {
 	it("shows the count before it writes and one row for each ticket after the confirm", async () => {
 		const user = userEvent.setup();

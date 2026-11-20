@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useId } from "react";
 import { useExportRun } from "@/features/reports/export-menu";
 import { useGuard } from "@/features/work/guard";
@@ -6,7 +6,15 @@ import { HolidayCountry } from "@/features/work/holiday-country";
 import { format, useI18n } from "@/lib/i18n";
 import { RightButton, useRights } from "@/lib/rights";
 import { cn } from "@/lib/utils";
-import { type Calendar, type Decisions, isDay, usePlan, useTeam, useWorkActions } from "@/lib/work";
+import {
+	type Calendar,
+	type Decisions,
+	isDay,
+	usePlan,
+	useReleases,
+	useTeam,
+	useWorkActions,
+} from "@/lib/work";
 import { Button, buttonVariants } from "@/ui/atoms/button";
 import { Chip } from "@/ui/atoms/chip";
 import { Segmented } from "@/ui/atoms/segmented";
@@ -17,6 +25,7 @@ import { Card } from "@/ui/molecules/card";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { usePlainDay } from "./capacity";
+import { usePlanRelease } from "./plan-release";
 import { usePlanTitle, usePngItem } from "./timeline-export";
 
 const HEAD = "px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-10";
@@ -314,6 +323,9 @@ export function DatesPage({
 	const { t } = useI18n();
 	const d = t.planPlace.dates;
 	const title = usePlanTitle(slug);
+	const navigate = useNavigate();
+	const releases = useReleases().data ?? [];
+	const [release, setRelease] = usePlanRelease(slug);
 	const column = (children: ReactNode) => (
 		<div className="flex min-w-0 flex-[1_1_26rem] flex-col gap-6">{children}</div>
 	);
@@ -334,6 +346,20 @@ export function DatesPage({
 						{task ? <TaskCard key={task} slug={slug} task={task} /> : null}
 						<Card className="py-2">
 							<h2 className={HEAD}>{d.calendarOf}</h2>
+							<FieldRow label={t.codeHost.calendar.release}>
+								<Select
+									label={t.codeHost.calendar.release}
+									value={release}
+									onValueChange={setRelease}
+									items={[
+										{ value: "", label: t.codeHost.calendar.none },
+										...[...new Set([...(release ? [release] : []), ...releases])].map((r) => ({
+											value: r,
+											label: r,
+										})),
+									]}
+								/>
+							</FieldRow>
 							<FieldRow label={d.sheet}>
 								<Select
 									label={d.sheet}
@@ -341,6 +367,16 @@ export function DatesPage({
 									onValueChange={onSheet}
 									items={sheets.map((s) => ({ value: s.slug, label: s.name ?? s.slug }))}
 								/>
+							</FieldRow>
+							<FieldRow label={t.codeHost.calendar.goTo}>
+								{/* The timeline opens on the current day. */}
+								<Button
+									onClick={() =>
+										void navigate({ to: "/plan/timeline", search: { at: "today" } as never })
+									}
+								>
+									{t.codeHost.calendar.today}
+								</Button>
 							</FieldRow>
 						</Card>
 					</>,

@@ -9,6 +9,7 @@ import { projectKeys, useTicketsConfig } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
 import { useAutomation, useWorkItems } from "@/lib/sync";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui/atoms/button";
 import { Chip } from "@/ui/atoms/chip";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
@@ -23,6 +24,29 @@ const TYPES = ["epic", "story", "task", "subtask"] as const;
 const NO_FILTER = {};
 
 /**
+ * The kinds that sit under `parent`, nested. `parent` is a fixed kind (`epic`) or the name of an
+ * added kind. A name that comes twice is drawn once: the file allows no twin.
+ */
+function Kids({
+	kinds,
+	parent,
+	box,
+}: {
+	kinds: { name: string; parent: string }[];
+	parent: string;
+	box: string;
+}) {
+	return kinds
+		.filter((k) => k.parent.toLowerCase() === parent.toLowerCase())
+		.map((k) => (
+			<div key={k.name} className={cn(box, "bg-surface-1")}>
+				{k.name}
+				<Kids kinds={kinds} parent={k.name} box={box} />
+			</div>
+		));
+}
+
+/**
  * The ticket setup of the project (`docs/delivery/tickets.config.json`) as the cards of Setup /
  * Tickets: the kinds of ticket, what holds what, the size, the statuses and the rest.
  */
@@ -34,6 +58,33 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 	const [c, setC] = useState(saved);
 	const [edit, setEdit] = useState<(typeof TYPES)[number] | null>(null);
 	const [error, setError] = useState<unknown>(null);
+	// The form of Add: the kind is typed, its parent is picked, its type must exist in the issue tracker.
+	const [adding, setAdding] = useState(false);
+	const [kind, setKind] = useState("");
+	const [under, setUnder] = useState<string>("story");
+	const [addError, setAddError] = useState<unknown>(null);
+	const extra = c.extraKinds ?? [];
+	const addKind = async () => {
+		const name = kind.trim();
+		try {
+			setAddError(null);
+			if (!name) return;
+			if (
+				[...TYPES.map((x) => c[x]), ...extra.map((x) => x.name)].some(
+					(x) => x.toLowerCase() === name.toLowerCase(),
+				)
+			)
+				throw format(t.codeHost.kinds.exists, { name });
+			const types = await unwrap(commands.workIssueTypes());
+			if (!types.some((x) => x.toLowerCase() === name.toLowerCase()))
+				throw format(t.codeHost.kinds.noType, { name });
+			setC({ ...c, extraKinds: [...extra, { name, parent: under }] });
+			setKind("");
+			setAdding(false);
+		} catch (e) {
+			setAddError(e);
+		}
+	};
 	const dirty = JSON.stringify(c) !== JSON.stringify(saved);
 	const statuses = [
 		...new Set((useWorkItems(NO_FILTER).data ?? []).map((i) => i.status).filter(Boolean)),
@@ -72,7 +123,51 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 								{c[type] || k.type[type]}
 							</Chip>
 						))}
+						{extra.map((x) => (
+							<Chip
+								key={x.name}
+								aria-label={format(t.codeHost.kinds.remove, { name: x.name })}
+								onClick={() => setC({ ...c, extraKinds: extra.filter((y) => y.name !== x.name) })}
+							>
+								{x.name}
+							</Chip>
+						))}
+						{adding ? null : (
+							<Button onClick={() => setAdding(true)}>{t.codeHost.kinds.add}</Button>
+						)}
 					</div>
+					{adding ? (
+						<form
+							className="flex flex-wrap items-end gap-3 px-6 pb-4"
+							onSubmit={(e) => {
+								e.preventDefault();
+								void addKind();
+							}}
+						>
+							<Input
+								label={t.codeHost.kinds.name}
+								value={kind}
+								onChange={(e) => setKind(e.target.value)}
+								autoFocus
+							/>
+							<Select
+								label={t.codeHost.kinds.under}
+								value={under}
+								onValueChange={setUnder}
+								items={[
+									...TYPES.map((x) => ({ value: x, label: c[x] || k.type[x] })),
+									...extra.map((x) => ({ value: x.name, label: x.name })),
+								]}
+							/>
+							<Button type="submit" variant="primary" disabled={!kind.trim()}>
+								{t.codeHost.kinds.add}
+							</Button>
+							<Button onClick={() => setAdding(false)}>{t.common.close}</Button>
+							{addError ? (
+								<ErrorNotice error={addError} className="w-full text-ui text-danger-text" />
+							) : null}
+						</form>
+					) : null}
 					{edit ? (
 						<div className="px-6 pb-4">
 							<Input
@@ -88,10 +183,14 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 					<div className="px-6 py-3">
 						<div className={box}>
 							{c.epic}
+							<Kids kinds={extra} parent="epic" box={box} />
 							<div className={cn(box, "bg-surface-1")}>
 								{c.story}
+								<Kids kinds={extra} parent="story" box={box} />
 								<div className={box}>
 									{c.task}, {c.subtask}
+									<Kids kinds={extra} parent="task" box={box} />
+									<Kids kinds={extra} parent="subtask" box={box} />
 								</div>
 							</div>
 						</div>

@@ -241,7 +241,7 @@ const added = (text: string) =>
 		.map((l) => l.slice(1));
 
 /** One changed file: its name, the count and a preview of the added lines. The name opens the full diff. */
-function FileBox({ f, undo }: { f: FileDiff; undo?: ReactNode }) {
+function FileBox({ f, actions }: { f: FileDiff; actions?: ReactNode }) {
 	const { t } = useI18n();
 	const [open, setOpen] = useState(false);
 	const lines = added(f.text);
@@ -259,7 +259,7 @@ function FileBox({ f, undo }: { f: FileDiff; undo?: ReactNode }) {
 				{lines.length ? (
 					<span className="font-semibold text-12 text-success-text">+{lines.length}</span>
 				) : null}
-				{undo}
+				{actions}
 			</div>
 			{open ? (
 				<DiffView
@@ -280,41 +280,72 @@ function FileBox({ f, undo }: { f: FileDiff; undo?: ReactNode }) {
 	);
 }
 
+/** Undo and Keep of one file: Undo asks first, Keep takes the file out of the review (REQ-002). */
+function FileActions({
+	f,
+	onKeep,
+	onUndo,
+}: {
+	f: FileDiff;
+	onKeep: (path: string | null) => void;
+	onUndo: (path: string) => void;
+}) {
+	const { t } = useI18n();
+	return (
+		<>
+			<ConfirmButton
+				variant="secondary"
+				className="min-h-control"
+				aria-label={format(t.codeHost.undoFile, { name: f.path })}
+				confirm={t.assistant.undoConfirm}
+				onConfirm={() => onUndo(f.path)}
+			>
+				{t.assistant.undo}
+			</ConfirmButton>
+			<Button
+				variant="primary"
+				aria-label={format(t.codeHost.keepFile, { name: f.path })}
+				onClick={() => onKeep(f.path)}
+			>
+				{t.codeHost.keep}
+			</Button>
+		</>
+	);
+}
+
 function Changed({
 	files,
+	onKeep,
 	onUndo,
 	full,
 	inCard,
 }: {
 	files: FileDiff[];
-	onUndo: () => void;
+	onKeep: (path: string | null) => void;
+	onUndo: (path: string) => void;
 	full?: boolean;
 	/** The files sit inside the answer card: no card of their own. */
 	inCard?: boolean;
 }) {
 	const { t } = useI18n();
 	if (!files.length) return null;
+	const keepAll =
+		files.length > 1 ? (
+			<Button className="self-end" onClick={() => onKeep(null)}>
+				{t.codeHost.keepAll}
+			</Button>
+		) : null;
 	if (full)
 		return (
 			<section aria-label={t.assistant.changed} className={inCard ? "flex flex-col gap-2" : CARD}>
-				{files.map((f, i) => (
+				{files.map((f) => (
 					<FileBox
 						key={f.path}
 						f={f}
-						undo={
-							i === 0 ? (
-								<ConfirmButton
-									variant="secondary"
-									className="min-h-control"
-									confirm={t.assistant.undoConfirm}
-									onConfirm={onUndo}
-								>
-									{t.assistant.undo}
-								</ConfirmButton>
-							) : undefined
-						}
+						actions={<FileActions f={f} onKeep={onKeep} onUndo={onUndo} />}
 					/>
 				))}
+				{keepAll}
 			</section>
 		);
 	return (
@@ -332,16 +363,12 @@ function Changed({
 						binaryLabel={t.assistant.diffBinary}
 						truncatedLabel={t.assistant.diffTruncated}
 					/>
+					<div className="flex flex-wrap gap-2 pt-2">
+						<FileActions f={f} onKeep={onKeep} onUndo={onUndo} />
+					</div>
 				</details>
 			))}
-			<ConfirmButton
-				variant="ghost"
-				className="min-h-control self-start"
-				confirm={t.assistant.undoConfirm}
-				onConfirm={onUndo}
-			>
-				{t.assistant.undo}
-			</ConfirmButton>
+			{keepAll}
 		</section>
 	);
 }
@@ -425,7 +452,13 @@ export function Messages({
 						/>
 					)}
 					{full && m.role !== "user" && i === list.length - 1 ? (
-						<Changed files={a.changed} onUndo={() => void a.undo()} full inCard />
+						<Changed
+							files={a.changed}
+							onKeep={(path) => void a.keep(path)}
+							onUndo={(path) => void a.undoFile(path)}
+							full
+							inCard
+						/>
 					) : null}
 				</article>
 			))}
@@ -451,7 +484,12 @@ export function Messages({
 				</>
 			) : null}
 			{full && list.at(-1)?.role === "assistant" ? null : (
-				<Changed files={a.changed} onUndo={() => void a.undo()} full={full} />
+				<Changed
+					files={a.changed}
+					onKeep={(path) => void a.keep(path)}
+					onUndo={(path) => void a.undoFile(path)}
+					full={full}
+				/>
 			)}
 		</div>
 	);

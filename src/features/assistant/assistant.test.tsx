@@ -249,17 +249,29 @@ describe("assistant panel: modes and failures", () => {
 		expect(log().queryByText(/Waiting/)).toBeInTheDocument();
 	});
 
-	it("undoes the changed files after a confirmation: the worktree goes", async () => {
+	it("undoes one changed file after a confirmation", async () => {
 		const user = userEvent.setup();
 		await mountAssistant();
 		await pick(user, "Mode", "Do");
 		await say(user, "deny this");
 		const changed = within(await screen.findByRole("region", { name: "Changed files" }));
-		const discard = vi.spyOn(commands, "assistantWorktreeDiscard");
-		await user.click(changed.getByRole("button", { name: "Undo" }));
-		expect(discard).not.toHaveBeenCalled();
+		const undo = vi.spyOn(commands, "assistantFileUndo");
+		await user.click(changed.getByRole("button", { name: "Undo src/hello.ts" }));
+		expect(undo).not.toHaveBeenCalled();
 		await user.click(await changed.findByRole("button", { name: "Throw away these changes?" }));
-		await waitFor(() => expect(discard).toHaveBeenCalledWith(expect.any(String), true));
+		await waitFor(() => expect(undo).toHaveBeenCalledWith(expect.any(String), "src/hello.ts"));
+		await waitFor(() => expect(screen.queryByRole("region", { name: "Changed files" })).toBeNull());
+	});
+
+	it("keeps a changed file: it leaves the review with no confirmation", async () => {
+		const user = userEvent.setup();
+		await mountAssistant();
+		await pick(user, "Mode", "Do");
+		await say(user, "deny this");
+		const changed = within(await screen.findByRole("region", { name: "Changed files" }));
+		const keep = vi.spyOn(commands, "assistantFileKeep");
+		await user.click(changed.getByRole("button", { name: "Keep src/hello.ts" }));
+		await waitFor(() => expect(keep).toHaveBeenCalledWith(expect.any(String), "src/hello.ts"));
 		await waitFor(() => expect(screen.queryByRole("region", { name: "Changed files" })).toBeNull());
 	});
 

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { commands, unwrap } from "@/lib/ipc";
 import type { FlowFeature_Serialize } from "@/lib/ipc/bindings";
+import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 import { parsePlan } from "./impacts";
 
@@ -44,7 +45,48 @@ describe("Code / Impacts", () => {
 			],
 			stale: ["spec:auth"],
 			actions: ["A.", "B."],
+			lines: [
+				{ text: "A.", done: false, owner: "" },
+				{ text: "B.", done: false, owner: "" },
+			],
 		});
+	});
+
+	it("parses a check box line with its owner, and keeps a numbered line open (REQ-009)", () => {
+		const plan =
+			"## Actions\n\n- [x] Update the guide. (owner: Grace Hopper)\n- [ ] Tell the team.\n3. Old line.\n";
+		expect(parsePlan(plan).lines).toEqual([
+			{ text: "Update the guide.", done: true, owner: "Grace Hopper" },
+			{ text: "Tell the team.", done: false, owner: "" },
+			{ text: "Old line.", done: false, owner: "" },
+		]);
+	});
+
+	it("checks a line and picks its owner: the plan file holds both, and no ticket is made", async () => {
+		const user = userEvent.setup();
+		await open();
+		const router = mountApp("/flow/impacts/report");
+		const plan = await screen.findByRole("region", { name: "Action plan" });
+		const tickets = mockState().sync.mirror.length;
+		await user.click(within(plan).getByRole("checkbox", { name: "Done: Update the guide." }));
+		const file = ".shipyard/impacts/2026-10-28-main.plan.md";
+		await waitFor(() => expect(mockState().prs?.texts[file]).toContain("- [x] Update the guide."));
+		await user.click(within(plan).getByRole("combobox", { name: "Owner of this line" }));
+		await user.click(await screen.findByRole("option", { name: "Grace Hopper" }));
+		await waitFor(() =>
+			expect(mockState().prs?.texts[file]).toContain(
+				"- [x] Update the guide. (owner: Grace Hopper)",
+			),
+		);
+		// Add a line ends the list.
+		await user.click(within(plan).getByRole("button", { name: "Add a line" }));
+		await user.type(within(plan).getByRole("textbox", { name: "Action" }), "Tell the team.");
+		await user.click(within(plan).getByRole("button", { name: "Add" }));
+		await waitFor(() =>
+			expect(mockState().prs?.texts[file]).toMatch(/Grace Hopper\)\n- \[ \] Tell the team\./),
+		);
+		expect(mockState().sync.mirror).toHaveLength(tickets);
+		await idle(router);
 	});
 
 	it("shows what the working branch touches, with the way back to Flow and the full report", async () => {

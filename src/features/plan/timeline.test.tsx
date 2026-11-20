@@ -18,6 +18,41 @@ const openDates = async (user: ReturnType<typeof userEvent.setup>) => {
 // The name of a bar starts with the first name in the pill, then the task name and its days.
 const bar = (name: string) => screen.getByRole("button", { name: new RegExp(`(^|, )${name},`) });
 
+describe("Plan / Timeline, Release and Go to Today of the calendar (REQ-011)", () => {
+	it("lists the releases of the issue tracker and keeps the pick", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await unwrap(commands.syncImportPlan());
+		await unwrap(commands.syncImportConfirm());
+		mountApp("/plan/timeline");
+		await bars();
+		await openDates(user);
+		const release = screen.getByRole("combobox", { name: "Release" });
+		await user.click(release);
+		await user.click(await screen.findByRole("option", { name: "MVP 2" }));
+		expect(screen.getByRole("combobox", { name: "Release" })).toHaveTextContent("MVP 2");
+		expect(localStorage.getItem("shipyard.plan-release.mvp-1")).toBe("MVP 2");
+		localStorage.clear();
+	});
+
+	it("moves the timeline to the current day, even when the plan ends before it", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		// The tasks have a fixed start in January: the current day, 2 Nov, is months after the last one.
+		const plan = await unwrap(commands.planGet("mvp-1"));
+		for (const b of plan.gantt.bars)
+			mockState().work.decisions.tasks[b.task] = { start: "2026-01-05" };
+		const router = mountApp("/plan/timeline");
+		expect(await bars()).toHaveLength(6);
+		expect(screen.queryByRole("img", { name: /^Today/ })).toBeNull();
+		await openDates(user);
+		await user.click(screen.getByRole("button", { name: "Today" }));
+		await waitFor(() => expect(router.state.location.search).toMatchObject({ at: "today" }));
+		expect(await screen.findByRole("img", { name: "Today 2 Nov" })).toBeInTheDocument();
+		expect(await bars()).toHaveLength(6);
+	});
+});
+
 describe("Plan / Timeline and People", () => {
 	it("draws a bar for each task of the sheet, with the today marker", async () => {
 		await withTracker();
