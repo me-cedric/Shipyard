@@ -1,10 +1,12 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { useFactoryWrites, useMachineSpend, useMachineWrites, useUsage } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
+import { commands, type Then, unwrap } from "@/lib/ipc";
 import { RightButton } from "@/lib/rights";
-import { useAutomation } from "@/lib/sync";
+import { syncKeys, useAutomation } from "@/lib/sync";
 import { runnerName } from "@/ui/atoms/brand-icon";
 import { Button, buttonVariants } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
@@ -18,6 +20,109 @@ import { WARN_AT } from "./spend-const";
 import { BackToSpend, RowsCard, usePrices } from "./spend-parts";
 
 type Scope = "day" | "member";
+/** The kinds of budget that have a choice `Then` (`runs-recipes` REQ-006). */
+type ThenScope = "feature" | "day" | "member";
+const THEN: Then[] = ["stop_ask", "pause", "ask", "go_on"];
+
+/**
+ * Warn at and Then of the project budgets (`runs-recipes` REQ-006): read from the automation file,
+ * saved with the whole file, as the other forms do. Warn at is one percent for the project.
+ */
+export function useBudgetRules() {
+	const { t } = useI18n();
+	const qc = useQueryClient();
+	const view = useAutomation().data;
+	const { error, run } = useGuard();
+	const budgets = view?.automation.budgets;
+	const save = (patch: object, check?: () => string | null) =>
+		run(async () => {
+			const bad = check?.();
+			if (bad) throw new Error(bad);
+			if (!view || view.file === "invalid") throw new Error(t.factory.runsRecipes.warnAtError);
+			await unwrap(
+				commands.syncAutomationSave({
+					...view.automation,
+					budgets: { day: {}, member: {}, ...view.automation.budgets, ...patch },
+				}),
+			);
+			await qc.invalidateQueries({ queryKey: syncKeys.all });
+		});
+	return {
+		warn: budgets?.warn_at ?? WARN_AT,
+		then: (scope: ThenScope): Then => budgets?.then?.[scope] ?? "stop_ask",
+		error,
+		setWarn: (text: string) =>
+			save({ warn_at: Number(text) }, () =>
+				/^\d+$/.test(text.trim()) && Number(text) >= 1 && Number(text) <= 100
+					? null
+					: t.factory.runsRecipes.warnAtError,
+			),
+		setThen: (scope: ThenScope, value: Then) =>
+			save({
+				then: {
+					feature: "stop_ask",
+					day: "stop_ask",
+					member: "stop_ask",
+					...budgets?.then,
+					[scope]: value,
+				},
+			}),
+	};
+}
+
+/** "Warn at 80 %" with Edit: the value turns into a field with Save. */
+export function WarnAt() {
+	const { t } = useI18n();
+	const r = t.factory.runsRecipes;
+	const rules = useBudgetRules();
+	const [text, setText] = useState<string | null>(null);
+	if (text === null)
+		return (
+			<>
+				<span>{rules.warn} %</span>
+				<Button
+					className="min-h-control"
+					aria-label={r.editWarn}
+					onClick={() => setText(String(rules.warn))}
+				>
+					{t.factory.edit}
+				</Button>
+			</>
+		);
+	return (
+		<form
+			noValidate
+			className="flex flex-wrap items-center gap-2"
+			onSubmit={(e) => {
+				e.preventDefault();
+				void rules.setWarn(text).then((ok) => ok && setText(null));
+			}}
+		>
+			<Input
+				label={r.warnAtPercent}
+				type="number"
+				min="1"
+				max="100"
+				className="min-h-control w-24"
+				value={text}
+				onChange={(e) => setText(e.target.value)}
+			/>
+			<RightButton
+				right="project.settings"
+				variant="primary"
+				className="min-h-control"
+				type="submit"
+			>
+				{r.save}
+			</RightButton>
+			{rules.error ? (
+				<p role="alert" className="w-full text-ui text-danger-text">
+					{rules.error}
+				</p>
+			) : null}
+		</form>
+	);
+}
 
 /** The budgets of the project and the state of the form that sets one (factory REQ-032). */
 export function useBudgets() {
@@ -89,6 +194,7 @@ export function BudgetsPage() {
 	const s = f.spendPage;
 	const m = f.machine;
 	const b = useBudgets();
+	const rules = useBudgetRules();
 	const { prices, price, menu } = usePrices();
 	const usage = useUsage().data;
 	const spend = useMachineSpend(90);
@@ -122,6 +228,7 @@ export function BudgetsPage() {
 		onEdit?: () => void,
 		link?: boolean,
 		meter?: boolean,
+		then?: ThenScope,
 	) => (
 		<Row key={name}>
 			<span className="flex-1">{name}</span>
@@ -132,6 +239,15 @@ export function BudgetsPage() {
 				</span>
 			) : null}
 			<span className="font-semibold">{money(value)}</span>
+			{then ? (
+				<Select
+					label={format(f.runsRecipes.thenFor, { name: name.toLowerCase() })}
+					className="min-h-control"
+					items={THEN.map((v) => ({ value: v, label: f.runsRecipes.choice[v] }))}
+					value={rules.then(then)}
+					onValueChange={(v) => void rules.setThen(then, v as Then)}
+				/>
+			) : null}
 			{onEdit ? (
 				<Button
 					className="min-h-control"
@@ -170,17 +286,31 @@ export function BudgetsPage() {
 			/>
 			<div className="flex flex-wrap items-start gap-5 px-4 pb-4">
 				<div className="flex flex-[2_1_21rem] flex-col gap-5">
-					{b.error || error ? (
+					{b.error || error || rules.error ? (
 						<p role="alert" className="text-ui text-danger-text">
-							{b.error ?? error}
+							{b.error ?? error ?? rules.error}
 						</p>
 					) : null}
 					<Card className="py-2" role="region" aria-label={f.budgets}>
 						<h2 className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">{s.limits}</h2>
-						{row(s.eachFeature, feature, undefined, true)}
-						{row(s.eachDay, of("day", "*")?.budget ?? null, () => editScope("day"))}
+						{row(s.eachFeature, feature, undefined, true, false, "feature")}
+						{row(
+							s.eachDay,
+							of("day", "*")?.budget ?? null,
+							() => editScope("day"),
+							false,
+							false,
+							"day",
+						)}
 						{row(s.eachMonth, month, () => editMachine(ALL, month), false, true)}
-						{row(s.eachPerson, of("member", "*")?.budget ?? null, () => editScope("member"))}
+						{row(
+							s.eachPerson,
+							of("member", "*")?.budget ?? null,
+							() => editScope("member"),
+							false,
+							false,
+							"member",
+						)}
 						{row(s.eachTool, null, () => editMachine(runners[0] ?? ALL, null))}
 						<ul aria-label={f.budget} className="contents">
 							{only.map((x) => (
@@ -281,7 +411,7 @@ export function BudgetsPage() {
 					<RowsCard title={s.atLimit}>
 						<Row>
 							<span className="flex-1">{s.warnAt}</span>
-							<span className="font-semibold">{WARN_AT}</span>
+							<WarnAt />
 						</Row>
 					</RowsCard>
 				</div>

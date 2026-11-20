@@ -10,6 +10,8 @@ export const runsRecipesEs: typeof runsRecipesEn = {
 	limitAmount: "Límite de la función, en dólares",
 	stageAtOnce: "{name}, a la vez",
 	warnAtPercent: "Avisar al, en porcentaje",
+	editWarn: "Cambiar Avisar al",
+	warnAtError: "Avisar al: un número entero de 1 a 100",
 	save: "Guardar",
 	then: "Después",
 	thenFor: "Después, {name}",

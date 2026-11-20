@@ -1695,6 +1695,9 @@ const handlers: Handlers = {
 	syncAutomationSave: (a) => {
 		if (!active()) throw "no active project";
 		automationSave(state.sync, a as Parameters<typeof automationSave>[1]);
+		// The budgets are the factory's: the form saves them with the rest.
+		const { budgets } = a;
+		if (budgets) state.factory.budgets = fx.budgetsOf(budgets);
 		return null;
 	},
 	syncItems: (filter) =>
@@ -2062,7 +2065,8 @@ const handlers: Handlers = {
 	designBytes: (path) => design.designBytes(need(state.design), path),
 	specsChanges: () => specs.changes(need(state.specs)),
 	specsChangeCreate: (id) => specs.changeCreate(need(state.specs), id, state.work.today),
-	specsChangeInputAdd: (id, name, bytes) => specs.changeInputAdd(need(state.specs), id, name, bytes),
+	specsChangeInputAdd: (id, name, bytes) =>
+		specs.changeInputAdd(need(state.specs), id, name, bytes),
 	specsChangeFromTicket: (key, click) => {
 		if (readOnly()) throw "the profile of this project is read only";
 		return specs.changeFromTicket(

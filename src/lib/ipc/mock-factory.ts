@@ -9,6 +9,7 @@ import type {
 	AgentRole_Serialize,
 	ApprovalView,
 	AskedQuestion_Serialize,
+	Budgets,
 	Effort,
 	FileDiff,
 	FindingView_Serialize,
@@ -1810,6 +1811,21 @@ export function budgetSet(f: MockFactory, scope: string, key: string, usd: numbe
 	if (usd === null) delete map[key];
 	else map[key] = usd;
 	return null;
+}
+
+/** The budgets that a save of the automation form holds: a cleared amount (`null`) leaves out its key. */
+export function budgetsOf(b: Budgets): MockFactory["budgets"] {
+	const num = (m?: { [key in string]: number | null }) =>
+		Object.fromEntries(Object.entries(m ?? {}).flatMap(([k, v]) => (v == null ? [] : [[k, v]])));
+	return {
+		day: num(b.day),
+		member: num(b.member),
+		feature: num(b.feature),
+		...(b.warn_at == null ? {} : { warn_at: b.warn_at }),
+		...(b.then
+			? { then: { feature: "stop_ask", day: "stop_ask", member: "stop_ask", ...b.then } }
+			: {}),
+	};
 }
 
 /** The diff of a run folder against its base. A queued run has no folder yet. */

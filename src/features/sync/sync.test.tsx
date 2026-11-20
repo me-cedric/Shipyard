@@ -159,8 +159,12 @@ describe("Settings / Project, group Automation", () => {
 		);
 		// The saved file resets the form, and the stages show their limits.
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
-		expect(within(screen.getByRole("group", { name: "Build, at once" })).getByRole("status")).toHaveTextContent("3");
-		expect(within(screen.getByRole("group", { name: "Review, at once" })).getByRole("status")).toHaveTextContent("2");
+		expect(
+			within(screen.getByRole("group", { name: "Build, at once" })).getByRole("status"),
+		).toHaveTextContent("3");
+		expect(
+			within(screen.getByRole("group", { name: "Review, at once" })).getByRole("status"),
+		).toHaveTextContent("2");
 	});
 
 	it("clears the limit of the project again, so the file holds none", async () => {

@@ -10,6 +10,8 @@ export const runsRecipesDe: typeof runsRecipesEn = {
 	limitAmount: "Limit des Features, in Dollar",
 	stageAtOnce: "{name}, gleichzeitig",
 	warnAtPercent: "Warnen bei, in Prozent",
+	editWarn: "Warnen bei ändern",
+	warnAtError: "Warnen bei: eine ganze Zahl von 1 bis 100",
 	save: "Speichern",
 	then: "Danach",
 	thenFor: "Danach, {name}",

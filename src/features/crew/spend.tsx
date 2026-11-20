@@ -17,8 +17,7 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
-import { BudgetsPage, useBudgets } from "./budgets";
-import { WARN_AT } from "./spend-const";
+import { BudgetsPage, useBudgets, WarnAt } from "./budgets";
 import { SpendHow } from "./spend-how";
 import { LinkRow, RowsCard, toSpend, usePrices } from "./spend-parts";
 import { SpendUsage } from "./spend-usage-page";
@@ -238,7 +237,7 @@ function SpendMain() {
 							)}
 							<Row>
 								<span className="flex-1 font-semibold">{s.warnAt}</span>
-								<span>{WARN_AT}</span>
+								<WarnAt />
 							</Row>
 							<LinkRow label={s.allBudgets} page="budgets" />
 						</RowsCard>
