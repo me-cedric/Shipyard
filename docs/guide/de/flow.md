@@ -14,24 +14,24 @@ Der Umschalter hat vier Abschnitte: Ablauf, Liste, Erledigt und Zustand. Ablauf 
 
 Eine Karte zeigt den Titel, wer an dem Feature arbeitet und seinen Zustand. Eine Karte, die auf Sie wartet, hat die Hinweisfarbe. Klicken Sie auf eine Karte, um die Seite des Features zu öffnen. Das Menü einer Karte hat Stoppen, den Verlauf und Verschieben zu einem Status des Ticketsystems. Wenn das Ticketsystem das Verschieben ablehnt, zeigt die Karte den Grund.
 
-Die Leiste über dem Board enthält:
+Die Leiste über dem Board enthält den Filter Alle, Betrifft mich oder Meine, Neu und Mehr. Der Filter bleibt in der Adresse.
 
-- Suchen: ein Feature über den Schlüssel seines Tickets oder seinen Titel finden.
-- Einen Filter: Alle, Betrifft mich oder Meine. Die Suche und der Filter bleiben in der Adresse.
-- Den Agenten-Schalter. Aus stoppt jeden Agenten und verhindert neue Läufe. Schalten Sie ihn wieder ein, um fortzufahren.
-- Lauf starten: Wählen Sie ein Ticket über seinen Titel.
-- Neu: ein neues Feature beginnen.
+Mehr enthält:
+
+- Feature finden: öffnet das Suchfeld. Finden Sie ein Feature über den Schlüssel seines Tickets oder seinen Titel. Der Text bleibt in der Adresse.
+- Von einem Ticket starten: öffnet Neues Feature bei seiner Ticketliste.
+- Agenten an: der Agenten-Schalter. Aus stoppt jeden Agenten und verhindert neue Läufe. Schalten Sie ihn wieder ein, um fortzufahren.
 
 ## Neues Feature
 
-Neu öffnet eine Seite mit einer Frage: Was möchten Sie bauen?
+Neu öffnet eine eigene Seite, mit einem Link zurück zum Board und einer Frage: Was möchten Sie bauen?
 
 1. Tippen Sie den Titel.
 2. Wählen Sie die Art: Feature, Fehler oder Idee für später. Eine Idee legt nur die Spezifikationsänderung an.
 3. Wählen Sie den Weg: Ein Agent schreibt die Spezifikation, Ich schreibe die Spezifikation, oder Sofort bauen, ohne Spezifikation.
 4. Klicken Sie auf Erstellen.
 
-Oder beginnen Sie mit einem Ticket: Suchen Sie ein Ticket ohne Lauf, dann klicken Sie auf Agent starten.
+Oder beginnen Sie mit einem Ticket, unter den drei Wegen: Suchen Sie ein Ticket ohne Lauf, dann klicken Sie auf Agent starten. Von einem Ticket starten, unter Mehr bei Ablauf, öffnet sie.
 
 Jeder Weg legt zuerst eine Spezifikationsänderung mit Ihrem Text als Titel an. Ein Weg ist aus, wenn Ihnen das nötige Recht fehlt.
 
@@ -39,30 +39,31 @@ Jeder Weg legt zuerst eine Spezifikationsänderung mit Ihrem Text als Titel an. 
 
 Liste zeigt dieselben Features als eine Tabelle: den Titel, die Phase, wer und den Zustand. Sie enthält auch die Bedienelemente der Tickets:
 
-- Filtern nach Status, Person, Label und Lauf.
-- Ein Ticket über seinen Schlüssel holen.
-- Importieren: Die App zeigt zuerst die Zahl. Sie schreibt nichts vor Ihrer Bestätigung.
+- Die Pillen Verantwortlich, Label und Agent filtern die Zeilen. Holen Sie ein Ticket über seinen Schlüssel.
+- Unter Mehr: der Filter nach Status und Importieren. Die App zeigt zuerst die Zahl. Sie schreibt nichts vor Ihrer Bestätigung.
 - Zuweisen: Wählen Sie eine Person. Die App schlägt eine Person nach Fähigkeiten und freier Zeit vor. Die Wahl liegt bei Ihnen.
 - Für den Agenten markieren: Ein Klick gibt das Ticket an die Agenten.
-- Neue Änderung beginnt eine Spezifikationsänderung. Geben Sie ihr einen einfachen Titel: Die App bildet die Kennung aus dem Titel. Aus einem Ticket legt die Änderung mit dem Titel des Tickets an, setzt den Text des Tickets in den Vorschlag und bringt Sie auf den Branch `specs/<id>`, damit die Änderung vom Code getrennt bleibt.
+- Neue Änderung, unter Mehr, beginnt eine Spezifikationsänderung. Geben Sie ihr einen einfachen Titel: Die App bildet die Kennung aus dem Titel. Aus einem Ticket legt die Änderung mit dem Titel des Tickets an, setzt den Text des Tickets in den Vorschlag und bringt Sie auf den Branch `specs/<id>`, damit die Änderung vom Code getrennt bleibt.
 
 ## Erledigt
 
-Erledigt enthält die fertigen Features und den Verlauf der Läufe: jeden beendeten Lauf und jeden älteren Lauf eines Tickets, das neueste Ende zuerst. Klicken Sie auf eine Zeile, um ihr Feature zu öffnen. Der letzte fehlgeschlagene Lauf eines Tickets bleibt auch auf dem Board, mit Erneut versuchen.
+Erledigt enthält die fertigen Features und den Verlauf der Läufe: jeden beendeten Lauf und jeden älteren Lauf eines Tickets, das neueste Ende zuerst. Fertiges Feature finden hat ein eigenes Feld bei Erledigt. Mehr fügt Spalten hinzu oder entfernt sie. Klicken Sie auf eine Zeile, um ihr Feature zu öffnen. Der letzte fehlgeschlagene Lauf eines Tickets bleibt auch auf dem Board, mit Erneut versuchen.
 
 ## Die Seite eines Features
 
-Jedes Feature hat eine Seite, `/flow/feature/<id>`. Die Kennung ist die Ref eines ihrer Teile: des Tickets, der Spezifikationsänderung, des Laufs oder des Pull Requests. Die Seite zeigt den Titel, die Phasenlinie und einen Umschalter mit sechs Bereichen. Zurück führt zu Ablauf mit seiner Suche und seinem Filter, und Escape tut dasselbe. Ein Link zu einem Lauf oder zu einem Pull Request öffnet diese Seite im Bereich dieses Teils.
+Jedes Feature hat eine Seite, `/flow/feature/<id>`. Die Kennung ist die Ref eines ihrer Teile: des Tickets, der Spezifikationsänderung, des Laufs oder des Pull Requests. Die Seite zeigt den Titel, die Phasenlinie und einen Umschalter mit sechs Bereichen: Verlauf, Auftrag, Entwurf, Änderungen, Prüfungen und Gespräch. Mehr enthält Im Ticketsystem öffnen, Referenz kopieren und, bei einem gestoppten Feature, Was passiert ist. Zurück führt zu Ablauf mit seiner Suche und seinem Filter, und Escape tut dasselbe. Ein Link zu einem Lauf oder zu einem Pull Request öffnet diese Seite im Bereich dieses Teils.
 
 ### Verlauf
 
-Verlauf zeigt zuerst, was auf Sie wartet: die Fragen, die Freigaben, den Plan mit seinen Aktionen, und den Grund, warum ein Agent gestoppt hat, mit seiner einen Aktion. Dann listet er die Ereignisse in einfachen Sätzen. Ein Bedienelement öffnet das ganze Protokoll, in dem Wichtig die Fragen, die Fehler, die Zustandswechsel und die Ergebnisse zeigt, und Alle jedes Ereignis zeigt. Anfragen und Sitzungen zeigt die Anfragen mit ihren Kosten, den Graphen des Rezepts und die Sitzungen. Verfolgen zeigt eine laufende Sitzung. Im Terminal öffnen setzt eine beendete Sitzung fort.
+Verlauf zeigt zuerst, was auf Sie wartet: die Fragen, die Freigaben, den Plan mit seinen Aktionen, und den Grund, warum ein Agent gestoppt hat, mit seiner einen Aktion. Der Plan in Prüfung ist eine einzige Karte: die Schritte, die Dateien, die der Plan ändert, was der Agent allein tut und was er zuerst fragt. Geben Sie den Plan frei, oder schreiben Sie, was zu ändern ist, und klicken Sie auf Zurückschicken. Dann listet er die Ereignisse in einfachen Sätzen. Was passiert ist öffnet das ganze Protokoll, in dem Wichtig die Fragen, die Fehler, die Zustandswechsel und die Ergebnisse zeigt, und Alle jedes Ereignis zeigt. Anfragen und Sitzungen zeigt die Anfragen mit ihren Kosten, den Graphen des Rezepts und die Sitzungen. Verfolgen zeigt eine laufende Sitzung. Im Terminal öffnen setzt eine beendete Sitzung fort.
+
+Die Ticketseite öffnet sich über Bearbeiten im Menü einer Karte. Sie zeigt das Ticket mit bearbeitbarem Titel und Text, seine Fakten, seine Kommentare und die Marke des Abgleichs mit dem Ticketsystem. Zurück führt zum Feature.
 
 Die Seitenspalte zeigt den Agenten (das KI-Tool, das Modell, den Schritt n von m, die Kosten und das Budget, die verstrichene Zeit, mit Sprechen und Stoppen), den Auftrag, die Änderungen und die Personen. Ein Feature ohne Agenten hat Agent starten.
 
 ### Auftrag
 
-Auftrag zeigt den Plan in Prüfung, die Fakten des Tickets und die Spezifikationsänderung des Features. Ein Formular zeigt jeden Teil der Änderung mit seinem Zustand: fehlt, Entwurf oder fertig. Eine Rohtextansicht gibt es auch. Klicken Sie auf Validieren: Jedes Problem zeigt sich an seinem Teil, mit seiner Zeile. Folgen Sie dem nächsten Schritt, den die App zeigt, zum Beispiel die Arbeit in Tickets aufteilen. Eine Änderung nimmt ihren Titel aus der ersten Überschrift ihres Vorschlags. Die Kennung bleibt der Ordnername. Ein Feature ohne Spezifikation hat Spezifikation schreiben.
+Auftrag zeigt die Fakten des Tickets und die Spezifikationsänderung des Features als Anforderungskarten, jede mit ihrem Test, und die Tickets des Features. Die Dateien der Änderung öffnen sich auf einer eigenen Seite, mit einem Link zurück zu Auftrag. Ein Formular zeigt jeden Teil der Änderung mit seinem Zustand: fehlt, Entwurf oder fertig. Eine Rohtextansicht gibt es auch. Klicken Sie auf Validieren: Jedes Problem zeigt sich an seinem Teil, mit seiner Zeile. Folgen Sie dem nächsten Schritt, den die App zeigt, zum Beispiel die Arbeit in Tickets aufteilen. Eine Änderung nimmt ihren Titel aus der ersten Überschrift ihres Vorschlags. Die Kennung bleibt der Ordnername. Ein Feature ohne Spezifikation hat Spezifikation schreiben.
 
 ### Entwurf
 
@@ -70,7 +71,7 @@ Entwurf listet die Entscheidungen, Diagramme, Bildschirme, API-Verträge und Dat
 
 ### Änderungen
 
-Änderungen zeigt den Diff des Laufs und den Pull Request.
+Änderungen zeigt den Pull Request des Features. Die geänderten Dateien öffnen sich auf einer eigenen Seite: Geänderte Dateien, mit dem Dateibaum, der Zahl der gesehenen Dateien und einem Link zurück zu Änderungen.
 
 Der Kopf des Pull Requests zeigt den Titel, den Zustand, den Quell- und den Ziel-Branch und die hinzugefügten und entfernten Zeilen. Das Menü neben dem Zustand öffnet den Pull Request im Browser, kopiert seine Ref und schließt ihn. Ein Entwurf hat Als bereit markieren.
 
@@ -96,11 +97,11 @@ Eine Agenten-Prüfung zeigt sich in Team / Sitzungen, wo Stoppen sie beendet. Si
 
 ### Prüfungen
 
-Prüfungen zeigt die Prüfschritte des Laufs, die Prüfungen des Pull Requests mit dem CI-Zustand, und die Zeile Auswirkungen auf anderen Code.
+Prüfungen zeigt die Prüfschritte des Laufs, die Prüfungen des Pull Requests mit dem CI-Zustand, den Testplan, die Docs, die diese Änderung veralten lässt, und die Zeile Auswirkungen auf anderen Code. Mit einem Agenten beheben bittet einen Agenten, die fehlgeschlagenen Prüfungen zu beheben.
 
 ### Gespräch
 
-Gespräch zeigt das Gespräch der Agenten-Sitzung, das Gespräch des Pull Requests und die Kommentare des Tickets. Das Gespräch des Pull Requests listet die allgemeinen Kommentare und die Review-Threads in zeitlicher Reihenfolge. Klicken Sie auf Antworten, um auf einen Thread zu antworten, auf Lösen, um ihn zu schließen, und auf Wieder öffnen, um ihn erneut zu öffnen. Das Schreibfeld hat Schreiben und Vorschau. Kommentieren sendet einen allgemeinen Kommentar. An den Agenten zurücksenden zeigt sich bei einem Pull Request, den ein Lauf geöffnet hat.
+Gespräch zeigt das Gespräch der Agenten-Sitzung (das Live-Terminal und die Anfragen sind unter Für Entwickler), das Gespräch des Pull Requests und die Kommentare des Tickets. Das Gespräch des Pull Requests listet die allgemeinen Kommentare und die Review-Threads in zeitlicher Reihenfolge. Klicken Sie auf Antworten, um auf einen Thread zu antworten, auf Lösen, um ihn zu schließen, und auf Wieder öffnen, um ihn erneut zu öffnen. Das Schreibfeld hat Schreiben und Vorschau. Kommentieren sendet einen allgemeinen Kommentar. An den Agenten zurücksenden zeigt sich bei einem Pull Request, den ein Lauf geöffnet hat.
 
 ## Freigaben
 
@@ -149,4 +150,12 @@ Die Aktualität der Doku listet die Dokumente, die dem Code des Branches nicht g
 
 ## Auswirkungen
 
-Auswirkungen sagt, welche Elemente eine Änderung berührt, und schlägt einen Aktionsplan vor. Die Seite öffnet sich aus den Prüfungen eines Features: Klicken Sie auf Auswirkungen auf anderen Code. Die ganze Seite ist `/flow/impacts`. Sie braucht Zugriff auf den Code.
+Auswirkungen sagt, welche Elemente eine Änderung berührt, und schlägt einen Aktionsplan vor. Die Seite öffnet sich aus den Prüfungen eines Features: Klicken Sie auf Auswirkungen auf anderen Code. Sie zeigt die geänderten Dateien, den Code, der davon abhängt, und die Docs, die veralten. Veraltete Dokumente mit einem Agenten korrigieren startet einen Lauf erst nach Ihrem Klick. Die Seite `/flow/impacts` bleibt. Sie braucht Zugriff auf den Code.
+
+Vollständiger Auswirkungsbericht öffnet den Bericht als Seite: die Größe der Änderung nach Code, Spezifikationen, Dokumenten, Tests und Personen, den Aktionsplan und die Zusammenfassung. Den Bericht neu schreiben macht einen neuen. Frühere Berichte listet die älteren. Den Auftrag kopieren kopiert den Auftrag für einen Agenten.
+
+## Pull Requests
+
+Pull Requests ist eine Seite von Code, mit einem Link zurück zu Code / Jetzt. Sie hat eine Suche, den Filter Alle oder Von mir zu prüfen und Neuer Pull Request. Die offenen kommen zuerst. Die gemergten und geschlossenen sind hinter einer einzigen Schaltfläche. Wählen Sie einen Pull Request, um seine Prüfung zu sehen: die Prüfungen, die verlangten Änderungen und die Reviewer. Pull Request öffnen öffnet die Seite seines Features.
+
+Neuer Pull Request ist auch eine Seite. Schreiben Sie den Titel und die Beschreibung (Schreib es für mich bittet einen Agenten). Wählen Sie Nach, den Zweig, der die Änderung erhält. Stellen Sie Entwurf und Labels ein. Vor dem Senden nennt eine Notiz die nicht übernommenen Dateien, einen Basiszweig, der voraus ist, und die Docs, die veralten: Jedes hat seine Wahl. Klicken Sie auf Pull Request öffnen.

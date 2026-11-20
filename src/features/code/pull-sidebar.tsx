@@ -15,6 +15,10 @@ export const hasSidebar = (d: PullDetail, cited: number) =>
 /** The narrow column of the Overview (REQ-044): the reviewers with their verdicts, and the linked tickets and runs. Only what the data has. */
 export function PullSidebar({ d }: { d: PullDetail }) {
 	const { t } = useI18n();
+	const word = (state: string) =>
+		state === "changes-requested"
+			? t.flow.look.pull.changesAsked
+			: t.forge.verdict[state as "approved"];
 	const { openRef } = useShell();
 	// The same backlinks as the inspector shows for another ref, here on the page.
 	const cited = useBacklinks(d.reference).data ?? [];
@@ -32,10 +36,10 @@ export function PullSidebar({ d }: { d: PullDetail }) {
 								<span className="min-w-0 flex-1 truncate">{v.reviewer}</span>
 								<StatusDot
 									status={REVIEW_STATUS[v.state] ?? "idle"}
-									label={t.forge.verdict[v.state as "approved"]}
+									label={word(v.state)}
 									className="size-2"
 								/>
-								<span className="text-12 text-n-11">{t.forge.verdict[v.state as "approved"]}</span>
+								<span className="text-12 text-n-11">{word(v.state)}</span>
 							</li>
 						))}
 					</ul>

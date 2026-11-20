@@ -14,24 +14,24 @@ Le sélecteur a quatre sections : Flux, Liste, Terminé et Santé. Flux est le t
 
 Une carte montre le titre, qui travaille sur la fonctionnalité et son état. Une carte qui vous attend a la couleur d'attention. Cliquez sur une carte pour ouvrir la page de la fonctionnalité. Le menu d'une carte a Arrêter, l'historique et Déplacer vers un statut de l'outil de suivi. Quand l'outil de suivi refuse le déplacement, la carte montre la raison.
 
-La barre au-dessus du tableau contient :
+La barre au-dessus du tableau contient le filtre Tout, Me concerne ou Les miens, Nouveau et Plus. Le filtre reste dans l'adresse.
 
-- Rechercher : trouver une fonctionnalité par la clé de son ticket ou par son titre.
-- Un filtre : Tout, Me concerne ou Les miens. La recherche et le filtre restent dans l'adresse.
-- L'interrupteur des agents. Désactivé arrête chaque agent et empêche les nouvelles exécutions. Réactivez-le pour continuer.
-- Lancer une exécution : choisissez un ticket par son titre.
-- Nouveau : commencer une nouvelle fonctionnalité.
+Plus contient :
+
+- Trouver une fonctionnalité : ouvre le champ de recherche. Trouvez une fonctionnalité par la clé de son ticket ou par son titre. Le texte reste dans l'adresse.
+- Partir d'un ticket : ouvre Nouvelle fonctionnalité à sa liste de tickets.
+- Agents actifs : l'interrupteur des agents. Désactivé arrête chaque agent et empêche les nouvelles exécutions. Réactivez-le pour continuer.
 
 ## Nouvelle fonctionnalité
 
-Nouveau ouvre une page avec une question : Que voulez-vous construire ?
+Nouveau ouvre une page à part, avec un lien de retour vers le tableau et une question : Que voulez-vous construire ?
 
 1. Tapez le titre.
 2. Choisissez le type : Fonctionnalité, Bug ou Idée pour plus tard. Une idée crée seulement le changement de spec.
 3. Choisissez la manière : Un agent écrit la spec, J'écris la spec, ou Construire tout de suite, sans spec.
 4. Cliquez sur Créer.
 
-Ou partez d'un ticket : trouvez un ticket sans exécution, puis cliquez sur Lancer un agent.
+Ou partez d'un ticket, sous les trois manières : trouvez un ticket sans exécution, puis cliquez sur Lancer un agent. Partir d'un ticket, dans Plus sur Flux, l'ouvre.
 
 Chaque manière crée d'abord un changement de spec avec votre texte comme titre. Une manière est désactivée quand il vous manque le droit qu'elle demande.
 
@@ -39,30 +39,31 @@ Chaque manière crée d'abord un changement de spec avec votre texte comme titre
 
 Liste montre les mêmes fonctionnalités dans un tableau : le titre, l'étape, qui et l'état. Elle contient aussi les commandes des tickets :
 
-- Filtrer par statut, personne, étiquette et exécution.
-- Amener un ticket par sa clé.
-- Importer : l'application montre d'abord le nombre. Elle n'écrit rien avant votre confirmation.
+- Les pastilles Responsable, Étiquette et Agent filtrent les lignes. Amenez un ticket par sa clé.
+- Dans Plus : le filtre par statut, et Importer. L'application montre d'abord le nombre. Elle n'écrit rien avant votre confirmation.
 - Attribuer : choisissez une personne. L'application propose une personne selon les compétences et le temps libre. Le choix est le vôtre.
 - Marquer pour l'agent : un clic donne le ticket aux agents.
-- Nouveau changement commence un changement de spec. Donnez-lui un titre simple : l'application crée l'identifiant à partir du titre. Depuis un ticket crée le changement avec le titre du ticket, met le texte du ticket dans la proposition et vous place sur la branche `specs/<id>`, pour que le changement reste à part du code.
+- Nouveau changement, dans Plus, commence un changement de spec. Donnez-lui un titre simple : l'application crée l'identifiant à partir du titre. Depuis un ticket crée le changement avec le titre du ticket, met le texte du ticket dans la proposition et vous place sur la branche `specs/<id>`, pour que le changement reste à part du code.
 
 ## Terminé
 
-Terminé contient les fonctionnalités prêtes et l'historique des exécutions : chaque exécution terminée et chaque exécution plus ancienne d'un ticket, la fin la plus récente d'abord. Cliquez sur une ligne pour ouvrir sa fonctionnalité. La dernière exécution en échec d'un ticket reste aussi sur le tableau, avec Réessayer.
+Terminé contient les fonctionnalités prêtes et l'historique des exécutions : chaque exécution terminée et chaque exécution plus ancienne d'un ticket, la fin la plus récente d'abord. Trouver une fonctionnalité terminée a son propre champ dans Terminé. Plus ajoute ou retire des colonnes. Cliquez sur une ligne pour ouvrir sa fonctionnalité. La dernière exécution en échec d'un ticket reste aussi sur le tableau, avec Réessayer.
 
 ## La page d'une fonctionnalité
 
-Chaque fonctionnalité a une page, `/flow/feature/<id>`. L'identifiant est la réf de l'une de ses parties : le ticket, le changement de spec, l'exécution ou la pull request. La page montre le titre, la ligne des étapes et un sélecteur de six sections. Retour revient à Flux avec sa recherche et son filtre, et Échap fait de même. Un lien vers une exécution ou une pull request ouvre cette page à la section de cette partie.
+Chaque fonctionnalité a une page, `/flow/feature/<id>`. L'identifiant est la réf de l'une de ses parties : le ticket, le changement de spec, l'exécution ou la pull request. La page montre le titre, la ligne des étapes et un sélecteur de six sections : Histoire, Cahier, Conception, Changements, Contrôles et Discussion. Plus contient Ouvrir dans l'outil de suivi, Copier la référence et, sur une fonctionnalité arrêtée, Ce qui s'est passé. Retour revient à Flux avec sa recherche et son filtre, et Échap fait de même. Un lien vers une exécution ou une pull request ouvre cette page à la section de cette partie.
 
 ### Histoire
 
-Histoire montre d'abord ce qui vous attend : les questions, les approbations, le plan avec ses actions, et la raison de l'arrêt d'un agent avec son action. Puis elle liste les événements en phrases simples. Une commande ouvre le journal complet, où Importants montre les questions, les erreurs, les changements d'état et les résultats, et Tous montre chaque événement. Requêtes et sessions montre les requêtes avec leur coût, le graphe de la recette et les sessions. Suivre montre une session en direct. Ouvrir dans le terminal reprend une session terminée.
+Histoire montre d'abord ce qui vous attend : les questions, les approbations, le plan avec ses actions, et la raison de l'arrêt d'un agent avec son action. Le plan en revue est une seule carte : les étapes, les fichiers que le plan change, ce que l'agent fait seul et ce qu'il demande d'abord. Approuvez le plan, ou écrivez ce qu'il faut changer et cliquez sur Renvoyer. Puis elle liste les événements en phrases simples. Ce qui s'est passé ouvre le journal complet, où Importants montre les questions, les erreurs, les changements d'état et les résultats, et Tous montre chaque événement. Requêtes et sessions montre les requêtes avec leur coût, le graphe de la recette et les sessions. Suivre montre une session en direct. Ouvrir dans le terminal reprend une session terminée.
+
+La page du ticket s'ouvre par Modifier dans le menu d'une carte. Elle montre le ticket avec un titre et un texte modifiables, ses faits, ses commentaires et la marque de synchronisation avec l'outil de suivi. Retour revient à la fonctionnalité.
 
 La colonne latérale montre l'agent (l'outil d'IA, le modèle, l'étape n sur m, le coût et le budget, le temps écoulé, avec Parler et Arrêter), le cahier, les changements et les personnes. Une fonctionnalité sans agent a Lancer un agent.
 
 ### Cahier
 
-Cahier montre le plan en revue, les faits du ticket et le changement de spec de la fonctionnalité. Un formulaire montre chaque partie du changement avec son état : manquante, brouillon ou terminée. Une vue en texte brut existe aussi. Cliquez sur Valider : chaque problème s'affiche sur sa partie, avec sa ligne. Suivez l'étape suivante que l'application montre, par exemple découper le travail en tickets. Un changement prend son titre dans le premier titre de sa proposition. L'identifiant reste le nom du dossier. Une fonctionnalité sans spec a Écrire la spec.
+Cahier montre les faits du ticket et le changement de spec de la fonctionnalité comme des cartes d'exigence, chacune avec son test, et les tickets de la fonctionnalité. Les fichiers du changement s'ouvrent sur une page à part, avec un lien de retour vers Cahier. Un formulaire montre chaque partie du changement avec son état : manquante, brouillon ou terminée. Une vue en texte brut existe aussi. Cliquez sur Valider : chaque problème s'affiche sur sa partie, avec sa ligne. Suivez l'étape suivante que l'application montre, par exemple découper le travail en tickets. Un changement prend son titre dans le premier titre de sa proposition. L'identifiant reste le nom du dossier. Une fonctionnalité sans spec a Écrire la spec.
 
 ### Conception
 
@@ -70,7 +71,7 @@ Conception liste les décisions, les diagrammes, les écrans, les contrats d'API
 
 ### Changements
 
-Changements montre le diff de l'exécution et la pull request.
+Changements montre la pull request de la fonctionnalité. Les fichiers modifiés s'ouvrent sur une page à part : Fichiers modifiés, avec l'arborescence, le compte des fichiers vus et un lien de retour vers Changements.
 
 L'en-tête de la pull request montre le titre, l'état, la branche source et la branche cible et les lignes ajoutées et retirées. Le menu à côté de l'état ouvre la pull request dans le navigateur, copie sa réf et la ferme. Un brouillon a Marquer prête.
 
@@ -96,11 +97,11 @@ Une revue par un agent s'affiche dans Équipe / Sessions, où Arrêter la termin
 
 ### Contrôles
 
-Contrôles montre les étapes de contrôle de l'exécution, les contrôles de la pull request avec l'état de la CI, et la ligne Impacts sur le reste du code.
+Contrôles montre les étapes de contrôle de l'exécution, les contrôles de la pull request avec l'état de la CI, le plan de test, les docs que le changement rend périmées et la ligne Impacts sur le reste du code. Corriger avec un agent demande à un agent de corriger les contrôles en échec.
 
 ### Discussion
 
-Discussion montre la conversation de la session de l'agent, la conversation de la pull request et les commentaires du ticket. La conversation de la pull request liste les commentaires généraux et les fils de revue dans l'ordre du temps. Cliquez sur Répondre pour répondre à un fil, sur Résoudre pour le fermer et sur Rouvrir pour l'ouvrir à nouveau. La zone d'écriture a Écrire et Aperçu. Commenter publie un commentaire général. Renvoyer à l'agent s'affiche pour une pull request qu'une exécution a ouverte.
+Discussion montre la conversation de la session de l'agent (le terminal en direct et les requêtes sont sous Pour les développeurs), la conversation de la pull request et les commentaires du ticket. La conversation de la pull request liste les commentaires généraux et les fils de revue dans l'ordre du temps. Cliquez sur Répondre pour répondre à un fil, sur Résoudre pour le fermer et sur Rouvrir pour l'ouvrir à nouveau. La zone d'écriture a Écrire et Aperçu. Commenter publie un commentaire général. Renvoyer à l'agent s'affiche pour une pull request qu'une exécution a ouverte.
 
 ## Approbations
 
@@ -149,4 +150,12 @@ La fraîcheur des docs liste les docs qui n'ont pas suivi le code de la branche,
 
 ## Impacts
 
-Impacts dit quels éléments un changement touche, et propose un plan d'action. Il s'ouvre depuis les Contrôles d'une fonctionnalité : cliquez sur Impacts sur le reste du code. La page complète est `/flow/impacts`. Elle demande l'accès au code.
+Impacts dit quels éléments un changement touche, et propose un plan d'action. Il s'ouvre comme une page depuis les Contrôles d'une fonctionnalité : cliquez sur Impacts sur le reste du code. Il montre les fichiers modifiés, le code qui en dépend et les docs qui deviennent périmées. Corriger les documents périmés avec un agent ne lance une exécution qu'après votre clic. La page `/flow/impacts` reste. Elle demande l'accès au code.
+
+Rapport d'impact complet ouvre le rapport comme une page : la taille du changement par Code, Spécifications, Documents, Tests et Personnes, le plan d'action et le résumé. Écrire le rapport de nouveau en crée un autre. Rapports passés liste les plus anciens. Copier le brief copie le brief pour un agent.
+
+## Pull requests
+
+Pull requests est une page de Code, avec un lien de retour vers Code / Maintenant. Elle a une recherche, le filtre Tout ou À relire par moi et Nouvelle pull request. Les ouvertes viennent d'abord. Les fusionnées et les fermées sont derrière un seul bouton. Choisissez une pull request pour voir sa revue : les contrôles, les changements demandés et les relecteurs. Ouvrir la pull request ouvre la page de sa fonctionnalité.
+
+Nouvelle pull request est aussi une page. Écrivez le titre et la description (Écris-le pour moi demande à un agent). Choisissez Vers, la branche qui reçoit le changement. Réglez Brouillon et Étiquettes. Avant l'envoi, une note nomme les fichiers non validés, une branche de base en avance et les docs qui deviennent périmées : chacun a son choix. Cliquez sur Ouvrir la pull request.

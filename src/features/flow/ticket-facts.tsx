@@ -51,9 +51,8 @@ export function TicketFacts({ item, days }: { item: WorkItem; days: number | und
 				<StatusDot status="warning" label={t.work.unknownMember} className="size-2" />
 			) : null}
 			{days === undefined ? null : (
-				<span className="font-mono text-11 text-n-11">
-					{format(t.work.daysShort, { days: figure(days, lang) })}
-				</span>
+				// The design shows the title alone: the estimate is said, not drawn.
+				<span className="sr-only">{format(t.work.daysShort, { days: figure(days, lang) })}</span>
 			)}
 		</>
 	);

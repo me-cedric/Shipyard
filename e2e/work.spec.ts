@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { openFirstFolder } from "./first-run";
-import { placeOf } from "./places";
+import { pickMore, placeOf } from "./places";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
@@ -40,7 +40,7 @@ async function openWork(page: Page, tab: string) {
 	);
 	await sidebar(page).getByRole("link", { name: "Flow" }).click();
 	await tabs(page).getByRole("link", { name: "List" }).click();
-	await page.getByRole("button", { name: "Import" }).click();
+	await pickMore(page, "Import");
 	await page.getByRole("button", { name: "Confirm" }).click();
 	await expect(page.getByRole("button", { name: ticket("ACME-1") })).toBeVisible();
 	await sidebar(page)
@@ -74,8 +74,7 @@ test("moves a card on the board with the keyboard", async ({ page }) => {
 	await page.getByRole("menuitem", { name: "Move to In Progress" }).click();
 	// The ticket has the new status: the list with the filter In Progress holds it, with 2 more.
 	await tabs(page).getByRole("link", { name: "List" }).click();
-	await page.getByRole("combobox", { name: "Status" }).click();
-	await page.getByRole("option", { name: "In Progress" }).click();
+	await pickMore(page, "In Progress", "menuitemradio");
 	await expect(page.getByRole("button", { name: ticket("ACME-3") })).toBeVisible();
 	await expect(page.getByRole("button", { name: /ACME-\d+/ })).toHaveCount(3);
 });

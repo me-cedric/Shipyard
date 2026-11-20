@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { PLACE_IDS, sections } from "../src/features/shell/places";
 import { tabLabel } from "../src/features/shell/spaces";
 import { en } from "../src/lib/i18n/en";
@@ -47,3 +47,16 @@ export const visit = (page: Page, href: string) =>
 		window.history.pushState({}, "", to);
 		window.dispatchEvent(new PopStateEvent("popstate"));
 	}, href);
+
+/** Picks an item of the More menu of Flow: a choice of the Status filter is a radio item. */
+export async function pickMore(
+	page: Page,
+	name: string,
+	role: "menuitem" | "menuitemradio" = "menuitem",
+) {
+	await page.getByRole("button", { name: "More", exact: true }).click();
+	await page.getByRole("menu").getByRole(role, { name, exact: true }).click();
+	// A radio item keeps the menu open: close it, so the next call opens it again.
+	if (role === "menuitemradio") await page.keyboard.press("Escape");
+	await expect(page.getByRole("menu")).toHaveCount(0);
+}

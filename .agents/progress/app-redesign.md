@@ -628,3 +628,34 @@ Open:
 - "Ask an agent to run it" and Rename of a branch open the assistant with the text filled in; the person sends it.
 - The demo data holds a conflict file, so Commit in the card of the sync mark is off until the conflict is solved.
 - The rtk hook rewrites `pnpm lint` to eslint: run `rtk proxy pnpm lint`.
+## Look pass 2, group Flow and the feature page (2026-11-20)
+
+Branch `feature/app-redesign-look-2-flow`, cut from `feature/app-ui-ux-redesign-df0d13` (`108fb9c4`), local commits only. Not pushed, no pull request. The brief is `.agents/progress/redesign-look-2.md`.
+
+What the pass did:
+
+- Flow (`src/features/flow/flow-page.tsx`, `feature-card.tsx`, `list-controls.tsx`): the title row holds the filter All / Needs me / Mine (a chip group, as wide as its labels), the view switch, "+ New" and More. A card is one target with the title and one line (the avatar or the agent tile, the state). The page scrolls as one page; each column ends after its last card. List is one table with the pill filters and "Bring a ticket by its key". Done is one list with the columns Feature, End, Who, Cost, the end filter and "Start again".
+- Moved controls: "Agents on" and "Find a feature" are items of More on Flow; the Ticket field with "Start run" is "Find a ticket" with "Start an agent" on New feature (`/flow/new`); the search of the run history is "Find a finished feature" on Done; the extra history columns are in More of Done; "What happened" of a stop card is in More of the feature page.
+- The feature page (`src/features/flow/feature/`) draws one section switch only (`spec:app-redesign#REQ-001`), with no switch of the place. Each section has its own file. The stage line shows on Story, Brief, Changes, the plan review, the ticket page and the stop cards; Design, Checks and Chat have none, as the design.
+- New pages, each with its address and its back link: `/flow/feature/$featureId/impacts`, `/impact-report`, `/files`, `/spec`; `/flow/impacts/report`; `/code/pull-requests` (Pull requests, with the review panel); `/code/pull-requests/new` (New pull request, a page in place of the dialog). The ticket page is `/flow/feature/wi:<key>?ticket=true`; "Edit the ticket" and a `wi:` ref open it.
+- Chat is never blank: the bubbles of the session, the composer, the Recipe card and "For developers" (the event log, the requests and cost, the sessions).
+- Health is one grid of tiles for the checks and the scanners, with the bottom row (Run all, Set up the scanners, Security score, Export the list of parts) and "Commands of the gates".
+- Texts: one file for each writer group in `src/lib/i18n/flow-look/` (four languages each), read as `t.flow.look.<group>`.
+
+Decisions of this pass:
+
+- The More button at the end of a title row is the home of the moved controls. The design does not show it.
+- The demo feature ACME-2 has no spec change: the Crew / Live test of another session needs that. The demo spec `add-export` cites ACME-3.
+- The demo of the design tokens is set in the Design test (a spy), not in `mock-design.ts` of the Library group.
+- A demo main branch "behind" renamed the Sync button and broke tests of the shell group: the New pull request test sets that state with a spy.
+
+Checks on the final tree (`eb9df05b`): `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --no-fail-fast` (2061; no Rust file changed), `pnpm typecheck`, `pnpm lint`, `pnpm test` (283 files, 2567 tests), `CI=1 npx playwright test` (143, on a copy of the config on port 4206), the persona walks (7, on port 4207) and `openspec validate update-app-redesign --strict` passed. A review in a fresh context (Opus) found no security defect and four other defects, all fixed with tests: a typed answer that a failed call cleared, the pick of a recommended option with the unclear and edited notes, the elapsed time of a run, and the back link. The picture check ran five times in a fresh context (Opus): 130, 111, 97, 96 differences in rounds 1 to 4; round 5 used captures at the full height of each design picture. The test audit ran five times: each dropped check came back on its new control, and each weakened check became as strict as before.
+
+Open after look pass 2 (group Flow):
+
+- No command exists for: Pause, Take it over, a limit for one run, Run again of the code host checks, the first error line of a check, Add a document, attach in Chat, the author of a pull request (row avatar), the answer options of a spec question, the Reviewers and Merge with rows of New pull request, the owner and the checkbox of a plan line, the columns "Code that depends on them" and "Features that share these files", the ticket fields Kind, Owner, Release, Estimate, Recipe and the two agent switches.
+- Shared parts outside this group: `src/ui/molecules/stage-line.tsx` has no orange "Build, blocked" tone; `src/features/sync/ticket-thread.tsx` keeps the order and the controls of the ticket fields; `QuestionRow` of `src/features/home/inbox/` keeps its option panel (the stop card shows the options in a Choices menu).
+- The demo mirror starts empty, so the ticket rows of New feature do not show in the demo (a unit test covers them).
+- The demo Review column has 10 cards; the design has 2.
+- `src/features/code/pull-header.tsx` has no user now (the Code and Setup group owns it).
+- `src/features/code/now.tsx` still draws the old pull request list; one line there must link to `/code/pull-requests` (the Code and Setup group).

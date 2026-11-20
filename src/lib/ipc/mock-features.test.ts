@@ -118,12 +118,14 @@ describe("mock features: the read model of Flow", () => {
 		const building = of("ACME-2");
 		expect(building?.who).toMatchObject({ agent: true });
 		expect(building).toMatchObject({ runState: "Working", approvals: 2, questions: 0 });
-		// No agent works: the assignee of the ticket. The checks come from the pull request.
+		// No agent works: the assignee of the ticket. The checks come from the pull request: the demo
+		// pull request of ACME-5 fails its checks, so that Checks shows a failing case.
 		expect(of("ACME-5")).toMatchObject({
 			who: { name: "Grace Hopper", agent: false },
 			runState: "PROpen",
-			checks: "passing",
+			checks: "failing",
 		});
+		// No agent works and the ticket has no assignee: nobody shows.
 		expect(of("ACME-7")).toMatchObject({ who: null, checks: "failing" });
 		expect(of("ACME-1")).toMatchObject({ runState: "WaitingForAnswer", questions: 1 });
 	});

@@ -1,21 +1,24 @@
-import { useSearch } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Link, useSearch } from "@tanstack/react-router";
+import { useMemo, useRef, useState } from "react";
 import { TicketPicker } from "@/features/factory/ticket-picker";
 import { useGuard } from "@/features/work/guard";
 import { ENDED, useRunActions, useRuns, useWorkflows } from "@/lib/factory";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import type { Right } from "@/lib/ipc";
 import { RightButton, useRights } from "@/lib/rights";
-import { useShell } from "@/lib/shell";
+import { useFormIntent, useShell } from "@/lib/shell";
 import { useSpecsActions } from "@/lib/specs";
 import { useBacklogActions, useWorkItems } from "@/lib/sync";
 import { useWorkActions } from "@/lib/work";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
+import { Chip } from "@/ui/atoms/chip";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
+import { BackLink } from "@/ui/molecules/back-link";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { SectionSwitch } from "@/ui/molecules/section-switch";
+import { TILE_GRID, Tile } from "@/ui/molecules/tile";
 
 type Kind = "feature" | "bug" | "idea";
 type Way = "agent" | "mine" | "build";
@@ -31,6 +34,12 @@ const NEEDS: Record<Way | "idea", Right[]> = {
 const NO_FILTER = {};
 const SHOWN = 5;
 
+/** The recipe has no display name yet: its id, as words with a capital. */
+const recipeName = (id: string) => {
+	const words = id.replace(/[-_]+/g, " ");
+	return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
 /**
  * Flow / New feature (`spec:app-redesign#REQ-003`): one title, a kind, three ways to go on, and the
  * tickets that have no run. Each way first makes a spec change, then calls the commands of the Specs
@@ -39,6 +48,7 @@ const SHOWN = 5;
 export function NewFeature() {
 	const { t } = useI18n();
 	const n = t.flow.new;
+	const c = t.flow.look.create;
 	const { openRef } = useShell();
 	const { gate } = useRights();
 	const specs = useSpecsActions();
@@ -55,11 +65,17 @@ export function NewFeature() {
 	const [way, setWay] = useState<Way>("agent");
 	const [recipe, setRecipe] = useState("");
 	const [key, setKey] = useState("");
+	const find = useRef<HTMLInputElement>(null);
+	// Get started asks to start a run: the old Ticket field is "Find a ticket" here.
+	useFormIntent("run", () => find.current?.focus());
 	// A ticket with a run that has not ended cannot start another one.
-	const skip = useMemo(
-		() => new Set((all ?? []).filter((r) => !ENDED.includes(r.state)).map((r) => r.key)),
+	const live = useMemo(
+		() => new Map((all ?? []).filter((r) => !ENDED.includes(r.state)).map((r) => [r.key, r.id])),
 		[all],
 	);
+	const skip = useMemo(() => new Set(live.keys()), [live]);
+	// The typed key of a ticket that has a live run: refuse it and link that run.
+	const taken = live.get(key.trim());
 	const free = items.filter((i) => !skip.has(i.key) && i.category !== "done");
 	const chosen = recipe || workflows[0]?.id || "";
 	const mode = kind === "idea" ? "idea" : way;
@@ -88,51 +104,65 @@ export function NewFeature() {
 	};
 	const start = (k: string) =>
 		void guard(async () => {
+			if (live.has(k.trim())) return;
 			openRef(`run:${await runs.start(k)}`);
 			setKey("");
 		});
 	return (
-		<div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
-			<h1 className="text-32 font-semibold">{n.heading}</h1>
+		<div className="mx-auto flex w-full max-w-200 flex-col gap-5 p-6">
+			<BackLink label={c.back} render={(props) => <Link to="/flow/flow" {...props} />} />
+			<h1 className="text-44 font-semibold text-n-12">{n.heading}</h1>
 			<Textarea
 				autoFocus
 				label={n.title}
+				className="min-h-40 rounded-xl border-2 border-accent p-5 text-20 focus-visible:outline-none"
 				value={title}
 				onChange={(e) => setTitle(e.target.value)}
 			/>
-			<SectionSwitch
-				label={n.kind}
-				items={(["feature", "bug", "idea"] as const).map((id) => ({
-					id,
-					label: n.kinds[id],
-					current: id === kind,
-				}))}
-				onSelect={(id) => setKind(id as Kind)}
-			/>
+			<fieldset aria-label={n.kind} className="flex min-w-0 flex-wrap gap-2">
+				{(["feature", "bug", "idea"] as const).map((id) => (
+					<Chip
+						key={id}
+						selected={id === kind}
+						className={id === kind ? undefined : "bg-surface-2"}
+						onClick={() => setKind(id)}
+					>
+						{n.kinds[id]}
+					</Chip>
+				))}
+			</fieldset>
 			{kind === "idea" ? null : (
-				<SectionSwitch
-					label={n.way}
-					items={(["agent", "mine", "build"] as const).map((id) => ({
-						id,
-						label: n.ways[id],
-						current: id === way,
-					}))}
-					onSelect={(id) => setWay(id as Way)}
-				/>
+				<fieldset aria-label={n.way} className={TILE_GRID}>
+					{(["agent", "mine", "build"] as const).map((id) => (
+						<Tile
+							key={id}
+							selected={id === way}
+							// The design shows the avatar with no tile behind it: Tile draws one, so strip it here.
+							className="[&>span:first-child]:size-auto [&>span:first-child]:justify-start [&>span:first-child]:bg-transparent"
+							onClick={() => setWay(id)}
+							icon={<Avatar name={c.avatars[id]} agent={id !== "mine"} />}
+							label={n.ways[id]}
+						/>
+					))}
+				</fieldset>
 			)}
 			<div className="flex flex-wrap items-center gap-3">
 				{mode === "agent" ? (
-					<Select
-						label={n.recipe}
-						caption
-						value={chosen}
-						onValueChange={setRecipe}
-						items={workflows.map((w) => ({ value: w.id, label: w.id }))}
-					/>
+					<>
+						<span className="text-n-11">{n.recipe}</span>
+						<Select
+							label={n.recipe}
+							value={chosen}
+							className="font-semibold"
+							onValueChange={setRecipe}
+							items={workflows.map((w) => ({ value: w.id, label: recipeName(w.id) }))}
+						/>
+					</>
 				) : null}
 				<Button
 					variant="primary"
-					className="ml-auto min-h-control"
+					size="lg"
+					className="ml-auto min-w-40 disabled:opacity-100"
 					disabled={title.trim() === "" || off !== undefined}
 					reason={off?.reason}
 					onClick={() => void guard(create)}
@@ -143,13 +173,13 @@ export function NewFeature() {
 			<ErrorNotice error={failure} />
 			<section
 				aria-label={n.fromTicket}
-				className="flex flex-col gap-2 rounded-xl bg-surface-2 p-4"
+				className="flex flex-col gap-1 rounded-lg bg-surface-2 py-2 shadow-2"
 			>
-				<h2 className="text-14 font-medium text-n-11">{n.fromTicket}</h2>
+				<h2 className="px-6 pt-3 pb-1.5 text-13 font-semibold text-n-11">{n.fromTicket}</h2>
 				<ul className="flex flex-col">
 					{free.slice(0, SHOWN).map((i) => (
-						<li key={i.key} className="flex min-h-control items-center gap-2">
-							<span className="min-w-0 flex-1 truncate">{i.title}</span>
+						<li key={i.key} className="flex min-h-control items-center gap-3 px-6">
+							<span className="min-w-0 flex-1 truncate font-semibold">{i.title}</span>
 							<Badge>{i.kind}</Badge>
 							<RightButton
 								right="runs.start"
@@ -162,8 +192,9 @@ export function NewFeature() {
 						</li>
 					))}
 				</ul>
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-2 px-6 pt-1">
 					<TicketPicker
+						ref={find}
 						label={n.find}
 						className="min-h-control"
 						value={key}
@@ -177,6 +208,14 @@ export function NewFeature() {
 						</RightButton>
 					) : null}
 				</div>
+				{taken ? (
+					<p role="alert" className="flex items-center gap-2 px-6 pt-1 text-danger-text">
+						{format(t.factory.runActive, { key: key.trim() })}
+						<Button className="min-h-control" onClick={() => openRef(`run:${taken}`)}>
+							{t.factory.openRun}
+						</Button>
+					</p>
+				) : null}
 			</section>
 		</div>
 	);

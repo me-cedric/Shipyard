@@ -12,7 +12,7 @@ test("junior", async ({ page }) => {
 		async () => {
 			await w.landsOn("Today", "Needs you");
 			await w.go("Library", "Learn");
-			await w.see(page.getByText("0 of 10"), "no progress on the path");
+			await w.see(page.getByText(/^0 (of |\/)11$/), "no progress on the path");
 		},
 	);
 

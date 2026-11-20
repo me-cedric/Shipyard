@@ -1,15 +1,13 @@
 import { expect, type Page, test } from "@playwright/test";
 import { openFirstFolder, openSync } from "./first-run";
+import { pickMore } from "./places";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
 /** The rows of the tickets of Flow / List: one button for each, with the key in its name. */
 const rows = (page: Page) => page.getByRole("button", { name: /ACME-\d+/ });
-/** The Status filter of Flow / List: the old group heading "To Do (7)" is its count. */
-async function onlyStatus(page: Page, status: string) {
-	await page.getByRole("combobox", { name: "Status" }).click();
-	await page.getByRole("option", { name: status }).click();
-}
+/** The Status filter of Flow / List is a choice of the More menu. */
+const onlyStatus = (page: Page, status: string) => pickMore(page, status, "menuitemradio");
 
 /** Opens the mock project and names a Linear tracker with a secret as its tracker. */
 async function openWithTracker(page: Page, secret: string | null = "tok-e2e-sync") {
@@ -52,19 +50,21 @@ test("imports the backlog after a count, then reads it from the mirror with no t
 	await sidebar(page).getByRole("link", { name: "Flow" }).click();
 	await tabs(page).getByRole("link", { name: "List" }).click();
 
-	await page.getByRole("button", { name: "Import" }).click();
+	await pickMore(page, "Import");
 	await expect(page.getByRole("main").getByRole("status")).toHaveText("10 open tickets");
 	// The mirror holds no ticket yet: the Status filter has no status to offer.
-	await page.getByRole("combobox", { name: "Status" }).click();
-	await expect(page.getByRole("option", { name: "To Do" })).toHaveCount(0);
-	await page.getByRole("option", { name: "All statuses" }).click();
+	await page.getByRole("button", { name: "More", exact: true }).click();
+	await expect(page.getByRole("menuitemradio", { name: "To Do" })).toHaveCount(0);
+	await expect(page.getByRole("menuitemradio", { name: "All statuses" })).toBeChecked();
+	await page.keyboard.press("Escape");
 	await page.getByRole("button", { name: "Confirm" }).click();
 	await onlyStatus(page, "To Do");
 	await expect(rows(page)).toHaveCount(7);
 	await onlyStatus(page, "All statuses");
 
-	// The search of Flow is the search of the tickets.
-	await page.getByRole("searchbox", { name: "Search runs" }).fill("export");
+	// The search of Flow is the search of the tickets: Find a feature in More opens it.
+	await pickMore(page, "Find a feature");
+	await page.getByRole("searchbox", { name: "Find a feature" }).fill("export");
 	await expect(rows(page)).toHaveCount(1);
 	await expect(page.getByRole("button", { name: /ACME-2(?!\d)/ })).toBeVisible();
 });

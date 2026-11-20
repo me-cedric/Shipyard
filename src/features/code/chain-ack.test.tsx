@@ -9,11 +9,18 @@ const open = async () => {
 	await unwrap(commands.filesCreateFile("docs/openspec/x/spec.md", true));
 };
 
+/** The docs chain is in the details of the report, in the More menu. */
+const details = async (user: ReturnType<typeof userEvent.setup>) => {
+	await user.click(await screen.findByRole("button", { name: "More" }));
+	await user.click(await screen.findByRole("menuitem", { name: "Details" }));
+};
+
 describe("Docs chain acknowledgement", () => {
 	it("keeps a stale link as it is with a reason, and takes the reason back", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/code/impacts");
+		mountApp("/flow/impacts/report");
+		await details(user);
 		expect(await screen.findByRole("heading", { name: "Docs chain (1)" })).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Acknowledge Test plans" }));
 		const dialog = within(await screen.findByRole("dialog"));
@@ -60,7 +67,8 @@ describe("Docs chain acknowledgement", () => {
 		const user = userEvent.setup();
 		await open();
 		const start = vi.spyOn(commands, "codeDocsUpdateStart");
-		mountApp("/code/impacts");
+		mountApp("/flow/impacts/report");
+		await details(user);
 		const update = await screen.findByRole("button", { name: "Update with an agent: Test plans" });
 		expect(start).not.toHaveBeenCalled();
 		await user.click(update);
@@ -88,7 +96,8 @@ describe("Docs chain acknowledgement", () => {
 			status: "ok",
 			data: [{ path: "docs/models/a.c4", error: "line 3: unexpected token" }],
 		});
-		mountApp("/code/impacts");
+		mountApp("/flow/impacts/report");
+		await details(user);
 		await user.click(
 			await screen.findByRole("button", { name: "Update with an agent: Test plans" }),
 		);

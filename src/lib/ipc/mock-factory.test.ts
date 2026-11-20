@@ -50,7 +50,8 @@ describe("mock factory: the demo data set", () => {
 	it("has an open question, a failing CI run and a merged pull request", async () => {
 		const questions = await unwrap(commands.questionsList());
 		const open = questions.filter((q) => q.question.state === "open");
-		expect(open).toHaveLength(1);
+		// Q-101 for Home, and Q-103: the decision about a screen that Design shows.
+		expect(open.map((q) => q.question.id)).toEqual(["Q-101", "Q-103"]);
 		expect(open[0]?.question.options).toHaveLength(3);
 		expect(questions.some((q) => q.question.answer?.choice.kind === "option")).toBe(true);
 		expect(questions.some((q) => q.question.free_text)).toBe(true);

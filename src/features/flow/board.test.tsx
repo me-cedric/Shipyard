@@ -1,8 +1,12 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { historyRuns } from "@/lib/home";
 import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
+
+/** The exact name of a card: the title, then its key when it has one. */
+const exact = (title: string) => new RegExp(`^${title}( ?[A-Z]+-\\d+)?$`);
 
 // Flow / Flow took over the five lanes of Factory / Runs: the board is five stages (app-redesign REQ-010).
 const STAGES = [
@@ -56,17 +60,19 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		expect(columns).toHaveLength(5);
 	});
 
-	it("shows the state on a card that waits, and its button opens the run at the plan", async () => {
+	it("shows the state on a card that waits, and the card opens the run at the plan", async () => {
 		const user = userEvent.setup();
 		await renderRuns();
 		const spec = await column("Spec");
 		const card = within(
-			(await spec.findByRole("heading", { name: "Write the onboarding guide" })).closest(
+			(await spec.findByRole("heading", { name: exact("Write the onboarding guide") })).closest(
 				"article",
 			) as HTMLElement,
 		);
 		expect(card.getByText("Review the plan")).toBeVisible();
-		await user.click(card.getByRole("button", { name: /^Open/ }));
+		// The whole card is the target: its one button is the title.
+		expect(card.queryByRole("button", { name: /^Open/ })).toBeNull();
+		await user.click(card.getByRole("button", { name: exact("Write the onboarding guide") }));
 		expect(await screen.findByRole("region", { name: "ACME-4" })).toBeVisible();
 	});
 
@@ -93,7 +99,9 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		expect(document.querySelectorAll("article").length).toBe(
 			document.querySelectorAll("li article").length,
 		);
-		await user.type(screen.getByRole("searchbox", { name: "Search runs" }), "ACME-4");
+		await user.click(screen.getByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Find a feature" }));
+		await user.type(await screen.findByRole("searchbox", { name: "Find a feature" }), "ACME-4");
 		await waitFor(() => expect(document.querySelectorAll("article")).toHaveLength(1));
 		await waitFor(() => expect(router.state.location.search).toMatchObject({ q: "ACME-4" }));
 	});
@@ -103,13 +111,13 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		const build = await column("Build");
 		// A paused run needs a person (Resume): its card is an attention card.
 		const card = within(
-			(await build.findByRole("heading", { name: "Cache the project list" })).closest(
+			(await build.findByRole("heading", { name: exact("Cache the project list") })).closest(
 				"article",
 			) as HTMLElement,
 		);
 		expect(card.getByText("Cache the project list")).toBeVisible();
 		// The step shows its display name, as the run page does (not the raw id `fix`).
-		expect(card.getByText("Fix")).toBeVisible();
+		expect(card.getByRole("img", { name: "Fix" })).toBeVisible();
 		expect(card.getByText("Budget reached")).toBeVisible();
 		expect(card.queryByText(/^Feature · /)).toBeNull();
 		expect(card.queryByText(/\$/)).toBeNull();
@@ -137,8 +145,18 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		const ready = (await unwrap(commands.featuresList())).filter((f) => f.stage === "ready");
 		expect(ready.length).toBeGreaterThan(0);
 		mountApp("/factory/runs?view=history");
-		const rows = await screen.findByRole("list", { name: "Features" });
-		expect(within(rows).getAllByRole("listitem")).toHaveLength(ready.length);
+		// Done is one list: each ended run, and each finished feature.
+		const rows = await screen.findByRole("list", { name: "History" });
+		for (const f of ready)
+			expect(
+				(await within(rows).findAllByRole("button", { name: new RegExp(`^${f.title}`) })).length,
+			).toBeGreaterThan(0);
+		// The exact count: each ended run, then each ready feature that has no run in that list.
+		const ended = historyRuns(await unwrap(commands.runsList()));
+		const listed = new Set(ended.map((r) => r.reference));
+		const extra = ready.filter((f) => !(f.run && listed.has(f.run))).length;
+		expect(within(rows).getAllByRole("listitem")).toHaveLength(ended.length + extra);
+		expect(screen.queryByRole("list", { name: "Features" })).toBeNull();
 	});
 
 	it("shows an empty column when the filter hides every card", async () => {
@@ -151,16 +169,16 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		expect(ready.queryAllByRole("listitem")).toHaveLength(0);
 	});
 
-	it("moves the focus to the plan after the Open button of a card that waits for the plan", async () => {
+	it("moves the focus to the plan after a click on a card that waits for the plan", async () => {
 		const user = userEvent.setup();
 		await renderRuns();
 		const spec = await column("Spec");
 		const card = within(
-			(await spec.findByRole("heading", { name: "Write the onboarding guide" })).closest(
+			(await spec.findByRole("heading", { name: exact("Write the onboarding guide") })).closest(
 				"article",
 			) as HTMLElement,
 		);
-		await user.click(card.getByRole("button", { name: /^Open/ }));
+		await user.click(card.getByRole("button", { name: exact("Write the onboarding guide") }));
 		const plan = await screen.findByRole("region", { name: "Plan" });
 		await waitFor(() => expect(plan).toHaveFocus());
 	});
@@ -187,7 +205,9 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		expect(start).toHaveAccessibleDescription(reason);
 		fireEvent.keyDown(start, { key: "Escape" });
 		await waitFor(() => expect(screen.queryByRole("menuitem", { name: "Start run" })).toBeNull());
-		fireEvent.contextMenu(await build.findByRole("heading", { name: "Add export endpoint" }));
+		fireEvent.contextMenu(
+			await build.findByRole("heading", { name: exact("Add export endpoint") }),
+		);
 		const stop = await screen.findByRole("menuitem", { name: "Stop run" });
 		expect(stop).toHaveAttribute("aria-disabled", "true");
 		expect(stop).toHaveAccessibleDescription(reason);
@@ -200,12 +220,16 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		const user = userEvent.setup();
 		const router = await renderRuns();
 		const build = await column("Build");
-		fireEvent.contextMenu(await build.findByRole("heading", { name: "Add export endpoint" }));
+		fireEvent.contextMenu(
+			await build.findByRole("heading", { name: exact("Add export endpoint") }),
+		);
 		mockState().confirm = false;
 		await user.click(await screen.findByRole("menuitem", { name: "Stop run" }));
 		expect((await find("ACME-2")).state).not.toBe("Cancelled");
 		mockState().confirm = true;
-		fireEvent.contextMenu(await build.findByRole("heading", { name: "Add export endpoint" }));
+		fireEvent.contextMenu(
+			await build.findByRole("heading", { name: exact("Add export endpoint") }),
+		);
 		await user.click(await screen.findByRole("menuitem", { name: "Stop run" }));
 		const toast = within(await screen.findByRole("status", { name: "Notifications" }));
 		expect(await toast.findByText("ACME-2 stopped")).toBeVisible();
@@ -225,7 +249,9 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		const user = userEvent.setup();
 		await renderRuns();
 		const build = await column("Build");
-		fireEvent.contextMenu(await build.findByRole("heading", { name: "Add export endpoint" }));
+		fireEvent.contextMenu(
+			await build.findByRole("heading", { name: exact("Add export endpoint") }),
+		);
 		await user.click(await screen.findByRole("menuitem", { name: "Stop run" }));
 		await waitFor(async () => expect((await find("ACME-2")).state).toBe("Cancelled"));
 		await waitFor(() => expect(document.body).not.toBe(document.activeElement));
@@ -238,8 +264,10 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		if (ticket) ticket.title = "Résumé parser";
 		mountApp("/factory/runs");
 		await screen.findByRole("region", { name: "Build" });
-		await user.type(screen.getByRole("searchbox", { name: "Search runs" }), "resume");
-		expect(await screen.findByRole("heading", { name: "Résumé parser" })).toBeVisible();
+		await user.click(screen.getByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Find a feature" }));
+		await user.type(await screen.findByRole("searchbox", { name: "Find a feature" }), "resume");
+		expect(await screen.findByRole("heading", { name: exact("Résumé parser") })).toBeVisible();
 		expect(screen.queryByText("Fix login redirect")).toBeNull();
 	});
 

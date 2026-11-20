@@ -100,6 +100,14 @@ describe("Code: close, send back and archive", () => {
 		await demo();
 		mountApp("/code/now");
 		await user.click(await screen.findByRole("link", { name: /health route/ }));
+		// The archive is on the page of the changed files.
+		await user.click(await screen.findByRole("link", { name: /commits?, all files/ }));
+		await screen.findByText(/^0 of \d+ seen$/);
+		await user.click(screen.getByRole("button", { name: "More" }));
+		await user.click(
+			await screen.findByRole("menuitemcheckbox", { name: "Archive in this pull request" }),
+		);
+		await user.keyboard("{Escape}");
 		await user.click(await screen.findByRole("button", { name: "Archive in this pull request" }));
 		expect(await screen.findByText(/^Archived in /)).toBeInTheDocument();
 	}, 20_000);

@@ -10,7 +10,8 @@ describe("Flow / List: a change from a ticket", () => {
 		await withTracker();
 		await importAll();
 		mountApp("/flow/list");
-		await user.click(await screen.findByRole("button", { name: "From a ticket" }));
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "From a ticket" }));
 		const dialog = await screen.findByRole("dialog");
 		await user.click(within(dialog).getByRole("combobox", { name: "Ticket" }));
 		await user.click(await screen.findByRole("option", { name: "ACME-2 Add export endpoint" }));
@@ -31,7 +32,8 @@ describe("Flow / List: a change from a ticket", () => {
 		const project = mockState().projects[0];
 		if (project) project.overrides = { ...project.overrides, readOnly: true };
 		mountApp("/flow/list");
-		await user.click(await screen.findByRole("button", { name: "From a ticket" }));
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "From a ticket" }));
 		const dialog = await screen.findByRole("dialog");
 		await user.click(within(dialog).getByRole("combobox", { name: "Ticket" }));
 		await user.click(await screen.findByRole("option", { name: "ACME-2 Add export endpoint" }));

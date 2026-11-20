@@ -68,6 +68,10 @@
 - Une nouvelle page, Plugins et packs de règles, s'ouvre depuis les Extensions : elle vérifie un plugin avant son application, liste les packs de règles et envoie un plugin aux projets enfants.
 - Configuration / Cet ordinateur, Modèles et règles, Partager Shipyard avec d'autres outils, Journaux et retours, Moi et Apparence et disposition sont refaits en cartes, et le départ des réglages a des tuiles de produit et trois cartes de portée ; les étapes s'appellent Premier ticket pour une personne et Premier travail par un agent.
 - La santé de cet ordinateur compte un programme obligatoire absent comme un problème et propose Le corriger.
+- Les pages de Flux suivent leur maquette : Flux, Liste et Terminé montrent une seule rangée de commandes avec le filtre, Nouveau et Plus ; Trouver une fonctionnalité, Partir d'un ticket et Agents actifs sont dans Plus, et Trouver une fonctionnalité terminée a son champ dans Terminé.
+- La page d'une fonctionnalité a six sections (Histoire, Cahier, Conception, Changements, Contrôles, Discussion), une page du ticket, une carte du plan avec Approuver le plan et Renvoyer, et une carte d'arrêt avec une seule action ; Ce qui s'est passé est dans Plus, et les fichiers du changement et les fichiers modifiés de la pull request s'ouvrent sur des pages à part.
+- Les impacts d'une fonctionnalité et le rapport d'impact complet s'ouvrent comme des pages, avec les docs qui deviennent périmées et Corriger les documents périmés avec un agent.
+- Pull requests et Nouvelle pull request sont des pages de Code, et Nouvelle fonctionnalité est une page avec Ou partir d'un ticket.
 
 ## [0.1.0]
 - Reprendre applique les limites actuelles du workflow : un budget retiré n’arrête plus une exécution, et Reprendre sans montant fonctionne de nouveau.

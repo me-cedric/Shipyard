@@ -1,8 +1,72 @@
 /** The strings of look pass 2, group `board`: the four languages in one file. */
-export const boardEn = {};
+export const boardEn = {
+	new: "New",
+	find: "Find a feature",
+	findDone: "Find a finished feature",
+	fromTicket: "Start from a ticket",
+	bring: "Bring",
+	filters: "Filters",
+	owner: "Owner: {value}",
+	label: "Label: {value}",
+	agent: "Agent: {value}",
+	all: "all",
+	endState: "End state",
+	feature: "Feature",
+	end: "End",
+	who: "Who",
+	again: "Start again",
+};
 
-export const boardFr: typeof boardEn = {};
+export const boardFr: typeof boardEn = {
+	new: "Nouveau",
+	find: "Trouver une fonctionnalité",
+	findDone: "Trouver une fonctionnalité terminée",
+	fromTicket: "Partir d’un ticket",
+	bring: "Apporter",
+	filters: "Filtres",
+	owner: "Responsable : {value}",
+	label: "Étiquette : {value}",
+	agent: "Agent : {value}",
+	all: "tous",
+	endState: "État de fin",
+	feature: "Fonctionnalité",
+	end: "Fin",
+	who: "Qui",
+	again: "Recommencer",
+};
 
-export const boardDe: typeof boardEn = {};
+export const boardDe: typeof boardEn = {
+	new: "Neu",
+	find: "Feature finden",
+	findDone: "Fertiges Feature finden",
+	fromTicket: "Von einem Ticket starten",
+	bring: "Holen",
+	filters: "Filter",
+	owner: "Verantwortlich: {value}",
+	label: "Label: {value}",
+	agent: "Agent: {value}",
+	all: "alle",
+	endState: "Endzustand",
+	feature: "Feature",
+	end: "Ende",
+	who: "Wer",
+	again: "Neu starten",
+};
 
-export const boardEs: typeof boardEn = {};
+export const boardEs: typeof boardEn = {
+	new: "Nuevo",
+	find: "Buscar una funcionalidad",
+	findDone: "Buscar una funcionalidad terminada",
+	fromTicket: "Empezar desde un ticket",
+	bring: "Traer",
+	filters: "Filtros",
+	owner: "Responsable: {value}",
+	label: "Etiqueta: {value}",
+	agent: "Agente: {value}",
+	all: "todos",
+	endState: "Estado final",
+	feature: "Funcionalidad",
+	end: "Fin",
+	who: "Quién",
+	again: "Empezar de nuevo",
+};

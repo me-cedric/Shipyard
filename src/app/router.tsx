@@ -13,6 +13,7 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { motion } from "motion/react";
+import { type ReactNode, useContext, useLayoutEffect } from "react";
 import { SECTIONS, type Section } from "@/features/flow/sections";
 import { setupAddress } from "@/features/settings/setup-address";
 import {
@@ -39,7 +40,7 @@ import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { useRights } from "@/lib/rights";
 import { EmptyState } from "@/ui/molecules/empty-state";
-import { PageHeader } from "@/ui/molecules/page-header";
+import { PageHeader, PageSwitchContext } from "@/ui/molecules/page-header";
 import { SPRING, useReducedMotionPref } from "@/ui/motion";
 import { NotFound } from "./not-found";
 import { refActions } from "./ref-actions";
@@ -80,6 +81,13 @@ function NoAccess({ space, tab }: { space: SectionSpace; tab: string }) {
 	);
 }
 
+/** Claims the switch of the place and draws none: no row above the page, and none in a page header. */
+function NoSwitch({ children }: { children: ReactNode }) {
+	const claim = useContext(PageSwitchContext)?.claim;
+	useLayoutEffect(() => claim?.(), [claim]);
+	return <PageSwitchContext.Provider value={null}>{children}</PageSwitchContext.Provider>;
+}
+
 function PlaceLayout({ place }: { place: PlaceId }) {
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	const still = useReducedMotionPref();
@@ -104,6 +112,12 @@ function PlaceLayout({ place }: { place: PlaceId }) {
 			: gate
 				? sectionView(place, gate)
 				: undefined;
+	// A detail page shows no switch of the place (`spec:app-redesign#REQ-001`): a feature with its
+	// sub-pages, New feature, the impacts and the pull request pages.
+	const detail =
+		(place === "flow" && ["runs", "feature", "new", "impacts"].includes(part ?? "")) ||
+		// The list of pull requests keeps the Code switch in its title row (screen 53).
+		(place === "code" && part === "pull-requests" && path.split("/").length > 3);
 	return (
 		<div className="flex h-full flex-col">
 			<SectionBar place={place} slug={slug}>
@@ -120,6 +134,10 @@ function PlaceLayout({ place }: { place: PlaceId }) {
 						{/* The manual is help: it shows for every role. */}
 						{view && view.join("/") !== "knowledge/manual" && hiddenSection(level, ...view) ? (
 							<NoAccess space={view[0]} tab={view[1]} />
+						) : detail ? (
+							<NoSwitch>
+								<Outlet />
+							</NoSwitch>
 						) : (
 							<Outlet />
 						)}
@@ -190,8 +208,12 @@ const runSearch = (
 	...(s.tab === "changes" || s.tab === "workflow" ? { tab: s.tab } : {}),
 });
 
-const featureSearch = (s: Record<string, unknown>): { section?: Section; unit?: string } => ({
+const featureSearch = (
+	s: Record<string, unknown>,
+): { section?: Section; unit?: string; ticket?: true } => ({
 	...sectionSearch(s),
+	// The ticket page (picture 026), also for a ticket that has a spec change or a pull request.
+	...(s.ticket === true || s.ticket === "true" ? { ticket: true as const } : {}),
 	...(typeof s.unit === "string" && s.unit ? { unit: s.unit } : {}),
 });
 
@@ -313,6 +335,30 @@ function placeRoute<P extends PlaceId>(place: P) {
 							"FeaturePage",
 						),
 					}),
+					// The changed files of the pull request of a feature (`spec:app-redesign#REQ-012`).
+					createRoute({
+						getParentRoute: () => route,
+						path: "feature/$featureId/files",
+						component: lazyRouteComponent(
+							() => import("@/features/code/pull-files-page"),
+							"PullFilesPage",
+						),
+					}),
+					// The files of the change of a feature, with the file and the view that open first.
+					createRoute({
+						getParentRoute: () => route,
+						path: "feature/$featureId/spec",
+						validateSearch: (
+							s: Record<string, unknown>,
+						): { file?: string; view?: "text" | "form" } => ({
+							...(typeof s.file === "string" && s.file ? { file: s.file } : {}),
+							...(s.view === "text" || s.view === "form" ? { view: s.view } : {}),
+						}),
+						component: lazyRouteComponent(
+							() => import("@/features/flow/feature/change-files"),
+							"ChangeFilesPage",
+						),
+					}),
 					// The tabs of Flow before wave 3 redirect to their view.
 					...(["backlog", "board", "runs", "changes", "quality"] as const).map((tab) =>
 						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),
@@ -323,6 +369,31 @@ function placeRoute<P extends PlaceId>(place: P) {
 						path: "impacts",
 						loader: () => preloadTab("code", "impacts"),
 						component: () => <TabView space="code" tab="impacts" />,
+					}),
+					// The impact report of the working branch, and the two impact pages of a feature.
+					createRoute({
+						getParentRoute: () => route,
+						path: "impacts/report",
+						component: lazyRouteComponent(
+							() => import("@/features/code/impact-report"),
+							"ImpactsReport",
+						),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "feature/$featureId/impacts",
+						component: lazyRouteComponent(
+							() => import("@/features/code/impacts"),
+							"FeatureImpacts",
+						),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "feature/$featureId/impact-report",
+						component: lazyRouteComponent(
+							() => import("@/features/code/impact-report"),
+							"FeatureImpactReport",
+						),
 					}),
 					// New feature (`spec:app-redesign#REQ-003`).
 					createRoute({
@@ -367,8 +438,23 @@ function placeRoute<P extends PlaceId>(place: P) {
 							"LocalChanges",
 						),
 					}),
-					// Pull requests is Now (`spec:app-redesign#REQ-022`): the search of the pull requests stays.
-					...(["quality", "impacts", "pull-requests"] as const).map((tab) =>
+					// Pull requests (screen 53) and New pull request (screen 74): pages of their own. The search stays in the address.
+					createRoute({
+						getParentRoute: () => route,
+						path: "pull-requests",
+						validateSearch: pullsSearch,
+						component: lazyRouteComponent(
+							() => import("@/features/code/pulls-page"),
+							"PullRequestsPage",
+						),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "pull-requests/new",
+						component: lazyRouteComponent(() => import("@/features/code/open-pull"), "NewPullPage"),
+					}),
+					// Quality and Impacts moved to Flow (`spec:app-redesign#REQ-022`, `spec:app-redesign#REQ-023`).
+					...(["quality", "impacts"] as const).map((tab) =>
 						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),
 					),
 				]

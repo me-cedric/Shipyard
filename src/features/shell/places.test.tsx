@@ -224,7 +224,8 @@ describe("old addresses (app-redesign REQ-002, adr:0023 point 9)", () => {
 	it.each([
 		// The files to commit are a page of Code with its own address (look pass 2).
 		["/code/changes", "/code/changes"],
-		["/code/pull-requests?q=fix&filter=needs#top", "/code/now?q=fix&filter=needs#top"],
+		// Pull requests is a page of its own (screen 53): the address keeps its search and its hash.
+		["/code/pull-requests?q=fix&filter=needs#top", "/code/pull-requests?q=fix&filter=needs#top"],
 		["/today/projects", "/projects"],
 		["/home/projects#p", "/projects#p"],
 		["/code/impacts", "/flow/impacts"],

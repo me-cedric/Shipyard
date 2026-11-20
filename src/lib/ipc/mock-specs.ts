@@ -372,7 +372,7 @@ export function seedSpecs(): MockSpecs {
 					),
 				},
 			},
-			"# add-export\n\n## Why\n\nPeople ask for a file.\n",
+			"# add-export\n\n## Why\n\nPeople ask for a file. See wi:ACME-3.\n",
 		),
 		[`${PDIR}/auth-login.feature`]: feature("Login", [
 			["spec:auth#REQ-001", "A session starts"],
@@ -430,6 +430,70 @@ export function seedSpecs(): MockSpecs {
 	const files: Files = {};
 	for (const [p, t] of Object.entries(texts)) files[p] = { text: t, stamp: "1" };
 	return { files, validated: {}, drafts: {} };
+}
+
+/** The demo case of the Brief: a test plan that passes for the first requirement of `add-auth`. */
+export function seedDemoSpecs(s: MockSpecs) {
+	s.files[`${PDIR}/sessions-renew.feature`] = {
+		text: feature("Renew a session", [["spec:sessions#REQ-001", "A token is refreshed"]]),
+		stamp: "1",
+	};
+	s.files[`${PDIR}/sessions-renew.json`] = {
+		text: JSON.stringify({
+			version: 1,
+			base: "main",
+			runs: [
+				{
+					scenario: "A token is refreshed",
+					verdict: "pass",
+					at: "2026-10-28T10:00:00Z",
+					by: "automated",
+					evidence: "pnpm test",
+				},
+			],
+		}),
+		stamp: "1",
+	};
+	// The demo case of Checks: a change of the ticket ACME-5 with one scenario that passes and one with no run.
+	const dir = `${CH}/rework-settings`;
+	const put = (path: string, text: string) => {
+		s.files[path] = { text, stamp: "1" };
+	};
+	put(`${dir}/.openspec.yaml`, "schema: shipyard-delivery\ncreated: 2026-10-20\n");
+	put(
+		`${dir}/proposal.md`,
+		"# rework-settings\n\n## Why\n\nOptions are hard to find. See wi:ACME-5.\n",
+	);
+	put(
+		`${dir}/specs/settings/spec.md`,
+		spec("settings", "Show the options.", [
+			["REQ-001", "Show every option", true],
+			["REQ-002", "Save an option", true],
+		]),
+	);
+	put(
+		`${PDIR}/settings-page.feature`,
+		feature("Settings page", [
+			["spec:settings#REQ-001", "Every option shows"],
+			["spec:settings#REQ-002", "An option is saved"],
+		]),
+	);
+	put(
+		`${PDIR}/settings-page.json`,
+		JSON.stringify({
+			version: 1,
+			base: "main",
+			runs: [
+				{
+					scenario: "Every option shows",
+					verdict: "pass",
+					at: "2026-10-28T10:00:00Z",
+					by: "automated",
+					evidence: "pnpm test",
+				},
+			],
+		}),
+	);
 }
 
 // ---------------------------------------------------------------- changes
@@ -981,4 +1045,13 @@ export const specsCitations = (s: MockSpecs): [string, string][] => [
 	...fileCitations(s.files, sourceOf),
 	// A work item that covers one requirement.
 	["wi:ACME-1", "spec:auth#REQ-003"],
+	// A screen, a diagram and a decision that cite the demo feature of the export (the Design tab).
+	["screen:home", "change:add-export"],
+	["diagram:context", "change:add-export"],
+	["adr:0004", "change:add-export"],
+	// The same parts cite the ticket of the settings page, so that its Design shows screens, a diagram and a decision.
+	["screen:home", "wi:ACME-5"],
+	["screen:checkout", "wi:ACME-5"],
+	["diagram:context", "wi:ACME-5"],
+	["adr:0004", "wi:ACME-5"],
 ];

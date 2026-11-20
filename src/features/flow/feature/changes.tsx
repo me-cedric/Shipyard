@@ -10,12 +10,14 @@ import type { Parts } from "./use-feature";
 export function Changes({ parts }: { parts: Parts }) {
 	const { t } = useI18n();
 	const scope = useRunScope();
-	const hasRun = scope && (scope.run.findings.length > 0 || scope.diff.length > 0);
 	if (!scope && !parts.pr)
 		return <EmptyState title={t.empty.changes} extra={<StartAgent parts={parts} />} />;
 	return (
 		<div className="flex flex-col gap-6">
-			{scope && (hasRun || !parts.pr) ? <RunChanges run={scope.run} diff={scope.diff} /> : null}
+			{/* With a pull request the files show one time, in the pull request: the run keeps its findings. */}
+			{scope && (scope.run.findings.length > 0 || !parts.pr) ? (
+				<RunChanges run={scope.run} diff={parts.pr ? [] : scope.diff} />
+			) : null}
 			{parts.pr ? <PullPart part="changes" /> : null}
 		</div>
 	);

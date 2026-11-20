@@ -12,14 +12,20 @@ test("business analyst", async ({ page }) => {
 		async () => {
 			await w.landsOn("Library", "Specs");
 			await w.go("Flow", "List");
-			await w.see(page.getByRole("button", { name: /add-export/ }), "no change in the list");
+			// The change add-export is a part of the feature "Bump dependencies".
+			await w.see(page.getByRole("button", { name: /Bump dependencies/ }), "no change in the list");
 		},
 	);
 
-	await w.step("Open a change", "the change row, then the Brief section", async () => {
-		await w.click(page.getByRole("button", { name: /add-export/ }));
+	await w.step("Open a change", "the change row, Brief, Files of the change, Edit", async () => {
+		await w.click(page.getByRole("button", { name: /Bump dependencies/ }));
+		await w.click(
+			page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Brief" }),
+		);
+		await w.click(page.getByRole("link", { name: "Files of the change" }));
+		await w.click(page.getByRole("button", { name: "Edit", exact: true }));
 		await w.see(
-			page.getByRole("button", { name: "Split into work items" }),
+			page.getByRole("button", { name: "Next step: split into tickets" }),
 			"no way to split the change",
 		);
 		await w.see(page.getByRole("textbox", { name: "Why" }), "no field for the reason");
@@ -33,36 +39,56 @@ test("business analyst", async ({ page }) => {
 		await w.click(page.getByRole("button", { name: "Save", exact: true }));
 	});
 
-	await w.step("Check the change", "the Validate button, the answer", async () => {
-		await w.click(page.getByRole("button", { name: "Validate" }));
+	await w.step("Check the change", "the Check button, the answer", async () => {
+		await w.click(page.getByRole("button", { name: "Check", exact: true }));
 		await w.see(
-			page.getByRole("alert").or(page.getByRole("status")).filter({ hasText: /\S/ }),
+			page.getByRole("region", { name: /^Problems found/ }).filter({ hasNotText: "Not checked" }),
 			"Validate shows no result, neither a pass nor a list of problems",
 		);
 	});
 
-	await w.step("Split the change into work items", "Split into work items", async () => {
-		await w.click(page.getByRole("button", { name: "Split into work items" }));
+	await w.step("Split the change into work items", "Next step: split into tickets", async () => {
+		await w.click(page.getByRole("button", { name: "Next step: split into tickets" }));
 		await w.click(page.getByRole("dialog").getByRole("button", { name: "Preview" }));
 		await w.see(
 			page.getByRole("dialog").getByText("Export a report"),
 			"the split shows no preview of the items",
 		);
 		await w.click(page.getByRole("dialog").getByRole("button", { name: "Close" }));
-		await w.click(page.getByRole("main").getByRole("button", { name: "Back" }));
+		await w.click(page.getByRole("main").getByRole("button", { name: "Brief" }));
 	});
 
-	await w.step("Write a change from a plain title", "New change, a title, Create", async () => {
-		await w.go("Flow", "List");
-		await w.click(page.getByRole("button", { name: "New change" }));
-		await w.fill(page.getByRole("dialog").getByRole("textbox"), "Add login page");
-		await w.click(page.getByRole("dialog").getByRole("button", { name: "Create" }));
-		await w.until(() => page.getByRole("dialog").count(), 0, "the dialog stays open");
-		await w.see(
-			page.getByRole("heading", { name: "Add login page" }),
-			"the new change does not open from a plain title",
-		);
-	});
+	await w.step(
+		"Write a change from a plain title",
+		"New, a title, I write the spec, Create",
+		async () => {
+			await w.go("Flow", "List");
+			await w.click(page.getByRole("button", { name: "New", exact: true }));
+			await w.fill(page.getByRole("textbox", { name: "Title" }), "Add login page");
+			await w.click(page.getByRole("button", { name: "I write the spec" }));
+			await w.click(page.getByRole("button", { name: "Create" }));
+			await w.see(
+				page
+					.getByRole("complementary", { name: "Inspector" })
+					.getByRole("button", { name: /^change:add-login-page/ }),
+				"the new change does not open from a plain title",
+			);
+			await w.click(
+				page
+					.getByRole("complementary", { name: "Inspector" })
+					.getByRole("button", { name: "Open", exact: true }),
+			);
+			await w.until(
+				() => page.getByRole("heading", { name: "What do you want to build?" }).count(),
+				0,
+				"the New page stays open after the change opens",
+			);
+			await w.see(
+				page.getByRole("heading", { name: /add.login.page/i, level: 1 }),
+				"the new change has no page",
+			);
+		},
+	);
 
 	await w.step("Find a change with the keyboard", "Ctrl+K, the name of a change", async () => {
 		await w.palette("add-export", "the palette finds no change by its name");
@@ -88,7 +114,7 @@ test("business analyst", async ({ page }) => {
 	await w.step("Ask a question", "Questions, New question, a title", async () => {
 		await w.go("Library", "Questions");
 		await w.until(
-			() => page.getByRole("button", { name: "Split into work items" }).count(),
+			() => page.getByRole("button", { name: "Next step: split into tickets" }).count(),
 			0,
 			"the inspector still shows the change from the previous page, with its Split action",
 		);

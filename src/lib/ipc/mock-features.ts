@@ -82,7 +82,8 @@ function one(ticket?: Ticket, change?: Change, run?: Run, pr?: Pull): FlowFeatur
 			? { name: ticket.assignee, agent: false }
 			: null;
 	return {
-		title: ticket?.title ?? change?.title ?? run?.title ?? pr?.title ?? "",
+		// The title of the run before that of the change: a change that cites the ticket keeps the run name.
+		title: ticket?.title ?? run?.title ?? change?.title ?? pr?.title ?? "",
 		stage,
 		mark,
 		ticket: ticket ? `wi:${ticket.key}` : null,

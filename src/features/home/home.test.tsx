@@ -57,6 +57,9 @@ describe("Home / Today, Needs you", () => {
 
 	it("answers an open question with a digit and Enter, and the card says Answered", async () => {
 		const user = userEvent.setup();
+		// Q-103 is the decision about a screen that Design shows: Q-101 stays the last question, so its card says Answered.
+		const design = mockState().factory.questions.find((x) => x.q.id === "Q-103");
+		if (design) design.q.state = "answered";
 		await renderNeedsYou();
 		const on = await card();
 		await user.click(await on.findByRole("button", { name: "The home page" }));

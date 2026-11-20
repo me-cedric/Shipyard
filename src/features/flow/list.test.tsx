@@ -19,11 +19,20 @@ const TICKET = /ACME-\d+/;
 const rows = () => screen.findAllByRole("button", { name: TICKET });
 const rowOf = (key: string) => screen.findByRole("button", { name: new RegExp(`${key}(?!\\d)`) });
 const count = () => screen.queryAllByRole("button", { name: TICKET }).length;
-const pick = async (user: User, name: string, option: string) => {
-	await user.click(screen.getByRole("combobox", { name }));
-	await user.click(await screen.findByRole("option", { name: option }));
+/** Picks a value in a filter pill (Owner, Label, Agent), or a status in More. */
+const pick = async (user: User, name: RegExp | string, option: string) => {
+	await user.click(screen.getByRole("button", { name }));
+	await user.click(await screen.findByRole("menuitemradio", { name: option }));
+	// A choice keeps its list open, so that the mark shows.
+	await user.keyboard("{Escape}");
+	await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 };
-/** The page of the ticket on its Brief, from the menu of its row: the old drawer of the backlog. */
+/** One action of the More menu of the page. */
+const more = async (user: User, name: string) => {
+	await user.click(await screen.findByRole("button", { name: "More" }));
+	await user.click(await screen.findByRole("menuitem", { name }));
+};
+/** The ticket page (the fields card), from the menu of its row: the old drawer of the backlog. */
 const openTicket = async (user: User, key: string) => {
 	fireEvent.contextMenu(await rowOf(key));
 	await user.click(await screen.findByRole("menuitem", { name: "Edit the ticket" }));
@@ -36,7 +45,7 @@ describe("Flow / List: the tickets of the backlog", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mountApp("/flow/list");
-		await user.click(await screen.findByRole("button", { name: "Import" }));
+		await more(user, "Import");
 		expect(await within(screen.getByRole("main")).findByRole("status")).toHaveTextContent(
 			"10 open tickets",
 		);
@@ -50,10 +59,10 @@ describe("Flow / List: the tickets of the backlog", () => {
 			["In Progress", 2],
 			["In Review", 1],
 		] as const) {
-			await pick(user, "Status", status);
+			await pick(user, "More", status);
 			await waitFor(() => expect(count()).toBe(n));
 		}
-		await pick(user, "Status", "All statuses");
+		await pick(user, "More", "All statuses");
 		// The closed tickets are not in the import.
 		expect(mockState().sync.mirror.some((t) => t.key === "ACME-11")).toBe(false);
 	});
@@ -62,10 +71,12 @@ describe("Flow / List: the tickets of the backlog", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mountApp("/flow/list");
-		await user.click(await screen.findByRole("button", { name: "Import" }));
+		await more(user, "Import");
 		await user.click(await screen.findByRole("button", { name: "Cancel" }));
 		expect(mockState().sync.mirror).toHaveLength(0);
-		expect(await screen.findByRole("button", { name: "Import" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Confirm" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "More" }));
+		expect(await screen.findByRole("menuitem", { name: "Import" })).toBeInTheDocument();
 	});
 
 	it("filters the feature rows by assignee, status, label and run state with no tick", async () => {
@@ -75,22 +86,29 @@ describe("Flow / List: the tickets of the backlog", () => {
 		mockState().sync.claimed.push("ACME-3");
 		mountApp("/flow/list");
 		await rows();
-		await pick(user, "Assignee", "Grace Hopper");
+		// The filters are three pills in one group: the chosen value is in the name of its pill.
+		const pills = within(screen.getByRole("group", { name: "Filters" }));
+		expect(pills.getByRole("button", { name: "Owner: all" })).toBeVisible();
+		await pick(user, /^Owner:/, "Grace Hopper");
 		await waitFor(() => expect(count()).toBe(3));
-		await pick(user, "Assignee", "All assignees");
-		await pick(user, "Status", "In Review");
+		expect(pills.getByRole("button", { name: "Owner: Grace Hopper" })).toBeVisible();
+		await pick(user, /^Owner:/, "All assignees");
+		// The status filter is in More.
+		await pick(user, "More", "In Review");
 		await waitFor(() => expect(count()).toBe(1));
 		expect(await rowOf("ACME-7")).toBeInTheDocument();
-		await pick(user, "Status", "All statuses");
-		await pick(user, "Label", "bug");
+		await pick(user, "More", "All statuses");
+		await pick(user, /^Label:/, "bug");
 		await waitFor(() => expect(count()).toBe(2));
-		await pick(user, "Label", "All labels");
-		await pick(user, "Run", "Claimed");
+		await pick(user, /^Label:/, "All labels");
+		// The run filter is the Agent pill.
+		await pick(user, /^Agent:/, "Claimed");
 		await waitFor(() => expect(count()).toBe(1));
 		expect(await rowOf("ACME-3")).toBeInTheDocument();
-		await pick(user, "Run", "All runs");
+		await pick(user, /^Agent:/, "All runs");
 		// The search of Flow is the search of the tickets (the old Search box of the backlog).
-		await user.type(screen.getByRole("searchbox", { name: "Search runs" }), "export");
+		await more(user, "Find a feature");
+		await user.type(await screen.findByRole("searchbox", { name: "Find a feature" }), "export");
 		await waitFor(() => expect(count()).toBe(1));
 		expect(mockState().sync.ticks).toBe(0);
 	});
@@ -207,24 +225,47 @@ describe("Flow / List: the tickets of the backlog", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mountApp("/flow/list");
-		await user.click(await screen.findByRole("button", { name: "Bring a ticket by its key" }));
+		const adopt = vi.spyOn(commands, "syncAdopt");
+		const field = await screen.findByRole("textbox", { name: "Bring a ticket by its key" });
 		expect(screen.queryByRole("button", { name: "Adopt" })).toBeNull();
-		expect(await screen.findByRole("textbox", { name: "Ticket key" })).toHaveFocus();
+		await user.click(field);
+		expect(field).toHaveFocus();
+		// Bring does nothing with an empty field.
+		expect(screen.getByRole("button", { name: "Bring" })).toBeDisabled();
+		await user.type(field, "ACME-1");
+		await user.click(screen.getByRole("button", { name: "Bring" }));
+		await waitFor(() => expect(adopt).toHaveBeenCalledWith("ACME-1"));
+		await waitFor(() => expect(field).toHaveValue(""));
+		vi.restoreAllMocks();
 	});
 
 	it("names the issue tracker as missing when the project has none (REQ-007)", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/flow/list");
+		// The list has rows: the notice does not push it down. Its action is one item of More.
+		await screen.findByRole("list", { name: "Features" });
+		expect(screen.queryByRole("button", { name: "issue tracker" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "Connect an issue tracker" })).toBeNull();
+		await userEvent.click(screen.getByRole("button", { name: "More" }));
+		expect(await screen.findByRole("menuitem", { name: "Connect an issue tracker" })).toBeVisible();
+		expect(screen.queryByRole("menuitem", { name: "Import" })).toBeNull();
+	});
+
+	it("shows the missing issue tracker in place of an empty list", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		vi.spyOn(commands, "featuresList").mockResolvedValue({ status: "ok", data: [] });
+		mountApp("/flow/list");
 		expect(await screen.findByRole("button", { name: "issue tracker" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Connect an issue tracker" })).toBeInTheDocument();
-		expect(screen.queryByRole("button", { name: "Import" })).toBeNull();
+		expect(screen.queryByRole("list", { name: "Features" })).toBeNull();
+		vi.restoreAllMocks();
 	});
 
 	it("opens Connections with the add form when no issue tracker connection exists", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/flow/list");
-		await user.click(await screen.findByRole("button", { name: "Connect an issue tracker" }));
+		await more(user, "Connect an issue tracker");
 		// The connections of an issue tracker are under This project (`spec:app-redesign#REQ-024`).
 		await waitFor(() => expect(router.state.location.href).toBe("/setup/project?page=connections"));
 		expect(await screen.findByRole("textbox", { name: "Name" })).toBeInTheDocument();
@@ -249,7 +290,7 @@ describe("Flow / List: the tickets of the backlog", () => {
 			commands.projectFileSave({ ...file, connections: { tracker: null, forge: null } }),
 		);
 		const router = mountApp("/flow/list");
-		await user.click(await screen.findByRole("button", { name: "Connect an issue tracker" }));
+		await more(user, "Connect an issue tracker");
 		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
 		await waitFor(() =>
 			expect(screen.getByRole("combobox", { name: "Issue tracker" })).toHaveFocus(),
@@ -262,12 +303,15 @@ describe("Flow / List: the tickets of the backlog", () => {
 		await importAll();
 		mountApp("/flow/list");
 		await rows();
-		expect(screen.getByRole("button", { name: "Importer" })).toBeInTheDocument();
-		expect(screen.getByRole("combobox", { name: "Statut" })).toBeInTheDocument();
-		expect(screen.getByRole("combobox", { name: "Assigné" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Responsable : tous" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Étiquette : tous" })).toBeInTheDocument();
 		expect(
-			screen.getByRole("button", { name: "Apporter un ticket par sa clé" }),
+			screen.getByRole("textbox", { name: "Apporter un ticket par sa clé" }),
 		).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Apporter" })).toBeInTheDocument();
+		await userEvent.click(screen.getByRole("button", { name: "Plus" }));
+		expect(await screen.findByRole("menuitem", { name: "Importer" })).toBeInTheDocument();
+		expect(screen.getByRole("menuitemradio", { name: "Tous les statuts" })).toBeInTheDocument();
 	});
 });
 
@@ -280,8 +324,15 @@ describe("Flow / List: the changes of Specs", () => {
 	it("lists each change as a row with its stage and state", async () => {
 		await open();
 		mountApp("/flow/list");
-		for (const id of ["add-auth", "add-billing", "add-export"])
+		for (const id of ["add-auth", "add-billing"])
 			expect(await screen.findByRole("button", { name: new RegExp(id) })).toBeVisible();
+		// add-export cites ACME-3 in its proposal: its row joins that ticket and shows the title of the ticket, once.
+		const joined = (await unwrap(commands.featuresList())).filter(
+			(f) => f.change === "change:add-export",
+		);
+		expect(joined).toHaveLength(1);
+		expect(joined[0]).toMatchObject({ ticket: "wi:ACME-3", title: "Bump dependencies" });
+		expect(await screen.findAllByRole("button", { name: /Bump dependencies/ })).toHaveLength(1);
 	});
 
 	it("shows one New change action when there is no change", async () => {
@@ -289,21 +340,27 @@ describe("Flow / List: the changes of Specs", () => {
 			if (p.startsWith(`${CH}/`)) delete mockState().specs.files[p];
 		await open();
 		mountApp("/flow/list");
-		expect(await screen.findAllByRole("button", { name: "New change" })).toHaveLength(1);
+		await userEvent.click(await screen.findByRole("button", { name: "More" }));
+		expect(await screen.findAllByRole("menuitem", { name: "New change" })).toHaveLength(1);
+		expect(screen.queryByRole("button", { name: "New change" })).toBeNull();
 	});
 
 	it("creates a change from a plain title and refuses a title with no letter", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/flow/list");
-		await user.click(await screen.findByRole("button", { name: "New change" }));
+		const router = mountApp("/flow/list");
+		await more(user, "New change");
 		await user.type(screen.getByRole("textbox", { name: "Title" }), "!!");
 		await user.click(screen.getByRole("button", { name: "Create" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("Use a title with at least one");
 		await user.clear(screen.getByRole("textbox", { name: "Title" }));
 		await user.type(screen.getByRole("textbox", { name: "Title" }), "Add search");
 		await user.click(screen.getByRole("button", { name: "Create" }));
-		await screen.findByRole("navigation", { name: "Artifacts" });
+		// The new change opens on its feature page, in Brief.
+		await waitFor(() =>
+			expect(router.state.location.pathname).toBe("/flow/feature/change%3Aadd-search"),
+		);
+		expect(router.state.location.search).toEqual({ section: "brief" });
 		expect(mockState().specs.files[`${CH}/add-search/proposal.md`]?.text).toContain("# Add search");
 		expect(await screen.findAllByText("Add search")).not.toHaveLength(0);
 	});
@@ -314,10 +371,13 @@ describe("Flow / List: the changes of Specs", () => {
 		const router = mountApp("/flow/list");
 		(await screen.findByRole("button", { name: /add-auth/ })).focus();
 		await user.keyboard("{Enter}");
-		expect(await screen.findByRole("navigation", { name: "Artifacts" })).toBeVisible();
 		await waitFor(() =>
 			expect(router.state.location.pathname).toBe("/flow/feature/change%3Aadd-auth"),
 		);
+		// The feature page shows the change, not the list.
+		await waitFor(() => expect(screen.queryByRole("list", { name: "Features" })).toBeNull());
+		expect(await screen.findByRole("region", { name: "add-auth" })).toBeVisible();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
 	it("copies the ref of the change from the menu of its row", async () => {
@@ -334,7 +394,8 @@ describe("Flow / List: the changes of Specs", () => {
 		await open();
 		mountApp("/flow/list");
 		expect(await screen.findByRole("button", { name: /add-auth/ })).toBeVisible();
-		expect(screen.getByRole("button", { name: "Nouveau changement" })).toBeInTheDocument();
+		await userEvent.click(screen.getByRole("button", { name: "Plus" }));
+		expect(await screen.findByRole("menuitem", { name: "Nouveau changement" })).toBeInTheDocument();
 	});
 });
 

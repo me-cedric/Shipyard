@@ -48,11 +48,13 @@ describe("Factory / run sessions", () => {
 		await router.navigate(runHref(run?.id ?? "", "t2"));
 		const second = await screen.findByRole("listitem", { name: "Build 2" });
 		await waitFor(() => expect(second).toHaveFocus());
-		// A link to a session opens the requests and the sessions of the Story.
-		expect(screen.getByRole("button", { name: "Hide requests and sessions" })).toHaveAttribute(
-			"aria-expanded",
-			"true",
-		);
+		// A link to a session opens Chat, with the requests and the sessions.
+		expect(
+			within(screen.getByRole("navigation", { name: "Sections" })).getByRole("button", {
+				name: "Chat",
+			}),
+		).toHaveAttribute("aria-pressed", "true");
+		expect(screen.getByRole("region", { name: "Requests" })).toBeVisible();
 	});
 
 	it("keeps the section in the address: a reload opens the same section", async () => {

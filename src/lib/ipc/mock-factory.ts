@@ -859,7 +859,7 @@ export function seedFactory(): MockFactory {
 	pull(40, "Ship 0.1.0", { state: "merged", updated: "2026-10-26T15:02:00Z" });
 	pull(42, "Rename the Work tab");
 	pull(43, "Audit the keychain use", { ci: "failing" });
-	pull(44, "Rework the settings page", { review: "changes_requested" });
+	pull(44, "Rework the settings page", { review: "changes_requested", ci: "failing" });
 	pull(45, "Add the health dot", { review: "changes_requested" });
 	// Two pull requests that no run owns: a draft, and a closed one.
 	pull(46, "Update the CI cache key", { draft: true });
@@ -916,6 +916,7 @@ export function seedFactory(): MockFactory {
 	kept(blocked);
 	message(blocked, "fix", "Blocked: the French catalog is locked by another branch.", false);
 	const plan = run(10, "ACME-4", "feature", "PlanReview", {
+		budgetUsd: 3,
 		costUsd: 0.95,
 		tokens: 58_100,
 		turns: 9,
@@ -959,6 +960,7 @@ export function seedFactory(): MockFactory {
 	);
 	// Working.
 	const building = run(12, "ACME-2", "feature", "Working", {
+		budgetUsd: 3,
 		costUsd: 1.84,
 		tokens: 126_400,
 		turns: 17,
@@ -1007,7 +1009,22 @@ export function seedFactory(): MockFactory {
 	// Queued.
 	run(14, "ACME-3", "bug", "Queued", { steps: steps("bug", 0, "pending") });
 
+	// Last, so that the inbox keeps its order: an agent decision about a screen: it shows on Design, not on Brief.
+	ask(review, {
+		id: "Q-103",
+		question: "The code has no Settings screen yet",
+		options: ["Not needed", "Build it"],
+		recommended: 2,
+		spec: "screen:settings",
+	});
 	for (const [i, r] of f.runs.entries()) seedLog(f, r, T0 + i * 1_200_000);
+	// The chat of the running session of ACME-2: the agent writes, the person answers, the agent goes on.
+	const chat: [kind: string, payload: object][] = [
+		["runner", { type: "text", text: "I wrote the test first, then the change." }],
+		["answer", { text: "Add a JSON example to the description first." }],
+		["runner", { type: "text", text: "The description now has a JSON example." }],
+	];
+	for (const [kind, payload] of chat) push(f, building, "t2", kind, payload);
 	// One demo budget, so Usage shows a member with a budget and rows with none (Q-023).
 	f.budgets.member["Ada Lovelace"] = 10;
 	return f;

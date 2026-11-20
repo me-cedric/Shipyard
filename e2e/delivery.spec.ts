@@ -54,8 +54,9 @@ test("approvals wait for a click, and the runs show the review, CI and merge sta
 	await page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Done" }).click();
 	await expect(
 		page
-			.getByRole("table", { name: "History" })
-			.getByRole("row", { name: /ACME-11/ })
+			.getByRole("list", { name: "History" })
+			.getByRole("listitem")
+			.filter({ hasText: /ACME-11/ })
 			.first(),
 	).toBeVisible();
 });

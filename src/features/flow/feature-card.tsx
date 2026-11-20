@@ -1,67 +1,94 @@
 import type { ReactNode } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { useI18n } from "@/lib/i18n";
-import type { FlowFeature_Serialize as Feature } from "@/lib/ipc/bindings";
-import { Button } from "@/ui/atoms/button";
-import { CpuChipIcon } from "@/ui/icons";
-import { AttentionCard } from "@/ui/molecules/attention-card";
+import type { FlowFeature_Serialize as Feature, Stage } from "@/lib/ipc/bindings";
+import { cn } from "@/lib/utils";
+import { Avatar } from "@/ui/atoms/avatar";
+import { Badge } from "@/ui/atoms/badge";
+import { ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 import { ContextMenu, type MenuItem } from "@/ui/molecules/context-menu";
-import { Assignee } from "@/ui/molecules/ticket-row";
+import { Row } from "@/ui/molecules/row";
 import { needsPerson, stateText, useOpenFeature } from "./feature";
 
-/** Who works on a feature: a person with the avatar, an agent with the agent mark. */
-function Who({ who }: { who: Feature["who"] }) {
+/** The name of who works on a feature: an agent by the name of its step. */
+const whoName = (who: NonNullable<Feature["who"]>) => (who.agent ? nameOf(who.name) : who.name);
+
+/** Who works on a feature: the black letter tile of an agent, or the round initials of a person. */
+function Who({ who, named }: { who: Feature["who"]; named?: boolean }) {
 	if (!who) return null;
-	return who.agent ? (
-		<span className="flex min-w-0 items-center gap-1.5 text-ui text-n-11">
-			<CpuChipIcon size={16} />
-			<span className="truncate">{nameOf(who.name)}</span>
+	const name = whoName(who);
+	return (
+		<span className="flex min-w-0 items-center gap-2">
+			<Avatar name={name} size="s" agent={who.agent} />
+			{named ? <span className="truncate">{name}</span> : null}
 		</span>
-	) : (
-		<Assignee name={who.name} />
 	);
 }
 
+/** The state of a feature: a pill when a person must act or the checks pass, else plain words. */
+function State({ feature: f }: { feature: Feature }) {
+	const { t } = useI18n();
+	const state = stateText(t, f);
+	if (needsPerson(f)) return <Badge variant="you">{state}</Badge>;
+	if (state === t.flow.state.ready) return <Badge variant="success">{state}</Badge>;
+	return <span className="text-n-11">{state}</span>;
+}
+
+const CARD =
+	"relative flex w-full flex-col gap-3 rounded-field bg-surface-2 p-4 text-left shadow-1 transition-shadow duration-(--duration-base) hover:shadow-2";
+const TITLE = "text-16 leading-snug font-semibold text-n-12";
+
 /**
- * A card of the board: the title, who works on it and its state. A person must act on it: the card
- * takes the attention colour, through `AttentionCard` only.
+ * A card of the board: the title, then one line with who works on it and its state. The whole card
+ * opens the feature. A person must act on it: the card takes the attention outline.
  */
 export function FeatureCard({ feature: f, menu }: { feature: Feature; menu: MenuItem[] }) {
 	const { t } = useI18n();
 	const open = useOpenFeature();
-	const state = stateText(t, f);
 	const key = f.ticket?.replace(/^wi:/, "");
+	const said = key ? <span className="sr-only"> {key}</span> : null;
+	// A feature that did not start shows the name of its person: the column says the rest.
+	const idle = stateText(t, f) === t.flow.state.idle && !!f.who && !needsPerson(f);
+	const line = (
+		<span className="flex flex-wrap items-center gap-2">
+			<Who who={f.who} named={idle} />
+			{idle ? null : <State feature={f} />}
+		</span>
+	);
 	return (
 		<ContextMenu items={menu}>
 			{needsPerson(f) ? (
-				<AttentionCard who={state} title={f.title}>
-					<Who who={f.who} />
-					<Button className="min-h-control" onClick={() => open(f)}>
-						{t.flow.menu.open}
-						<span className="sr-only">
-							{" "}
+				<article className={cn(CARD, ATTENTION_FRAME)}>
+					<h3 className={TITLE}>
+						{/* The button covers the card: the whole card is the target, and the title stays a heading. */}
+						<button
+							type="button"
+							onClick={() => open(f)}
+							className="min-h-control text-left after:absolute after:inset-0 after:rounded-field"
+						>
 							{f.title}
-							{key ? ` ${key}` : ""}
-						</span>
-					</Button>
-				</AttentionCard>
+							{said}
+						</button>
+					</h3>
+					{line}
+				</article>
 			) : (
-				<button
-					type="button"
-					onClick={() => open(f)}
-					className="flex min-h-control w-full flex-col gap-2 rounded-xl border bg-surface-2 p-3 text-left shadow-1 transition-shadow duration-(--duration-base) hover:shadow-2 focus-visible:shadow-glow"
-				>
-					<span className="line-clamp-2 text-ui font-medium text-n-12">
+				<button type="button" onClick={() => open(f)} className={CARD}>
+					<span className={cn(TITLE, "line-clamp-2")}>
 						{f.title}
-						{key ? <span className="sr-only"> {key}</span> : null}
+						{said}
 					</span>
-					<Who who={f.who} />
-					<span className="text-13 text-n-11">{state}</span>
+					{line}
 				</button>
 			)}
 		</ContextMenu>
 	);
 }
+
+const STAGE_TONE: Partial<Record<Stage, "accent" | "success">> = {
+	build: "accent",
+	ready: "success",
+};
 
 /** One row of the list: the title, the stage, who and the state. A row opens like a card. */
 export function FeatureRow({
@@ -77,26 +104,26 @@ export function FeatureRow({
 	const { t } = useI18n();
 	const open = useOpenFeature();
 	const key = f.ticket?.replace(/^wi:/, "");
+	const idle = stateText(t, f) === t.flow.state.idle && !needsPerson(f);
 	return (
 		<ContextMenu items={menu}>
-			<button
-				type="button"
-				onClick={() => open(f)}
-				className="grid min-h-control w-full grid-cols-[minmax(0,3fr)_6rem_minmax(0,2fr)_minmax(0,2fr)] items-center gap-3 border-b px-3 text-left text-ui hover:bg-n-3 focus-visible:shadow-glow"
+			<Row
+				className="grid w-full grid-cols-[minmax(0,1fr)_6.5rem_11.5rem_9rem] gap-4 text-left hover:bg-n-2"
+				render={(row) => <button type="button" onClick={() => open(f)} {...row} />}
 			>
 				<span className="flex min-w-0 items-center gap-2">
-					<span className="truncate font-medium text-n-12">
+					<span className="truncate font-semibold">
 						{f.title}
 						{key ? <span className="sr-only">{` ${key}, `}</span> : null}
 					</span>
 					{facts}
 				</span>
-				<span className="text-n-11">{t.flow.stages[f.stage]}</span>
-				<Who who={f.who} />
-				<span className={needsPerson(f) ? "font-medium text-n-12" : "text-n-11"}>
-					{stateText(t, f)}
+				<span>
+					<Badge variant={STAGE_TONE[f.stage]}>{t.flow.stages[f.stage]}</Badge>
 				</span>
-			</button>
+				{f.who ? <Who who={f.who} named /> : <span />}
+				<span className="flex justify-end text-right">{idle ? null : <State feature={f} />}</span>
+			</Row>
 		</ContextMenu>
 	);
 }

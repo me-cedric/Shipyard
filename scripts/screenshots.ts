@@ -83,10 +83,13 @@ const openProject = async (p: Page) => {
 
 // Pull request 142 of the mock has comments, two threads and one file of three lines.
 // The page opens on Changes: the merge box, the commits and the files.
+const PULL_FEATURE = "pr:github-demo:142";
 const openPull = async (p: Page) => {
 	await open(p, "Now");
 	await p.getByRole("link", { name: /refuse an empty token/ }).click();
 };
+// The changed files page of the same pull request: a page of its own, with the file tree.
+const openFiles = (p: Page) => go(p, `/flow/feature/${PULL_FEATURE}/files`);
 // Adds a comment to the pending review: opens the file, the "+" of the line, the box.
 const comment = async (p: Page, line: number, text: string) => {
 	const file = p.getByRole("button", { name: /src\/app\.ts/ }).first();
@@ -274,7 +277,7 @@ const scenes: Scene[] = [
 		name: "runs-history",
 		run: async (p) => {
 			await open(p, "Done");
-			await p.getByRole("table", { name: "History" }).waitFor();
+			await p.getByRole("list", { name: "History" }).waitFor();
 		},
 	},
 	{ name: "usage", run: openSpend },
@@ -308,7 +311,7 @@ const scenes: Scene[] = [
 	{
 		name: "pull-files",
 		run: async (p) => {
-			await openPull(p);
+			await openFiles(p);
 			await comment(p, 3, "Add a guard for the empty case.");
 			await p.getByText("Pending", { exact: true }).first().waitFor();
 		},
@@ -316,7 +319,7 @@ const scenes: Scene[] = [
 	{
 		name: "pull-review",
 		run: async (p) => {
-			await openPull(p);
+			await openFiles(p);
 			await comment(p, 3, "Add a guard for the empty case.");
 			await comment(p, 1, "Name this value.");
 			await p.getByRole("button", { name: "Submit review" }).first().click();
@@ -353,7 +356,7 @@ const scenes: Scene[] = [
 				.getByRole("button", { name: "Checks" })
 				.click();
 			await p.getByRole("button", { name: "Impacts on other code" }).click();
-			await p.getByRole("button", { name: "Analyze" }).waitFor();
+			await p.getByRole("region", { name: "What this change touches" }).waitFor();
 		},
 	},
 	{ name: "projects", run: openProjects },
@@ -446,6 +449,25 @@ const scenes: Scene[] = [
 	{ name: "setup-plugins", run: (p) => go(p, "/setup/project?page=plugins") },
 	{ name: "setup-look", run: (p) => go(p, "/setup/me?page=look") },
 	{ name: "code-changes", run: (p) => go(p, "/code/changes") },
+	// The mock has a blocked run (ACME-9), a failed run (ACME-11) and a plan in review (ACME-4).
+	{
+		name: "feature-ticket",
+		run: async (p) => {
+			await go(p, "/flow/feature/wi:ACME-9?ticket=true");
+			await p.getByRole("heading", { level: 1 }).first().waitFor();
+		},
+	},
+	{ name: "feature-plan", run: (p) => go(p, "/flow/feature/wi:ACME-4") },
+	{ name: "feature-stop", run: (p) => go(p, "/flow/feature/wi:ACME-9") },
+	{ name: "feature-impact-page", run: (p) => go(p, `/flow/feature/${PULL_FEATURE}/impacts`) },
+	{
+		name: "feature-impact-report",
+		run: (p) => go(p, `/flow/feature/${PULL_FEATURE}/impact-report`),
+	},
+	{ name: "feature-files", run: openFiles },
+	{ name: "feature-change-files", run: (p) => go(p, "/flow/feature/change:add-auth/spec") },
+	{ name: "pull-requests", run: (p) => go(p, "/code/pull-requests") },
+	{ name: "pull-new", run: (p) => go(p, "/code/pull-requests/new") },
 	{
 		name: "setup-project-health",
 		run: (p) => go(p, "/setup/project?page=health"),

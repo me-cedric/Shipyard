@@ -1,7 +1,8 @@
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
+import { askForm } from "@/lib/shell";
 import { mountApp } from "@/test/mount";
 import { importAll, withTracker } from "@/test/tracker";
 
@@ -50,6 +51,26 @@ describe("Flow / New feature", () => {
 		expect(router.state.location.pathname).toBe("/flow/new");
 		expect(screen.getByRole("textbox", { name: "Title" })).toHaveFocus();
 		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("has a back link to Flow, pills for the kind and a recipe by its name", async () => {
+		await open();
+		expect(screen.getByRole("link", { name: "Flow" })).toHaveAttribute("href", "/flow/flow");
+		expect(screen.getByRole("button", { name: "Feature" })).toHaveAttribute("aria-pressed", "true");
+		expect(screen.getByRole("button", { name: "An agent writes the spec" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+		const recipe = screen.getByRole("combobox", { name: "Recipe" });
+		expect(recipe.textContent).toMatch(/^[A-Z]/);
+	});
+
+	it("puts the focus in Find a ticket when Get started asks for a run", async () => {
+		askForm("run");
+		await open();
+		await waitFor(() =>
+			expect(screen.getByRole("combobox", { name: "Find a ticket" })).toHaveFocus(),
+		);
 	});
 
 	it("An agent writes the spec: makes the change first, then a ticket that cites it, then delegates", async () => {
@@ -160,6 +181,20 @@ describe("Flow / New feature", () => {
 		await open();
 		await user.click(screen.getByRole("button", { name: `Start an agent ${FREE}` }));
 		await waitFor(() => expect(run).toHaveBeenCalledWith(FREE));
+	});
+
+	it("refuses a ticket with a live run, names it and opens that run", async () => {
+		const user = userEvent.setup();
+		const run = vi.spyOn(commands, "runStart");
+		await open();
+		expect(document.querySelector('datalist option[label="ACME-2"]')).toBeNull();
+		await user.type(screen.getByRole("combobox", { name: "Find a ticket" }), "ACME-2");
+		await user.click(screen.getByRole("button", { name: "Start an agent" }));
+		const alert = await screen.findByRole("alert");
+		expect(alert).toHaveTextContent("A run is active on ACME-2.");
+		expect(run).not.toHaveBeenCalled();
+		await user.click(within(alert).getByRole("button", { name: "Open the run" }));
+		expect(await screen.findByRole("region", { name: "ACME-2" })).toBeVisible();
 	});
 
 	it("shows an error line when a command fails", async () => {

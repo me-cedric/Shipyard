@@ -18,6 +18,12 @@ test("answers Q-101 with the keyboard, and the run leaves Needs you", async ({ p
 	await answers.getByRole("button").first().focus();
 	await page.keyboard.press("3");
 	await page.keyboard.press("Enter");
+	// The card moves on to Q-103, the other open question: answer it too, so Q-101 is the last one.
+	const design = page.getByRole("region", { name: "Q-103" });
+	await expect(page.getByRole("region", { name: "Q-101" })).toHaveCount(0);
+	await design.getByRole("radio").first().focus();
+	await page.keyboard.press("2");
+	await page.keyboard.press("Enter");
 	// The question row leaves its region once answered: the card of Today keeps the answer.
 	await expect(card.getByText("Answered")).toBeVisible();
 	await expect(answers).toHaveCount(0);

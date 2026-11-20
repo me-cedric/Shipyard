@@ -52,12 +52,17 @@ test("shows a validation finding on the artifact that holds it, with its line", 
 }) => {
 	await openSpecs(page, "List");
 	await change(page, "add-billing").click();
-	await page.getByRole("button", { name: "Validate" }).click();
-	const artifacts = page.getByRole("navigation", { name: "Artifacts" });
-	await expect(artifacts.getByRole("img", { name: "Proposal: Done" })).toBeVisible();
-	await artifacts.getByRole("button", { name: /Spec \/ invoices/ }).click();
+	// The files of the change are a page of their own, opened from the Brief.
+	await page.getByRole("link", { name: "Files of the change" }).click();
+	await page.getByRole("button", { name: "Check", exact: true }).click();
+	const files = page.getByRole("region", { name: "State of each file" });
+	await expect(files.getByRole("img", { name: "Proposal: Done" })).toBeVisible();
+	await page
+		.getByRole("group", { name: "Files of the change" })
+		.getByRole("button", { name: "Spec", exact: true })
+		.click();
 	await expect(
-		page.getByRole("button", { name: /Line \d+.*REQ-002 has no scenario/ }),
+		page.getByRole("button", { name: /REQ-002 has no scenario.*Line \d+/ }),
 	).toBeVisible();
 });
 
@@ -82,13 +87,19 @@ test("folds an answer into its spec after the preview and one click", async ({ p
 		.getByRole("link", { name: "Flow" })
 		.click();
 	await tabs(page).getByRole("link", { name: "List" }).click();
-	await change(page, "add-export").click();
+	// The change add-export belongs to the feature of ACME-3.
+	await page.getByRole("button", { name: /^Bump dependencies/ }).click();
 	await page
-		.getByRole("navigation", { name: "Artifacts" })
-		.getByRole("button", { name: /Spec \/ export/ })
+		.getByRole("navigation", { name: "Sections" })
+		.getByRole("button", { name: "Brief" })
 		.click();
-	await page.getByRole("tab", { name: "Text" }).click();
-	await expect(page.getByRole("textbox", { name: "Spec / export" })).toHaveValue(
+	await page.getByRole("link", { name: "Files of the change" }).click();
+	await page
+		.getByRole("group", { name: "Files of the change" })
+		.getByRole("button", { name: "Spec", exact: true })
+		.click();
+	await page.getByRole("button", { name: "Text", exact: true }).click();
+	await expect(page.getByRole("textbox", { name: "Spec", exact: true })).toHaveValue(
 		/### Clarifications[\s\S]*Q-035 .*: CSV first/,
 	);
 });
@@ -97,7 +108,7 @@ test("applies a split once and a second apply creates no duplicate", async ({ pa
 	await openSpecs(page, "List");
 	await change(page, "add-auth").click();
 	const open = async () => {
-		await page.getByRole("main").getByRole("button", { name: "Split into work items" }).click();
+		await page.getByRole("main").getByRole("button", { name: "Split into more tickets" }).click();
 		await page.getByRole("button", { name: "Preview" }).click();
 	};
 	await open();

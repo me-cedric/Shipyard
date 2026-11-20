@@ -63,6 +63,7 @@ test("tester", async ({ page }) => {
 
 	await w.step("Run the project checks", "Flow, Health, Run Tests", async () => {
 		await w.go("Flow", "Health");
+		await w.click(page.getByRole("button", { name: "Open Tests" }));
 		await w.click(page.getByRole("button", { name: "Run Tests" }));
 		await w.click(page.getByRole("button", { name: "Run secrets" }));
 		await w.see(page.getByText("Findings").first(), "no findings list");
@@ -79,7 +80,17 @@ test("tester", async ({ page }) => {
 				.getByRole("button", { name: "Checks", exact: true });
 			await w.see(checks, "no Checks section on the pull request");
 			await w.click(checks);
-			await w.see(page.getByText("CI failing").first(), "the failing check is not named");
+			await w.see(
+				page.getByRole("region", { name: /^\d+ of \d+ checks fail$/ }),
+				"the failing checks are not counted",
+			);
+			await w.see(
+				page
+					.getByRole("listitem")
+					.filter({ has: page.getByRole("img", { name: "Failing" }) })
+					.getByText("Fail", { exact: true }),
+				"the failing check is not named",
+			);
 		},
 	);
 

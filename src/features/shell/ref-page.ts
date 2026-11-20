@@ -40,13 +40,13 @@ export function docTarget(ref: string): { page: PlacePath; scope: string; id: st
 	return hit && { page: hit[1], scope: `knowledge:${hit[0]}`, id };
 }
 
-/** A change or a ticket has no list page: it opens as a feature, on its Brief. */
+/** A change or a ticket has no list page: a change opens as a feature on its Brief, a ticket on its page. */
 export const featureOfRef = (ref: string) =>
 	/^(change|wi):.+/.test(ref)
 		? {
 				to: "/flow/feature/$featureId" as const,
 				params: { featureId: ref },
-				search: { section: "brief" as const },
+				search: ref.startsWith("wi:") ? { ticket: true as const } : { section: "brief" as const },
 			}
 		: undefined;
 

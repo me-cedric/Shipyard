@@ -12,13 +12,19 @@ test("developer", async ({ page }) => {
 			page.getByRole("button", { name: "Needs me", exact: true }),
 			"no filter for the runs that need me",
 		);
-		await w.see(page.getByRole("switch", { name: "Agents on" }), "no switch to stop the agents");
+		await w.click(page.getByRole("button", { name: "More", exact: true }));
+		// The switch of the agents is in More.
+		await w.see(
+			page.getByRole("menuitemcheckbox", { name: "Agents on" }),
+			"no switch to stop the agents",
+		);
+		await w.key("Escape");
 	});
 
 	await w.step("Open a run", "the run card, the steps graph, the cost", async () => {
-		await w.click(page.getByRole("button", { name: /Open Add export endpoint/ }));
-		await w.see(page.getByRole("button", { name: "More actions" }), "no way to stop the run");
-		await w.see(page.getByRole("group", { name: "Cost" }), "no cost on the run");
+		await w.click(page.getByRole("button", { name: /^Add export endpoint ACME-2/ }));
+		await w.see(page.getByRole("button", { name: "More", exact: true }), "no way to stop the run");
+		await w.see(page.getByRole("progressbar", { name: "Cost" }), "no cost on the run");
 		await w.click(
 			page
 				.getByRole("main")
@@ -27,33 +33,38 @@ test("developer", async ({ page }) => {
 		);
 	});
 
-	await w.step("Start a run from a ticket", "the Ticket field, then Start run", async () => {
-		// A ticket that has a run is not in the list: the demo project has a run on each ticket.
-		await w.until(
-			() => page.locator('datalist option[label="ACME-3"]').count(),
-			0,
-			"the list offers a ticket that already has a run",
-		);
-		await w.fill(page.getByRole("combobox", { name: "Ticket" }), "ACME-3");
-		await w.click(page.getByRole("button", { name: "Start run" }));
-		await w.see(
-			page.getByRole("alert").getByRole("button", { name: "Open the run" }),
-			"the refusal has no link to the run",
-		);
-		await w.click(page.getByRole("button", { name: "Open the run" }));
-		await w.see(
-			page
-				.getByRole("region", { name: /^ACME-\d+$/ })
-				.getByRole("button", { name: "More actions" }),
-			"the link does not open the run",
-		);
-		await w.click(
-			page
-				.getByRole("main")
-				.getByRole("link", { name: /^(Back|Flow)$/ })
-				.first(),
-		);
-	});
+	await w.step(
+		"Start a run from a ticket",
+		"New, the Find a ticket field, then Start an agent",
+		async () => {
+			await w.click(page.getByRole("button", { name: "New", exact: true }));
+			// A ticket that has a run is not in the list: the demo project has a run on each ticket.
+			await w.until(
+				() => page.locator('datalist option[label="ACME-3"]').count(),
+				0,
+				"the list offers a ticket that already has a run",
+			);
+			await w.fill(page.getByRole("combobox", { name: "Find a ticket" }), "ACME-3");
+			await w.click(page.getByRole("button", { name: "Start an agent", exact: true }));
+			await w.see(
+				page.getByRole("alert").getByRole("button", { name: "Open the run" }),
+				"the refusal has no link to the run",
+			);
+			await w.click(page.getByRole("button", { name: "Open the run" }));
+			await w.see(
+				page
+					.getByRole("region", { name: /^ACME-\d+$/ })
+					.getByRole("button", { name: "More", exact: true }),
+				"the link does not open the run",
+			);
+			await w.click(
+				page
+					.getByRole("main")
+					.getByRole("link", { name: /^(Back|Flow)$/ })
+					.first(),
+			);
+		},
+	);
 
 	await w.step("Answer an agent question", "Home, the Agent questions list, Send", async () => {
 		await w.go("Today", "Needs you");
@@ -62,7 +73,12 @@ test("developer", async ({ page }) => {
 			"no question",
 		);
 		await w.click(page.getByRole("button", { name: "Send" }).first());
-		// Today shows one thing at a time: the answered question stays on the card.
+		// Today moves on to the next thing: the answered question waits in the queue and shows Answered.
+		await w.click(
+			page
+				.getByRole("list", { name: "Needs you" })
+				.getByRole("button", { name: /Where should the user land after the session expires\?/ }),
+		);
 		await w.see(
 			page.getByText("Answered").first(),
 			"the question does not turn to Answered after Send",
@@ -148,6 +164,7 @@ test("developer", async ({ page }) => {
 
 	await w.step("Run the checks", "Flow, Health, Run Tests", async () => {
 		await w.go("Flow", "Health");
+		await w.click(page.getByRole("button", { name: "Open Tests" }));
 		await w.click(page.getByRole("button", { name: "Run Tests" }));
 		await w.see(
 			page.getByText(/passed|failed|Pass|Fail/i).first(),

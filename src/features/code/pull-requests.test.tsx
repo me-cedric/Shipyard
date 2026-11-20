@@ -25,6 +25,8 @@ const section = async (user: ReturnType<typeof userEvent.setup>, name: string) =
 			name,
 		}),
 	);
+// The merge card: the method, Merge, and More with the actions of the state.
+const mergeCard = async () => within(await screen.findByRole("region", { name: "Merge" }));
 const idle = (router: ReturnType<typeof mountApp>) =>
 	waitFor(() => expect(router.state.status).toBe("idle"));
 
@@ -81,7 +83,11 @@ describe("Code / Now, the pull requests", () => {
 		await codeHost();
 		mountApp("/code/now");
 		await user.click(await screen.findByRole("button", { name: "New pull request" }));
-		expect(await screen.findByRole("dialog")).toBeInTheDocument();
+		// The form is a page with its own address, not a dialog.
+		expect(
+			await screen.findByRole("heading", { level: 1, name: "New pull request" }),
+		).toBeInTheDocument();
+		expect(screen.queryByRole("dialog")).toBeNull();
 		expect(screen.queryByRole("button", { name: "Connect" })).toBeNull();
 	});
 
@@ -118,10 +124,11 @@ describe("Code / Now, the pull requests", () => {
 			await screen.findByRole("heading", { level: 1, name: /refuse an empty token/ }),
 		).toBeVisible();
 		expect(router.state.location.pathname).toBe("/code/pull-requests/github-demo-142");
-		expect(await screen.findByText("feat/demo/pr-142")).toBeInTheDocument();
-		expect(screen.getByText("main", { selector: "header span" })).toBeInTheDocument();
+		expect(await screen.findByText("feat/demo/pr-142 to main")).toBeInTheDocument();
 		expect(screen.getByTitle("Lines added")).toHaveTextContent("+1");
-		expect(screen.getByTitle("Lines removed")).toHaveTextContent("−0");
+		// A count of zero is not drawn: the name keeps the exact count.
+		expect(screen.queryByTitle("Lines removed")).toBeNull();
+		expect(screen.getByText("Lines removed: 0")).toBeInTheDocument();
 		const sections = within(screen.getByRole("navigation", { name: "Sections" }));
 		for (const name of ["Story", "Brief", "Design", "Changes", "Checks", "Chat"])
 			expect(sections.getByRole("button", { name })).toBeInTheDocument();
@@ -130,9 +137,8 @@ describe("Code / Now, the pull requests", () => {
 			"aria-pressed",
 			"true",
 		);
-		// Now stays the selected section of the Code bar.
-		const bar = screen.getByRole("navigation", { name: "Tabs" });
-		expect(within(bar).getByRole("link", { name: "Now", current: "page" })).toBeVisible();
+		// The page shows no switch of the place (`spec:app-redesign#REQ-001`): the Code bar is not drawn.
+		expect(screen.queryByRole("navigation", { name: "Tabs" })).toBeNull();
 		await idle(router);
 	});
 
@@ -147,7 +153,7 @@ describe("Code / Now, the pull requests", () => {
 		await section(user, "Story");
 		const side = await screen.findByRole("complementary", { name: "Details" });
 		expect(within(side).getByText("Grace Hopper")).toBeInTheDocument();
-		expect(within(side).getByText("Changes requested")).toBeInTheDocument();
+		expect(within(side).getByText("Changes asked")).toBeInTheDocument();
 		expect(within(side).getByText(/wi:SHIP-42/)).toBeInTheDocument();
 		// The data has no assignee, project or milestone.
 		expect(screen.queryByText(/assignee|milestone/i)).toBeNull();
@@ -158,33 +164,52 @@ describe("Code / Now, the pull requests", () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-142");
-		// The commits and the files are parts of Changes.
-		const commits = await screen.findByRole("region", { name: "Commits" });
-		expect(within(commits).getByText("fix(auth): refuse an empty token")).toBeInTheDocument();
-		expect(await screen.findByRole("group", { name: "Changed files" })).toBeInTheDocument();
+		// Changes opens one file and links to the page of all the files.
+		expect(await screen.findByRole("link", { name: /commits?, all files/ })).toBeInTheDocument();
 		await section(user, "Checks");
 		expect(router.state.location.search).toEqual({ section: "checks" });
-		const checks = await screen.findByRole("region", { name: "Checks" });
-		// Failing first, and a check with a web address is a link.
+		// The checks of the code host: the summary says the count, each row has a Pass or Fail pill.
+		expect(await screen.findByRole("region", { name: "2 of 3 checks fail" })).toBeVisible();
+		const host = within(
+			(await screen.findByRole("heading", { name: "Code host checks" }))
+				.parentElement as HTMLElement,
+		);
 		expect(
-			within(checks)
-				.getAllByRole("link")
-				.map((a) => a.textContent),
-		).toEqual(["unit", "lint", "build"]);
-		expect(within(checks).getByRole("link", { name: "unit" })).toHaveAttribute(
+			host
+				.getAllByRole("listitem")
+				.map((r) => r.textContent)
+				.sort(),
+		).toEqual(["FailinglintFailFull log", "FailingunitFailFull log", "PassingbuildPass"]);
+		expect(host.getAllByRole("img", { name: "Failing" })).toHaveLength(2);
+		expect(host.getAllByRole("button", { name: "Full log" })).toHaveLength(2);
+		await section(user, "Changes");
+		await waitFor(() => expect(router.state.location.search).toEqual({}));
+		// The Checks card of Changes: failing first, each check links to its page.
+		const card = within(
+			(await screen.findByRole("heading", { level: 2, name: "Checks" }))
+				.parentElement as HTMLElement,
+		);
+		expect(card.getAllByRole("link").map((a) => a.textContent)).toEqual(["unit", "lint", "build"]);
+		expect(card.getByRole("link", { name: "unit" })).toHaveAttribute(
 			"href",
 			"https://ci.example.com/unit",
 		);
-		expect(within(checks).getAllByRole("img", { name: "Failing" })).toHaveLength(2);
-		await section(user, "Changes");
-		await waitFor(() => expect(router.state.location.search).toEqual({}));
+		// The commits and the files are on the page of the changed files.
+		await user.click(await screen.findByRole("link", { name: /commits?, all files/ }));
+		await screen.findByText(/^0 of \d+ seen$/);
+		await user.click(screen.getByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitemcheckbox", { name: "Commits" }));
+		await user.keyboard("{Escape}");
+		const commits = await screen.findByRole("region", { name: "Commits" });
+		expect(within(commits).getByText("fix(auth): refuse an empty token")).toBeInTheDocument();
+		expect(await screen.findByText(/^0 of \d+ seen$/)).toBeInTheDocument();
 		await idle(router);
 	});
 
 	it("opens a section from its address", async () => {
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-142?tab=checks");
-		expect(await screen.findByRole("heading", { name: "Checks (3)" })).toBeInTheDocument();
+		expect(await screen.findByRole("region", { name: "2 of 3 checks fail" })).toBeVisible();
 		const sections = within(screen.getByRole("navigation", { name: "Sections" }));
 		expect(sections.getByRole("button", { name: "Checks" })).toHaveAttribute(
 			"aria-pressed",
@@ -209,7 +234,7 @@ describe("Code / Now, the pull requests", () => {
 		const router = mountApp("/code/now?q=split&filter=needs");
 		await user.click(await row(/split the pages/));
 		await screen.findByRole("heading", { level: 1, name: /split the pages/ });
-		await user.click(screen.getByRole("link", { name: "Back" }));
+		await user.click(screen.getByRole("link", { name: "Pull requests" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/code/now"));
 		expect(router.state.location.search).toEqual({ q: "split", filter: "needs" });
 		expect(await screen.findByRole("searchbox", { name: "Search pull requests" })).toHaveValue(
@@ -303,9 +328,20 @@ describe("Code / Now, the pull requests", () => {
 		const router = mountApp("/code/pull-requests/github-demo-141");
 		await line("Ready to merge");
 		const view = screen.getByRole("region", { name: "Merge status" });
-		expect(within(view).getByText("1 passing, 0 failing, 0 pending")).toBeInTheDocument();
-		expect(within(view).getByText("0 unresolved of 0")).toBeInTheDocument();
-		expect(within(view).getByText("1 of 1 approved")).toBeInTheDocument();
+		expect(within(view).getByText("1 of 1 pass")).toBeInTheDocument();
+		expect(within(view).getByText("0 of 0 solved")).toBeInTheDocument();
+		expect(within(view).getByText("1 of 1")).toBeInTheDocument();
+		// Each count belongs to its bar: 1 of 1 checks pass (so none fails or waits), 1 of 1 approved.
+		for (const [name, now] of [
+			["Checks", "1"],
+			["Comments", "0"],
+			["Approvals", "1"],
+		])
+			expect(within(view).getByRole("progressbar", { name })).toHaveAttribute("aria-valuenow", now);
+		expect(within(view).getByRole("progressbar", { name: "Approvals" })).toHaveAttribute(
+			"aria-valuemax",
+			"1",
+		);
 		await idle(router);
 	});
 
@@ -313,12 +349,27 @@ describe("Code / Now, the pull requests", () => {
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-142");
 		await screen.findByText("Merge is blocked: 2 checks failing, changes requested", {
-			selector: "p[role=status]",
+			selector: "span[role=status]",
 		});
+		// The sentence is the description of Merge: no line of it shows in the card.
+		expect(
+			within(screen.getByRole("region", { name: "Merge" })).getByRole("button", {
+				name: "Merge pull request",
+			}),
+		).toHaveAccessibleDescription("Merge is blocked: 2 checks failing, changes requested");
 		const view = screen.getByRole("region", { name: "Merge status" });
+		expect(within(view).getByText("1 of 3 pass")).toBeInTheDocument();
 		expect(within(view).getByText("1 passing, 2 failing, 0 pending")).toBeInTheDocument();
-		expect(within(view).getByText("1 unresolved of 2")).toBeInTheDocument();
-		expect(within(view).getByText("0 of 1 approved")).toBeInTheDocument();
+		expect(within(view).getByText("1 of 2 solved")).toBeInTheDocument();
+		expect(within(view).getByText("0 of 1")).toBeInTheDocument();
+		// 1 of 3 checks pass: the two others fail (the line above names them), none waits. 0 of 1 approved.
+		const checks = within(view).getByRole("progressbar", { name: "Checks" });
+		expect(checks).toHaveAttribute("aria-valuenow", "1");
+		expect(checks).toHaveAttribute("aria-valuemax", "3");
+		// 0 of 1 approved: the text "0 of 1" is the Approvals bar, the bar holds the same two numbers.
+		const approvals = within(view).getByRole("progressbar", { name: "Approvals" });
+		expect(approvals).toHaveAttribute("aria-valuenow", "0");
+		expect(approvals).toHaveAttribute("aria-valuemax", "1");
 		await idle(router);
 	});
 
@@ -345,7 +396,7 @@ describe("Code / Now, the pull requests", () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-142");
-		await user.click(await screen.findByRole("button", { name: "Merge" }));
+		await user.click(await screen.findByRole("button", { name: "Merge pull request" }));
 		const confirm = await screen.findByRole("button", {
 			name: "Merge with Merge although checks are failing?",
 		});
@@ -357,16 +408,23 @@ describe("Code / Now, the pull requests", () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-143");
-		const merge = await screen.findByRole("button", { name: "Merge" });
+		const merge = await screen.findByRole("button", { name: "Merge pull request" });
 		expect(merge).toBeDisabled();
-		await user.click(screen.getByRole("button", { name: "Mark ready" }));
-		await waitFor(() => expect(screen.getByRole("button", { name: "Merge" })).toBeEnabled());
-		await waitFor(() => expect(screen.queryByRole("button", { name: "Mark ready" })).toBeNull());
-		await user.click(screen.getByRole("button", { name: "Merge" }));
+		// Mark ready is in More of the merge card.
+		await user.click((await mergeCard()).getByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Mark ready" }));
+		await waitFor(() =>
+			expect(screen.getByRole("button", { name: "Merge pull request" })).toBeEnabled(),
+		);
+		await user.click((await mergeCard()).getByRole("button", { name: "More" }));
+		await screen.findByRole("menuitem", { name: "Copy ref" });
+		expect(screen.queryByRole("menuitem", { name: "Mark ready" })).toBeNull();
+		await user.keyboard("{Escape}");
+		await user.click(screen.getByRole("button", { name: "Merge pull request" }));
 		await user.click(await screen.findByRole("button", { name: "Merge with Merge?" }));
 		await screen.findByText("Merged", { selector: "p[role=status]" });
 		expect(mockState().prs?.pulls.find((p) => p.number === 143)?.state).toBe("merged");
-		expect(screen.getByRole("button", { name: "Merge" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Merge pull request" })).toBeDisabled();
 		await idle(router);
 	});
 
@@ -374,11 +432,12 @@ describe("Code / Now, the pull requests", () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-141");
-		await user.click(await screen.findByRole("button", { name: "Method" }));
-		expect(await screen.findByRole("menuitemcheckbox", { name: "Merge" })).toBeChecked();
-		expect(screen.getByRole("menuitemcheckbox", { name: "Rebase" })).toBeInTheDocument();
-		// Choosing a method starts the merge with it: the confirmation names the method at once.
-		await user.click(screen.getByRole("menuitemcheckbox", { name: "Squash" }));
+		const methods = within(await screen.findByRole("group", { name: "Method" }));
+		expect(methods.getByRole("button", { name: "Merge" })).toHaveAttribute("aria-pressed", "true");
+		expect(methods.getByRole("button", { name: "Rebase" })).toBeInTheDocument();
+		// The switch chooses the method: Merge asks with it.
+		await user.click(methods.getByRole("button", { name: "Squash" }));
+		await user.click(screen.getByRole("button", { name: "Merge pull request" }));
 		await user.click(await screen.findByRole("button", { name: "Merge with Squash?" }));
 		await waitFor(() =>
 			expect(mockState().prs?.pulls.find((p) => p.number === 141)?.state).toBe("merged"),
@@ -392,8 +451,9 @@ describe("Code / Now, the pull requests", () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-141");
-		await user.click(await screen.findByRole("button", { name: "Method" }));
-		await user.click(await screen.findByRole("menuitemcheckbox", { name: "Rebase" }));
+		const methods = within(await screen.findByRole("group", { name: "Method" }));
+		await user.click(methods.getByRole("button", { name: "Rebase" }));
+		await user.click(screen.getByRole("button", { name: "Merge pull request" }));
 		expect(await screen.findByRole("button", { name: "Merge with Rebase?" })).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Cancel" }));
 		expect(screen.queryByRole("button", { name: "Merge with Rebase?" })).toBeNull();
@@ -405,7 +465,7 @@ describe("Code / Now, the pull requests", () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-141");
-		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click((await mergeCard()).getByRole("button", { name: "More" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Close pull request" }));
 		expect(mockState().prs?.pulls.find((p) => p.number === 141)?.state).toBe("open");
 		await user.click(await screen.findByRole("button", { name: "Close #141?" }));
@@ -419,7 +479,7 @@ describe("Code / Now, the pull requests", () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-141");
-		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click((await mergeCard()).getByRole("button", { name: "More" }));
 		expect(await screen.findByRole("menuitem", { name: "Open in browser" })).toBeEnabled();
 		expect(screen.getByRole("menuitem", { name: "Copy ref" })).toBeEnabled();
 		await user.keyboard("{Escape}");
@@ -444,30 +504,186 @@ describe("Code / Now, the pull requests", () => {
 		await idle(router);
 	});
 
-	it("opens a pull request from the form and shows the forge refusal", async () => {
+	it("opens a pull request from the page and shows the forge refusal", async () => {
 		const user = userEvent.setup();
 		await demo();
 		const code = seedCode();
 		code.branch = "feat/demo/login";
 		code.remoteBranches.push("origin/feat/demo/login");
 		mockState().code = code;
-		mountApp("/code/now");
-		await user.click(await screen.findByRole("button", { name: "Open pull request" }));
-		const form = await screen.findByRole("dialog");
-		const submit = () =>
-			user.click(within(form).getByRole("button", { name: "Open pull request" }));
+		const router = mountApp("/code/pull-requests/new");
+		expect(
+			await screen.findByRole("heading", { level: 1, name: "New pull request" }),
+		).toBeVisible();
+		const submit = () => user.click(screen.getByRole("button", { name: "Open the pull request" }));
 		await submit();
-		expect(await within(form).findByRole("alert")).toHaveTextContent("needs a title");
-		await user.type(within(form).getByRole("textbox", { name: "Title" }), "feat(code): login");
-		await user.type(within(form).getByRole("textbox", { name: "Base" }), "feat/demo/login");
+		expect(await screen.findByRole("alert")).toHaveTextContent("needs a title");
+		await user.type(screen.getByRole("textbox", { name: "Title" }), "feat(code): login");
+		await user.click(screen.getByRole("combobox", { name: "Into" }));
+		await user.click(await screen.findByRole("option", { name: "feat/demo/login" }));
 		await submit();
-		expect(await within(form).findByRole("alert")).toHaveTextContent("its own branch");
-		await user.clear(within(form).getByRole("textbox", { name: "Base" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("its own branch");
+		await user.click(screen.getByRole("combobox", { name: "Into" }));
+		await user.click(await screen.findByRole("option", { name: "Default branch" }));
 		await submit();
-		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-		await user.click(await screen.findByRole("button", { name: "Merged and closed" }));
-		expect(await screen.findByRole("heading", { name: "Open (10)" })).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: /feat\(code\): login/ })).toBeInTheDocument();
+		await waitFor(() => expect(router.state.location.pathname).toBe("/code/pull-requests"));
+		expect(await screen.findByRole("heading", { name: "Open, 10" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: /feat\(code\): login/ })).toBeInTheDocument();
+		await idle(router);
+	});
+
+	it("keeps Draft, the labels and the way back on the new pull request page", async () => {
+		const user = userEvent.setup();
+		await demo();
+		const router = mountApp("/code/pull-requests/new");
+		await screen.findByRole("heading", { level: 1, name: "New pull request" });
+		const draft = screen.getByRole("switch", { name: "Draft" });
+		await user.click(draft);
+		expect(draft).toBeChecked();
+		// The page shows no switch of the place (`spec:app-redesign#REQ-001`).
+		expect(screen.queryByRole("navigation", { name: "Tabs" })).toBeNull();
+		// Labels is one button with a menu of the labels that exist.
+		await user.click(screen.getByRole("button", { name: "Labels" }));
+		await user.click(await screen.findByRole("menuitemcheckbox", { name: "feat" }));
+		await user.keyboard("{Escape}");
+		expect(await screen.findByRole("button", { name: "feat" })).toBeInTheDocument();
+		await user.click(screen.getByRole("link", { name: "Pull requests" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/code/pull-requests"));
+		await idle(router);
+	});
+});
+
+describe("New pull request, the cards before the push", () => {
+	it("names the files that are not committed, leaves them, and offers Commit them", async () => {
+		const user = userEvent.setup();
+		await demo();
+		const router = mountApp("/code/pull-requests/new");
+		expect(await screen.findByRole("heading", { name: "Before the push" })).toBeInTheDocument();
+		expect(screen.getByText(/files? (is|are) not committed/)).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "Commit them" })).toHaveAttribute("href", "/code/now");
+		await user.click(screen.getByRole("button", { name: "Leave them" }));
+		expect(screen.queryByText(/files? (is|are) not committed/)).toBeNull();
+		await idle(router);
+	});
+
+	it("shows the base that is ahead and the doc that goes stale, with no line under the heading", async () => {
+		await demo();
+		// The base is one commit ahead of the working branch.
+		const status = await unwrap(commands.codeStatus());
+		vi.spyOn(commands, "codeStatus").mockResolvedValue({
+			status: "ok",
+			data: { ...status, behind: 1 },
+		});
+		const router = mountApp("/code/pull-requests/new");
+		expect(await screen.findByText("main is ahead by 1")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Update my branch" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Push as it is" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "1 doc goes stale" })).toBeInTheDocument();
+		// The warning of the default branch is for a screen reader only.
+		const warning = screen.getByText(/is the default branch of/);
+		expect(warning).toHaveClass("sr-only");
+		await idle(router);
+	});
+});
+
+describe("Code / Pull requests, the page", () => {
+	it("shows the three cards, the search, the filter and the review of the selected one", async () => {
+		await demo();
+		const router = mountApp("/code/pull-requests");
+		expect(
+			await screen.findByRole("heading", { level: 1, name: "Code: Pull requests" }),
+		).toBeVisible();
+		expect(await screen.findByRole("heading", { name: "Open, 9" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Merged" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Closed" })).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "Code" })).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "New pull request" })).toHaveAttribute(
+			"href",
+			"/code/pull-requests/new",
+		);
+		// The title row keeps the Code switch, with Now chosen.
+		const tabs = within(screen.getByRole("navigation", { name: "Tabs" }));
+		expect(tabs.getByRole("link", { name: "Now" })).toHaveAttribute("aria-current", "page");
+		// The first open pull request is selected: its review panel is on the right.
+		const verdict = await screen.findByRole("group", { name: "Verdict" });
+		const panel = within(verdict.parentElement as HTMLElement);
+		expect(panel.getByRole("button", { name: "Submit review" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("button", { name: "Write the description" }),
+		).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Open on the code host" })).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "Rename the Work tab" })).toHaveAttribute(
+			"href",
+			"/code/pull-requests/github-42",
+		);
+		await idle(router);
+	});
+
+	it("selects a row, then opens its page from the panel", async () => {
+		const user = userEvent.setup();
+		await demo();
+		const router = mountApp("/code/pull-requests");
+		await user.click(await screen.findByRole("button", { name: /health route/ }));
+		expect(screen.getByRole("button", { name: /health route/ })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+		await user.click(await screen.findByRole("link", { name: /health route/ }));
+		await waitFor(() =>
+			expect(router.state.location.pathname).toMatch(/^\/code\/pull-requests\/github-demo-\d+$/),
+		);
+		await idle(router);
+	});
+
+	it("searches, filters and keeps both in the address", async () => {
+		const user = userEvent.setup();
+		await demo();
+		const router = mountApp("/code/pull-requests");
+		await screen.findByRole("button", { name: /health route/ });
+		await user.type(
+			screen.getByRole("searchbox", { name: "Search the pull requests" }),
+			"empty tok",
+		);
+		expect(await screen.findByRole("heading", { name: "Open, 1" })).toBeInTheDocument();
+		expect(router.state.location.search).toEqual({ q: "empty tok" });
+		await user.clear(screen.getByRole("searchbox", { name: "Search the pull requests" }));
+		await user.click(screen.getByRole("button", { name: "Needs my review" }));
+		await waitFor(() => expect(router.state.location.search).toEqual({ filter: "needs" }));
+		expect(screen.getByRole("button", { name: /split the pages/ })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: /health route/ })).toBeNull();
+		await idle(router);
+	});
+
+	it("keeps the draft mark, the checks and the review states and Copy ref in the panel and the menu", async () => {
+		const user = userEvent.setup();
+		await demo();
+		const router = mountApp("/code/pull-requests");
+		const draft = await screen.findByRole("button", { name: /show the pull requests/ });
+		expect(within(draft).getByText("Draft")).toBeInTheDocument();
+		const before = screen.getAllByText("Draft").length;
+		await user.click(draft);
+		await waitFor(() => expect(screen.getAllByText("Draft")).toHaveLength(before + 1));
+		await user.pointer({ keys: "[MouseRight]", target: draft });
+		expect(await screen.findByRole("menuitem", { name: "Copy ref" })).toBeInTheDocument();
+		await user.keyboard("{Escape}");
+		await idle(router);
+	});
+
+	it("sends a review from the panel and asks for text with a request for changes", async () => {
+		const user = userEvent.setup();
+		await demo();
+		const router = mountApp("/code/pull-requests");
+		await user.click(await screen.findByRole("button", { name: /health route/ }));
+		const verdict = await screen.findByRole("group", { name: "Verdict" });
+		// The assistant has a Message field too: read the one of the panel.
+		const panel = within(verdict.parentElement as HTMLElement);
+		await user.click(panel.getByRole("button", { name: "Ask for changes" }));
+		await user.click(panel.getByRole("button", { name: "Submit review" }));
+		expect(await panel.findByRole("alert")).toHaveTextContent("some text");
+		await user.type(panel.getByRole("textbox", { name: "Message" }), "rename it");
+		await user.click(panel.getByRole("button", { name: "Submit review" }));
+		expect(await panel.findByRole("status")).toHaveTextContent("Review sent");
+		await idle(router);
 	});
 });
 
@@ -571,7 +787,7 @@ describe("Pull request conversation", () => {
 		await user.click(await screen.findByRole("button", { name: "Resolve" }));
 		// The merge box is in Changes.
 		await section(user, "Changes");
-		expect(await within(await box()).findByText("0 unresolved of 2")).toBeInTheDocument();
+		expect(await within(await box()).findByText("2 of 2 solved")).toBeInTheDocument();
 		await section(user, "Chat");
 		expect(mockPull(142)?.threads[0]?.resolved).toBe(true);
 		const rows = await screen.findAllByRole("button", { name: /src\/app\.ts:2/ });
@@ -579,7 +795,7 @@ describe("Pull request conversation", () => {
 		await user.click(rows[0] as HTMLElement);
 		await user.click(await screen.findByRole("button", { name: "Reopen" }));
 		await section(user, "Changes");
-		expect(await within(await box()).findByText("1 unresolved of 2")).toBeInTheDocument();
+		expect(await within(await box()).findByText("1 of 2 solved")).toBeInTheDocument();
 		await idle(router);
 	});
 
@@ -884,7 +1100,11 @@ describe("Pull request page limits", () => {
 		const router = mountApp("/code/pull-requests/github-demo-141");
 		await line("Checking whether it can merge");
 		expect(screen.queryByText("Ready to merge")).toBeNull();
-		expect(screen.getByRole("img", { name: "Checking whether it can merge" })).toBeInTheDocument();
+		expect(
+			within(screen.getByRole("region", { name: "Merge status" })).getByRole("img", {
+				name: "Checking whether it can merge",
+			}),
+		).toBeInTheDocument();
 		await idle(router);
 	});
 
@@ -906,8 +1126,8 @@ describe("Pull request page limits", () => {
 		const mock = await mockPull(141);
 		if (mock) mock.mergeMethods = ["squash"];
 		const router = mountApp("/code/pull-requests/github-demo-141");
-		await screen.findByRole("button", { name: "Merge" });
-		expect(screen.queryByRole("button", { name: "Method" })).toBeNull();
+		await screen.findByRole("button", { name: "Merge pull request" });
+		expect(screen.queryByRole("group", { name: "Method" })).toBeNull();
 		await idle(router);
 	});
 	it("keeps the page, the typed text and the refusal when a refetch fails after a write", async () => {
@@ -937,20 +1157,20 @@ describe("Pull request page limits", () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-141");
-		const box = await screen.findByRole("region", { name: "Merge status" });
-		await user.click(within(box).getByRole("button", { name: "Merge" }));
-		expect(within(box).getByRole("button", { name: "Merge with Merge?" })).toBeVisible();
-		await user.click(within(box).getByRole("button", { name: "Cancel" }));
-		expect(within(box).queryByRole("button", { name: "Merge with Merge?" })).toBeNull();
-		expect(within(box).getByRole("button", { name: "Merge" })).toHaveFocus();
+		const box = await mergeCard();
+		await user.click(box.getByRole("button", { name: "Merge pull request" }));
+		expect(box.getByRole("button", { name: "Merge with Merge?" })).toBeVisible();
+		await user.click(box.getByRole("button", { name: "Cancel" }));
+		expect(box.queryByRole("button", { name: "Merge with Merge?" })).toBeNull();
+		expect(box.getByRole("button", { name: "Merge pull request" })).toHaveFocus();
 		const merge = vi
 			.spyOn(commands, "codePullMerge")
 			.mockImplementation(
 				() => new Promise((done) => setTimeout(() => done({ status: "ok", data: null }), 50)),
 			);
-		await user.click(within(box).getByRole("button", { name: "Merge" }));
-		await user.dblClick(within(box).getByRole("button", { name: "Merge with Merge?" }));
-		await waitFor(() => expect(within(box).queryByRole("button", { name: "Cancel" })).toBeNull());
+		await user.click(box.getByRole("button", { name: "Merge pull request" }));
+		await user.dblClick(box.getByRole("button", { name: "Merge with Merge?" }));
+		await waitFor(() => expect(box.queryByRole("button", { name: "Cancel" })).toBeNull());
 		expect(merge).toHaveBeenCalledTimes(1);
 		await waitFor(() =>
 			expect(screen.getByRole("heading", { level: 1, name: /health route/ })).toHaveFocus(),
@@ -963,7 +1183,7 @@ describe("Pull request page limits", () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-142");
-		await user.click(await screen.findByRole("button", { name: "Merge" }));
+		await user.click(await screen.findByRole("button", { name: "Merge pull request" }));
 		expect(
 			screen.getByRole("button", { name: "Merge with Merge although checks are failing?" }),
 		).toBeVisible();

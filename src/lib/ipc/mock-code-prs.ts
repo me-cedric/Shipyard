@@ -211,6 +211,29 @@ export function seedPrs(): MockPrs {
 				tail: "Tests 42 passed (42)",
 				findings: [],
 			},
+			// Two docs did not follow the code: the Docs gate needs a fix, so Health shows its attention card.
+			{
+				kind: "check",
+				name: DOCS_FRESH,
+				at: "2026-10-28T09:05:00Z",
+				passed: true,
+				durationMs: 40,
+				tail: "2 stale docs",
+				findings: [
+					{
+						severity: "medium",
+						path: "docs/models",
+						line: null,
+						message: "stale: crates/app/Cargo.toml changed",
+					},
+					{
+						severity: "medium",
+						path: "docs/data-models",
+						line: null,
+						message: "stale: crates/store/src/schema.rs changed",
+					},
+				],
+			},
 		],
 		impacts: [
 			{
@@ -277,6 +300,16 @@ export function pullDetail(p: MockPrs, number: number, row?: PrRowView): PullDet
 				state: row.state,
 				draft: row.draft,
 				ci: row.ci,
+				// A row that fails has the failing checks of the demo, so Checks matches its state.
+				...(row.ci === "failing"
+					? {
+							checks: [
+								{ name: "build", state: "passing", url: "https://ci.example.com/build" },
+								{ name: "unit", state: "failing", url: "https://ci.example.com/unit" },
+								{ name: "lint", state: "failing", url: "https://ci.example.com/lint" },
+							],
+						}
+					: {}),
 				headSha: row.headSha,
 				url: row.url,
 			}),

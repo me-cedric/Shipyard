@@ -17,7 +17,7 @@ async function without(flag: Flag) {
 		.mockResolvedValue({ status: "ok", data: { ...real, capabilities: caps } });
 }
 
-/** The ticket on the Brief of its feature page, from the menu of its row in Flow / List. */
+/** The ticket page (the fields card), from the menu of its row in Flow / List. */
 const openTicket = async (user: ReturnType<typeof userEvent.setup>) => {
 	mountApp("/flow/list");
 	fireEvent.contextMenu(await screen.findByRole("button", { name: /ACME-8(?!\d)/ }));

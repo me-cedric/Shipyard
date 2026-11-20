@@ -9,32 +9,91 @@ import { renderChange, renderSpecs } from "./test-harness";
 
 const files = () => mockState().specs.files;
 const CH = "docs/openspec/changes";
-/** The change as the Brief of its feature page draws it (the cards of the list moved to Flow / List). */
+const row = (name: RegExp) => screen.findByRole("button", { name });
+/** The files of the change, as their page draws them. The result is the card "State of each file". */
 const open = async (_user: ReturnType<typeof userEvent.setup>, id: string) => {
 	await renderChange(id);
-	return screen.findByRole("navigation", { name: "Artifacts" });
+	return screen.findByRole("region", { name: "State of each file" });
 };
+/** The row of one file in "State of each file": its name, then its state. */
+const stateOf = (card: HTMLElement, name: string) =>
+	within(card).getByText(name, { selector: "span" }).parentElement;
 
 describe("Specs / Change detail", () => {
 	it("shows the status of each artifact of a change in its list", async () => {
 		const user = userEvent.setup();
 		// add-export has a spec and no plan (the stepper of the old card).
-		const exp = within(await open(user, "add-export"));
-		expect(await exp.findByRole("img", { name: "Spec / export: Draft" })).toBeInTheDocument();
-		expect(exp.getByRole("img", { name: /^Plan.*: Missing$/ })).toBeInTheDocument();
+		const exp = await open(user, "add-export");
+		expect(within(exp).getByRole("img", { name: "Spec: Draft" })).toBeInTheDocument();
+		expect(within(exp).getByRole("img", { name: "Plan: Missing" })).toBeInTheDocument();
+		// The files that are done, as words and as a meter.
+		expect(screen.getByText("0 of 5 files done")).toBeVisible();
+		expect(screen.getByRole("progressbar", { name: "0 of 5 files done" })).toBeVisible();
+	});
+
+	it("opens a file to read: a spec shows one sentence for each requirement, and Text shows the editor", async () => {
+		const user = userEvent.setup();
+		await renderChange("add-auth", "read");
+		const files = within(screen.getByRole("group", { name: "Files of the change" }));
+		expect(files.getAllByRole("button").map((b) => b.textContent)).toEqual([
+			"Proposal",
+			"Spec",
+			"Plan",
+			"Checklist",
+			"Tasks",
+		]);
+		expect(await screen.findByRole("article", { name: "Proposal" })).toBeVisible();
+		await user.click(files.getByRole("button", { name: "Spec" }));
+		const spec = await screen.findByRole("article", { name: "Spec" });
+		expect(await within(spec).findByText("Refresh a token")).toBeVisible();
+		expect(within(spec).getByText("Expire a token")).toBeVisible();
+		expect(screen.queryByRole("textbox")).toBeNull();
+		const view = within(screen.getByRole("group", { name: "View" }));
+		await user.click(view.getByRole("button", { name: "Text" }));
+		expect(await screen.findByRole("textbox", { name: "Spec" })).toBeVisible();
+		// Read hides the editor and keeps it: the text that a person typed stays.
+		await user.type(screen.getByRole("textbox", { name: "Spec" }), "X");
+		await user.click(view.getByRole("button", { name: "Read" }));
+		expect(screen.queryByRole("textbox")).toBeNull();
+		await user.click(view.getByRole("button", { name: "Text" }));
+		expect((screen.getByRole("textbox", { name: "Spec" }) as HTMLTextAreaElement).value).toMatch(
+			/X$/,
+		);
+		// Edit opens the form of the file.
+		await user.click(files.getByRole("button", { name: "Proposal" }));
+		await user.click(screen.getByRole("button", { name: "Edit" }));
+		expect(await screen.findByRole("textbox", { name: "Why" })).toBeVisible();
+	});
+
+	it("lists each requirement that no test cites, with the way to the test plans", async () => {
+		await renderChange("add-auth", "read");
+		const bare = await screen.findByRole("region", { name: "With no link, 2" });
+		expect(within(bare).getByText("Refresh a token")).toBeVisible();
+		expect(within(bare).getAllByRole("button", { name: "Link it" })).toHaveLength(2);
 	});
 
 	it("shows a finding on the artifact that holds it, with its line", async () => {
 		const user = userEvent.setup();
-		const nav = within(await open(user, "add-billing"));
-		await user.click(await screen.findByRole("button", { name: "Validate" }));
+		const card = await open(user, "add-billing");
+		await user.click(await screen.findByRole("button", { name: "Check" }));
 		await waitFor(() =>
-			expect(nav.getByRole("img", { name: "Proposal: Done" })).toBeInTheDocument(),
+			expect(within(card).getByRole("img", { name: "Proposal: Done" })).toBeInTheDocument(),
 		);
-		// Only the spec holds a finding.
-		expect(nav.getByRole("img", { name: "Spec / invoices: Draft" })).toBeInTheDocument();
-		expect(nav.getByRole("img", { name: "Plan / invoices: Done" })).toBeInTheDocument();
-		await user.click(nav.getByRole("button", { name: /Spec \/ invoices/ }));
+		// Only the spec holds a finding: its row counts it.
+		expect(within(card).getByRole("img", { name: "Spec: Draft" })).toBeInTheDocument();
+		// The count is its own badge with the exact number, in the row of the spec only.
+		expect(
+			within(stateOf(card, "Spec") as HTMLElement).getByText("1", { exact: true }),
+		).toBeVisible();
+		expect(
+			within(stateOf(card, "Plan") as HTMLElement).queryByText("1", { exact: true }),
+		).toBeNull();
+		expect(within(card).getByRole("img", { name: "Plan: Done" })).toBeInTheDocument();
+		// The name no longer holds the capability: the file itself proves it is the one of invoices.
+		const switcher = within(screen.getByRole("group", { name: "Files of the change" }));
+		expect(switcher.getByRole("button", { name: "Spec" })).toHaveAttribute("aria-pressed", "true");
+		const text = await screen.findByRole("textbox", { name: "Spec" });
+		await waitFor(() => expect((text as HTMLTextAreaElement).value).toContain("# Spec: invoices"));
 		const finding = await screen.findByRole("button", { name: /REQ-002 has no scenario/ });
 		expect(finding).toHaveTextContent(/Line \d+/);
 		await user.click(finding);
@@ -44,8 +103,8 @@ describe("Specs / Change detail", () => {
 	it("says how many problems Validate found, and says when it found none", async () => {
 		const user = userEvent.setup();
 		await open(user, "add-billing");
-		await user.click(await screen.findByRole("button", { name: "Validate" }));
-		expect(await screen.findByText("Problems found: 1")).toBeVisible();
+		await user.click(await screen.findByRole("button", { name: "Check" }));
+		expect(await screen.findByRole("heading", { name: "Problems found, 1" })).toBeVisible();
 		// The list opens on the file that holds the problem.
 		expect(await screen.findByRole("button", { name: /REQ-002 has no scenario/ })).toBeVisible();
 		// The author adds the missing scenario, then validates again.
@@ -53,8 +112,9 @@ describe("Specs / Change detail", () => {
 		const f = files()[spec];
 		if (!f) throw new Error("no spec");
 		files()[spec] = { ...f, text: `${f.text.trimEnd()}\n\n#### Scenario: Pay\n- **THEN** paid\n` };
-		await user.click(screen.getByRole("button", { name: "Validate" }));
+		await user.click(screen.getByRole("button", { name: "Check" }));
 		expect(await screen.findByText("No problems found")).toBeVisible();
+		expect(screen.getByText("Checked")).toBeVisible();
 	});
 
 	it("keeps text typed during a save and saves it next", async () => {
@@ -150,12 +210,17 @@ describe("Specs / Change detail", () => {
 		const f = files()[p];
 		if (f) f.text += "\nA rule [NEEDS CLARIFICATION: who decides?]\n";
 		await open(user, "add-export");
-		await user.click(screen.getByRole("button", { name: /Spec \/ export/ }));
 		const markers = await screen.findByRole("region", { name: "Open markers" });
-		expect(within(markers).getByRole("heading", { name: "Open markers (2)" })).toBeInTheDocument();
+		expect(within(markers).getByRole("heading", { name: "Open markers, 2" })).toBeInTheDocument();
 		expect(within(markers).getByText("Unlinked")).toBeInTheDocument();
 		await user.click(within(markers).getByRole("button", { name: /q:Q-035/ }));
 		expect(screen.getByRole("status", { name: "Inspector" })).toHaveTextContent("q:Q-035");
+		// "Go to it" opens the text of the spec on the line of the marker.
+		await user.click(
+			within(markers).getAllByRole("button", { name: "Go to it" })[0] as HTMLElement,
+		);
+		expect(await screen.findByRole("textbox", { name: "Spec" })).toBeVisible();
+		expect(await screen.findByTestId("error-line")).toBeInTheDocument();
 	});
 });
 

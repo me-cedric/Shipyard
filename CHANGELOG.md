@@ -68,6 +68,10 @@
 - A new page, Plugins and rule packs, opens from Extensions: it checks a plugin before it applies, lists the rule packs and sends a plugin to the child projects.
 - Setup / This computer, Models and rules, Share Shipyard with other tools, Logs and feedback, Me and Look and layout are rebuilt as cards, and the Setup start has product tiles and three scope cards; the step labels are First ticket for a person and First work by an agent.
 - The health of this computer counts a missing required program as a problem and offers Fix it.
+- The pages of Flow match their design: Flow, List and Done show one row of controls with the filter, New and More; Find a feature, Start from a ticket and Agents on are in More, and Find a finished feature has its field on Done.
+- The page of a feature has six sections (Story, Brief, Design, Changes, Checks, Chat), a ticket page, one plan card with Approve the plan and Send back, and a stop card with one action; What happened is in More, and the files of the change and the changed files of the pull request open on pages of their own.
+- The impacts of a feature and the full impact report open as pages, with the docs that go stale and Fix the stale docs with an agent.
+- Pull requests and New pull request are pages of Code, and New feature is a page with Or start from a ticket.
 
 ## [0.1.0]
 - Resume takes the limits that the workflow has now, so a budget that you removed no longer stops a run, and Resume with an empty amount works again.

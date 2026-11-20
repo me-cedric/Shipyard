@@ -21,7 +21,7 @@ async function openFactory(page: Page, tab: string) {
 
 test("shows five stage columns with counts, opens a run and stops it", async ({ page }) => {
 	await openFactory(page, "Flow");
-	for (const name of ["Idea 0", "Spec 5", "Build 4", "Review 10", "Ready 2"])
+	for (const name of ["Idea 0", "Spec 4", "Build 4", "Review 10", "Ready 2"])
 		await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
 	// A finished run stays in Ready, and Done lists it with the ended runs.
 	await expect(lane(page, "Ready").getByRole("button", { name: /ACME-11/ })).toBeVisible();
@@ -32,24 +32,30 @@ test("shows five stage columns with counts, opens a run and stops it", async ({ 
 		.click();
 	// The run is a page, not a sheet: the columns are not there until Back.
 	await expect(page).toHaveURL(/\/flow\/feature\//);
-	// Six sections: Story opens first, and the requests and sessions open on demand.
+	// Six sections: Story opens first. For developers is in Chat: the requests and sessions open on demand.
 	await expect(page.getByRole("tabpanel", { name: "Story" })).toBeVisible();
-	await page.getByRole("button", { name: "Requests and sessions" }).click();
+	const sections = page.getByRole("navigation", { name: "Sections" });
+	await sections.getByRole("button", { name: "Chat" }).click();
+	await page.getByRole("button", { name: "Requests and cost" }).click();
 	await expect(page.getByRole("region", { name: "Requests" })).toBeVisible();
 	await expect(page.getByRole("region", { name: /^Sessions/ })).toBeVisible();
 	await page.getByRole("button", { name: /^All \d+ events$/ }).click();
 	const events = page.getByRole("region", { name: /^Events/ });
 	await expect(events.getByRole("listitem").first()).toBeVisible();
-	// One word for the stop: it sits in the summary menu and asks once before it acts.
-	await page.getByRole("button", { name: "More actions" }).click();
-	await page.getByRole("menuitem", { name: "Stop" }).click();
-	await page.getByRole("button", { name: "Stop ACME-2?" }).click();
-	await expect(page.getByRole("button", { name: "More actions" })).toHaveCount(0);
+	// One word for the stop: it sits in the Agent card and asks once before it acts.
+	await sections.getByRole("button", { name: "Story" }).click();
+	const agent = page.getByRole("region", { name: "Agent", exact: true });
+	await agent.getByRole("button", { name: "Stop", exact: true }).click();
+	await page.getByRole("button", { name: "Stop Add export endpoint?" }).click();
+	await expect(agent.getByRole("button", { name: "Stop", exact: true })).toHaveCount(0);
 	await expect(page.getByRole("button", { name: "Start again" })).toBeVisible();
 	await page.getByRole("link", { name: "Flow", exact: true }).first().click();
 	await tabs(page).getByRole("link", { name: "Done" }).click();
 	await expect(
-		page.getByRole("table", { name: "History" }).getByRole("row", { name: /ACME-2/ }),
+		page
+			.getByRole("list", { name: "History" })
+			.getByRole("listitem")
+			.filter({ hasText: /ACME-2/ }),
 	).toContainText("Cancelled");
 });
 
@@ -83,10 +89,13 @@ test("filters the board to Needs me and keeps the choice in the address", async 
 test("Done lists the ended runs, and a row opens the run", async ({ page }) => {
 	await openFactory(page, "Done");
 	await expect(page).toHaveURL(/\/flow\/done$/);
-	const table = page.getByRole("table", { name: "History" });
-	const row = table.getByRole("row", { name: /ACME-11/ }).first();
+	const table = page.getByRole("list", { name: "History" });
+	const row = table
+		.getByRole("listitem")
+		.filter({ hasText: /ACME-11/ })
+		.first();
 	await expect(row).toBeVisible();
-	await row.click();
+	await row.getByRole("button", { name: /ACME-11/ }).click();
 	await expect(page).toHaveURL(/\/flow\/runs\/[0-9A-Z]{26}$/);
 	await expect(page.getByRole("region", { name: "ACME-11", exact: true })).toBeVisible();
 });
@@ -106,7 +115,7 @@ test("opens a run by its address, and the browser Back returns to the list", asy
 	await page.goForward();
 	await expect(page).toHaveURL(new RegExp(`${address}$`));
 	await expect(page.getByRole("region", { name: "ACME-2", exact: true })).toBeVisible();
-	await expect(tabs(page).getByRole("link", { name: "Flow" })).toHaveAttribute(
+	await expect(sidebar(page).getByRole("link", { name: "Flow" })).toHaveAttribute(
 		"aria-current",
 		"page",
 	);
@@ -118,7 +127,7 @@ test("approves a plan on ACME-4 from the run view", async ({ page }) => {
 		.getByRole("button", { name: /ACME-4/ })
 		.first()
 		.click();
-	await page.getByRole("button", { name: "Approve plan" }).click();
+	await page.getByRole("button", { name: "Approve the plan" }).click();
 	await page.getByRole("link", { name: "Flow", exact: true }).first().click();
 	await expect(lane(page, "Build").getByRole("button", { name: /ACME-4/ })).toBeVisible();
 });

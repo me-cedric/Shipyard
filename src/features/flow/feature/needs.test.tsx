@@ -23,6 +23,18 @@ const MOVE = "Change the status of ACME-2";
 
 afterEach(() => vi.restoreAllMocks());
 
+const openHappened = async (user: ReturnType<typeof userEvent.setup>) => {
+	// "What happened" is in the More menu of the page, next to the title.
+	const title = await waitFor(() => {
+		const h = document.querySelector("[data-run-title]");
+		if (!h) throw new Error("no page title");
+		return h;
+	});
+	const row = title.parentElement as HTMLElement;
+	await user.click(within(row).getByRole("button", { name: "More" }));
+	await user.click(await screen.findByRole("menuitem", { name: "What happened" }));
+};
+
 describe("One question for the approvals of one run (REQ-013)", () => {
 	async function ready() {
 		const run = await runOf("ACME-2");
@@ -38,7 +50,7 @@ describe("One question for the approvals of one run (REQ-013)", () => {
 		const needs = await needsOf(run.id);
 		const effects = within(await needs.findByRole("list", { name: "Approvals" }));
 		expect(effects.getAllByRole("listitem").map((li) => li.textContent)).toEqual([MOVE, OPEN_PR]);
-		expect(needs.getByRole("button", { name: "Approve all" })).toBeEnabled();
+		expect(needs.getByRole("button", { name: "Send for review" })).toBeEnabled();
 		expect(needs.queryByRole("button", { name: "Reject" })).toBeNull();
 		expect(
 			needs.getByRole("checkbox", { name: "Do not ask again for the feature recipe" }),
@@ -51,7 +63,7 @@ describe("One question for the approvals of one run (REQ-013)", () => {
 		const approve = vi.spyOn(commands, "approvalApprove");
 		const allow = vi.spyOn(commands, "approvalsAllowRecipe");
 		const needs = await needsOf(run.id);
-		await user.click(await needs.findByRole("button", { name: "Approve all" }));
+		await user.click(await needs.findByRole("button", { name: "Send for review" }));
 		await waitFor(() => expect(approve).toHaveBeenCalledTimes(2));
 		expect(approve.mock.calls.map((c) => c[0]).sort()).toEqual([...ids].sort());
 		expect(allow).not.toHaveBeenCalled();
@@ -67,7 +79,7 @@ describe("One question for the approvals of one run (REQ-013)", () => {
 		const allow = vi.spyOn(commands, "approvalsAllowRecipe");
 		const needs = await needsOf(run.id);
 		await user.click(await needs.findByRole("checkbox", { name: /Do not ask again/ }));
-		await user.click(needs.getByRole("button", { name: "Approve all" }));
+		await user.click(needs.getByRole("button", { name: "Send for review" }));
 		await waitFor(() => expect(allow).toHaveBeenCalledTimes(1));
 		expect([...(allow.mock.calls[0]?.[0] ?? [])].sort()).toEqual([...ids].sort());
 		expect(approve).not.toHaveBeenCalled();
@@ -147,7 +159,7 @@ describe("One question for the approvals of one run (REQ-013)", () => {
 		const chip = await needs.findByText("Replace the code of ACME-2 on the server");
 		expect(chip.className).toContain("danger");
 		await user.click(needs.getByRole("checkbox", { name: /Do not ask again/ }));
-		await user.click(needs.getByRole("button", { name: "Approve all" }));
+		await user.click(needs.getByRole("button", { name: "Send for review" }));
 		await waitFor(() => expect(allow).toHaveBeenCalledTimes(1));
 		expect([...(allow.mock.calls[0]?.[0] ?? [])].sort()).toEqual([...ids].sort());
 		expect(approve).not.toHaveBeenCalled();
@@ -218,7 +230,7 @@ describe("One question for the approvals of one run (REQ-013)", () => {
 			rights: ["costs.view"],
 		};
 		const needs = await needsOf(run.id);
-		const main = await needs.findByRole("button", { name: "Approve all" });
+		const main = await needs.findByRole("button", { name: "Send for review" });
 		expect(main).toBeDisabled();
 		expect(main).toHaveAccessibleDescription(/^Needs the right/);
 		expect(needs.getByRole("checkbox", { name: /Do not ask again/ })).toHaveAttribute(
@@ -236,7 +248,7 @@ describe("One question for the approvals of one run (REQ-013)", () => {
 			error: { code: "unknown", details: "the code host is down", action: null },
 		});
 		const needs = await needsOf(run.id);
-		await user.click(await needs.findByRole("button", { name: "Approve all" }));
+		await user.click(await needs.findByRole("button", { name: "Send for review" }));
 		await waitFor(() => expect(approve).toHaveBeenCalledTimes(2));
 		expect(await needs.findByRole("alert")).toBeVisible();
 		// The first call failed and the second went out: one effect still waits and still shows.
@@ -295,6 +307,8 @@ describe("One main action for a stopped run (REQ-014)", () => {
 		const card = within(await needs.findByRole("article"));
 		expect(card.getByText("Paused by a person")).toBeVisible();
 		expect(card.getByRole("button", { name: "Stop it" })).toBeVisible();
+		// The message to the agent is behind "What happened".
+		await openHappened(user);
 		await user.type(card.getByRole("textbox", { name: "Message to the agent" }), "go on");
 		await user.click(card.getByRole("button", { name: "Resume" }));
 		await waitFor(() => expect(resume).toHaveBeenCalledWith(run.id, 0, 0, "go on"));
@@ -306,13 +320,32 @@ describe("One main action for a stopped run (REQ-014)", () => {
 		const unblock = vi.spyOn(commands, "runUnblock");
 		const needs = await needsOf(run.id);
 		const card = within(await needs.findByRole("article"));
-		expect(card.getByText("Blocked")).toBeVisible();
-		expect(card.getByRole("button", { name: "Reply on the ticket" })).toBeVisible();
-		await user.type(
-			card.getByRole("textbox", { name: "Message to the agent" }),
-			"Keep both.{Enter}",
-		);
+		// The blocked agent speaks: its tile, "cannot go on", the cause as the heading, the answer field.
+		expect(card.getByText("Fix cannot go on", { exact: true })).toBeVisible();
+		// A ticket of an issue tracker shows the page of the ticket: the Comments card replies on it.
+		const comments = (await screen.findByRole("heading", { name: "Comments" }))
+			.parentElement as HTMLElement;
+		expect(within(comments).getByRole("textbox", { name: "Comment" })).toBeVisible();
+		await user.type(card.getByRole("textbox", { name: "Answer to Fix" }), "Keep both.{Enter}");
 		await waitFor(() => expect(unblock).toHaveBeenCalledWith(run.id, "Keep both."));
+	});
+
+	it("Blocked, on the ticket page: Edit the text opens the field, and the Comments card sends one comment", async () => {
+		const user = userEvent.setup();
+		const run = await runOf("ACME-9");
+		const add = vi.spyOn(commands, "workTicketCommentAdd");
+		await needsOf(run.id);
+		await user.click(await screen.findByRole("button", { name: "Edit the text" }));
+		expect(screen.getByRole("textbox", { name: "Description" })).toBeVisible();
+		await user.click(screen.getByRole("button", { name: "Cancel" }));
+		expect(screen.queryByRole("textbox", { name: "Description" })).toBeNull();
+		const box = await screen.findByRole("textbox", { name: "Comment" });
+		await user.type(box, "Looks good");
+		const form = box.closest("form");
+		if (!form) throw new Error("the comment box has a form");
+		await user.click(within(form).getByRole("button", { name: "Send" }));
+		await waitFor(() => expect(add).toHaveBeenCalledWith("ACME-9", "Looks good", true));
+		expect(screen.getByRole("textbox", { name: "Comment" })).toHaveValue("");
 	});
 
 	it("Failed: Try again starts a new run, and What happened opens the details", async () => {
@@ -330,15 +363,96 @@ describe("One main action for a stopped run (REQ-014)", () => {
 		await waitFor(() => expect(start).toHaveBeenCalledWith("ACME-11"));
 	});
 
-	it("Waits for an answer: the answer field is on the card with Reply", async () => {
+	it("Waits for an answer: one Answer field with Reply on the card, the options in Choices, no approval button", async () => {
 		const user = userEvent.setup();
 		const run = await runOf("ACME-1");
+		// The demo question takes options only: a question with free text shows the Answer field.
+		// The demo question takes options only and recommends one: this one takes free text and recommends none.
+		for (const x of mockState().factory.questions)
+			if (x.q.id === "Q-101") Object.assign(x.q, { free_text: true, recommended: 0 });
+		const answer = vi.spyOn(commands, "questionAnswer");
 		const needs = await needsOf(run.id);
 		const card = within(await needs.findByRole("article"));
 		expect(card.getByText("Waits for an answer")).toBeVisible();
-		expect(card.getAllByRole("radio").length).toBeGreaterThan(0);
+		// No option panel inside the card; the options are one menu.
+		expect(card.queryAllByRole("radio")).toHaveLength(0);
+		expect(card.getByRole("button", { name: "Choices" })).toBeVisible();
+		// One decision at a time: the approval waits behind the question.
+		expect(needs.queryByRole("button", { name: /to approve$/ })).toBeNull();
+		const reply = card.getByRole("button", { name: "Reply" });
+		expect(reply).toBeDisabled();
+		// Choices opens a menu, and the focus lands on its first option.
+		card.getByRole("button", { name: "Choices" }).focus();
+		await user.keyboard("{Enter}");
+		const first = (await screen.findAllByRole("menuitemcheckbox"))[0] as HTMLElement;
+		await waitFor(() => expect(first).toHaveFocus());
+		await user.keyboard("{Escape}");
+		await user.type(card.getByRole("textbox", { name: "Answer" }), "Both.");
+		await user.click(reply);
+		await waitFor(() =>
+			expect(answer).toHaveBeenCalledWith(run.id, expect.any(String), {
+				kind: "text",
+				text: "Both.",
+			}),
+		);
+	});
+
+	it("Waits for an answer: a choice of the menu picks the option and Reply sends it", async () => {
+		const user = userEvent.setup();
+		const run = await runOf("ACME-1");
+		const answer = vi.spyOn(commands, "questionAnswer");
+		const needs = await needsOf(run.id);
+		const card = within(await needs.findByRole("article"));
+		await user.click(card.getByRole("button", { name: "Choices" }));
+		const items = await screen.findAllByRole("menuitemcheckbox");
+		await user.click(items[1] as HTMLElement);
+		// A pick sends nothing: the person checks it, then Reply sends it, as Send of the question card did.
+		expect(answer).not.toHaveBeenCalled();
 		await user.click(card.getByRole("button", { name: "Reply" }));
-		expect(card.getAllByRole("radio")[0]).toHaveFocus();
+		await waitFor(() =>
+			expect(answer).toHaveBeenCalledWith(run.id, expect.any(String), { kind: "option", n: 2 }),
+		);
+	});
+
+	it("Waits for an answer: the recommended option is picked and marked, an unclear reply and an edit show", async () => {
+		const user = userEvent.setup();
+		const run = await runOf("ACME-1");
+		const q = mockState().factory.questions.find(
+			(x) => x.run === run.id && x.q.state === "open",
+		)?.q;
+		if (!q) throw new Error("the demo run waits for an answer");
+		q.recommended = 1;
+		q.unclear = "maybe the export page?";
+		q.edited = true;
+		const needs = await needsOf(run.id);
+		const card = within(await needs.findByRole("article"));
+		expect(card.getByRole("note", { name: "Reply to decide" })).toHaveTextContent(
+			"maybe the export page?",
+		);
+		expect(card.getByText("The reply changed")).toBeVisible();
+		// The recommended option is picked at the start, so Reply is on with no typing.
+		expect(card.getByRole("button", { name: "Reply" })).toBeEnabled();
+		await user.click(card.getByRole("button", { name: "Choices" }));
+		const first = (await screen.findAllByRole("menuitemcheckbox"))[0] as HTMLElement;
+		expect(first).toHaveTextContent(`${q.options[0]} (Recommended)`);
+		expect(first).toHaveAttribute("aria-checked", "true");
+	});
+
+	it("Waits for an answer: the typed answer stays when the answer fails", async () => {
+		const user = userEvent.setup();
+		const run = await runOf("ACME-1");
+		for (const x of mockState().factory.questions) if (x.run === run.id) x.q.free_text = true;
+		vi.spyOn(commands, "questionAnswer").mockResolvedValue({
+			status: "error",
+			error: { code: "unknown", details: "the issue tracker is offline", action: null },
+		});
+		const needs = await needsOf(run.id);
+		const card = within(await needs.findByRole("article"));
+		const field = card.getByRole("textbox", { name: "Answer" });
+		await user.type(field, "Both, please.");
+		await user.click(card.getByRole("button", { name: "Reply" }));
+		expect(await needs.findByRole("alert")).toBeVisible();
+		expect(field).toHaveValue("Both, please.");
 	});
 
 	it("Finished outside Shipyard: Close as done, and Keep it open brings back Unblock", async () => {
@@ -361,8 +475,10 @@ describe("One main action for a stopped run (REQ-014)", () => {
 		const card = within(await needs.findByRole("article"));
 		expect(card.getByText("Finished outside Shipyard")).toBeVisible();
 		await user.click(card.getByRole("button", { name: "Keep it open" }));
-		expect(card.getByRole("button", { name: "Unblock" })).toBeVisible();
-		expect(card.queryByRole("button", { name: "Close as done" })).toBeNull();
+		// The card changes to the blocked agent: Unblock comes back and Close as done goes.
+		const blocked = within(await needs.findByRole("article"));
+		expect(blocked.getByRole("button", { name: "Unblock" })).toBeVisible();
+		expect(blocked.queryByRole("button", { name: "Close as done" })).toBeNull();
 		expect(close).not.toHaveBeenCalled();
 	});
 
@@ -402,5 +518,19 @@ describe("One main action for a stopped run (REQ-014)", () => {
 		await user.click(card.getByRole("button", { name: "Close as done" }));
 		await waitFor(() => expect(close).toHaveBeenCalledWith(rec.id));
 		await waitFor(() => expect(f.runs.find((r) => r.id === rec.id)?.state).toBe("Cancelled"));
+	});
+});
+
+describe("The plan in review (picture 024)", () => {
+	it("a pencil on a step starts the note of the change for that step, and the card shows no summary line", async () => {
+		const user = userEvent.setup();
+		const run = await runOf("ACME-4");
+		const needs = await needsOf(run.id);
+		const note = await needs.findByRole("textbox", { name: "What to change" });
+		await user.click(needs.getByRole("button", { name: "Change step 2" }));
+		expect(note).toHaveValue("2: ");
+		expect(note).toHaveFocus();
+		// The summary is read by a screen reader only.
+		expect(needs.getByText(/Add the export button\./).closest(".sr-only")).not.toBeNull();
 	});
 });

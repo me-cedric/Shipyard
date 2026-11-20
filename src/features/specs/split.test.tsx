@@ -7,7 +7,7 @@ import { renderChange } from "./test-harness";
 type User = ReturnType<typeof userEvent.setup>;
 const written = () => Object.keys(mockState().work.written);
 const startSplit = async (user: User) => {
-	await user.click(await screen.findByRole("button", { name: "Split into work items" }));
+	await user.click(await screen.findByRole("button", { name: "Next step: split into tickets" }));
 	return within(await screen.findByRole("dialog"));
 };
 
@@ -71,7 +71,7 @@ describe("Specs / Split", () => {
 		expect(written()).toContain("est:add-auth#sessions");
 		await user.keyboard("{Escape}");
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-		await user.click(screen.getByRole("button", { name: "Split into work items" }));
+		await user.click(screen.getByRole("button", { name: "Next step: split into tickets" }));
 		review = within(await screen.findByRole("dialog"));
 		await user.click(await review.findByRole("button", { name: "Preview" }));
 		apply = within(await screen.findByRole("dialog"));
@@ -102,7 +102,9 @@ describe("Specs / Archive", () => {
 		await renderChange("add-billing");
 		await user.click(await screen.findByRole("button", { name: "Archive" }));
 		// The change leaves the list, so its detail goes (the list itself is Flow / List).
-		await waitFor(() => expect(screen.queryByRole("navigation", { name: "Artifacts" })).toBeNull());
+		await waitFor(() =>
+			expect(screen.queryByRole("group", { name: "Files of the change" })).toBeNull(),
+		);
 		expect(mockState().specs.files["docs/openspec/specs/invoices/spec.md"]).toBeDefined();
 	});
 
@@ -127,6 +129,8 @@ describe("Specs / Archive", () => {
 			expect(mockState().specs.files["docs/openspec/changes/add-auth/proposal.md"]).toBeUndefined(),
 		);
 		review = within(document.body);
-		await waitFor(() => expect(screen.queryByRole("navigation", { name: "Artifacts" })).toBeNull());
+		await waitFor(() =>
+			expect(screen.queryByRole("group", { name: "Files of the change" })).toBeNull(),
+		);
 	});
 });

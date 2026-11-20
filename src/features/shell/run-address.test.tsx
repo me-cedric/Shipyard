@@ -42,13 +42,15 @@ describe("Run address", () => {
 		expect(runOfRef("pr:github:44")).toBeUndefined();
 	});
 
-	it("opens a run by its address, with Flow selected in the section bar", async () => {
+	it("opens a run by its address, with Flow selected in the sidebar and no switch of the place", async () => {
 		await open();
 		const run = await find("ACME-2");
 		const router = mountApp(`/factory/runs/${run.id}`);
 		expect(await screen.findByRole("region", { name: "ACME-2" })).toBeInTheDocument();
-		const tabs = screen.getByRole("navigation", { name: "Tabs" });
-		expect(within(tabs).getByRole("link", { name: "Flow", current: "page" })).toBeInTheDocument();
+		const rail = screen.getByRole("navigation", { name: "Sidebar" });
+		expect(within(rail).getByRole("link", { name: "Flow 6", current: "page" })).toBeInTheDocument();
+		// The feature page draws its own switch of sections, not the one of the places (Flow, List, Done, Health).
+		expect(screen.queryByRole("navigation", { name: "Tabs" })).toBeNull();
 		// The board and its columns do not show above the run.
 		expect(screen.queryByRole("heading", { name: /^Working/ })).not.toBeInTheDocument();
 		await idle(router);

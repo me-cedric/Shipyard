@@ -16,10 +16,17 @@ test("functional lead", async ({ page }) => {
 		},
 	);
 
-	await w.step("Review a change", "the change card, the sections", async () => {
+	await w.step("Review a change", "the change row, Brief, Files of the change, Check", async () => {
 		await w.click(page.getByRole("button", { name: /add-billing/ }));
-		await w.see(page.getByRole("button", { name: "Validate" }), "no way to check the change");
-		await w.click(page.getByRole("main").getByRole("button", { name: "Back" }));
+		await w.click(
+			page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Brief" }),
+		);
+		await w.click(page.getByRole("link", { name: "Files of the change" }));
+		await w.see(
+			page.getByRole("button", { name: "Check", exact: true }),
+			"no way to check the change",
+		);
+		await w.click(page.getByRole("main").getByRole("button", { name: "Brief" }));
 	});
 
 	await w.step("Read the constitution", "the Constitution tab", async () => {
@@ -28,7 +35,9 @@ test("functional lead", async ({ page }) => {
 		if (await page.getByText("## Principles").first().isVisible()) {
 			w.confusing("the constitution opens as raw Markdown in a code editor, not as a page to read");
 		}
-		if (await page.getByRole("button", { name: "Split into work items" }).first().isVisible()) {
+		if (
+			await page.getByRole("button", { name: "Next step: split into tickets" }).first().isVisible()
+		) {
 			w.confusing(
 				"the inspector still shows the change from the previous page, with its Split action",
 			);

@@ -128,6 +128,9 @@ import * as th from "./mock-themes";
 import * as tb from "./mock-tile-build";
 import * as work from "./mock-work";
 
+/** The files that the demo project has not pushed yet. */
+const DEMO_UNPUSHED = ["docs/openspec/changes/add-auth/spec.md"];
+
 type Bindings = typeof commands;
 // A command with a Result returns its data in the mock. The generated wrapper adds the Result.
 type Out<F> = F extends (...a: never[]) => Promise<infer P>
@@ -723,6 +726,13 @@ function seedDemo(p: ProjectEntry_Serialize) {
 	writeView(p.id, "library/pins", ["constitution"]);
 	writeView(p.id, "library/recent", ["capabilities", "architecture"]);
 	seedAgentsDemo(state.agents);
+	specs.seedDemoSpecs(state.specs);
+	// Two colour tokens, so that Design of a feature shows its token rows.
+	if (state.design)
+		state.design.files["src/tokens.css"] = {
+			text: ":root { --accent: #2557e6; --text: #12141a; }",
+			stamp: "1",
+		};
 }
 
 const outcome = (
@@ -1966,7 +1976,17 @@ const handlers: Handlers = {
 	codeRemoteUrl: () => (need(code()).branch ? "https://example.com/acme/project.git" : null),
 	codeWatchInterval: () => code().watchMinutes,
 	codeWatchIntervalSet: (minutes) => codeWatchIntervalSet(code(), minutes),
-	codeFileRead: (path, rev) => codeFileRead(code(), path, rev),
+	codeFileRead: (path, rev) =>
+		// The delivery note of the demo has its text, for the Copy button of the impact report.
+		seedNotes().some((n) => n.path === path)
+			? {
+					path,
+					size: 41,
+					binary: false,
+					truncated: false,
+					text: "Sync now keeps the local edits. No action.",
+				}
+			: codeFileRead(code(), path, rev),
 	codeFileList: () => codeFileList(code()),
 	filesCreateFile: (path, click) => fileWrite("file", path, click),
 	filesCreateFolder: (path, click) => fileWrite("folder", path, click),
@@ -2534,7 +2554,11 @@ const handlers: Handlers = {
 	},
 	codeChainGate: (push) =>
 		rv
-			.withAcks(review(), chainGate(push ? [] : codeStatus(code()).staged.map((f) => f.path)))
+			// Demo case: a push of the demo project leaves one spec without its test plan (screen 74).
+			.withAcks(
+				review(),
+				chainGate(push ? DEMO_UNPUSHED : codeStatus(code()).staged.map((f) => f.path)),
+			)
 			.filter((w) => !w.ack),
 	codeDocsUpdateStart: (_doc, _range, click) => {
 		if (!click) throw "this change needs the click of a person";

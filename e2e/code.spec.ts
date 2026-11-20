@@ -18,6 +18,9 @@ async function openCode(page: Page, tab: string) {
 
 const files = (page: Page) => page.getByRole("list", { name: "Files" });
 const commitBox = (page: Page) => page.getByRole("form", { name: "Commit" });
+// The changed files are a page of their own: the link of the Changes section opens it.
+const filesPage = (page: Page) => page.getByRole("link", { name: /commits?, all files$/ }).click();
+const unstaged = (page: Page) => page.getByRole("region", { name: "Unstaged" });
 const heading = (page: Page, name: string) => page.getByRole("heading", { name });
 // A section of the feature page, from its switch. A pull request opens on Changes.
 const section = (page: Page, name: string) =>
@@ -182,7 +185,7 @@ test("lists the pull requests by state, opens one and comments", async ({ page }
 	await thread.getByRole("button", { name: "Resolve", exact: true }).click();
 	// The merge box is in Changes.
 	await section(page, "Changes");
-	await expect(page.getByText("0 unresolved of 2")).toBeVisible();
+	await expect(page.getByText("2 of 2 solved")).toBeVisible();
 
 	await section(page, "Chat");
 	await page.getByRole("textbox", { name: "Comment" }).fill("Looks right now.");
@@ -214,7 +217,7 @@ test("goes Back from a pull request to the list with its search kept", async ({ 
 	await fullList(page);
 	await page.getByRole("searchbox", { name: "Search pull requests" }).fill("token");
 	await pull(page, 142).click();
-	await page.getByRole("link", { name: "Back" }).click();
+	await page.getByRole("link", { name: "Pull requests", exact: true }).click();
 	await expect(page.getByRole("searchbox", { name: "Search pull requests" })).toHaveValue("token");
 	await expect(pull(page, 142)).toBeVisible();
 });
@@ -223,10 +226,16 @@ test("marks a draft ready", async ({ page }) => {
 	await openCode(page, "Now");
 	await fullList(page);
 	await pull(page, 143).click();
-	const merge = page.getByRole("button", { name: "Merge", exact: true });
+	const merge = page.getByRole("button", { name: "Merge pull request", exact: true });
+	const box = page.getByRole("region", { name: "Merge", exact: true });
 	await expect(merge).toBeDisabled();
-	await page.getByRole("button", { name: "Mark ready" }).click();
-	await expect(page.getByRole("button", { name: "Mark ready" })).toHaveCount(0);
+	// Mark ready is in More of the merge card.
+	await box.getByRole("button", { name: "More" }).click();
+	await page.getByRole("menuitem", { name: "Mark ready" }).click();
+	await box.getByRole("button", { name: "More" }).click();
+	await expect(page.getByRole("menuitem", { name: "Copy ref" })).toBeVisible();
+	await expect(page.getByRole("menuitem", { name: "Mark ready" })).toHaveCount(0);
+	await page.keyboard.press("Escape");
 	await expect(merge).toBeEnabled();
 });
 
@@ -234,7 +243,7 @@ test("merges only after the confirm click", async ({ page }) => {
 	await openCode(page, "Now");
 	await fullList(page);
 	await pull(page, 142).click();
-	const merge = page.getByRole("button", { name: "Merge", exact: true });
+	const merge = page.getByRole("button", { name: "Merge pull request", exact: true });
 	await merge.click();
 	// The first click only asks: the merge has not run. The checks fail: the confirm names the risk.
 	const confirm = page.getByRole("button", {
@@ -251,8 +260,12 @@ test("opens a file of a pull request in the viewer", async ({ page }) => {
 	await openCode(page, "Now");
 	await fullList(page);
 	await pull(page, 142).click();
-	await section(page, "Changes");
-	await page.getByRole("button", { name: "Expand all" }).click();
+	await filesPage(page);
+	// The page opens the first file: its row is open and Expand all has nothing left to open.
+	await expect(page.getByRole("button", { name: /^src\/app\.ts/ })).toHaveAttribute(
+		"aria-expanded",
+		"true",
+	);
 	await page.getByRole("button", { name: "Open src/app.ts" }).click();
 	const dialog = page.getByRole("dialog");
 	await expect(dialog.getByRole("region", { name: "File src/app.ts" })).toBeVisible();
@@ -273,10 +286,13 @@ test("comments on a line of a pull request: pending first, then one at once", as
 	await openCode(page, "Now");
 	await fullList(page);
 	await pull(page, 142).click();
-	await section(page, "Changes");
+	await filesPage(page);
 	// The file has one thread, so its row says so while it is closed.
 	await expect(page.getByText("1 comment").first()).toBeVisible();
-	await page.getByRole("button", { name: "Expand all" }).click();
+	await expect(page.getByRole("button", { name: /^src\/app\.ts/ })).toHaveAttribute(
+		"aria-expanded",
+		"true",
+	);
 	// A pending comment on line 3: the box closes and the count grows.
 	await (await plusOf(page, 3)).click();
 	await page.getByRole("textbox", { name: "Comment on line 3" }).fill("Name this **c**.");
@@ -297,10 +313,18 @@ test("analyzes a branch in Impacts and shows the plan and the digest", async ({ 
 	await openCode(page, "Now");
 	await visit(page, "/code/impacts");
 	await expect(page).toHaveURL(/\/flow\/impacts$/);
-	await page.getByRole("button", { name: "Analyze" }).click();
+	// Analyze is in More of the page. The plan and the digest are in the full report, under Details.
+	const more = async (name: string) => {
+		await page.getByRole("button", { name: "More", exact: true }).click();
+		await page.getByRole("menuitem", { name }).click();
+	};
+	await more("Analyze");
+	await page.getByRole("link", { name: "Full impact report" }).click();
+	await more("Details");
 	await expect(heading(page, "Axes (7)")).toBeVisible();
 	await expect(page.getByText("Update the contract.")).toBeVisible();
 	await expect(page.getByText(/moves the release by one week/)).toBeVisible();
+	await page.getByRole("button", { name: "Past reports" }).click();
 	await expect(page.getByRole("button", { name: /2026-10-29 main/ })).toBeVisible();
 });
 

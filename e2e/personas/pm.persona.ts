@@ -16,37 +16,44 @@ test("project manager", async ({ page }) => {
 		},
 	);
 
-	await w.step("Filter the board by person", "the All assignees menu", async () => {
+	await w.step("Filter the board by person", "the Owner pill", async () => {
 		await w.go("Flow", "List");
-		await w.click(page.getByRole("combobox", { name: "Assignee" }));
-		await w.click(page.getByRole("option", { name: "Grace Hopper" }));
+		await w.click(page.getByRole("button", { name: "Owner: all" }));
+		await w.click(page.getByRole("menuitemradio", { name: "Grace Hopper" }));
+		await page.keyboard.press("Escape");
 		await w.see(page.getByText("Fix the French menu"), "the filter hides the person's card");
-		await w.click(page.getByRole("combobox", { name: "Assignee" }));
-		await w.click(page.getByRole("option", { name: "All assignees" }));
-	});
-
-	await w.step("Assign a ticket", "the card, then the person with free days", async () => {
-		await w.click(page.getByRole("button", { name: /Bump dependencies/ }));
-		await w.click(
-			page
-				.getByRole("navigation", { name: "Sections" })
-				.getByRole("button", { name: "Brief", exact: true }),
-		);
-		const held = page.getByRole("main").getByText("Grace Hopper");
-		const before = await held.count();
-		await w.click(page.getByRole("combobox", { name: "Assignee" }).last());
-		await w.see(page.getByText("4 d free"), "no free-time hint beside the person");
-		await w.click(page.getByRole("option", { name: /^Grace Hopper/ }));
-		await w.until(() => held.count(), before + 1, "the card does not show the new assignee");
-		const marked = page.getByRole("combobox", { name: "Assignee" }).last();
-		if (!(await marked.textContent())?.includes("Grace Hopper")) {
-			w.confusing("the assign list shows no mark on the person who holds the ticket");
-		}
+		await w.click(page.getByRole("button", { name: "Owner: Grace Hopper" }));
+		await w.click(page.getByRole("menuitemradio", { name: "All assignees" }));
+		await page.keyboard.press("Escape");
 	});
 
 	await w.step(
+		"Assign a ticket",
+		"the row menu, Edit the ticket, then the person with free days",
+		async () => {
+			await page
+				.getByRole("button", { name: /Bump dependencies/ })
+				.first()
+				.click({ button: "right" });
+			await w.click(page.getByRole("menuitem", { name: "Edit the ticket" }));
+			const held = page.getByRole("main").getByText("Grace Hopper");
+			// Count when the fields of the ticket are on the page: a late field adds names of its own.
+			await w.see(page.getByRole("combobox", { name: "Assignee" }).last(), "no assignee field");
+			const before = await held.count();
+			await w.click(page.getByRole("combobox", { name: "Assignee" }).last());
+			await w.see(page.getByText("4 d free"), "no free-time hint beside the person");
+			await w.click(page.getByRole("option", { name: /^Grace Hopper/ }));
+			await w.until(() => held.count(), before + 1, "the card does not show the new assignee");
+			const marked = page.getByRole("combobox", { name: "Assignee" }).last();
+			if (!(await marked.textContent())?.includes("Grace Hopper")) {
+				w.confusing("the assign list shows no mark on the person who holds the ticket");
+			}
+		},
+	);
+
+	await w.step(
 		"Mark the ticket for the agent",
-		"the Mark for agent button in the Brief",
+		"the Mark for agent button on the ticket page",
 		async () => {
 			await w.click(page.getByRole("button", { name: "Mark for agent" }));
 			await w.see(page.getByText("shipyard").first(), "no agent label on the ticket");

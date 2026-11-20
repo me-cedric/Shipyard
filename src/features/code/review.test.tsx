@@ -16,7 +16,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-const h1 = () => screen.findByRole("heading", { level: 2, name: /#141/ });
+const h1 = () => screen.findByRole("heading", { level: 1, name: /health route/ });
 // A section of the feature page, from its switch.
 const toSection = async (user: ReturnType<typeof userEvent.setup>, name: string) =>
 	user.click(
@@ -61,14 +61,8 @@ describe("the review bar and Submit review", () => {
 		await toSection(user, "Chat");
 		expect(screen.getByRole("region", { name: "Pending review" })).toBeVisible();
 		await user.click(within(bar).getByRole("button", { name: "2 pending comments" }));
-		// The count opens Changes.
-		await waitFor(() =>
-			expect(
-				within(screen.getByRole("navigation", { name: "Sections" })).getByRole("button", {
-					name: "Changes",
-				}),
-			).toHaveAttribute("aria-pressed", "true"),
-		);
+		// The count opens the changed files page, where the line comments are.
+		await waitFor(() => expect(router.state.location.pathname).toMatch(/\/files$/));
 		await idle(router);
 	});
 
@@ -311,27 +305,50 @@ describe("one control each, the limit and the focus", () => {
 		await idle(router);
 	});
 
-	it("keeps the text of an open line box over a tab change and counts it in the close guard", async () => {
+	it("keeps the text of an open line box over a collapsed file and counts it in the close guard", async () => {
 		const user = userEvent.setup();
 		const guard = vi.spyOn(commands, "closeGuardDrafts");
 		const { router } = await open(false);
-		const files = () => toSection(user, "Changes");
-		await files();
-		const tree = await screen.findByRole("group", { name: "Changed files" });
-		await user.click(within(tree).getAllByRole("button").at(-1) as HTMLElement);
+		// The files are on the page of the changed files.
+		await user.click(await screen.findByRole("link", { name: /commits?, all files/ }));
+		const row = () => document.querySelector("[data-path] button[aria-expanded]") as HTMLElement;
+		// The first file is open on arrival.
+		await waitFor(() => expect(row()).toHaveAttribute("aria-expanded", "true"));
 		const first = document.querySelector("[data-kind=ctx], [data-kind=add]");
 		if (first) await user.hover(first);
 		await user.click(await screen.findByRole("button", { name: /Add a comment on line/ }));
 		const area = screen.getByRole("textbox", { name: /Comment on line/ });
 		await user.type(area, "half");
 		await waitFor(() => expect(guard).toHaveBeenCalledWith(1));
+		await user.click(row());
+		expect(screen.queryByRole("textbox", { name: /Comment on line/ })).toBeNull();
+		await user.click(row());
+		expect(await screen.findByRole("textbox", { name: /Comment on line/ })).toHaveValue("half");
+		await idle(router);
+	});
+
+	it("keeps the text of an open line box over a tab change and counts it in the close guard", async () => {
+		const user = userEvent.setup();
+		const guard = vi.spyOn(commands, "closeGuardDrafts");
+		const { router } = await open(false);
+		const toFiles = async () =>
+			user.click(await screen.findByRole("link", { name: /commits?, all files/ }));
+		const row = () => document.querySelector("[data-path] button[aria-expanded]") as HTMLElement;
+		await toFiles();
+		// The first file is open on arrival.
+		await waitFor(() => expect(row()).toHaveAttribute("aria-expanded", "true"));
+		const first = document.querySelector("[data-kind=ctx], [data-kind=add]");
+		if (first) await user.hover(first);
+		await user.click(await screen.findByRole("button", { name: /Add a comment on line/ }));
+		await user.type(screen.getByRole("textbox", { name: /Comment on line/ }), "half");
+		await waitFor(() => expect(guard).toHaveBeenCalledWith(1));
+		// Back to Changes, to Chat, to Changes, and to the files again.
+		await user.click(await screen.findByRole("link", { name: "Changes" }));
 		await toSection(user, "Chat");
-		await files();
-		await user.click(
-			within(await screen.findByRole("group", { name: "Changed files" }))
-				.getAllByRole("button")
-				.at(-1) as HTMLElement,
-		);
+		await toSection(user, "Changes");
+		await toFiles();
+		// The first file is open on arrival.
+		await waitFor(() => expect(row()).toHaveAttribute("aria-expanded", "true"));
 		expect(await screen.findByRole("textbox", { name: /Comment on line/ })).toHaveValue("half");
 		await idle(router);
 	});

@@ -52,6 +52,7 @@ describe("Exports and the terminal (W11)", () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/code/quality");
+		await user.click(await screen.findByRole("button", { name: "Security score" }));
 		await user.click(await screen.findByRole("button", { name: "Export" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Security findings" }));
 		await waitFor(() => expect(kinds()).toEqual(["security"]));

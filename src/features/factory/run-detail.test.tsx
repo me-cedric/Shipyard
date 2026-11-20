@@ -45,6 +45,18 @@ function Probe() {
 	);
 }
 
+const openHappened = async (user: ReturnType<typeof userEvent.setup>) => {
+	// "What happened" is in the More menu of the page, next to the title.
+	const title = await waitFor(() => {
+		const h = document.querySelector("[data-run-title]");
+		if (!h) throw new Error("no page title");
+		return h;
+	});
+	const row = title.parentElement as HTMLElement;
+	await user.click(within(row).getByRole("button", { name: "More" }));
+	await user.click(await screen.findByRole("menuitem", { name: "What happened" }));
+};
+
 describe("Factory / run page: pure rules", () => {
 	it.each<[RunState, boolean, string | null]>([
 		["Queued", false, null],
@@ -157,9 +169,14 @@ describe("Factory / run page", () => {
 		const run = await find("ACME-8");
 		mountApp(`/factory/runs/${run.id}`);
 		const summary = await summaryOf();
-		expect(await within(summary).findByRole("link", { name: "#42" })).toBeVisible();
+		expect(await within(summary).findByRole("link", { name: "Pull request #42" })).toBeVisible();
 		expect(within(summary).getByRole("group", { name: /^Step \d+ of \d+$/ })).toBeVisible();
-		expect(within(summary).getByRole("group", { name: "Cost" })).toHaveTextContent("$0.88");
+		// The cost bar and the amount are one meter: the value of the bar is the amount.
+		expect(within(summary).getByRole("progressbar", { name: "Cost" })).toHaveAttribute(
+			"aria-valuenow",
+			"0.88",
+		);
+		expect(summary).toHaveTextContent("$0.88");
 		// One h1 on the run page: the title in the header of the page (the assistant panel has its own).
 		const page = await pageOf();
 		expect(within(page).getAllByRole("heading", { level: 1 })).toHaveLength(1);
@@ -200,10 +217,15 @@ describe("Factory / run page", () => {
 		expect(within(form).getByRole("group", { name: "Budget to add (USD)" })).toHaveTextContent(
 			"$2",
 		);
+		// The message to the agent is behind "What happened".
+		await openHappened(userEvent.setup());
 		expect(within(form).getByRole("textbox", { name: "Message to the agent" })).toBeVisible();
 		expect(needs).not.toHaveTextContent("first tick");
-		// The fact sits in the layout: two numbers and a meter, and no sentence of help.
-		expect(within(needs).getByRole("meter", { name: "Cost" })).toBeVisible();
+		// The fact is the heading of the card (the amount); the cost bar is in the agent card.
+		expect(within(needs).getByRole("heading", { name: /^\$[\d.]+ of \$[\d.]+$/ })).toBeVisible();
+		const agentCard = await screen.findByRole("region", { name: "Agent" });
+		expect(within(agentCard).getByRole("progressbar", { name: "Cost" })).toBeVisible();
+		expect(within(needs).queryByRole("progressbar", { name: "Cost" })).toBeNull();
 		expect(needs).not.toHaveTextContent("resumes by itself");
 	});
 

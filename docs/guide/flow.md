@@ -14,24 +14,24 @@ The switch has four sections: Flow, List, Done and Health. Flow is the board. It
 
 A card shows the title, who works on the feature and its state. A card that needs you has the attention colour. Click a card to open the page of the feature. The menu of a card has Stop, the history and Move to a status of the issue tracker. When the issue tracker refuses the move, the card shows the reason.
 
-The bar above the board has:
+The bar above the board has the filter All, Needs me or Mine, New and More. The filter stays in the address.
 
-- Search: find a feature by its ticket key or its title.
-- A filter: All, Needs me or Mine. The search and the filter stay in the address.
-- The agents switch. Off stops every agent and stops new runs. Turn it on again to go on.
-- Start run: pick a ticket by its title.
-- New: start a new feature.
+More holds:
+
+- Find a feature: opens the search field. Find a feature by its ticket key or its title. The text stays in the address.
+- Start from a ticket: opens New feature at its ticket list.
+- Agents on: the agents switch. Off stops every agent and stops new runs. Turn it on again to go on.
 
 ## New feature
 
-New opens one page with one question: What do you want to build?
+New opens a page of its own, with the link Flow back to the board and one question: What do you want to build?
 
 1. Type the title.
 2. Pick the kind: Feature, Bug or Idea for later. An idea makes the spec change only.
 3. Pick the way: An agent writes the spec, I write the spec, or Build now, no spec.
 4. Click Create.
 
-Or start from a ticket: find a ticket that has no run, then click Start an agent.
+Or start from a ticket, under the three ways: find a ticket that has no run, then click Start an agent. Start from a ticket in More on Flow opens it.
 
 Each way first makes a spec change with your text as its title. A way is off when you lack the right that it needs.
 
@@ -39,30 +39,31 @@ Each way first makes a spec change with your text as its title. A way is off whe
 
 List shows the same features as one table: the title, the stage, who and the state. It also holds the controls of the tickets:
 
-- Filter by status, person, label and run.
-- Bring a ticket by its key.
-- Import: the app shows the count first. It writes nothing before you confirm.
+- The pills Owner, Label and Agent filter the rows. Bring a ticket by its key.
+- In More: the filter by status, and Import. The app shows the count first. It writes nothing before you confirm.
 - Assign: pick a person. The app proposes a person by skills and free time. The choice is yours.
 - Mark for the agent: one click gives the ticket to the agents.
-- New change starts a spec change. Give it a plain title: the app makes the id from the title. From a ticket makes the change with the ticket title, puts the ticket text in the proposal and moves you to the branch `specs/<id>`, so the change stays apart from the code.
+- New change, in More, starts a spec change. Give it a plain title: the app makes the id from the title. From a ticket makes the change with the ticket title, puts the ticket text in the proposal and moves you to the branch `specs/<id>`, so the change stays apart from the code.
 
 ## Done
 
-Done holds the features that are ready, and the history of the runs: each run that ended and each older run of a ticket, newest end first. Click a row to open its feature. The latest failed run of a ticket also stays on the board, with Try again.
+Done holds the features that are ready, and the history of the runs: each run that ended and each older run of a ticket, newest end first. Find a finished feature has its own field on Done. More adds or removes columns. Click a row to open its feature. The latest failed run of a ticket also stays on the board, with Try again.
 
 ## The feature page
 
-Each feature has one page, `/flow/feature/<id>`. The id is the ref of one of its parts: the ticket, the spec change, the run or the pull request. The page shows the title, the stage line and a switch of six sections. Back returns to Flow with its search and its filter, and Escape does the same. A link to a run or to a pull request opens this page on the section of that part.
+Each feature has one page, `/flow/feature/<id>`. The id is the ref of one of its parts: the ticket, the spec change, the run or the pull request. The page shows the title, the stage line and a switch of six sections: Story, Brief, Design, Changes, Checks and Chat. More holds Open in the issue tracker, Copy ref and, on a stopped feature, What happened. Back returns to Flow with its search and its filter, and Escape does the same. A link to a run or to a pull request opens this page on the section of that part.
 
 ### Story
 
-Story shows first what waits for you: the questions, the approvals, the plan with its actions, and the reason that an agent stopped with its one action. Then it lists the events as plain sentences. One control opens the full log, where Important shows the questions, the errors, the state changes and the results, and All shows every event. Requests and sessions shows the requests with their cost, the graph of the recipe and the sessions. Follow shows a live session. Open in terminal resumes an ended session.
+Story shows first what waits for you: the questions, the approvals, the plan with its actions, and the reason that an agent stopped with its one action. The plan in review is one card: the steps, the files that the plan changes, what the agent does alone and what it asks first. Approve the plan, or write what to change and click Send back. Then it lists the events as plain sentences. What happened opens the full log, where Important shows the questions, the errors, the state changes and the results, and All shows every event. Requests and sessions shows the requests with their cost, the graph of the recipe and the sessions. Follow shows a live session. Open in terminal resumes an ended session.
+
+The ticket page opens from Edit in the menu of a card. It shows the ticket with an editable title and text, its facts, its comments and the mark of the sync with the issue tracker. Back returns to the feature.
 
 The side column shows the agent (the AI tool, the model, the step as n of m, the cost and the budget, the elapsed time, with Talk and Stop), the brief, the changes and the people. A feature with no agent has Start an agent.
 
 ### Brief
 
-Brief shows the plan in review, the facts of the ticket and the spec change of the feature. A form shows each part of the change with its state: missing, draft or done. A raw text view is also there. Click Validate: each problem shows on its part, with its line. Follow the next step that the app shows, for example split the work into tickets. A change takes its title from the first heading of its proposal. The id stays the folder name. A feature with no spec has Write the spec.
+Brief shows the facts of the ticket and the spec change of the feature as requirement cards, each with its test, and the tickets of the feature. The files of the change open on a page of their own, with a link back to Brief. A form shows each part of the change with its state: missing, draft or done. A raw text view is also there. Click Validate: each problem shows on its part, with its line. Follow the next step that the app shows, for example split the work into tickets. A change takes its title from the first heading of its proposal. The id stays the folder name. A feature with no spec has Write the spec.
 
 ### Design
 
@@ -70,7 +71,7 @@ Design lists the decisions, diagrams, screens, API contracts and data models tha
 
 ### Changes
 
-Changes shows the diff of the run and the pull request.
+Changes shows the pull request of the feature. The changed files open on a page of their own: Changed files, with the file tree, the Seen count and a link back to Changes.
 
 The header of the pull request shows the title, the state, the source and target branch and the lines added and removed. The menu next to the state opens the pull request in the browser, copies its ref and closes it. A draft has Mark ready.
 
@@ -96,11 +97,11 @@ An agent review shows in Crew / Sessions, where Stop ends it. It counts in the a
 
 ### Checks
 
-Checks shows the gates of the run, the checks of the pull request with the CI state, and the row Impacts on other code.
+Checks shows the gates of the run, the checks of the pull request with the CI state, the test plan, the docs that the change makes stale and the row Impacts on other code. Fix with an agent asks an agent to fix the failing checks.
 
 ### Chat
 
-Chat shows the conversation of the agent session, the conversation of the pull request and the comments of the ticket. The pull request conversation lists the general comments and the review threads in time order. Click Reply to answer a thread, Resolve to close it and Reopen to open it again. The write box has Write and Preview. Comment posts a general comment. Send back to the agent shows for a pull request that a run opened.
+Chat shows the conversation of the agent session (the live terminal and the requests are under For developers), the conversation of the pull request and the comments of the ticket. The pull request conversation lists the general comments and the review threads in time order. Click Reply to answer a thread, Resolve to close it and Reopen to open it again. The write box has Write and Preview. Comment posts a general comment. Send back to the agent shows for a pull request that a run opened.
 
 ## Approvals
 
@@ -149,4 +150,12 @@ Docs freshness lists the docs that did not follow the code of the branch, with t
 
 ## Impacts
 
-Impacts tells which items a change touches, and proposes an action plan. It opens from the Checks of a feature: click Impacts on other code. The full page is `/flow/impacts`. It needs access to the code.
+Impacts tells which items a change touches, and proposes an action plan. It opens as a page from the Checks of a feature: click Impacts on other code. It shows the files changed, the code that depends on them and the docs that go stale. Fix the stale docs with an agent starts a run only after your click. The page `/flow/impacts` stays. It needs access to the code.
+
+Full impact report opens the report as a page: the size of the change by Code, Specs, Docs, Tests and People, the action plan and the digest. Write the report again makes a new one. Past reports lists the older ones. Copy the brief copies the brief for an agent.
+
+## Pull requests
+
+Pull requests is a page of Code, with the link Code back to Code / Now. It has a search, the filter All or Needs my review and New pull request. The open ones come first. The merged and closed ones are behind one button. Select a pull request to see its review: the checks, the changes asked and the reviewers. Open the pull request opens its feature page.
+
+New pull request is a page too. Write the title and the description (Write it for me asks an agent). Pick Into, the branch that receives the change. Choose Draft and Labels. Before the push, a note names the files that are not committed, a base branch that is ahead and the docs that go stale: each has its choice. Click Open the pull request.

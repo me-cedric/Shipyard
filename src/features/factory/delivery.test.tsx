@@ -39,20 +39,25 @@ describe("Delivery on the cards of Flow", () => {
 	it("says in plain words what a run waits for: a question, or approvals", async () => {
 		await renderRuns();
 		const build = await lane("Build");
-		const asking = (await build.findByRole("heading", { name: "Fix login redirect" })).closest(
-			"article",
-		) as HTMLElement;
+		// A card is one button; a card that needs a person is an article around its title button.
+		// A card that waits for a person is an article around its title button (title and key, exact).
+		const cardOf = (title: HTMLElement) => {
+			const card = title.closest("article");
+			if (!card) throw new Error("the card of a run that waits is an article");
+			return card;
+		};
+		const asking = cardOf(
+			await build.findByRole("button", { name: /^Fix login redirect\s*ACME-\d+$/ }),
+		);
 		expect(within(asking).getByText("Answer a question")).toBeInTheDocument();
-		const working = (await build.findByRole("heading", { name: "Add export endpoint" })).closest(
-			"article",
-		) as HTMLElement;
+		const working = cardOf(
+			await build.findByRole("button", { name: /^Add export endpoint\s*ACME-\d+$/ }),
+		);
 		expect(within(working).getByText("Approve 2 actions")).toBeInTheDocument();
 		const review = await lane("Review");
 		expect(
 			within(
-				(await review.findByRole("heading", { name: "Add the health dot" })).closest(
-					"article",
-				) as HTMLElement,
+				cardOf(await review.findByRole("button", { name: /^Add the health dot\s*ACME-\d+$/ })),
 			).getByText("Approve 1 action"),
 		).toBeInTheDocument();
 	});

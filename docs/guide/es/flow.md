@@ -14,24 +14,24 @@ El selector tiene cuatro secciones: Flujo, Lista, Hecho y Salud. Flujo es el tab
 
 Una tarjeta muestra el título, quién trabaja en la funcionalidad y su estado. Una tarjeta que te espera tiene el color de atención. Haz clic en una tarjeta para abrir la página de la funcionalidad. El menú de una tarjeta tiene Detener, el historial y Mover a un estado del gestor de tickets. Cuando el gestor de tickets rechaza el movimiento, la tarjeta muestra el motivo.
 
-La barra sobre el tablero contiene:
+La barra sobre el tablero contiene el filtro Todo, Me necesita o Mío, Nuevo y Más. El filtro queda en la dirección.
 
-- Buscar: encontrar una funcionalidad por la clave de su ticket o por su título.
-- Un filtro: Todo, Me necesita o Mío. La búsqueda y el filtro quedan en la dirección.
-- El interruptor de agentes. Desactivado detiene cada agente e impide las ejecuciones nuevas. Actívalo de nuevo para seguir.
-- Iniciar ejecución: elige un ticket por su título.
-- Nuevo: empezar una funcionalidad nueva.
+Más contiene:
+
+- Buscar una funcionalidad: abre el campo de búsqueda. Encuentra una funcionalidad por la clave de su ticket o por su título. El texto queda en la dirección.
+- Empezar desde un ticket: abre Funcionalidad nueva en su lista de tickets.
+- Agentes activos: el interruptor de agentes. Desactivado detiene cada agente e impide las ejecuciones nuevas. Actívalo de nuevo para seguir.
 
 ## Funcionalidad nueva
 
-Nuevo abre una página con una pregunta: ¿Qué quiere construir?
+Nuevo abre una página propia, con un enlace de vuelta al tablero y una pregunta: ¿Qué quiere construir?
 
 1. Escribe el título.
 2. Elige el tipo: Función, Error o Idea para más tarde. Una idea crea solo el cambio de especificación.
 3. Elige la manera: Un agente escribe la especificación, Yo escribo la especificación, o Construir ya, sin especificación.
 4. Haz clic en Crear.
 
-O empieza desde un ticket: busca un ticket sin ejecución y haz clic en Iniciar un agente.
+O empieza desde un ticket, bajo las tres maneras: busca un ticket sin ejecución y haz clic en Iniciar un agente. Empezar desde un ticket, en Más de Flujo, la abre.
 
 Cada manera crea primero un cambio de especificación con tu texto como título. Una manera está desactivada cuando te falta el derecho que necesita.
 
@@ -39,30 +39,31 @@ Cada manera crea primero un cambio de especificación con tu texto como título.
 
 Lista muestra las mismas funcionalidades en una tabla: el título, la etapa, quién y el estado. También contiene los controles de los tickets:
 
-- Filtrar por estado, persona, etiqueta y ejecución.
-- Traer un ticket por su clave.
-- Importar: la aplicación muestra primero el número. No escribe nada antes de tu confirmación.
+- Las píldoras Responsable, Etiqueta y Agente filtran las filas. Trae un ticket por su clave.
+- En Más: el filtro por estado e Importar. La aplicación muestra primero el número. No escribe nada antes de tu confirmación.
 - Asignar: elige una persona. La aplicación propone una persona según las competencias y el tiempo libre. La elección es tuya.
 - Marcar para el agente: un clic da el ticket a los agentes.
-- Nuevo cambio empieza un cambio de especificación. Dale un título sencillo: la aplicación crea el identificador a partir del título. Desde un ticket crea el cambio con el título del ticket, pone el texto del ticket en la propuesta y te lleva a la rama `specs/<id>`, para que el cambio quede aparte del código.
+- Nuevo cambio, en Más, empieza un cambio de especificación. Dale un título sencillo: la aplicación crea el identificador a partir del título. Desde un ticket crea el cambio con el título del ticket, pone el texto del ticket en la propuesta y te lleva a la rama `specs/<id>`, para que el cambio quede aparte del código.
 
 ## Hecho
 
-Hecho contiene las funcionalidades listas y el historial de las ejecuciones: cada ejecución terminada y cada ejecución anterior de un ticket, el final más reciente primero. Haz clic en una fila para abrir su funcionalidad. La última ejecución fallida de un ticket queda también en el tablero, con Reintentar.
+Hecho contiene las funcionalidades listas y el historial de las ejecuciones: cada ejecución terminada y cada ejecución anterior de un ticket, el final más reciente primero. Buscar una funcionalidad terminada tiene su propio campo en Hecho. Más añade o quita columnas. Haz clic en una fila para abrir su funcionalidad. La última ejecución fallida de un ticket queda también en el tablero, con Reintentar.
 
 ## La página de una funcionalidad
 
-Cada funcionalidad tiene una página, `/flow/feature/<id>`. El identificador es la ref de una de sus partes: el ticket, el cambio de especificación, la ejecución o la pull request. La página muestra el título, la línea de etapas y un selector de seis secciones. Atrás vuelve a Flujo con su búsqueda y su filtro, y Escape hace lo mismo. Un enlace a una ejecución o a una pull request abre esta página en la sección de esa parte.
+Cada funcionalidad tiene una página, `/flow/feature/<id>`. El identificador es la ref de una de sus partes: el ticket, el cambio de especificación, la ejecución o la pull request. La página muestra el título, la línea de etapas y un selector de seis secciones: Historia, Encargo, Diseño, Cambios, Controles y Charla. Más contiene Abrir en el gestor de tickets, Copiar referencia y, en una funcionalidad detenida, Qué pasó. Atrás vuelve a Flujo con su búsqueda y su filtro, y Escape hace lo mismo. Un enlace a una ejecución o a una pull request abre esta página en la sección de esa parte.
 
 ### Historia
 
-Historia muestra primero lo que te espera: las preguntas, las aprobaciones, el plan con sus acciones, y el motivo por el que un agente se detuvo con su única acción. Después lista los eventos en frases sencillas. Un control abre el registro completo, donde Importantes muestra las preguntas, los errores, los cambios de estado y los resultados, y Todos muestra cada evento. Peticiones y sesiones muestra las peticiones con su coste, el grafo de la receta y las sesiones. Seguir muestra una sesión en vivo. Abrir en el terminal reanuda una sesión terminada.
+Historia muestra primero lo que te espera: las preguntas, las aprobaciones, el plan con sus acciones, y el motivo por el que un agente se detuvo con su única acción. El plan en revisión es una sola tarjeta: los pasos, los archivos que el plan cambia, lo que el agente hace solo y lo que pregunta primero. Aprueba el plan, o escribe lo que hay que cambiar y haz clic en Devolver. Después lista los eventos en frases sencillas. Qué pasó abre el registro completo, donde Importantes muestra las preguntas, los errores, los cambios de estado y los resultados, y Todos muestra cada evento. Peticiones y sesiones muestra las peticiones con su coste, el grafo de la receta y las sesiones. Seguir muestra una sesión en vivo. Abrir en el terminal reanuda una sesión terminada.
+
+La página del ticket se abre con Editar en el menú de una tarjeta. Muestra el ticket con título y texto editables, sus datos, sus comentarios y la marca de la sincronización con el gestor de tickets. Atrás vuelve a la funcionalidad.
 
 La columna lateral muestra el agente (la herramienta de IA, el modelo, el paso n de m, el coste y el presupuesto, el tiempo transcurrido, con Hablar y Detener), el encargo, los cambios y las personas. Una funcionalidad sin agente tiene Iniciar un agente.
 
 ### Encargo
 
-Encargo muestra el plan en revisión, los datos del ticket y el cambio de especificación de la funcionalidad. Un formulario muestra cada parte del cambio con su estado: falta, borrador o terminada. También hay una vista de texto sin formato. Haz clic en Validar: cada problema se muestra en su parte, con su línea. Sigue el paso siguiente que la aplicación muestra, por ejemplo dividir el trabajo en tickets. Un cambio toma su título del primer encabezado de su propuesta. El identificador sigue siendo el nombre de la carpeta. Una funcionalidad sin especificación tiene Escribir la spec.
+Encargo muestra los datos del ticket y el cambio de especificación de la funcionalidad como tarjetas de requisito, cada una con su prueba, y los tickets de la funcionalidad. Los archivos del cambio se abren en una página propia, con un enlace de vuelta a Encargo. Un formulario muestra cada parte del cambio con su estado: falta, borrador o terminada. También hay una vista de texto sin formato. Haz clic en Validar: cada problema se muestra en su parte, con su línea. Sigue el paso siguiente que la aplicación muestra, por ejemplo dividir el trabajo en tickets. Un cambio toma su título del primer encabezado de su propuesta. El identificador sigue siendo el nombre de la carpeta. Una funcionalidad sin especificación tiene Escribir la spec.
 
 ### Diseño
 
@@ -70,7 +71,7 @@ Diseño lista las decisiones, los diagramas, las pantallas, los contratos de API
 
 ### Cambios
 
-Cambios muestra el diff de la ejecución y la pull request.
+Cambios muestra la pull request de la funcionalidad. Los archivos modificados se abren en una página propia: Archivos modificados, con el árbol de archivos, el número de archivos vistos y un enlace de vuelta a Cambios.
 
 La cabecera de la pull request muestra el título, el estado, la rama de origen y la de destino y las líneas añadidas y quitadas. El menú junto al estado abre la pull request en el navegador, copia su ref y la cierra. Un borrador tiene Marcar como listo.
 
@@ -96,11 +97,11 @@ Una revisión por un agente se muestra en Equipo / Sesiones, donde Detener la te
 
 ### Controles
 
-Controles muestra los pasos de control de la ejecución, los controles de la pull request con el estado de la CI, y la fila Impactos en el resto del código.
+Controles muestra los pasos de control de la ejecución, los controles de la pull request con el estado de la CI, el plan de pruebas, las docs que este cambio deja obsoletas y la fila Impactos en el resto del código. Corregir con un agente pide a un agente que corrija los controles que fallan.
 
 ### Charla
 
-Charla muestra la conversación de la sesión del agente, la conversación de la pull request y los comentarios del ticket. La conversación de la pull request lista los comentarios generales y los hilos de revisión en orden de tiempo. Haz clic en Responder para responder a un hilo, en Resolver para cerrarlo y en Reabrir para abrirlo de nuevo. El cuadro de escritura tiene Escribir y Vista previa. Comentar publica un comentario general. Devolver al agente se muestra para una pull request que abrió una ejecución.
+Charla muestra la conversación de la sesión del agente (el terminal en vivo y las peticiones están en Para desarrolladores), la conversación de la pull request y los comentarios del ticket. La conversación de la pull request lista los comentarios generales y los hilos de revisión en orden de tiempo. Haz clic en Responder para responder a un hilo, en Resolver para cerrarlo y en Reabrir para abrirlo de nuevo. El cuadro de escritura tiene Escribir y Vista previa. Comentar publica un comentario general. Devolver al agente se muestra para una pull request que abrió una ejecución.
 
 ## Aprobaciones
 
@@ -149,4 +150,12 @@ La frescura de la documentación lista los documentos que no siguieron al códig
 
 ## Impactos
 
-Impactos dice qué elementos toca un cambio, y propone un plan de acción. Se abre desde los Controles de una funcionalidad: haz clic en Impactos en el resto del código. La página completa es `/flow/impacts`. Necesita acceso al código.
+Impactos dice qué elementos toca un cambio, y propone un plan de acción. Se abre como página desde los Controles de una funcionalidad: haz clic en Impactos en el resto del código. Muestra los archivos cambiados, el código que depende de ellos y las docs que quedan obsoletas. Corregir los documentos obsoletos con un agente inicia una ejecución solo después de tu clic. La página `/flow/impacts` sigue. Necesita acceso al código.
+
+Informe de impacto completo abre el informe como página: el tamaño del cambio por Código, Especificaciones, Documentos, Pruebas y Personas, el plan de acción y el resumen. Escribir el informe de nuevo hace otro. Informes anteriores lista los más antiguos. Copiar el resumen copia el resumen para un agente.
+
+## Pull requests
+
+Pull requests es una página de Code, con un enlace de vuelta a Code / Ahora. Tiene una búsqueda, el filtro Todo o Para que yo revise y Nuevo pull request. Las abiertas van primero. Las fusionadas y las cerradas están detrás de un solo botón. Elige una pull request para ver su revisión: los controles, los cambios pedidos y los revisores. Abrir la pull request abre la página de su funcionalidad.
+
+Nuevo pull request también es una página. Escribe el título y la descripción (Escríbelo por mí pide a un agente). Elige Hacia, la rama que recibe el cambio. Ajusta Borrador y Etiquetas. Antes de enviar, una nota nombra los archivos sin confirmar, una rama base adelantada y las docs que quedan obsoletas: cada una tiene su elección. Haz clic en Abrir la pull request.

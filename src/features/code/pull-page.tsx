@@ -1,10 +1,11 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
 	createContext,
 	type Dispatch,
 	type ReactNode,
 	type SetStateAction,
 	useContext,
+	useRef,
 	useState,
 } from "react";
 import { type PullDetail, usePull } from "@/lib/code";
@@ -12,7 +13,9 @@ import { format, useI18n } from "@/lib/i18n";
 import { toFailure } from "@/lib/ipc";
 import { pullHref, pullNumberOf } from "@/lib/shell";
 import { useDraftCount } from "@/lib/shell/drafts";
+import { useViewState } from "@/lib/shell/view-state";
 import { Button } from "@/ui/atoms/button";
+import { linkClass } from "@/ui/atoms/link-button";
 import { ArrowsRightLeftIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
@@ -21,11 +24,11 @@ import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { AgentReview } from "./agent-review";
 import { focusPullTitle } from "./focus-title";
 import type { LineBox } from "./inline-comment";
-import { MergeBox } from "./merge-box";
+import { ArchiveBar, MergeCard, MergeSummary } from "./merge-box";
 import { PrAi } from "./pr-ai";
+import { PullChecksCard, PullFocus, PullReviewCard } from "./pull-cards";
 import { Conversation } from "./pull-conversation";
 import { PullFiles } from "./pull-files";
-import { PullHeader } from "./pull-header";
 import { PullChecks, PullCommits } from "./pull-lists";
 import { ReviewBar } from "./review-bar";
 import { type ReviewDraft, SubmitReview } from "./submit-review";
@@ -42,6 +45,9 @@ type PullState = {
 	setBoxes: Dispatch<SetStateAction<LineBox[]>>;
 	openReview: (fromBox: boolean, text?: string) => void;
 	onOpenFiles: () => void;
+	/** The slot in the title row where the changed files page draws its More. */
+	moreHost: HTMLElement | null;
+	setMoreHost: (el: HTMLElement | null) => void;
 };
 
 const Ctx = createContext<PullState | null>(null);
@@ -56,14 +62,15 @@ export const usePullState = () => useContext(Ctx);
  */
 export function PullWorkspace({
 	pullId,
-	onOpenFiles,
 	children,
 }: {
 	pullId: string;
-	onOpenFiles: () => void;
+	/** Not read: the count of the pending review opens the changed files page, where the line comments are. */
+	onOpenFiles?: () => void;
 	children: ReactNode;
 }) {
 	const { t } = useI18n();
+	const navigate = useNavigate();
 	const pull = usePull(pullNumberOf(pullId));
 	// The comment draft stays in the page: a change of section keeps it. It belongs to one pull request.
 	const [keptDraft, setKeptDraft] = useState({ id: pullId, text: "" });
@@ -79,14 +86,16 @@ export function PullWorkspace({
 	const draft: ReviewDraft =
 		held.id === pullId ? held : { text: "", verdict: "comment", posted: [] };
 	const [notice, setNotice] = useState<string | null>(null);
-	// The open boxes under diff lines keep their text here: a collapsed file, a section or Collapse all loses nothing.
-	const [lines, setLines] = useState<{ id: string; boxes: LineBox[] }>({ id: pullId, boxes: [] });
-	const boxes = lines.id === pullId ? lines.boxes : [];
-	const setBoxes: Dispatch<SetStateAction<LineBox[]>> = (next) =>
-		setLines((l) => {
-			const from = l.id === pullId ? l.boxes : [];
-			return { id: pullId, boxes: typeof next === "function" ? next(from) : next };
-		});
+	const [moreHost, setMoreHost] = useState<HTMLElement | null>(null);
+	// The open boxes under diff lines keep their text in the view memory of the project: a collapsed file,
+	// a section, Collapse all and the way to the changed files page and back lose nothing.
+	const [boxes, setStored] = useViewState<LineBox[]>(`pull-boxes:${pullId}`, []);
+	const latest = useRef(boxes);
+	latest.current = boxes;
+	const setBoxes: Dispatch<SetStateAction<LineBox[]>> = (next) => {
+		latest.current = typeof next === "function" ? next(latest.current) : next;
+		setStored(latest.current);
+	};
 	// A box with text counts in the close guard, as the pending review does.
 	useDraftCount(boxes.some((b) => b.text.trim() !== ""));
 	// The connection part of the id must be the one of the pull request: `pr:other:44` is not #44 here.
@@ -98,13 +107,17 @@ export function PullWorkspace({
 		kept: keptDraft.id === pullId ? keptDraft.text : "",
 		setKept: (text) => setKeptDraft({ id: pullId, text }),
 		notice,
+		moreHost,
+		setMoreHost,
 		boxes,
 		setBoxes,
 		openReview: (fromBox, text) => {
 			if (text) setHeld({ ...draft, id: pullId, text });
 			setReview({ fromBox });
 		},
-		onOpenFiles,
+		onOpenFiles: () =>
+			d &&
+			void navigate({ to: "/flow/feature/$featureId/files", params: { featureId: d.reference } }),
 	};
 	return (
 		<Ctx.Provider value={value}>
@@ -166,8 +179,42 @@ export function PullReviewBar() {
 	);
 }
 
-/** The parts of a pull request page. Changes: header, review bar, merge box, commits, files. Checks. Chat: description and conversation. */
-export type PullPartName = "changes" | "checks" | "chat";
+/**
+ * The parts of a pull request. Changes: the merge summary, one file open in place, the Review, Checks
+ * and merge cards. Files (the changed files page): the files, the commits, the spec archive. Checks.
+ * Chat: description and conversation.
+ */
+export type PullPartName = "changes" | "files" | "checks" | "chat";
+
+/** The changed files. The commits and the spec archive wait in More and show under the files. */
+function FilesPart({ d, s, notice }: { d: PullDetail; s: PullState; notice: ReactNode }) {
+	const { t } = useI18n();
+	const [shown, setShown] = useState({ commits: false, archive: false });
+	const toggle = (id: "commits" | "archive", label: string) => ({
+		id,
+		label,
+		checked: shown[id],
+		onSelect: () => setShown((x) => ({ ...x, [id]: !x[id] })),
+	});
+	return (
+		<div className="flex flex-col gap-6">
+			{notice}
+			<PullFiles
+				openFirst
+				menuHost={s.moreHost}
+				detail={d}
+				boxes={s.boxes}
+				setBoxes={s.setBoxes}
+				menu={[
+					toggle("commits", t.forge.commits),
+					...(d.state === "open" ? [toggle("archive", t.forge.archiveChange)] : []),
+				]}
+			/>
+			{shown.commits ? <PullCommits d={d} /> : null}
+			{shown.archive ? <ArchiveBar number={d.number} /> : null}
+		</div>
+	);
+}
 
 /** One part of the pull request, or its loading, error or missing state. */
 export function PullPart({ part }: { part: PullPartName }) {
@@ -219,17 +266,36 @@ export function PullPart({ part }: { part: PullPartName }) {
 				/>
 			</div>
 		);
+	const notice = s.notice ? (
+		<p role="status" className="text-ui text-n-11">
+			{s.notice}
+		</p>
+	) : null;
+	if (part === "files") return <FilesPart d={d} s={s} notice={notice} />;
+	const x = t.flow.look.pull;
 	return (
-		<div className="flex flex-col gap-4">
-			<PullHeader key={`head-${d.number}${d.state}${d.draft}`} d={d} />
-			{s.notice ? (
-				<p role="status" className="text-ui text-n-11">
-					{s.notice}
-				</p>
-			) : null}
-			<MergeBox key={`merge-${d.number}${d.state}${d.draft}`} d={d} />
-			<PullCommits d={d} />
-			<PullFiles detail={d} boxes={s.boxes} setBoxes={s.setBoxes} />
+		<div className="flex flex-col gap-6">
+			{notice}
+			<MergeSummary d={d} />
+			<div className="flex flex-wrap items-start gap-6">
+				<div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
+					<PullFocus d={d} />
+					<Link
+						to="/flow/feature/$featureId/files"
+						params={{ featureId: d.reference }}
+						className={linkClass}
+					>
+						{d.commits.length === 1
+							? x.commitsOne
+							: format(x.commitsMany, { count: d.commits.length })}
+					</Link>
+				</div>
+				<div className="flex min-w-0 flex-[2_1_300px] flex-col gap-4">
+					<PullReviewCard d={d} />
+					<PullChecksCard d={d} />
+					<MergeCard key={`merge-${d.number}${d.state}${d.draft}`} d={d} />
+				</div>
+			</div>
 		</div>
 	);
 }

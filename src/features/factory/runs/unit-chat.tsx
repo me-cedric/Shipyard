@@ -1,8 +1,9 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { eventSentence } from "@/features/home/event-sentence";
+import { eventSentence, payloadOf } from "@/features/home/event-sentence";
 import { format, useI18n } from "@/lib/i18n";
 import type { RunLogEvent_Serialize } from "@/lib/ipc";
 import { cn } from "@/lib/utils";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import {
@@ -105,17 +106,20 @@ function Row({
 	item,
 	ticket,
 	events,
+	chat,
 }: {
 	item: Item;
 	ticket: string;
 	events: RunLogEvent_Serialize[];
+	/** A bubble of Chat: the raw events are in "For developers", not under each message. */
+	chat?: boolean;
 }): ReactNode {
 	const { t } = useI18n();
 	if (item.type === "text")
 		return (
 			<div className="flex flex-col gap-1">
 				<MarkdownView source={item.text} label={t.factory.transcript.message} refs={false} />
-				<Raw raw={item.raw} />
+				{chat ? null : <Raw raw={item.raw} />}
 			</div>
 		);
 	if (item.type === "tool") return <Tool item={item} />;
@@ -133,19 +137,29 @@ function Row({
 	return event ? <Card event={event} ticket={ticket} /> : null;
 }
 
-/** The events of one unit as a live chat: the AI tool's text, its tool calls and its questions. */
+/** The events of one unit as a live chat: the AI tool's text, its tool calls and its questions. `agent` draws each item as a bubble with the tile of the agent (Chat). */
 export function UnitTranscript({
 	events,
 	ticket,
 	running,
+	agent,
+	you,
+	after,
 }: {
 	events: RunLogEvent_Serialize[];
 	ticket: string;
 	running: boolean;
+	agent?: string;
+	/** The name of the person: an answer of the person is a dark bubble at the right (Chat). */
+	you?: string;
+	/** A line under the last message of the agent, inside its bubble (Chat). */
+	after?: ReactNode;
 }) {
 	const { t } = useI18n();
 	const x = t.factory.transcript;
 	const { items, turns, tokens } = transcript(events);
+	// The last message of the agent: `after` goes inside it.
+	const last = items.findLastIndex((x) => !(x.type === "card" && x.kind === "answer"));
 	const box = useRef<HTMLDivElement>(null);
 	const [pinned, setPinned] = useState(true);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: the count of items is the trigger
@@ -153,7 +167,7 @@ export function UnitTranscript({
 		if (pinned && running && box.current) box.current.scrollTop = box.current.scrollHeight;
 	}, [pinned, running, items.length]);
 	return (
-		<div className="relative border-t">
+		<div className={cn("relative", !agent && "border-t")}>
 			{turns + tokens > 0 ? (
 				<p className="px-3 py-1 text-12 text-n-11">
 					{format(x.counter, { turns: String(turns), tokens: tokens.toLocaleString() })}
@@ -169,11 +183,47 @@ export function UnitTranscript({
 					const b = e.currentTarget;
 					setPinned(b.scrollHeight - b.scrollTop - b.clientHeight < 24);
 				}}
-				className="flex max-h-80 flex-col gap-2 overflow-y-auto px-3 py-2 focus-visible:shadow-glow"
+				className={cn(
+					"flex flex-col overflow-y-auto focus-visible:shadow-glow",
+					agent ? "gap-3.5" : "max-h-80 gap-2 px-3 py-2",
+				)}
 			>
-				{items.map((item) => (
-					<Row key={`${item.type}-${item.id}`} item={item} ticket={ticket} events={events} />
-				))}
+				{items.map((item, i) => {
+					const row = (
+						<Row
+							key={`${item.type}-${item.id}`}
+							item={item}
+							ticket={ticket}
+							events={events}
+							chat={!!agent}
+						/>
+					);
+					if (agent && you && item.type === "card" && item.kind === "answer") {
+						// The words of the person, else the sentence of the event.
+						const text = payloadOf(item.event.payload).text;
+						const said = typeof text === "string" ? text : "";
+						return (
+							<div key={`${item.type}-${item.id}`} className="flex items-start justify-end gap-3">
+								<p className="min-w-0 max-w-prose rounded-xl bg-primary px-5 py-4 text-17 font-semibold text-primary-fg">
+									{said ||
+										eventSentence(t.home.event, t.factory.state, { ...item.event, key: ticket })}
+								</p>
+								<Avatar name={you} />
+							</div>
+						);
+					}
+					return agent ? (
+						<div key={`${item.type}-${item.id}`} className="flex items-start gap-3">
+							<Avatar agent name={agent} />
+							<div className="flex min-w-0 max-w-prose flex-col gap-2 rounded-xl bg-surface-2 px-5 py-4 text-17 shadow-1 [&_article]:text-17">
+								{row}
+								{i === last ? after : null}
+							</div>
+						</div>
+					) : (
+						row
+					);
+				})}
 			</div>
 			{running && !pinned ? (
 				<div className="absolute right-3 bottom-2">

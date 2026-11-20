@@ -46,7 +46,8 @@ function waitOf(f: Feature): { focus: string; anchor?: string } | undefined {
 export function useOpenFeature() {
 	const navigate = useNavigate();
 	return (f: Feature) => {
-		void navigate(featureHref(f));
+		// The back link of the feature page names Flow when it goes back there.
+		void navigate({ ...featureHref(f), state: (prev) => ({ ...prev, from: "flow" }) });
 		const wait = waitOf(f);
 		if (wait) {
 			showAnchor(wait.anchor);
@@ -100,5 +101,12 @@ export function stateText(t: Messages, f: Feature): string {
 		default:
 			if (f.pr) return (f.checks && checks[f.checks]) ?? s.open;
 			return f.stage === "ready" ? s.done : s.idle;
+	}
+}
+
+declare module "@tanstack/react-router" {
+	interface HistoryState {
+		/** The place that opened a feature page: its back link names it (`src/features/flow/feature/feature-page.tsx`). */
+		from?: "flow";
 	}
 }

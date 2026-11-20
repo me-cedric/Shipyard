@@ -15,7 +15,6 @@ import { PlusIcon } from "@/ui/icons";
 import { ContextMenu } from "@/ui/molecules/context-menu";
 import { Panel } from "@/ui/molecules/panel";
 import { NoPulls } from "./no-pulls";
-import { OpenDialog } from "./open-pull";
 import { CI_STATUS, REVIEW_STATUS } from "./status";
 
 const STATES = ["open", "merged", "closed"] as const;
@@ -33,7 +32,7 @@ const TINT = {
 } as const;
 
 /** A status as a tinted chip: the shape names the state, the text repeats it. */
-function StateChip({ status, label }: { status: Status; label: string }) {
+export function StateChip({ status, label }: { status: Status; label: string }) {
 	return (
 		<Badge variant={TINT[status]}>
 			<StatusDot status={status} label={label} className="size-2" />
@@ -95,7 +94,8 @@ export function PullList() {
 	const p = t.forge.pullPage;
 	const navigate = useNavigate();
 	const pulls = usePulls();
-	const [opening, setOpening] = useState(false);
+	// The form is a page of its own: `/code/pull-requests/new`.
+	const openNew = () => void navigate({ to: "/code/pull-requests/new" });
 	// The merged and the closed pull requests stay folded until the person asks.
 	const [past, setPast] = useState(false);
 	const rows = pulls.data;
@@ -129,14 +129,14 @@ export function PullList() {
 					{t.forge.now.pulls}
 				</h2>
 				{rows.length ? (
-					<Button variant="primary" className="min-h-control" onClick={() => setOpening(true)}>
+					<Button variant="primary" className="min-h-control" onClick={openNew}>
 						<PlusIcon size={14} />
 						{t.forge.openPull}
 					</Button>
 				) : null}
 			</div>
 			{rows.length === 0 ? (
-				<NoPulls onNew={() => setOpening(true)} />
+				<NoPulls onNew={openNew} />
 			) : (
 				<>
 					<div className="flex flex-wrap items-center gap-3">
@@ -189,7 +189,6 @@ export function PullList() {
 					</Button>
 				</>
 			)}
-			{opening ? <OpenDialog open onOpenChange={setOpening} /> : null}
 		</section>
 	);
 }

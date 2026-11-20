@@ -6,6 +6,9 @@ import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 import { importAll, withTracker } from "@/test/tracker";
 
+/** The exact name of a card: the title, then its key when it has one. */
+const exact = (title: string) => new RegExp(`^${title}( ?[A-Z]+-\\d+)?$`);
+
 const feature = (f: Partial<FlowFeature_Serialize> & { title: string }): FlowFeature_Serialize => ({
 	stage: "build",
 	mark: null,
@@ -92,7 +95,12 @@ describe("Flow / Flow (REQ-010, REQ-011)", () => {
 		expect(card).toHaveClass("outline-attention");
 		expect(within(card as HTMLElement).getByText("Blocked")).toBeVisible();
 		// The title shows once in Build, and a person acts on three features only.
-		expect(within(build).getAllByRole("heading", { name: "Fix the French menu" })).toHaveLength(1);
+		expect(
+			within(build).getAllByRole("heading", { name: exact("Fix the French menu") }),
+		).toHaveLength(1);
+		// The whole card is the target: no Open button inside.
+		expect(within(card as HTMLElement).getAllByRole("button")).toHaveLength(1);
+		expect(within(card as HTMLElement).queryByRole("button", { name: /^Open/ })).toBeNull();
 		expect(document.querySelectorAll("article")).toHaveLength(3);
 	});
 
@@ -101,7 +109,8 @@ describe("Flow / Flow (REQ-010, REQ-011)", () => {
 		const build = await column("Build");
 		const card = within(build).getByRole("button", { name: /Add the health dot/ });
 		expect(card).toHaveTextContent("Add the health dot");
-		expect(card).toHaveTextContent("Builder");
+		// The agent is the letter tile: its name is said, and the state is plain text.
+		expect(within(card).getByRole("img", { name: "Builder" })).toBeVisible();
 		expect(card).toHaveTextContent("Working");
 		expect(card.closest("article")).toBeNull();
 		expect(card.className).not.toMatch(/attention/);
@@ -127,16 +136,27 @@ describe("Flow / Flow (REQ-010, REQ-011)", () => {
 		expect(router.state.location.search).toEqual({ kind: "idea" });
 		await screen.findByRole("button", { name: "Idea for later", pressed: true });
 		router.history.back();
-		await user.click(await screen.findByRole("button", { name: "New feature" }));
+		await user.click(await screen.findByRole("button", { name: "New" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/new"));
 		expect(router.state.location.search).toEqual({});
 	});
 
-	it("keeps the kill switch and Start run on the page", async () => {
-		await open();
-		expect(await screen.findByRole("switch", { name: "Agents on" })).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Start run" })).toBeInTheDocument();
-		expect(screen.getByRole("combobox", { name: "Ticket" })).toBeInTheDocument();
+	it("keeps the kill switch and the start from a ticket in More, and no second row", async () => {
+		const user = userEvent.setup();
+		const router = await open();
+		const kill = vi.spyOn(commands, "killSwitchSet");
+		expect(screen.queryByRole("switch", { name: "Agents on" })).toBeNull();
+		expect(screen.queryByRole("searchbox")).toBeNull();
+		expect(screen.queryByRole("combobox", { name: "Ticket" })).toBeNull();
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		const agents = await screen.findByRole("menuitemcheckbox", { name: "Agents on" });
+		expect(agents).toHaveAttribute("aria-checked", "true");
+		await user.click(agents);
+		await waitFor(() => expect(kill).toHaveBeenCalledWith(true));
+		// A switch item keeps the menu open: the next item is in the same list.
+		await user.click(await screen.findByRole("menuitem", { name: "Start from a ticket" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/new"));
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
 	it("filters to what needs the person, and the filter stays in the address", async () => {
@@ -144,7 +164,7 @@ describe("Flow / Flow (REQ-010, REQ-011)", () => {
 		const router = await open();
 		await user.click(await screen.findByRole("button", { name: "Needs me" }));
 		await waitFor(() => expect(router.state.location.search).toEqual({ filter: "needs" }));
-		expect(screen.getByRole("heading", { name: "Fix the French menu" })).toBeVisible();
+		expect(screen.getByRole("heading", { name: exact("Fix the French menu") })).toBeVisible();
 		expect(screen.getByRole("heading", { name: "Add export" })).toBeVisible();
 		expect(screen.queryByText("Pick a logo")).toBeNull();
 		expect(screen.queryByText("Add the health dot")).toBeNull();
@@ -176,7 +196,9 @@ describe("Flow / Flow (REQ-010, REQ-011)", () => {
 	it("searches the features by title", async () => {
 		const user = userEvent.setup();
 		await open();
-		await user.type(await screen.findByRole("searchbox", { name: "Search runs" }), "keychain");
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Find a feature" }));
+		await user.type(await screen.findByRole("searchbox", { name: "Find a feature" }), "keychain");
 		await waitFor(() => expect(screen.queryByText("Pick a logo")).toBeNull());
 		expect(screen.getByText("Audit keychain")).toBeVisible();
 	});
@@ -228,6 +250,8 @@ describe("Flow / Flow (REQ-010, REQ-011)", () => {
 		await open();
 		const grid = (await column("Idea")).parentElement;
 		expect(grid?.parentElement).toHaveClass("overflow-x-auto");
+		// A column ends after its last card.
+		expect(grid).toHaveClass("items-start");
 	});
 });
 
@@ -248,11 +272,24 @@ describe("Flow / List, Done and Health", () => {
 		expect(screen.queryByRole("heading", { level: 2, name: "Backlog" })).toBeNull();
 		expect(screen.queryByRole("heading", { level: 2, name: "Proposals" })).toBeNull();
 		expect(screen.getAllByRole("button", { name: /Fix the French menu/ })).toHaveLength(1);
-		// The controls that are not about one row stay above the table.
-		expect(await screen.findByRole("button", { name: "Bring a ticket by its key" })).toBeVisible();
+		// The stage is a pill, and the state of a row that needs a person is the attention pill.
+		expect(within(row).getByText("Blocked").className).toMatch(/attention/);
+		// The controls that are not about one row: the field above the rows, the rest in More.
+		expect(await screen.findByRole("textbox", { name: "Bring a ticket by its key" })).toBeVisible();
+		expect(screen.getByRole("button", { name: "Bring" })).toBeVisible();
 		expect(screen.queryByRole("button", { name: "Adopt" })).toBeNull();
-		expect(await screen.findByRole("button", { name: "From a ticket" })).toBeVisible();
-		expect(await screen.findByRole("button", { name: "New change" })).toBeVisible();
+		for (const name of ["Owner: all", "Label: all", "Agent: all"])
+			expect(screen.getByRole("button", { name })).toBeVisible();
+		await userEvent.click(screen.getByRole("button", { name: "More" }));
+		for (const name of [
+			"Find a feature",
+			"Start from a ticket",
+			"Import",
+			"From a ticket",
+			"New change",
+		])
+			expect(await screen.findByRole("menuitem", { name })).toBeVisible();
+		await userEvent.keyboard("{Escape}");
 		await waitFor(() =>
 			expect(within(screen.getByRole("main")).getAllByRole("heading", { level: 1 })).toHaveLength(
 				1,
@@ -272,16 +309,44 @@ describe("Flow / List, Done and Health", () => {
 		});
 		const router = mountApp("/flow/done?q=ACME-3");
 		await screen.findByRole("heading", { level: 1, name: "Flow" });
-		expect(
-			within(await screen.findByRole("list", { name: "Features" })).getAllByRole("listitem"),
-		).toHaveLength(1);
-		expect(screen.getByText("Rename ACME-3")).toBeVisible();
-		expect(screen.getByRole("searchbox", { name: "Search runs" })).toHaveValue("ACME-3");
-		expect(await screen.findByRole("table", { name: "History" })).toBeInTheDocument();
+		// One list: the failed run of the ticket, and the finished feature that has no run.
+		const rows = await screen.findByRole("list", { name: "History" });
+		await waitFor(() => expect(within(rows).getAllByRole("listitem")).toHaveLength(2));
+		expect(screen.queryByRole("list", { name: "Features" })).toBeNull();
+		expect(within(rows).getByRole("button", { name: "Rename ACME-3" })).toBeVisible();
+		expect(screen.getByRole("searchbox", { name: "Find a finished feature" })).toHaveValue(
+			"ACME-3",
+		);
+		// The end filter: All, Merged, Done, Failed, Cancelled.
+		const ends = within(screen.getByRole("group", { name: "End state" }));
+		expect(ends.getAllByRole("button").map((x) => x.textContent)).toEqual([
+			"All",
+			"Merged",
+			"Done",
+			"Failed",
+			"Cancelled",
+		]);
+		await user.click(ends.getByRole("button", { name: "Failed" }));
+		await waitFor(() => expect(within(rows).getAllByRole("listitem")).toHaveLength(1));
+		// Start again is on the failed row, and it starts a new run of the ticket.
+		const start = vi.spyOn(commands, "runStart");
+		expect(within(rows).getByRole("button", { name: /^Start again/ })).toBeVisible();
+		// The extra columns of the old table are items of More.
+		expect(within(rows).queryByText("Recipe:")).toBeNull();
+		await user.click(screen.getByRole("button", { name: "More" }));
+		for (const name of ["Steps", "Ended", "Pull request"])
+			expect(await screen.findByRole("menuitemcheckbox", { name })).toBeVisible();
+		await user.click(screen.getByRole("menuitemcheckbox", { name: "Recipe" }));
+		expect(await within(rows).findByText("Recipe:")).toBeInTheDocument();
+		await user.click(ends.getByRole("button", { name: "All" }));
 		await user.click(screen.getByRole("button", { name: "Needs me" }));
 		await waitFor(() =>
 			expect(router.state.location.search).toEqual({ q: "ACME-3", filter: "needs" }),
 		);
+		await user.click(screen.getByRole("button", { name: "All", pressed: false }));
+		await user.click(await within(rows).findByRole("button", { name: /^Start again/ }));
+		await waitFor(() => expect(start).toHaveBeenCalledWith("ACME-3"));
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
 	it("shows the Quality page as the view Health", async () => {

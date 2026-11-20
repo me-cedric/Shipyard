@@ -83,7 +83,7 @@ describe("Code, W10", () => {
 
 	it("lists the delivery notes of docs/delivery/impacts", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/code/impacts");
+		mountApp("/flow/impacts/report");
 		expect(
 			await screen.findByRole("button", { name: "Open Sync impact · 2026-10-20" }),
 		).toBeInTheDocument();

@@ -98,12 +98,10 @@ describe("Code / Pull requests: agent actions", () => {
 	it("fills the title and the body in the form and opens nothing", async () => {
 		const user = userEvent.setup();
 		await demo();
-		mountApp("/code/now");
-		await user.click(await screen.findByRole("button", { name: "Open pull request" }));
-		const form = await screen.findByRole("dialog");
-		await user.click(within(form).getByRole("button", { name: "Write with an agent" }));
+		mountApp("/code/pull-requests/new");
+		await user.click(await screen.findByRole("button", { name: "Write it for me" }));
 		await waitFor(() =>
-			expect(within(form).getByRole("textbox", { name: "Title" })).toHaveValue(
+			expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue(
 				"feat(code): list the pull requests",
 			),
 		);

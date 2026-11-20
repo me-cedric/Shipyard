@@ -48,6 +48,54 @@ async function setup() {
 
 afterEach(() => vi.restoreAllMocks());
 
+describe("Feature page: the agent card and the back link", () => {
+	it("shows how long the run has worked on the agent card", async () => {
+		await setup();
+		const router = mountApp("/flow/feature/wi%3AACME-2");
+		const agent = await screen.findByRole("region", { name: "Agent" });
+		const label = await within(agent).findByText("Elapsed time:");
+		expect(label).toHaveClass("sr-only");
+		expect(label.nextElementSibling?.tagName).toBe("TIME");
+		expect(label.nextElementSibling).toHaveTextContent(/\d/);
+		await idle(router);
+	});
+
+	it("goes back to the page that opened the feature, as Escape does, and to Flow from a deep link", async () => {
+		const user = userEvent.setup();
+		await setup();
+		const router = mountApp("/today/today");
+		await idle(router);
+		router.history.push("/flow/feature/wi%3AACME-2");
+		await user.click(await screen.findByRole("link", { name: "Back" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/today/today"));
+		await idle(router);
+	});
+
+	it("names Flow when a card of Flow opened the feature, and goes back there", async () => {
+		const user = userEvent.setup();
+		await setup();
+		const router = mountApp("/flow/flow");
+		await user.click(await screen.findByRole("button", { name: /^Add the health dot/ }));
+		const page = await screen.findByRole("region", { name: "ACME-2" });
+		// A section change keeps the origin: the link still names Flow.
+		await user.click((await switcher()).getByRole("button", { name: "Changes" }));
+		await pressed("Changes");
+		await user.click(within(page).getByRole("link", { name: /^Flow$/ }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/flow"));
+		await idle(router);
+	});
+
+	it("leads to Flow from a deep link, where no page came before", async () => {
+		await setup();
+		const router = mountApp("/flow/feature/wi%3AACME-2");
+		const page = await screen.findByRole("region", { name: "ACME-2" });
+		const back = within(page).getByRole("link", { name: /^Flow$/ });
+		expect(back).toHaveAttribute("href", "/flow/flow");
+		expect(back).toHaveAttribute("aria-keyshortcuts", "Escape");
+		await idle(router);
+	});
+});
+
 describe("Feature page (REQ-012)", () => {
 	it("shows the stage line and the six sections of a feature in Build with a spec and a run", async () => {
 		const { run } = await setup();
@@ -64,6 +112,49 @@ describe("Feature page (REQ-012)", () => {
 		expect(within(page).getByRole("region", { name: "Brief" })).toBeVisible();
 		expect(within(page).getByRole("region", { name: "Changes" })).toBeVisible();
 		expect(run.key).toBe("ACME-2");
+		await idle(router);
+	});
+
+	it("shows the stage line on Story, Brief and Changes, and not on Design, Checks and Chat", async () => {
+		const user = userEvent.setup();
+		await setup();
+		const router = mountApp("/flow/feature/wi%3AACME-2");
+		const page = await screen.findByRole("region", { name: "ACME-2" });
+		for (const [name, shown] of [
+			["Story", true],
+			["Brief", true],
+			["Design", false],
+			["Changes", true],
+			["Checks", false],
+			["Chat", false],
+		] as const) {
+			await user.click((await switcher()).getByRole("button", { name }));
+			await pressed(name);
+			expect(within(page).queryByRole("list", { name: "Stages" }) !== null).toBe(shown);
+		}
+		await idle(router);
+	});
+
+	it("shows the spec link and the open questions in the Brief card, and draws no count of zero", async () => {
+		const { change, build } = await setup();
+		vi.spyOn(commands, "featuresList").mockResolvedValue({
+			status: "ok",
+			data: [{ ...build, questions: 1 }],
+		});
+		const router = mountApp("/flow/feature/wi%3AACME-2");
+		const brief = await screen.findByRole("region", { name: "Brief" });
+		expect(
+			within(brief).getByRole("button", { name: new RegExp(change.id.split("-")[0] ?? "", "i") }),
+		).toBeVisible();
+		expect(within(brief).getByText("1 open question")).toBeVisible();
+		expect(within(brief).queryByText("No spec yet")).toBeNull();
+		// The diff of the demo run adds lines and removes none: only the added count shows.
+		const changes = await screen.findByRole("region", { name: "Changes" });
+		await waitFor(() =>
+			expect(within(changes).getByTitle("Lines added")).toHaveTextContent(/^\+\d+$/),
+		);
+		expect(within(changes).queryByTitle("Lines removed")).toBeNull();
+		expect(changes).not.toHaveTextContent("−0");
 		await idle(router);
 	});
 
@@ -141,7 +232,7 @@ describe("Feature page (REQ-012)", () => {
 		expect(await screen.findByText("No spec yet")).toBeVisible();
 		expect(screen.getByRole("button", { name: "Write the spec" })).toBeVisible();
 		await user.click((await switcher()).getByRole("button", { name: "Design" }));
-		expect(await screen.findByText("No design cited")).toBeVisible();
+		expect(await screen.findByText("No screen linked")).toBeVisible();
 		await user.click((await switcher()).getByRole("button", { name: "Changes" }));
 		expect(await screen.findByText("No changes")).toBeVisible();
 		expect(screen.getByRole("button", { name: "Start an agent" })).toBeVisible();
@@ -167,13 +258,35 @@ describe("Feature page (REQ-012)", () => {
 		}));
 		const router = mountApp("/flow/feature/wi%3AACME-2");
 		await user.click((await switcher()).getByRole("button", { name: "Design" }));
-		expect(await screen.findByText("adr:0001")).toBeVisible();
-		expect(screen.queryByText("wi:ACME-9")).toBeNull();
+		// A decision shows by its title in the Decisions card; a ticket is not a design thing.
+		const decisions = await screen.findByRole("region", { name: "Decisions" });
+		expect(within(decisions).getByRole("button", { name: /Use SQLite/ })).toBeVisible();
+		// The cited ticket shows nowhere on Design: not by its title, not by its ref.
+		expect(screen.queryByText("Other")).toBeNull();
+		expect(screen.queryByText(/ACME-9/)).toBeNull();
 		await idle(router);
 	});
 });
 
 describe("Feature page events (REQ-015)", () => {
+	it("names the agent of an event in bold, and shows the time as 24 hours", async () => {
+		const { run } = await setup();
+		const log = mockState().factory.runs.find((x) => x.id === run.id)?.log;
+		log?.splice(0);
+		log?.push({
+			id: 6001,
+			step: "build.t2",
+			kind: "review",
+			payload: "{}",
+			ts: new Date(2026, 0, 5, 15, 7).getTime(),
+		});
+		const router = mountApp("/flow/feature/wi%3AACME-2");
+		const actor = await screen.findByText("Build", { selector: "b" });
+		expect(actor.parentElement).toHaveTextContent("Build reviewed the change");
+		expect(screen.getByText("15:07")).toBeVisible();
+		await idle(router);
+	});
+
 	it("shows the plain events, and one control opens all ten", async () => {
 		const user = userEvent.setup();
 		const { run } = await setup();
@@ -189,7 +302,7 @@ describe("Feature page events (REQ-015)", () => {
 			});
 		const router = mountApp("/flow/feature/wi%3AACME-2");
 		// A plain sentence, newest first, with no log open yet.
-		await screen.findByText("ACME-2 moved to Paused", { selector: "li" });
+		await screen.findByText("The work moved to Paused", { selector: "li" });
 		expect(screen.queryByRole("region", { name: /^Events/ })).toBeNull();
 		await user.click(await screen.findByRole("button", { name: "All 10 events" }));
 		const events = await screen.findByRole("region", { name: /^Events/ });
@@ -226,7 +339,7 @@ describe("Feature page events (REQ-015)", () => {
 		await idle(router);
 	});
 
-	it("opens the impacts of the change from Checks, with the reports and Analyze, and goes back (REQ-023)", async () => {
+	it("links Checks to the impacts page of the change (REQ-023)", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const idea = feature({ title: "Refuse an empty token", stage: "idea", change: "change:x" });
@@ -234,13 +347,24 @@ describe("Feature page events (REQ-015)", () => {
 		const router = mountApp("/flow/feature/change%3Ax?section=checks");
 		const panel = await screen.findByRole("tabpanel", { name: "Checks" });
 		await user.click(await within(panel).findByRole("button", { name: "Impacts on other code" }));
-		expect(await within(panel).findByRole("heading", { name: "Past reports (1)" })).toBeVisible();
-		expect(within(panel).getByRole("region", { name: "Assignments" })).toBeVisible();
-		await user.click(within(panel).getByRole("button", { name: "Analyze" }));
-		expect(await within(panel).findByRole("heading", { name: "Past reports (2)" })).toBeVisible();
-		await user.click(within(panel).getByRole("button", { name: "Checks" }));
+		await waitFor(() =>
+			expect(router.state.location.pathname).toBe("/flow/feature/change%3Ax/impacts"),
+		);
+		// Analyze adds a report to the past reports of the full report.
+		// Analyze is an item of the More menu of the impacts page.
+		await screen.findByRole("region", { name: "What this change touches" });
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Analyze" }));
+		await user.click(screen.getByRole("link", { name: "Full impact report" }));
+		await user.click(await screen.findByRole("button", { name: "Past reports" }));
+		expect(await screen.findByRole("heading", { name: "Past reports (2)" })).toBeVisible();
+		// The back links lead to the impacts, then to the Checks panel.
+		await user.click(screen.getByRole("link", { name: "What this change touches" }));
+		await user.click(await screen.findByRole("link", { name: "Checks" }));
 		expect(
-			await within(panel).findByRole("button", { name: "Impacts on other code" }),
+			await within(await screen.findByRole("tabpanel", { name: "Checks" })).findByRole("button", {
+				name: "Impacts on other code",
+			}),
 		).toBeVisible();
 		await idle(router);
 	});
@@ -274,6 +398,39 @@ describe("Feature page events (REQ-015)", () => {
 		const open = await within(panel).findByRole("button", { name: "Impacts on other code" });
 		await waitFor(() => expect(open).toBeDisabled());
 		expect(open).toHaveAccessibleDescription("No access");
+		await idle(router);
+	});
+
+	it("shows the two stop links on a stop card and not on the ticket page of a blocked run", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		// ACME-1 waits for an answer: the stop card of picture 081 and its two ways on.
+		let router = mountApp("/flow/feature/wi%3AACME-1");
+		expect(
+			await screen.findByRole("link", { name: "Blocked: the agent cannot go on" }),
+		).toHaveAttribute("href", expect.stringContaining("/flow/flow"));
+		expect(screen.getByRole("link", { name: "Stopped and cancelled features" })).toHaveAttribute(
+			"href",
+			"/flow/done",
+		);
+		await idle(router);
+		cleanup();
+		// ACME-9 is blocked: the ticket page of picture 026 draws neither link.
+		router = mountApp("/flow/feature/wi%3AACME-9?ticket=true");
+		expect(await screen.findByRole("button", { name: "Edit the title" })).toBeVisible();
+		expect(screen.queryByRole("link", { name: "Blocked: the agent cannot go on" })).toBeNull();
+		expect(screen.queryByRole("link", { name: "Stopped and cancelled features" })).toBeNull();
+		await idle(router);
+	});
+
+	it("draws the agent card of the ticket page with no agent row, equal buttons and More actions", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const router = mountApp("/flow/feature/wi%3AACME-9?ticket=true");
+		const card = within(await screen.findByRole("region", { name: "Agent" }));
+		expect(card.queryByRole("img")).toBeNull();
+		expect(card.getByRole("button", { name: "Try again" })).toBeVisible();
+		expect(card.getByRole("button", { name: "Stop" })).toBeVisible();
+		expect(card.queryByRole("button", { name: /^Talk to/ })).toBeNull();
+		expect(card.getByRole("button", { name: "More actions" })).toBeVisible();
 		await idle(router);
 	});
 });
