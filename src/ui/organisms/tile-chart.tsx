@@ -13,7 +13,6 @@ export function defaultChart(kind: string): Chart {
 		case "work":
 		case "tracker-status":
 			return "stages";
-		case "questions":
 		case "impact":
 			return "list";
 		case "estimates":

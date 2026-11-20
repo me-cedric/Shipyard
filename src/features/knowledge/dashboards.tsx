@@ -33,6 +33,7 @@ import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
 import { TileCard } from "@/ui/organisms/tile-card";
+import { CHARTS, type Chart, defaultChart } from "@/ui/organisms/tile-chart";
 import { isTrackerTile, layout, TEMPLATES, useTrackerTile } from "./dashboards-tracker";
 import { PinnedTiles } from "./pinned";
 import { useTileLabels, useTileName } from "./tile-labels";
@@ -57,8 +58,11 @@ export function Tile({
 	actions,
 	lead,
 	edit,
+	chart,
 }: {
 	kind: string;
+	/** The chart kind that the tile names. Empty: the default chart of its data kind. */
+	chart?: string;
 	/** A name that a person gave the tile. */
 	title?: string;
 	/** The member that a tracker tile follows. */
@@ -90,6 +94,9 @@ export function Tile({
 			actions={actions}
 			lead={lead}
 			edit={edit}
+			chart={
+				(CHARTS as readonly string[]).includes(chart ?? "") ? (chart as Chart) : defaultChart(kind)
+			}
 		/>
 	);
 }
@@ -111,7 +118,9 @@ function TileSettings({ slug, id }: { slug: string; id: string }) {
 	const [title, setTitle] = useState(tile?.title ?? "");
 	const [w, setW] = useState(String(tile?.w ?? 4));
 	const [h, setH] = useState(String(tile?.h ?? 3));
+	const [chart, setChart] = useState(tile?.chart || (tile ? defaultChart(tile.kind) : "bars"));
 	const [failure, setFailure] = useState<string | null>(null);
+	const f = useI18n().t.library.fn;
 	if (!view || !tile) return null;
 	const move = async (dx: number) => {
 		try {
@@ -134,7 +143,15 @@ function TileSettings({ slug, id }: { slug: string; id: string }) {
 						...view.value,
 						tiles: view.value.tiles.map((x) =>
 							x.id === id
-								? { ...x, title, w: width, h: Number(h), x: Math.min(x.x, COLUMNS - width) }
+								? {
+										...x,
+										title,
+										w: width,
+										h: Number(h),
+										x: Math.min(x.x, COLUMNS - width),
+										// The default chart of the kind is kept as no chart: it follows the kind.
+										chart: chart === defaultChart(x.kind) ? "" : chart,
+									}
 								: x,
 						),
 					});
@@ -152,6 +169,13 @@ function TileSettings({ slug, id }: { slug: string; id: string }) {
 				items={sizes([3, 4, 6, 8, 12])}
 			/>
 			<Select caption label={k.height} value={h} onValueChange={setH} items={sizes([2, 3, 4, 6])} />
+			<Select
+				caption
+				label={f.dashboards.chart}
+				value={chart}
+				onValueChange={setChart}
+				items={CHARTS.map((c) => ({ value: c, label: f.charts[c] }))}
+			/>
 			{failure ? (
 				<p role="alert" className="text-ui text-danger-text">
 					{failure}
@@ -340,6 +364,7 @@ function DashboardView({ slug }: { slug: string }) {
 						<Tile
 							kind={x.kind}
 							title={x.title}
+							chart={x.chart}
 							person={isTrackerTile(x.kind) ? who : null}
 							pin={{ slug, id: x.id }}
 						/>
@@ -625,6 +650,7 @@ export function DashboardEdit() {
 							<Tile
 								kind={x.kind}
 								title={x.title}
+								chart={x.chart}
 								pin={{ slug, id: x.id }}
 								edit={!locked}
 								lead={locked ? null : GRIP}

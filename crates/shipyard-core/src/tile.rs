@@ -108,7 +108,7 @@ pub const CHARTS: [&str; 7] = [
 pub fn default_chart(kind: &str) -> &'static str {
     match kind {
         "work" | "tracker-status" => "stages",
-        "questions" | "impact" => "list",
+        "impact" => "list",
         "estimates" => "spend",
         "quality" => "health",
         "tracker-open" => "number",

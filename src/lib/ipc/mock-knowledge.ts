@@ -57,6 +57,7 @@ const TILES = [
 	"tracker-assignee",
 ];
 const TILE_ROWS = 50;
+const CHARTS = ["number", "bars", "line", "list", "stages", "spend", "health"];
 
 export type MockKnowledge = {
 	files: Files;
@@ -596,6 +597,7 @@ export function dashboardSave(
 	const ids = new Set<string>();
 	for (const t of tiles) {
 		if (!TILES.includes(t.kind)) throw `unknown tile: ${t.kind}`;
+		if (t.chart && !CHARTS.includes(t.chart)) throw `unknown chart: ${t.chart}`;
 		if (ids.has(t.id)) throw `tile id used twice: ${t.id}`;
 		ids.add(t.id);
 	}
