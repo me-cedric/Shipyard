@@ -53,7 +53,7 @@ describe("the automation draft", () => {
 				member: {},
 				feature: { "ACME-1": 3 },
 				warn_at: 70,
-				then: { feature: "stop_ask" as const, day: "go_on" as const, member: "pause" as const },
+				at_limit: { feature: "stop_ask" as const, day: "go_on" as const, member: "pause" as const },
 			},
 		};
 		const d = toDraft(a);

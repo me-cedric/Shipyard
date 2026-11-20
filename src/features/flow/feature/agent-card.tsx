@@ -11,6 +11,7 @@ import {
 import { useSessions } from "@/lib/factory";
 import { endOf } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
+import type { RunState } from "@/lib/ipc";
 import { RightButton, useRights } from "@/lib/rights";
 import { Avatar } from "@/ui/atoms/avatar";
 import { runnerName } from "@/ui/atoms/brand-icon";
@@ -40,6 +41,9 @@ function Elapsed({ start, end, live }: { start?: number; end?: number; live: boo
 }
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
+
+/** The states where an agent works: only there can a person pause the run (`runs-recipes` REQ-001). */
+const WORKS: RunState[] = ["Planning", "Working", "SelfReview"];
 
 /**
  * The agent card of the side column (`spec:factory#REQ-030`, picture 003): the agent with its AI tool,
@@ -71,6 +75,10 @@ export function AgentCard({
 	const model = session && sessions?.find((s) => s.run === id && s.step === session.id)?.model;
 	const cost = run.costUsd ?? 0;
 	const pr = run.pr;
+	// The agent ends its turn first: the button waits until the run is paused.
+	const [asked, setAsked] = useState(false);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a new state ends the wait
+	useEffect(() => setAsked(false), [run.state]);
 	const primary: Partial<Record<Primary, ReactNode>> = {
 		openPr: (
 			<Button className="flex-[1_1_120px]" onClick={() => openPr(pr?.reference)}>
@@ -125,6 +133,18 @@ export function AgentCard({
 					</Button>
 				) : null}
 				{kind ? (primary[kind] ?? null) : compact && stopAction(run) ? primary.again : null}
+				{WORKS.includes(run.state) ? (
+					<Button
+						{...gate("runs.start")}
+						className="flex-[1_1_80px]"
+						disabled={asked || gate("runs.start").disabled}
+						onClick={() =>
+							void guard(() => act.pause(id)).then((ok) => (ok ? setAsked(true) : undefined))
+						}
+					>
+						{t.factory.runsRecipes.pause}
+					</Button>
+				) : null}
 				{active ? (
 					<ConfirmButton
 						{...gate("runs.start")}

@@ -137,7 +137,7 @@ fn warn_at_sets_the_share_of_the_alert_for_the_project() {
 fn go_on_turns_the_budget_into_a_warning_that_shows_once() {
     let fx = fx_with(|p| {
         p.automation.budgets = Budgets {
-            then: Thens {
+            at_limit: Thens {
                 day: Then::GoOn,
                 ..Thens::default()
             },
@@ -164,7 +164,7 @@ fn go_on_keeps_the_stall_timeout_and_the_max_turns() {
         ],
         Config::default(),
         |p| {
-            p.automation.budgets.then = Thens {
+            p.automation.budgets.at_limit = Thens {
                 feature: Then::GoOn,
                 ..Thens::default()
             };
@@ -214,7 +214,7 @@ fn pause_and_ask_me_stop_the_run_with_no_comment_on_the_issue_tracker() {
     for (then, escalated) in [(Then::Pause, false), (Then::Ask, true)] {
         let fx = fx_with(|p| {
             p.automation.budgets = Budgets {
-                then: Thens {
+                at_limit: Thens {
                     feature: then,
                     ..Thens::default()
                 },

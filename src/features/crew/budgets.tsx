@@ -49,7 +49,7 @@ export function useBudgetRules() {
 		});
 	return {
 		warn: budgets?.warn_at ?? WARN_AT,
-		then: (scope: ThenScope): Then => budgets?.then?.[scope] ?? "stop_ask",
+		choice: (scope: ThenScope): Then => budgets?.at_limit?.[scope] ?? "stop_ask",
 		error,
 		setWarn: (text: string) =>
 			save({ warn_at: Number(text) }, () =>
@@ -59,11 +59,11 @@ export function useBudgetRules() {
 			),
 		setThen: (scope: ThenScope, value: Then) =>
 			save({
-				then: {
+				at_limit: {
 					feature: "stop_ask",
 					day: "stop_ask",
 					member: "stop_ask",
-					...budgets?.then,
+					...budgets?.at_limit,
 					[scope]: value,
 				},
 			}),
@@ -244,7 +244,7 @@ export function BudgetsPage() {
 					label={format(f.runsRecipes.thenFor, { name: name.toLowerCase() })}
 					className="min-h-control"
 					items={THEN.map((v) => ({ value: v, label: f.runsRecipes.choice[v] }))}
-					value={rules.then(then)}
+					value={rules.choice(then)}
 					onValueChange={(v) => void rules.setThen(then, v as Then)}
 				/>
 			) : null}

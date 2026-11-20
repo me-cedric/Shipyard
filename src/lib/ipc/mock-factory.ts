@@ -516,7 +516,7 @@ export type MockFactory = {
 		/** By ticket key (`runs-recipes` REQ-005). */
 		feature?: Record<string, number>;
 		warn_at?: number;
-		then?: Thens_Serialize;
+		at_limit?: Thens_Serialize;
 	};
 	kill: boolean;
 	/** The text of each workflow file. */
@@ -1807,7 +1807,8 @@ export function budgetSet(f: MockFactory, scope: string, key: string, usd: numbe
 		throw `invalid automation file: budgets.${scope}.${key} = ${usd}`;
 	if (scope === "day" ? key !== "*" && !isDay(key) : key === "")
 		throw `invalid automation file: budgets.${scope}.${key} = ${usd}`;
-	const map = (f.budgets[scope] ??= {});
+	const map = f.budgets[scope] ?? {};
+	f.budgets[scope] = map;
 	if (usd === null) delete map[key];
 	else map[key] = usd;
 	return null;
@@ -1822,8 +1823,8 @@ export function budgetsOf(b: Budgets): MockFactory["budgets"] {
 		member: num(b.member),
 		feature: num(b.feature),
 		...(b.warn_at == null ? {} : { warn_at: b.warn_at }),
-		...(b.then
-			? { then: { feature: "stop_ask", day: "stop_ask", member: "stop_ask", ...b.then } }
+		...(b.at_limit
+			? { at_limit: { feature: "stop_ask", day: "stop_ask", member: "stop_ask", ...b.at_limit } }
 			: {}),
 	};
 }

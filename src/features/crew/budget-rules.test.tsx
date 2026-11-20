@@ -46,8 +46,8 @@ describe("Warn at and Then of budgets", () => {
 		mountApp("/crew/spend?page=budgets");
 		await user.click(await screen.findByRole("combobox", { name: "Then, each day" }));
 		await user.click(await screen.findByRole("option", { name: "Go on" }));
-		await waitFor(() => expect(mockState().factory.budgets.then?.day).toBe("go_on"));
-		expect(mockState().factory.budgets.then).toEqual({
+		await waitFor(() => expect(mockState().factory.budgets.at_limit?.day).toBe("go_on"));
+		expect(mockState().factory.budgets.at_limit).toEqual({
 			feature: "stop_ask",
 			day: "go_on",
 			member: "stop_ask",

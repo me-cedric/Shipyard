@@ -229,7 +229,7 @@ pub struct Budgets {
     pub warn_at: Option<u32>,
     /// What happens at the limit of each kind of budget.
     #[serde(skip_serializing_if = "Thens::is_default")]
-    pub then: Thens,
+    pub at_limit: Thens,
 }
 
 /// What a run does when a budget is spent (`runs-recipes` REQ-006, `adr:0024`).
@@ -269,7 +269,7 @@ impl Budgets {
             && self.member.is_empty()
             && self.feature.is_empty()
             && self.warn_at.is_none()
-            && self.then.is_default()
+            && self.at_limit.is_default()
     }
 
     /// The share of a budget where the alert shows, 0 to 1.

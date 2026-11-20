@@ -239,6 +239,11 @@ export function StopCard({
 							{s.stopIt}
 						</ConfirmButton>
 					) : null}
+					{view === "unblock" ? (
+						<RightButton right="runs.start" onClick={() => void guard(() => act.takeOver(run.id))}>
+							{t.factory.runsRecipes.takeOver}
+						</RightButton>
+					) : null}
 					{/* Only a blocked run can go on: a run whose pull request ended has nothing to keep open. */}
 					{action === "closeDone" && !kept && run.state === "Blocked" ? (
 						<Button onClick={() => setKept(true)}>{s.keepOpen}</Button>

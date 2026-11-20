@@ -234,7 +234,7 @@ fn a_feature_limit_sits_by_ticket_key_and_the_choices_round_trip() {
     };
     assert_eq!(a.budgets.for_feature("SHIP-1"), Some(3.0));
     a.budgets.warn_at = Some(70);
-    a.budgets.then.day = shipyard_core::pickup::Then::GoOn;
+    a.budgets.at_limit.day = shipyard_core::pickup::Then::GoOn;
     a.concurrency.per_stage.build = Some(2);
     write_automation(dir.path(), &a).unwrap();
     let AutomationRead::Valid(b) = read_automation(dir.path()).unwrap() else {

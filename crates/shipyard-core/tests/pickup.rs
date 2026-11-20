@@ -792,21 +792,21 @@ fn a_stage_at_its_limit_counts_the_runs_of_that_stage_only() {
 
 #[test]
 fn stage_limits_and_budget_choices_round_trip_and_stay_out_at_the_defaults() {
-    let text = "concurrency:\n  per_stage:\n    plan: 2\n    build: 3\nbudgets:\n  warn_at: 70\n  feature:\n    SHIP-1: 3.0\n  then:\n    day: go_on\n    member: pause\n";
+    let text = "concurrency:\n  per_stage:\n    plan: 2\n    build: 3\nbudgets:\n  warn_at: 70\n  feature:\n    SHIP-1: 3.0\n  at_limit:\n    day: go_on\n    member: pause\n";
     let a: Automation = serde_norway::from_str(text).unwrap();
     assert_eq!(a.concurrency.per_stage.build, Some(3));
     assert_eq!(a.concurrency.per_stage.review, None);
     assert_eq!(a.budgets.warn_at, Some(70));
     assert!((a.budgets.warn() - 0.7).abs() < 1e-9);
     assert_eq!(a.budgets.for_feature("SHIP-1"), Some(3.0));
-    assert_eq!(a.budgets.then.day, Then::GoOn);
-    assert_eq!(a.budgets.then.member, Then::Pause);
-    assert_eq!(a.budgets.then.feature, Then::StopAsk);
+    assert_eq!(a.budgets.at_limit.day, Then::GoOn);
+    assert_eq!(a.budgets.at_limit.member, Then::Pause);
+    assert_eq!(a.budgets.at_limit.feature, Then::StopAsk);
     assert!(a.validate().is_empty());
     let back: Automation = serde_norway::from_str(&serde_norway::to_string(&a).unwrap()).unwrap();
     assert_eq!(back, a);
     let text = serde_norway::to_string(&Automation::default()).unwrap();
-    for gone in ["per_stage", "warn_at", "then", "feature"] {
+    for gone in ["per_stage", "warn_at", "at_limit", "feature"] {
         assert!(!text.contains(gone), "{gone} in {text}");
     }
     assert!((Budgets::default().warn() - 0.8).abs() < 1e-9);

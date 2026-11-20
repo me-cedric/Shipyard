@@ -193,11 +193,14 @@ impl Factory {
         };
         let day = b.for_day(&today).map(|usd| {
             let spent = inner.day_spend(project).get(&today).map_or(0.0, |d| d.1);
-            (level(spent, usd, b.then.day), format!("day {today}"))
+            (level(spent, usd, b.at_limit.day), format!("day {today}"))
         });
         let who = b.for_member(member).map(|usd| {
             let spent = inner.member_spend(project).get(member).map_or(0.0, |d| d.1);
-            (level(spent, usd, b.then.member), format!("member {member}"))
+            (
+                level(spent, usd, b.at_limit.member),
+                format!("member {member}"),
+            )
         });
         let rank = |l: BudgetLevel| match l {
             BudgetLevel::Under => 0,

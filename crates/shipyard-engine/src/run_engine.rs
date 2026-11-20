@@ -1343,7 +1343,7 @@ impl Inner {
     pub(crate) fn budget_rules(&self, run_id: &str) -> (Thens, f64) {
         self.project_of(run_id)
             .map_or((Thens::default(), run::BUDGET_ALERT), |p| {
-                (p.automation.budgets.then, p.automation.budgets.warn())
+                (p.automation.budgets.at_limit, p.automation.budgets.warn())
             })
     }
 

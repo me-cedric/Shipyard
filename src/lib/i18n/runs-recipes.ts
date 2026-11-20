@@ -5,6 +5,7 @@ export const runsRecipesEn = {
 	addDocument: "Add a document",
 	removeDocument: "Remove {name}",
 	documentKinds: "{name}: add a Markdown, PDF or Word file.",
+	tooLarge: "{name} is larger than {size}.",
 	limit: "Limit",
 	limitAmount: "Limit of the feature, in dollars",
 	stageAtOnce: "{name}, at once",
@@ -12,7 +13,6 @@ export const runsRecipesEn = {
 	editWarn: "Edit Warn at",
 	warnAtError: "Warn at: a whole number from 1 to 100",
 	save: "Save",
-	then: "Then",
 	thenFor: "Then, {name}",
 	choice: {
 		stop_ask: "Stop and ask",
@@ -34,6 +34,7 @@ export const runsRecipesFr: typeof runsRecipesEn = {
 	addDocument: "Ajouter un document",
 	removeDocument: "Retirer {name}",
 	documentKinds: "{name} : ajoutez un fichier Markdown, PDF ou Word.",
+	tooLarge: "{name} dépasse {size}.",
 	limit: "Limite",
 	limitAmount: "Limite de la fonctionnalité, en dollars",
 	stageAtOnce: "{name}, à la fois",
@@ -41,7 +42,6 @@ export const runsRecipesFr: typeof runsRecipesEn = {
 	editWarn: "Modifier Prévenir à",
 	warnAtError: "Prévenir à : un nombre entier de 1 à 100",
 	save: "Enregistrer",
-	then: "Ensuite",
 	thenFor: "Ensuite, {name}",
 	choice: {
 		stop_ask: "Arrêter et demander",

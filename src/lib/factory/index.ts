@@ -107,6 +107,13 @@ export function useRunActions() {
 		return {
 			start: (key: string) => run(commands.runStart(key)),
 			cancel: (id: string) => run(commands.runCancel(id)),
+			/** Pause at the end of the turn (`runs-recipes` REQ-001). */
+			pause: (id: string) => run(commands.runPause(id)),
+			/** The run ends as cancelled, the ticket is mine and the worktree opens in the editor. Gives the folder. */
+			takeOver: (id: string) => run(commands.runTakeOver(id)),
+			/** A file for the next turn of the run (`runs-recipes` REQ-003). */
+			attach: (id: string, name: string, bytes: number[]) =>
+				run(commands.runAttach(id, name, bytes)),
 			resume: (id: string, addUsd: number | null, note?: string) =>
 				run(commands.runResume(id, addUsd ?? 0, 0, note?.trim() || null)),
 			unblock: (id: string, note?: string) => run(commands.runUnblock(id, note?.trim() || null)),

@@ -1286,7 +1286,7 @@ export type Budgets_Deserialize = {
 	 */
 	warn_at?: number | null,
 	/**  What happens at the limit of each kind of budget. */
-	then?: Thens_Deserialize,
+	at_limit?: Thens_Deserialize,
 };
 
 /**
@@ -1306,7 +1306,7 @@ export type Budgets_Serialize = {
 	 */
 	warn_at?: number,
 	/**  What happens at the limit of each kind of budget. */
-	then?: Thens_Serialize,
+	at_limit?: Thens_Serialize,
 };
 
 /**  Working days and public holidays (REQ-016). */

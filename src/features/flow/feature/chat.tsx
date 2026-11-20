@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { PullPart } from "@/features/code/pull-page";
 import { type RunScopeData, useRunScope } from "@/features/factory/runs/run-detail";
 import { LiveLine, nameOf } from "@/features/factory/runs/run-live";
@@ -14,8 +14,11 @@ import { useRights } from "@/lib/rights";
 import { cn } from "@/lib/utils";
 import { memberName, useTeam } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
+import { IconButton } from "@/ui/atoms/icon-button";
 import { LinkButton } from "@/ui/atoms/link-button";
+import { PlusIcon } from "@/ui/icons";
 import { approvalSentence } from "@/ui/molecules/approval-bar";
 import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
@@ -55,6 +58,11 @@ function Bubble({
 }
 
 const LONG = ["push", "open_pr"];
+
+/** The limits of `assistant_attach`, which the command of the chat shares: text up to 200 KiB, an image up to 2 MiB. */
+const MAX_TEXT = 200 * 1024;
+const MAX_IMAGE = 2 * 1024 * 1024;
+const IMAGE = /\.(png|jpe?g|gif|webp)$/i;
 
 /** A write that waits for a click, as a message: the sentence on its own line, Reject and Approve below it. */
 function ApprovalMessage({ approval: a }: { approval: ApprovalItem }) {
@@ -113,6 +121,33 @@ function Composer({ scope, agent }: { scope: RunScopeData; agent: string }) {
 	const { run, act, guard, active } = scope;
 	const [text, setText] = useState("");
 	const [blocked, setBlocked] = useState(false);
+	// A file joins the next turn as context (`runs-recipes` REQ-003): its name stays beside the field.
+	const picker = useRef<HTMLInputElement>(null);
+	const [files, setFiles] = useState<string[]>([]);
+	const [refused, setRefused] = useState<string | null>(null);
+	const attach = async (list: FileList) => {
+		setRefused(null);
+		for (const f of Array.from(list)) {
+			const image = IMAGE.test(f.name);
+			if (f.size > (image ? MAX_IMAGE : MAX_TEXT)) {
+				setRefused(
+					format(t.factory.runsRecipes.tooLarge, {
+						name: f.name,
+						size: image ? "2 MiB" : "200 KiB",
+					}),
+				);
+				continue;
+			}
+			try {
+				const bytes = Array.from(new Uint8Array(await f.arrayBuffer()));
+				const done = await act.attach(run.id, f.name, bytes);
+				setFiles((x) => [...x, done.name]);
+			} catch (e) {
+				// The limits of the file are the words of the refusal: it names its size.
+				setRefused(e instanceof Error ? e.message : String(e));
+			}
+		}
+	};
 	const kind = stopAction(run);
 	const can = kind === "resume" || kind === "unblock";
 	const send = async () => {
@@ -133,6 +168,24 @@ function Composer({ scope, agent }: { scope: RunScopeData; agent: string }) {
 				void send();
 			}}
 		>
+			<input
+				ref={picker}
+				type="file"
+				multiple
+				hidden
+				data-testid="attach-input"
+				onChange={(e) => {
+					if (e.target.files) void attach(e.target.files);
+					e.target.value = "";
+				}}
+			/>
+			<IconButton
+				label={t.doctor.attach.add}
+				disabled={!active}
+				onClick={() => picker.current?.click()}
+			>
+				<PlusIcon size={14} />
+			</IconButton>
 			<input
 				aria-label={format(c.message, { agent })}
 				placeholder={format(c.message, { agent })}
@@ -155,6 +208,21 @@ function Composer({ scope, agent }: { scope: RunScopeData; agent: string }) {
 			<Button type="submit" variant="primary" disabled={!text.trim()}>
 				{c.send}
 			</Button>
+			{files.length > 0 ? (
+				<ul aria-label={t.doctor.attach.add} className="flex w-full flex-wrap gap-1 px-3">
+					{files.map((name, i) => (
+						// biome-ignore lint/suspicious/noArrayIndexKey: a name can repeat, the list only grows
+						<li key={`${name}${i}`}>
+							<Badge variant="accent">{name}</Badge>
+						</li>
+					))}
+				</ul>
+			) : null}
+			{refused ? (
+				<p role="alert" className="w-full px-3 text-ui text-danger-text">
+					{refused}
+				</p>
+			) : null}
 			{blocked ? (
 				<p role="alert" className="w-full px-3 text-ui text-n-11">
 					{c.busy}

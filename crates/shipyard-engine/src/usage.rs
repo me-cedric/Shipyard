@@ -197,11 +197,14 @@ impl Inner {
         };
         let day = b.for_day(&today).map(|usd| {
             let spent = s.days.get(&today).map_or(0.0, |d| d.1);
-            (format!("day:{today}"), level(spent, usd, b.then.day))
+            (format!("day:{today}"), level(spent, usd, b.at_limit.day))
         });
         let who = b.for_member(&member).map(|usd| {
             let spent = s.members.get(&member).map_or(0.0, |d| d.1);
-            (format!("member:{member}"), level(spent, usd, b.then.member))
+            (
+                format!("member:{member}"),
+                level(spent, usd, b.at_limit.member),
+            )
         });
         // The limit of a feature covers every run of its ticket, the ended ones too
         // (`runs-recipes` REQ-005). A raise at a resume counts for this run.
@@ -214,7 +217,7 @@ impl Inner {
                 .sum();
             (
                 format!("feature:{}", r.key),
-                level(spent, usd + r.extra_usd, b.then.feature),
+                level(spent, usd + r.extra_usd, b.at_limit.feature),
             )
         });
         day.into_iter().chain(who).chain(feature).collect()

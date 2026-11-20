@@ -6,6 +6,7 @@ export const runsRecipesEs: typeof runsRecipesEn = {
 	addDocument: "Añadir un documento",
 	removeDocument: "Quitar {name}",
 	documentKinds: "{name}: añade un archivo Markdown, PDF o Word.",
+	tooLarge: "{name} es más grande que {size}.",
 	limit: "Límite",
 	limitAmount: "Límite de la función, en dólares",
 	stageAtOnce: "{name}, a la vez",
@@ -13,7 +14,6 @@ export const runsRecipesEs: typeof runsRecipesEn = {
 	editWarn: "Cambiar Avisar al",
 	warnAtError: "Avisar al: un número entero de 1 a 100",
 	save: "Guardar",
-	then: "Después",
 	thenFor: "Después, {name}",
 	choice: {
 		stop_ask: "Parar y preguntar",
