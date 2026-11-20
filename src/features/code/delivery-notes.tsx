@@ -36,7 +36,7 @@ export function DeliveryNotes() {
 					<Button
 						key={n.path}
 						variant="ghost"
-						className="self-start"
+						className="-ml-4.5 self-start"
 						// The name holds the visible text.
 						aria-label={format(t.workspace.notes.open, { title: name })}
 						aria-pressed={n.path === open}

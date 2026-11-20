@@ -67,6 +67,8 @@ export function CommandPalette({
 		.filter((g) => g.items.length > 0);
 	// The list does not search by itself, so we keep the pick on a visible item.
 	const ids = visible.flatMap((g) => g.items.map((i) => i.id));
+	// With no text there is nothing to send, so the first row is the chosen one, as an arrow would make it.
+	const chosen = arrowed || !q;
 	const current = ids.includes(picked) ? picked : (ids[0] ?? "");
 	// cmdk makes the ids of the list and of each item: the bar points at them (combobox pattern).
 	useEffect(() => {
@@ -74,9 +76,9 @@ export function CommandPalette({
 		if (!el) return;
 		const list = el.closest("[cmdk-root]")?.querySelector("[cmdk-list]")?.id;
 		const item = el.closest("[cmdk-root]")?.querySelector('[cmdk-item][data-selected="true"]')?.id;
-		if (open && arrowed && list) el.setAttribute("aria-controls", list);
+		if (open && chosen && list) el.setAttribute("aria-controls", list);
 		else el.removeAttribute("aria-controls");
-		if (open && arrowed && item) el.setAttribute("aria-activedescendant", item);
+		if (open && chosen && item) el.setAttribute("aria-activedescendant", item);
 		else el.removeAttribute("aria-activedescendant");
 	});
 	const close = () => {
@@ -147,7 +149,7 @@ export function CommandPalette({
 							e.stopPropagation();
 							setArrowed(true);
 							onOpenChange(true);
-						} else if (e.key === "Enter" && !arrowed) e.stopPropagation();
+						} else if (e.key === "Enter" && !chosen) e.stopPropagation();
 					}}
 					onSubmit={onSubmit}
 				/>
@@ -178,7 +180,11 @@ export function CommandPalette({
 															close();
 															inputRef.current?.blur();
 														}}
-														className={cn(row.className, "cursor-pointer hover:bg-n-2")}
+														className={cn(
+															row.className,
+															"cursor-pointer hover:bg-n-2",
+															chosen && "data-[selected=true]:bg-n-2",
+														)}
 													>
 														{row.children}
 													</Command.Item>
@@ -192,7 +198,7 @@ export function CommandPalette({
 													) : null}
 												</span>
 												{item.shortcut ? <Kbd>{item.shortcut}</Kbd> : null}
-												{arrowed && current === item.id ? (
+												{chosen && current === item.id ? (
 													<span aria-hidden="true" className="font-semibold text-13 text-n-11">
 														↵
 													</span>

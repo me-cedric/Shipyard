@@ -55,7 +55,7 @@ export function DocsUpdate({
 			) : (
 				<RightButton
 					right="runs.start"
-					variant={primary ? "primary" : "ghost"}
+					variant={primary ? "primary" : "secondary"}
 					aria-label={primary ? `${primary}: ${name}` : format(w.updateName, { name })}
 					onClick={() => void start()}
 				>

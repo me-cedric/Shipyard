@@ -163,7 +163,7 @@ export function ImpactsPage({
 						items={[{ value: "mine", label: i.mine }]}
 						value="mine"
 						onValueChange={() => {}}
-						className="rounded-full font-semibold"
+						className="font-semibold"
 					/>
 					<span className="text-n-11">{i.withBase}</span>
 					<Select
@@ -171,7 +171,7 @@ export function ImpactsPage({
 						items={[...refs.branches, ...refs.tags].map((r) => ({ value: r, label: r }))}
 						value={current}
 						onValueChange={setBase}
-						className="min-w-24 rounded-full font-mono"
+						className="min-w-24 font-mono [&_svg]:hidden"
 					/>
 					{busy ? <Elapsed since={since} /> : null}
 				</div>

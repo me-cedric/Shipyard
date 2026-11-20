@@ -165,7 +165,7 @@ export function TerminalFiles() {
 					</RightButton>
 					<RightButton
 						right="code.write"
-						className="flex-[1_1_80px] border-danger-subtle text-danger-text"
+						className="flex-[1_1_80px] text-danger-text"
 						disabled={!(writes && chosen)}
 						onClick={() =>
 							chosen && setAction({ kind: "delete", path: chosen.path, folder: chosen.folder })

@@ -111,7 +111,10 @@ export function KnowledgeMap({
 								{kindNames[chosen.kind] ?? chosen.kind}
 							</Badge>
 							<h2 className="break-words text-30 font-semibold text-n-12">
-								{chosen.title || chosen.ref}
+								{(chosen.title || chosen.ref).replace(
+									`${kindNames[chosen.kind] ?? chosen.kind}: `,
+									"",
+								)}
 							</h2>
 							<div className="flex flex-wrap gap-2.5">
 								<Button variant="primary" onClick={() => openRef(chosen.ref)}>

@@ -30,7 +30,7 @@ export function Segmented<V extends string>({
 				// A pressed choice stays pressed.
 				if (v[0]) onValueChange(v[0] as V);
 			}}
-			className="relative isolate grid w-full auto-cols-fr grid-flow-col items-center rounded-md bg-n-4 p-1"
+			className="relative isolate grid w-fit max-w-full auto-cols-fr grid-flow-col items-center rounded-md bg-n-4 p-1"
 		>
 			<span
 				aria-hidden="true"

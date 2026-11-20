@@ -4,7 +4,6 @@ import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type Right, saveAs, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
-import { ArrowUpTrayIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 
 export type ExportItem = {
@@ -37,10 +36,10 @@ export function SavedActions({
 	};
 	return (
 		<>
-			<Button variant="ghost" onClick={() => place((p) => unwrap(commands.revealPath(p)))}>
+			<Button onClick={() => place((p) => unwrap(commands.revealPath(p)))}>
 				{t.ui.item.reveal}
 			</Button>
-			<Button variant="ghost" onClick={() => place((p) => unwrap(commands.openDefault(p)))}>
+			<Button onClick={() => place((p) => unwrap(commands.openDefault(p)))}>
 				{t.context.open}
 			</Button>
 		</>
@@ -97,10 +96,7 @@ export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?
 	return (
 		<span className="inline-flex flex-wrap items-center gap-2">
 			<Menu.Root>
-				<Menu.Trigger render={<Button disabled={disabled} />}>
-					<ArrowUpTrayIcon size={14} />
-					{t.reports.export}
-				</Menu.Trigger>
+				<Menu.Trigger render={<Button disabled={disabled} />}>{t.reports.export}</Menu.Trigger>
 				<Menu.Portal>
 					<Menu.Positioner align="end" sideOffset={4} className="z-50">
 						<Menu.Popup className="min-w-40 origin-(--transform-origin) rounded-lg border border-n-6 bg-surface-3 p-1 text-ui shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">

@@ -27,6 +27,7 @@ import { SavedActions } from "./export-menu";
 import { useReports } from "./reports-page";
 
 const FIELD = "w-56 flex-none";
+const TITLE = "w-80 flex-none";
 const SHORT = "w-44 flex-none font-semibold";
 
 /** One row of a form: the name of the field, then its control. */
@@ -87,15 +88,19 @@ function Sheet({
 				</p>
 			) : null}
 			<ErrorNotice error={failure} />
-			{written.map((path) => (
-				<Card key={path} pad className="flex flex-wrap items-center gap-3">
-					<Badge variant="success">{t.reports.written}</Badge>
-					<span role="status" className="flex-[1_1_200px] break-all font-mono text-14">
-						{path}
-					</span>
-					<SavedActions path={path} onError={setFailure} />
+			{written.length ? (
+				<Card pad className="flex flex-col gap-3">
+					{written.map((path, i) => (
+						<div key={path} className="flex flex-wrap items-center gap-3">
+							{i === 0 ? <Badge variant="success">{t.reports.written}</Badge> : null}
+							<span role="status" className="flex-[1_1_200px] font-mono text-14 break-words">
+								{path}
+							</span>
+							<SavedActions path={path} onError={setFailure} />
+						</div>
+					))}
 				</Card>
-			))}
+			) : null}
 		</>
 	);
 }
@@ -130,7 +135,7 @@ function ChangeRequest() {
 			<Field label={f.title}>
 				<Input
 					label={f.title}
-					className={FIELD}
+					className={TITLE}
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
 				/>

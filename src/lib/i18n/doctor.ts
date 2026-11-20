@@ -75,6 +75,7 @@ export const doctorEn = {
 		state: "State: {name}",
 		write: "Agents may write",
 		today: "Open Today",
+		offMeans: "Off means: the agent asks in Today",
 		mark: "Mark one ticket for agents",
 		spend: "Limits of spend",
 		pickup: {
@@ -308,6 +309,7 @@ export const doctorFr: typeof doctorEn = {
 		state: "État : {name}",
 		write: "Les agents peuvent écrire",
 		today: "Ouvrir Aujourd'hui",
+		offMeans: "Désactivé : l'agent demande dans Aujourd'hui",
 		mark: "Marquer un ticket pour les agents",
 		spend: "Limites de dépense",
 		pickup: {

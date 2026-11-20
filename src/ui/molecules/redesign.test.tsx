@@ -94,6 +94,7 @@ describe("StageLine", () => {
 		expect(screen.getByText("Review, needs you")).toBeInTheDocument();
 		renderApp(<StageLine stage="review" mark="blocked" />);
 		expect(screen.getByText("Review, blocked")).toBeInTheDocument();
+		expect(screen.queryByText("×")).toBeNull();
 		expect(screen.queryByText("Stopped")).toBeNull();
 	});
 });

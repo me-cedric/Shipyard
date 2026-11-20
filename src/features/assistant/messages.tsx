@@ -26,7 +26,7 @@ import type { Assistant } from "./use-assistant";
 
 /** A message as a bubble: the person on the right in the accent tint, the assistant on the left. */
 const BUBBLE = {
-	user: "flex max-w-[85%] flex-col gap-1 self-end rounded-2xl rounded-br-sm bg-accent-soft px-3 py-2 text-n-12",
+	user: "relative flex max-w-[85%] flex-col gap-1 self-end rounded-2xl rounded-br-sm bg-accent-soft px-3 py-2 text-n-12",
 	assistant:
 		"flex max-w-[92%] flex-col gap-2 self-start rounded-2xl rounded-bl-sm border bg-surface-2 px-3 py-2 shadow-1",
 };
@@ -402,7 +402,10 @@ export function Messages({
 							{i === lastAsk && !a.busy ? (
 								<Button
 									variant="ghost"
-									className={cn("h-6 self-end px-1.5 text-12", full && QUIET)}
+									className={cn(
+										"h-6 self-end px-1.5 text-12",
+										full && ["absolute right-0 -bottom-7", QUIET],
+									)}
 									onClick={() => void a.send(m.text, false, m.quotes)}
 								>
 									<ArrowPathIcon size={12} />

@@ -165,13 +165,15 @@ describe("Flow / List: the tickets of the backlog", () => {
 				"Ada Lovelace",
 			),
 		);
-		expect(screen.queryByText("Eligible for pickup")).toBeNull();
-		await user.click(screen.getByRole("button", { name: "Mark for agent" }));
+		expect(screen.getByRole("checkbox", { name: "Agents may pick it up" })).not.toBeChecked();
+		await user.click(screen.getByRole("checkbox", { name: "Give it to agents" }));
 		await waitFor(() =>
 			expect(mockState().sync.mirror.find((t) => t.key === "ACME-3")?.labels).toContain("shipyard"),
 		);
 		// Assigned to me and marked: eligible.
-		expect(await screen.findByText("Eligible for pickup")).toBeInTheDocument();
+		await waitFor(() =>
+			expect(screen.getByRole("checkbox", { name: "Agents may pick it up" })).toBeChecked(),
+		);
 	});
 
 	it("starts a run from the menu of the row of a ticket with no run", async () => {

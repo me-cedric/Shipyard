@@ -150,9 +150,9 @@ describe("CommandPalette", () => {
 			2,
 		);
 		expect(within(list.getByRole("group", { name: "Do" })).getAllByRole("option")).toHaveLength(1);
-		expect(screen.queryByText("↵")).toBeNull();
-		await userEvent.keyboard("{ArrowDown}");
+		// With no text the first row is chosen, as the design shows it.
 		expect(within(list.getByRole("option", { name: "Alpha" })).getByText("↵")).toBeInTheDocument();
+		await userEvent.keyboard("{ArrowDown}");
 		await userEvent.keyboard("{ArrowDown}");
 		expect(within(list.getByRole("option", { name: "Beta" })).getByText("↵")).toBeInTheDocument();
 	});

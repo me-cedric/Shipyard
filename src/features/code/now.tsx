@@ -113,11 +113,21 @@ function PullsCard() {
 function Page() {
 	const { t } = useI18n();
 	const { setFilesOpen, terminalOpen } = useShell();
-	const { terminal } = useActions();
+	const { terminal, sync } = useActions();
 	const pulls = usePulls().data;
 	return (
 		<div className="flex flex-col">
-			<PageHeader title={t.ui.place.code} action={<BranchSelector />} />
+			<PageHeader
+				title={t.ui.place.code}
+				action={
+					<>
+						<BranchSelector />
+						<Button onClick={sync.run} disabled={sync.disabled}>
+							{sync.label}
+						</Button>
+					</>
+				}
+			/>
 			<div className="flex flex-col gap-6 px-4 pb-10">
 				<div className="flex flex-wrap items-start gap-6">
 					<FilesCard />

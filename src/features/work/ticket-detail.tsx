@@ -15,6 +15,7 @@ import { useShell } from "@/lib/shell";
 import { useBacklogActions, useWorkItems } from "@/lib/sync";
 import { memberName, useSuggestions, useTeam, useWorkActions, useWorkContext } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
+import { Checkbox } from "@/ui/atoms/checkbox";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
@@ -58,6 +59,7 @@ export function TicketDetail({
 }) {
 	const { t } = useI18n();
 	const d = t.work.ticket;
+	const th = t.work.thread;
 	const items = useWorkItems({}).data ?? [];
 	const item = items.find((i) => i.key === itemKey);
 	const ctx = useWorkContext().data;
@@ -139,51 +141,96 @@ export function TicketDetail({
 			<Prop label={t.work.thread.labels}>
 				{/* The chips and the field share one line in the narrow column. */}
 				<div className="[&_button]:px-3 [&_input]:w-28">
-					<TicketLabels itemKey={item.key} />
+					<TicketLabels itemKey={item.key} rows={fieldsOnly} />
 				</div>
 			</Prop>
 
-			<Prop label={d.agent}>
-				<div className="flex flex-wrap items-center gap-2 [&_button]:px-3">
-					<RightButton
-						right="work.edit"
-						disabled={markReason !== null || marked}
-						onClick={() => void run(() => act.mark(item.key))}
-					>
-						<CpuChipIcon size={14} />
-						{d.mark}
-					</RightButton>
-					<RightButton right="runs.start" onClick={() => void run(() => runs.start(item.key))}>
-						<PlayIcon size={14} />
-						{t.factory.start}
-					</RightButton>
-					{eligible ? (
-						<span role="status" className="flex items-center gap-1.5 text-12">
-							<StatusDot status="success" label={d.eligible} className="size-2" />
-							{d.eligible}
-						</span>
+			{fieldsOnly ? (
+				<>
+					<Prop label={d.agent}>
+						<div className="flex justify-end">
+							<RightButton right="runs.start" onClick={() => void run(() => runs.start(item.key))}>
+								<PlayIcon size={14} />
+								{t.factory.start}
+							</RightButton>
+						</div>
+					</Prop>
+					<Prop label={th.give}>
+						<div className="flex flex-col items-end">
+							<Checkbox
+								label={th.give}
+								hideLabel
+								checked={marked}
+								disabled={markReason !== null || marked}
+								onCheckedChange={() => void run(() => act.mark(item.key))}
+							/>
+							{markReason === d.noLabel ? (
+								<SettingLink target="/setup/project?page=automation#pickup-label">
+									{markReason}
+								</SettingLink>
+							) : markReason ? (
+								<p className="text-12 text-n-11">{markReason}</p>
+							) : null}
+						</div>
+					</Prop>
+					<Prop label={th.pickup}>
+						<div className="flex justify-end">
+							<Checkbox label={th.pickup} hideLabel checked={eligible} readOnly disabled />
+						</div>
+					</Prop>
+				</>
+			) : (
+				<Prop label={d.agent}>
+					<div className="flex flex-wrap items-center gap-2 [&_button]:px-3">
+						<RightButton
+							right="work.edit"
+							disabled={markReason !== null || marked}
+							onClick={() => void run(() => act.mark(item.key))}
+						>
+							<CpuChipIcon size={14} />
+							{d.mark}
+						</RightButton>
+						<RightButton right="runs.start" onClick={() => void run(() => runs.start(item.key))}>
+							<PlayIcon size={14} />
+							{t.factory.start}
+						</RightButton>
+						{eligible ? (
+							<span role="status" className="flex items-center gap-1.5 text-12">
+								<StatusDot status="success" label={d.eligible} className="size-2" />
+								{d.eligible}
+							</span>
+						) : null}
+					</div>
+					{markReason === d.noLabel ? (
+						<SettingLink target="/setup/project?page=automation#pickup-label">
+							{markReason}
+						</SettingLink>
+					) : markReason ? (
+						<p className="text-12 text-n-11">{markReason}</p>
 					) : null}
-				</div>
-				{markReason === d.noLabel ? (
-					<SettingLink target="/setup/project?page=automation#pickup-label">
-						{markReason}
-					</SettingLink>
-				) : markReason ? (
-					<p className="text-12 text-n-11">{markReason}</p>
-				) : null}
-			</Prop>
+				</Prop>
+			)}
 
 			<Prop label={d.linked}>
 				{item.linked ? (
 					<div className="flex items-center gap-1">
 						<Linked id={item.linked} />
-						<RightIconButton
-							right="work.edit"
-							label={t.sync.backlog.unlink}
-							onClick={() => void run(() => unlink(item.linked ?? ""))}
-						>
-							<XMarkIcon size={14} />
-						</RightIconButton>
+						{fieldsOnly ? (
+							<RightButton
+								right="work.edit"
+								onClick={() => void run(() => unlink(item.linked ?? ""))}
+							>
+								{t.sync.backlog.unlink}
+							</RightButton>
+						) : (
+							<RightIconButton
+								right="work.edit"
+								label={t.sync.backlog.unlink}
+								onClick={() => void run(() => unlink(item.linked ?? ""))}
+							>
+								<XMarkIcon size={14} />
+							</RightIconButton>
+						)}
 					</div>
 				) : linking ? (
 					<form
@@ -209,19 +256,19 @@ export function TicketDetail({
 				) : (
 					<div>
 						<RightButton right="work.edit" onClick={() => setLinking(true)}>
-							<LinkIcon size={14} />
+							{fieldsOnly ? null : <LinkIcon size={14} />}
 							{t.sync.backlog.link}
 						</RightButton>
 					</div>
 				)}
 			</Prop>
-			<TicketFields itemKey={item.key} />
+			<TicketFields itemKey={item.key} rows={fieldsOnly} />
 		</>
 	);
 	if (fieldsOnly)
 		return (
 			// Each field is one row of the card: the name at the left, a compact value at the right, 60 px high. The rows span the card, so the dividers do.
-			<div className="flex min-w-0 flex-col divide-y divide-n-6 *:min-h-15 *:items-center *:px-6 [&>*>div]:items-end [&>*>span:first-child]:w-24 [&>*>span:first-child]:pt-0 [&>*>span:first-child]:text-15">
+			<div className="flex min-w-0 flex-col divide-y divide-n-6 *:min-h-15 *:items-center *:px-6 [&>*>div]:items-end [&>*>span:first-child]:w-auto [&>*>span:first-child]:whitespace-nowrap [&>*>span:first-child]:pt-0 [&>*>span:first-child]:text-15">
 				{fields}
 				<ErrorNotice error={failure} />
 			</div>

@@ -746,6 +746,10 @@ export const en = {
 			description: "Description",
 			saveDescription: "Save description",
 			removeLabel: "Remove {label}",
+			set: "Set",
+			addALabel: "Add a label",
+			give: "Give it to agents",
+			pickup: "Agents may pick it up",
 			priority: "Priority",
 			priorities: {
 				highest: "Highest",

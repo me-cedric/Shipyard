@@ -283,15 +283,15 @@ describe("PullFiles inline comments", () => {
 		renderApp(<PullFiles detail={inline} />);
 		await openTree(user);
 		// Closed by default; the row and the tree say "2 comments".
-		expect(screen.queryByRole("article", { name: "src/a.ts:2" })).toBeNull();
+		expect(screen.queryByRole("form", { name: "src/a.ts:2" })).toBeNull();
 		expect(screen.getAllByText("2 comments")).toHaveLength(2);
 		expect(screen.queryByText("1 comment")).toBeNull();
 		await openFile(user);
-		const under = screen.getByRole("article", { name: "src/a.ts:2" });
+		const under = screen.getByRole("form", { name: "src/a.ts:2" });
 		expect(within(under).getByText("rename this")).toBeInTheDocument();
 		const foot = screen.getByRole("region", { name: "Comments on lines outside the diff" });
 		expect(within(foot).getByText("far away")).toBeInTheDocument();
-		expect(within(foot).getByRole("article", { name: "src/a.ts:99" })).toBeInTheDocument();
+		expect(within(foot).getByRole("form", { name: "src/a.ts:99" })).toBeInTheDocument();
 	});
 
 	it("adds a pending comment under the line, counts it at once and gives the focus back to the plus button", async () => {

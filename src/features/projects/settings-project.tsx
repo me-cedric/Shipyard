@@ -460,7 +460,7 @@ function ConnectionCard({
 			)}
 		>
 			<h2 className="text-20 font-semibold text-n-12">{title}</h2>
-			<Badge variant={connected ? "success" : attention ? "warning" : "neutral"} dot={connected}>
+			<Badge variant={connected ? "success" : attention ? "you" : "neutral"} dot={connected}>
 				{connected ? p.connected : p.notConnected}
 			</Badge>
 			{children}

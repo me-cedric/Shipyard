@@ -1,34 +1,28 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
+import { StepBar } from "@/ui/atoms/step-bar";
 import { Terms } from "@/ui/molecules/term";
 import { ChecklistList, type ItemId } from "./checklist";
 import { PermissionList } from "./permissions";
-import { AiPicture, ConnectPicture, LoopPicture, ProjectPicture, RunPicture } from "./pictures";
 import { closeTour, openTour, useTourOpen } from "./tour-store";
 
 export const STEPS = ["loop", "project", "connect", "ai", "permissions", "run"] as const;
 type StepId = (typeof STEPS)[number];
 
-const PICTURE: Record<StepId, () => ReactNode> = {
-	loop: () => <LoopPicture />,
-	project: () => <ProjectPicture />,
-	connect: () => <ConnectPicture />,
-	ai: () => <AiPicture />,
-	permissions: () => (
-		<div className="flex h-60 items-center">
-			<div className="w-full">
-				<PermissionList />
-			</div>
-		</div>
-	),
-	run: () => <RunPicture />,
-};
+/** The pill style of each stage of a feature, as in Flow: done, current, to do, ready. */
+const STAGE_PILL = [
+	"bg-n-3 text-n-11",
+	"bg-n-3 text-n-11",
+	"bg-accent-soft text-accent-text",
+	"bg-n-3 text-n-11",
+	"bg-success-soft text-success-text",
+];
 
 /** The settings that a step offers to make in place (REQ-011). The permissions step has its own list. */
 const SETUP_OF: Partial<Record<StepId, ItemId[]>> = {
@@ -46,6 +40,7 @@ const SETUP_OF: Partial<Record<StepId, ItemId[]>> = {
 export function Tour() {
 	const { t } = useI18n();
 	const o = t.onboarding;
+	const f = t.ui.flow;
 	const { tourSeen, loaded, setPrefs } = usePrefs();
 	const open = useTourOpen();
 	const hasProject = Boolean(useActiveProject().data);
@@ -96,38 +91,41 @@ export function Tour() {
 				<BaseDialog.Backdrop className="fixed inset-0 z-40 bg-n-1/60 backdrop-blur-sm transition-opacity duration-(--duration-fast) data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
 				<BaseDialog.Popup
 					initialFocus={primary}
-					className="fixed top-20 left-1/2 z-50 w-[48rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border-2 border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0"
+					className="fixed top-20 left-1/2 z-50 w-[34rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border-2 border-accent bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0"
 				>
-					<div className="flex flex-col gap-5 p-8">
-						<div className="flex items-center gap-2">
-							<span className="sr-only" aria-live="polite">
-								{format(o.step, { n: step + 1, total: STEPS.length })}
-							</span>
-							{STEPS.map((s, i) => (
-								<span
-									key={s}
-									aria-hidden="true"
-									className={cn(
-										"h-1.5 w-11 rounded-full transition-[background-color] duration-(--duration-base)",
-										i <= step ? "bg-accent" : "bg-n-6",
-									)}
-								/>
-							))}
-						</div>
+					<div className="flex min-h-95 flex-col gap-5 p-8">
+						<span className="sr-only" aria-live="polite">
+							{format(o.step, { n: step + 1, total: STEPS.length })}
+						</span>
+						<StepBar
+							total={STEPS.length}
+							current={step + 1}
+							label={format(o.step, { n: step + 1, total: STEPS.length })}
+						/>
 						<BaseDialog.Title className="text-30 font-semibold text-n-12">
 							{o.steps[id].title}
 						</BaseDialog.Title>
-						<div
-							key={id}
-							className="transition-[opacity,translate] duration-(--duration-base) ease-spring starting:translate-y-1 starting:opacity-0"
-						>
-							{PICTURE[id]()}
-						</div>
+						{id === "run" ? (
+							<ul className="flex flex-wrap gap-2">
+								{[f.idea, f.spec, f.build, f.review, f.ready].map((label, i) => (
+									<li
+										key={label}
+										className={cn(
+											"inline-flex h-6.5 items-center rounded-full px-2.5 text-13 font-semibold",
+											STAGE_PILL[i],
+										)}
+									>
+										{label}
+									</li>
+								))}
+							</ul>
+						) : null}
 						<p className="text-14 text-n-11">
 							<Terms>{o.steps[id].body}</Terms>
 						</p>
+						{id === "permissions" ? <PermissionList /> : null}
 						{SETUP_OF[id] ? <ChecklistList ids={SETUP_OF[id]} /> : null}
-						<div className="flex flex-wrap justify-end gap-2.5">
+						<div className="mt-auto flex flex-wrap justify-end gap-2.5">
 							{/* Skip is the way out; Escape does the same. */}
 							<BaseDialog.Close
 								render={<Button variant="ghost" className="mr-auto min-h-control" />}

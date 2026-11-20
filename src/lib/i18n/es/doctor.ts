@@ -78,6 +78,7 @@ export const doctorEs: typeof doctorEn = {
 		state: "Estado: {name}",
 		write: "Los agentes pueden escribir",
 		today: "Abrir Hoy",
+		offMeans: "Desactivado: el agente pregunta en Hoy",
 		mark: "Marcar un ticket para agentes",
 		spend: "Límites de gasto",
 		pickup: {

@@ -160,7 +160,7 @@ export function TrayView() {
 		>
 			{/* Only this middle scrolls, and only when the content is taller than the frame. */}
 			<div className="min-h-0 flex-1 overflow-auto">
-				<div ref={content} className="flex flex-col gap-2 p-3 pb-2">
+				<div ref={content} className="flex flex-col gap-3 p-4 pb-3">
 					<div className="flex min-h-control items-center gap-2.5">
 						<span aria-hidden="true" className="size-7 shrink-0 rounded-sm bg-accent" />
 						{/* The name is the project switch. */}
@@ -216,7 +216,9 @@ export function TrayView() {
 											className="flex min-h-13 w-full items-center gap-3 px-4 text-left hover:bg-n-2"
 										>
 											<Avatar name={i.by || "Shipyard"} size="s" agent={i.who === "agent"} />
-											<span className="min-w-0 flex-1 truncate font-semibold">{i.text}</span>
+											<span className="min-w-0 flex-1 truncate font-semibold">
+												{i.kind === "question" ? t.flow.state.answer : i.text}
+											</span>
 											<ChevronRightIcon size={16} />
 										</button>
 									</li>
@@ -280,7 +282,7 @@ export function TrayView() {
 									label={kill ? t.factory.agentsStopped : t.factory.agentsOn}
 									checked={!kill}
 									onCheckedChange={(on) => void run(() => writes.killSwitch(!on))}
-									className={kill ? "border-danger bg-danger-soft" : "data-[checked]:bg-success"}
+									className={kill ? "border-danger bg-danger-soft" : undefined}
 								/>
 							</span>
 						)}
@@ -351,7 +353,7 @@ export function TrayView() {
 					) : null}
 				</div>
 			</div>
-			<div ref={foot} className="flex shrink-0 gap-2.5 bg-surface-0 px-3 pt-2 pb-3">
+			<div ref={foot} className="flex shrink-0 gap-2.5 bg-surface-0 px-4 pt-2 pb-4">
 				<Button className="flex-1" busy={busy} onClick={() => void run(syncAll)}>
 					{t.shell.sync}
 				</Button>

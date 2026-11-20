@@ -53,9 +53,9 @@ test("project manager", async ({ page }) => {
 
 	await w.step(
 		"Mark the ticket for the agent",
-		"the Mark for agent button on the ticket page",
+		"the Give it to agents box on the ticket page",
 		async () => {
-			await w.click(page.getByRole("button", { name: "Mark for agent" }));
+			await w.click(page.getByRole("checkbox", { name: "Give it to agents" }));
 			await w.see(page.getByText("shipyard").first(), "no agent label on the ticket");
 		},
 	);

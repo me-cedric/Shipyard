@@ -4,6 +4,7 @@ import { type PullDetail, useForgeActions } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { openUrl } from "@/lib/menus";
 import { RightButton, useRights } from "@/lib/rights";
+import { cn } from "@/lib/utils";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -116,7 +117,15 @@ export function PullChecksCard({ d }: { d: PullDetail }) {
 type Thread = PullDetail["threads"][number];
 
 /** An open thread under the file: its comments, a Reply field and Solved. Reopen is on the changed files page. */
-function FocusThread({ reference, th }: { reference: string; th: Thread }) {
+export function FocusThread({
+	reference,
+	th,
+	className = "mx-6 mb-5",
+}: {
+	reference: string;
+	th: Thread;
+	className?: string;
+}) {
 	const { t } = useI18n();
 	const c = t.forge.pullConversation;
 	const x = t.flow.look.pull;
@@ -136,7 +145,7 @@ function FocusThread({ reference, th }: { reference: string; th: Thread }) {
 					setBody("");
 				});
 			}}
-			className="mx-6 mb-5 flex flex-col gap-3 rounded-[14px] bg-n-2 p-4"
+			className={cn("flex flex-col gap-3 rounded-[14px] bg-n-2 p-4", className)}
 		>
 			{th.commentsTotal > th.comments.length ? (
 				<p className="text-13 text-n-11">

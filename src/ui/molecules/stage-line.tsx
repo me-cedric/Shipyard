@@ -5,8 +5,8 @@ import { CheckIcon } from "../icons";
 import { ATTENTION_FILL, ATTENTION_GLYPH } from "./attention-card";
 
 const STAGES: Stage[] = ["idea", "spec", "build", "review", "ready"];
-// A shape for each mark, so the colour is never the only cue.
-const MARK_SHAPE: Record<Mark, string> = { needs_you: "!", blocked: "×", stopped: "■" };
+// A shape for each mark, so the colour is never the only cue. Blocked is a plain dot: the text says it.
+const MARK_SHAPE: Record<Mark, string> = { needs_you: "!", blocked: "", stopped: "■" };
 
 /** The journey of a feature: five stages on one line. Done, current and next differ by shape and by text. */
 export function StageLine({ stage, mark }: { stage: Stage; mark?: Mark | null }) {
@@ -46,7 +46,7 @@ export function StageLine({ stage, mark }: { stage: Stage; mark?: Mark | null })
 								{state === "done" ? (
 									<CheckIcon size={16} />
 								) : state === "current" && mark ? (
-									MARK_SHAPE[mark]
+									MARK_SHAPE[mark] || null
 								) : null}
 							</span>
 							{t.ui.flow[s]}

@@ -41,7 +41,7 @@ import { withProject } from "./project-gate";
 import { GateNotice } from "./push-target";
 import { useRun } from "./use-run";
 
-const DANGER = "border-danger-subtle text-danger-text";
+const DANGER = "text-danger-text";
 
 /** Create a branch as `<type>/<area>/<kebab>` from the current head (REQ-012). */
 function CreateBranch({

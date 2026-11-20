@@ -29,7 +29,7 @@ export function DebugConsole() {
 			aria-label={d.title}
 			className="min-w-0 overflow-hidden rounded-lg bg-surface-2 shadow-2"
 		>
-			<div className="flex min-h-15 flex-wrap items-center gap-3 px-6 py-2">
+			<div className="flex min-h-15 flex-wrap items-center gap-2 px-6 py-2">
 				<h2 className="mr-auto font-semibold text-n-12">{t.personal.setup.console}</h2>
 				<Button
 					variant="secondary"
@@ -37,7 +37,7 @@ export function DebugConsole() {
 				>
 					{d.copy}
 				</Button>
-				<span className="inline-flex">
+				<span className="inline-flex [&_button]:px-2">
 					<Segmented
 						label={d.level}
 						value={level}

@@ -767,6 +767,10 @@ export const de: Messages = {
 			description: "Beschreibung",
 			saveDescription: "Beschreibung speichern",
 			removeLabel: "{label} entfernen",
+			set: "Festlegen",
+			addALabel: "Label hinzufügen",
+			give: "An Agenten geben",
+			pickup: "Agenten dürfen es übernehmen",
 			priority: "Priorität",
 			priorities: {
 				highest: "Höchste",

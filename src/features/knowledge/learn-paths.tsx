@@ -1,3 +1,4 @@
+import { Menu } from "@base-ui/react/menu";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { useGuard } from "@/features/work/guard";
@@ -15,13 +16,13 @@ import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Checkbox } from "@/ui/atoms/checkbox";
-import { Chip } from "@/ui/atoms/chip";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Progress } from "@/ui/atoms/progress";
 import { Select } from "@/ui/atoms/select";
 import { LinkIcon, PencilIcon, PlusIcon, TrashIcon, XMarkIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { MenuList } from "@/ui/molecules/menu-button";
 import { LearnCard, learningKey, openAddress } from "./learn-feeds";
 
 const KINDS: StepKind[] = ["course", "certification", "reading"];
@@ -165,25 +166,30 @@ export function LearnActions({
 		value: m.handle,
 		label: m.name,
 	}));
+	const now = people.find((m) => m.value === picked) ?? people[0] ?? { value: "", label: "" };
 	return (
 		<>
 			{people.length ? (
-				<fieldset aria-label={k.person} className="flex flex-wrap gap-2">
-					{people.map((m) => (
-						<Chip
-							key={m.value}
-							selected={m.value === (picked ?? people[0]?.value)}
-							onClick={() => onPick(m.value)}
-							className="gap-2 pl-1.5"
-						>
-							<Avatar name={m.label} size="s" />
-							{m.label.split(" ")[0]}
-						</Chip>
-					))}
-				</fieldset>
+				<Menu.Root>
+					<Menu.Trigger
+						render={<Button aria-label={`${k.person}: ${now.label}`} className="gap-2 pl-1.5" />}
+					>
+						<Avatar name={now.label} size="s" />
+						{now.label.split(" ")[0]}
+					</Menu.Trigger>
+					<MenuList
+						value={now.value}
+						items={people.map((m) => ({
+							id: m.value,
+							value: m.value,
+							label: m.label,
+							icon: <Avatar name={m.label} size="s" />,
+							onSelect: () => onPick(m.value),
+						}))}
+					/>
+				</Menu.Root>
 			) : null}
 			<RightButton right="knowledge.edit" variant="primary" disabled={editing} onClick={onNew}>
-				<PlusIcon size={14} />
 				{k.newPath}
 			</RightButton>
 		</>

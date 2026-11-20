@@ -34,6 +34,12 @@ describe("Code / Now", () => {
 		await idle(router);
 	});
 
+	it("puts the branch and a Sync button at the top right", async () => {
+		const { router } = await now();
+		expect(screen.getByRole("button", { name: "Sync" })).toBeEnabled();
+		await idle(router);
+	});
+
 	it("shows the open pull requests, one state each, with the link to the full list", async () => {
 		const { router } = await now();
 		const open = (await unwrap(commands.pullsList())).filter((r) => r.state === "open");

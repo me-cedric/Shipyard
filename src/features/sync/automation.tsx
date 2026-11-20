@@ -284,7 +284,10 @@ function Form({ view }: { view: AutomationView }) {
 					</SetupCard>
 				) : null}
 				<SetupCard>
+					<SetupRow label={<span className="text-n-11">{k.offMeans}</span>} />
 					<SetupRow label={plain(k.today)} href="/today/today" />
+				</SetupCard>
+				<SetupCard>
 					<SetupRow label={plain(k.mark)} href="/flow/list" />
 					<SetupRow label={plain(k.spend)} href="/crew/spend" />
 				</SetupCard>

@@ -1,6 +1,7 @@
 import {
 	type ComponentProps,
 	type Dispatch,
+	Fragment,
 	type KeyboardEvent,
 	type ReactNode,
 	type SetStateAction,
@@ -29,7 +30,7 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FileRow, type FileState } from "@/ui/molecules/file-row";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { InlineBox, type LineBox, PendingCard } from "./inline-comment";
-import { DIFF_LOOK } from "./pull-cards";
+import { DIFF_LOOK, FocusThread } from "./pull-cards";
 import { ThreadCard } from "./pull-thread";
 import { treeRows } from "./tree";
 import { useRun } from "./use-run";
@@ -226,19 +227,37 @@ export function PullFiles({
 		shown.set(f.path, lines);
 		const under = new Map<number, ReactNode[]>();
 		const outside: ReactNode[] = [];
-		const put = (line: number, node: ReactNode) => {
+		const put = (line: number, key: string, content: ReactNode, bare = false) => {
+			// A card has a border; an open thread brings its own grey box.
+			const node = bare ? (
+				<Fragment key={key}>{content}</Fragment>
+			) : (
+				<div key={key} className="rounded-lg border bg-surface-1">
+					{content}
+				</div>
+			);
 			if (!lines.has(line)) return void outside.push(node);
 			under.set(line, [...(under.get(line) ?? []), node]);
 		};
 		for (const th of detail.threads)
 			if (th.path === f.path && th.line)
-				put(th.line, <ThreadCard key={th.id} reference={detail.reference} th={th} />);
+				put(
+					th.line,
+					th.id,
+					// An open thread has the form of the changes page; a resolved one keeps its Reopen.
+					th.resolved ? (
+						<ThreadCard reference={detail.reference} th={th} />
+					) : (
+						<FocusThread reference={detail.reference} th={th} className="my-2" />
+					),
+					!th.resolved,
+				);
 		for (const c of review.comments)
 			if (c.path === f.path)
 				put(
 					c.line,
+					c.id,
 					<PendingCard
-						key={c.id}
 						c={c}
 						outdated={c.headSha !== detail.headSha}
 						storageError={review.storageError}
@@ -253,8 +272,8 @@ export function PullFiles({
 			if (b.path === f.path)
 				put(
 					b.line,
+					`box:${b.line}`,
 					<InlineBox
-						key={`box:${b.line}`}
 						reference={detail.reference}
 						headSha={detail.headSha}
 						path={b.path}
@@ -274,7 +293,7 @@ export function PullFiles({
 		const notes = Object.fromEntries(
 			[...under].map(([line, nodes]) => [
 				line,
-				<div key={line} className="flex flex-col divide-y rounded-lg border bg-surface-1">
+				<div key={line} className="flex flex-col gap-2">
 					{nodes}
 				</div>,
 			]),
@@ -309,7 +328,7 @@ export function PullFiles({
 				<h3 tabIndex={-1} data-outside="" className="text-13 text-n-11">
 					{i.outside}
 				</h3>
-				<div className="flex flex-col divide-y rounded-lg border bg-surface-1">{outside}</div>
+				<div className="flex flex-col gap-2">{outside}</div>
 			</section>
 		) : null;
 	};

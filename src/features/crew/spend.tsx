@@ -158,9 +158,7 @@ function SpendMain() {
 						) : (
 							<>
 								<div className="flex flex-wrap items-baseline gap-3 pb-3.5">
-									<span className="text-44 leading-none font-semibold text-n-12">
-										{price(money(total))}
-									</span>
+									<span className="text-44 font-semibold text-n-12">{price(money(total))}</span>
 									<span className="text-n-11">
 										{format(rows.length === 1 ? s.onOne : s.on, { count: rows.length })}
 									</span>
