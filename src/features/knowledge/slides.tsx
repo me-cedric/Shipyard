@@ -1,12 +1,22 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { convertFileSrc, isTauri } from "@tauri-apps/api/core";
-import { type KeyboardEvent, lazy, Suspense, useEffect, useRef, useState } from "react";
+import {
+	type KeyboardEvent,
+	lazy,
+	type ReactNode,
+	Suspense,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { saveAs } from "@/lib/ipc/dialog";
 import { DOC_DIR, slug, useDeckList, useSlideTheme } from "@/lib/knowledge";
+import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
+import { requestEdit } from "@/lib/shell/selection";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -21,8 +31,17 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { ListTab } from "./list-tab";
-import { CardHeader } from "./pages";
-import { appendSlide, costingSlide, nextSlide, planningSlide } from "./work-slides";
+import { CardHeader, PageCard } from "./pages";
+import {
+	appendMarkdown,
+	appendSlide,
+	costingMarkdown,
+	costingSlide,
+	nextSlide,
+	planningMarkdown,
+	planningSlide,
+	splitNote,
+} from "./work-slides";
 
 // reveal.js loads on the first Markdown deck, not on the first screen.
 const SlideDeck = lazy(() =>
@@ -46,6 +65,43 @@ const useSlides = (text: string | undefined) =>
 		placeholderData: (prev) => prev,
 	}).data?.slides ?? [];
 
+type Words = ReturnType<typeof useI18n>["t"]["knowledge"]["slides"];
+
+/**
+ * Appends a planning or costing slide, built from the data, to a deck: an HTML section before the
+ * end of the stage, or a Markdown slide after a rule (`spec:library-functions#REQ-004`).
+ */
+async function addWorkSlide(
+	path: string,
+	kind: "planning" | "costing",
+	words: Words,
+	lang: string,
+	conflict: string,
+) {
+	const file = await unwrap(commands.docReadOne(path));
+	const md = path.endsWith(".md");
+	const n = md ? 0 : nextSlide(file.text);
+	const sheets = await unwrap(commands.estimateList());
+	const slide =
+		kind === "costing"
+			? md
+				? costingMarkdown(sheets, words, lang)
+				: costingSlide(sheets, words, lang, n)
+			: await Promise.all(
+					sheets
+						.filter((s) => s.state === "ready")
+						.map(async (s) => ({
+							name: s.name ?? s.slug,
+							plan: await unwrap(commands.planGet(s.slug)),
+						})),
+				).then((plans) =>
+					md ? planningMarkdown(plans, words, lang) : planningSlide(plans, words, lang, n),
+				);
+	const text = md ? appendMarkdown(file.text, slide) : appendSlide(file.text, slide);
+	const w = await unwrap(commands.docWriteOne(path, text, file.stamp, false));
+	if (w.conflict) throw new Error(conflict);
+}
+
 /** The row under the stage: the slide before, the place in the deck, the slide after. */
 function Pager({
 	place,
@@ -53,12 +109,15 @@ function Pager({
 	last,
 	onBefore,
 	onAfter,
+	end,
 }: {
 	place: string;
 	first?: boolean;
 	last?: boolean;
 	onBefore: () => void;
 	onAfter: () => void;
+	/** A control at the end of the row. */
+	end?: ReactNode;
 }) {
 	const k = useI18n().t.knowledge.slides;
 	return (
@@ -70,6 +129,7 @@ function Pager({
 			<IconButton variant="outline" label={k.after} disabled={last} onClick={onAfter}>
 				<ChevronRightIcon size={20} />
 			</IconButton>
+			{end ? <span className="ml-auto">{end}</span> : null}
 		</div>
 	);
 }
@@ -133,34 +193,11 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 			if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
 		};
 	}, [present]);
-	/** Appends a planning or costing slide, built from the data, before the end of the stage. */
 	const add = async (kind: "planning" | "costing") => {
 		try {
 			setFailure(null);
 			setNote(null);
-			const file = await unwrap(commands.docReadOne(path));
-			const n = nextSlide(file.text);
-			const sheets = await unwrap(commands.estimateList());
-			const slide =
-				kind === "costing"
-					? costingSlide(sheets, k.slides, lang, n)
-					: planningSlide(
-							await Promise.all(
-								sheets
-									.filter((s) => s.state === "ready")
-									.map(async (s) => ({
-										name: s.name ?? s.slug,
-										plan: await unwrap(commands.planGet(s.slug)),
-									})),
-							),
-							k.slides,
-							lang,
-							n,
-						);
-			const w = await unwrap(
-				commands.docWriteOne(path, appendSlide(file.text, slide), file.stamp, false),
-			);
-			if (w.conflict) throw new Error(t.knowledge.editor.conflict);
+			await addWorkSlide(path, kind, k.slides, lang, t.knowledge.editor.conflict);
 			await qc.invalidateQueries({ queryKey: ["knowledge", "thumb", path] });
 			setRev((r) => r + 1);
 		} catch (e) {
@@ -251,21 +288,82 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 }
 
 /**
- * An older Markdown deck: read only. The stage shows one slide in the deck theme, with the pager and
- * the strip of slides. Present covers the window, and the last action asks an agent for HTML.
+ * A Markdown deck. The stage shows one slide in the deck theme, with the pager and the strip of
+ * slides. Edit opens the text, Export PDF writes the slides, and Speaker notes shows the `Note:`
+ * block of the slide. Present covers the window, and the last action asks an agent for HTML.
  */
 function MarkdownDeck({ path, title }: { path: string; title: string }) {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const k = t.knowledge;
+	const f = t.library.fn.slides;
+	const qc = useQueryClient();
 	const { ask } = useShell();
 	const theme = useSlideTheme().data?.value;
 	const [present, setPresent] = useState(false);
-	const slides = useSlides(useDeckText(path));
+	const [editing, setEditing] = useState(false);
+	const [notes, setNotes] = useState(false);
+	const [note, setNote] = useState<string | null>(null);
+	const [failure, setFailure] = useState<unknown>(null);
+	const [exporting, setExporting] = useState(false);
+	const parts = useSlides(useDeckText(path)).map(splitNote);
+	const slides = parts.map((p) => p.body);
 	const [chosen, setChosen] = useState(1);
 	const at = Math.min(chosen, Math.max(slides.length, 1));
+	const exportPdf = async () => {
+		try {
+			setFailure(null);
+			setNote(null);
+			const dest = await saveAs(slug(title) || "deck", "pdf");
+			if (!dest) return;
+			setExporting(true);
+			await unwrap(commands.deckPdf(path, dest));
+			setNote(format(t.reports.exported, { path: dest }));
+		} catch (e) {
+			setFailure(e);
+		} finally {
+			setExporting(false);
+		}
+	};
+	const add = async (kind: "planning" | "costing") => {
+		try {
+			setFailure(null);
+			setNote(null);
+			await addWorkSlide(path, kind, k.slides, lang, k.editor.conflict);
+			await qc.invalidateQueries({ queryKey: ["knowledge"] });
+		} catch (e) {
+			setFailure(e);
+		}
+	};
+	// The text of the deck in the editor of a page: the request makes it open on the text.
+	if (editing) {
+		return (
+			<PageCard
+				path={path}
+				title={title}
+				footer={
+					<Button variant="primary" className="min-h-control" onClick={() => setEditing(false)}>
+						{f.done}
+					</Button>
+				}
+			/>
+		);
+	}
 	return (
 		<section aria-label={title} className="flex min-w-0 flex-col gap-4">
 			<CardHeader title={title}>
+				<RightButton
+					right="knowledge.edit"
+					className="min-h-control"
+					onClick={() => {
+						requestEdit(path);
+						setEditing(true);
+					}}
+				>
+					{f.edit}
+				</RightButton>
+				<Button className="min-h-control" busy={exporting} onClick={() => void exportPdf()}>
+					{k.slides.exportPdf}
+				</Button>
 				<Button
 					variant="primary"
 					className="min-h-control"
@@ -276,6 +374,12 @@ function MarkdownDeck({ path, title }: { path: string; title: string }) {
 					{k.slides.present}
 				</Button>
 			</CardHeader>
+			{note ? (
+				<p role="status" className="text-n-11">
+					{note}
+				</p>
+			) : null}
+			{failure ? <ErrorNotice error={failure} className="text-danger-text" /> : null}
 			{theme ? (
 				// The stage keeps its 16:9 box: a deck never shows an empty area of no height.
 				<section
@@ -294,8 +398,31 @@ function MarkdownDeck({ path, title }: { path: string; title: string }) {
 				last={at >= slides.length}
 				onBefore={() => setChosen(at - 1)}
 				onAfter={() => setChosen(at + 1)}
+				end={
+					<Button
+						className="min-h-control"
+						aria-pressed={notes}
+						onClick={() => setNotes((n) => !n)}
+					>
+						{f.notes}
+					</Button>
+				}
 			/>
+			{notes ? (
+				<section
+					aria-label={f.notes}
+					className="whitespace-pre-wrap rounded-md bg-n-3 px-4 py-3 text-n-12"
+				>
+					{parts[at - 1]?.note || <span className="text-n-11">{f.noNote}</span>}
+				</section>
+			) : null}
 			<div className="flex flex-wrap gap-2.5">
+				<Button className="min-h-control" onClick={() => void add("planning")}>
+					{k.slides.planning}
+				</Button>
+				<Button className="min-h-control" onClick={() => void add("costing")}>
+					{k.slides.costing}
+				</Button>
 				<Button
 					className="min-h-control"
 					onClick={() => ask(format(k.slides.askConvert, { from: path, to: htmlPath(path) }))}

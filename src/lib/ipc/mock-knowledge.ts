@@ -92,7 +92,7 @@ const file = (text: string): Files[string] => ({ text, stamp: "1" });
 
 // ---------------------------------------------------------------- seed
 
-const DECK = `# Kickoff\n\nShipyard, one place for the work\n\n---\n\n## Goals\n\n- One map of refs\n- One crew\n- One handbook\n\n---\n\n## Decisions\n\n- adr:0001 Use Tauri\n- adr:0004 Polling sync\n\n---\n\n## Plan\n\n1. Specs first\n2. Waves\n\n---\n\n## Questions\n\nAsk now.\n`;
+const DECK = `# Kickoff\n\nShipyard, one place for the work\n\n---\n\n## Goals\n\n- One map of refs\n- One crew\n- One handbook\n\n---\n\n## Decisions\n\n- adr:0001 Use Tauri\n- adr:0004 Polling sync\n\n---\n\n## Plan\n\n1. Specs first\n2. Waves\n\nNote: Name the three waves.\n\n---\n\n## Questions\n\nAsk now.\n`;
 
 const DASHBOARD: Dashboard_Serialize = {
 	version: VERSION,
@@ -248,7 +248,8 @@ export const deckList = (k: MockKnowledge): PageEntry[] =>
 
 /** `deck_pdf`: the mock keeps the path of the PDF. */
 export function deckPdf(k: MockKnowledge, path: string, dest: string): null {
-	if (!path.endsWith(".html") || !k.files[path]) throw `path not allowed: ${path}`;
+	if (!(path.endsWith(".html") || path.endsWith(".md")) || !k.files[path])
+		throw `path not allowed: ${path}`;
 	checkExport(dest, "pdf");
 	k.exported.push({ kind: "pdf", path: dest });
 	return null;

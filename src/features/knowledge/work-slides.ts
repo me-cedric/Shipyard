@@ -25,8 +25,8 @@ const table = (head: string[], rows: string[][]) =>
 const section = (n: number, title: string, body: string) =>
 	`  <section class="slide" aria-label="${n}">\n    <h2>${esc(title)}</h2>\n    ${body}\n  </section>\n\n`;
 
-/** A costing slide: the days and the price of each sheet that opens, and the total. A sheet with a role that has no rate is marked: its price is low. */
-export function costingSlide(sheets: SheetItem[], w: Words, lang: string, n: number): string {
+/** The head and the rows of the costing table: each sheet that opens, and the total. A sheet with a role that has no rate is marked: its price is low. */
+function costingTable(sheets: SheetItem[], w: Words, lang: string) {
 	const ready = sheets.flatMap((s) => (s.totals ? [{ name: s.name ?? s.slug, t: s.totals }] : []));
 	const sum = (k: "days" | "price") => ready.reduce((a, s) => a + (s.t[k] ?? 0), 0);
 	const mark = (name: string, partial: boolean) => (partial ? `${name} (${w.unrated})` : name);
@@ -43,16 +43,17 @@ export function costingSlide(sheets: SheetItem[], w: Words, lang: string, n: num
 		num(sum("days"), lang),
 		num(sum("price"), lang),
 	]);
-	return section(n, w.costingTitle, table([w.sheet, w.days, w.price], rows));
+	return { head: [w.sheet, w.days, w.price], rows };
 }
 
-/** A planning slide: the first start, the last end and the days of each planned sheet. */
-export function planningSlide(
-	plans: { name: string; plan: PlanView }[],
-	w: Words,
-	lang: string,
-	n: number,
-): string {
+/** A costing slide: the days and the price of each sheet that opens, and the total. */
+export function costingSlide(sheets: SheetItem[], w: Words, lang: string, n: number): string {
+	const { head, rows } = costingTable(sheets, w, lang);
+	return section(n, w.costingTitle, table(head, rows));
+}
+
+/** The head and the rows of the planning table: the first start, the last end and the days of each planned sheet. */
+function planningTable(plans: { name: string; plan: PlanView }[], w: Words, lang: string) {
 	const rows = plans.flatMap(({ name, plan }) => {
 		const bars = plan.gantt.bars;
 		if (!bars.length) return [];
@@ -65,7 +66,66 @@ export function planningSlide(
 		const days = bars.reduce((a, b) => a + (b.days ?? 0), 0);
 		return [[name, start, end, num(days, lang)]];
 	});
-	return section(n, w.planningTitle, table([w.sheet, w.start, w.end, w.days], rows));
+	return { head: [w.sheet, w.start, w.end, w.days], rows };
+}
+
+/** A planning slide of an HTML deck. */
+export function planningSlide(
+	plans: { name: string; plan: PlanView }[],
+	w: Words,
+	lang: string,
+	n: number,
+): string {
+	const { head, rows } = planningTable(plans, w, lang);
+	return section(n, w.planningTitle, table(head, rows));
+}
+
+const cell = (s: string) => s.replace(/\|/g, "\\|");
+const mdTable = (title: string, head: string[], rows: string[][]) =>
+	[
+		`## ${title}`,
+		"",
+		`| ${head.map(cell).join(" | ")} |`,
+		`| ${head.map(() => "---").join(" | ")} |`,
+		...rows.map((r) => `| ${r.map(cell).join(" | ")} |`),
+	].join("\n");
+
+/** A costing slide of a Markdown deck: a heading and a table. */
+export function costingMarkdown(sheets: SheetItem[], w: Words, lang: string): string {
+	const { head, rows } = costingTable(sheets, w, lang);
+	return mdTable(w.costingTitle, head, rows);
+}
+
+/** A planning slide of a Markdown deck: a heading and a table. */
+export function planningMarkdown(
+	plans: { name: string; plan: PlanView }[],
+	w: Words,
+	lang: string,
+): string {
+	const { head, rows } = planningTable(plans, w, lang);
+	return mdTable(w.planningTitle, head, rows);
+}
+
+/** The Markdown deck with a slide after its last slide: a rule, then the slide. */
+export const appendMarkdown = (deck: string, slide: string) =>
+	`${deck.trimEnd()}\n\n---\n\n${slide.trimEnd()}\n`;
+
+/**
+ * A slide of a Markdown deck split at its speaker note: the `Note:` line and the lines after it
+ * are the note (the Markdown format of reveal.js). A `Note:` line in a code fence is code.
+ */
+export function splitNote(slide: string): { body: string; note: string } {
+	const lines = slide.split("\n");
+	let fenced = false;
+	const at = lines.findIndex((l) => {
+		if (l.trimStart().startsWith("```")) fenced = !fenced;
+		return !fenced && /^Note:/.test(l);
+	});
+	if (at < 0) return { body: slide, note: "" };
+	return {
+		body: lines.slice(0, at).join("\n").trimEnd(),
+		note: [lines[at]?.replace(/^Note:\s*/, "") ?? "", ...lines.slice(at + 1)].join("\n").trim(),
+	};
 }
 
 /** The deck with the slide after its last slide. It throws when the deck has no slide. */
