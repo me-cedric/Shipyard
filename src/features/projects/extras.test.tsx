@@ -22,7 +22,7 @@ describe("Settings / Project and Health: name, logo, git tools, linked inspect, 
 			expect((await unwrap(commands.projectSettings()))?.file?.name).toBe("Alpha web"),
 		);
 		mockState().nextFile = "/Users/ada/logo.png";
-		const fresh = await screen.findByRole("region", { name: "Project" });
+		const fresh = await screen.findByRole("region", { name: "More" });
 		await user.click(within(fresh).getByRole("button", { name: "Choose a picture" }));
 		await waitFor(() => expect(mockState().extras.pictures.logo).toBeDefined());
 		// The picture is a part of the project switch: the name of the switch says the project.

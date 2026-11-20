@@ -193,6 +193,13 @@ describe("Code / the files to commit", () => {
 		expect(box().getByRole("switch", { name: /Auto-review|Agent review/ })).toBeInTheDocument();
 	});
 
+	it("keeps the two switches on one row and shows no line about the default branch before a commit", async () => {
+		await changes();
+		const row = box().getByRole("switch", { name: "Auto-commit" }).closest("div");
+		expect(row).toContainElement(box().getByRole("switch", { name: "Auto-review" }));
+		expect(screen.queryByText(/is the default branch of/)).toBeNull();
+	});
+
 	it("resolves each conflict block with a choice and leaves no conflict", async () => {
 		const user = userEvent.setup();
 		await open();

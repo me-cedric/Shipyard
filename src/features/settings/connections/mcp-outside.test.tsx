@@ -53,7 +53,7 @@ describe("Settings / Connections / Outside agents", () => {
 		);
 		expect(box.getByRole("checkbox", { name: "project_write_file" })).not.toBeChecked();
 		expect(box.getByRole("checkbox", { name: "git_log" })).toBeChecked();
-		await user.click(box.getByRole("button", { name: "Import git" }));
+		await user.click(box.getByRole("button", { name: "Import Claude Code" }));
 		await waitFor(() => expect(mockState().doctor.imported).toEqual(["git"]));
 	});
 

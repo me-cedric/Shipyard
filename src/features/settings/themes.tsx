@@ -118,26 +118,18 @@ export function useThemeFiles() {
 	return { library, importTheme, exportTheme, remove, dialog };
 }
 
-type Scheme = "light" | "dark" | "oled";
-type Band = [Scheme, string];
-const strip = (s: Scheme): Band[] => [
-	[s, "bg-surface-0"],
-	[s, "bg-surface-1"],
-	[s, "bg-accent"],
-];
-/** The bands of the sample of each built-in theme: each band takes the tokens of its own scheme. */
+/** The bands of the sample of each theme: the colors of the design, so that a scheme shows the same in every theme. */
+type Band = string;
+const LIGHT = ["#F3F4F7", "#FFFFFF", "#2450D8"];
+const DARK = ["#0F1115", "#1A1D24", "#7E9BFF"];
+const strip = (base: "light" | "dark" | "oled"): Band[] =>
+	base === "light" ? LIGHT : base === "dark" ? DARK : ["#000000", "#111111", "#7E9BFF"];
 const STRIP: Record<Theme, Band[]> = {
 	light: strip("light"),
 	dark: strip("dark"),
 	oled: strip("oled"),
-	system: [
-		["light", "bg-surface-0"],
-		["dark", "bg-surface-0"],
-	],
-	"system-oled": [
-		["light", "bg-surface-0"],
-		["oled", "bg-surface-0"],
-	],
+	system: ["#F3F4F7", "#0F1115"],
+	"system-oled": ["#F3F4F7", "#000000"],
 };
 
 function ThemeTile({
@@ -162,13 +154,8 @@ function ThemeTile({
 			)}
 		>
 			<span aria-hidden="true" className="flex h-14 overflow-hidden rounded-md border border-n-6">
-				{bands.map(([scheme, tone]) => (
-					<span
-						key={`${scheme}${tone}`}
-						data-scheme={scheme}
-						style={{ colorScheme: scheme === "light" ? "light" : "dark" }}
-						className={cn("flex-1", tone)}
-					/>
+				{bands.map((color) => (
+					<span key={color} style={{ background: color }} className="flex-1" />
 				))}
 			</span>
 			{label}

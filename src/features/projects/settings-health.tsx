@@ -130,7 +130,7 @@ function GroupCard({ group, rows }: { group: Group; rows: Finding_Serialize[] })
 						finding={f}
 						showSource={all}
 						extra={
-							i === 0 && rows.length > SHOWN ? (
+							i === 0 ? (
 								<Button variant="secondary" aria-pressed={all} onClick={() => setAll(!all)}>
 									{all ? h.showFewer : h.showAll}
 								</Button>

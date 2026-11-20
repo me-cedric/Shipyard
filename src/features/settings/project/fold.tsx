@@ -52,9 +52,11 @@ export function Fold({
 			className="border-n-6 border-b last:border-b-0 [[role=group]+&]:border-t [a+&]:border-t"
 		>
 			<summary className="flex min-h-15 cursor-pointer list-none flex-wrap items-center gap-3 px-6 py-2 text-n-12 [&::-webkit-details-marker]:hidden">
-				<span className="min-w-0 flex-[1_1_10rem] font-medium">{label}</span>
+				<span className="min-w-0 flex-[1_1_10rem] font-semibold">{label}</span>
 				{hint ? (
-					<span className="ml-auto min-w-0 truncate font-mono text-ui text-n-11">{hint}</span>
+					<span className="min-w-0 flex-[1_1_0%] truncate text-right font-mono text-ui text-n-11">
+						{hint}
+					</span>
 				) : null}
 				<span className={cn(plain ? "" : valueClass({ mono }), !hint && "ml-auto", "truncate")}>
 					{value}

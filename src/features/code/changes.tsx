@@ -429,9 +429,9 @@ export function CommitBox({ changes, compact }: { changes: ChangesData; compact?
 						{write}
 						{submit}
 					</div>
-					<div className="flex flex-col border-t border-n-6 pt-2">
-						<AutoCommit />
-						<AutoReview />
+					<div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-n-6 pt-2">
+						<AutoCommit inline />
+						<AutoReview inline />
 					</div>
 					<LinkButton aria-expanded={more} onClick={() => setMore(!more)}>
 						{t.ui.more}
@@ -533,7 +533,7 @@ export function WorkingCopy({ changes }: { changes: ChangesData }) {
 										<Checkbox
 											label={format(t.code.select, { name: r.path })}
 											hideLabel
-											className="transition-none aria-checked:border-transparent aria-checked:bg-accent aria-checked:text-accent-fg"
+											className="transition-none data-[indeterminate]:border-transparent data-[indeterminate]:bg-accent data-[indeterminate]:text-accent-fg"
 											checked={r.staged && !r.unstaged}
 											indeterminate={r.staged && r.unstaged}
 											disabled={r.conflict || write.disabled}

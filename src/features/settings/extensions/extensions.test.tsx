@@ -169,7 +169,8 @@ describe("Settings / Extensions", () => {
 	it("sends the parent items to the chosen child projects on a branch after a click", async () => {
 		const user = userEvent.setup();
 		await mountTab("plugins");
-		await user.click(await screen.findByRole("checkbox", { name: "Select API gateway" }));
+		// Every cloned child project is picked until a person picks otherwise.
+		expect(await screen.findByRole("checkbox", { name: "Select API gateway" })).toBeChecked();
 		await user.click(screen.getByRole("button", { name: "Deploy to 1" }));
 		expect(await screen.findByText(/shipyard\/extensions-1/)).toBeInTheDocument();
 		expect(mockState().extensions.children[0]?.has).toContain("pattern:small-steps");

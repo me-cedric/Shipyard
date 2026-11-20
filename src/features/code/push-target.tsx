@@ -11,25 +11,20 @@ import { DocsUpdate } from "./docs-update";
  * is the branch the default one) and the docs chain (a spec changed and its test plan did not).
  * It warns and never blocks.
  */
-export function GateNotice({
-	push,
-	part,
-}: {
-	push: boolean;
-	/** "default" shows the line about the default branch only; "rest" shows the other lines. */
-	part?: "default" | "rest";
-}) {
+export function GateNotice({ push }: { push: boolean }) {
 	const { t } = useI18n();
 	const w = t.workspace.gate;
 	// Keys start with `code`, so every git action reads them again.
 	const c18 = t.review.chain;
 	const [asking, setAsking] = useState<{ from: string; to: string; name: string } | null>(null);
-	const target = useQuery({
+	// A commit shows no line about the target: the cached answer of a push must not leak into it.
+	const pushTarget = useQuery({
 		queryKey: ["code", "push-target"],
 		queryFn: () => unwrap(commands.codePushTarget()),
 		enabled: push,
 		retry: false,
 	}).data;
+	const target = push ? pushTarget : undefined;
 	const chain =
 		useQuery({
 			queryKey: ["code", "chain-gate", push],
@@ -37,14 +32,12 @@ export function GateNotice({
 			retry: false,
 		}).data ?? [];
 	const lines = [
-		...(target?.canPush === false && part !== "default"
-			? [format(w.cannotPush, { remote: target.remote })]
-			: []),
-		...(target?.onDefault && part !== "rest"
+		...(target?.canPush === false ? [format(w.cannotPush, { remote: target.remote })] : []),
+		...(target?.onDefault
 			? [format(w.onDefault, { branch: target.branch ?? "", remote: target.remote })]
 			: []),
 	];
-	const warnings = part === "default" ? [] : chain;
+	const warnings = chain;
 	if (lines.length === 0 && warnings.length === 0) return null;
 	return (
 		<div role="status" className="flex flex-col gap-1 px-3 py-1 text-ui text-warning-text">

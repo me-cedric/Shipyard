@@ -9,7 +9,7 @@ describe("Settings / Project: agent review of each pull request", () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/code/changes");
-		const on = await screen.findByRole("switch", { name: "Agent review of each pull request" });
+		const on = await screen.findByRole("switch", { name: "Auto-review" });
 		expect(on).not.toBeChecked();
 		expect(screen.queryByRole("group", { name: "Review mode" })).toBeNull();
 		await user.click(on);
@@ -17,7 +17,7 @@ describe("Settings / Project: agent review of each pull request", () => {
 		const mode = await screen.findByRole("group", { name: "Review mode" });
 		await user.click(within(mode).getByRole("button", { name: "Post" }));
 		await waitFor(() => expect(mockState().sync.automation.auto_review).toBe("post"));
-		await user.click(screen.getByRole("switch", { name: "Agent review of each pull request" }));
+		await user.click(screen.getByRole("switch", { name: "Auto-review" }));
 		await waitFor(() => expect(mockState().sync.automation.auto_review).toBe("off"));
 	});
 });

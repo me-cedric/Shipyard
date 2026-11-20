@@ -135,8 +135,9 @@ export function McpOutsideGroup() {
 			return null;
 		});
 	const others = elsewhere.data ?? [];
-	const keyOf = (e: (typeof others)[number]) => `${e.source}/${e.name}`;
-	const chosen = others.find((e) => keyOf(e) === pick) ?? others[0];
+	const sources = [...new Set(others.map((e) => e.source))];
+	const source = sources.find((x) => x === pick) ?? sources[0];
+	const fromSource = others.filter((e) => e.source === source);
 	const dirty = draft !== null || port !== null;
 	const apply = dirty ? (
 		<Button variant="secondary" onClick={() => void save()}>
@@ -181,31 +182,26 @@ export function McpOutsideGroup() {
 					<SetupCard title={p.address}>
 						<Address url={s.url || `http://127.0.0.1:${s.gates.port}/mcp`} />
 					</SetupCard>
-					{chosen ? (
+					{source ? (
 						<SetupCard>
 							<h2 className="px-6 pt-3.5 text-20 font-semibold text-n-12">{p.bring}</h2>
 							<div className="flex flex-wrap items-center gap-2.5 px-6 pt-3 pb-4">
 								<ValueSelect
 									label={p.bringFrom}
-									value={keyOf(chosen)}
+									value={source}
 									onValueChange={setPick}
-									items={others.map((e) => ({
-										value: keyOf(e),
-										label: others.length < 2 ? e.name : `${e.name} (${e.source})`,
-									}))}
+									items={sources.map((x) => ({ value: x, label: x }))}
 								/>
-								<code className="min-w-0 font-mono text-13 break-all text-n-11">
-									{[chosen.command, ...chosen.args].join(" ")}
-								</code>
 								<Button
 									variant="primary"
-									aria-label={format(o.import, { name: chosen.name })}
-									title={[chosen.command, ...chosen.args].join(" ")}
+									aria-label={format(o.import, { name: source })}
+									title={fromSource.map((e) => [e.name, e.command, ...e.args].join(" ")).join("\n")}
 									onClick={() =>
 										void attempt(async () => {
-											await unwrap(commands.mcpElsewhereImport(chosen.source, chosen.name));
+											for (const e of fromSource)
+												await unwrap(commands.mcpElsewhereImport(e.source, e.name));
 											await qc.invalidateQueries({ queryKey: ["mcp"] });
-											return format(o.imported, { name: chosen.name });
+											return format(o.imported, { name: fromSource.map((e) => e.name).join(", ") });
 										})
 									}
 								>

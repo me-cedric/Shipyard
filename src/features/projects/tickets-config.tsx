@@ -129,7 +129,7 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 								{k.modes.none}
 							</ValueButton>
 						) : (
-							<span className="w-56 max-w-full">
+							<span className="max-w-full">
 								<Segmented
 									label={d.unit}
 									value={c.estimateMode}

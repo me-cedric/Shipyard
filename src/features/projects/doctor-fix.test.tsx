@@ -68,7 +68,9 @@ async function budget() {
 	await unwrap(
 		commands.workflowWrite(
 			"feature",
-			recipe.text.replace("limits:\n", "limits:\n  budget_usd: 3\n"),
+			recipe.text.includes("budget_usd")
+				? recipe.text
+				: recipe.text.replace("limits:\n", "limits:\n  budget_usd: 3\n"),
 		),
 	);
 }
@@ -212,6 +214,10 @@ describe("Health of the project / Fix all with an agent (spec:app-redesign#REQ-0
 
 	it("refuses the start, with the reason, when the recipe of the run has no budget (REQ-033)", async () => {
 		await withTracker();
+		const recipe = await unwrap(commands.workflowGet("feature"));
+		await unwrap(
+			commands.workflowWrite("feature", recipe.text.replace(/^ {2}budget_usd: .*\n/m, "")),
+		);
 		const start = vi.spyOn(commands, "runStart");
 		mount(THREE);
 		const fix = await screen.findByRole("button", { name: "Fix all with an agent" });

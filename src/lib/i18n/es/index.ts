@@ -52,10 +52,10 @@ export const es: Messages = {
 		contrast: "Alto contraste",
 		role: "Rol",
 		releaseUrl: "Dirección de versiones",
-		autoUpdate: "Buscar actualizaciones automáticamente",
-		promptLang: "Idioma de los prompts del asistente",
+		autoUpdate: "Actualización automática",
+		promptLang: "Idioma de los prompts",
 		promptFollow: "Igual que la interfaz",
-		diagramFormat: "Formato de los tableros nuevos",
+		diagramFormat: "Formato de diagramas",
 		compact: "Compacta",
 		languageFiles: "Archivos de idioma",
 		importLanguage: "Importar idioma",
@@ -464,7 +464,7 @@ export const es: Messages = {
 			"team-no-admin":
 				"Ningún admin en el archivo del equipo: cada persona tiene todos los derechos",
 		},
-		fix: { write: "Escribir", open: "Abrir", apply: "Aplicar", recheck: "Volver a comprobar" },
+		fix: { write: "Corregir", open: "Corregir", apply: "Corregir", recheck: "Volver a comprobar" },
 		confirm: "Confirmar",
 	},
 	connections: {

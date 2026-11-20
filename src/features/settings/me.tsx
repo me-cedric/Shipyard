@@ -98,7 +98,8 @@ function Notifications({ notify: { off, set } }: { notify: Notify }) {
 	const s = t.personal.setup;
 	return (
 		<SetupCard id="section-notifications" title={t.notifications.title}>
-			{GROUPS.map((g) => (
+			{/* The design shows the two groups that need a person; the other sources have a switch under More. */}
+			{GROUPS.slice(0, 2).map((g) => (
 				<SetupRow key={g.id} label={s.notify[g.id]}>
 					<Toggle
 						label={s.notify[g.id]}
@@ -226,17 +227,19 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 						<SetupRow label={s.density}>
 							{marked(
 								"density",
-								<Segmented
-									label={s.density}
-									value={density === "compact" ? "compact" : "default"}
-									onValueChange={(v) =>
-										setPrefs({ density: v === "compact" ? "compact" : "default" })
-									}
-									items={[
-										{ value: "default", label: s.comfortable },
-										{ value: "compact", label: t.prefs.compact },
-									]}
-								/>,
+								<span className="-my-1 flex">
+									<Segmented
+										label={s.density}
+										value={density === "compact" ? "compact" : "default"}
+										onValueChange={(v) =>
+											setPrefs({ density: v === "compact" ? "compact" : "default" })
+										}
+										items={[
+											{ value: "default", label: s.comfortable },
+											{ value: "compact", label: t.prefs.compact },
+										]}
+									/>
+								</span>,
 							)}
 						</SetupRow>
 						<SetupRow label={t.prefs.contrast}>
@@ -260,7 +263,7 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 							/>
 						</SetupRow>
 						<SetupRow id="avatar" label={s.picture}>
-							<PictureField which="avatar" label={t.extras.picture.avatar} />
+							<PictureField which="avatar" label={t.extras.picture.avatar} person={name} />
 						</SetupRow>
 					</SetupCard>
 				</Column>
@@ -287,13 +290,13 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 						<SetupRow label={t.reports.terminal.app}>
 							<TerminalAppSelect />
 						</SetupRow>
+						<SetupRow label={t.settings.pages.look} href="/setup/me?page=look" />
+						<ActionRow label={s.shortcuts} onClick={() => setShortcutsOpen(true)} />
 						<Fold label={t.ui.more}>
 							<SetupRow label={t.personal.prefs.defaultModel}>
 								<DefaultModelSelect />
 							</SetupRow>
 						</Fold>
-						<SetupRow label={t.settings.pages.look} href="/setup/me?page=look" />
-						<ActionRow label={s.shortcuts} onClick={() => setShortcutsOpen(true)} />
 					</SetupCard>
 					{permissions ? <PermissionsCard /> : null}
 				</Column>

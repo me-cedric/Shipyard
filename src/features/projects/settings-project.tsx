@@ -349,9 +349,6 @@ function Form({
 									onChange={(e) => setDraft({ ...draft, workflow: e.target.value })}
 								/>
 							</Fold>
-							<ProjectDetails>
-								<HolidayCountry row />
-							</ProjectDetails>
 						</SetupCard>
 					) : null}
 					{file ? (
@@ -368,15 +365,6 @@ function Form({
 					<SetupCard title={t.ui.more}>
 						{file ? (
 							<>
-								{connectionPick("tracker")}
-								{connectionPick("forge")}
-								<Fold id="tracker-scope" label={t.projects.trackerScope} value={draft.scope || "-"}>
-									<ScopePicker
-										tracker={draft.connections.tracker}
-										value={draft.scope}
-										onChange={(scope) => setDraft({ ...draft, scope })}
-									/>
-								</Fold>
 								<Fold id="more-personas" label={p.personas} value={p.edit}>
 									<PersonasEditor />
 								</Fold>
@@ -392,9 +380,23 @@ function Form({
 							<ProjectImport />
 						</Fold>
 						{file ? (
-							<Fold id="more-repo" label={t.extras.git.title} value={p.edit}>
-								<RepoTools />
-							</Fold>
+							<>
+								{connectionPick("tracker")}
+								{connectionPick("forge")}
+								<Fold id="tracker-scope" label={t.projects.trackerScope} value={draft.scope || "-"}>
+									<ScopePicker
+										tracker={draft.connections.tracker}
+										value={draft.scope}
+										onChange={(scope) => setDraft({ ...draft, scope })}
+									/>
+								</Fold>
+								<Fold id="more-repo" label={t.extras.git.title} value={p.edit}>
+									<RepoTools />
+								</Fold>
+								<ProjectDetails>
+									<HolidayCountry row />
+								</ProjectDetails>
+							</>
 						) : (
 							<Fold id="more-holidays" label={t.costing.plan.country} value={p.edit}>
 								<HolidayCountry row />

@@ -37,6 +37,7 @@ export const extrasDe: typeof extrasEn = {
 		avatar: "Ihr Bild",
 		logo: "Logo",
 		choose: "Bild wählen",
+		change: "Ändern",
 		remove: "Bild entfernen",
 	},
 	project: { name: "Name" },

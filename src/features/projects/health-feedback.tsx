@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Fold } from "@/features/settings/connections/fold";
 import { SetupCard } from "@/features/settings/parts";
 import { useI18n } from "@/lib/i18n";
 import { commands, type FeedbackKind, unwrap } from "@/lib/ipc";
@@ -55,12 +56,6 @@ export function HealthFeedback() {
 				/>
 				<div className="flex flex-wrap gap-2.5">
 					<Button
-						disabled={!title.trim()}
-						onClick={() => void send(() => unwrap(commands.feedbackMail(title, details, true)))}
-					>
-						{t.extras.feedbackMail}
-					</Button>
-					<Button
 						variant="primary"
 						className="ml-auto"
 						disabled={!title.trim()}
@@ -73,6 +68,16 @@ export function HealthFeedback() {
 				</div>
 				{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 			</div>
+			<Fold label={t.ui.more}>
+				<div className="flex px-6 pb-2">
+					<Button
+						disabled={!title.trim()}
+						onClick={() => void send(() => unwrap(commands.feedbackMail(title, details, true)))}
+					>
+						{t.extras.feedbackMail}
+					</Button>
+				</div>
+			</Fold>
 		</SetupCard>
 	);
 }

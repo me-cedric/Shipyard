@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Segmented } from "@/ui/atoms/segmented";
 import { SPRING, useReducedMotionPref } from "@/ui/motion";
+import { Fold } from "./connections/fold";
 import { TextPref } from "./me/personal";
 import { ValueSelect } from "./me/value-select";
 import { Column, Columns, SetupCard, SetupRow, Stepper, Toggle } from "./parts";
@@ -49,8 +50,8 @@ export function LookPreview({ width }: { width: number }) {
 
 const BASE_SIZE = 16;
 
-/** The five accents and the colour of the theme, as round swatches. */
-const ACCENTS: Accent[] = ["blue", "violet", "green", "orange", "rose"];
+/** The four accents of the design and the colour of the theme, as round swatches. The fifth accent is under More. */
+const ACCENTS: Accent[] = ["blue", "green", "violet", "orange"];
 
 function Colour() {
 	const { t } = useI18n();
@@ -69,14 +70,9 @@ function Colour() {
 				data-accent-swatch={accent ?? undefined}
 				className={cn(
 					"size-11 cursor-pointer rounded-full border border-n-7 outline-offset-3",
-					accent && "bg-accent",
+					accent ? "bg-accent" : "bg-n-12",
 					on && "outline-3 outline-n-12",
 				)}
-				style={
-					accent
-						? undefined
-						: { background: "linear-gradient(135deg, var(--n-3) 50%, var(--n-12) 50%)" }
-				}
 			/>
 		);
 	};
@@ -84,9 +80,12 @@ function Colour() {
 		<SetupCard id="accent" title={t.personal.setup.colour}>
 			{/* biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box */}
 			<div role="group" aria-label={l.accent} className="flex flex-wrap gap-4 px-6 pt-2 pb-5">
-				{swatch("theme", l.accentTheme, null)}
 				{ACCENTS.map((a) => swatch(a, l.accents[a], a))}
+				{swatch("theme", l.accentTheme, null)}
 			</div>
+			<Fold label={t.ui.more}>
+				<div className="flex gap-4 px-6 pt-2 pb-3">{swatch("rose", l.accents.rose, "rose")}</div>
+			</Fold>
 		</SetupCard>
 	);
 }
@@ -105,15 +104,18 @@ function Side({
 	const { t } = useI18n();
 	return (
 		<SetupRow id={id} label={label}>
-			<Segmented
-				label={label}
-				value={value}
-				onValueChange={onChange}
-				items={[
-					{ value: "left", label: t.extras.look.left },
-					{ value: "right", label: t.extras.look.right },
-				]}
-			/>
+			{/* The thumb track is 52 px: the negative margin keeps the row at 60 px. */}
+			<span className="-my-1 flex">
+				<Segmented
+					label={label}
+					value={value}
+					onValueChange={onChange}
+					items={[
+						{ value: "left", label: t.extras.look.left },
+						{ value: "right", label: t.extras.look.right },
+					]}
+				/>
+			</span>
 		</SetupRow>
 	);
 }
@@ -275,13 +277,6 @@ function Computer() {
 					{folder.portable ? <Badge variant="info">{l.portable}</Badge> : null}
 				</SetupRow>
 			) : null}
-			<SetupRow id="all-pages" label={l.showAllPages}>
-				<Toggle
-					label={l.showAllPages}
-					checked={p.showAllPages}
-					onCheckedChange={(c) => p.setPrefs({ showAllPages: c })}
-				/>
-			</SetupRow>
 			<SetupRow id="close-push" label={t.personal.setup.closePush}>
 				<Toggle
 					label={l.closePush}
@@ -289,6 +284,15 @@ function Computer() {
 					onCheckedChange={(c) => p.setPrefs({ closePush: c })}
 				/>
 			</SetupRow>
+			<Fold label={t.ui.more}>
+				<SetupRow id="all-pages" label={l.showAllPages}>
+					<Toggle
+						label={l.showAllPages}
+						checked={p.showAllPages}
+						onCheckedChange={(c) => p.setPrefs({ showAllPages: c })}
+					/>
+				</SetupRow>
+			</Fold>
 		</SetupCard>
 	);
 }

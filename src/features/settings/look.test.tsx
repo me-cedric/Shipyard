@@ -98,7 +98,7 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 		const user = userEvent.setup();
 		const router = mountApp("/setup/me");
 		mockState().nextFile = "/Users/ada/me.png";
-		await user.click(await screen.findByRole("button", { name: "Choose a picture" }));
+		await user.click(await screen.findByRole("button", { name: "Change" }));
 		expect(await screen.findAllByRole("img", { name: "Your picture" })).not.toHaveLength(0);
 		expect(mockState().extras.pictures.avatar?.mime).toBe("image/png");
 		await user.click(screen.getByRole("button", { name: "Remove the picture" }));

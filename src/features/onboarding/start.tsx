@@ -44,33 +44,55 @@ function Scope({
 	);
 }
 
-/** The products that a step of the issue tracker or the code host offers, as large choices. */
+/** The choices of a step as large tiles. One is pressed; the actions of the step come after them. */
+function Tiles({
+	label,
+	items,
+	value,
+	onPick,
+}: {
+	label: string;
+	items: { id: string; label: string }[];
+	value: string;
+	onPick: (id: string) => void;
+}) {
+	return (
+		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
+		<div
+			role="group"
+			aria-label={label}
+			className="grid grid-cols-[repeat(auto-fill,minmax(min(180px,100%),1fr))] gap-3"
+		>
+			{items.map((k) => (
+				<button
+					key={k.id}
+					type="button"
+					aria-pressed={value === k.id}
+					onClick={() => onPick(k.id)}
+					className={cn(
+						"flex min-h-22 cursor-pointer items-center justify-center rounded-lg border border-n-7 bg-surface-1 px-3 text-17 font-semibold text-n-12",
+						value === k.id && "bg-accent-tint outline-2 outline-accent",
+					)}
+				>
+					{k.label}
+				</button>
+			))}
+		</div>
+	);
+}
+
+/** The products that a step of the issue tracker or the code host offers. */
 function Kinds({ group }: { group: ConnectionGroup }) {
 	const { t } = useI18n();
 	const [kind, setKind] = useState<string>(KINDS[group][0] ?? "");
 	const names = t.connections.kind[group] as Record<string, string>;
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
-		<div
-			role="group"
-			aria-label={t.connections.field.kind}
-			className="grid grid-cols-[repeat(auto-fill,minmax(min(180px,100%),1fr))] gap-3"
-		>
-			{KINDS[group].map((k) => (
-				<button
-					key={k}
-					type="button"
-					aria-pressed={kind === k}
-					onClick={() => setKind(k)}
-					className={cn(
-						"flex min-h-22 cursor-pointer items-center justify-center rounded-lg border border-n-7 bg-surface-1 px-3 text-17 font-semibold text-n-12",
-						kind === k && "bg-accent-tint outline-2 outline-accent",
-					)}
-				>
-					{names[k] ?? k}
-				</button>
-			))}
-		</div>
+		<Tiles
+			label={t.connections.field.kind}
+			items={KINDS[group].map((k) => ({ id: k, label: names[k] ?? k }))}
+			value={kind}
+			onPick={setKind}
+		/>
 	);
 }
 
@@ -83,7 +105,7 @@ export function SetupStart() {
 	const { t, lang } = useI18n();
 	const s = t.onboarding.setup;
 	const state = useChecklist();
-	const { role } = usePrefs();
+	const { role, defaultAgent, setPrefs } = usePrefs();
 	const { level } = useRights();
 	const avatar = usePicture("avatar").data;
 	const handle = useRightsView().data?.person.member;
@@ -149,6 +171,14 @@ export function SetupStart() {
 						{s.question[open]}
 					</h2>
 					{open === "tracker" || open === "forge" ? <Kinds group={open} /> : null}
+					{open === "ai" && runners?.length ? (
+						<Tiles
+							label={t.personal.prefs.defaultAgent}
+							items={runners.map((r) => ({ id: r.id, label: r.label }))}
+							value={defaultAgent}
+							onPick={(id) => setPrefs({ defaultAgent: id, defaultModel: "" })}
+						/>
+					) : null}
 					<div className="flex flex-wrap items-center justify-end gap-2.5">
 						{next ? (
 							<Button className="min-h-control" onClick={() => setChosen(next)}>

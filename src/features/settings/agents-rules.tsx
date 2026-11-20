@@ -86,11 +86,10 @@ function TierRow({
 		return (
 			<>
 				{listed ? (
-					<span className="flex flex-col gap-1">
+					<span className="flex flex-col items-end gap-1">
 						{part === "effort" ? null : (
 							<ValueSelect
 								label={name}
-								className="w-full"
 								value={draft[tier] || AUTO}
 								onValueChange={(v) => pick(tier, v === AUTO ? "" : v)}
 								items={[

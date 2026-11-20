@@ -578,14 +578,15 @@ describe("Settings / Health", () => {
 		expect(screen.queryByRole("region", { name: "Files that tools generate" })).toBeNull();
 		expect(screen.getAllByText("1 to fix")).toHaveLength(2);
 		expect(screen.getByText("Broken ref adr:0009")).toBeInTheDocument();
-		expect(screen.getAllByRole("button", { name: /^(Write|Open|Recheck)$/ })).toHaveLength(2);
+		expect(screen.getAllByRole("button", { name: /^(Fix|Recheck)$/ })).toHaveLength(2);
 	});
 
 	it("shows the new file first and writes it only after the confirm click", async () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/setup/project?page=health");
-		await user.click(await screen.findByRole("button", { name: "Write" }));
+		const card = await screen.findByRole("region", { name: "Rules and skills of the agents" });
+		await user.click(within(card).getByRole("button", { name: "Fix" }));
 		expect(await screen.findByLabelText(".gitignore")).toHaveTextContent(".DS_Store");
 		expect(mockState().fixed).toEqual([]);
 		await user.click(screen.getByRole("button", { name: "Confirm" }));
@@ -604,7 +605,7 @@ describe("Settings / Health", () => {
 		// No fix button of a finding: the skills and the linked projects have their own.
 		expect(
 			within(screen.getByRole("main")).queryAllByRole("button", {
-				name: /^(Write|Open|Apply|Recheck)$/,
+				name: /^(Fix|Recheck)$/,
 			}),
 		).toHaveLength(0);
 	});
@@ -716,8 +717,9 @@ describe("Settings / Project, delivery files", () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/setup/project");
-		const section = within(await screen.findByRole("region", { name: "Project" }));
-		expect(await section.findByText("/mock/alpha")).toBeInTheDocument();
+		const project = within(await screen.findByRole("region", { name: "Project" }));
+		expect(await project.findByText("/mock/alpha")).toBeInTheDocument();
+		const section = within(await screen.findByRole("region", { name: "More" }));
 		expect(await section.findByText("https://example.com/acme/project.git")).toBeInTheDocument();
 		await user.click(await section.findByRole("combobox", { name: "Look at the remote every" }));
 		await user.click(await screen.findByRole("option", { name: "60 min" }));

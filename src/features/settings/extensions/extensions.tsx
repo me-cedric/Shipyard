@@ -45,6 +45,12 @@ import { PluginSettings } from "./plugin-settings";
 
 const GROUPS: CatalogGroup[] = ["devcontainers", "agents", "devops-security"];
 const CHANGES: PluginChange[] = ["new", "changed", "same", "removed"];
+const CHANGE_BADGE: Record<PluginChange, "success" | "neutral" | "danger"> = {
+	new: "success",
+	changed: "neutral",
+	same: "neutral",
+	removed: "danger",
+};
 const CHANGE: Record<PluginChange, Status> = {
 	new: "info",
 	changed: "warning",
@@ -239,7 +245,8 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 
 	const [name, setName] = useState("");
 	const [url, setUrl] = useState("");
-	const [chosen, setChosen] = useState<Set<string>>(new Set());
+	/** The child projects that a person picked. Until then every cloned child project is picked. */
+	const [picked, setPicked] = useState<Set<string> | null>(null);
 	const [results, setResults] = useState<Result[]>([]);
 	const [editing, setEditing] = useState<string | null>(null);
 	/** The cloned child projects that lack the plugin. */
@@ -299,6 +306,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 	const entryKey = (e: { kind: string; id: string }) => `${e.kind}:${e.id}`;
 	const skills = (compass.data?.entries ?? []).filter((e) => e.kind === "skill").slice(0, 5);
 	const cloned = (children.data ?? []).filter((c) => c.cloned);
+	const chosen = picked ?? new Set(cloned.map((c) => c.id));
 	const fresh = async () => {
 		const dir = await pickFolder();
 		if (!dir) return;
@@ -346,7 +354,16 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 						const rows = review.items.filter((i) => i.change === c);
 						const name = c === "new" ? d.adds : c === "changed" ? d.changes : x.plugin.change[c];
 						return rows.length ? (
-							<GroupSection key={c} name={name} count={rows.length}>
+							<section
+								key={c}
+								aria-label={name}
+								className="mx-6 mb-2 flex flex-col gap-1 rounded-md bg-n-3 px-4 py-3"
+							>
+								<h2>
+									<Badge variant={CHANGE_BADGE[c]}>
+										{format(t.count, { name, count: rows.length })}
+									</Badge>
+								</h2>
 								<ul>
 									{rows.map((i) => (
 										<EntryRow
@@ -377,7 +394,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 										</EntryRow>
 									))}
 								</ul>
-							</GroupSection>
+							</section>
 						) : null;
 					})
 				: null}
@@ -470,8 +487,8 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 					<SetupCard id="plugin-review" title={review ? undefined : d.review} attention={!!review}>
 						{review ? (
 							<div className="flex flex-col items-start gap-3 px-6 pt-4">
-								<Badge variant="warning">{d.review}</Badge>
-								<h2 className="text-20 font-semibold text-n-12">{review.name}</h2>
+								<Badge variant="you">{d.review}</Badge>
+								<h2 className="text-30 font-semibold text-n-12">{review.name}</h2>
 							</div>
 						) : null}
 						<Fold id="plugin-source" label={x.plugin.name} value={x.plugin.review}>
@@ -531,7 +548,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 												type="button"
 												data-nav=""
 												onClick={() => openDetail(c.name, <ComponentDetail key={c.id} id={c.id} />)}
-												className="rounded-sm text-left font-semibold hover:underline"
+												className="rounded-sm text-left font-normal hover:underline"
 											>
 												{c.name}
 											</button>
@@ -581,7 +598,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 									hideLabel
 									label={format(x.children.select, { name: c.name })}
 									checked={chosen.has(c.id)}
-									onCheckedChange={(on) => setChosen(flip(chosen, c.id, on === true))}
+									onCheckedChange={(on) => setPicked(flip(chosen, c.id, on === true))}
 								/>
 								{c.name}
 							</span>
@@ -610,8 +627,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 			</Columns>
 		);
 
-	const tile =
-		"flex min-w-0 flex-col items-start justify-between gap-3 rounded-lg bg-surface-2 p-4.5 shadow-2";
+	const tile = "flex min-w-0 flex-col items-start gap-3 rounded-lg bg-surface-2 p-4.5 shadow-2";
 	const tileIcon = (icon: ReactNode) => (
 		<span className="flex size-12 items-center justify-center rounded-md bg-accent-subtle text-accent-text">
 			{icon}
@@ -620,17 +636,16 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 	// The rule packs that the project does not hold yet: one tile each, with one Add.
 	const offered = (catalog.data ?? []).filter((c) => c.state === "absent").slice(0, 3);
 	const compassSet = (compass.data?.entries ?? []).some((e) => e.state === "current");
-	const grid =
-		"grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] items-start gap-6 px-4";
+	const grid = "grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-6 px-4";
 	return (
 		<div className="flex flex-col gap-4 pb-10">
 			{errorLine}
-			<h2 className="px-4 text-13 font-semibold text-n-11">{d.add}</h2>
+			<h2 className="px-4 text-17 font-semibold text-n-12">{d.add}</h2>
 			<div className="grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-3.5 px-4">
 				{offered.map((c) => (
 					<section key={c.id} aria-label={c.name} className={tile}>
 						{tileIcon(<PuzzlePieceIcon size={20} />)}
-						<span className="text-20 font-semibold text-n-12">{c.name}</span>
+						<span className="text-17 font-semibold text-n-12">{c.name}</span>
 						<Button
 							variant="secondary"
 							className="w-full"
@@ -643,7 +658,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 				))}
 				<section id="plugin-add" aria-label={d.folder} className={tile}>
 					{tileIcon(<PlusIcon size={20} />)}
-					<span className="text-20 font-semibold text-n-12">{d.folder}</span>
+					<span className="text-17 font-semibold text-n-12">{d.folder}</span>
 					<Button variant="secondary" className="w-full" onClick={() => void run(fresh)}>
 						{d.choose}
 					</Button>

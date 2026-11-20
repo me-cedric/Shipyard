@@ -246,7 +246,12 @@ function OneClick({
 	return (
 		<>
 			{confirm ? (
-				<ConfirmButton disabled={busy} confirm={confirm} onConfirm={() => void go()}>
+				<ConfirmButton
+					variant="primary"
+					disabled={busy}
+					confirm={confirm}
+					onConfirm={() => void go()}
+				>
 					{label}
 				</ConfirmButton>
 			) : (
