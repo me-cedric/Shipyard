@@ -460,7 +460,8 @@ const scenes: Scene[] = [
 	{
 		name: "settings-permissions",
 		run: async (p) => {
-			await open(p, "This computer");
+			// What the system allows is a card of Logs and feedback (look pass 2).
+			await go(p, "/setup/computer?page=logs");
 			await p.locator("#section-permissions").scrollIntoViewIfNeeded();
 		},
 	},

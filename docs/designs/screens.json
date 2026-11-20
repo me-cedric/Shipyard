@@ -1179,7 +1179,8 @@
         "spec:code",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/code-changes.png"
     },
     {
       "id": "SCR-181",
@@ -1189,7 +1190,8 @@
         "spec:projects",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/settings-project.png"
     },
     {
       "id": "SCR-182",
@@ -1199,7 +1201,8 @@
         "spec:sync",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/setup-automation.png"
     },
     {
       "id": "SCR-183",
@@ -1208,7 +1211,8 @@
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/setup-look.png"
     },
     {
       "id": "SCR-184",
@@ -1218,7 +1222,8 @@
         "spec:extensions",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/setup-plugins.png"
     }
   ]
 }

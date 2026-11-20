@@ -85,7 +85,7 @@ Look pass 1, shell, tokens and shared parts
 - [ ] T045 Retake the pictures of `docs/assets/screenshots/` and add the picture of SCR-097.
 - [ ] T046 Owner decision on the open points of look pass 1 in `.agents/progress/app-redesign.md` (the field border under 3:1, the Sign out action, the narrow bar preference).
 - [x] T047 Look pass 2, Code and Setup: rebuild Code Now, local changes, History, Branches, Terminal and the pages of Setup to their design pictures (`src/features/code/`, `src/features/settings/`, `src/features/projects/`, `src/features/sync/`). `spec:app-redesign#REQ-024`.
-- [ ] T048 Retake the pictures of the 19 screens of look pass 2 Code and Setup with `scripts/screenshots.ts` and compare each one with its design picture in a fresh context.
+- [x] T048 Retake the pictures of the 19 screens of look pass 2 Code and Setup with `scripts/screenshots.ts` and compare each one with its design picture in a fresh context.
 
 Look pass 2, Library
 
