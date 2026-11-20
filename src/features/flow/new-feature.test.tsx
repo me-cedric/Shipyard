@@ -217,4 +217,99 @@ describe("Flow / New feature", () => {
 		await waitFor(() => expect(screen.getByRole("button", { name: "Create" })).toBeDisabled());
 		expect(screen.getByRole("button", { name: `Start an agent ${FREE}` })).toBeDisabled();
 	});
+
+	// `spec:runs-recipes` REQ-004: Add a document.
+	it("Add a document: a Word file goes into the inputs folder of the change", async () => {
+		const user = userEvent.setup();
+		const add = vi.spyOn(commands, "specsChangeInputAdd");
+		await open();
+		await type(user, "Export report");
+		await user.upload(
+			screen.getByTestId("document-input"),
+			new File(["word"], "brief.docx", { type: "application/octet-stream" }),
+		);
+		expect(
+			within(await screen.findByRole("list", { name: "Add a document" })).getByText("brief.docx"),
+		).toBeVisible();
+		await create(user);
+		await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
+		expect(add.mock.calls[0]?.slice(0, 2)).toEqual(["export-report", "brief.docx"]);
+		expect(
+			Object.keys(mockState().specs?.files ?? {}).includes(
+				"docs/openspec/changes/export-report/inputs/brief.docx",
+			),
+		).toBe(true);
+	});
+
+	it("Add a document: an image is refused, and the page names the three kinds", async () => {
+		const user = userEvent.setup();
+		const add = vi.spyOn(commands, "specsChangeInputAdd");
+		const make = vi.spyOn(commands, "specsChangeCreate");
+		await open();
+		await user.upload(
+			screen.getByTestId("document-input"),
+			new File(["png"], "shot.png", { type: "image/png" }),
+		);
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"shot.png: add a Markdown, PDF or Word file.",
+		);
+		expect(screen.queryByRole("list", { name: "Add a document" })).toBeNull();
+		await type(user, "Export report");
+		await create(user);
+		await waitFor(() => expect(make).toHaveBeenCalled());
+		expect(add).not.toHaveBeenCalled();
+	});
+
+	it("Add a document: a document that is taken out of the list is not sent", async () => {
+		const user = userEvent.setup();
+		const add = vi.spyOn(commands, "specsChangeInputAdd");
+		await open();
+		await user.upload(screen.getByTestId("document-input"), [
+			new File(["a"], "a.md", { type: "text/markdown" }),
+			new File(["b"], "b.pdf", { type: "application/pdf" }),
+		]);
+		await user.click(await screen.findByRole("button", { name: "Remove a.md" }));
+		await type(user, "Export report");
+		await create(user);
+		await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
+		expect(add.mock.calls[0]?.[1]).toBe("b.pdf");
+	});
+
+	// `spec:runs-recipes` REQ-005: Limit of a new feature.
+	it("Limit: the limit of the feature goes in the file by the key of its ticket", async () => {
+		const user = userEvent.setup();
+		const budget = vi.spyOn(commands, "budgetSet");
+		await open();
+		await type(user, "Export report");
+		await user.type(
+			screen.getByRole("spinbutton", { name: "Limit of the feature, in dollars" }),
+			"3",
+		);
+		await create(user);
+		await waitFor(() => expect(budget).toHaveBeenCalledWith("feature", MADE, 3));
+		expect(mockState().factory.budgets.feature?.[MADE]).toBe(3);
+		// The limit sits beside the recipe, and a feature with no limit sets none.
+		expect(screen.getByText("Limit")).toBeVisible();
+	});
+
+	it("Limit: no amount sets no limit, and an amount of zero is refused before anything is made", async () => {
+		const user = userEvent.setup();
+		const budget = vi.spyOn(commands, "budgetSet");
+		const make = vi.spyOn(commands, "specsChangeCreate");
+		await open();
+		await type(user, "Export report");
+		await create(user);
+		await waitFor(() => expect(make).toHaveBeenCalledTimes(1));
+		expect(budget).not.toHaveBeenCalled();
+		make.mockClear();
+		await user.type(
+			screen.getByRole("spinbutton", { name: "Limit of the feature, in dollars" }),
+			"0",
+		);
+		await create(user);
+		expect(
+			await screen.findByText("The limit is an amount of more than zero dollars."),
+		).toBeVisible();
+		expect(make).not.toHaveBeenCalled();
+	});
 });

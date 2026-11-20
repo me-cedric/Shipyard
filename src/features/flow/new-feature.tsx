@@ -2,7 +2,7 @@ import { Link, useSearch } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { TicketPicker } from "@/features/factory/ticket-picker";
 import { useGuard } from "@/features/work/guard";
-import { ENDED, useRunActions, useRuns, useWorkflows } from "@/lib/factory";
+import { ENDED, useFactoryWrites, useRunActions, useRuns, useWorkflows } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import type { Right } from "@/lib/ipc";
 import { RightButton, useRights } from "@/lib/rights";
@@ -14,8 +14,11 @@ import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Chip } from "@/ui/atoms/chip";
+import { IconButton } from "@/ui/atoms/icon-button";
+import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
+import { XMarkIcon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { TILE_GRID, Tile } from "@/ui/molecules/tile";
@@ -30,6 +33,10 @@ const NEEDS: Record<Way | "idea", Right[]> = {
 	build: ["work.edit", "runs.start"],
 	idea: ["specs.edit"],
 };
+
+/** A document for the spec writer: Markdown, PDF or Word, up to 20 MiB (`runs-recipes` REQ-004). */
+const DOCUMENT = /\.(md|markdown|pdf|docx?)$/i;
+const MAX_DOCUMENT = 20 * 1024 * 1024;
 
 const NO_FILTER = {};
 const SHOWN = 5;
@@ -56,6 +63,7 @@ export function NewFeature() {
 	const work = useWorkActions();
 	const { adopt } = useBacklogActions();
 	const runs = useRunActions();
+	const budgets = useFactoryWrites();
 	const workflows = useWorkflows().data ?? [];
 	const items = useWorkItems(NO_FILTER).data ?? [];
 	const all = useRuns().data;
@@ -66,7 +74,21 @@ export function NewFeature() {
 	const [way, setWay] = useState<Way>("agent");
 	const [recipe, setRecipe] = useState("");
 	const [key, setKey] = useState("");
+	const [docs, setDocs] = useState<File[]>([]);
+	const [refused, setRefused] = useState<string | null>(null);
+	const [limit, setLimit] = useState("");
+	const picker = useRef<HTMLInputElement>(null);
 	const find = useRef<HTMLInputElement>(null);
+	const r = t.factory.runsRecipes;
+	const addDocuments = (list: FileList) => {
+		setRefused(null);
+		for (const f of Array.from(list)) {
+			if (!DOCUMENT.test(f.name)) setRefused(format(r.documentKinds, { name: f.name }));
+			else if (f.size > MAX_DOCUMENT)
+				setRefused(format(r.tooLarge, { name: f.name, size: "20 MiB" }));
+			else setDocs((x) => (x.some((d) => d.name === f.name) ? x : [...x, f]));
+		}
+	};
 	// Get started asks to start a run: the old Ticket field is "Find a ticket" here.
 	useFormIntent("run", () => find.current?.focus());
 	// A ticket with a run that has not ended cannot start another one.
@@ -98,9 +120,18 @@ export function NewFeature() {
 	};
 	// Each way first makes the change. Its title is the text of the person, so the proposal holds it.
 	const create = async () => {
+		// The limit of the feature goes in the file by its ticket key: it needs a ticket.
+		const usd = limit.trim() === "" ? null : Number(limit);
+		if (usd !== null && !(Number.isFinite(usd) && usd > 0)) throw new Error(r.limitError);
 		const made = (await specs.createChange(title.trim())).id;
-		if (mode === "build") await runs.start(await ticket(made));
-		else if (mode === "agent") await specs.delegate(await ticket(made), chosen);
+		for (const f of docs)
+			await specs.addInput(made, f.name, Array.from(new Uint8Array(await f.arrayBuffer())));
+		const limited = async (k: string) => {
+			if (usd !== null) await budgets.budget("feature", k, usd);
+			return k;
+		};
+		if (mode === "build") await runs.start(await limited(await ticket(made)));
+		else if (mode === "agent") await specs.delegate(await limited(await ticket(made)), chosen);
 		openRef(`change:${made}`);
 	};
 	const start = (k: string) =>
@@ -120,18 +151,56 @@ export function NewFeature() {
 				value={title}
 				onChange={(e) => setTitle(e.target.value)}
 			/>
-			<fieldset aria-label={n.kind} className="flex min-w-0 flex-wrap gap-2">
-				{(["feature", "bug", "idea"] as const).map((id) => (
-					<Chip
-						key={id}
-						selected={id === kind}
-						className={id === kind ? undefined : "bg-surface-2"}
-						onClick={() => setKind(id)}
-					>
-						{n.kinds[id]}
-					</Chip>
-				))}
-			</fieldset>
+			<div className="flex flex-wrap items-center gap-2">
+				<fieldset aria-label={n.kind} className="flex min-w-0 flex-wrap gap-2">
+					{(["feature", "bug", "idea"] as const).map((id) => (
+						<Chip
+							key={id}
+							selected={id === kind}
+							className={id === kind ? undefined : "bg-surface-2"}
+							onClick={() => setKind(id)}
+						>
+							{n.kinds[id]}
+						</Chip>
+					))}
+				</fieldset>
+				<input
+					ref={picker}
+					type="file"
+					multiple
+					hidden
+					data-testid="document-input"
+					onChange={(e) => {
+						if (e.target.files) addDocuments(e.target.files);
+						e.target.value = "";
+					}}
+				/>
+				<Button variant="ghost" onClick={() => picker.current?.click()}>
+					{r.addDocument}
+				</Button>
+			</div>
+			{docs.length > 0 ? (
+				<ul aria-label={r.addDocument} className="flex flex-wrap gap-2">
+					{docs.map((d) => (
+						<li key={d.name}>
+							<Badge variant="accent" className="gap-1">
+								{d.name}
+								<IconButton
+									label={format(r.removeDocument, { name: d.name })}
+									onClick={() => setDocs((x) => x.filter((y) => y !== d))}
+								>
+									<XMarkIcon size={12} />
+								</IconButton>
+							</Badge>
+						</li>
+					))}
+				</ul>
+			) : null}
+			{refused ? (
+				<p role="alert" className="text-ui text-danger-text">
+					{refused}
+				</p>
+			) : null}
 			{kind === "idea" ? null : (
 				<fieldset aria-label={n.way} className={TILE_GRID}>
 					{(["agent", "mine", "build"] as const).map((id) => (
@@ -168,6 +237,21 @@ export function NewFeature() {
 							className="font-semibold"
 							onValueChange={setRecipe}
 							items={workflows.map((w) => ({ value: w.id, label: recipeName(w.id) }))}
+						/>
+					</>
+				) : null}
+				{mode === "agent" || mode === "build" ? (
+					<>
+						<span className="text-n-11">{r.limit}</span>
+						<span aria-hidden="true">$</span>
+						<Input
+							label={r.limitAmount}
+							type="number"
+							min="0"
+							step="any"
+							className="w-24 font-semibold"
+							value={limit}
+							onChange={(e) => setLimit(e.target.value)}
 						/>
 					</>
 				) : null}

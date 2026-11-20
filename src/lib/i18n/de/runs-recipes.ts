@@ -9,6 +9,7 @@ export const runsRecipesDe: typeof runsRecipesEn = {
 	tooLarge: "{name} ist größer als {size}.",
 	limit: "Limit",
 	limitAmount: "Limit des Features, in Dollar",
+	limitError: "Das Limit ist ein Betrag über null Dollar.",
 	stageAtOnce: "{name}, gleichzeitig",
 	warnAtPercent: "Warnen bei, in Prozent",
 	editWarn: "Warnen bei ändern",

@@ -249,6 +249,9 @@ export function useSpecsActions() {
 		};
 		return {
 			createChange: (id: string) => run(commands.specsChangeCreate(id)),
+			/** A document for the spec writer of the change (`runs-recipes` REQ-004). */
+			addInput: (id: string, name: string, bytes: number[]) =>
+				run(commands.specsChangeInputAdd(id, name, bytes)),
 			changeFromTicket: (key: string) => run(commands.specsChangeFromTicket(key, true)),
 			delegate: (key: string, workflow: string) =>
 				run(commands.specsChangeDelegate(key, workflow, true)),
