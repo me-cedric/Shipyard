@@ -102,7 +102,7 @@ describe("Home / Today", () => {
 		await user.click(screen.getByRole("button", { name: "Later" }));
 		const on = within(await card());
 		expect(
-			await on.findByRole("heading", { level: 3, name: "Post a comment on ACME-1" }),
+			await on.findByRole("heading", { level: 2, name: "Post a comment on ACME-1" }),
 		).toBeInTheDocument();
 		expect(on.getByText("1 of 2")).toBeInTheDocument();
 		await user.click(
@@ -153,10 +153,10 @@ describe("Home / Today", () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/today");
-		const first = within(await card()).getByRole("heading", { level: 3 });
+		const first = within(await card()).getByRole("heading", { level: 2 });
 		expect(first).not.toHaveFocus();
 		await pick(user, /Post a comment on ACME-1/);
-		const next = within(await card()).getByRole("heading", { level: 3 });
+		const next = within(await card()).getByRole("heading", { level: 2 });
 		await waitFor(() => expect(next).toHaveFocus());
 	});
 
@@ -168,7 +168,7 @@ describe("Home / Today", () => {
 		const before = (await unwrap(commands.approvalsList())).length;
 		const on = within(await card());
 		expect(
-			await on.findByRole("heading", { level: 3, name: "Post a comment on ACME-1" }),
+			await on.findByRole("heading", { level: 2, name: "Post a comment on ACME-1" }),
 		).toBeVisible();
 		await user.click(on.getByRole("button", { name: "Approve" }));
 		await waitFor(async () =>

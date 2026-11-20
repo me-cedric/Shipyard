@@ -42,6 +42,7 @@ function Frame() {
 		inspectorOpen,
 		setInspectorOpen,
 		selectedRef,
+		sideSelected,
 		openRef,
 		viewChanged,
 		detail,
@@ -186,8 +187,8 @@ function Frame() {
 						open={inspectorOpen}
 						onClose={() => setInspectorOpen(false)}
 						title={detail?.title ?? t.inspector.title}
-						// A link opens as a card over the page. The detail of a view stays a side panel.
-						card={!detail && selectedRef !== null}
+						// A link opens as a card over the page. The detail of a view and a row that a page selects stay a side panel.
+						card={!detail && selectedRef !== null && !sideSelected}
 					>
 						{detail ? (
 							detail.node

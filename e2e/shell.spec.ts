@@ -22,10 +22,12 @@ test("keyboard path: place shortcut, palette action, inspector and a focus ring"
 	await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
 
 	await page.keyboard.press("ControlOrMeta+2");
-	await expect(page.getByRole("link", { name: "Flow", exact: true })).toHaveAttribute(
-		"aria-current",
-		"page",
-	);
+	// The section switch of the page has a link Flow too: the check is on the rail.
+	await expect(
+		page
+			.getByRole("navigation", { name: "Sidebar" })
+			.getByRole("link", { name: "Flow", exact: true }),
+	).toHaveAttribute("aria-current", "page");
 
 	const inspector = page.getByLabel("Inspector", { exact: true });
 	await expect(inspector).toHaveAttribute("data-open", "false");

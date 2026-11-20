@@ -118,6 +118,6 @@ test("pins a dashboard tile to the top of Dashboards, not to Home", async ({ pag
 	await tile.getByRole("button", { name: "Pin to Today" }).click();
 	await expect(page.getByRole("region", { name: "Pinned" })).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Today" }).click();
-	await expect(tabs(page).getByRole("link", { name: "Today" })).toBeVisible();
+	await expect(tabs(page).getByRole("link", { name: "Needs you" })).toBeVisible();
 	await expect(page.getByRole("region", { name: "Pinned" })).toHaveCount(0);
 });

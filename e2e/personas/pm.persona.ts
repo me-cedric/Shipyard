@@ -165,10 +165,15 @@ test("project manager", async ({ page }) => {
 				"no inbox",
 			);
 			// The plan review waits in the queue: a click makes it the card.
-			await w.click(page.getByRole("button", { name: /^feature Write the onboarding guide/ }));
+			// The queue shows three things: "N more" shows the rest in place.
+			const more = page.getByRole("button", { name: /^\d+ more$/ });
+			if ((await more.count()) > 0) await w.click(more);
+			await w.click(
+				page.getByRole("button", { name: /^feature Review the plan Write the onboarding guide/ }),
+			);
 			await w.click(page.getByRole("button", { name: "Approve plan" }));
 			await w.see(
-				page.getByRole("heading", { level: 1, name: "10 things need you" }),
+				page.getByRole("heading", { level: 1, name: "9 things need you" }),
 				"the inbox does not answer the click",
 			);
 		},

@@ -76,7 +76,7 @@ test("developer", async ({ page }) => {
 		const queue = page.getByRole("list", { name: "Needs you" });
 		const more = queue.getByRole("button", { name: /^\d+ more$/ });
 		if ((await more.count()) > 0) await w.click(more);
-		await w.click(queue.getByRole("button", { name: /ACME-2 Add export endpoint/ }));
+		await w.click(queue.getByRole("button", { name: /Add export endpoint/ }));
 		const effect = page.getByText(/Change the status of ACME-2/);
 		await w.see(effect, "no approval of the agent on the card");
 		await w.click(page.getByRole("button", { name: /^Approve( all)?$/ }));

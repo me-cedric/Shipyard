@@ -16,7 +16,7 @@ test("approvals wait for a click, and the runs show the review, CI and merge sta
 	// The queue shows three things: "N more" shows the rest in place.
 	const more = queue.getByRole("button", { name: /^\d+ more$/ });
 	if ((await more.count()) > 0) await more.click();
-	await queue.getByRole("button", { name: /Force push fix\/ACME-10/ }).click();
+	await queue.getByRole("button", { name: /Replace the code of ACME-10/ }).click();
 
 	// The force push waits: nothing sends it until one click.
 	const force = page.getByRole("region", { name: "Replace the code of ACME-10 on the server" });

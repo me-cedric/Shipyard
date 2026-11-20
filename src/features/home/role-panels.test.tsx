@@ -139,7 +139,7 @@ describe("Inbox routing (team-rights REQ-014)", () => {
 		);
 		const on = within((await screen.findAllByRole("article"))[0] as HTMLElement);
 		expect(
-			await on.findByRole("heading", { level: 3, name: "Post a comment on ACME-1" }),
+			await on.findByRole("heading", { level: 2, name: "Post a comment on ACME-1" }),
 		).toBeVisible();
 		const approve = on.getByRole("button", { name: "Approve" });
 		// The box of the durable permission is off too.

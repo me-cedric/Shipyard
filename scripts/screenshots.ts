@@ -96,6 +96,12 @@ const comment = async (p: Page, line: number, text: string) => {
 };
 
 // A section by its address, with no reload: the mock keeps the project and the theme in memory.
+// The role of the person, set in Setup / Me: Today and Role views follow it.
+const pickRole = async (p: Page, role: string) => {
+	await go(p, "/setup/me");
+	await p.getByRole("combobox", { name: "Role" }).first().click();
+	await p.getByRole("option", { name: role }).click();
+};
 const go = async (p: Page, path: string) => {
 	// A string: the Node type check has no DOM names.
 	await p.evaluate(
@@ -119,6 +125,47 @@ type Scene = { name: string; light?: boolean; fresh?: boolean; run: (p: Page) =>
 const scenes: Scene[] = [
 	{ name: "home", run: async () => {} },
 	{ name: "home-light", light: true, run: async () => {} },
+	// Look pass 2 of Today and Ask (SCR-100 to SCR-105).
+	{ name: "home-dark", run: async () => {} },
+	{ name: "home-panels", light: true, run: (p) => go(p, "/today/panels?role=techlead") },
+	{
+		name: "home-product-owner",
+		light: true,
+		run: async (p) => {
+			await pickRole(p, "Product owner");
+			await go(p, "/today/today");
+		},
+	},
+	{
+		name: "role-views",
+		light: true,
+		run: async (p) => {
+			await pickRole(p, "Developer");
+			await go(p, "/setup/role-views");
+		},
+	},
+	{
+		name: "link-card",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/handbook");
+			await p.getByRole("button", { name: "Getting started" }).first().click();
+			await p
+				.getByRole("article", { name: "Getting started" })
+				.getByRole("button", { name: /^adr:0001/ })
+				.first()
+				.click();
+			await p.getByRole("button", { name: "Copy the ref" }).waitFor();
+		},
+	},
+	{
+		name: "new-project-all-steps",
+		light: true,
+		run: async (p) => {
+			await go(p, "/projects/new");
+			await p.getByRole("button", { name: "All steps" }).click();
+		},
+	},
 	{
 		name: "today-news",
 		light: true,

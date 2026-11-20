@@ -204,7 +204,7 @@ export function ArtifactTab({
 	const pick = (ref: string) => {
 		setSelected(ref);
 		setView("list");
-		openRef(ref);
+		openRef(ref, true);
 	};
 	const rowMenu = (r: Row) => [
 		...menu(r.ref.startsWith("adr:") ? "adr" : "ref", {
@@ -395,7 +395,7 @@ export function ArtifactTab({
 						setCreated(ref);
 						setSelected(ref);
 						setView("list");
-						openRef(ref);
+						openRef(ref, true);
 					}}
 				/>
 			) : null}

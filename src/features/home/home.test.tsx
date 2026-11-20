@@ -48,7 +48,7 @@ describe("Home / Today, Needs you", () => {
 		expect(on.getByText(waiting.workflow)).toBeInTheDocument();
 		expect(
 			on.getByRole("heading", {
-				level: 3,
+				level: 2,
 				name: "Where should the user land after the session expires?",
 			}),
 		).toBeInTheDocument();
@@ -75,7 +75,7 @@ describe("Home / Today, Needs you", () => {
 		await pick(user, /Post a comment on ACME-1/);
 		const on = await card();
 		expect(
-			await on.findByRole("heading", { level: 3, name: "Post a comment on ACME-1" }),
+			await on.findByRole("heading", { level: 2, name: "Post a comment on ACME-1" }),
 		).toBeVisible();
 		await user.click(on.getByRole("button", { name: "Approve" }));
 		await waitFor(async () =>

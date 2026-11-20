@@ -142,7 +142,7 @@ export function ListTab({
 	const add = () => setAdding(true);
 	const pick = (path: string) => {
 		setSelected(path);
-		openRef(`doc:${path}`);
+		openRef(`doc:${path}`, true);
 	};
 
 	const rowMenu = (r: PageEntry) => [

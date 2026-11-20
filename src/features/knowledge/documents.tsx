@@ -29,7 +29,7 @@ export function Documents() {
 	const [, select] = useTabSelection(`knowledge:${DOC_DIR.documents}`);
 	const pick = (path: string) => {
 		select(path);
-		openRef(`doc:${path}`);
+		openRef(`doc:${path}`, true);
 	};
 	const [note, setNote] = useState<string | null>(null);
 	const [failure, setFailure] = useState<unknown>(null);

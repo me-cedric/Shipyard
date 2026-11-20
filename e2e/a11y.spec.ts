@@ -216,7 +216,8 @@ for (const scheme of ["light", "dark"] as const) {
 		page.setDefaultTimeout(10_000);
 		await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
 		await page.goto("/knowledge/manual");
-		await expect(page.getByRole("article")).toBeVisible();
+		// The page has two articles: the lead has no name, the text has the name of the page.
+		await expect(page.getByRole("article", { name: "Start" })).toBeVisible();
 		if (scheme === "dark") await pickDarkTheme(page);
 		await page.waitForLoadState("networkidle");
 		expect(await scan(page, "/knowledge/manual")).toEqual([]);

@@ -92,7 +92,7 @@ export function Today() {
 		const card = page.current?.querySelector("article");
 		if (!moved.current && at && at !== document.body && !card?.contains(at)) return;
 		moved.current = false;
-		(page.current?.querySelector<HTMLElement>("article h3") ?? page.current)?.focus();
+		(page.current?.querySelector<HTMLElement>("article h2") ?? page.current)?.focus();
 	}, [first?.id]);
 	const toLater = (id: string) => {
 		moved.current = true;
@@ -140,12 +140,12 @@ export function Today() {
 								</span>
 							</div>
 							{/* tabIndex -1: the focus lands here when the card changes. */}
-							<h3
+							<h2
 								tabIndex={-1}
 								className="text-30 leading-tight font-semibold text-n-12 outline-none"
 							>
 								{actionOf(t, first)}
-							</h3>
+							</h2>
 							{first.kind === "question" && first.item.question.state === "open" ? (
 								<OpenQuestion key={first.id} item={first.item} onLater={toEnd} />
 							) : (

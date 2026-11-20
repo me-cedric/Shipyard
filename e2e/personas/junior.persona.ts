@@ -109,12 +109,19 @@ test("junior", async ({ page }) => {
 
 	await w.step(
 		"Follow the Get started list",
-		"Home, the Connect action of the Code host item",
+		"Home, Continue, the full list, the Connect action of the Code host step",
 		async () => {
 			await w.go("Today", "Needs you");
+			// Today shows one setup card: Continue opens the full list.
 			await w.click(
-				page.getByRole("group", { name: "Code host" }).getByRole("button", { name: "Connect" }),
+				page.getByRole("region", { name: "Get started" }).getByRole("link", { name: "Continue" }),
 			);
+			await w.click(
+				page
+					.getByRole("list", { name: "Get started" })
+					.getByRole("button", { name: "Code host", exact: true }),
+			);
+			await w.click(page.getByRole("button", { name: "Connect" }));
 			await w.until(
 				() => page.url().includes("/setup/"),
 				true,

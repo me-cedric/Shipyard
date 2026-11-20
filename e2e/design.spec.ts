@@ -28,12 +28,13 @@ test("copies the ref of a diagram and shows its backlinks in the inspector", asy
 	// The editor frame copies the ref; the inspector has its own copy button.
 	await page.getByRole("main").getByRole("button", { name: "Copy ref" }).click();
 	expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("diagram:sync-flow");
-	await expect(inspector(page).getByRole("button", { name: /^diagram:sync-flow/ })).toBeVisible();
+	await expect(inspector(page).getByText("diagram:sync-flow", { exact: true })).toBeVisible();
 
 	await list(page, "Diagrams")
 		.getByRole("button", { name: /context/ })
 		.click();
-	await expect(inspector(page).getByRole("heading", { name: "Screen (1)" })).toBeVisible();
+	const linked = inspector(page).getByRole("region", { name: "Linked to" });
+	await expect(linked.getByRole("button", { name: /^screen:home,/ })).toHaveCount(1);
 });
 
 test("draws the demo Excalidraw scene and the demo BPMN process", async ({ page }) => {
