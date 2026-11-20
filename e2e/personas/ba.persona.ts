@@ -70,7 +70,7 @@ test("business analyst", async ({ page }) => {
 			await w.see(
 				page
 					.getByRole("complementary", { name: "Inspector" })
-					.getByRole("button", { name: /^change:add-login-page/ }),
+					.getByText("change:add-login-page", { exact: true }),
 				"the new change does not open from a plain title",
 			);
 			await w.click(

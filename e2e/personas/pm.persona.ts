@@ -187,10 +187,13 @@ test("project manager", async ({ page }) => {
 		"Home, the Needs you list",
 		async () => {
 			await w.go("Today", "Needs you");
-			await w.see(
-				page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
-				"no inbox",
-			);
+			const title = page.getByRole("heading", {
+				level: 1,
+				name: /^(Today|\d+ things? needs? you)$/,
+			});
+			await w.see(title, "no inbox");
+			// The count in the title before the answer: the answer takes one thing away.
+			const before = Number((await title.textContent())?.match(/^\d+/)?.[0] ?? 0);
 			// The plan review waits in the queue: a click makes it the card.
 			// The queue shows three things: "N more" shows the rest in place.
 			const more = page.getByRole("button", { name: /^\d+ more$/ });
@@ -200,7 +203,10 @@ test("project manager", async ({ page }) => {
 			);
 			await w.click(page.getByRole("button", { name: "Approve plan" }));
 			await w.see(
-				page.getByRole("heading", { level: 1, name: "9 things need you" }),
+				page.getByRole("heading", {
+					level: 1,
+					name: before - 1 === 1 ? "1 thing needs you" : `${before - 1} things need you`,
+				}),
 				"the inbox does not answer the click",
 			);
 		},
