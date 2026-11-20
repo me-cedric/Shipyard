@@ -37,6 +37,8 @@ function Proposal({ proposal, here }: { proposal: WorkflowProposal; here: boolea
 	const [open, setOpen] = useState(false);
 	return (
 		<section aria-label={w.proposal}>
+			{/* The card title is an h3: this h2 keeps the heading order under the page h1. */}
+			<h2 className="sr-only">{w.proposal}</h2>
 			<AttentionCard
 				who={t.factory.agent}
 				title={here ? p.proposes : format(p.proposesFor, { name: nameOf(proposal.id) })}

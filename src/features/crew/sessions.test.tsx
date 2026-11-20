@@ -78,3 +78,50 @@ describe("Crew / Sessions: an estimate of an agent", () => {
 		await idle(router);
 	});
 });
+
+// spec:app-redesign#REQ-016: the panel of a run session stops the run after a confirmation.
+describe("Crew / Sessions: Stop of a run session", () => {
+	const liveRun = async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const s = (await unwrap(commands.sessionsList())).find(
+			(x) => x.state === "running" && x.pull == null && x.step !== "estimate",
+		);
+		if (!s) throw new Error("the demo has a running session");
+		const run = mockState().factory.runs.find((r) => r.id === s.run);
+		if (!run) throw new Error("no run");
+		return { s, run };
+	};
+
+	it("asks first, ends the run as cancelled on Yes and does nothing on No", async () => {
+		const user = userEvent.setup();
+		const { s, run } = await liveRun();
+		const router = mountApp(`/crew/sessions?session=${encodeURIComponent(`${s.run}/${s.step}`)}`);
+		const panel = within(await screen.findByRole("region", { name: /^Live output of/ }));
+		await user.click(panel.getByRole("button", { name: "Stop" }));
+		// Leaving the question is No: the run goes on.
+		await user.click(document.body);
+		expect(panel.queryByRole("button", { name: /^Stop .*\?$/ })).toBeNull();
+		expect(run.state).not.toBe("Cancelled");
+		await user.click(panel.getByRole("button", { name: "Stop" }));
+		await user.click(panel.getByRole("button", { name: /^Stop .*\?$/ }));
+		await waitFor(() => expect(run.state).toBe("Cancelled"));
+		await idle(router);
+	});
+});
+
+// spec:app-redesign#REQ-033: a tile build is a session, and the person stops it in Crew.
+describe("Crew / Sessions: a tile build", () => {
+	it("shows Stop on the build and Stop ends it", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const build = unwrap(commands.dashboardTileBuild("team", "Runs", 1)).catch((e) => e);
+		const router = mountApp("/crew/sessions");
+		await user.click(await screen.findByRole("button", { name: /Dashboard tile team/ }));
+		await user.click(await screen.findByRole("button", { name: "Stop team" }));
+		expect(await build).toMatchObject({ code: "stopped" });
+		await waitFor(() =>
+			expect(screen.queryByRole("button", { name: /Dashboard tile team/ })).toBeNull(),
+		);
+		await idle(router);
+	});
+});

@@ -12,6 +12,7 @@ import { Select } from "@/ui/atoms/select";
 import { Card } from "@/ui/molecules/card";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
+import { SpendMeter } from "@/ui/molecules/spend-meter";
 import { SpendChart } from "./budgets-chart";
 import { WARN_AT } from "./spend-const";
 import { BackToSpend, RowsCard, usePrices } from "./spend-parts";
@@ -111,9 +112,25 @@ export function BudgetsPage() {
 		b.setEditing(false);
 		setMachine({ runner, amount: usd === null ? "" : String(usd) });
 	};
-	const row = (name: string, value: number | null, onEdit?: () => void, link?: boolean) => (
+	const thisMonth = new Date().toISOString().slice(0, 7);
+	const monthUsd = (spend.data?.rows ?? [])
+		.filter((r) => r.day.startsWith(thisMonth))
+		.reduce((a, r) => a + (r.costUsd ?? 0), 0);
+	const row = (
+		name: string,
+		value: number | null,
+		onEdit?: () => void,
+		link?: boolean,
+		meter?: boolean,
+	) => (
 		<Row key={name}>
 			<span className="flex-1">{name}</span>
+			{/* The meter of a monthly limit is a function of today: it stays with its limit. */}
+			{meter ? (
+				<span className="w-40">
+					<SpendMeter usd={monthUsd} budget={value} label={m.budget} />
+				</span>
+			) : null}
 			<span className="font-semibold">{money(value)}</span>
 			{onEdit ? (
 				<Button
@@ -162,7 +179,7 @@ export function BudgetsPage() {
 						<h2 className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">{s.limits}</h2>
 						{row(s.eachFeature, feature, undefined, true)}
 						{row(s.eachDay, of("day", "*")?.budget ?? null, () => editScope("day"))}
-						{row(s.eachMonth, month, () => editMachine(ALL, month))}
+						{row(s.eachMonth, month, () => editMachine(ALL, month), false, true)}
 						{row(s.eachPerson, of("member", "*")?.budget ?? null, () => editScope("member"))}
 						{row(s.eachTool, null, () => editMachine(runners[0] ?? ALL, null))}
 						<ul aria-label={f.budget} className="contents">

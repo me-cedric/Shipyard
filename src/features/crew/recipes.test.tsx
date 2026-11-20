@@ -233,6 +233,17 @@ describe("Workflows: the form", () => {
 		expect(screen.getByRole("button", { name: "New recipe" })).toBeVisible();
 	});
 
+	// Accessibility: the h3 of the proposal card follows an h2, not the page h1.
+	it("keeps the heading order on the page of a recipe with a proposal", async () => {
+		await open("feature");
+		await screen.findByRole("region", { name: "Proposed change" });
+		const levels = screen
+			.getAllByRole("heading")
+			.map((h) => Number(h.tagName.slice(1)))
+			.filter((n) => n <= 3);
+		for (const [i, n] of levels.entries()) expect(n - (levels[i - 1] ?? 0)).toBeLessThanOrEqual(1);
+	});
+
 	it("May write of the pull request step shows Asks first, or Alone with a way back to Asks first", async () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		mockState().sync.file = "valid";
@@ -260,7 +271,7 @@ describe("Workflows: the form", () => {
 		expect(part.getByText("Open a pull request")).toBeInTheDocument();
 		// The permissions of another recipe do not show here.
 		expect(part.queryByText("Push")).toBeNull();
-		await user.click(part.getByRole("button", { name: "Remove Open a pull request for feature" }));
+		await user.click(part.getByRole("button", { name: "Remove Open a pull request for Feature" }));
 		// The file is shared with the team: the removal asks first, and saves on the answer.
 		expect(mockState().sync.automation.recipe_writes?.feature).toEqual(["transition", "open_pr"]);
 		await user.click(
@@ -291,7 +302,7 @@ describe("Workflows: the form", () => {
 		await screen.findByRole("list", { name: "Steps" });
 		expect(screen.queryByRole("region", { name: "Writes without a question" })).toBeNull();
 		await user.click(screen.getByRole("button", { name: /^Feature/ }));
-		const remove = await screen.findByRole("button", { name: "Remove Push for feature" });
+		const remove = await screen.findByRole("button", { name: "Remove Push for Feature" });
 		await waitFor(() => expect(remove).toBeDisabled());
 		expect(remove).toHaveAccessibleDescription(
 			"Needs the right project.settings (your role: Viewer)",

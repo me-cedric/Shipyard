@@ -158,3 +158,28 @@ describe("Crew / Spend / Budgets", () => {
 		await idle(router);
 	});
 });
+
+// Accessibility: a heading never skips a level under the page heading.
+describe("Crew / Spend: heading order", () => {
+	it("puts an h2 before the h3 of the card of the run at its limit", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const router = mountApp("/crew/spend");
+		const main = within(await screen.findByRole("main"));
+		await main.findByRole("article");
+		const levels = main.getAllByRole("heading").map((h) => Number(h.tagName.slice(1)));
+		for (const [i, n] of levels.entries()) expect(n - (levels[i - 1] ?? 0)).toBeLessThanOrEqual(1);
+		await idle(router);
+	});
+});
+
+// The meter of a monthly limit depends on today: it shows in the row of that limit on Budgets.
+describe("Crew / Budgets: the monthly meter", () => {
+	it("shows the meter of the monthly budget in the row Each month", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		await unwrap(commands.machineBudgetSet("", 1000));
+		const router = mountApp("/crew/spend?page=budgets");
+		const row = (await screen.findByText("Each month")).closest("div") as HTMLElement;
+		expect(await within(row).findByRole("meter", { name: "Monthly budget" })).toBeVisible();
+		await idle(router);
+	});
+});

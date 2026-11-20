@@ -55,34 +55,38 @@ function Alert({ run }: { run: RunView }) {
 	const role = flow?.steps.find((x) => x.id === step?.id)?.role;
 	const to = (run.budgetUsd ?? 0) + DEFAULT_BUDGET;
 	return (
-		<AttentionCard
-			who={format(s.stopped, { agent: role ? nameOf(role) : t.factory.agent })}
-			title={format(s.reached, { feature: run.title })}
-		>
-			<div className="flex flex-wrap gap-2.5">
-				<ConfirmButton
-					className="min-h-control flex-1"
-					{...gate("runs.start")}
-					confirm={format(s.confirmStop, { feature: run.title })}
-					onConfirm={() => void guard(() => act.cancel(run.id))}
-				>
-					{s.stopHere}
-				</ConfirmButton>
-				<Button
-					variant="primary"
-					className="min-h-control flex-1"
-					{...gate("runs.start")}
-					onClick={() => void guard(() => doStop(act, run, "addBudget", { usd: DEFAULT_BUDGET }))}
-				>
-					{format(s.raiseTo, { amount: `$${to.toFixed(2)}` })}
-				</Button>
-			</div>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
-		</AttentionCard>
+		<>
+			{/* The card title is an h3: this h2 keeps the heading order under the page h1. */}
+			<h2 className="sr-only">{t.factory.spend}</h2>
+			<AttentionCard
+				who={format(s.stopped, { agent: role ? nameOf(role) : t.factory.agent })}
+				title={format(s.reached, { feature: run.title })}
+			>
+				<div className="flex flex-wrap gap-2.5">
+					<ConfirmButton
+						className="min-h-control flex-1"
+						{...gate("runs.start")}
+						confirm={format(s.confirmStop, { feature: run.title })}
+						onConfirm={() => void guard(() => act.cancel(run.id))}
+					>
+						{s.stopHere}
+					</ConfirmButton>
+					<Button
+						variant="primary"
+						className="min-h-control flex-1"
+						{...gate("runs.start")}
+						onClick={() => void guard(() => doStop(act, run, "addBudget", { usd: DEFAULT_BUDGET }))}
+					>
+						{format(s.raiseTo, { amount: `$${to.toFixed(2)}` })}
+					</Button>
+				</div>
+				{error ? (
+					<p role="alert" className="text-ui text-danger-text">
+						{error}
+					</p>
+				) : null}
+			</AttentionCard>
+		</>
 	);
 }
 

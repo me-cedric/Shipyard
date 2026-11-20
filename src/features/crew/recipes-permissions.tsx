@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { nameOf } from "@/features/factory/runs/run-live";
 import { SectionCard } from "@/features/factory/section-card";
 import { Fr } from "@/features/factory/workflows/workflow-form";
 import { useGuard } from "@/features/work/guard";
@@ -51,7 +52,7 @@ export function RecipePermissions({ recipe }: { recipe: string }) {
 						{...gate("project.settings")}
 						variant="ghost"
 						className="min-h-control"
-						aria-label={format(a.removeKind, { kind: a.kind[kind], recipe })}
+						aria-label={format(a.removeKind, { kind: a.kind[kind], recipe: nameOf(recipe) })}
 						confirm={format(t.factory.wf.removePermission, { kind: a.kind[kind] })}
 						onConfirm={() => remove(kind)}
 					>
