@@ -1,6 +1,10 @@
 # Changelog
 
 ## [0.2.0]
+- Each place follows its design picture: the first card starts right under the page title, the section switch keeps its highlight under its option, a card that needs you names the agent or the person with an avatar, the tour is a card with step bars and Skip the tour, the ticket fields are rows with a value button, Learn has an Experts card, and every dashboard tile has one height with its rows in a chart box.
+- Today / News keeps the mark of the news that was new when you opened it, and Mark all as read stays on until you click it.
+- The health of this computer counts in its title every problem that its tiles name, and a tile with something to fix shows the warning, not the check.
+- An old address of Code / Now with a search or a filter of the pull requests opens Pull requests with the same search, and the back link of a pull request goes to that list.
 - The interface has a new look in the themes Light, Dark, OLED and System: a flat page background, one accent colour, one colour for what needs you, near-black main buttons, the fonts Geist and Geist Mono, 15 px text, and rounder controls and cards.
 - The window has no top bar and no status bar: the sidebar holds the project name at its top, the six places with their counts, Setup and your account at its foot, and each page starts with one row that holds the sidebar button, Back, Forward, the bar Ask or tell Shipyard and the sync mark.
 - The sync mark opens a card with the changed files, the lines added and removed, the working branch and the buttons Sync, Fetch only, Push and Commit; a sync failure shows there with its retry action.

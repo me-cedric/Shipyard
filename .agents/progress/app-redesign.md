@@ -659,3 +659,49 @@ Open after look pass 2 (group Flow):
 - The demo Review column has 10 cards; the design has 2.
 - `src/features/code/pull-header.tsx` has no user now (the Code and Setup group owns it).
 - `src/features/code/now.tsx` still draws the old pull request list; one line there must link to `/code/pull-requests` (the Code and Setup group).
+
+## Join of look pass 2, visual checks 2 to 5 and fix rounds 3 to 6 (2026-11-20 and 2026-11-21)
+
+The five groups of look pass 2 are joined on `feature/app-ui-ux-redesign-df0d13`. Their worktrees and branches are removed. The join kept both sides where two groups changed one file:
+
+- The attention card has the row layout of Today and the header, title class, layout class, heading level and `inline` title of the other groups. The outline has one name, `ATTENTION_FRAME`.
+- Code / Now keeps its card of open pull requests. Pull requests (screen 53) and New pull request (screen 74) are pages of their own. An old address of Code / Now with a search opens Pull requests.
+- The analyst role has one name: Business analyst.
+
+Each visual check compared every design picture with a capture of a frozen demo build, read in a fresh context:
+
+| Check | Match | Close | Differs | Major look differences |
+| --- | --- | --- | --- | --- |
+| 1 (before the look passes) | 0 | – | 91, and 10 not reached | most |
+| 2 | 2 | 46 | 34 (81 screens) | many |
+| 3 | 9 | 50 | 42 | many |
+| 4 | 11 | 60 | 31 | 3 |
+| 5 (the changed screens) and the last look of the lead | – | – | – | 0 |
+
+The rule to stop: no major look difference is left, and each difference that stays has a kind. The last four major items (the tour 68, the ticket fields 26, the Experts card of Learn 46, the dashboard tiles 47) were checked by the lead on captures of the final tree.
+
+Differences that stay, by kind:
+
+- Function: the design shows a control that the app does not have. Examples: Sign out, Pause, Run again, Take it over, Keep beside Undo, attach in Chat, Add a document, the PDF switch of the dossier, Pin to Today, Check against the code, Earlier versions, History of a handbook page, Speaker notes, a model for each agent role, Portable mode, Attach a file to feedback, Release and Recipe of a ticket, Reviewers and Merge with of a new pull request, an editable Warn at level of the budgets, the stage steppers of Automation (the engine counts statuses of the issue tracker, not stages), the moment "Shipyard needs N permissions" with Allow all.
+- Kept: the row with back, forward and the Ask bar on every page (one Ask bar on every page); the More rows and cards that hold the controls of today; the setup rows and the sentence of each tour step; the Status row and Start run of a ticket; Merge with failed checks behind a risk confirmation; the BPMN mark (its licence asks to keep it visible); a long title that wraps beside its actions.
+- Data: the demo has no case for some states (the failed, paused and finished-outside stop cards, a stale doc on Impacts, a change on the disk, an open project to close with agents at work).
+- Minor look: the spend total is 44 px where the design has 56 px (the type scale stops at 44 and a test keeps it); the segments of the section switch keep one width; a dashboard tile scrolls inside its chart box; some labels of the ticket rows keep the names of today (Issue type, Assignee, Linked).
+
+Defects found and fixed in these rounds:
+
+- An empty Inspector stayed open after a page change; Escape did not close the link card.
+- Mark all as read was off while the news still showed as new.
+- The health of this computer said "1 problem" while its tiles named 7.
+- The back link of a pull request went to Code / Now.
+- The Open of a ref card did nothing on the page of the item.
+- Stop on the session panel had a contrast of 4.27:1 in the dark theme; the Learn picker had a name that did not start with its visible text.
+- Two Rust tests of the review and estimate agents failed under load: they took turns on two locks for one shared limit.
+
+Open for the owner:
+
+- Closing a project while agents work asks nothing. The close only makes no project active (`projects_close`); the behaviour is older than the redesign.
+- The functions in the list above, if the design is to be met in full.
+- `q:Q-172`: the names in French, German and Spanish are translations by the agent.
+- The archive of this change needs `update-ux-declutter` archived first: its delta modifies the spec `ux-declutter`, which exists only in that change.
+
+Checks of the lead on the final tree: see the last commit and the final report of the session.

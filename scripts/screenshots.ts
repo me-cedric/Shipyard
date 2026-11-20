@@ -230,7 +230,6 @@ const scenes: Scene[] = [
 	// The old names stay for the docs that cite them: the plan, and the member page of the team.
 	{ name: "work", run: openTimeline },
 	{ name: "team", run: (p) => go(p, "/crew/rights") },
-	{ name: "work-team", run: (p) => go(p, "/crew/rights") },
 	{
 		name: "crew",
 		run: async (p) => {
@@ -270,9 +269,7 @@ const scenes: Scene[] = [
 		},
 	},
 	{ name: "agents", run: openLive },
-	{ name: "agents-map", run: openLive },
 	{ name: "workflows", run: openRecipe },
-	{ name: "factory-workflows", run: openRecipe },
 	{
 		name: "runs-history",
 		run: async (p) => {
@@ -281,7 +278,6 @@ const scenes: Scene[] = [
 		},
 	},
 	{ name: "usage", run: openSpend },
-	{ name: "factory-usage", run: openSpend },
 	{
 		name: "run",
 		run: async (p) => {
@@ -364,8 +360,8 @@ const scenes: Scene[] = [
 		name: "themes",
 		run: async (p) => {
 			await open(p, "Me");
-			await p.getByRole("combobox", { name: "Theme" }).click();
-			await p.getByRole("option", { name: "OLED", exact: true }).click();
+			// The theme is a group of tiles (picture 058).
+			await p.getByRole("group", { name: "Theme" }).getByRole("button", { name: /^OLED/ }).click();
 		},
 	},
 	{
@@ -491,8 +487,9 @@ const scenes: Scene[] = [
 		name: "settings-me-languages",
 		run: async (p) => {
 			await open(p, "Me");
-			await p.getByRole("combobox", { name: "Language", exact: true }).click();
-			await p.getByRole("option", { name: "French" }).waitFor();
+			// Language is a group of buttons in its own card.
+			await p.getByRole("group", { name: "Language", exact: true }).scrollIntoViewIfNeeded();
+			await p.getByRole("button", { name: "French" }).waitFor();
 		},
 	},
 	{

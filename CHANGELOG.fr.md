@@ -1,6 +1,10 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Chaque lieu suit sa maquette : la première carte commence juste sous le titre de la page, le sélecteur de section garde sa marque sous son option, une carte qui vous attend nomme l'agent ou la personne avec un avatar, la visite est une carte avec des barres d'étapes et Passer la visite, les champs du ticket sont des lignes avec un bouton de valeur, Apprendre a une carte Experts, et chaque tuile de tableau de bord a une seule hauteur avec ses lignes dans une zone de graphique.
+- Aujourd'hui / Nouvelles garde la marque des nouvelles qui étaient nouvelles à l'ouverture, et Tout marquer comme lu reste actif jusqu'à votre clic.
+- La santé de cet ordinateur compte dans son titre chaque problème que ses tuiles nomment, et une tuile avec quelque chose à corriger montre l'alerte, pas la coche.
+- Une ancienne adresse de Code / Maintenant avec une recherche ou un filtre des pull requests ouvre Pull requests avec la même recherche, et le lien de retour d'une pull request mène à cette liste.
 - L'interface a une nouvelle apparence dans les thèmes Clair, Sombre, OLED et Système : un fond de page uni, une couleur d'accent, une couleur pour ce qui vous attend, des boutons principaux presque noirs, les polices Geist et Geist Mono, un texte de 15 px, et des contrôles et des cartes plus arrondis.
 - La fenêtre n'a plus de barre du haut ni de barre d'état : la barre latérale contient le nom du projet en haut, les six lieux avec leurs nombres, Configuration et votre compte en bas, et chaque page commence par une rangée qui contient le bouton de la barre latérale, Précédent, Suivant, la barre Demander ou dire à Shipyard et la marque de synchronisation.
 - La marque de synchronisation ouvre une carte avec les fichiers modifiés, les lignes ajoutées et supprimées, la branche de travail et les boutons de synchronisation, de récupération, d'envoi et de commit ; un échec de synchronisation s'y affiche avec son action pour réessayer.
