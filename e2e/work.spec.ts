@@ -61,8 +61,10 @@ test("assigns a member from the ranked list and marks the item for the agent", a
 	await expect(assignee).not.toContainText("Hopper");
 	await page.getByRole("option", { name: /^Grace Hopper/ }).click();
 	await expect(assignee).toContainText("Grace Hopper");
-	await page.getByRole("button", { name: "Mark for agent" }).click();
-	await expect(page.getByRole("button", { name: "Mark for agent" })).toBeDisabled();
+	// Mark for agent is the checkbox "Give it to agents" of the fields: checked, it stays checked.
+	const give = page.getByRole("checkbox", { name: "Give it to agents" });
+	await give.click();
+	await expect(give).toBeChecked();
 });
 
 test("moves a card on the board with the keyboard", async ({ page }) => {

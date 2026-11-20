@@ -171,11 +171,13 @@ export function LearnActions({
 		<>
 			{people.length ? (
 				<Menu.Root>
-					<Menu.Trigger
-						render={<Button aria-label={`${k.person}: ${now.label}`} className="gap-2 pl-1.5" />}
-					>
-						<Avatar name={now.label} size="s" />
+					<Menu.Trigger render={<Button className="gap-2 pl-1.5" />}>
+						{/* The name of the button starts with its visible text: the first name. */}
+						<span aria-hidden="true" className="flex">
+							<Avatar name={now.label} size="s" />
+						</span>
 						{now.label.split(" ")[0]}
+						<span className="sr-only">{`, ${now.label}, ${k.person}`}</span>
 					</Menu.Trigger>
 					<MenuList
 						value={now.value}

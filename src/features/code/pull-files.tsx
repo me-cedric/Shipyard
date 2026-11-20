@@ -248,7 +248,10 @@ export function PullFiles({
 					th.resolved ? (
 						<ThreadCard reference={detail.reference} th={th} />
 					) : (
-						<FocusThread reference={detail.reference} th={th} className="my-2" />
+						// The thread keeps its role and its name `path:line`, as the thread card has them.
+						<article aria-label={`${th.path}${th.line ? `:${th.line}` : ""}`}>
+							<FocusThread reference={detail.reference} th={th} className="my-2" />
+						</article>
 					),
 					!th.resolved,
 				);
