@@ -131,8 +131,9 @@ describe("Get started checklist", () => {
 		mockState().prefs.defaultAgent = "";
 		mountApp("/setup/start");
 		await pick(user, "ai");
-		await user.click(await screen.findByRole("combobox", { name: en.personal.prefs.defaultAgent }));
-		await user.click(await screen.findByRole("option", { name: "Claude Code" }));
+		// Setup / Start offers the AI tools as tiles (picture 008).
+		const tools = await screen.findByRole("group", { name: en.personal.prefs.defaultAgent });
+		await user.click(within(tools).getByRole("button", { name: "Claude Code" }));
 		await waitFor(() => expect(mockState().prefs.defaultAgent).toBe("claude"));
 		await waitFor(() =>
 			expect(
@@ -181,9 +182,13 @@ describe("Get started checklist", () => {
 		expect(
 			await screen.findByRole("button", { name: "Install GitHub Copilot" }),
 		).toBeInTheDocument();
-		await user.click(await screen.findByRole("button", { name: s.action.openRunner }));
+		// The step has one main action; the door to the AI tools is the scope This computer.
+		const [computer] = await screen.findAllByRole("link", {
+			name: new RegExp(`^${s.scope.computer}`),
+		});
+		await user.click(computer as HTMLElement);
 		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/computer"));
-		expect(router.state.location.hash).toBe("connections-runner");
+		expect(await screen.findByRole("region", { name: en.connections.group.runner })).toBeVisible();
 	});
 
 	it("links a done item to its page and marks the next item to do", async () => {

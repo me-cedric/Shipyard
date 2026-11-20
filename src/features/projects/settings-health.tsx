@@ -14,7 +14,7 @@ import { useUpdateCheck } from "@/lib/updates";
 import { openWhatsNew, useWhatsNew } from "@/lib/updates/whats-new";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { ATTENTION_GLYPH, ATTENTION_ICON, ATTENTION_FRAME } from "@/ui/molecules/attention-card";
+import { ATTENTION_FRAME, ATTENTION_GLYPH, ATTENTION_ICON } from "@/ui/molecules/attention-card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
