@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
+import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import {
 	type Accent,
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Segmented } from "@/ui/atoms/segmented";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SPRING, useReducedMotionPref } from "@/ui/motion";
 import { Fold } from "./connections/fold";
 import { TextPref } from "./me/personal";
@@ -264,8 +266,10 @@ function Computer() {
 		queryKey: ["app", "data-folder"],
 		queryFn: () => unwrap(commands.appDataFolder()),
 	}).data;
+	const [failure, setFailure] = useState<unknown>(null);
 	// Change (`spec:shell-setup-rights#REQ-008`): pick a folder, ask, then move the data and restart.
 	const change = async () => {
+		setFailure(null);
 		try {
 			const path = await pickFolder();
 			if (!path) return;
@@ -273,13 +277,16 @@ function Computer() {
 			await unwrap(commands.appDataFolderMove(path, true));
 		} catch (e) {
 			logError(e);
+			setFailure(e);
 		}
 	};
 	const portable = async (on: boolean) => {
+		setFailure(null);
 		try {
 			await unwrap(commands.appPortableSet(on, true));
 		} catch (e) {
 			logError(e);
+			setFailure(e);
 		} finally {
 			await qc.invalidateQueries({ queryKey: ["app", "data-folder"] });
 		}
@@ -325,6 +332,7 @@ function Computer() {
 					onCheckedChange={(c) => p.setPrefs({ closePush: c })}
 				/>
 			</SetupRow>
+			<ErrorNotice error={failure} className="px-6" />
 			<Fold label={t.ui.more}>
 				<SetupRow id="all-pages" label={l.showAllPages}>
 					<Toggle

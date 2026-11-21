@@ -26,6 +26,16 @@ describe("Setup / Me / Look and layout: the data folder", () => {
 		await idle(router);
 	});
 
+	it("shows the error when the move is refused", async () => {
+		const user = userEvent.setup();
+		const router = mountApp("/setup/me?page=look");
+		mockState().nextFolder = `${OLD}/sub`;
+		await user.click(await screen.findByRole("button", { name: "Change the data folder" }));
+		expect(await screen.findByRole("alert")).toBeInTheDocument();
+		expect(folderNow()).toBe(OLD);
+		await idle(router);
+	});
+
 	it("keeps the data when the person cancels", async () => {
 		const user = userEvent.setup();
 		mockState().confirm = false;
