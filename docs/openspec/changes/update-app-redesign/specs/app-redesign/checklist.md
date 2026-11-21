@@ -5,7 +5,7 @@ Spec: [spec.md](spec.md)
 ## Clarity
 
 - [x] Goal explains what changes and why.
-- [x] No open question blocks the start: `q:Q-168`, `q:Q-169`, `q:Q-170` and `q:Q-171` are folded. `q:Q-172` (names in three languages) is open and has a default. Task T029 used the default names, so the question blocks no task.
+- [x] No open question blocks the start: `q:Q-168`, `q:Q-169`, `q:Q-170` and `q:Q-171` are folded. `q:Q-172` (names in three languages) is answered: option 1, the names that task T029 used.
 - [x] Non-goals are explicit.
 
 ## Completeness

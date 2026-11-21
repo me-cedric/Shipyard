@@ -38,10 +38,10 @@ First run
 Top bar and duplicates
 
 - REQ-009: One Activity button SHALL replace the live runs, sessions and needs-you controls of the top bar. It SHALL show the needs-you count and a mark while a run or a session is active. Its panel SHALL have three parts: Needs you (link to Home / Today), Runs (stop, link to Factory / Runs), Sessions (stop, link to Factory / Sessions).
-- REQ-010: The avatar SHALL open a menu with Settings / Me, Theme (light, dark, system), Manual, Shortcuts, What's new and Replay the tour. The "?" button and the theme button SHALL leave the top bar. F1 SHALL still open the manual.
+- REQ-010: The account row of the rail SHALL open a menu with Setup / Me, Theme (light, dark, system), Manual, Shortcuts, What's new and Replay the tour. F1 SHALL still open the manual.
 - REQ-011: One Ask split button SHALL replace the assistant button and the Ask menu. The main part SHALL toggle the assistant panel. The chevron SHALL open the Ask items.
-- REQ-012: The Sync button SHALL show the ahead and behind counts. The status bar SHALL show the count of changed files beside Commit. The repository chip SHALL leave the top bar.
-- REQ-013: At a window width of 1100 px or more, the top bar SHALL show 13 controls or fewer.
+- REQ-012: The Sync button SHALL show the ahead and behind counts. The card of the sync mark SHALL show the count of changed files.
+- REQ-013: At a window width of 1100 px or more, the top row of the page SHALL show 13 controls or fewer.
 - REQ-014: Code / Terminal and Knowledge / Manual SHALL leave the tab bars. The address of Code / Terminal SHALL open the terminal drawer. The address of Knowledge / Manual SHALL still show the manual. The palette and the native menu SHALL keep their entries.
 - REQ-015: Home / Today SHALL show no stat tiles. The count of the person's items and the spend of today SHALL show in the headings of their panels.
 - REQ-016: Each action and each view that a person reaches before this change SHALL stay reachable from a visible control and from the palette.
@@ -154,6 +154,7 @@ Pull requests (third pass, 2026-11-12)
 
 - Existing code/docs/specs: `specs/shell`, `specs/home-today`, `specs/design-system`, `changes/add-onboarding-tour`, `changes/add-visual-cues` (tab icons were "later" there), adr:0014 (visual language v2, the three springs).
 - Supersedes or extends: `add-onboarding-tour` REQ-001, REQ-005 and REQ-013.
+- REQ-010, REQ-012 and REQ-013 name the homes of `change:update-app-redesign`: its look pass 1 removed the top bar and the status bar (`spec:shell#REQ-021`).
 
 ## ADDED Requirements
 
@@ -273,12 +274,12 @@ One Activity button SHALL replace the live runs, sessions and needs-you controls
 
 ### Requirement: REQ-010 Avatar menu
 
-The avatar SHALL open a menu with Settings / Me, Theme, Manual, Shortcuts, What's new and Replay the tour. F1 SHALL still open the manual.
+The account row of the rail SHALL open a menu with Setup / Me, Theme, Manual, Shortcuts, What's new and Replay the tour. F1 SHALL still open the manual.
 
 #### Scenario: Theme from the menu
 
 - GIVEN the dark theme
-- WHEN the person picks Light in the avatar menu
+- WHEN the person picks Light in the account menu
 - THEN the app shows the light theme
 
 ### Requirement: REQ-011 Ask split button
@@ -293,22 +294,22 @@ One Ask split button SHALL toggle the assistant panel, and its chevron SHALL ope
 
 ### Requirement: REQ-012 Repository state
 
-The Sync button SHALL show the ahead and behind counts, and the status bar SHALL show the count of changed files beside Commit.
+The Sync button SHALL show the ahead and behind counts, and the card of the sync mark SHALL show the count of changed files.
 
 #### Scenario: Changed files
 
 - GIVEN five changed files and two commits ahead
-- WHEN the shell shows
-- THEN Sync shows 2 ahead and the status bar shows 5 beside Commit
+- WHEN the person opens the sync mark
+- THEN Sync shows 2 ahead and the card shows 5 changed files
 
 ### Requirement: REQ-013 Top bar size
 
-At a window width of 1100 px or more, the top bar SHALL show 13 controls or fewer.
+At a window width of 1100 px or more, the top row of the page SHALL show 13 controls or fewer.
 
 #### Scenario: Count
 
 - GIVEN a window of 1100 px
-- WHEN the top bar shows
+- WHEN the top row of the page shows
 - THEN it holds 13 controls or fewer
 
 ### Requirement: REQ-014 Twin tabs

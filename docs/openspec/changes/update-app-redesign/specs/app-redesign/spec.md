@@ -129,7 +129,7 @@ Look pass 2, Library
 
 - Design source: `docs/designs/redesign/README.md` (index of the 101 screens, pictures and sources), and the private canvas <https://claude.ai/artifact/1uHi9aggUnnnUDchTWGYA2>.
 - Existing code: `src/features/`, `src/app/router.tsx`, `src/ui/`.
-- Extends: `change:update-ux-declutter` (one checklist, shared patterns). Supersedes its top bar and status bar requirements: look pass 1 removed both bars (`spec:shell#REQ-021`).
+- Extends: `change:update-ux-declutter` (one checklist, shared patterns). Its top bar and status bar requirements (REQ-010, REQ-012, REQ-013) now name the new homes in that change: look pass 1 removed both bars (`spec:shell#REQ-021`).
 - Rules: `docs/openspec/constitution.md` sections 2, 3 and 4.
 - Look pass 2, Library: the pages of `spec:knowledge`, `spec:design` and `spec:specs` take the layout of the design. Their requirement refs and their behavior stay (`spec:specs#REQ-008` still filters the questions by kind, state and owner, from the More menu; `spec:knowledge#REQ-004` still filters the graph by kind). No requirement ref moves.
 - Decision: `adr:0023` (six places and one flow), accepted. It replaces `adr:0004`.
