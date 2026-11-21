@@ -1,5 +1,6 @@
 // The logic of the working parts: the draft kept per thread, the turn that waits, the options of a
 // reply.
+import { listen } from "@tauri-apps/api/event";
 import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import {
 	commands,
@@ -64,6 +65,8 @@ export function useAssistant({
 	// The thread of the turn that runs, and its tool calls so far.
 	const [running, setRunning] = useState<string | null>(null);
 	const [liveSteps, setLiveSteps] = useState<TraceStep[]>([]);
+	/** The tokens of the running turn so far: the ring reads them while the turn runs. */
+	const [liveTokens, setLiveTokens] = useState(0);
 	const live = useRef({ current, drafts });
 	live.current = { current, drafts };
 
@@ -154,12 +157,31 @@ export function useAssistant({
 		});
 	}, [threads, openId]);
 
+	// The short name of a thread comes after its first answer, in the background.
+	useEffect(() => {
+		if (!open || !project) return;
+		const off = listen("assistant-threads", () => {
+			unwrap(commands.assistantThreads())
+				.then(setThreads)
+				.catch(() => {});
+		});
+		return () => {
+			void off.then((f) => f());
+		};
+	}, [open, project]);
+
 	// The live trace: the tool calls of the running turn, read each second.
 	useEffect(() => {
-		if (!running) return setLiveSteps([]);
+		if (!running) {
+			setLiveTokens(0);
+			return setLiveSteps([]);
+		}
 		const timer = setInterval(() => {
 			unwrap(commands.assistantLive(running))
-				.then(setLiveSteps)
+				.then((l) => {
+					setLiveSteps(l.steps);
+					setLiveTokens(l.usedTokens);
+				})
 				.catch(() => {});
 		}, 1000);
 		return () => clearInterval(timer);
@@ -221,6 +243,7 @@ export function useAssistant({
 		unread: (id: string) =>
 			(threads.find((x) => x.id === id)?.updated ?? 0) > (seen[id] ?? Infinity),
 		liveSteps,
+		liveTokens,
 		running,
 		current,
 		runners,
@@ -268,6 +291,14 @@ export function useAssistant({
 			// The draft goes at once, so text typed during the turn is not lost. A failed send gives it back.
 			const to = v.thread.id;
 			if (fromDraft) setDrafts((d) => ({ ...d, [to]: "" }));
+			// A thread with no name shows the first line at once, as the backend saves it; the short name follows the first answer.
+			setThreads((list) =>
+				list.map((th) =>
+					th.id === to && !th.title.trim()
+						? { ...th, title: (body.split("\n")[0] ?? "").slice(0, 60) }
+						: th,
+				),
+			);
 			const ok = await run(body, () =>
 				unwrap(commands.assistantSend(to, body, quotes, contextFor(v))),
 			);

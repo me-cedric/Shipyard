@@ -256,6 +256,9 @@ pub struct Thread {
     pub id: String,
     pub project: String,
     pub title: String,
+    /// A person or the AI tool gave the title: no automatic name replaces it.
+    #[serde(default)]
+    pub named: bool,
     pub settings: ThreadSettings,
     pub context: Context,
     pub draft: String,

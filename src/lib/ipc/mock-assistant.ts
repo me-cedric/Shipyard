@@ -122,6 +122,7 @@ export function create(a: MockAssistant, env: Env, title: string | null): Thread
 		id: `T${String(a.seq).padStart(4, "0")}`,
 		project: env.project,
 		title: title?.trim() ?? "",
+		named: !!title?.trim(),
 		settings: {
 			runner: d.runner ?? "claude",
 			model: d.model,
@@ -183,6 +184,7 @@ export const get = (a: MockAssistant, env: Env, id: string) => view(find(a, env,
 export function rename(a: MockAssistant, env: Env, id: string, title: string): ThreadSummary {
 	const r = find(a, env, id);
 	r.thread.title = title.trim();
+	r.thread.named = true;
 	return summary(r);
 }
 

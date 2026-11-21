@@ -326,7 +326,15 @@ export function Composer({
 						/>
 					) : null}
 					<span className="ml-auto flex items-center gap-2">
-						{a.current ? <GaugeView gauge={a.current.gauge} /> : null}
+						{a.current ? (
+							<GaugeView
+								gauge={
+									a.busy && a.liveTokens
+										? { ...a.current.gauge, usedTokens: a.liveTokens }
+										: a.current.gauge
+								}
+							/>
+						) : null}
 						{send}
 					</span>
 				</div>

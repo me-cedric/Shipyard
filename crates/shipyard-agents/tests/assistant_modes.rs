@@ -58,6 +58,7 @@ fn thread(mode: AssistantMode) -> Thread {
         id: "th-1".into(),
         project: "ship".into(),
         title: String::new(),
+        named: false,
         settings,
         context: Context::default(),
         draft: String::new(),

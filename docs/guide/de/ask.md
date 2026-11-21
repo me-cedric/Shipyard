@@ -24,7 +24,7 @@ Jeder andere Text geht mit der Eingabetaste an den Assistenten.
 
 Der Assistent öffnet sich an der Seite. Stellen Sie ihm eine Frage zum Projekt. Jedes Gespräch ist ein Tab, und ein Punkt markiert einen Tab mit einer neuen Antwort. Die Antwort zeigt unter So habe ich es gefunden, wie er das Ergebnis gefunden hat.
 
-- Unter dem Nachrichtenfeld hat eine Leiste die Schaltfläche zum Anhängen, eine Schaltfläche mit dem Modell und dem Aufwand (sie öffnet die Modelle des KI-Tools, die Aufwandsstufen und die Modelle der anderen KI-Tools), die Berechtigung, den Kontextring und Senden.
+- Unter dem Nachrichtenfeld hat eine Leiste die Schaltfläche zum Anhängen, eine Schaltfläche mit dem Modell und dem Aufwand (sie öffnet die Modelle des KI-Tools, die Aufwandsstufen und die Modelle der anderen KI-Tools), die Berechtigung, den Kontextring und Senden. Der Ring folgt der Runde, während das KI-Tool arbeitet.
 - Im Modus Ausführen ist die Berechtigung Bearbeiten mit Freigabe, Auto: Änderungen annehmen oder Berechtigungen umgehen. Berechtigungen umgehen überspringt jede Freigabe von Claude Code oder Codex: Shipyard fragt Sie beim ersten Mal in jedem Projekt, zeigt die Einstellung in Rot, solange sie aktiv ist, und lehnt sie in einem schreibgeschützten Projekt und bei ausgeschaltetem Agenten-Schalter ab.
 - Tippen Sie `/` am Anfang einer Nachricht, um die Befehle des gewählten KI-Tools aufzulisten. Der Text geht so an das KI-Tool, wie Sie ihn getippt haben.
 - Jedes Gespräch hält eine Agenten-Sitzung, sodass eine spätere Nachricht die frühere Arbeit fortsetzt.
@@ -35,7 +35,7 @@ Der Assistent öffnet sich an der Seite. Stellen Sie ihm eine Frage zum Projekt.
 
 Der volle Assistent ist die Seite Fragen, unter `/ask`. Den vollen Assistenten öffnen, in der Fragen-Leiste, oder das Seitenfeld öffnet sie. Kleine Leiste geht zurück zum Seitenfeld.
 
-- Die Seite hat drei Spalten: die Gespräche links, den Verlauf mit dem Nachrichtenfeld in der Mitte und die Werkzeuge rechts.
+- Die Seite hat drei Spalten: die Gespräche links (ein neues nimmt die erste Zeile Ihrer Nachricht, dann einen kurzen Namen, den das KI-Tool nach seiner ersten Antwort schreibt; Umbenennen behält Ihren eigenen Namen), den Verlauf mit dem Nachrichtenfeld in der Mitte und die Werkzeuge rechts.
 - Die Werkzeuge sind Dieser Bildschirm (was der Assistent sehen kann, mit Hinzufügen), Der Assistent darf (Dateien allein ändern, und Befehle allein ausführen für ein KI-Tool, das sie hat) und Bereich (die Seite und die Breite des Seitenfelds).
 - Mit Codex als KI-Tool fragt eine Karte: Codex fragt: diesem Ordner vertrauen? Nicht jetzt blendet die Karte für diesen Besuch aus. Diesem Ordner vertrauen fügt den Ordner der Konfigurationsdatei von Codex hinzu. Was das schreibt zeigt die genaue Änderung, und vor Ihrem Klick wird nichts geschrieben.
 

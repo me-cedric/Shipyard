@@ -10,6 +10,7 @@ import type {
 	Forward,
 	Image,
 	Inspect_Serialize,
+	LiveTurn,
 	Picture,
 	TraceStep,
 } from "./bindings";
@@ -25,6 +26,8 @@ export type MockExtras = {
 	behind: Record<string, number>;
 	/** The tool calls of the running turn, by thread. */
 	live: Record<string, TraceStep[]>;
+	/** The tokens of the running turn of a thread so far. */
+	liveTokens?: Record<string, number>;
 	/** The mail addresses that the app opened. */
 	mails: string[];
 	/** The copies that Attach a file made in the data folder. */
@@ -205,4 +208,7 @@ export function linkedInspect(
 	};
 }
 
-export const live = (m: MockExtras, thread: string): TraceStep[] => m.live[thread] ?? [];
+export const live = (m: MockExtras, thread: string): LiveTurn => ({
+	steps: m.live[thread] ?? [],
+	usedTokens: m.liveTokens?.[thread] ?? 0,
+});
