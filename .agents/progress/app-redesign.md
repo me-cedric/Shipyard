@@ -734,6 +734,6 @@ Open items:
 - Fill from my work refuses the sheet of another member. A lead can fill another sheet only after a match of the commits to the emails of the team file.
 - The permissions card offers no request for a permission that is off, only Open the system settings.
 - `src/features/factory/runs.test.tsx` failed once under load and passed on two reruns.
-- `q:Q-172` is answered (option 1, translated names). An agent review of the French, German and Spanish strings and guide pages against the English fixed 186 strings (meaning, English left in, place names, register). A second pass read each changed line of the 12 guide pages of each language against the English (French 34, German 48, Spanish 40 fixes). No native speaker read them.
+- `q:Q-172` is answered (option 1, translated names). An agent review of the French, German and Spanish strings and guide pages against the English fixed 186 strings (meaning, English left in, place names, register). A second pass read each changed line of the 12 guide pages of each language against the English (French 34, German 48, Spanish 40 fixes). No native speaker read them. The owner accepted the texts as they are (2026-11-21).
 - The owner accepted the deliberate deviations of the visual check (2026-11-21).
 - The test `commands::setup::tests::a_link_to_a_connection_that_is_gone_is_replaced_by_the_only_tracker` reads the real keychain and hangs when no one is at the screen (older than this change).
