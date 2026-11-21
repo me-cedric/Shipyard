@@ -7,7 +7,7 @@ Shipyard hat fünf eingebaute Designs und eine Bibliothek von Designs, die Sie i
 - Hell und Dunkel.
 - OLED: eine echte schwarze Basis für einen OLED-Bildschirm. Die erhöhten Flächen sind einen kleinen Schritt heller. Text erfüllt WCAG AA (4,5:1) auf jeder Fläche. Der Akzent ist derselbe wie in Dunkel.
 - System: Hell oder Dunkel, wie das System.
-- System, OLED bei Dunkel: Hell oder OLED, wie das System.
+- System mit OLED: Hell oder OLED, wie das System.
 
 Das Tastenkürzel für das Design (Mod+Shift+L) geht von Hell zu Dunkel, OLED, System, dann wieder Hell.
 
@@ -63,7 +63,7 @@ Die Datei `examples/theme-sample/harbor-night.json` enthält dieses Beispiel.
 | `background` | nein | Die Farbe der Fläche 0. Shipyard bildet daraus die anderen Flächen und die Grauskala. |
 | `foreground` | nein | Die Haupttextfarbe. |
 | `radius` | nein | Der Eckenradius eines Bedienelements, 0 bis 16 px. Kleine Elemente erhalten die Hälfte, Karten das 1,5-Fache, Dialoge das 2-Fache. |
-| `font` | nein | `system`, `grotesk`, `humanist`, `serif` oder `mono`. Die Schriften sind auf Ihrem Computer: Nichts wird heruntergeladen. Die Oberflächenschrift von Einrichtung / Ich hat Vorrang. |
+| `font` | nein | `system`, `grotesk`, `humanist`, `serif` oder `mono`. Die Schriften sind auf Ihrem Computer: Nichts wird heruntergeladen. Die Schrift der Oberfläche von Einrichtung / Ich hat Vorrang. |
 | `tokens` | nein | Die erweiterte Ebene: ein Token-Name zu einer Farbe. Ein Token hat Vorrang vor einem einfachen Feld. |
 
 Die einfache Ebene ist `base`, `accent`, `background`, `foreground`, `radius` und `font`. Die meisten Designs brauchen nur diese.
@@ -82,7 +82,7 @@ Ein Design ist Daten. Shipyard lehnt `url()`, `var()`, eine Funktion in einer Fu
 | Token | Verwendung |
 |---|---|
 | `surface-0` | Die Basis des Fensters. |
-| `surface-1` | Felder und die Seitenleiste. |
+| `surface-1` | Panels und die Seitenleiste. |
 | `surface-2` | Karten und Zeilen. |
 | `surface-3` | Menüs, Popover und Dialoge. |
 | `n-1` bis `n-5` | Hintergründe von Bedienelementen, von leise bis stark, und Hover. |

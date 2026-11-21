@@ -16,9 +16,9 @@ La tarjeta de los archivos para el commit muestra los tres primeros archivos con
 - Un archivo renombrado se muestra con su ruta nueva, con la antigua: `antiguo → nuevo`. Prepararlo o descartar su cambio actúa sobre las dos rutas.
 - Cuando dos cambios coinciden en las mismas líneas, una vista de conflicto muestra los dos lados. Elige uno, escribe el resultado, o pásalo a un agente.
 
-Las pull requests de la plataforma de código vienen después. La lista tiene una búsqueda y dos filtros. Todo muestra cada pull request. Por revisar muestra las pull requests abiertas que no son borradores, esperan una revisión y no tienen cambios solicitados. Las pull requests abiertas se muestran primero. El botón Fusionadas y cerradas muestra los otros dos grupos, cada uno con su número. Una fila muestra el número, el título, la marca de borrador, el estado de los controles y el estado de la revisión. Abrir pull request empieza una nueva: Escribir con un agente rellena el título y el cuerpo a partir de los cambios de la rama, el ticket enlazado y el cambio de especificación enlazado, y nada se abre hasta que haces clic en Abrir.
+Las pull requests de la plataforma de código vienen después. La lista tiene una búsqueda y dos filtros. Todas muestra cada pull request. Por revisar muestra las pull requests abiertas que no son borradores, esperan una revisión y no tienen cambios solicitados. Las pull requests abiertas se muestran primero. El botón Fusionadas y cerradas muestra los otros dos grupos, cada uno con su número. Una fila muestra el número, el título, la marca de borrador, el estado de los controles y el estado de la revisión. Abrir pull request empieza una nueva: Escribir con un agente rellena el título y el cuerpo a partir de los cambios de la rama, el ticket enlazado y el cambio de especificación enlazado, y nada se abre hasta que haces clic en Abrir.
 
-Haz clic en una fila para abrir la pull request en la página de su funcionalidad, sección Cambios (consulta la página Flujo, La página de una funcionalidad). Una pull request lista muestra Fusionar: abre esa página, donde confirmas la fusión.
+Haz clic en una fila para abrir la pull request en la página de su funcionalidad, sección Cambios (consulta la página Flujo, La página de una funcionalidad). Una pull request lista para fusionar muestra Fusionar: abre esa página, donde confirmas la fusión.
 
 Dos puertas abajo abren Salud del producto (Flujo / Salud) y los archivos del proyecto.
 
@@ -30,7 +30,7 @@ Historial lista los commits, el más reciente primero. Selecciona un commit para
 
 Ramas lista las ramas de este ordenador y del servidor. Crea, cambia a, fusiona o elimina una rama. La aplicación nunca elimina la rama en la que trabajas.
 
-El selector de rama, en la tarjeta de la marca de sincronización y en Código / Ahora, tiene un campo de filtro. Escribe para reducir la lista, muévete con las flechas y pulsa Intro. Una rama remota se extrae como una rama local nueva que la sigue. La fila Nueva rama crea una rama a partir de la rama en la que trabajas.
+El selector de rama, en la tarjeta de la marca de sincronización y en Código / Ahora, tiene un campo de filtro. Escribe para reducir la lista, muévete con las flechas y pulsa Intro. Una rama remota se extrae como una rama local nueva que la sigue. La fila Rama nueva crea una rama a partir de la rama en la que trabajas.
 
 ## Terminal
 
@@ -38,6 +38,6 @@ Terminal es una línea de comandos en la carpeta del proyecto. El botón Termina
 
 ## Sincronizar
 
-Una marca en el extremo derecho de la fila superior de cada página muestra el estado del repositorio: La sincronización falló, el número de archivos modificados, Aún no compartido, por detrás, por delante o Sincronizado. Haz clic en ella para abrir una tarjeta con los archivos modificados, la rama de trabajo y los botones de sincronización y de commit. Un enlace de la tarjeta abre Código / Ahora.
+Una marca en el extremo derecho de la fila superior de cada página muestra el estado del repositorio: La sincronización falló, el número de archivos modificados, Aún no compartido, por detrás, por delante o Sincronizado. Haz clic en ella para abrir una tarjeta con los archivos modificados, la rama de trabajo y los botones Sincronizar, Solo traer, Push y Commit. Un enlace de la tarjeta abre Código / Ahora.
 
 Sincronizar trae los cambios del equipo y pone tu rama al día. La flecha unida a él abre Solo traer y Push. Enviar tus commits al servidor es una acción aparte. La aplicación nunca fuerza un push.

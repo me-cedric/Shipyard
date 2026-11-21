@@ -24,14 +24,14 @@ Mehr enthält:
 
 ## Neues Feature
 
-Neu öffnet eine eigene Seite, mit einem Link zurück zum Board und einer Frage: Was möchten Sie bauen?
+Neu öffnet eine eigene Seite, mit dem Link Ablauf zurück zum Board und einer Frage: Was möchten Sie bauen?
 
 1. Tippen Sie den Titel.
 2. Wählen Sie die Art: Feature, Fehler oder Idee für später. Eine Idee legt nur die Spezifikationsänderung an.
 3. Wählen Sie den Weg: Ein Agent schreibt die Spezifikation, Ich schreibe die Spezifikation, oder Sofort bauen, ohne Spezifikation.
 4. Klicken Sie auf Erstellen.
 
-Dokument hinzufügen steht neben den Arten. Es nimmt eine Markdown-, PDF- oder Word-Datei bis 20 MiB, und die Seite lehnt eine andere Art ab. Erstellen kopiert jedes Dokument in den Ordner `inputs` der Änderung, als Eingabe für den Spezifikationsautor. Limit steht neben dem Rezept, für die Wege, die ein Ticket anlegen. Es ist das meiste Geld, das alle Läufe des Features ausgeben dürfen, in Dollar. Es steht in `.shipyard/automation.yaml` unter dem Schlüssel des Tickets.
+Dokument hinzufügen steht neben den Arten. Es nimmt eine Markdown-, PDF- oder Word-Datei bis 20 MiB, und die Seite lehnt eine andere Art ab. Erstellen kopiert jedes Dokument in den Ordner `inputs` der Änderung, als Eingabe für den Spezifikationsautor. Limit steht neben dem Rezept, für die Wege, die ein Ticket anlegen. Es ist der höchste Betrag in Dollar, den alle Läufe des Features ausgeben dürfen. Es steht in `.shipyard/automation.yaml` unter dem Schlüssel des Tickets.
 
 Oder beginnen Sie mit einem Ticket, unter den drei Wegen: Suchen Sie ein Ticket ohne Lauf, dann klicken Sie auf Agent starten. Von einem Ticket starten, unter Mehr bei Ablauf, öffnet sie.
 
@@ -41,7 +41,7 @@ Jeder Weg legt zuerst eine Spezifikationsänderung mit Ihrem Text als Titel an. 
 
 Liste zeigt dieselben Features als eine Tabelle: den Titel, die Phase, wer und den Zustand. Sie enthält auch die Bedienelemente der Tickets:
 
-- Die Pillen Verantwortlich, Label und Agent filtern die Zeilen. Holen Sie ein Ticket über seinen Schlüssel.
+- Die Chips Verantwortlich, Label und Agent filtern die Zeilen. Holen Sie ein Ticket über seinen Schlüssel.
 - Unter Mehr: der Filter nach Status und Importieren. Die App zeigt zuerst die Zahl. Sie schreibt nichts vor Ihrer Bestätigung.
 - Zuweisen: Wählen Sie eine Person. Die App schlägt eine Person nach Fähigkeiten und freier Zeit vor. Die Wahl liegt bei Ihnen.
 - Für den Agenten markieren: Ein Klick gibt das Ticket an die Agenten.
@@ -57,9 +57,9 @@ Jedes Feature hat eine Seite, `/flow/feature/<id>`. Die Kennung ist die Ref eine
 
 ### Verlauf
 
-Verlauf zeigt zuerst, was auf Sie wartet: die Fragen, die Freigaben, den Plan mit seinen Aktionen, und den Grund, warum ein Agent gestoppt hat, mit seiner einen Aktion. Der Plan in Prüfung ist eine einzige Karte: die Schritte, die Dateien, die der Plan ändert, was der Agent allein tut und was er zuerst fragt. Geben Sie den Plan frei, oder schreiben Sie, was zu ändern ist, und klicken Sie auf Zurückschicken. Dann listet er die Ereignisse in einfachen Sätzen. Was passiert ist öffnet das ganze Protokoll, in dem Wichtig die Fragen, die Fehler, die Zustandswechsel und die Ergebnisse zeigt, und Alle jedes Ereignis zeigt. Anfragen und Sitzungen zeigt die Anfragen mit ihren Kosten, den Graphen des Rezepts und die Sitzungen. Verfolgen zeigt eine laufende Sitzung. Im Terminal öffnen setzt eine beendete Sitzung fort.
+Verlauf zeigt zuerst, was auf Sie wartet: die Fragen, die Freigaben, den Plan mit seinen Aktionen, und den Grund, warum ein Agent gestoppt hat, mit seiner einen Aktion. Der Plan in Prüfung ist eine einzige Karte: die Schritte, die Dateien, die der Plan ändert, was der Agent allein tut und was er zuerst fragt. Geben Sie den Plan frei, oder schreiben Sie, was zu ändern ist, und klicken Sie auf Zurücksenden. Dann listet er die Ereignisse in einfachen Sätzen. Was passiert ist öffnet das ganze Protokoll, in dem Wichtig die Fragen, die Fehler, die Zustandswechsel und die Ergebnisse zeigt, und Alle jedes Ereignis zeigt. Anfragen und Sitzungen zeigt die Anfragen mit ihren Kosten, den Graphen des Rezepts und die Sitzungen. Verfolgen zeigt eine laufende Sitzung. Im Terminal öffnen setzt eine beendete Sitzung fort.
 
-Die Ticketseite öffnet sich über Bearbeiten im Menü einer Karte. Sie zeigt das Ticket mit bearbeitbarem Titel und Text, seine Fakten, seine Kommentare und die Marke des Abgleichs mit dem Ticketsystem. Zurück führt zum Feature.
+Die Ticketseite öffnet sich über Bearbeiten im Menü einer Karte. Sie zeigt das Ticket mit bearbeitbarem Titel und Text, seine Fakten, seine Kommentare und die Markierung des Syncs mit dem Ticketsystem. Zurück führt zum Feature.
 
 Die Seitenspalte zeigt den Agenten (das KI-Tool, das Modell, den Schritt n von m, die Kosten und das Budget, die verstrichene Zeit, mit Sprechen und Stoppen), den Auftrag, die Änderungen und die Personen. Ein Feature ohne Agenten hat Agent starten.
 
@@ -81,18 +81,18 @@ Die Merge-Box sagt in einer Zeile, ob der Pull Request zusammengeführt werden k
 
 Die schmale Spalte zeigt die Prüfer mit ihren Urteilen, die verknüpften Tickets und Läufe, und die Elemente, die den Pull Request zitieren.
 
-Dateien: Jede Datei beginnt eingeklappt, mit ihrem Pfad, ihrem Status und ihren hinzugefügten und entfernten Zeilen. Klicken Sie auf eine Datei, um ihren Diff zu lesen. Der Baum links hat einen Filter. Alle aufklappen öffnet die ersten 30 Dateien, die zum Filter passen, dann heißt die Aktion „Nächste 30 aufklappen“. Haken Sie das Kästchen einer Datei an, um sie als gesehen zu markieren. Die Zahl der gesehenen Dateien bleibt auf diesem Computer, für diesen Pull Request und diesen Head-Commit.
+Dateien: Jede Datei beginnt eingeklappt, mit ihrem Pfad, ihrem Status und ihren hinzugefügten und entfernten Zeilen. Klicken Sie auf eine Datei, um ihren Diff zu lesen. Der Baum links hat einen Filter. Alle ausklappen öffnet die ersten 30 Dateien, die zum Filter passen, dann heißt die Aktion „Nächste 30 ausklappen“. Haken Sie das Kästchen einer Datei an, um sie als gesehen zu markieren. Die Zahl der gesehenen Dateien bleibt auf diesem Computer, für diesen Pull Request und diesen Head-Commit.
 
 Kommentare an Zeilen: Das „+“ am Rand einer Zeile fügt dieser Zeile einen Kommentar hinzu. Es zeigt sich an Zeilen, die der Pull Request hinzugefügt oder unverändert gelassen hat, nie an entfernten Zeilen. Zum Review hinzufügen fügt den Kommentar Ihrem ausstehenden Review hinzu. Einzelnen Kommentar senden sendet ihn sofort. Das ausstehende Review bleibt auf diesem Computer, bis Sie es senden oder verwerfen, und es übersteht einen Neustart. Review senden öffnet einen Dialog: Wählen Sie Kommentieren, Freigeben oder Änderungen anfordern. Änderungen anfordern braucht einen Review-Text. Ein Review nimmt höchstens 100 Kommentare.
 
-Ein Kommentar, den die Code-Plattform nicht an einer Zeile platzieren kann, geht in den Text des Reviews, und ein Hinweis sagt, wie viele. Wenn die Code-Plattform nur einen Teil des Reviews sendet, behält die Seite die anderen Kommentare als ausstehend. Azure DevOps setzt jeden Kommentar in den Text des Reviews, mit Datei und Zeile. Antworten, Lösen, das „+“, Review senden und Kommentieren brauchen das Recht, auf die Code-Plattform zu schreiben. Ohne es ist jedes Bedienelement aus und sagt warum.
+Ein Kommentar, den die Code-Plattform nicht an einer Zeile platzieren kann, geht in den Text des Reviews, und ein Hinweis sagt, wie viele. Wenn die Code-Plattform nur einen Teil des Reviews sendet, behält die Seite die anderen Kommentare als ausstehend. Azure DevOps setzt jeden Kommentar in den Text des Reviews, mit Datei und Zeile. Antworten, Lösen, das „+“, Review senden und Kommentieren brauchen das Recht, auf die Code-Plattform zu schreiben. Ohne es ist jedes Bedienelement aus und sagt, warum.
 
 Grenzen: GitHub und GitLab listen bis zu 3000 Dateien. Ein Thread zeigt seine letzten 50 Kommentare. Review-Threads von GitLab zeigen die ersten 100. Die App speichert den Autor eines Pull Requests nicht.
 
 Prüfung durch einen Agenten:
 
 1. Klicken Sie auf Mit einem Agenten prüfen an einem offenen Pull Request. Ein Agent liest die Änderungen am Head-Commit, in einer schreibgeschützten Kopie. Das Review ist ein Entwurf: eine Zusammenfassung, ein Urteil und Befunde an ihren Zeilen des Diffs.
-2. Bearbeiten Sie die Zusammenfassung und das Urteil, klicken Sie auf Löschen bei einem Befund, den Sie nicht wollen, dann klicken Sie auf Review senden. Ein Review wird einmal gesendet.
+2. Bearbeiten Sie die Zusammenfassung und das Urteil, klicken Sie bei einem Befund, den Sie nicht wollen, auf Verwerfen, dann klicken Sie auf Review senden. Ein Review wird einmal gesendet.
 3. Wählen Sie in Einrichtung / Dieses Projekt die Agenten-Prüfung jedes Pull Requests: Aus, Entwurf oder Senden. Senden fügt ein Kommentar-Review hinzu und gibt nie frei.
 
 Eine Agenten-Prüfung zeigt sich in Team / Sitzungen, wo Stoppen sie beendet. Sie zählt im Agenten-Limit und gegen das Budget des Projekts. Ein schreibgeschütztes Projekt lehnt sie ab.
@@ -103,7 +103,7 @@ Prüfungen zeigt die Prüfschritte des Laufs, die Prüfungen des Pull Requests m
 
 ### Gespräch
 
-Gespräch hat neben dem Nachrichtenfeld eine Schaltfläche +. Sie kopiert eine Datei als Kontext in den Ordner des Laufs: Die nächste Runde des Agenten liest sie. Eine Textdatei darf bis 200 KiB groß sein, ein Bild bis 2 MiB, und das Gespräch sagt, welche Grenze eine größere Datei bricht. Pausieren steht auf der Karte Agent, zwischen Sprechen und Stoppen. Der Agent beendet seine Runde, dann ist der Lauf von einer Person pausiert, behält seinen Platz in den Grenzen und wartet auf Fortsetzen. Gespräch zeigt das Gespräch der Agenten-Sitzung (das Live-Terminal und die Anfragen sind unter Für Entwickler), das Gespräch des Pull Requests und die Kommentare des Tickets. Das Gespräch des Pull Requests listet die allgemeinen Kommentare und die Review-Threads in zeitlicher Reihenfolge. Klicken Sie auf Antworten, um auf einen Thread zu antworten, auf Lösen, um ihn zu schließen, und auf Wieder öffnen, um ihn erneut zu öffnen. Das Schreibfeld hat Schreiben und Vorschau. Kommentieren sendet einen allgemeinen Kommentar. An den Agenten zurücksenden zeigt sich bei einem Pull Request, den ein Lauf geöffnet hat.
+Gespräch hat neben dem Nachrichtenfeld eine Schaltfläche +. Sie kopiert eine Datei als Kontext in den Ordner des Laufs: Die nächste Runde des Agenten liest sie. Eine Textdatei darf bis 200 KiB groß sein, ein Bild bis 2 MiB, und das Gespräch sagt, welche Grenze eine größere Datei überschreitet. Pausieren steht auf der Karte Agent, zwischen Sprechen und Stoppen. Der Agent beendet seine Runde, dann ist der Lauf von einer Person pausiert, behält seinen Platz in den Grenzen und wartet auf Fortsetzen. Gespräch zeigt das Gespräch der Agenten-Sitzung (das Live-Terminal und die Anfragen sind unter Für Entwickler), das Gespräch des Pull Requests und die Kommentare des Tickets. Das Gespräch des Pull Requests listet die allgemeinen Kommentare und die Review-Threads in zeitlicher Reihenfolge. Klicken Sie auf Antworten, um auf einen Thread zu antworten, auf Lösen, um ihn zu schließen, und auf Wieder öffnen, um ihn erneut zu öffnen. Das Schreibfeld hat Schreiben und Vorschau. Kommentieren sendet einen allgemeinen Kommentar. An den Agenten zurücksenden zeigt sich bei einem Pull Request, den ein Lauf geöffnet hat.
 
 ## Freigaben
 
@@ -147,7 +147,7 @@ Die Scanner sind:
 - Code: OWASP-Probleme wie Injection, XSS und Remote Code Execution, mit `semgrep`. Setzen Sie `// nosemgrep` auf die Zeile eines geprüften Fehlalarms.
 - Skills: unsichere Anweisungen in Agenten-Skills, mit `skillspector`.
 
-Die Liste der Softwareteile (SBOM, „software bill of materials“) nennt jede Bibliothek, die das Projekt nutzt, mit ihrer Version. Exportieren Sie sie, wenn ein Kunde oder ein Sicherheitsteam fragt, welche Software das Projekt enthält.
+Die Software-Stückliste (SBOM) nennt jede Bibliothek, die das Projekt nutzt, mit ihrer Version. Exportieren Sie sie, wenn ein Kunde oder ein Sicherheitsteam fragt, welche Software das Projekt enthält.
 
 Die Aktualität der Doku listet die Dokumente, die dem Code des Branches nicht gefolgt sind, mit der Zahl. Dieselbe Warnung zeigt sich im Commit-Prüfschritt, im Push-Prüfschritt und in der Doku-Kette von Auswirkungen. Jedes veraltete Dokument hat „Mit einem Agenten aktualisieren“. Ein Agenten-Lauf startet erst nach Ihrem Klick, und der Pull Request, den er öffnet, wartet auf Ihre Prüfung. „Bestätigen“ lässt eine Warnung, wie sie ist, mit einem Grund.
 
@@ -159,14 +159,14 @@ Vollständiger Auswirkungsbericht öffnet den Bericht als Seite: die Größe der
 
 ## Pull Requests
 
-Pull Requests ist eine Seite von Code, mit einem Link zurück zu Code / Jetzt. Sie hat eine Suche, den Filter Alle oder Von mir zu prüfen und Neuer Pull Request. Die offenen kommen zuerst. Die gemergten und geschlossenen sind hinter einer einzigen Schaltfläche. Wählen Sie einen Pull Request, um seine Prüfung zu sehen: die Prüfungen, die verlangten Änderungen und die Reviewer. Pull Request öffnen öffnet die Seite seines Features.
+Pull Requests ist eine Seite von Code, mit einem Link zurück zu Code / Jetzt. Sie hat eine Suche, den Filter Alle oder Von mir zu prüfen und Neuer Pull Request. Die offenen kommen zuerst. Die zusammengeführten und geschlossenen sind hinter einer einzigen Schaltfläche. Wählen Sie einen Pull Request, um seine Prüfung zu sehen: die Prüfungen, die angeforderten Änderungen und die Reviewer. Pull Request öffnen öffnet die Seite seines Features.
 
-Neuer Pull Request ist auch eine Seite. Schreiben Sie den Titel und die Beschreibung (Schreib es für mich bittet einen Agenten). Wählen Sie Nach, den Zweig, der die Änderung erhält. Stellen Sie Entwurf und Labels ein. Vor dem Senden nennt eine Notiz die nicht übernommenen Dateien, einen Basiszweig, der voraus ist, und die Docs, die veralten: Jedes hat seine Wahl. Klicken Sie auf Pull Request öffnen.
+Neuer Pull Request ist auch eine Seite. Schreiben Sie den Titel und die Beschreibung (Schreib es für mich bittet einen Agenten). Wählen Sie Nach, den Branch, der die Änderung erhält. Stellen Sie Entwurf und Labels ein. Vor dem Senden nennt eine Notiz die nicht übernommenen Dateien, einen Basis-Branch, der voraus ist, und die Docs, die veralten: Zu jedem gehört eine Wahl. Klicken Sie auf Pull Request öffnen.
 
 ## Code-Plattform und Tickets
 
 - Im Abschnitt Prüfungen eines Pull Requests bittet Erneut starten die Code-Plattform, die fehlgeschlagenen Prüfungen noch einmal zu starten, und nur diese. Es braucht dasselbe Recht wie ein anderer Schreibzugriff auf die Code-Plattform.
-- Bei Neuer Pull Request listet Prüfer die Benutzer der Code-Plattform, und das Öffnen bittet die Code-Plattform, sie hinzuzufügen. Zusammenführen mit setzt die Standardmethode des Zusammenführen-Knopfs späterer Pull Requests: es führt nie von selbst zusammen. Nach dem Öffnen behält die Seite Pull Request schließen, und Als bereit markieren für einen Entwurf.
+- Bei Neuer Pull Request listet Prüfer die Benutzer der Code-Plattform, und das Öffnen bittet die Code-Plattform, sie hinzuzufügen. Zusammenführen mit setzt die Standardmethode der Schaltfläche Zusammenführen späterer Pull Requests: Es führt nie von selbst zusammen. Nach dem Öffnen behält die Seite Pull Request schließen, und Als bereit markieren für einen Entwurf.
 - Jede Zeile eines Pull Requests zeigt den Avatar ihres Autors.
 - Im Auswirkungsbericht hat jede Zeile des Aktionsplans ein Kästchen und einen Verantwortlichen. Beides steht in der Berichtsdatei als Markdown-Kästchen und Name. Eine Zeile erzeugt kein Ticket. Zeile hinzufügen beendet die Liste.
 - Ein Ticket hat eine Zeile Rezept (das Label `wf:<id>`, das das Rezept wählt) und eine Zeile Release. Ein Release ist die Version des Ticketsystems: die Fix-Version von Jira, der Meilenstein von GitHub und GitLab, die Iteration von Azure DevOps und das Projekt von Linear. Ein Ticket hat ein Release.

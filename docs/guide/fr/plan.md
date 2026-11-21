@@ -4,7 +4,7 @@ Plan contient le calendrier, la charge des personnes, les estimations et le temp
 
 ## Calendrier
 
-Calendrier dessine le calendrier d'un lot en diagramme de Gantt, à partir d'une feuille d'estimation, de l'équipe et du calendrier. Le titre donne le jour où la version se termine.
+Calendrier dessine le planning d'un lot en diagramme de Gantt, à partir d'une feuille d'estimation, de l'équipe et du calendrier. Le titre donne le jour où la version se termine.
 
 - Dates et jours d'absence fixe les jours travaillés et les jours fériés.
 - Exportez le diagramme en image.
@@ -33,7 +33,7 @@ Cliquez sur Lire le mois pour lire les temps du mois dans l'outil de suivi, à c
 
 Un rôle avec moins de trois membres qui ont un tarif journalier ne montre aucun coût. Avec un ou deux tarifs, un coût montrerait le tarif d'une personne.
 
-Remplir depuis mon travail ajoute une ligne pour chaque run de vos tickets et chaque commit de votre journée. Il remplit seulement votre propre feuille. La feuille n'a pas de bouton Enregistrer : elle enregistre quand vous quittez un champ.
+Remplir depuis mon travail ajoute une ligne pour chaque exécution de vos tickets et chaque commit de votre journée. Il remplit seulement votre propre feuille. La feuille n'a pas de bouton Enregistrer : elle enregistre quand vous quittez un champ.
 
 ## Pages
 

@@ -10,13 +10,13 @@ Les boutons de la page sont Importer des projets (il ouvre Configuration / Ce pr
 2. Ou cliquez sur Ouvrir un dossier et choisissez le dossier de votre projet. Quand le dossier n'est pas encore un projet, cliquez sur En faire un projet.
 3. Ou cliquez sur Cloner depuis l'hébergeur de code et donnez son adresse.
 
-Fermer demande d'abord quand des agents travaillent pour le projet : Annuler, Les arrêter et fermer, ou Les laisser travailler. Les laisser travailler ferme le projet et les runs continuent.
+Fermer demande d'abord quand des agents travaillent pour le projet : Annuler, Les arrêter et fermer, ou Les laisser travailler. Les laisser travailler ferme le projet et les exécutions continuent.
 
 ## Nouveau projet
 
 Nouveau projet est une page à part, à l'adresse `/projects/new`. Ouvrez-la avec Nouveau projet sur la page Projets, sur la page du premier lancement ou sur la page Aucun projet n'est ouvert. Elle pose une question à la fois, en cinq étapes : Nom, Type de produit, Outils, Équipe et Prêt. Toutes les étapes montre les cinq parties sur une page : Projet, Cahier, Équipe, Où vit le code et Départ. Retour quitte la page ou revient d'une étape. Chaque étape a des valeurs par défaut. Créer le projet est actif quand le nom et le dossier parent sont fixés. Rien n'est fait avant votre clic.
 
-1. Projet : le nom, la clé courte des tickets (tirée du nom, vous pouvez la modifier), le dossier parent et la pile : Node, Rust, Python, Java, Go ou Autre. La pile fixe les contrôles du fichier de projet et les règles d'exclusion de `.gitignore`. Le dossier doit être vide ou nouveau : Créer le projet refuse un dossier qui contient des fichiers.
+1. Projet : le nom, la clé courte des tickets (tirée du nom, vous pouvez la modifier), le dossier parent et la technologie : Node, Rust, Python, Java, Go ou Autre. La technologie fixe les contrôles du fichier de projet et les règles d'exclusion de `.gitignore`. Le dossier doit être vide ou nouveau : Créer le projet refuse un dossier qui contient des fichiers.
 2. Cahier : la vision, les utilisateurs et le périmètre, en texte que vous modifiez. Ils vont dans `docs/brief.md`. Choisissez aussi la langue des docs et la langue des pull requests. Les deux prennent par défaut la langue de l'interface. Les agents écrivent les specs, les diagrammes, les documents et le texte des pull requests dans ces langues. Le code, les identifiants, les commentaires de code et les messages de commit restent en anglais.
 3. Équipe : vous êtes le premier membre, avec un rôle. Ajoutez des membres avec un nom et un rôle. Retirer enlève un membre ; il est désactivé sur la première rangée (vous), avec sa raison.
 4. Où vit le code : Sur cet ordinateur seulement (par défaut), une adresse distante existante, ou un nouveau dépôt privé sur une connexion à un hébergeur de code (GitHub ou GitLab). Un dépôt public n'est pas proposé. Choisissez aussi une connexion à un outil de suivi et son périmètre.

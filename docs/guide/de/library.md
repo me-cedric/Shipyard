@@ -26,7 +26,7 @@ Die Chips Was getestet ist, Antworten und Glossar öffnen die Seite, die sie ent
 
 ### Spezifikationen
 
-Spezifikationen listet auf, was das Produkt heute tut. Wählen Sie links eine Spezifikation, um sie rechts zu lesen, mit jeder Anforderung und ihrem Zustand. Daneben stehen die Karten Laufende Änderungen (mit Archivieren für eine fertige Änderung), Verknüpft und Spezifikationen prüfen (Syntax und Links). Der Umschalter Lesen, Text, Dateien hat Bearbeiten. Die Schaltflächen Mit dem Code vergleichen und Spezifikation aus dem Code schreiben schicken eine vorbereitete Anfrage an den Assistenten. Eine Änderung an einer Spezifikation beginnt als Vorschlag: siehe die Seite Ablauf, Liste und Die Funktionsseite, Brief.
+Spezifikationen listet auf, was das Produkt heute tut. Wählen Sie links eine Spezifikation, um sie rechts zu lesen, mit jeder Anforderung und ihrem Zustand. Daneben stehen die Karten Laufende Änderungen (mit Archivieren für eine fertige Änderung), Verknüpft und Spezifikationen prüfen (Syntax und Links). Der Umschalter Lesen, Text, Dateien hat Bearbeiten. Die Schaltflächen Mit dem Code vergleichen und Spezifikation aus dem Code schreiben schicken eine vorbereitete Anfrage an den Assistenten. Eine Änderung an einer Spezifikation beginnt als Vorschlag: siehe die Seite Ablauf, Liste und Die Seite eines Features, Auftrag.
 
 ### Testpläne
 
@@ -52,7 +52,7 @@ Karte zeichnet die Elemente des Projekts in Gruppen, mit den Links zwischen ihne
 - Ein Element, dessen Quelle sich später geändert hat, zeigt sich als veraltet.
 - Wählen Sie ein Element, um es im Inspektor zu öffnen.
 
-Mit der Quelle Code zeigt die Karte die Ordner des Codes. Eine Linie zwischen zwei Ordnern ist dicker, wenn mehr Aufrufe zwischen ihren Dateien laufen. Wählen Sie einen Ordner, um seine Dateien zu sehen, dann eine Datei, um ihre Symbole zu sehen und was sie aufruft oder was sie aufrufen. Alle anzeigen führt zur Karte zurück. Index startet den Code-Index-Server, wenn er aus ist, baut den Index und stoppt den Server wieder. Wenn das Programm mit einem Fehler endet, nennt die Seite das Programm, seinen Exit-Code und seine letzten Zeilen: Beheben Sie die Ursache, dann klicken Sie erneut auf Index. Die Karte des Symbols hat Erklären und Im Editor öffnen, und Spezifikationen und Entscheidungen, die es nutzen öffnet den Inspektor. Verwaiste zeigt die Dateien, die kein Aufruf erreicht oder verlässt. Der Umschalter Wissen und Code steht oben, und Code hat die Adresse `/library/graph?source=code`.
+Mit der Quelle Code zeigt die Karte die Ordner des Codes. Eine Linie zwischen zwei Ordnern ist dicker, wenn mehr Aufrufe zwischen ihren Dateien laufen. Wählen Sie einen Ordner, um seine Dateien zu sehen, dann eine Datei, um ihre Symbole zu sehen, und welche Aufrufe zu ihnen führen oder von ihnen ausgehen. Alle anzeigen führt zur Karte zurück. Index startet den Code-Index-Server, wenn er aus ist, baut den Index und stoppt den Server wieder. Wenn das Programm mit einem Fehler endet, nennt die Seite das Programm, seinen Exit-Code und seine letzten Zeilen: Beheben Sie die Ursache, dann klicken Sie erneut auf Index. Die Karte des Symbols hat Erklären und Im Editor öffnen, und Spezifikationen und Entscheidungen, die es nutzen öffnet den Inspektor. Verwaiste zeigt die Dateien, die kein Aufruf erreicht oder verlässt. Der Umschalter Wissen und Code steht oben, und Code hat die Adresse `/library/graph?source=code`.
 
 Eine Datei, deren Spec sich nach ihrer letzten Änderung geändert hat, zeigt den Chip Veraltet.
 
@@ -73,7 +73,7 @@ Diagramme enthält die Zeichnungen des Projekts: Excalidraw, Mermaid, draw.io un
 
 ### Bildschirme
 
-Bildschirme zeigt die Bildschirme des Produkts und die Design-Tokens Ihres Projekts. Sie kommen aus dem Design-Dokument (CSS in einem Codeblock), aus einer Datei `tokens.css`, aus einer Datei `*.tokens.json` oder aus einem `@theme`-Block von Tailwind 4, gruppiert nach Datei. Ohne Token sagt die Seite Noch keine Tokens; klicken Sie auf Tokens zum Design-Dokument hinzufügen, bearbeiten Sie den Block, dann speichern Sie. Die Seite zeigt nie die Tokens von Shipyard. Jeder Bildschirm ist eine Karte mit Umgesetzt oder Nicht umgesetzt. Der Umschalter Bildschirme und Tokens zeigt die Tokens. Design in Code öffnet den offenen Bildschirm, sonst den ersten, im Inspektor, wo Plan schreiben steht.
+Bildschirme zeigt die Bildschirme des Produkts und die Design-Tokens Ihres Projekts. Sie kommen aus dem Design-Dokument (CSS in einem Codeblock), aus einer Datei `tokens.css`, aus einer Datei `*.tokens.json` oder aus einem `@theme`-Block von Tailwind 4, gruppiert nach Datei. Ohne Token sagt die Seite Noch keine Tokens; klicken Sie auf Tokens zum Design-Dokument hinzufügen, bearbeiten Sie den Block, dann speichern Sie. Die Seite zeigt nie die Tokens von Shipyard. Jeder Bildschirm ist eine Karte mit Umgesetzt oder Nicht umgesetzt. Der Umschalter Bildschirme und Tokens zeigt die Tokens. Vom Design zum Code öffnet den offenen Bildschirm, sonst den ersten, im Inspektor, wo Plan schreiben steht.
 
 - Eine `.fig`-Datei zeigt die Vorschau, die Figma darin hält.
 - Um Figma zu lesen, fügen Sie einmal das Token Ihres Figma-Kontos hinzu. Es geht in den Schlüsselbund Ihres Computers.
@@ -91,7 +91,7 @@ Daten zeigt die Datenmodelle: die Tabellen und die Links zwischen ihnen. Tabelle
 
 ### Netzwerkflüsse
 
-Netzwerkflüsse listet die Netzwerkflüsse als Tabelle: von wo, nach wo, der Port und das Protokoll. Fügen Sie eine Zeile hinzu, ändern oder entfernen Sie sie, dann speichern Sie. Jede Zeile hat Von, Nach und Warum. Der Umschalter Abläufe und Bausteine und die Karte Bausteine und Hosts zeigen die anderen Ansichten. Ganze Matrix öffnen öffnet `/library/flows/matrix`: eine Seite mit dem Link Netzwerkflüsse zurück, Filter-Chips, Host finden und einer Zeile je Ablauf (Erlauben oder Verweigern), mit Bearbeiten und Entfernen im Zeilenmenü. Fluss hinzufügen steht im Menü Mehr der Matrix, und Als Text bearbeiten öffnet die Datei.
+Netzwerkflüsse listet die Netzwerkflüsse als Tabelle: von wo, nach wo, der Port und das Protokoll. Fügen Sie eine Zeile hinzu, ändern oder entfernen Sie sie, dann speichern Sie. Jede Zeile hat Von, Nach und Warum. Der Umschalter Flüsse und Bausteine und die Karte Bausteine und Hosts zeigen die anderen Ansichten. Ganze Matrix öffnen öffnet `/library/flows/matrix`: eine Seite mit dem Link Netzwerkflüsse zurück, Filter-Chips, Host finden und einer Zeile je Fluss (Erlauben oder Verweigern), mit Bearbeiten und Entfernen im Zeilenmenü. Fluss hinzufügen steht im Menü Mehr der Matrix, und Als Text bearbeiten öffnet die Datei.
 
 Mit dem Code abgleichen sucht im Code die Hosts, die er aufruft. Eine Zeile sagt Nicht im Code, wenn kein Code ihren Host aufruft, und eine Karte nennt jeden verweigerten Fluss, den der Code nutzt, mit Anzeigen und Änderung anfragen.
 
@@ -106,7 +106,7 @@ Entscheidungen enthält die Entscheidungsprotokolle (ADRs). Jedes Protokoll nenn
 
 ### Projektregeln
 
-Projektregeln zeigt eine nummerierte Karte je Regel, die jede Änderung befolgen muss. Bearbeiten ändert den Text, und Regel hinzufügen fügt am Ende eine an. Die Karte Wer die Regeln ändern kann verweist auf Team / Rechte (Die Rechte ändern), und Wer die Regeln befolgt listet die Agentenrollen auf.
+Projektregeln zeigt eine nummerierte Karte je Regel, die jede Änderung befolgen muss. Bearbeiten ändert den Text, und Regel hinzufügen fügt am Ende eine an. Die Karte Wer die Regeln ändern kann verweist auf Team / Rechte (Rechte ändern), und Wer die Regeln befolgt listet die Agentenrollen auf.
 
 Frühere Versionen listet die Commits auf, die die Datei geändert haben. Lesen zeigt eine alte Version; Wiederherstellen schreibt ihren Text in die Datei und committet nichts, so lässt es sich noch rückgängig machen. Wiederherstellen fragt zuerst und lehnt ab, wenn die Datei Änderungen hat, die in keinem Commit sind.
 
@@ -131,7 +131,7 @@ Verlauf listet auf einer Seite auf dieselbe Weise die Commits auf, die sie geän
 
 ### Dokumente
 
-Dokumente listet die Dokumente des Projekts, mit einem Chip für das Format. Öffnen Sie eines mit Lesen, Beide oder Text, dann klicken Sie auf Bearbeiten, um es zu ändern. Im Text suchen, Umbenennen und Löschen stehen im Menü Mehr. Die Karte Datei hat Im Ordner zeigen und Exportieren. Die Karte Die Planung kann dieses Dokument nutzen hat In Folien umwandeln und In eine Spezifikation umwandeln: Jedes schickt eine vorbereitete Anfrage an den Assistenten. Exportieren Sie das Architektur-Dossier und die funktionale Dokumentation als Word-Dateien und ein Kundenblatt als Excel-Datei. Jeder Export öffnet einen Dialog Speichern unter mit ausgefülltem Namen und dem Ordner Ihrer letzten Speicherung; Abbrechen exportiert nichts. Nach einer Speicherung funktionieren Im Ordner zeigen und Öffnen für die neue Datei.
+Dokumente listet die Dokumente des Projekts, mit einem Chip für das Format. Öffnen Sie eines mit Lesen, Beide oder Text, dann klicken Sie auf Bearbeiten, um es zu ändern. Im Text suchen, Umbenennen und Löschen stehen im Menü Mehr. Die Karte Datei hat Im Ordner zeigen und Exportieren. Die Karte Der Planer kann dieses Dokument nutzen hat In Folien umwandeln und In eine Spezifikation umwandeln: Jedes schickt eine vorbereitete Anfrage an den Assistenten. Exportieren Sie das Architektur-Dossier und die funktionale Dokumentation als Word-Dateien und ein Kundenblatt als Excel-Datei. Jeder Export öffnet einen Dialog Speichern unter mit ausgefülltem Namen und dem Ordner Ihrer letzten Speicherung; Abbrechen exportiert nichts. Nach einer Speicherung funktionieren Im Ordner zeigen und Öffnen für die neue Datei.
 
 Eine Word-Datei hat ein Deckblatt, ein Inhaltsverzeichnis (Word füllt die Seitenzahlen, wenn es fragt, ob die Felder aktualisiert werden sollen), die Mermaid-Diagramme des Projekts als Bilder, und Seitenzahlen. Eine LikeC4- oder draw.io-Datei zeigt sich als Bild, wenn ein PNG mit demselben Namen daneben liegt, und sonst als ihr Pfad. Ein Excel-Blatt hat eine gestaltete Kopfzeile, die auf dem Bildschirm bleibt.
 
@@ -145,16 +145,16 @@ Folien enthält die Präsentationen des Projekts. Jede Präsentation ist eine HT
 - Klicken Sie auf eine Präsentation, um sie zu zeigen. Die Pfeiltasten, die Leertaste, Pos1 und Ende führen durch die Folien und die Schritte.
 - Präsentieren zeigt die Präsentation im Vollbild. Drücken Sie Escape, um zu stoppen.
 - PDF exportieren: Wählen Sie die Datei im Dialog Speichern unter. Jede Folie wird eine Seite. Das funktioniert nur unter macOS.
-- Eine ältere, als Text geschriebene Präsentation zeigt sich schreibgeschützt. Klicken Sie auf Umwandeln, um einen Agenten zu bitten, sie als HTML-Präsentation neu zu schreiben.
+- Eine ältere, als Text geschriebene Präsentation zeigt sich schreibgeschützt. Klicken Sie auf In eine Web-Präsentation umwandeln, um einen Agenten zu bitten, sie als HTML-Präsentation neu zu schreiben.
 - Um eine Präsentation zu löschen, öffnen Sie ihr Menü, dann klicken Sie auf Löschen. Die Datei geht in den Papierkorb.
 
-Ein Deck in Markdown hat Bearbeiten, PDF exportieren und Sprechernotizen. Eine Notiz ist ein `Note:`-Block nach einer Folie. PDF exportieren funktioniert nur auf macOS.
+Ein Foliensatz in Markdown hat Bearbeiten, PDF exportieren und Sprechernotizen. Eine Notiz ist ein `Note:`-Block nach einer Folie. PDF exportieren funktioniert nur auf macOS.
 
 ### Dashboards
 
 Dashboards zeigt ein Dashboard auf einmal; der Umschalter oben auf der Seite wählt es. Seine Kacheln sind schreibgeschützt. Bearbeiten öffnet die Bearbeitungsseite des Dashboards, Den Bericht exportieren öffnet Berichte, und Ein Dashboard für mich bauen schickt eine vorbereitete Anfrage an den Assistenten. Neues Dashboard steht im Menü Mehr. Mehr Zahlen verweist auf Team / Ausgaben, Ablauf / Zustand und Plan. Die Kacheln, die Sie anheften, stehen oben in Dashboards. Eine Kachel, deren Quelle aus ist, sagt es.
 
-Die Bearbeitungsseite hat die Adresse `/library/dashboards/<Name>/edit`, den Link Dashboards zurück, Umbenennen und Fertig. Kachel hinzufügen zeigt einen Chip je Kachelart. Jede Kachel hat einen Ziehgriff, Einstellungen und Entfernen; Nach links, Nach rechts und die Größe stehen in Einstellungen. Als Tabelle zeigen gibt die Zahlen hinter einem Diagramm.
+Die Bearbeitungsseite hat die Adresse `/library/dashboards/<name>/edit`, den Link Dashboards zurück, Umbenennen und Fertig. Kachel hinzufügen zeigt einen Chip je Kachelart. Jede Kachel hat einen Ziehgriff, Einstellungen und Entfernen; Nach links, Nach rechts und die Größe stehen in Einstellungen. Als Tabelle zeigen gibt die Zahlen hinter einem Diagramm.
 
 Kachel für mich bauen bittet einen Agenten, aus Ihren Worten eine Kachel vorzuschlagen. Sie müssen die Arten von Kacheln nicht kennen.
 
@@ -164,7 +164,7 @@ Kachel für mich bauen bittet einen Agenten, aus Ihren Worten eine Kachel vorzus
 4. Klicken Sie auf Bauen. Während der Agent arbeitet, beendet Stoppen ihn. Die Arbeit zeigt sich auch in Team / Sitzungen, und ihr Stoppen tut dasselbe.
 5. Sehen Sie sich die Vorgeschlagene Kachel an. Annehmen fügt sie dem Dashboard hinzu und speichert. Verwerfen lässt sie fallen.
 
-Der Agent liest das Projekt nur. Das Dashboard ändert sich nicht, bis Sie auf Annehmen klicken. Wenn die Seite sagt, dass das Budget aufgebraucht ist, fügen Sie Budget hinzu, dann klicken Sie erneut auf Bauen. Ein Dashboard, das Sie nicht ändern können, hat kein Kachel für mich bauen.
+Der Agent darf das Projekt nur lesen. Das Dashboard ändert sich nicht, bis Sie auf Annehmen klicken. Wenn die Seite sagt, dass das Budget aufgebraucht ist, fügen Sie Budget hinzu, dann klicken Sie erneut auf Bauen. Ein Dashboard, das Sie nicht ändern können, hat die Schaltfläche Kachel für mich bauen nicht.
 
 Jede Kachel hat ein Diagramm: Zahl, Balken, Linie, Liste, Flussstufen, Ausgaben oder Zustand. Die Art der Daten wählt das erste Diagramm; ändern Sie es im Menü der Kachel. An Heute anheften zeigt auf der Bearbeitungsseite das Dashboard als eine Karte auf Heute. Eine Releaseauswahl neben Bearbeiten behält in den Kacheln des Ticketsystems nur die Tickets des Releases.
 
@@ -173,10 +173,10 @@ Jede Kachel hat ein Diagramm: Zahl, Balken, Linie, Liste, Flussstufen, Ausgaben 
 Berichte listet jede Datei, die Shipyard für eine Person erstellen kann, die Shipyard nicht nutzt: einen Kunden, eine Führungskraft, einen Prüfer. Jeder Bericht ist eine Kachel. Format, oben, zeigt Alle Berichte oder nur die Word-Dateien, die Excel-Dateien oder die Bilder. Für Sie geschrieben enthält drei Dokumente, jedes mit Öffnen und Schreiben. Ein Link führt zu Dashboards.
 
 - Exportieren: Shipyard öffnet den Dialog Speichern unter. Wählen Sie den Ordner, dann speichern Sie.
-- Formular ausfüllen: Änderungsantrag und Geleistete Arbeit öffnen eine Formularseite (unten), dann schreiben sie die Datei.
+- Formular ausfüllen: Änderungsantrag und Geleistete Arbeit öffnen eine Formularseite (unten), dann schreiben Sie die Datei.
 - Plan öffnen oder Schätzungen öffnen: Der Bericht braucht eine Wahl, die Sie auf dieser Seite treffen. Der Link öffnet die Seite; exportieren Sie von dort.
 
-Ein Bericht zeigt sich nur, wenn Ihre Rolle die Seite sieht, die seinen Export enthält. Der Bericht Netzwerkflüsse zeigt sich, wenn das Projekt eine Ablaufdatei hat. Wenn kein Bericht übrig ist, hat Berichte keinen Chip. Das Menü Exportieren jeder Seite funktioniert weiterhin.
+Ein Bericht zeigt sich nur, wenn Ihre Rolle die Seite sieht, die seinen Export enthält. Der Bericht Netzwerkflüsse zeigt sich, wenn das Projekt eine Flussdatei hat. Wenn kein Bericht übrig ist, hat Berichte keinen Chip. Das Menü Exportieren jeder Seite funktioniert weiterhin.
 
 Eine Formularseite hat die Adresse `/library/reports/change-request` oder `/library/reports/work-done` und den Link Berichte zurück. Füllen Sie die Felder aus (ein Änderungsantrag fragt Von Version, Bis Version und Personen, die freigeben: Hinzufügen zeigt das Team mit einem Kontrollkästchen je Person), dann klicken Sie auf Bericht schreiben. Ein leeres Pflichtfeld gibt eine Fehlerzeile und schreibt nichts. Nach dem Schreiben zeigt die Karte Geschrieben jede Datei mit ihrem Pfad, Im Ordner zeigen und Öffnen. Die Karten rechts listen die anderen Berichte mit Formular, die Berichte ohne Formular (Alle Berichte) und die Teile des vollständigen Dossiers.
 

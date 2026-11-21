@@ -63,7 +63,7 @@ Cet ordinateur contient ce que cette machine stocke : les outils d'IA, les fourn
 Agents et règles contient les outils d'IA, les fournisseurs de modèles, et les règles et les compétences des agents.
 
 1. Cliquez sur Installer le contrat pour écrire les règles d'agent dans le projet.
-2. Sous Objectifs, choisissez ce que vous voulez : par exemple Qualité du code ou Specs d'abord. Cliquez sur Appliquer. L'application active les compétences qui conviennent au projet.
+2. Sous Objectifs, choisissez ce que vous voulez : par exemple Qualité du code ou Les specs d'abord. Cliquez sur Appliquer. L'application active les compétences qui conviennent au projet.
 3. Sous Compétences externes, chaque source montre son état : À jour, Mise à jour prête, Modifiée ou Absente du projet. Une source que vous avez installée pour vous (vos dossiers de compétences ou un plugin d'agent) et que le projet ne contient pas montre Sur votre ordinateur : Installer l'ajoute au projet pour l'équipe. Cliquez sur Actualiser les compétences externes pour prendre les mises à jour. Cliquez sur Réinstaller pour remettre les fichiers d'origine d'une source.
 
 L'application garde chaque fichier qu'une personne a changé, sauf si vous réinstallez.
@@ -119,9 +119,9 @@ Moi contient vos propres réglages. Ils valent dans chaque projet.
 
 Notifications : chaque source a son propre interrupteur, activé par défaut. Les sources sont une question, une approbation, une exécution qui vous attend, un échec de synchronisation, une mise à jour, une branche distante déplacée, une exécution qui se termine, les contrôles de vos pull requests, un scan en échec que vous n'avez pas lancé, et un brouillon de revue d'agent prêt à publier. Un interrupteur désactivé arrête l'entrée dans Nouvelles et l'avis du système. Le système montre un avis tant que la fenêtre est en arrière-plan.
 
-Avis de budget : une notification s'affiche quand un budget atteint son seuil d'alerte. L'interrupteur Son active ou coupe le son d'un avis du système. Le canal de version est Stable ou Préversion : Préversion considère aussi les préversions de la même adresse de versions.
+Avis de budget : une notification s'affiche quand un budget atteint le seuil Prévenir à. L'interrupteur Son active ou coupe le son d'un avis du système. Le canal de version est Stable ou Préversion : Préversion considère aussi les préversions de la même adresse de versions.
 
-Se déconnecter est à côté de votre nom et à la fin du menu du compte. Après votre confirmation, il retire de cet ordinateur la connexion de l'hébergeur de code et du suivi de tickets. La connexion d'un outil d'IA ou d'OpenRouter reste.
+Se déconnecter est à côté de votre nom et à la fin du menu du compte. Après votre confirmation, il retire de cet ordinateur la connexion de l'hébergeur de code et de l'outil de suivi. La connexion d'un outil d'IA ou d'OpenRouter reste.
 
 Au premier lancement, et chaque fois qu'une autorisation manque, une carte « Shipyard a besoin de N autorisations » liste les autorisations manquantes avec Autoriser, Plus tard et Tout autoriser.
 

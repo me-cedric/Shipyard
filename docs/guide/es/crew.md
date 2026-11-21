@@ -10,7 +10,7 @@ Equipo se abre con las tarjetas. Personas muestra cada persona como tarjeta: el 
 
 ## En vivo
 
-El selector Tarjetas y En vivo está arriba en Equipo. En vivo muestra los agentes que trabajan. Cada fila muestra un agente, su funcionalidad con su estado, y los archivos y las specs que el agente lee y cambia. El filtro es Trabajando, Terminada, Archivos o Specs. Pasa el puntero sobre un agente para ver su ref. Haz clic derecho, o pulsa la tecla del menú contextual, para copiar la ref. Haz clic en la funcionalidad para abrir su página.
+El selector Tarjetas y En vivo está arriba en Equipo. En vivo muestra los agentes que trabajan. Cada fila muestra un agente, su funcionalidad con su estado, y los archivos y las especificaciones que el agente lee y cambia. El filtro es Trabajando, Terminada, Archivos o Especificaciones. Pasa el puntero sobre un agente para ver su ref. Haz clic derecho, o pulsa la tecla del menú contextual, para copiar la ref. Haz clic en la funcionalidad para abrir su página.
 
 ## Recetas
 
@@ -18,8 +18,8 @@ Una receta es la lista de pasos que un agente sigue en una funcionalidad. Receta
 
 Una receta se abre en un formulario. Usa Formulario y Texto para pasar del formulario al texto YAML. Los dos editan el mismo archivo.
 
+- Pasos: cada paso es una tarjeta con los grupos Quién, Personas, Cómo funciona y Límites. Fija el rol o la acción, el nivel de modelo, el esfuerzo, el modo, los requisitos, las herramientas y el control de cada paso. Más muestra los otros campos: espacio de trabajo, para cada, subpasos a la vez, reintentos, límite de tiempo, presupuesto, skill, contexto nuevo y rondas de revisión. Añade, quita y mueve un paso arriba o abajo.
 - La página de un paso también muestra Tipo (agente, persona o control, según el paso), Se ejecuta junto a otros pasos (activado cuando el paso no espera a ningún paso), Los subpasos se ejecutan en paralelo y Modo. Un paso que espera a una persona tiene Quién aprueba: solo una persona con ese rol lo aprueba, y solo ese rol recibe su tarjeta en Hoy. En Personas, Puede escribir es Pregunta primero o Solo: Solo es la aprobación «No volver a preguntar por esta receta».
-- Pasos: cada paso es una tarjeta con los grupos Quién, Personas, Cómo funciona y Límites. Fija el rol o la acción, el nivel de modelo, el esfuerzo, el modo, los requisitos, las herramientas y el control de cada paso. Más muestra los otros campos: espacio de trabajo, para cada, hijos en paralelo, reintentos, límite de tiempo, presupuesto, skill, contexto nuevo y rondas de revisión. Añade, quita y mueve un paso arriba o abajo.
 - Límites: el tiempo de espera por bloqueo en segundos. Activa Presupuesto para detener cada ejecución en un importe en USD, y Límite de turnos para pausar cada ejecución después de un número de turnos. Los dos están desactivados por defecto.
 - El formulario comprueba la receta en cada cambio. Guardar queda desactivado mientras muestra un problema.
 - Nuevo crea una receta a partir de una plantilla: feature, bug, spike, docs-update, review-only, spec-split o bootstrap. El menú Más acciones de la receta abierta tiene Duplicar, Renombrar y Eliminar. Renombrar y Eliminar rechazan la receta predeterminada del proyecto y una receta que usa una ejecución. Eliminar pide confirmación.
@@ -42,9 +42,9 @@ Gasto muestra los tokens y el dinero que usaron los agentes, por día y por pers
 - Iteraciones cuenta las peticiones que cada ejecución envió al modelo.
 - Los importes se muestran por defecto. Desactiva Mostrar precios para ocultarlos: un mosaico de dinero muestra entonces el número de tokens. La aplicación recuerda el interruptor para cada proyecto.
 - Avisar al es el porcentaje de un presupuesto en el que se muestra la alerta. Es 80 por ciento para el proyecto hasta que hagas clic en Editar y fijes otro porcentaje de 1 a 100.
-- Cada límite de una funcionalidad, de un día y de una persona tiene una opción Después: Parar y preguntar (por defecto), Pausar, Preguntarme o Seguir. La ejecución se detiene al 100 por ciento con las tres primeras. Parar y preguntar también escribe un comentario en el ticket, Preguntarme pregunta solo en la aplicación y Pausar se detiene sin preguntar. Sube el presupuesto para seguir. Seguir convierte el presupuesto en un simple aviso: la ejecución sigue y la alerta se muestra una vez. Detener todos los agentes, el tiempo de inactividad y el máximo de turnos siguen deteniendo la ejecución.
+- Cada límite de una funcionalidad, de un día y de una persona tiene una opción Después: Parar y preguntar (por defecto), Pausar, Preguntarme o Seguir. La ejecución se detiene al 100 por ciento con las tres primeras. Parar y preguntar también escribe un comentario en el ticket, Preguntarme pregunta solo en la aplicación y Pausar se detiene sin preguntar. Sube el presupuesto para seguir. Seguir convierte el presupuesto en un simple aviso: la ejecución sigue y la alerta se muestra una vez. Detener todos los agentes, el tiempo de espera por bloqueo y el máximo de turnos siguen deteniendo la ejecución.
 
-Cómo rinden los agentes muestra barras de Procesador y Memoria solo para los procesos de los agentes, no para todo el ordenador. Cada paso de una ejecución lista las llamadas a herramientas del agente.
+Cómo les va a los agentes muestra barras de Procesador y Memoria solo para los procesos de los agentes, no para todo el ordenador. Cada paso de una ejecución lista las llamadas a herramientas del agente.
 
 ## Derechos
 
@@ -64,13 +64,13 @@ Un derecho desactiva un control. El control sigue visible, y su ayuda emergente 
 - `code.merge`: fusionar una pull request.
 - `runs.start`: iniciar, detener y reanudar una ejecución.
 - `runs.approve`: aprobar lo que un agente quiere escribir, y su plan.
-- `plan.edit`: estimaciones, el calendario del plan y la escritura de un plan en el gestor de incidencias. Tus propias entradas de tiempo siguen siendo personales y no la necesitan.
+- `plan.edit`: estimaciones, el calendario del plan y la escritura de un plan en el gestor de tickets. Tus propias entradas de tiempo siguen siendo personales y no la necesitan.
 - `project.settings`: Configuración / Este proyecto, automatización, recetas, conexiones, el archivo del equipo.
 - `costs.view`: los importes de dinero.
 
 La marca admin da todos los derechos. Un miembro puede tener cambios: `+code.merge` añade un derecho, `-runs.approve` quita uno. Tu rol personal en Configuración / Yo y el perfil de solo lectura de un proyecto solo pueden quitar derechos.
 
-Código y fusión es una sola fila: el nivel de Código y un interruptor Fusión, que fijan `code.write` y `code.merge`. El nivel de Plan de un rol sigue su nivel de Trabajo hasta que lo cambies. Cada rol tiene un ajuste Lugares: un lugar que desactivas queda oculto para ese rol. Cada rol empieza con los lugares del diseño ocultos: por ejemplo, un Product owner no ve Código. Los derechos por defecto no cambian.
+Código y fusión es una sola fila: el nivel de Código y un interruptor Fusión, que fijan `code.write` y `code.merge`. El nivel de Plan de un rol sigue su nivel de Flujo y tickets hasta que lo cambies. Cada rol tiene un ajuste Lugares: un lugar que desactivas queda oculto para ese rol. Por defecto, Product owner y Jefe de proyecto no ven Código, Analista de negocio y Lector no ven Equipo ni Código, Arquitecto no ve Plan, Tester no ve Plan ni Equipo, y Diseñador no ve Plan, Equipo ni Código. Los derechos por defecto no cambian.
 
 ### Quién eres
 

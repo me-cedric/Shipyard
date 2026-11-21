@@ -31,10 +31,10 @@ La galería está en `/dev/gallery`, solo en el build de desarrollo.
 ## IPC
 
 1. Añade un comando en `crates/shipyard-app/src/commands/<feature>.rs` (los comandos del trabajo están en `crates/shipyard-app/src/work.rs`, junto al estado que guardan; los comandos de las ejecuciones están en `factory.rs`, `questions.rs` y `delivery.rs` de la misma carpeta) y regístralo en el builder de specta en `src/lib.rs`. Un comando es `async`, toma `app: AppHandle` y devuelve `Result<T, String>`. Pon la lógica en una función sencilla sobre `&AppState`, para que una prueba unitaria no necesite el runtime de Tauri. Una llamada de TypeScript devuelve un objeto de resultado: léelo con `unwrap` de `@/lib/ipc`.
-2. Ejecuta `pnpm ipc:gen`. Ejecuta `cargo test --workspace` y escribe `src/lib/ipc/bindings.ts`. No edites ese archivo.
+2. Ejecuta `pnpm ipc:gen`. Este comando ejecuta `cargo test --workspace` y escribe `src/lib/ipc/bindings.ts`. No edites ese archivo.
 3. Añade el handler de mock en `src/lib/ipc/mock.ts`. Un handler recibe los argumentos en orden y devuelve los datos. `pnpm typecheck` falla hasta que cada comando tiene un handler. Las pruebas empiezan con un mock vacío (`resetMock`) y lo leen con `mockState()`.
 
-Fuera de Tauri, `src/main.tsx` instala el mock, así que Vite, Vitest y Playwright se ejecutan sin Rust. El selector de carpetas de mock devuelve `/mock/alpha`, `/mock/beta` y `/mock/gamma` por turno. El diálogo de archivos de mock para Excel devuelve `/mock/costing.xlsx`, o una vez la ruta de `mockState().nextFile`. Una ruta con `bad` da un libro con una fila rechazada.
+Fuera de Tauri, `src/main.tsx` instala el mock, así que Vite, Vitest y Playwright se ejecutan sin Rust. El selector de carpetas de mock devuelve `/mock/alpha`, `/mock/beta` y `/mock/gamma` por turno. El diálogo de archivos de mock para Excel devuelve `/mock/costing.xlsx`, o la ruta de `mockState().nextFile` una vez. Una ruta con `bad` da un libro con una fila rechazada.
 
 ## Datos de la aplicación
 

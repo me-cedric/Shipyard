@@ -10,11 +10,11 @@ Die Schaltflächen der Seite sind Projekte importieren (sie öffnet Einrichtung 
 2. Oder klicken Sie auf Ordner öffnen und wählen Sie den Ordner Ihres Projekts. Wenn der Ordner noch kein Projekt ist, klicken Sie auf Zum Projekt machen.
 3. Oder klicken Sie auf Von der Code-Plattform klonen und geben Sie die Adresse an.
 
-Schließen fragt zuerst, wenn Agenten für das Projekt arbeiten: Abbrechen, Stoppen und schließen oder Weiterarbeiten lassen. Weiterarbeiten lassen schließt das Projekt, und die Runs laufen weiter.
+Schließen fragt zuerst, wenn Agenten für das Projekt arbeiten: Abbrechen, Stoppen und schließen oder Weiterarbeiten lassen. Weiterarbeiten lassen schließt das Projekt, und die Läufe gehen weiter.
 
 ## Neues Projekt
 
-Neues Projekt ist eine eigene Seite unter `/projects/new`. Öffnen Sie sie mit Neues Projekt auf der Seite Projekte, auf der Seite des ersten Starts oder auf der Seite Kein Projekt ist offen. Sie stellt eine Frage nach der anderen, in fünf Schritten: Name, Art des Produkts, Werkzeuge, Team und Bereit. Alle Schritte zeigt die fünf Teile auf einer Seite: Projekt, Auftrag, Team, Wo der Code liegt und Start. Zurück verlässt die Seite oder geht einen Schritt zurück. Jeder Schritt hat Vorgaben. Projekt erstellen ist an, wenn der Name und der übergeordnete Ordner gesetzt sind. Vor Ihrem Klick wird nichts angelegt.
+Neues Projekt ist eine eigene Seite unter `/projects/new`. Öffnen Sie sie mit Neues Projekt auf der Seite Projekte, auf der Seite des ersten Starts oder auf der Seite Kein Projekt ist offen. Sie stellt eine Frage nach der anderen, in fünf Schritten: Name, Art des Produkts, Werkzeuge, Team und Bereit. Alle Schritte zeigt die fünf Teile auf einer Seite: Projekt, Auftrag, Team, Wo der Code liegt und Start. Zurück verlässt die Seite oder geht einen Schritt zurück. Jeder Schritt hat Vorgaben. Projekt erstellen ist aktiv, wenn der Name und der übergeordnete Ordner gesetzt sind. Vor Ihrem Klick wird nichts angelegt.
 
 1. Projekt: der Name, der kurze Schlüssel für Tickets (aus dem Namen, Sie können ihn bearbeiten), der übergeordnete Ordner und die Technologie: Node, Rust, Python, Java, Go oder Andere. Die Technologie legt die Prüfschritte der Projektdatei und die Ignorier-Regeln von `.gitignore` fest. Der Ordner muss leer oder neu sein: Projekt erstellen lehnt einen Ordner ab, der Dateien enthält.
 2. Auftrag: die Vision, die Nutzer und der Umfang, als Text, den Sie bearbeiten. Sie gehen nach `docs/brief.md`. Wählen Sie auch die Doku-Sprache und die Pull-Request-Sprache. Beide sind standardmäßig die Sprache der Oberfläche. Die Agenten schreiben Spezifikationen, Diagramme, Dokumente und Pull-Request-Texte in diesen Sprachen. Code, Bezeichner, Code-Kommentare und Commit-Nachrichten bleiben auf Englisch.
@@ -29,7 +29,7 @@ Neues Projekt ist eine eigene Seite unter `/projects/new`. Öffnen Sie sie mit N
 
 Projekt erstellen legt das Repository an, schreibt die Dateien, macht den ersten Commit und öffnet das Projekt. Das Projekt entsteht am Ende der Schritte, nicht vorher. Für ein neues Repository legt es dann das Repository auf der Code-Plattform an, setzt `origin` und pusht. Wenn die Code-Plattform ablehnt, bleibt das lokale Projekt offen und der Fehler zeigt sich.
 
-## Kein Projekt offen
+## Kein Projekt ist offen
 
 Wenn Sie das Projekt schließen, oder wenn nach dem ersten Start kein Projekt offen ist, sagt eine Karte Kein Projekt ist offen. Neues Projekt öffnet die Seite des Erstellers. Projekt öffnen öffnet ein Menü: Ihre letzten Projekte, Projekte, Ordner öffnen und Repository klonen. Die Seite des ersten Starts gilt nur für den ersten Start (siehe Erste Schritte, Erster Start).
 

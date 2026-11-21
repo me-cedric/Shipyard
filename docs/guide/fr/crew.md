@@ -10,7 +10,7 @@ L'équipe réunit les personnes et les agents du projet. Le sélecteur a cinq se
 
 ## En direct
 
-Le sélecteur Cartes et En direct est en haut d'Équipe. En direct montre les agents au travail. Chaque ligne montre un agent, sa fonctionnalité avec son état, et les fichiers et les specs que l'agent lit et modifie. Le filtre est Au travail, Terminée, Fichiers ou Specs. Survolez un agent pour voir sa réf. Faites un clic droit, ou appuyez sur la touche du menu contextuel, pour copier la réf. Cliquez sur la fonctionnalité pour ouvrir sa page.
+Le sélecteur Cartes et En direct est en haut d'Équipe. En direct montre les agents au travail. Chaque ligne montre un agent, sa fonctionnalité avec son état, et les fichiers et les specs que l'agent lit et modifie. Le filtre est Au travail, Terminée, Fichiers ou Spécifications. Survolez un agent pour voir sa réf. Faites un clic droit, ou appuyez sur la touche du menu contextuel, pour copier la réf. Cliquez sur la fonctionnalité pour ouvrir sa page.
 
 ## Recettes
 
@@ -18,8 +18,8 @@ Une recette est la liste des étapes qu'un agent suit sur une fonctionnalité. R
 
 Une recette s'ouvre dans un formulaire. Utilisez Formulaire et Texte pour passer du formulaire au texte YAML. Les deux modifient le même fichier.
 
-- La page d'une étape montre aussi Type (agent, personne ou contrôle, selon l'étape), Tourne en même temps que d'autres étapes (activé quand l'étape n'attend aucune étape), Les sous-étapes tournent côte à côte et Mode. Une étape qui attend une personne a Qui approuve : seule une personne avec ce rôle l'approuve, et seul ce rôle reçoit sa carte dans Aujourd'hui. Dans Personnes, Peut écrire est Demande d'abord ou Seul : Seul est l'approbation « Ne plus demander pour cette recette ».
 - Étapes : chaque étape est une carte avec les groupes Qui, Personnes, Fonctionnement et Limites. Fixez le rôle ou l'action, le niveau de modèle, l'effort, le mode, les prérequis, les outils et le contrôle de chaque étape. Plus montre les autres champs : espace de travail, pour chaque, enfants en parallèle, essais, limite de temps, budget, compétence, contexte neuf et tours de revue. Ajoutez, retirez et déplacez une étape vers le haut ou le bas.
+- La page d'une étape montre aussi Type (agent, personne ou contrôle, selon l'étape), Tourne en même temps que d'autres étapes (activé quand l'étape n'attend aucune étape), Les sous-étapes tournent côte à côte et Mode. Une étape qui attend une personne a Qui approuve : seule une personne avec ce rôle l'approuve, et seul ce rôle reçoit sa carte dans Aujourd'hui. Dans Personnes, Peut écrire est Demande d'abord ou Seul : Seul est l'approbation « Ne plus demander pour cette recette ».
 - Limites : le délai de blocage en secondes. Activez Budget pour arrêter chaque exécution à un montant en USD, et Limite de tours pour mettre chaque exécution en pause après un nombre de tours. Les deux sont désactivés par défaut.
 - Le formulaire vérifie la recette à chaque changement. Enregistrer reste désactivé tant qu'il montre un problème.
 - Nouveau crée une recette à partir d'un modèle : feature, bug, spike, docs-update, review-only, spec-split ou bootstrap. Le menu Plus d'actions de la recette ouverte a Dupliquer, Renommer et Supprimer. Renommer et Supprimer refusent la recette par défaut du projet et une recette qu'une exécution utilise. Supprimer demande une confirmation.
@@ -42,9 +42,9 @@ Dépenses montre les jetons et l'argent que les agents ont utilisés, par jour e
 - Itérations compte les requêtes que chaque exécution a envoyées au modèle.
 - Les montants s'affichent par défaut. Désactivez Afficher les prix pour les masquer : une tuile d'argent montre alors le nombre de jetons. L'application retient l'interrupteur pour chaque projet.
 - Prévenir à est le pourcentage d'un budget où l'alerte s'affiche. C'est 80 pour cent pour le projet, jusqu'à ce que vous cliquiez sur Modifier et fixiez un autre pourcentage de 1 à 100.
-- Chaque limite d'une fonctionnalité, d'un jour et d'une personne a un choix Ensuite : Arrêter et demander (par défaut), Mettre en pause, Me demander ou Continuer. L'exécution s'arrête à 100 pour cent avec les trois premiers. Arrêter et demander écrit aussi un commentaire sur le ticket, Me demander demande dans l'application seulement, et Mettre en pause s'arrête sans question. Augmentez le budget pour continuer. Continuer fait du budget un simple avertissement : l'exécution continue, et l'alerte s'affiche une fois. Tout arrêter, le délai d'inactivité et le nombre maximal de tours arrêtent toujours l'exécution.
+- Chaque limite d'une fonctionnalité, d'un jour et d'une personne a un choix Ensuite : Arrêter et demander (par défaut), Mettre en pause, Me demander ou Continuer. L'exécution s'arrête à 100 pour cent avec les trois premiers. Arrêter et demander écrit aussi un commentaire sur le ticket, Me demander demande dans l'application seulement, et Mettre en pause s'arrête sans question. Augmentez le budget pour continuer. Continuer fait du budget un simple avertissement : l'exécution continue, et l'alerte s'affiche une fois. Arrêter tous les agents, le délai de blocage et le nombre maximal de tours arrêtent toujours l'exécution.
 
-Comment les agents s'en sortent affiche des barres Processeur et Mémoire pour les processus des agents seulement, pas pour tout l'ordinateur. Chaque étape d'un run liste les appels d'outils de l'agent.
+Comment les agents s'en sortent affiche des barres Processeur et Mémoire pour les processus des agents seulement, pas pour tout l'ordinateur. Chaque étape d'une exécution liste les appels d'outils de l'agent.
 
 ## Droits
 
@@ -64,13 +64,13 @@ Un droit désactive une commande. La commande reste visible, et son infobulle no
 - `code.merge` : fusionner une pull request.
 - `runs.start` : lancer, arrêter et reprendre une exécution.
 - `runs.approve` : approuver ce qu'un agent veut écrire, et son plan.
-- `plan.edit` : estimations, calendrier du plan et écriture d'un plan dans le suivi de tickets. Vos propres entrées de temps restent personnelles et n'en ont pas besoin.
+- `plan.edit` : estimations, calendrier du plan et écriture d'un plan dans l'outil de suivi. Vos propres entrées de temps restent personnelles et n'en ont pas besoin.
 - `project.settings` : Configuration / Ce projet, automatisation, recettes, connexions, le fichier d'équipe.
 - `costs.view` : les montants d'argent.
 
-Le statut admin donne tous les droits. Un membre peut avoir des écarts : `+code.merge` ajoute un droit, `-runs.approve` en retire un. Votre rôle personnel dans Configuration / Moi et le profil en lecture seule d'un projet ne peuvent que retirer des droits.
+Le statut admin donne tous les droits. Un membre peut avoir des droits en plus ou en moins : `+code.merge` ajoute un droit, `-runs.approve` en retire un. Votre rôle personnel dans Configuration / Moi et le profil en lecture seule d'un projet ne peuvent que retirer des droits.
 
-Code et fusion est une seule ligne : le niveau de Code et un interrupteur Fusion, qui règlent `code.write` et `code.merge`. Le niveau de Plan d'un rôle suit son niveau de Travail tant que vous ne le changez pas. Chaque rôle a un réglage Lieux : un lieu que vous désactivez est masqué pour ce rôle. Chaque rôle commence avec les lieux du design masqués : par exemple, un Product owner ne voit pas Code. Les droits par défaut ne changent pas.
+Code et fusion est une seule ligne : le niveau de Code et un interrupteur Fusion, qui règlent `code.write` et `code.merge`. Le niveau de Plan d'un rôle suit son niveau de Travail tant que vous ne le changez pas. Chaque rôle a un réglage Lieux : un lieu que vous désactivez est masqué pour ce rôle. Par défaut, Responsable produit et Chef de projet ne voient pas Code, Analyste métier et Lecteur ne voient pas Équipe et Code, Architecte ne voit pas Plan, Testeur ne voit pas Plan et Équipe, et Designer ne voit pas Plan, Équipe et Code. Les droits par défaut ne changent pas.
 
 ### Qui vous êtes
 
@@ -92,7 +92,7 @@ Chaque écriture qui demande un droit, et chaque refus, ajoute une ligne au jour
 
 Une sous-page a sa propre adresse et un lien de retour, sans sélecteur de section.
 
-- Équipe : `/crew/crew`. Le menu Plus contient En direct (`?view=live`) et Ajouter une personne. Une personne s'ouvre à `?member=<identifiant>`.
+- Équipe : `/crew/crew`. Le menu Plus contient En direct (`?view=live`) et Ajouter une personne. Une personne s'ouvre à `?member=<handle>`.
 - Recettes : `/crew/recipes`. Une recette s'ouvre à `?recipe=<id>` et une étape à `&step=<id>`. Les fichiers des rôles d'agent sont dans le menu Plus.
 - Sessions : `/crew/sessions`. Les sessions terminées sont à `?page=ended`.
 - Droits : `/crew/rights`. Le fichier d'équipe est à `?page=team`.

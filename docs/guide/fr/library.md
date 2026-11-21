@@ -6,7 +6,7 @@ Bibliothèque s'ouvre sur quatre portes. Chaque porte nomme ce que vous cherchez
 
 Bibliothèque n'a pas de sélecteur de sections. Sur chaque page de Bibliothèque, cliquez sur Bibliothèque en haut pour revenir aux portes.
 
-Les pastilles Ce qui est testé, Réponses et Glossaire ouvrent la page qui les contient. La pastille Apprendre montre combien d'étapes du parcours vous avez finies. Sous les portes, les cartes Épinglé et Ouvert en dernier listent des pages : Épingler garde une page dans Épinglé, et Désépingler la retire. Ouvert en dernier garde aussi les éléments qui ont une réf (une spec, une décision, un schéma, un document) : chaque ligne montre une pastille de genre, son nom et Épingler.
+Les pastilles Ce qui est testé, Réponses et Glossaire ouvrent la page qui les contient. La pastille Apprendre montre combien d'étapes du parcours vous avez finies. Sous les portes, les cartes Épinglé et Ouvert en dernier listent des pages : Épingler garde une page dans Épinglé, et Désépingler la retire. Ouvert en dernier garde aussi les éléments qui ont une réf (une spec, une décision, un schéma, un document) : chaque ligne montre une pastille de type, son nom et Épingler.
 
 ## Lire et modifier un élément
 
@@ -26,7 +26,7 @@ Les pastilles Ce qui est testé, Réponses et Glossaire ouvrent la page qui les 
 
 ### Spécifications
 
-Spécifications liste ce que le produit fait aujourd'hui. Choisissez une spécification à gauche pour la lire à droite, avec chaque exigence et son état. Les cartes Changements en cours (avec Archiver pour un changement terminé), Liés et Vérifier les spécifications (syntaxe et liens) sont à côté. Le sélecteur Lecture, Texte, Fichiers a Modifier. Les boutons Comparer avec le code et Écrire une spécification depuis le code envoient une demande préparée à l'assistant. Un changement de spécification commence comme une proposition : voir la page Flux, Liste et La page d'une fonctionnalité, Brief.
+Spécifications liste ce que le produit fait aujourd'hui. Choisissez une spécification à gauche pour la lire à droite, avec chaque exigence et son état. Les cartes Changements en cours (avec Archiver pour un changement terminé), Liés et Vérifier les spécifications (syntaxe et liens) sont à côté. Le sélecteur Lecture, Texte, Fichiers a Modifier. Les boutons Comparer avec le code et Écrire une spécification depuis le code envoient une demande préparée à l'assistant. Un changement de spécification commence comme une proposition : voir la page Flux, Liste et La page d'une fonctionnalité, Cahier.
 
 ### Plans de test
 
@@ -40,7 +40,7 @@ Questions est le registre des points ouverts : risques, hypothèses, problèmes,
 
 - Une rangée de pastilles filtre par type, et Les miennes montre les vôtres. Les filtres par texte, état et responsable sont dans le menu Plus. Exporter est dans l'en-tête.
 - Cliquez sur Nouvelle question pour en ajouter une. Choisissez le responsable dans l'équipe.
-- Les éléments répondus sont dans une carte Closes. Après une réponse à une question d'une spécification, Ajouter la réponse à la spécification copie la réponse dans la spécification.
+- Les éléments répondus sont dans une carte Fermées. Après une réponse à une question d'une spécification, Ajouter la réponse à la spécification copie la réponse dans la spécification.
 
 ## Comment il est construit
 
@@ -52,7 +52,7 @@ Carte dessine les éléments du projet en groupes, avec les liens entre eux. Fil
 - Un élément dont la source a changé depuis s'affiche comme périmé.
 - Sélectionnez un élément pour l'ouvrir dans l'inspecteur.
 
-Avec la source Code, la carte montre les dossiers du code. Une ligne entre deux dossiers est plus épaisse quand plus d'appels passent entre leurs fichiers. Sélectionnez un dossier pour voir ses fichiers, puis un fichier pour voir ses symboles et ce qui les appelle ou ce qu'ils appellent. Tout afficher revient à la carte. Indexer démarre le serveur d'index du code quand il est arrêté, construit l'index, et arrête le serveur. Si le programme se termine par une erreur, la page nomme le programme, son code de sortie et ses dernières lignes : corrigez la cause, puis cliquez de nouveau sur Indexer. La carte du symbole a Expliquer et Ouvrir dans l'éditeur, et Spécifications et décisions qui l'utilisent ouvre l'inspecteur. Orphelins montre les fichiers qu'aucun appel n'atteint ni ne quitte. Le sélecteur Connaissances et Code est en haut, et Code a l'adresse `/library/graph?source=code`.
+Avec la source Code, la carte montre les dossiers du code. Une ligne entre deux dossiers est plus épaisse quand plus d'appels passent entre leurs fichiers. Sélectionnez un dossier pour voir ses fichiers, puis un fichier pour voir ses symboles et ce qui les appelle ou ce qu'ils appellent. Tout afficher revient à la carte. Indexer démarre le serveur d'index du code quand il est arrêté, construit l'index, et arrête le serveur. Si le programme se termine par une erreur, la page nomme le programme, son code de sortie et ses dernières lignes : corrigez la cause, puis cliquez de nouveau sur Indexer. La carte du symbole a Expliquer et Ouvrir dans l'éditeur, et Specs et décisions qui l'utilisent ouvre l'inspecteur. Orphelins montre les fichiers qu'aucun appel n'atteint ni ne quitte. Le sélecteur Connaissances et Code est en haut, et Code a l'adresse `/library/graph?source=code`.
 
 Un fichier dont la spec a changé après son dernier changement montre la pastille Périmé.
 
@@ -69,11 +69,11 @@ Un diagramme ou une image, dans Architecture et dans Écrans, s'ajuste à son ca
 
 ### Diagrammes
 
-Diagrammes contient les dessins du projet : Excalidraw, Mermaid, draw.io et BPMN. Une grille ou une liste montre chaque diagramme avec son format. Cliquez sur un diagramme, puis sur Ouvrir ou Modifier ; Changer le format et Utilisé par sont sur sa carte. Le bouton Le dessiner pour moi envoie une demande préparée à l'assistant, et un bouton Nouveau par format ajoute un diagramme. Dessinez dans l'éditeur, puis enregistrez.
+Diagrammes contient les dessins du projet : Excalidraw, Mermaid, draw.io et BPMN. Une grille ou une liste montre chaque diagramme avec son format. Cliquez sur un diagramme, puis sur Ouvrir ou Modifier ; Changer le format et Utilisé par sont sur sa carte. Le bouton Dessine-le pour moi envoie une demande préparée à l'assistant, et un bouton Nouveau par format ajoute un diagramme. Dessinez dans l'éditeur, puis enregistrez.
 
 ### Écrans
 
-Écrans montre les écrans du produit et les jetons de design de votre projet. Ils viennent du document de conception (du CSS dans un bloc de code), d'un fichier `tokens.css`, d'un fichier `*.tokens.json` ou d'un bloc `@theme` de Tailwind 4, groupés par fichier. Sans jeton, la page dit Aucun jeton pour l'instant ; cliquez sur Ajouter des jetons au document de conception, modifiez le bloc, puis enregistrez. La page ne montre jamais les jetons de Shipyard. Chaque écran est une carte avec Réalisé ou Pas réalisé. Le sélecteur Écrans et Jetons montre les jetons. Passer au code ouvre l'écran ouvert, sinon le premier, dans l'inspecteur, où se trouve Écrire le plan.
+Écrans montre les écrans du produit et les jetons de design de votre projet. Ils viennent du document de conception (du CSS dans un bloc de code), d'un fichier `tokens.css`, d'un fichier `*.tokens.json` ou d'un bloc `@theme` de Tailwind 4, groupés par fichier. Sans jeton, la page dit Aucun jeton pour l'instant ; cliquez sur Ajouter des jetons au document de conception, modifiez le bloc, puis enregistrez. La page ne montre jamais les jetons de Shipyard. Chaque écran est une carte avec Réalisé ou Pas réalisé. Le sélecteur Écrans et Jetons montre les jetons. Du design au code ouvre l'écran ouvert, sinon le premier, dans l'inspecteur, où se trouve Écrire le plan.
 
 - Un fichier `.fig` montre l'aperçu que Figma y garde.
 - Pour lire Figma, ajoutez une fois le jeton de votre compte Figma. Il va dans le trousseau de votre ordinateur.
@@ -83,7 +83,7 @@ Diagrammes contient les dessins du projet : Excalidraw, Mermaid, draw.io et BPMN
 
 API montre les contrats d'API. Ouvrez un contrat pour lire ses routes. Essayez une route sur un serveur du contrat. La liste montre les points d'accès de tous les contrats. Essayer : choisissez un serveur, une méthode et un chemin, puis cliquez sur Envoyer ; la réponse s'affiche dans la boîte sombre dessous.
 
-La carte d'un endpoint pointe vers le changement qui cite le contrat.
+La carte d'un point d'accès pointe vers le changement qui cite le contrat.
 
 ### Données
 
@@ -125,13 +125,13 @@ Experts est une carte avec les personnes du fichier d'équipe et leurs sujets. A
 
 ### Manuel
 
-Manuel montre l'arbre des pages à gauche, avec Trouver une page, et la page ouverte. Pages qui renvoient ici liste les pages qui la citent, et Demander à un agent de la mettre à jour envoie une demande préparée à l'assistant. Passez sur Modifier pour changer une page : le sélecteur Lecture, Les deux, Texte montre la page comme on la lit, la page à côté de son texte, ou le texte seul. Cliquez sur Nouvelle page pour en ajouter une. La ligne Mode d'emploi, avec F1, ouvre le mode d'emploi.
+Manuel montre l'arbre des pages à gauche, avec Trouver une page, et la page ouverte. Pages qui pointent ici liste les pages qui la citent, et Demander à un agent de la mettre à jour envoie une demande préparée à l'assistant. Passez sur Modifier pour changer une page : le sélecteur Lecture, Les deux, Texte montre la page comme on la lit, la page à côté de son texte, ou le texte seul. Cliquez sur Nouvelle page pour en ajouter une. La ligne Mode d'emploi, avec F1, ouvre le mode d'emploi.
 
 Historique, sur une page, liste de la même façon les commits qui l'ont changée, et la page dit qui l'a changée en dernier.
 
 ### Documents
 
-Documents liste les documents du projet, avec une pastille pour le format. Ouvrez-en un avec Lecture, Les deux ou Texte, puis cliquez sur Modifier pour le changer. Chercher dans le texte, Renommer et Supprimer sont dans le menu Plus. La carte Fichier a Afficher dans le dossier et Exporter. La carte Le planificateur peut utiliser ce document a Transformer en diapositives et Transformer en spécification : chacun envoie une demande préparée à l'assistant. Exportez le dossier d'architecture et la documentation fonctionnelle en fichiers Word, et une fiche client en fichier Excel. Chaque export ouvre un dialogue Enregistrer sous avec le nom rempli et le dossier de votre dernier enregistrement ; Annuler n'exporte rien. Après un enregistrement, Afficher dans le dossier et Ouvrir marchent sur le nouveau fichier.
+Documents liste les documents du projet, avec une pastille pour le format. Ouvrez-en un avec Lecture, Les deux ou Texte, puis cliquez sur Modifier pour le changer. Chercher dans le texte, Renommer et Supprimer sont dans le menu Plus. La carte Fichier a Afficher dans le dossier et Exporter. La carte Le planificateur peut utiliser ce document a En faire des diapositives et En faire une spécification : chacun envoie une demande préparée à l'assistant. Exportez le dossier d'architecture et la documentation fonctionnelle en fichiers Word, et une fiche client en fichier Excel. Chaque export ouvre un dialogue Enregistrer sous avec le nom rempli et le dossier de votre dernier enregistrement ; Annuler n'exporte rien. Après un enregistrement, Afficher dans le dossier et Ouvrir marchent sur le nouveau fichier.
 
 Un fichier Word a une page de garde, une table des matières (Word remplit les numéros de page quand il demande de mettre à jour les champs), les diagrammes Mermaid du projet en images, et des numéros de page. Un fichier LikeC4 ou draw.io s'affiche en image quand un PNG du même nom est à côté, et sinon par son chemin. Une feuille Excel a une ligne d'en-tête stylée qui reste à l'écran.
 
@@ -152,9 +152,9 @@ Une présentation écrite en Markdown a Modifier, Exporter en PDF et Notes de l'
 
 ### Tableaux de bord
 
-Tableaux de bord montre un tableau de bord à la fois ; le sélecteur en haut de la page le choisit. Ses tuiles sont en lecture seule. Modifier ouvre la page de modification du tableau de bord, Exporter le rapport ouvre Rapports, et Créer un tableau de bord pour moi envoie une demande préparée à l'assistant. Nouveau tableau de bord est dans le menu Plus. Plus de chiffres renvoie vers Équipe / Dépenses, Flux / Santé et Plan. Les tuiles que vous épinglez s'affichent en haut de Tableaux de bord. Une tuile dont la source est coupée le dit.
+Tableaux de bord montre un tableau de bord à la fois ; le sélecteur en haut de la page le choisit. Ses tuiles sont en lecture seule. Modifier ouvre la page de modification du tableau de bord, Exporter le rapport ouvre Rapports, et Construis-moi un tableau de bord envoie une demande préparée à l'assistant. Nouveau tableau de bord est dans le menu Plus. Plus de chiffres renvoie vers Équipe / Dépenses, Flux / Santé et Plan. Les tuiles que vous épinglez s'affichent en haut de Tableaux de bord. Une tuile dont la source est coupée le dit.
 
-La page de modification a l'adresse `/library/dashboards/<nom>/edit`, le lien Tableaux de bord pour revenir, Renommer et Terminé. Ajouter une tuile montre une pastille par type de tuile. Chaque tuile a une poignée de déplacement, Réglages et Retirer ; Déplacer à gauche, Déplacer à droite et la taille sont dans Réglages. Afficher en tableau donne les chiffres derrière un graphique.
+La page de modification a l'adresse `/library/dashboards/<name>/edit`, le lien Tableaux de bord pour revenir, Renommer et Terminé. Ajouter une tuile montre une pastille par type de tuile. Chaque tuile a une poignée de déplacement, Réglages et Retirer ; Déplacer à gauche, Déplacer à droite et la taille sont dans Réglages. Afficher en tableau donne les chiffres derrière un graphique.
 
 Créer une tuile pour moi demande à un agent de proposer une tuile à partir de vos mots. Vous n'avez pas besoin de connaître les types de tuiles.
 
@@ -166,7 +166,7 @@ Créer une tuile pour moi demande à un agent de proposer une tuile à partir de
 
 L'agent ne fait que lire le projet. Le tableau de bord ne change pas avant votre clic sur Accepter. Si la page dit que le budget est épuisé, ajoutez du budget, puis cliquez de nouveau sur Créer. Un tableau de bord que vous ne pouvez pas changer n'a pas Créer une tuile pour moi.
 
-Chaque tuile a un graphique : Nombre, Barres, Courbe, Liste, Étapes du flux, Dépense ou Santé. Le genre de données choisit le premier graphique ; changez-le dans le menu de la tuile. Épingler à Aujourd'hui, sur la page de modification, montre le tableau de bord en une carte sur Aujourd'hui. Un sélecteur de versions est à côté de Modifier et ne garde que les tickets de la version dans les tuiles du gestionnaire de tickets.
+Chaque tuile a un graphique : Nombre, Barres, Courbe, Liste, Étapes du flux, Dépense ou Santé. Le type de données choisit le premier graphique ; changez-le dans le menu de la tuile. Épingler à Aujourd'hui, sur la page de modification, montre le tableau de bord en une carte sur Aujourd'hui. Un sélecteur de versions est à côté de Modifier et ne garde que les tickets de la version dans les tuiles de l'outil de suivi.
 
 ### Rapports
 
@@ -186,6 +186,6 @@ Le choix de format propose aussi PDF (macOS seulement) et Markdown ; chaque rapp
 
 Mode d'emploi est ce guide. Ouvrez-le avec Mode d'emploi dans le menu du compte, avec F1, avec la barre Demander ou avec la pastille Mode d'emploi de Bibliothèque. Il vient avec l'application, dans la langue de l'interface, et marche sans projet. Tapez un mot dans le champ de recherche pour trouver chaque section qui le contient. Ouvrir le mode d'emploi de cette page, dans la barre Demander, ouvre la page du lieu et la section que vous voyez.
 
-Le manuel a une page par lieu, dans l'ordre de la barre latérale, et il s'ouvre sur Démarrer. Chaque page a une image. F1 ouvre le manuel pour chaque rôle, même pour un rôle qui ne voit pas Bibliothèque : le manuel est une aide. Sous une page, Poser une question sur cette page met une question sur la page dans l'assistant, Raccourcis ouvre les raccourcis clavier, et Manuel du projet ouvre le manuel du projet.
+Le mode d'emploi a une page par lieu, dans l'ordre de la barre latérale, et il s'ouvre sur Démarrer. Chaque page a une image. F1 ouvre le mode d'emploi pour chaque rôle, même pour un rôle qui ne voit pas Bibliothèque : le mode d'emploi est une aide. Sous une page, Poser une question sur cette page met une question sur la page dans l'assistant, Raccourcis ouvre les raccourcis clavier, et Manuel du projet ouvre le manuel du projet.
 
 Un lien dans le texte d'une page, comme `adr:0003`, ouvre une carte qui l'explique. La carte dit si l'élément est dans le projet, et à quoi il est lié. Ouvrir et Expliquer avec un agent sont côte à côte. Plus montre les autres actions, et Copier la référence copie le nom de l'élément.

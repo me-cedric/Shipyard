@@ -7,7 +7,7 @@ Shipyard tiene cinco temas integrados y una biblioteca de temas que importas. El
 - Claro y Oscuro.
 - OLED: una base negra pura para una pantalla OLED. Las superficies elevadas son un poco más claras. El texto cumple WCAG AA (4,5:1) en cada superficie. El acento es el mismo que en Oscuro.
 - Sistema: Claro u Oscuro, según el sistema.
-- Sistema, OLED en oscuro: Claro u OLED, según el sistema.
+- Sistema con OLED: Claro u OLED, según el sistema.
 
 El atajo del tema (Mod+Shift+L) va de Claro a Oscuro, OLED, Sistema, y de nuevo Claro.
 
@@ -84,8 +84,8 @@ Un tema es un dato. Shipyard rechaza `url()`, `var()`, una función dentro de un
 | `surface-0` | La base de la ventana. |
 | `surface-1` | Los paneles y la barra lateral. |
 | `surface-2` | Las tarjetas y las filas. |
-| `surface-3` | Los menús, los popovers y los diálogos. |
-| `n-1` a `n-5` | Fondos de controles, de discreto a fuerte, y hover. |
+| `surface-3` | Los menús, las ventanas emergentes y los diálogos. |
+| `n-1` a `n-5` | Fondos de controles, de discreto a fuerte, y al pasar el puntero. |
 | `n-6` a `n-8` | Bordes y separadores, de discreto a fuerte. |
 | `n-9` | Iconos discretos y texto de marcador. |
 | `n-10` | Texto terciario. |

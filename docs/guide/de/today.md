@@ -33,7 +33,7 @@ Das Feld der Menüleiste zeigt dieselben Dinge, die auf Sie warten.
 
 ## Neuigkeiten
 
-Neuigkeiten enthält die Benachrichtigungen. Der Titel nennt ihre Zahl. Jede Zeile zeigt wer, den Titel, das Feature und eine Aktion für ihre Art: Prüfen, Budget, Erneut synchronisieren oder Öffnen. Ein Bedienelement entfernt die Zeile. Ältere Zeilen stehen hinter Ältere Neuigkeiten. Alle als gelesen markieren und Leeren wirken auf die Liste. Keine andere Seite enthält eine Liste von Benachrichtigungen.
+Neuigkeiten enthält die Benachrichtigungen. Der Titel nennt ihre Zahl. Jede Zeile zeigt die Person, den Titel, das Feature und eine Aktion für ihre Art: Prüfen, Budget, Erneut synchronisieren oder Öffnen. Ein Bedienelement entfernt die Zeile. Ältere Zeilen stehen hinter Ältere Neuigkeiten. Alle als gelesen markieren und Leeren wirken auf die Liste. Keine andere Seite enthält eine Liste von Benachrichtigungen.
 
 Benachrichtigen, wenn hat fünf Schalter: Ein Agent braucht mich, Ein Agent wird fertig, Eine Person bittet um eine Prüfung, Ein Budget ist fast aufgebraucht und Die Synchronisierung hat ein Problem. Mehr in Einrichtung öffnet Einrichtung / Ich, mit einem Schalter für jede Quelle von Benachrichtigungen.
 

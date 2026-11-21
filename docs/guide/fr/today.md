@@ -33,7 +33,7 @@ Le panneau de la barre de menus montre les mêmes choses qui vous attendent.
 
 ## Nouvelles
 
-Nouvelles contient les notifications. Le titre donne leur nombre. Chaque ligne montre qui, le titre, la fonctionnalité et une action selon son genre : Relire, Budget, Synchroniser encore ou Ouvrir. Une commande retire la ligne. Les lignes plus anciennes sont derrière Nouvelles plus anciennes. Tout marquer comme lu et Effacer agissent sur la liste. Aucune autre page ne contient une liste de notifications.
+Nouvelles contient les notifications. Le titre donne leur nombre. Chaque ligne montre qui, le titre, la fonctionnalité et une action selon son type : Relire, Budget, Synchroniser encore ou Ouvrir. Une commande retire la ligne. Les lignes plus anciennes sont derrière Nouvelles plus anciennes. Tout marquer comme lu et Effacer agissent sur la liste. Aucune autre page ne contient une liste de notifications.
 
 Me prévenir quand a cinq interrupteurs : Un agent a besoin de moi, Un agent termine, Une personne demande une relecture, Un budget approche de sa limite et La synchronisation a un problème. Plus dans Configuration ouvre Configuration / Moi, qui a un interrupteur pour chaque source de notifications.
 

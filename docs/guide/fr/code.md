@@ -6,7 +6,7 @@ Code travaille sur le dépôt git du projet. Vous n'avez pas besoin de connaîtr
 
 Maintenant est un court résumé : les fichiers à committer et les pull requests ouvertes, une ligne vers la santé du produit, et les actions Branche de travail, Terminal, Fichiers et Ouvrir une pull request.
 
-La carte des fichiers à committer montre les trois premiers fichiers avec les lignes ajoutées et retirées, un lien vers les autres fichiers, un seul message de commit, Écrivez-le pour moi et Commit. Le lien ouvre la page des changements locaux.
+La carte des fichiers à committer montre les trois premiers fichiers avec les lignes ajoutées et retirées, un lien vers les autres fichiers, un seul message de commit, Écris-le pour moi et Commit. Le lien ouvre la page des changements locaux.
 
 1. Cochez les fichiers à garder dans une liste plate. Tout choisir et Ne rien choisir cochent toute la liste. Ou abandonnez un changement.
 2. Écrivez le message de commit, ajoutez une description si vous le voulez, puis cliquez sur Commit. Un commit prend seulement les fichiers cochés. Le bouton Commit de la carte de la marque de synchronisation fait de même depuis toute page.
@@ -28,7 +28,7 @@ Historique liste les commits, le plus récent d'abord. Sélectionnez un commit p
 
 ## Branches
 
-Branches liste les branches de cet ordinateur et du serveur. Créez, changez de, fusionnez ou supprimez une branche. L'application ne supprime jamais la branche sur laquelle vous travaillez.
+Branches liste les branches de cet ordinateur et du serveur. Créez, fusionnez ou supprimez une branche, ou passez à une autre. L'application ne supprime jamais la branche sur laquelle vous travaillez.
 
 Le sélecteur de branche, dans la carte de la marque de synchronisation et sur Code / Maintenant, a un champ de filtre. Tapez pour réduire la liste, déplacez-vous avec les flèches et appuyez sur Entrée. Une branche distante s'extrait comme une nouvelle branche locale qui la suit. La ligne Nouvelle branche crée une branche à partir de celle sur laquelle vous travaillez.
 
@@ -38,6 +38,6 @@ Terminal est une ligne de commande dans le dossier du projet. Le bouton Terminal
 
 ## Synchroniser
 
-Une marque au bout droit de la rangée du haut de chaque page montre l'état du dépôt : Échec de la synchronisation, le nombre de fichiers modifiés, Pas encore partagé, en retard, en avance ou À jour. Cliquez dessus pour ouvrir une carte avec les fichiers modifiés, la branche de travail et les boutons de synchronisation et de commit. Un lien de la carte ouvre Code / Maintenant.
+Une marque au bout droit de la rangée du haut de chaque page montre l'état du dépôt : Échec de la synchronisation, le nombre de fichiers modifiés, Pas encore partagé, en retard, en avance ou À jour. Cliquez dessus pour ouvrir une carte avec les fichiers modifiés, la branche de travail et les boutons Synchroniser, Récupérer seulement, Envoyer et Commit. Un lien de la carte ouvre Code / Maintenant.
 
-Synchroniser prend les changements de l'équipe et met votre branche à jour. La flèche jointe ouvre Récupérer seulement et Push. Envoyer vos commits au serveur est une action à part. L'application ne force jamais un push.
+Synchroniser prend les changements de l'équipe et met votre branche à jour. La flèche jointe ouvre Récupérer seulement et Envoyer. Envoyer vos commits au serveur est une action à part. L'application ne force jamais un push.

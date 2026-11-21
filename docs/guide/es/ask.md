@@ -6,13 +6,13 @@ Preguntar o indicar a Shipyard, en la fila superior de cada página, es la únic
 
 Ir a abre un lugar, una sección, un proyecto, un elemento o un resultado de búsqueda.
 
-Escribe unas palabras para buscar en el texto de tus documentos, decisiones, especificaciones, preguntas, tickets y diseños. Las mayúsculas y los acentos no importan («decision» encuentra «décision»), cada palabra debe coincidir, y la última palabra puede ser un inicio. Los resultados se agrupan por tipo, muestran un extracto corto con las palabras marcadas, y ponen primero una página que citan muchos elementos. El documento que abres desde un resultado marca las palabras.
+Escribe unas palabras para buscar en el texto de tus documentos, decisiones, especificaciones, preguntas, tickets y diseños. Las mayúsculas y los acentos no importan («decision» encuentra «decisión»), cada palabra debe coincidir, y la última palabra puede ser un inicio. Los resultados se agrupan por tipo, muestran un extracto corto con las palabras marcadas, y ponen primero una página que citan muchos elementos. El documento que abres desde un resultado marca las palabras.
 
 Elige Preguntar al asistente para poner esos elementos como contexto en el cuadro de mensaje del asistente. No se envía nada hasta que lo envías.
 
 ## Hacer
 
-Hacer inicia una acción o una petición para la página que ves. Ejemplos: Funcionalidad nueva, Iniciar un agente en un ticket (abre la página Funcionalidad nueva), Sincronizar ahora, Abrir el manual de esta página, Repetir el recorrido. Una acción que tu rol no puede usar no se muestra.
+Hacer inicia una acción o una petición para la página que ves. Ejemplos: Nueva funcionalidad, Iniciar un agente en un ticket (abre la página Nueva funcionalidad), Sincronizar ahora, Abrir el manual de esta página, Repetir el recorrido. Una acción que tu rol no puede usar no se muestra.
 
 ## Preguntar
 

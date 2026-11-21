@@ -13,15 +13,15 @@ Wenn eine Person zu viel Arbeit hat, nennt eine Karte das Problem und listet Vor
 
 ## Personen
 
-Personen zeigt jede Person mit der Auslastung gegenüber der Kapazität jeder Woche, die Aufgaben und ihre Termine. Eine Person mit zu viel Arbeit hat dort auch die Vorschläge. An das Ticketsystem senden öffnet eine Seite mit einer Vorschau zuerst: Neu, Geändert und Bleibt gleich, jeweils mit seiner Zahl. Nichts geht an das Ticketsystem, bevor Sie auf Anwenden klicken.
+Personen zeigt jede Person mit der Auslastung gegenüber der Kapazität jeder Woche, die Aufgaben und ihre Termine. Eine Person mit zu viel Arbeit hat dort auch die Vorschläge. An das Ticketsystem senden öffnet zuerst eine Seite mit einer Vorschau: Erstellen, Ändern und Keine Änderung, jeweils mit ihrer Zahl. Nichts geht an das Ticketsystem, bevor Sie auf Anwenden klicken.
 
 ## Schätzungen
 
 Schätzungen enthält ein Blatt für jedes Los. Jede Zeile hat eine niedrige, eine wahrscheinliche und eine hohe Schätzung. Die App berechnet den Preis, die Kosten und die Marge aus den Tagessätzen. Ein Umschalter zeigt das Blatt als Backlog, Übersicht, Verteilung, Portfolio oder Kalkulation.
 
-- Duplizieren, benennen Sie um, frieren Sie ein oder löschen Sie ein Blatt über sein Menü.
+- Duplizieren Sie ein Blatt, benennen Sie es um, frieren Sie es ein oder löschen Sie es, über sein Menü.
 - Versiegeln Sie das Projekt mit einer Passphrase, um die Tagessätze in den Dateien zu verbergen.
-- Einen Agenten schätzen lassen: Wählen Sie Aufgaben, dann klicken Sie darauf. Der Agent schlägt einen Wert für Bestfall, Wahrscheinlich und Schlimmstfall mit seinen Annahmen vor. Ein Wert kommt erst ins Blatt, wenn Sie auf Annehmen klicken. Verwerfen lässt den Vorschlag fallen. Der Agent zeigt sich in Team / Sitzungen, während er arbeitet. Stoppen beendet ihn, und das Blatt behält seine Werte. Die Aktion ist auf einem versiegelten und auf einem eingefrorenen Blatt aus.
+- Einen Agenten schätzen lassen: Wählen Sie Aufgaben, dann klicken Sie darauf. Der Agent schlägt je einen Wert für Bestfall, Wahrscheinlich und Schlimmstfall mit seinen Annahmen vor. Ein Wert kommt erst ins Blatt, wenn Sie auf Annehmen klicken. Verwerfen lässt den Vorschlag fallen. Der Agent zeigt sich in Team / Sitzungen, während er arbeitet. Stoppen beendet ihn, und das Blatt behält seine Werte. Die Aktion ist auf einem versiegelten und auf einem eingefrorenen Blatt aus.
 
 ## Zeit
 
@@ -29,11 +29,11 @@ Ein Wochenraster zeigt eine Zeile für jedes Ticket und eine Spalte für jeden T
 
 Unter dem Raster listet der Monat die Zeit, die jede Person aufgewendet hat. Die App sendet einen Zeiteintrag erst nach Ihrem Klick an das Ticketsystem.
 
-Klicken Sie auf Monat lesen, um die Zeiteinträge des Monats aus dem Ticketsystem neben Ihren Einträgen zu lesen. Das ändert nichts.
+Klicken Sie auf Den Monat aus dem Ticketsystem lesen, um die Zeiteinträge des Monats neben Ihren Einträgen zu lesen. Das ändert nichts.
 
 Eine Rolle mit weniger als drei Mitgliedern mit einem Tagessatz zeigt keine Kosten. Mit einem oder zwei Sätzen würden Kosten den Satz einer Person zeigen.
 
-Aus meiner Arbeit füllen fügt eine Zeile für jeden Run Ihrer Tickets und jeden Commit Ihres Tages hinzu. Es füllt nur Ihre eigene Tabelle. Die Tabelle hat keine Schaltfläche Speichern: Sie speichert, wenn Sie ein Feld verlassen.
+Aus meiner Arbeit füllen fügt eine Zeile für jeden Lauf Ihrer Tickets und jeden Commit Ihres Tages hinzu. Es füllt nur Ihre eigene Tabelle. Die Tabelle hat keine Schaltfläche Speichern: Sie speichert, wenn Sie ein Feld verlassen.
 
 ## Seiten
 

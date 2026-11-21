@@ -13,7 +13,7 @@ Shipyard hilft einem Team, ein Softwareprojekt auszuliefern: die Features, den P
 - Die obere Zeile jeder Seite enthält die Schaltfläche der Seitenleiste, Zurück und Vorwärts, die Leiste Shipyard fragen oder beauftragen und die Sync-Markierung. Das Fenster hat keine obere Leiste und keine Statusleiste.
   - Die Sync-Markierung zeigt den Zustand des Repositorys. Klicken Sie darauf, um die geänderten Dateien, den Branch, Sync und Commit zu sehen. Siehe die Seite Code, Synchronisieren.
   - Shipyard fragen oder beauftragen ist die eine Leiste für eine Frage, einen Ort und eine Aktion. Siehe die Seite Die Fragen-Leiste.
-  - Das Kontomenü enthält Ihren Namen und Ihre Rolle mit Ändern (Einrichtung / Ich), Design (Hell, Dunkel, System), Sprache, Anleitung, Tastenkürzel, Neuigkeiten, Tour wiederholen, Nach einem Update suchen, Über Shipyard mit der Version und Zustand. Tastenkürzel und Neuigkeiten öffnen sich als Dialoge.
+  - Das Kontomenü enthält Ihren Namen und Ihre Rolle mit Ändern (Einrichtung / Ich), Design (Hell, Dunkel, System), Sprache, Anleitung, Tastenkürzel, Neuigkeiten, Tour wiederholen, Nach einem Update suchen, Über Shipyard mit der Version, und Zustand. Tastenkürzel und Neuigkeiten öffnen sich als Dialoge.
 - Unter 1100 px stehen die Schaltflächen Dateien und Terminal im Menü Mehr.
 
 Das Fenster öffnet sich in der Größe, in der Sie es geschlossen haben. Um die Daten der App neben der App zu halten (zum Beispiel auf einem USB-Stick), legen Sie eine leere Datei namens `portable` neben die App.
@@ -27,7 +27,7 @@ Das Fenster öffnet sich in der Größe, in der Sie es geschlossen haben. Um die
 
 ## Erster Start
 
-Die Seite des ersten Starts erscheint nur beim ersten Start. Sie stellt eine Frage: Welche Rolle passt zu Ihnen? Wählen Sie eine Kachel (Product Owner, Projektleitung, Architekt, Tech Lead, Business-Analyst, Entwickler, Tester, Designer, Leser oder Andere), dann klicken Sie auf Fortfahren. Die Kachel des Lesers sagt „Ich schaue nur“. Öffnen Sie danach ein Projekt, klonen Sie ein Repository oder beginnen Sie ein neues Projekt, oder wählen Sie ein letztes Projekt. Danach, wenn kein Projekt offen ist (zum Beispiel nach Projekt schließen), sagt eine Karte Kein Projekt ist offen, mit Neues Projekt und Projekt öffnen. Siehe die Seite Projekte.
+Die Seite des ersten Starts erscheint nur beim ersten Start. Sie stellt eine Frage: Welche Rolle passt zu Ihnen? Wählen Sie eine Kachel (Product Owner, Projektleitung, Architekt, Tech Lead, Business-Analyst, Entwickler, Tester, Designer, Leser oder Andere), dann klicken Sie auf Fortfahren. Die Kachel des Lesers sagt „Ich schaue nur“. Öffnen Sie danach ein Projekt, klonen Sie ein Repository oder beginnen Sie ein neues Projekt, oder wählen Sie ein kürzlich geöffnetes Projekt. Danach, wenn kein Projekt offen ist (zum Beispiel nach Projekt schließen), sagt eine Karte Kein Projekt ist offen, mit Neues Projekt und Projekt öffnen. Siehe die Seite Projekte.
 
 In Heute nennt eine kleine Einrichtungskarte den nächsten Schritt der Liste: Projekt, KI-Tool, Modelle, Ticketsystem, Code-Plattform, Team, Berechtigungen, erste Entscheidung, erste Spezifikation, erstes zugewiesenes Ticket und erster Lauf. Jeder Schritt hat eine Aktion, die den echten nächsten Schritt nennt, etwa Installieren, Anmelden, Wählen oder Verbinden. Fortfahren auf der Karte öffnet Einrichtung / Start, das dieselben Schritte zeigt, eine Frage nach der anderen. In Heute verschwindet die Karte, wenn nichts mehr zu tun ist.
 

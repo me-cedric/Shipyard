@@ -26,7 +26,7 @@ Las fichas Qué está probado, Respuestas y Glosario abren la página que las co
 
 ### Especificaciones
 
-Especificaciones lista lo que el producto hace hoy. Elige una especificación a la izquierda para leerla a la derecha, con cada requisito y su estado. Al lado están las tarjetas Cambios en curso (con Archivar para un cambio terminado), Vinculados y Comprobar las especificaciones (sintaxis y enlaces). El selector Lectura, Texto, Archivos tiene Editar. Los botones Comparar con el código y Escribir una especificación desde el código envían una petición preparada al asistente. Un cambio de una especificación empieza como propuesta: mira la página Flujo, Lista y La página de una función, Resumen.
+Especificaciones lista lo que el producto hace hoy. Elige una especificación a la izquierda para leerla a la derecha, con cada requisito y su estado. Al lado están las tarjetas Cambios en curso (con Archivar para un cambio terminado), Vinculados y Comprobar las especificaciones (sintaxis y enlaces). El selector Lectura, Texto, Archivos tiene Editar. Los botones Comparar con el código y Escribir una especificación desde el código envían una petición preparada al asistente. Un cambio de una especificación empieza como propuesta: consulta la página Flujo, Lista y La página de una funcionalidad, Encargo.
 
 ### Planes de pruebas
 
@@ -166,11 +166,11 @@ Crear un mosaico para mí pide a un agente que proponga un mosaico a partir de t
 
 El agente solo lee el proyecto. El panel no cambia hasta que haces clic en Aceptar. Si la página dice que el presupuesto se agotó, añade presupuesto y haz clic de nuevo en Crear. Un panel que no puedes cambiar no tiene Crear un mosaico para mí.
 
-Cada ficha tiene un gráfico: Número, Barras, Línea, Lista, Etapas del flujo, Gasto o Salud. El tipo de datos elige el primer gráfico; cámbielo en el menú de la ficha. Fijar en Hoy, en la página de edición, muestra el panel como una tarjeta en Hoy. Un selector de versiones junto a Editar deja en las fichas del gestor de incidencias solo las incidencias de la versión.
+Cada mosaico tiene un gráfico: Número, Barras, Línea, Lista, Etapas del flujo, Gasto o Salud. El tipo de datos elige el primer gráfico; cámbialo en el menú del mosaico. Fijar en Hoy, en la página de edición, muestra el panel como una tarjeta en Hoy. Un selector de versiones junto a Editar deja en los mosaicos del gestor de tickets solo los tickets de la versión.
 
 ### Informes
 
-Informes lista cada archivo que Shipyard puede crear para una persona que no usa Shipyard: un cliente, un responsable, un auditor. Cada informe es un mosaico. Formato, arriba, muestra Todos los informes, o solo los archivos Word, los archivos Excel o las imágenes. Escrito para usted contiene tres documentos, cada uno con Abrir y Escribirlo. Un enlace lleva a Paneles.
+Informes lista cada archivo que Shipyard puede crear para una persona que no usa Shipyard: un cliente, un responsable, un auditor. Cada informe es un mosaico. Formato, arriba, muestra Todos los informes, o solo los archivos Word, los archivos Excel o las imágenes. Escrito para ti contiene tres documentos, cada uno con Abrir y Escribirlo. Un enlace lleva a Paneles.
 
 - Exportar: Shipyard abre el diálogo Guardar como. Elige la carpeta y guarda.
 - Rellenar el formulario: Solicitud de cambio y Trabajo realizado abren una página de formulario (abajo) y luego crean el archivo.
@@ -180,7 +180,7 @@ Un informe se muestra solo cuando tu rol puede ver la página que contiene su ex
 
 Una página de formulario tiene la dirección `/library/reports/change-request` o `/library/reports/work-done`, y el enlace Informes para volver. Rellena los campos (una solicitud de cambio pide Desde la versión, Hasta la versión y Personas que aprueban: Añadir muestra el equipo con una casilla por persona) y haz clic en Escribir el informe. Un campo obligatorio vacío da una línea de error y no escribe nada. Tras escribir, la tarjeta Escrito muestra cada archivo con su ruta, Mostrar en la carpeta y Abrir. Las tarjetas de la derecha listan los otros informes con formulario, los informes sin formulario (Todos los informes) y las partes del dosier completo.
 
-El selector de formato ofrece también PDF (solo macOS) y Markdown; cada informe de texto puede escribirse en Markdown. Un informe escrito muestra su fecha y su persona, Páginas que enlazan a un informe lista las páginas que lo citan, y Expediente completo pregunta el título, el cliente y la fecha antes de escribir.
+El selector de formato ofrece también PDF (solo macOS) y Markdown; cada informe de texto puede escribirse en Markdown. Un informe escrito muestra su fecha y su persona, Páginas que enlazan a un informe lista las páginas que lo citan, y Dossier completo pregunta el título, el cliente y la fecha antes de escribir.
 
 ### Manual
 

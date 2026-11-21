@@ -10,7 +10,7 @@ Los botones de la página son Importar proyectos (abre Configuración / Este pro
 2. O haz clic en Abrir una carpeta y elige la carpeta de tu proyecto. Cuando la carpeta no es todavía un proyecto, haz clic en Convertir en proyecto.
 3. O haz clic en Clonar desde la plataforma de código y da su dirección.
 
-Cerrar pregunta primero cuando hay agentes trabajando para el proyecto: Cancelar, Detenerlos y cerrar, o Dejarlos trabajando. Dejarlos trabajando cierra el proyecto y las ejecuciones siguen.
+Cerrar pregunta primero cuando hay agentes trabajando para el proyecto: Cancelar, Detenerlos y cerrar, o Dejarlos trabajar. Dejarlos trabajar cierra el proyecto y las ejecuciones siguen.
 
 ## Nuevo proyecto
 

@@ -19,15 +19,15 @@ La barra sobre el tablero contiene el filtro Todo, Me necesita o Mío, Nuevo y M
 Más contiene:
 
 - Buscar una funcionalidad: abre el campo de búsqueda. Encuentra una funcionalidad por la clave de su ticket o por su título. El texto queda en la dirección.
-- Empezar desde un ticket: abre Funcionalidad nueva en su lista de tickets.
+- Empezar desde un ticket: abre Nueva funcionalidad en su lista de tickets.
 - Agentes activos: el interruptor de agentes. Desactivado detiene cada agente e impide las ejecuciones nuevas. Actívalo de nuevo para seguir.
 
-## Funcionalidad nueva
+## Nueva funcionalidad
 
-Nuevo abre una página propia, con un enlace de vuelta al tablero y una pregunta: ¿Qué quiere construir?
+Nuevo abre una página propia, con un enlace de vuelta al tablero y una pregunta: ¿Qué quieres construir?
 
 1. Escribe el título.
-2. Elige el tipo: Función, Error o Idea para más tarde. Una idea crea solo el cambio de especificación.
+2. Elige el tipo: Funcionalidad, Error o Idea para más tarde. Una idea crea solo el cambio de especificación.
 3. Elige la manera: Un agente escribe la especificación, Yo escribo la especificación, o Construir ya, sin especificación.
 4. Haz clic en Crear.
 
@@ -81,7 +81,7 @@ El cuadro de fusión dice en una línea si la pull request se puede fusionar, y 
 
 La columna estrecha muestra los revisores con sus veredictos, los tickets y las ejecuciones enlazados, y los elementos que citan la pull request.
 
-Archivos: cada archivo empieza plegado, con su ruta, su estado y sus líneas añadidas y quitadas. Haz clic en un archivo para leer su diff. El árbol de la izquierda tiene un filtro. Desplegar todo abre los 30 primeros archivos que coinciden con el filtro, y luego la acción dice «Desplegar los 30 siguientes». Marca la casilla de un archivo para marcarlo como visto. El número de archivos vistos queda en este ordenador, para esta pull request y este commit de cabeza.
+Archivos: cada archivo empieza plegado, con su ruta, su estado y sus líneas añadidas y quitadas. Haz clic en un archivo para leer su diff. El árbol de la izquierda tiene un filtro. Expandir todo abre los 30 primeros archivos que coinciden con el filtro, y luego la acción dice «Expandir los 30 siguientes». Marca la casilla de un archivo para marcarlo como visto. El número de archivos vistos queda en este ordenador, para esta pull request y este commit de cabeza.
 
 Comentarios en líneas: el «+» en el margen de una línea añade un comentario a esa línea. Se muestra en las líneas que la pull request añadió o dejó igual, nunca en las líneas quitadas. Añadir a la revisión añade el comentario a tu revisión pendiente. Publicar solo este comentario lo publica enseguida. La revisión pendiente queda en este ordenador hasta que la envías o la descartas, y sobrevive a un reinicio. Enviar revisión abre un diálogo: elige Comentar, Aprobar o Solicitar cambios. Solicitar cambios necesita un texto de revisión. Una revisión acepta 100 comentarios como máximo.
 
@@ -92,7 +92,7 @@ Límites: GitHub y GitLab listan hasta 3000 archivos. Un hilo muestra sus últim
 Revisión por un agente:
 
 1. Haz clic en Revisar con un agente en una pull request abierta. Un agente lee los cambios en el commit de cabeza, en una copia de solo lectura. La revisión es un borrador: un resumen, un veredicto y hallazgos en sus líneas del diff.
-2. Edita el resumen y el veredicto, haz clic en Eliminar en un hallazgo que no quieres, y haz clic en Publicar revisión. Una revisión se publica una vez.
+2. Edita el resumen y el veredicto, haz clic en Descartar en un hallazgo que no quieres, y haz clic en Publicar revisión. Una revisión se publica una vez.
 3. En Configuración / Este proyecto, elige la revisión por un agente de cada pull request: Desactivada, Borrador o Publicar. Publicar añade una revisión en comentario y nunca aprueba.
 
 Una revisión por un agente se muestra en Equipo / Sesiones, donde Detener la termina. Cuenta en el límite de agentes y en el presupuesto del proyecto. Un proyecto de solo lectura la rechaza.
@@ -153,17 +153,17 @@ La frescura de la documentación lista los documentos que no siguieron al códig
 
 ## Impactos
 
-Impactos dice qué elementos toca un cambio, y propone un plan de acción. Se abre como página desde los Controles de una funcionalidad: haz clic en Impactos en el resto del código. Muestra los archivos cambiados, el código que depende de ellos y las docs que quedan obsoletas. Corregir los documentos obsoletos con un agente inicia una ejecución solo después de tu clic. La página `/flow/impacts` sigue. Necesita acceso al código.
+Impactos dice qué elementos toca un cambio, y propone un plan de acción. Se abre como página desde los Controles de una funcionalidad: haz clic en Impactos en el resto del código. Muestra los archivos cambiados, el código que depende de ellos y las docs que quedan obsoletas. Corregir los documentos obsoletos con un agente inicia una ejecución solo después de tu clic. La página `/flow/impacts` sigue existiendo. Necesita acceso al código.
 
 Informe de impacto completo abre el informe como página: el tamaño del cambio por Código, Especificaciones, Documentos, Pruebas y Personas, el plan de acción y el resumen. Escribir el informe de nuevo hace otro. Informes anteriores lista los más antiguos. Copiar el resumen copia el resumen para un agente.
 
 ## Pull requests
 
-Pull requests es una página de Code, con un enlace de vuelta a Code / Ahora. Tiene una búsqueda, el filtro Todo o Para que yo revise y Nuevo pull request. Las abiertas van primero. Las fusionadas y las cerradas están detrás de un solo botón. Elige una pull request para ver su revisión: los controles, los cambios pedidos y los revisores. Abrir la pull request abre la página de su funcionalidad.
+Pull requests es una página de Código, con un enlace de vuelta a Código / Ahora. Tiene una búsqueda, el filtro Todas o Para que yo revise y Nuevo pull request. Las abiertas van primero. Las fusionadas y las cerradas están detrás de un solo botón. Elige una pull request para ver su revisión: los controles, los cambios pedidos y los revisores. Abrir la pull request abre la página de su funcionalidad.
 
 Nuevo pull request también es una página. Escribe el título y la descripción (Escríbelo por mí pide a un agente). Elige Hacia, la rama que recibe el cambio. Ajusta Borrador y Etiquetas. Antes de enviar, una nota nombra los archivos sin confirmar, una rama base adelantada y las docs que quedan obsoletas: cada una tiene su elección. Haz clic en Abrir la pull request.
 
-## Code host y tickets
+## Plataforma de código y tickets
 
 - En la sección Comprobaciones de una pull request, Volver a ejecutar pide a la plataforma de código que repita las comprobaciones fallidas, y solo esas. Necesita el mismo derecho que otra escritura en la plataforma de código.
 - En Nueva pull request, Revisores lista los usuarios de la plataforma de código, y al abrir se pide a la plataforma de código que los añada. Fusionar con fija el método por defecto del botón Fusionar de las pull requests siguientes: nunca fusiona por sí solo. Tras abrir, la página conserva Cerrar la pull request, y Marcar como lista para un borrador.

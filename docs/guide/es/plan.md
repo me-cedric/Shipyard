@@ -13,7 +13,7 @@ Cuando una persona tiene demasiado trabajo, una tarjeta nombra el problema y lis
 
 ## Personas
 
-Personas muestra cada persona con su carga frente a la capacidad de cada semana, las tareas y sus fechas. Una persona con demasiado trabajo tiene allí también las propuestas. Enviar al gestor de tickets abre una página con una vista previa primero: Nuevo, Cambiado y Sigue igual, cada uno con su número. Nada va al gestor de tickets antes de que hagas clic en Aplicar.
+Personas muestra cada persona con su carga frente a la capacidad de cada semana, las tareas y sus fechas. Una persona con demasiado trabajo tiene allí también las propuestas. Enviar al gestor de tickets abre una página con una vista previa primero: Crear, Cambiar y Sin cambios, cada uno con su número. Nada va al gestor de tickets antes de que hagas clic en Aplicar.
 
 ## Estimaciones
 
@@ -33,7 +33,7 @@ Haz clic en Leer el mes para leer los registros de tiempo del mes en el gestor d
 
 Un rol con menos de tres miembros con tarifa diaria no muestra ningún coste. Con una o dos tarifas, un coste mostraría la tarifa de una persona.
 
-Rellenar desde mi trabajo añade una fila por cada ejecución de tus tickets y cada commit de tu día. Solo rellena tu propia hoja. La hoja no tiene botón Guardar: guarda cuando sales de un campo.
+Rellenar con mi trabajo añade una fila por cada ejecución de tus tickets y cada commit de tu día. Solo rellena tu propia hoja. La hoja no tiene botón Guardar: guarda cuando sales de un campo.
 
 ## Páginas
 
@@ -46,4 +46,4 @@ Una subpágina tiene su propia dirección y un enlace de vuelta. Estimaciones gu
 
 ## Versión y Hoy
 
-La tarjeta Calendario del plan tiene la fila Versión, con las versiones del gestor de tickets, la fila Hoja de estimación e Ir a Hoy. Hoy abre la línea de tiempo en el día actual.
+La tarjeta Calendario del plan tiene la fila Versión, con las versiones del gestor de tickets, la fila Hoja de estimación e Ir a Hoy. Hoy abre el cronograma en el día actual.

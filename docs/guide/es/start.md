@@ -11,7 +11,7 @@ Shipyard ayuda a un equipo a entregar un proyecto de software: las funcionalidad
   - El nombre del proyecto abre un menú con tus proyectos y la página Proyectos.
   - Tu cuenta abre el menú de la cuenta, junto a la barra lateral. La fila de la cuenta muestra tu nombre y tus iniciales.
 - La fila superior de cada página contiene el botón de la barra lateral, Atrás y Adelante, la barra Preguntar o indicar a Shipyard y la marca de sincronización. La ventana no tiene barra superior ni barra de estado.
-  - La marca de sincronización muestra el estado del repositorio. Haz clic en ella para ver los archivos modificados, la rama, la sincronización y el commit. Consulta la página Código, Sincronizar.
+  - La marca de sincronización muestra el estado del repositorio. Haz clic en ella para ver los archivos modificados, la rama, Sincronizar y Commit. Consulta la página Código, Sincronizar.
   - Preguntar o indicar a Shipyard es la única barra para una pregunta, un lugar y una acción. Consulta la página La barra Preguntar.
   - El menú de la cuenta contiene tu nombre y tu rol con Cambiar (Configuración / Yo), Tema (Claro, Oscuro, Sistema), Idioma, Manual, Atajos, Novedades, Repetir el recorrido, Buscar una actualización, Acerca de Shipyard con la versión, y Salud. Atajos y Novedades se abren como cuadros de diálogo.
 - Por debajo de 1100 px, los botones Archivos y Terminal están en el menú Más.

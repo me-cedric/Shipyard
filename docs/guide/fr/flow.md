@@ -24,14 +24,14 @@ Plus contient :
 
 ## Nouvelle fonctionnalité
 
-Nouveau ouvre une page à part, avec un lien de retour vers le tableau et une question : Que voulez-vous construire ?
+Nouveau ouvre une page à part, avec le lien Flux vers le tableau et une question : Que voulez-vous construire ?
 
 1. Tapez le titre.
 2. Choisissez le type : Fonctionnalité, Bug ou Idée pour plus tard. Une idée crée seulement le changement de spec.
 3. Choisissez la manière : Un agent écrit la spec, J'écris la spec, ou Construire tout de suite, sans spec.
 4. Cliquez sur Créer.
 
-Ajouter un document est à côté des types. Il prend un fichier Markdown, PDF ou Word, jusqu'à 20 Mio, et la page refuse un autre type. Créer copie chaque document dans le dossier `inputs` du changement, comme entrée de l'auteur de la spec. Limite est à côté de la recette, pour les voies qui font un ticket. C'est le plus d'argent que toutes les exécutions de la fonctionnalité peuvent dépenser, en dollars. Elle va dans `.shipyard/automation.yaml` par la clé du ticket.
+Ajouter un document est à côté des types. Il prend un fichier Markdown, PDF ou Word, jusqu'à 20 Mio, et la page refuse un autre type. Créer copie chaque document dans le dossier `inputs` du changement, comme entrée de l'auteur de la spec. Limite est à côté de la recette, pour les manières qui font un ticket. C'est le montant maximal que toutes les exécutions de la fonctionnalité peuvent dépenser, en dollars. Elle va dans `.shipyard/automation.yaml` par la clé du ticket.
 
 Ou partez d'un ticket, sous les trois manières : trouvez un ticket sans exécution, puis cliquez sur Lancer un agent. Partir d'un ticket, dans Plus sur Flux, l'ouvre.
 
@@ -163,7 +163,7 @@ Pull requests est une page de Code, avec un lien de retour vers Code / Maintenan
 
 Nouvelle pull request est aussi une page. Écrivez le titre et la description (Écris-le pour moi demande à un agent). Choisissez Vers, la branche qui reçoit le changement. Réglez Brouillon et Étiquettes. Avant l'envoi, une note nomme les fichiers non validés, une branche de base en avance et les docs qui deviennent périmées : chacun a son choix. Cliquez sur Ouvrir la pull request.
 
-## Code host et tickets
+## Hébergeur de code et tickets
 
 - Dans la section Contrôles d'une pull request, Relancer demande à l'hébergeur de code de relancer les contrôles en échec, et seulement ceux-là. Il faut le même droit que pour une autre écriture sur l'hébergeur de code.
 - Sur Nouvelle pull request, Relecteurs liste les utilisateurs de l'hébergeur de code, et l'ouverture demande à l'hébergeur de code de les ajouter. Fusionner avec règle la méthode par défaut du bouton Fusionner des pull requests suivantes : il ne fusionne jamais seul. Après l'ouverture, la page garde Fermer la pull request, et Marquer comme prête pour un brouillon.
