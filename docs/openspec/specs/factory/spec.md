@@ -570,7 +570,7 @@ The system SHALL offer a kill switch per run and one global kill switch. The run
 
 ### Requirement: REQ-025 Write switches
 
-The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pull_request`, `tracker_transition` and `tracker_comment`. All four SHALL be on by default, and a project admin SHALL turn each one off in Settings / Project, group Automation. That group SHALL be the one editor of `.shipyard/automation.yaml`. All on. A force push and a merge still wait for a person. An admin turns a switch off per project, and each write of that switch then waits for one click in Home / Inbox. A person with `project.settings` SHALL also be able to allow exactly the kinds of the effects of one approval question (`transition`, `labels`, `comment`, `push`, `open_pr`, `resolve_threads`) for the runs of one workflow only (`recipe_writes`, `spec:app-redesign#REQ-013`), and to remove each kind of it in that group. A write that already waits SHALL keep its question: a permission applies to the writes that come later. Remove SHALL take effect with Save. A save of that group SHALL never add a kind or a workflow to `recipe_writes`. A push with force with lease SHALL get no such permission.
+The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pull_request`, `tracker_transition` and `tracker_comment`. All four SHALL be on by default. A project admin SHALL turn each one off in Settings / Project, group Automation, the one editor of the file. A force push and a merge SHALL still wait for a person. A person with `project.settings` SHALL be able to allow and remove kinds of effects for one workflow (`recipe_writes`, `spec:app-redesign#REQ-013`).
 
 #### Scenario: Default on
 - GIVEN a new project
@@ -586,6 +586,25 @@ The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pul
 - GIVEN `push` on and a push that rewrites history
 - WHEN the run sends it
 - THEN the push waits as an approval in Home / Inbox
+
+#### Scenario: Switch off waits for a click
+- GIVEN an admin who turned a switch off for a project
+- WHEN a run makes a write of that switch
+- THEN the write waits for one click in Home / Inbox
+
+#### Scenario: Allow kinds per workflow
+- GIVEN a person with `project.settings` in the group Automation
+- WHEN they allow some of `transition`, `labels`, `comment`, `push`, `open_pr` and `resolve_threads` for one workflow
+- THEN only the runs of that workflow skip the approval question for those kinds
+- AND a write that already waits keeps its question
+- AND a permission applies to the writes that come later
+- AND a push with force with lease gets no such permission
+
+#### Scenario: Remove and save
+- GIVEN a permission in `recipe_writes`
+- WHEN the person removes a kind and clicks Save
+- THEN the removal takes effect with Save
+- AND a save of that group never adds a kind or a workflow to `recipe_writes`
 
 ### Requirement: REQ-026 Approvals
 

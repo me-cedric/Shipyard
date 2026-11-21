@@ -616,13 +616,19 @@ The pull request list SHALL be a full-width page with a search, a filter (All, N
 
 ### Requirement: REQ-043 Merge box
 
-The Overview tab SHALL start with a merge box that says whether the pull request can merge and why not. It SHALL have three segments: Checks (passing, failing and pending counts), Comments (unresolved threads) and Approvals (reviewers with their verdicts). It SHALL hold the merge action as a split button whose menu lists the merge methods. Merge SHALL keep its confirmation, its draft rule and its right. The confirmation SHALL name the merge method, also when checks fail or changes are requested, SHALL have Confirm and Cancel, and SHALL stay busy while the merge runs.
+The Overview tab SHALL start with a merge box that says whether the pull request can merge and why not. It SHALL have three segments: Checks (passing, failing and pending counts), Comments (unresolved threads) and Approvals (reviewers with their verdicts). It SHALL hold the merge action as a split button whose menu lists the merge methods. Merge SHALL keep its confirmation, its draft rule and its right.
 
 #### Scenario: Merge box
 
 - GIVEN a pull request with two failing checks and one unresolved thread
 - WHEN the Overview shows
 - THEN the box names two failing checks and one unresolved thread, and Merge asks for a confirmation that names the method, with Confirm and Cancel
+
+#### Scenario: Merge confirmation
+- GIVEN a pull request where checks fail or changes are requested
+- WHEN the person clicks Merge
+- THEN the confirmation names the merge method and has Confirm and Cancel
+- AND it stays busy while the merge runs
 
 ### Requirement: REQ-044 Description and sidebar
 
@@ -636,13 +642,24 @@ The Overview SHALL show the description as Markdown, then the conversation. A na
 
 ### Requirement: REQ-045 Files changed
 
-The Files changed tab SHALL list every file collapsed by default, each with its path, its status and its lines added and removed. It SHALL show a file tree with a filter, an Expand all and a Collapse all action, and a count of the files that the person marked as viewed. Expand all SHALL open at most the first 30 files that match the filter; while more files stay collapsed the action SHALL offer to expand the next 30. A file that the person expands SHALL show its diff. When the code host list was cut short, the tab SHALL say "Showing the first N files".
+The Files changed tab SHALL list every file collapsed by default, each with its path, its status and its lines added and removed. It SHALL show a file tree with a filter, an Expand all and a Collapse all action, and a count of the files that the person marked as viewed. A file that the person expands SHALL show its diff.
 
 #### Scenario: Files changed
 
 - GIVEN a pull request with forty files
 - WHEN the Files changed tab shows
 - THEN all forty rows are collapsed, expanding one shows its diff, and Expand all opens thirty and offers the next ten
+
+#### Scenario: Expand all is capped
+- GIVEN a filter that matches more than 30 files
+- WHEN the person clicks Expand all
+- THEN at most the first 30 files open
+- AND while more files stay collapsed the action offers to expand the next 30
+
+#### Scenario: Cut list
+- GIVEN a code host list that was cut short
+- WHEN the tab shows
+- THEN it says "Showing the first N files"
 
 ### Requirement: REQ-046 Shared file parts
 
@@ -694,13 +711,31 @@ A review thread SHALL show its file and line, its comments, and a Resolved mark.
 
 ### Requirement: REQ-049 Inline comments
 
-A person SHALL add a comment to a line of the new file on the Files changed tab with a button in the line gutter. The button SHALL show on the row that is hovered or current, not on every row; the diff is one tab stop and the arrow keys move the current row. The comment SHALL join a pending review kept on this computer. The page SHALL show the number of pending comments with Submit review and Discard. Submit review SHALL post all of them with one verdict: Comment, Approve or Request changes. A person SHALL also post one comment at once. Comments are on the new side of the diff only. A single comment is posted as a one-comment review. Cancel asks when the box has text. A partial result clears what was sent and keeps the rest.
+A person SHALL add a comment to a line of the new file on the Files changed tab with a button in the line gutter. The comment SHALL join a pending review kept on this computer. The page SHALL show the number of pending comments with Submit review and Discard. Submit review SHALL post all of them with one verdict: Comment, Approve or Request changes. A person SHALL also post one comment at once.
 
 #### Scenario: Inline comments
 
 - GIVEN two pending comments on two lines
 - WHEN the person clicks Submit review and picks Comment
 - THEN the forge receives one review with both comments and the pending list is empty
+
+#### Scenario: Gutter button
+- GIVEN the Files changed tab
+- WHEN a row is hovered or current
+- THEN the gutter button shows on that row only
+- AND the diff is one tab stop and the arrow keys move the current row
+
+#### Scenario: Comment sides and single post
+- GIVEN a diff
+- WHEN a person comments
+- THEN comments are on the new side only
+- AND a single comment is posted as a one-comment review
+- AND Cancel asks when the box has text
+
+#### Scenario: Partial result
+- GIVEN a submit that the forge accepts in part
+- WHEN the result returns
+- THEN the page clears what was sent and keeps the rest
 
 ### Requirement: REQ-050 Pending review is kept
 
