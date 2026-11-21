@@ -684,24 +684,31 @@ impl Connections {
     /// connection and stays. Returns the names that lost a token. The first keychain error stops
     /// it, and what went stays gone.
     pub fn sign_out(&self) -> Res<Vec<String>> {
-        self.with_file(|file| {
-            let holders: Vec<(String, String)> = file
-                .connections
-                .iter()
-                .filter(|r| r.secret)
-                .map(|r| (r.holder().to_string(), r.name.clone()))
-                .collect();
-            let mut done = Vec::new();
-            let mut seen: Vec<&str> = Vec::new();
-            for (holder, _) in &holders {
-                if !seen.contains(&holder.as_str()) {
-                    seen.push(holder);
-                    self.drop_entry(file, holder)?;
+        let _g = self.guard();
+        let mut file = self.load()?;
+        let holders: Vec<(String, String)> = file
+            .connections
+            .iter()
+            .filter(|r| r.secret)
+            .map(|r| (r.holder().to_string(), r.name.clone()))
+            .collect();
+        let mut seen: Vec<&str> = Vec::new();
+        let mut failed = None;
+        for (holder, _) in &holders {
+            if !seen.contains(&holder.as_str()) {
+                seen.push(holder);
+                if let Err(e) = self.drop_entry(&mut file, holder) {
+                    failed = Some(e);
+                    break;
                 }
             }
-            done.extend(holders.into_iter().map(|(_, name)| name));
-            Ok(done)
-        })
+        }
+        // The file keeps up with the tokens that are gone, also when a later one fails.
+        self.save(&file)?;
+        match failed {
+            Some(e) => Err(e),
+            None => Ok(holders.into_iter().map(|(_, name)| name).collect()),
+        }
     }
 
     /// Git credentials for a remote address: the saved secret of the forge connection that has
@@ -995,6 +1002,49 @@ mod tests {
         assert_eq!(c.list().unwrap().len(), 3);
         // A second sign out finds nothing.
         assert!(c.sign_out().unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_keychain_error_in_sign_out_still_saves_the_tokens_that_went() {
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::{MemoryStore, SecretError, SecretStore};
+        struct Stuck(MemoryStore, std::sync::Mutex<String>);
+        impl SecretStore for Stuck {
+            fn get(&self, a: &str) -> Result<Option<Secret>, SecretError> {
+                self.0.get(a)
+            }
+            fn set(&self, a: &str, v: &Secret) -> Result<(), SecretError> {
+                self.0.set(a, v)
+            }
+            fn delete(&self, a: &str) -> Result<(), SecretError> {
+                if a == *self.1.lock().unwrap() {
+                    return Err(SecretError::new("locked"));
+                }
+                self.0.delete(a)
+            }
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(Stuck(MemoryStore::default(), Default::default()));
+        let c = Connections::new(dir.path(), store.clone(), Arc::new(FakeHttp::new()));
+        let add = |name: &str, kind| {
+            c.add(ConnectionDraft {
+                name: name.into(),
+                group: ConnectionGroup::Tracker,
+                kind,
+                url: String::new(),
+                user: None,
+            })
+            .unwrap()
+        };
+        let first = add("One", ConnectionKind::Linear);
+        let second = add("Two", ConnectionKind::Linear);
+        c.set_secret(&first.id, Secret::new("tok-1")).unwrap();
+        c.set_secret(&second.id, Secret::new("tok-2")).unwrap();
+        *store.1.lock().unwrap() = conn_account(&second.id);
+        assert!(c.sign_out().unwrap_err().contains("locked"));
+        let names: Vec<String> = c.signed_in().unwrap().into_iter().map(|x| x.name).collect();
+        assert_eq!(names, ["Two"], "the file names no token that is gone");
+        assert!(store.0.get(&conn_account(&first.id)).unwrap().is_none());
     }
 
     #[test]
