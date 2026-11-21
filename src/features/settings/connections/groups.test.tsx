@@ -22,8 +22,8 @@ describe("Settings / Connections / Runners", () => {
 		mountApp("/setup/computer");
 		const claude = await row("Claude Code");
 		expect(within(claude).getByText("Ready")).toBeInTheDocument();
-		// The version is under Advanced.
-		expect(screen.getByText("Claude Code: 2.1.0")).toBeInTheDocument();
+		// The version is under Advanced, in a row of its own beside the name of the tool.
+		expect(screen.getByText("2.1.0").closest("div")).toHaveTextContent("Claude Code");
 		const gemini = await row("Gemini CLI");
 		expect(within(gemini).getByRole("button", { name: "Install Gemini CLI" })).toBeInTheDocument();
 		expect(within(gemini).queryByText("Ready")).toBeNull();

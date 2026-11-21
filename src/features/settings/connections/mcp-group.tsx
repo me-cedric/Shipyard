@@ -20,7 +20,7 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { SettingsRow } from "@/ui/molecules/settings-row";
-import { SetupCard, StatePill } from "../parts";
+import { SetupCard, SetupRow, StatePill } from "../parts";
 import { Fold, LINE } from "./fold";
 import { mcpKeys, message, useMcpServers } from "./keys";
 import { McpAllow } from "./mcp-allow";
@@ -288,16 +288,24 @@ export function McpMore() {
 		await qc.invalidateQueries({ queryKey: mcpKeys.list });
 	};
 	return (
-		<div className="flex flex-col gap-2 px-6">
-			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
-			<McpGroupTools rows={all} />
-			<div>
-				<Button variant="ghost" disabled={startable.length === 0} onClick={() => void startAll()}>
-					<PlayIcon size={14} />
-					{t.connections.mcp.startAll}
-				</Button>
-			</div>
-		</div>
+		<>
+			<SetupRow label={t.connections.group.mcp}>
+				<McpGroupTools
+					rows={all}
+					extra={
+						<Button
+							variant="secondary"
+							disabled={startable.length === 0}
+							onClick={() => void startAll()}
+						>
+							<PlayIcon size={14} />
+							{t.connections.mcp.startAll}
+						</Button>
+					}
+				/>
+			</SetupRow>
+			{error ? <ErrorNotice error={error} className="px-6 text-ui text-danger-text" /> : null}
+		</>
 	);
 }
 

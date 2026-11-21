@@ -5,6 +5,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Row } from "@/ui/molecules/row";
 import { SetupCard, SetupRow, StatePill } from "../parts";
 import { runnerKeys } from "./keys";
 
@@ -61,7 +62,7 @@ export function RunnersGroup() {
 	);
 }
 
-/** The versions of the AI tools and Detect: under the More card of the page, not in the card of the tools. */
+/** The versions of the AI tools and Detect: under the More card of the page, one row each, as the other Setup rows. */
 export function RunnersMore() {
 	const { t } = useI18n();
 	const runners = useQuery({
@@ -71,14 +72,7 @@ export function RunnersMore() {
 	const rows = runners.data ?? [];
 	return (
 		<>
-			<ul className="flex flex-col gap-1 px-6 pb-2 text-ui text-n-11">
-				{rows.map((r) => (
-					<li key={r.id}>
-						{r.label}: {r.version ?? t.connections.runner.state[r.state]}
-					</li>
-				))}
-			</ul>
-			<div className="px-6">
+			<SetupRow label={t.connections.group.runner}>
 				<Button
 					variant="secondary"
 					disabled={runners.isFetching}
@@ -86,7 +80,16 @@ export function RunnersMore() {
 				>
 					{t.connections.runner.detect}
 				</Button>
-			</div>
+			</SetupRow>
+			{rows.map((r) => (
+				// A plain row: the card of the AI tools above holds the named group of each tool.
+				<Row key={r.id}>
+					<span className="min-w-0 font-semibold">{r.label}</span>
+					<span className="ml-auto text-ui text-n-11">
+						{r.version ?? t.connections.runner.state[r.state]}
+					</span>
+				</Row>
+			))}
 		</>
 	);
 }
