@@ -1235,6 +1235,7 @@ export function timeFill(
 ): { entries: TimeEntry_Serialize[] } {
 	if (!click) throw "this change needs the click of a person";
 	const handle = memberOf(w, member);
+	if (handle !== memberOf(w, null)) throw "Fill from my work fills only your own sheet";
 	if (parseDay(day) === null) throw `\`${day}\` is not a date`;
 	const ticket = mirror[0];
 	const rows: [string | undefined, string, number][] = [

@@ -135,6 +135,11 @@ pub fn time_fill(s: &AppState, member: Option<&str>, day: &str, click: bool) -> 
     need_click(s, click, Right::WorkEdit, "time_fill", "")?;
     let c = ctx(s)?;
     let handle = member_of(&c, member)?;
+    // The commits are read with the git e-mail of this computer: only the signed-in person fills.
+    let team = c.team().team;
+    if me_of(&conn_of(s)?, &team, &c.root).as_deref() != Some(handle.as_str()) {
+        return Err("Fill from my work fills only your own sheet".into());
+    }
     let items = tracker(s)
         .and_then(|t| mirror_items(s, &t))
         .unwrap_or_default();
@@ -227,6 +232,29 @@ mod tests {
     fn a_fill_needs_a_click_and_writes_nothing_without_one() {
         let f = fx();
         assert!(time_fill(&f.s, None, "2026-11-20", false).is_err());
+        assert!(!f.repo.path().join("docs/time").exists());
+    }
+
+    #[test]
+    fn a_fill_of_another_member_is_refused() {
+        let f = fx();
+        let member = |h: &str, tr: &str| Member {
+            name: h.into(),
+            handle: h.into(),
+            trackers: vec![tr.into()],
+            role: "techlead".into(),
+            admin: true,
+            capacity: 5.0,
+            ..Member::default()
+        };
+        let team = work::Team {
+            members: vec![member("ana", "ana@acme.test"), member("bob", "bob@acme.test")],
+            ..work::Team::default()
+        };
+        team_save(&f.s, team).unwrap();
+        let day = today(&f.s);
+        let err = time_fill(&f.s, Some("bob"), &day, true).unwrap_err();
+        assert!(err.contains("only your own"), "{err}");
         assert!(!f.repo.path().join("docs/time").exists());
     }
 

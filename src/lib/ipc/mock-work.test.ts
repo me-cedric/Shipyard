@@ -134,6 +134,15 @@ describe("mock work: the rules of the Rust commands", () => {
 		expect(mockState().sync.mirror.find((t) => t.key === "ACME-3")?.category).toBe("done");
 	});
 
+	it("fills only the sheet of the signed-in person", async () => {
+		await withTracker();
+		const other = mockState().work.team.members.find((m) => m.handle !== "ada");
+		await expect(
+			unwrap(commands.timeFillDay(other?.handle ?? "", "2026-11-20", true)),
+		).rejects.toMatchObject({ message: expect.stringMatching(/only your own/) });
+		await unwrap(commands.timeFillDay("ada", "2026-11-20", true));
+	});
+
 	it("removes a label and sets a priority only on a click and with a known value", async () => {
 		await withTracker();
 		await unwrap(commands.workTicketLabelAdd("ACME-3", "old", true));
