@@ -1,5 +1,7 @@
 import { useQueries } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { featureOfRef } from "@/features/shell/ref-page";
 import {
 	type Artifact,
 	DESIGN_DIR,
@@ -12,10 +14,13 @@ import {
 } from "@/lib/design";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
+import { useBacklinks } from "@/lib/refs";
 import { RightButton } from "@/lib/rights";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { linkClass } from "@/ui/atoms/link-button";
 import { ChevronRightIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { CodeEditor } from "@/ui/molecules/code-editor";
@@ -118,9 +123,13 @@ function Try({ a, op, doc }: { a: Artifact; op: ApiOp; doc: ApiDoc }) {
 }
 
 /** One endpoint: the method and the path, what it does, its parameters and its answers. */
-function EndpointCard({ op }: { op: ApiOp }) {
+function EndpointCard({ op, refId }: { op: ApiOp; refId: string }) {
 	const { t } = useI18n();
 	const l = t.design.api;
+	// The changes that cite the contract (`spec:library-functions#REQ-013`).
+	const changes = (useBacklinks(refId).data ?? [])
+		.filter((g) => g.kind === "change")
+		.flatMap((g) => g.items);
 	const block = "flex flex-col gap-2 rounded-[14px] bg-n-3 p-4";
 	return (
 		<Card pad className="flex flex-col gap-3.5">
@@ -160,6 +169,20 @@ function EndpointCard({ op }: { op: ApiOp }) {
 						))}
 					</ul>
 				</section>
+				{changes.length ? (
+					<ul aria-label={t.design.page.usedBy} className="flex flex-wrap gap-x-4 gap-y-1">
+						{changes.map((b) => {
+							const to = featureOfRef(b.source);
+							return to ? (
+								<li key={b.source}>
+									<Link {...to} className={cn(linkClass, "min-h-control")}>
+										{b.title || b.source.slice(b.source.indexOf(":") + 1)}
+									</Link>
+								</li>
+							) : null;
+						})}
+					</ul>
+				) : null}
 			</section>
 		</Card>
 	);
@@ -198,7 +221,7 @@ function Detail({
 				</TextCard>
 			) : endpoint ? (
 				<>
-					<EndpointCard op={endpoint.op} />
+					<EndpointCard op={endpoint.op} refId={a.reference} />
 					<Card pad className="flex flex-col gap-3.5">
 						<h2 className="text-17 font-semibold">{t.design.page.tryIt}</h2>
 						<Try key={endpoint.id} a={a} op={endpoint.op} doc={endpoint.doc} />

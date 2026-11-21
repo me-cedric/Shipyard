@@ -1068,6 +1068,8 @@ export const specsCitations = (s: MockSpecs): [string, string][] => [
 	["screen:home", "change:add-export"],
 	["diagram:context", "change:add-export"],
 	["adr:0004", "change:add-export"],
+	// The demo feature of the export cites the contract of the orders (the link of an endpoint to its feature).
+	["change:add-export", "api:orders"],
 	// The same parts cite the ticket of the settings page, so that its Design shows screens, a diagram and a decision.
 	["screen:home", "wi:ACME-5"],
 	["screen:checkout", "wi:ACME-5"],

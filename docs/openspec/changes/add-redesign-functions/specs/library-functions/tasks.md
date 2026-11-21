@@ -28,7 +28,7 @@ Plan: [plan.md](plan.md)
 - [x] T010 Tests for REQ-010 (F36, Release picker of Dashboards): each scenario of the spec, beside `src/features/knowledge/dashboards.tsx`. REQ-010.
 - [x] T011 [P] Tests for REQ-011 (F37, Check against the code of the flow matrix): each scenario of the spec, beside `src/features/design/flows.tsx`, `crates/shipyard-core/src/flows.rs`. REQ-011.
 - [x] T012 Tests for REQ-012 (F38, Stale chip on the map of the code): each scenario of the spec, beside `src/features/knowledge/graph.tsx`, `crates/shipyard-app/src/knowledge.rs`. REQ-012.
-- [ ] T013 [P] Tests for REQ-013 (F39, Link from an endpoint to its feature): each scenario of the spec, beside `src/features/design/api.tsx`. REQ-013.
+- [x] T013 [P] Tests for REQ-013 (F39, Link from an endpoint to its feature): each scenario of the spec, beside `src/features/design/api.tsx`. REQ-013.
 - [x] T014 [P] Build REQ-001 (F26, Opened last keeps items): `src/features/library/recent.ts`, `src/features/library/library-home.tsx`. REQ-001.
 - [x] T015 Build REQ-002 (F27, Earlier versions and History): `crates/shipyard-git/`, `crates/shipyard-app/src/page_history.rs`, `src/features/knowledge/pages.tsx`, `src/features/specs/`, `src/lib/ipc/mock-knowledge.ts`. REQ-002.
 - [x] T016 Build REQ-003 (F28, Add a file to Documents): `src/features/knowledge/documents.tsx`, `crates/shipyard-app/src/documents.rs`, `src/lib/ipc/mock-knowledge.ts`. REQ-003.
@@ -41,7 +41,7 @@ Plan: [plan.md](plan.md)
 - [x] T023 Build REQ-010 (F36, Release picker of Dashboards): `src/features/knowledge/dashboards.tsx`. REQ-010.
 - [x] T024 [P] Build REQ-011 (F37, Check against the code of the flow matrix): `src/features/design/flows.tsx`, `crates/shipyard-core/src/flows.rs`, `crates/shipyard-app/src/design.rs`, `src/lib/ipc/mock-design.ts`. REQ-011.
 - [x] T025 Build REQ-012 (F38, Stale chip on the map of the code): `src/features/knowledge/graph.tsx`, `crates/shipyard-app/src/knowledge.rs`, `src/lib/ipc/mock-knowledge.ts`. REQ-012.
-- [ ] T026 [P] Build REQ-013 (F39, Link from an endpoint to its feature): `src/features/design/api.tsx`. REQ-013.
+- [x] T026 [P] Build REQ-013 (F39, Link from an endpoint to its feature): `src/features/design/api.tsx`. REQ-013.
 - [ ] T027 Shared files: add the commands to the map of `src/lib/ipc/mock.ts` and to `crates/shipyard-app/src/lib.rs`, run `pnpm ipc:gen`, add the strings in English, French, German and Spanish to `src/lib/i18n/`.
 - [ ] T028 Docs: `docs/flows/network-flows.json` is NOT changed (no new call); `docs/designs/screens.json` and the pictures for Slides, Learn, Reports, Dashboards and the flow matrix; the scenarios in `docs/delivery/test-plans/library-functions.feature`; the pictures in `docs/assets/screenshots/` and `docs/designs/screens.json` for each changed screen; one bullet each in `CHANGELOG.md` and `CHANGELOG.fr.md`; the page of the guide in four languages.
 - [ ] T029 Run the commands of the Validation block of `plan.md`.
