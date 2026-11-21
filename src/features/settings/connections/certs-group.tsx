@@ -1,11 +1,17 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
-import { type Connection_Serialize, commands, pickCertificate, unwrap } from "@/lib/ipc";
+import {
+	type Connection_Serialize,
+	commands,
+	confirmDialog,
+	pickCertificate,
+	unwrap,
+} from "@/lib/ipc";
 import { syncKeys } from "@/lib/sync";
 import { Button } from "@/ui/atoms/button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { SetupCard, SetupRow } from "../parts";
+import { SetupCard, SetupRow, StatePill } from "../parts";
 import { DeviceCode } from "./connection-form";
 import { deviceSignIn } from "./device-signin";
 import { connectionKeys } from "./keys";
@@ -46,19 +52,48 @@ function DeviceRow({ connection: c, label }: { connection?: Connection_Serialize
 			await qc.invalidateQueries({ queryKey: syncKeys.all });
 		}
 	};
+	const p = t.personal.setup;
+	const signOut = async (x: Connection_Serialize) => {
+		if (!(await confirmDialog(format(p.signOutConfirm, { name: x.name })))) return;
+		try {
+			await unwrap(commands.connectionsSignOut(x.id, true));
+		} catch (e) {
+			setError(e);
+		}
+		await qc.invalidateQueries({ queryKey: connectionKeys.list });
+		await qc.invalidateQueries({ queryKey: syncKeys.all });
+	};
+	const done = c?.secret === true;
 	return (
 		<>
 			<SetupRow label={label}>
 				{code ? <DeviceCode code={code} /> : null}
+				{done ? (
+					<StatePill state="ready">
+						{c.user ? `${t.settings.signIn.signedIn}: ${c.user}` : t.settings.signIn.signedIn}
+					</StatePill>
+				) : null}
 				<Button
 					variant="secondary"
-					aria-label={c ? `${t.settings.signIn.action}: ${c.name}` : undefined}
+					aria-label={
+						c ? `${done ? p.anotherAccount : t.settings.signIn.action}: ${c.name}` : undefined
+					}
 					disabled={busy || !c}
-					reason={c ? undefined : t.personal.setup.noHost}
+					reason={c ? undefined : p.noHost}
 					onClick={() => c && void signIn(c.id)}
 				>
-					{t.settings.signIn.action}
+					{done ? p.anotherAccount : t.settings.signIn.action}
 				</Button>
+				{done ? (
+					<Button
+						variant="secondary"
+						aria-label={`${p.signOut}: ${c.name}`}
+						disabled={busy}
+						onClick={() => void signOut(c)}
+					>
+						{p.signOut}
+					</Button>
+				) : null}
 			</SetupRow>
 			<ErrorNotice error={error} className="px-6 pb-2 text-ui text-danger-text" />
 		</>

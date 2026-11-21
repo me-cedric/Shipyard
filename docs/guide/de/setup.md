@@ -33,6 +33,8 @@ Verbindungen verbindet das Projekt mit seinem Ticketsystem und seiner Code-Platt
 
 GitLab-Werkzeuge: Melden Sie sich mit dem Browser bei GitLab an. Der Schalter GitLab-Werkzeuge fügt dann den GitLab-MCP-Server dieser Code-Plattform für den Assistenten hinzu. Er nutzt dieselbe Anmeldung und kein anderes Token. Eine Verbindung, die sich früher angemeldet hat, zeigt einmal Erneut anmelden. Der Server braucht GitLab 18.3 oder neuer und Zugriff auf MCP für Ihre Gruppe oder Ihre Instanz.
 
+Geräte-Anmeldung (Einrichtung / Computer, Sicherheit): Eine Code-Plattform mit Token zeigt Angemeldet, mit dem Konto, wenn die Plattform es nennt. Anderes Konto verwenden startet die Anmeldung im Browser neu und ersetzt das Token. Abmelden fragt zuerst und entfernt dann das Token dieser Code-Plattform von diesem Computer. Ohne Token zeigt die Zeile Anmelden.
+
 ### Tickets
 
 Tickets legt fest, welche Verbindung zu einem Ticketsystem und welcher Bereich die Tickets des Projekts liefern.

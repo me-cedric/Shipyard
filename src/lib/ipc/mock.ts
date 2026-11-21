@@ -1523,6 +1523,16 @@ const handlers: Handlers = {
 		}
 		return gone.map((c) => c.name);
 	},
+	connectionsSignOut: (id, click) => {
+		if (!click) throw "this change needs the click of a person";
+		if (active()?.overrides.readOnly === true) throw "the profile of this project is read only";
+		const c = conn(id);
+		c.secret = false;
+		c.state = "untested";
+		c.scopes = [];
+		delete state.secrets[c.id];
+		return null;
+	},
 	connectionsRemove: (id) => {
 		const c = conn(id);
 		state.connections = state.connections.filter((x) => x !== c);

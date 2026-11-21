@@ -139,6 +139,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             conn::connections_remove,
             conn::account_sign_out_list,
             conn::account_sign_out,
+            conn::connections_sign_out,
             conn::connections_users,
             conn::connections_set_secret,
             conn::connections_test,

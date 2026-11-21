@@ -217,6 +217,12 @@ pub fn sign_out(s: &crate::commands::AppState, click: bool) -> Res<Vec<String>> 
     s.connections.sign_out()
 }
 
+/// Sign out of one connection: it needs the click of a person, like the Sign out of all.
+pub fn sign_out_one(s: &crate::commands::AppState, id: &str, click: bool) -> Res<()> {
+    crate::rights::need_click_local(s, click)?;
+    s.connections.sign_out_one(id)
+}
+
 pub struct Connections {
     path: PathBuf,
     secrets: Arc<dyn SecretStore>,
@@ -711,6 +717,23 @@ impl Connections {
         }
     }
 
+    /// Sign out of one connection: its token leaves the keychain, and the connections that share
+    /// it (the twin role of the same host) lose it too. The connection stays.
+    pub fn sign_out_one(&self, id: &str) -> Res<()> {
+        let _g = self.guard();
+        let mut file = self.load()?;
+        let holder = file
+            .connections
+            .iter()
+            .find(|r| r.id == id)
+            .ok_or_else(|| format!("no connection {id}"))?
+            .holder()
+            .to_string();
+        let gone = self.drop_entry(&mut file, &holder);
+        self.save(&file)?;
+        gone
+    }
+
     /// Git credentials for a remote address: the saved secret of the forge connection that has
     /// the same host. Only `https` gets one, so a token never goes out in clear text. No match
     /// gives [`Auth::none`]: the git credential helper and the SSH agent apply then.
@@ -1002,6 +1025,45 @@ mod tests {
         assert_eq!(c.list().unwrap().len(), 3);
         // A second sign out finds nothing.
         assert!(c.sign_out().unwrap().is_empty());
+    }
+
+    #[test]
+    fn sign_out_of_one_connection_keeps_the_others() {
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::MemoryStore;
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(MemoryStore::default());
+        let c = Connections::new(dir.path(), store.clone(), Arc::new(FakeHttp::new()));
+        let add = |name: &str, group, kind, url: &str| {
+            c.add(ConnectionDraft {
+                name: name.into(),
+                group,
+                kind,
+                url: url.into(),
+                user: None,
+            })
+            .unwrap()
+        };
+        let host = add(
+            "Code",
+            ConnectionGroup::Forge,
+            ConnectionKind::GitHub,
+            "https://github.com",
+        );
+        let issues = add(
+            "Issues",
+            ConnectionGroup::Tracker,
+            ConnectionKind::Linear,
+            "",
+        );
+        c.set_secret(&host.id, Secret::new("tok-code")).unwrap();
+        c.set_secret(&issues.id, Secret::new("tok-issues")).unwrap();
+        c.sign_out_one(&host.id).unwrap();
+        assert!(store.get(&conn_account(&host.id)).unwrap().is_none());
+        assert!(store.get(&conn_account(&issues.id)).unwrap().is_some());
+        let names: Vec<String> = c.signed_in().unwrap().into_iter().map(|x| x.name).collect();
+        assert_eq!(names, ["Issues"]);
+        assert!(c.sign_out_one("nope").is_err());
     }
 
     #[test]

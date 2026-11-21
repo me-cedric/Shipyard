@@ -33,6 +33,8 @@ Connexions relie le projet à son outil de suivi et à son hébergeur de code : 
 
 Outils GitLab : connectez-vous à GitLab avec le navigateur. L'interrupteur Outils GitLab ajoute alors le serveur MCP GitLab de cet hébergeur de code pour l'assistant. Il utilise la même connexion et aucun autre jeton. Une connexion ouverte auparavant montre une fois Se reconnecter. Le serveur demande GitLab 18.3 ou plus récent et l'accès à MCP pour votre groupe ou votre instance.
 
+Connexion de l'appareil (Configuration / Ordinateur, Sécurité) : un hébergeur de code qui a un jeton affiche Connecté, avec le compte quand l'hébergeur le donne. Utiliser un autre compte relance la connexion par le navigateur et remplace le jeton. Se déconnecter demande d'abord, puis retire le jeton de cet hébergeur de cet ordinateur. Sans jeton, la ligne affiche Se connecter.
+
 ### Tickets
 
 Tickets fixe quelle connexion à un outil de suivi et quel périmètre donnent les tickets du projet.

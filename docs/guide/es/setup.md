@@ -33,6 +33,8 @@ Conexiones enlaza el proyecto con su gestor de tickets y su plataforma de códig
 
 Herramientas de GitLab: inicia sesión en GitLab con el navegador. El interruptor Herramientas de GitLab añade entonces el servidor MCP de GitLab de esa plataforma de código para el asistente. Usa el mismo inicio de sesión y ningún otro token. Una conexión que inició sesión antes muestra una vez Iniciar sesión de nuevo. El servidor necesita GitLab 18.3 o posterior y acceso a MCP para tu grupo o tu instancia.
 
+Inicio de sesión del dispositivo (Configuración / Ordenador, Seguridad): una plataforma de código con token muestra Sesión iniciada, con la cuenta cuando la plataforma la da. Usar otra cuenta repite el inicio de sesión en el navegador y sustituye el token. Cerrar sesión pregunta primero y luego quita el token de esa plataforma de este ordenador. Sin token, la fila muestra Iniciar sesión.
+
 ### Tickets
 
 Tickets fija qué conexión a un gestor de tickets y qué alcance dan los tickets del proyecto.

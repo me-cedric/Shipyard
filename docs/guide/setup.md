@@ -33,6 +33,8 @@ Connections links the project to its issue tracker and its code host: Jira, GitH
 
 GitLab tools: sign in to GitLab with the browser. The GitLab tools switch then adds the GitLab MCP server of that code host for the assistant. It uses the same sign-in and no other token. A connection that signed in before shows Sign in again once. The server needs GitLab 18.3 or later and access to MCP for your group or instance.
 
+Device sign-in (Setup / Computer, Security): a code host that has a token shows Signed in, with the account when the host gives it. Use another account runs the browser sign-in again and replaces the token. Sign out asks first, then removes the token of that code host from this computer. Without a token the row shows Sign in.
+
 ### Tickets
 
 Tickets sets which issue tracker connection and which scope give the tickets of the project.

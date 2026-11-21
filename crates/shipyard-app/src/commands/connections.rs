@@ -111,6 +111,16 @@ pub async fn account_sign_out(app: AppHandle, click: bool) -> Api<Vec<String>> {
     blocking(app, move |s| crate::connections::sign_out(s, click)).await
 }
 
+/// Sign out of one connection: remove its token from the keychain. It needs the click of a person.
+#[tauri::command]
+#[specta::specta]
+pub async fn connections_sign_out(app: AppHandle, id: String, click: bool) -> Api<()> {
+    blocking(app, move |s| {
+        crate::connections::sign_out_one(s, &id, click)
+    })
+    .await
+}
+
 /// Write-only: the secret goes to the keychain and no command returns it.
 #[tauri::command]
 #[specta::specta]
