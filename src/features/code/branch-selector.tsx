@@ -85,7 +85,7 @@ export function BranchSelector() {
 					role="combobox"
 					aria-expanded={open}
 					aria-label={t.code.branch}
-					className="inline-flex min-h-control shrink-0 items-center gap-2 self-start rounded-md whitespace-nowrap border border-n-7 bg-surface-1 px-4 font-mono font-semibold text-n-12 hover:bg-n-3"
+					className="inline-flex min-h-control shrink-0 items-center gap-2 rounded-md whitespace-nowrap border border-n-7 bg-surface-1 px-4 font-mono font-semibold text-n-12 hover:bg-n-3"
 				>
 					<svg
 						aria-hidden="true"

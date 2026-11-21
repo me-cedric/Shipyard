@@ -460,6 +460,9 @@ export function codeBranches(c: MockCode): Branch_Serialize[] {
 				upstream: c.remoteBranches.includes(`origin/${name}`) ? `origin/${name}` : null,
 				ahead: c.counts[name]?.[0] ?? 0,
 				behind: c.counts[name]?.[1] ?? 0,
+				// The counts against main, as `branches` of `crates/shipyard-git/src/code/branch.rs`.
+				base_ahead: name === "main" ? null : (c.counts[name]?.[0] ?? 0),
+				base_behind: name === "main" ? null : (c.counts[name]?.[1] ?? 0),
 				tip: tip(name),
 			}),
 		),
@@ -471,6 +474,8 @@ export function codeBranches(c: MockCode): Branch_Serialize[] {
 				upstream: null,
 				ahead: 0,
 				behind: 0,
+				base_ahead: null,
+				base_behind: null,
 				tip: tip("main"),
 			}),
 		),

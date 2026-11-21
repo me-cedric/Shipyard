@@ -1292,6 +1292,12 @@ export type Branch_Deserialize = {
 	upstream?: string | null,
 	ahead: number,
 	behind: number,
+	/**
+	 *  The commits of a local branch that the default branch (`main`) has not, and the commits of
+	 *  `main` that it has not. `None` for `main` itself, for a remote branch and with no `main`.
+	 */
+	base_ahead?: number | null,
+	base_behind?: number | null,
 	/**  Full id of the tip. */
 	tip: string,
 };
@@ -1305,6 +1311,12 @@ export type Branch_Serialize = {
 	upstream: string | null,
 	ahead: number,
 	behind: number,
+	/**
+	 *  The commits of a local branch that the default branch (`main`) has not, and the commits of
+	 *  `main` that it has not. `None` for `main` itself, for a remote branch and with no `main`.
+	 */
+	base_ahead: number | null,
+	base_behind: number | null,
 	/**  Full id of the tip. */
 	tip: string,
 };

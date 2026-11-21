@@ -95,6 +95,10 @@ function CreateBranch({
 	);
 }
 
+/** The bars of a card count against main (the design); main itself counts against its upstream. */
+const aheadOf = (b: Branch) => b.base_ahead ?? b.ahead;
+const behindOf = (b: Branch) => b.base_behind ?? b.behind;
+
 /** Ahead or Behind: the word, a bar and the number. The bar is full at `max`. */
 function Count({
 	label,
@@ -152,14 +156,14 @@ function BranchCard({
 			{feature}
 			<Count
 				label={t.forge.branches.ahead}
-				name={format(t.code.ahead, { count: branch.ahead })}
-				value={branch.ahead}
+				name={format(t.code.ahead, { count: aheadOf(branch) })}
+				value={aheadOf(branch)}
 				max={max}
 			/>
 			<Count
 				label={t.forge.branches.behind}
-				name={format(t.code.behind, { count: branch.behind })}
-				value={branch.behind}
+				name={format(t.code.behind, { count: behindOf(branch) })}
+				value={behindOf(branch)}
 				max={max}
 			/>
 			<div className="mt-auto flex flex-wrap gap-2.5">{children}</div>
@@ -210,7 +214,7 @@ function BranchesView() {
 	const remote = branches.filter((b) => b.kind === "remote");
 	const head = locals.find((b) => b.is_head);
 	// One scale for every bar: ten commits, or the largest count.
-	const max = Math.max(10, ...locals.flatMap((b) => [b.ahead, b.behind]));
+	const max = Math.max(10, ...locals.flatMap((b) => [aheadOf(b), behindOf(b)]));
 	const writes = can("code.write");
 	const write = gate("code.write");
 	const merge = (b: Branch) => (

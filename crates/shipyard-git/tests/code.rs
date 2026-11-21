@@ -396,6 +396,23 @@ fn branches_create_switch_and_refuse_a_dirty_overwrite() {
         list.iter()
             .any(|b| b.name == "main" && b.is_head && b.kind == BranchKind::Local)
     );
+    // A branch with no upstream counts against main: one commit ahead, none behind. Main itself
+    // has no count against main.
+    let fix = list
+        .iter()
+        .find(|b| b.name == "fix/auth/login-timeout")
+        .unwrap();
+    assert_eq!((fix.base_ahead, fix.base_behind), (Some(1), Some(0)));
+    let main = list.iter().find(|b| b.name == "main").unwrap();
+    assert_eq!((main.base_ahead, main.base_behind), (None, None));
+    commit(&r, "b.txt", "b\n", "chore: b");
+    let fix = r
+        .branches()
+        .unwrap()
+        .into_iter()
+        .find(|b| b.name == "fix/auth/login-timeout")
+        .unwrap();
+    assert_eq!((fix.base_ahead, fix.base_behind), (Some(1), Some(1)));
 
     // An uncommitted edit that the switch would overwrite.
     write(&r, "a.txt", "dirty\n");
