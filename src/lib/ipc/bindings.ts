@@ -81,6 +81,8 @@ export const commands = {
 	 *  computer. The sign-in of an AI tool or of OpenRouter stays. It needs the click of a person.
 	 */
 	accountSignOut: (click: boolean) => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("account_sign_out", { click })),
+	/**  Sign out of one connection: remove its token from the keychain. It needs the click of a person. */
+	connectionsSignOut: (id: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("connections_sign_out", { id, click })),
 	connectionsUsers: (id: string) => typedError<ConnectionUser[], AppError_Serialize>(__TAURI_INVOKE("connections_users", { id })),
 	/**  Write-only: the secret goes to the keychain and no command returns it. */
 	connectionsSetSecret: (id: string, secret: string) => typedError<Connection_Serialize, AppError_Serialize>(__TAURI_INVOKE("connections_set_secret", { id, secret })),
@@ -500,8 +502,8 @@ export const commands = {
 	assistantSend: (thread: string, text: string, quotes: Quote[], context: Context_Deserialize) => typedError<TurnResult_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_send", { thread, text, quotes, context })),
 	/**  Stops the running turn of a thread. The turn ends with the reply that came so far. */
 	assistantStop: (thread: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("assistant_stop", { thread })),
-	/**  The tool calls of the running turn of a thread so far. Empty when no turn runs. */
-	assistantLive: (thread: string) => typedError<TraceStep[], AppError_Serialize>(__TAURI_INVOKE("assistant_live", { thread })),
+	/**  The tool calls and the tokens of the running turn of a thread so far. Empty when no turn runs. */
+	assistantLive: (thread: string) => typedError<LiveTurn, AppError_Serialize>(__TAURI_INVOKE("assistant_live", { thread })),
 	/**  Grants the tool that the last message waits for and resumes the session. */
 	assistantGrant: (thread: string) => typedError<TurnResult_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_grant", { thread })),
 	/**  Resumes the session after a failed turn. It does not send the first request again. */
@@ -3278,6 +3280,15 @@ export type LinkLine = {
 	line: number,
 	before: string,
 	after: string,
+};
+
+/**
+ *  The running turn of a thread: its tool calls and the tokens so far. The ring of the composer
+ *  reads the tokens while the turn runs (0 when the runner reports none yet).
+ */
+export type LiveTurn = {
+	steps: TraceStep[],
+	usedTokens: number,
 };
 
 export type Load = {
@@ -6819,6 +6830,8 @@ export type Thread_Deserialize = {
 	id: string,
 	project: string,
 	title: string,
+	/**  A person or the AI tool gave the title: no automatic name replaces it. */
+	named?: boolean,
 	settings: ThreadSettings_Deserialize,
 	context: Context_Deserialize,
 	draft: string,
@@ -6837,6 +6850,8 @@ export type Thread_Serialize = {
 	id: string,
 	project: string,
 	title: string,
+	/**  A person or the AI tool gave the title: no automatic name replaces it. */
+	named: boolean,
 	settings: ThreadSettings_Serialize,
 	context: Context_Serialize,
 	draft: string,
@@ -7498,8 +7513,6 @@ export type WorkflowLimits = WorkflowLimits_Serialize | WorkflowLimits_Deseriali
 
 /**  Limits of each run of the workflow (REQ-035). */
 export type WorkflowLimits_Deserialize = {
-	/**  No limit when absent: a run stops on its budget or its stall timeout. */
-	max_turns?: number | null,
 	/**  No run budget when absent: the shared budgets still apply. */
 	budget_usd?: number | null,
 	stall_s: number,
@@ -7513,8 +7526,6 @@ export type WorkflowLimits_Deserialize = {
 
 /**  Limits of each run of the workflow (REQ-035). */
 export type WorkflowLimits_Serialize = {
-	/**  No limit when absent: a run stops on its budget or its stall timeout. */
-	max_turns: number | null,
 	/**  No run budget when absent: the shared budgets still apply. */
 	budget_usd: number | null,
 	stall_s: number,

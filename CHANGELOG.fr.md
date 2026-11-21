@@ -1,6 +1,10 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Les lignes des cartes sont à 8 px du bord avec des coins arrondis, donc le survol reste dans le coin arrondi, et la carte Avancé de Configuration / Cet ordinateur montre une ligne par version d'outil d'IA et une ligne de boutons MCP.
+- La ligne Connexion de l'appareil d'un hébergeur de code connecté affiche Connecté avec le compte, et propose Se déconnecter (après une confirmation) et Utiliser un autre compte à la place de Se connecter.
+- Un nouveau fil d'Ask montre tout de suite la première ligne du message, puis un nom court que l'outil d'IA écrit après sa première réponse, et l'anneau de contexte suit un tour pendant qu'il s'exécute.
+- Une exécution n'a plus de limite de tours : aucune exécution ne s'arrête, ne se met en pause ni n'échoue à cause d'un nombre de tours, le formulaire de recette n'a plus de limite de tours, et un fichier de workflow qui contient encore `max_turns` se charge et l'ignore ; le budget, le délai de blocage et Arrêter tous les agents restent.
 - Agent compass passe en 1.3.0 : le projet reçoit la compétence `untangle-codebase` et les sources web recommandées `interface-polish` et `vercel-web`, et l'objectif Frontend de Configuration / Extensions active ces deux sources.
 - Les menus, les listes et les dialogues s'ouvrent sans rebond, un bouton icône réagit quand vous appuyez dessus, une info-bulle qui en suit une autre s'affiche tout de suite, les titres se coupent en lignes de longueur presque égale, et le texte sélectionné prend la teinte d'accent du thème.
 - La rangée du haut a les boutons Assistant et Terminal, donc le panneau de l'assistant et le terminal s'ouvrent depuis n'importe quelle page.

@@ -1,6 +1,10 @@
 # Changelog
 
 ## [0.2.0]
+- Card rows sit 8 px inside their card with round corners, so a hover fill stays inside the round corner, and the Advanced card of Setup / This computer shows one row for each AI tool version and one row of MCP buttons.
+- The Device sign-in row of a signed-in code host shows Signed in with the account, and offers Sign out (after a confirmation) and Use another account instead of Sign in.
+- A new Ask thread shows the first line of the message at once, then a short name that the AI tool writes after its first answer, and the context ring follows a turn while it runs.
+- A run has no turn limit any more: no run stops, pauses or fails for a number of turns, the recipe form has no turn limit, and a workflow file that still holds `max_turns` loads and ignores it; the budget, the stall timeout and Stop all agents stay.
 - Agent compass is at 1.3.0: the project gets the `untangle-codebase` skill and the recommended web sources `interface-polish` and `vercel-web`, and the Frontend objective of Setup / Extensions switches those two sources on.
 - Menus, lists and dialogs open with no bounce, an icon button reacts when you press it, a tooltip that follows another shows at once, titles break into lines of near equal length, and selected text takes the accent tint of the theme.
 - The top row has Assistant and Terminal buttons, so the assistant panel and the terminal open from any page.
