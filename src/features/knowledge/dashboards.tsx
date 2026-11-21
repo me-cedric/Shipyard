@@ -17,6 +17,7 @@ import {
 	useTileBuild,
 } from "@/lib/knowledge";
 import { usePinnedDashboards } from "@/lib/knowledge/pinned-dashboards";
+import { useReleases } from "@/lib/knowledge/releases";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
@@ -43,10 +44,10 @@ const COLUMNS = 12;
 const EVERYONE = "@@everyone";
 
 /** The numbers of a tile: the index of the project, or the tracker mirror for a tracker tile. */
-function useTileData(kind: string, person: string | null | undefined) {
+function useTileData(kind: string, person: string | null | undefined, keys?: string[] | null) {
 	const tracker = isTrackerTile(kind);
 	const indexed = useTile(tracker ? "" : kind, !tracker).data;
-	const mirrored = useTrackerTile(kind, person);
+	const mirrored = useTrackerTile(kind, person, keys);
 	return tracker ? mirrored : indexed;
 }
 
@@ -55,6 +56,7 @@ export function Tile({
 	kind,
 	title,
 	person,
+	keys,
 	pin,
 	actions,
 	lead,
@@ -68,13 +70,15 @@ export function Tile({
 	title?: string;
 	/** The member that a tracker tile follows. */
 	person?: string | null;
+	/** The keys of the tickets of the chosen release: a tracker tile counts only these. */
+	keys?: string[] | null;
 	pin?: { slug: string; id: string };
 	actions?: React.ReactNode;
 	lead?: React.ReactNode;
 	edit?: boolean;
 }) {
 	const { t } = useI18n();
-	const raw = useTileData(kind, person);
+	const raw = useTileData(kind, person, keys);
 	// The runs tile counts states: the engine names them with codes, the person reads the plain words.
 	const states = t.factory.state as Record<string, string>;
 	const data =
@@ -313,6 +317,9 @@ function DashboardView({ slug }: { slug: string }) {
 	const { view, error } = useDashboard(slug);
 	const members = useTeam().data?.team.members ?? [];
 	const [person, setPerson] = useState(EVERYONE);
+	const [release, setRelease] = useState(EVERYONE);
+	const releases = useReleases();
+	const f = useI18n().t.library.fn.dashboards;
 	if (!view)
 		return error ? (
 			<p role="alert" className="text-ui text-danger-text">
@@ -321,6 +328,7 @@ function DashboardView({ slug }: { slug: string }) {
 		) : null;
 	const dash: Dashboard = view.value;
 	const who = person === EVERYONE ? null : person;
+	const keys = releases.find((r) => r.name === release)?.keys ?? null;
 	return (
 		<>
 			<div className="flex flex-wrap items-center gap-4">
@@ -333,6 +341,17 @@ function DashboardView({ slug }: { slug: string }) {
 						...members.map((m) => ({ value: m.handle, label: m.name })),
 					]}
 				/>
+				{releases.length > 0 ? (
+					<Select
+						label={f.release}
+						value={release}
+						onValueChange={setRelease}
+						items={[
+							{ value: EVERYONE, label: f.allReleases },
+							...releases.map((r) => ({ value: r.name, label: r.name })),
+						]}
+					/>
+				) : null}
 				{view.readOnly ? <Badge variant="warning">{k.readOnly}</Badge> : null}
 				<span className="flex-1" />
 				{view.readOnly ? null : (
@@ -367,6 +386,7 @@ function DashboardView({ slug }: { slug: string }) {
 							title={x.title}
 							chart={x.chart}
 							person={isTrackerTile(x.kind) ? who : null}
+							keys={keys}
 							pin={{ slug, id: x.id }}
 						/>
 					</li>

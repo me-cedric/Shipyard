@@ -605,6 +605,14 @@ export function dashboardSave(
 	return putText(k.files, path, text, stamp, !old);
 }
 
+/** The releases and the keys of their tickets. Mock only: `spec:code-host-tickets#REQ-004` brings `work_releases` and a release on each ticket. */
+export function releasesList(): { name: string; keys: string[] }[] {
+	return [
+		{ name: "MVP 1", keys: ["ACME-1", "ACME-2", "ACME-3", "ACME-5"] },
+		{ name: "MVP 2", keys: ["ACME-4", "ACME-6", "ACME-9"] },
+	];
+}
+
 export function dashboardTile(env: Env, kind: string): TileData_Serialize {
 	if (!TILES.includes(kind)) throw `unknown tile: ${kind}`;
 	const statuses = env.tiles[kind];

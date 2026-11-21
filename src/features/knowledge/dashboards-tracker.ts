@@ -38,10 +38,15 @@ function count(items: WorkItem[], key: (i: WorkItem) => string) {
 
 /**
  * The rows of a tracker tile, from the mirror of the tracker: open items by type, items by
- * status, open items by assignee. With `person`, only the items of that member count. No
+ * status, open items by assignee. With `person`, only the items of that member count; with `keys`, only the items of a release. No
  * request leaves the machine. Without a tracker the tile is off.
  */
-export function useTrackerTile(kind: string, person: string | null | undefined): TileData {
+export function useTrackerTile(
+	kind: string,
+	person: string | null | undefined,
+	/** The keys of the tickets of the chosen release. `null`: all tickets. */
+	keys?: string[] | null,
+): TileData {
 	const { t } = useI18n();
 	const k = t.knowledge.dashboards;
 	const ctx = useWorkContext().data;
@@ -49,7 +54,8 @@ export function useTrackerTile(kind: string, person: string | null | undefined):
 	const items = useWorkItems({}).data ?? [];
 	if (ctx && !ctx.tracker)
 		return { kind, columns: [], rows: [], cut: false, off: t.glossary.words["issue-tracker"] };
-	const mine = person ? items.filter((i) => i.member === person) : items;
+	const inRelease = keys ? items.filter((i) => keys.includes(i.key)) : items;
+	const mine = person ? inRelease.filter((i) => i.member === person) : inRelease;
 	const open = mine.filter((i) => i.category !== "done");
 	const [label, data] =
 		kind === "tracker-status"
