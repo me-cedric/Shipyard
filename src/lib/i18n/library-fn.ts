@@ -43,6 +43,16 @@ export const libraryFnEn = {
 		text: "Text of the version",
 		none: "No earlier version",
 	},
+	flows: {
+		check: "Check against the code",
+		notInCode: "Not in the code",
+		usedOne: "1 flow is denied and the code uses it",
+		usedMany: "{count} flows are denied and the code uses them",
+		show: "Show it",
+		ask: "Ask for the change",
+		askText:
+			"The code calls the hosts of these denied flows: {names}. Change the flows or the code.",
+	},
 };
 
 export const libraryFnFr: typeof libraryFnEn = {
@@ -99,5 +109,14 @@ export const libraryFnFr: typeof libraryFnEn = {
 		restored: "Restauré",
 		text: "Texte de la version",
 		none: "Aucune version précédente",
+	},
+	flows: {
+		check: "Vérifier avec le code",
+		notInCode: "Absent du code",
+		usedOne: "1 flux est refusé et le code l'utilise",
+		usedMany: "{count} flux sont refusés et le code les utilise",
+		show: "Le montrer",
+		ask: "Demander le changement",
+		askText: "Le code appelle les hôtes de ces flux refusés : {names}. Change les flux ou le code.",
 	},
 };

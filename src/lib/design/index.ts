@@ -9,6 +9,7 @@ import {
 	type Decision,
 	type DesignList_Serialize,
 	type FlowRow_Serialize,
+	type FlowsChecked_Serialize,
 	type Screen_Serialize,
 	type TryRequest_Deserialize,
 	toFailure,
@@ -48,6 +49,35 @@ export function useDesignList() {
 		queryFn: () => unwrap(commands.designList()),
 		enabled: !!active,
 	});
+}
+
+/** The last check of a flow table against the code, and the way to run it again (`spec:library-functions#REQ-011`). */
+export function useFlowCheck(path: string | undefined) {
+	const qc = useQueryClient();
+	const key = [...designKeys.all, "check", path] as const;
+	const stored = useQuery({
+		queryKey: key,
+		queryFn: () => unwrap(commands.designFlowsChecked(path as string)),
+		enabled: !!path,
+	});
+	const [busy, setBusy] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const run = async () => {
+		if (!path) return;
+		setBusy(true);
+		setError(null);
+		try {
+			qc.setQueryData<FlowsChecked_Serialize | null>(
+				key,
+				await unwrap(commands.designFlowsCheck(path)),
+			);
+		} catch (e) {
+			setError(message(e));
+		} finally {
+			setBusy(false);
+		}
+	};
+	return { result: stored.data ?? null, run, busy, error };
 }
 
 /** The artifacts of one kind, in list order. */

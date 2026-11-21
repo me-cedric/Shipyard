@@ -55,4 +55,14 @@ export const libraryFnDe: typeof libraryFnEn = {
 		text: "Text der Version",
 		none: "Keine frühere Version",
 	},
+	flows: {
+		check: "Mit dem Code abgleichen",
+		notInCode: "Nicht im Code",
+		usedOne: "1 Fluss ist verweigert und der Code nutzt ihn",
+		usedMany: "{count} Flüsse sind verweigert und der Code nutzt sie",
+		show: "Anzeigen",
+		ask: "Änderung anfragen",
+		askText:
+			"Der Code ruft die Hosts dieser verweigerten Flüsse auf: {names}. Ändere die Flüsse oder den Code.",
+	},
 };

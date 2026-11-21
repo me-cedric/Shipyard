@@ -434,6 +434,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             design::design_adr_create,
             design::design_adr_decide,
             design::design_flows_save,
+            design::design_flows_check,
+            design::design_flows_checked,
             design::design_try,
             design::design_open,
             design_preview::design_bytes,

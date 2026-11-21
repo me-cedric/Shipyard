@@ -1,5 +1,5 @@
 import { Menu } from "@base-ui/react/menu";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "../atoms/badge";
 import { Button } from "../atoms/button";
@@ -71,7 +71,16 @@ export function FlowMatrix({
 	startAdd,
 	addSignal,
 	chipLabels,
+	missing,
+	current,
 }: {
+	/**
+	 * The flows that no code calls: a chip on each of their rows and a chip that keeps only them.
+	 * The page checks the code; the matrix only shows the result.
+	 */
+	missing?: { label: string; ids: ReadonlySet<string> };
+	/** The row that the page points at: the matrix clears its filters, scrolls to it and marks it. */
+	current?: { id: string; at: number };
 	/**
 	 * The page owns the "Add" control (its menu): each new number opens the editor of a new row, and
 	 * the matrix draws no add button.
@@ -128,7 +137,12 @@ export function FlowMatrix({
 	const [filter, setFilter] = useState<FlowFilter>(NO_FILTER);
 	const [editing, setEditing] = useState<string | null>(startAdd ? "" : null);
 	const [draft, setDraft] = useState<FlowDraft>(EMPTY);
-	const shown = useMemo(() => filterFlows(rows, filter), [rows, filter]);
+	const [onlyMissing, setOnlyMissing] = useState(false);
+	const shown = useMemo(
+		() =>
+			filterFlows(rows, filter).filter((r) => !onlyMissing || (missing?.ids.has(r.id) ?? false)),
+		[rows, filter, onlyMissing, missing],
+	);
 	const actionName = (v: string) => actions.find((a) => a.value === v)?.label ?? v;
 	const all = { value: ALL, label: labels.all };
 	const pick = (field: "network" | "protocol") => [
@@ -140,6 +154,15 @@ export function FlowMatrix({
 		setDraft(from);
 		setEditing(id);
 	};
+	useEffect(() => {
+		if (!current) return;
+		setFilter(NO_FILTER);
+		setOnlyMissing(false);
+		// The row shows after the filters clear.
+		requestAnimationFrame(() =>
+			document.getElementById(`flow-${current.id}`)?.scrollIntoView?.({ block: "center" }),
+		);
+	}, [current]);
 	useEffect(() => {
 		if (addSignal) {
 			setDraft(EMPTY);
@@ -199,12 +222,13 @@ export function FlowMatrix({
 		</tr>
 	);
 	/** A brick or a host by its name, with the address under it. */
-	const end = (name: string | undefined, address: string) => (
+	const end = (name: string | undefined, address: string, tag?: ReactNode) => (
 		<td className={CELL}>
 			{name ? <span className="block font-semibold">{name}</span> : null}
 			<span className={cn("block", name ? "font-mono text-13 text-n-11" : "font-semibold")}>
 				{address}
 			</span>
+			{tag}
 		</td>
 	);
 	const heads = [
@@ -231,6 +255,15 @@ export function FlowMatrix({
 							{chipLabels?.[a.value] ?? a.label}
 						</Chip>
 					))}
+					{missing ? (
+						<Chip
+							selected={onlyMissing}
+							className={onlyMissing ? undefined : "bg-surface-2"}
+							onClick={() => setOnlyMissing(!onlyMissing)}
+						>
+							{missing.label}
+						</Chip>
+					) : null}
 				</fieldset>
 				<div className="w-70 max-w-full">
 					<Input
@@ -279,9 +312,22 @@ export function FlowMatrix({
 							editing === r.id ? (
 								editor(r.id)
 							) : (
-								<tr key={r.id}>
+								<tr
+									key={r.id}
+									id={`flow-${r.id}`}
+									aria-current={current?.id === r.id ? "true" : undefined}
+									className={current?.id === r.id ? "bg-n-3" : undefined}
+								>
 									{end(r.sourceName, r.source)}
-									{end(r.destinationName, r.destination)}
+									{end(
+										r.destinationName,
+										r.destination,
+										missing?.ids.has(r.id) ? (
+											<Badge variant="neutral" className="mt-1 self-start">
+												{missing.label}
+											</Badge>
+										) : null,
+									)}
 									<td className={CELL}>
 										{r.network}
 										{r.subnet ? (

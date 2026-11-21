@@ -2073,6 +2073,8 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 	designAdrDecide: (path, decision, comment, stamp) =>
 		design.adrDecide(need(state.design), path, decision, comment, stamp, state.work.today),
 	designFlowsSave: (path, rows, stamp) => design.flowsSave(need(state.design), path, rows, stamp),
+	designFlowsCheck: (path) => design.flowsCheck(need(state.design), path),
+	designFlowsChecked: (path) => design.flowsChecked(need(state.design), path),
 	designTry: (request, click) => design.designTry(need(state.design), request, click),
 	designOpen: (target) => {
 		design.designOpen(need(state.design), target);

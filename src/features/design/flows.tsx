@@ -15,12 +15,15 @@ import {
 	useDesignActions,
 	useDesignFile,
 	useDesignList,
+	useFlowCheck,
 } from "@/lib/design";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type FlowRow_Deserialize, unwrap } from "@/lib/ipc";
 import { RightButton, RightIconButton } from "@/lib/rights";
+import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
+import { Button } from "@/ui/atoms/button";
 import { Chip } from "@/ui/atoms/chip";
 import { Input } from "@/ui/atoms/input";
 import { linkClass } from "@/ui/atoms/link-button";
@@ -449,56 +452,116 @@ export function Flows() {
 	);
 }
 
-function Matrix({ a, frame, signal }: { a: Artifact; frame: Frame; signal: number }) {
+/** The flows that are denied and that the code uses, with the way to show them and to ask for the change. */
+function UsedAlert({ names, onShow }: { names: string[]; onShow: (index: number) => void }) {
+	const { t } = useI18n();
+	const c = t.library.fn.flows;
+	const { ask } = useShell();
+	const title = names.length === 1 ? c.usedOne : format(c.usedMany, { count: names.length });
+	return (
+		<section
+			aria-label={title}
+			className="flex flex-wrap items-center gap-4 rounded-lg bg-attention-subtle px-6 py-5.5 shadow-2"
+		>
+			<h2 className="min-w-[260px] flex-1 text-17 font-semibold">{title}</h2>
+			<Button className="min-h-control" onClick={onShow}>
+				{c.show}
+			</Button>
+			<Button
+				variant="primary"
+				className="min-h-control"
+				onClick={() => ask(format(c.askText, { names: names.join(", ") }))}
+			>
+				{c.ask}
+			</Button>
+		</section>
+	);
+}
+
+function Matrix({
+	a,
+	frame,
+	signal,
+	checked,
+}: {
+	a: Artifact;
+	frame: Frame;
+	signal: number;
+	checked: ReturnType<typeof useFlowCheck>["result"];
+}) {
 	const { t } = useI18n();
 	const f = t.design.flows;
 	const p = t.design.page;
 	const { rows, bad, bricks, error, save, check } = useTable(a, frame.file);
+	const [current, setCurrent] = useState<{ id: string; at: number } | undefined>();
 	if (bad) return null;
+	const result = new Map((checked?.rows ?? []).map((c) => [String(c.id), c.inCode]));
+	const used = rows.filter((r) => r.action === "deny" && result.get(String(r.id)) === true);
+	const label = (r: (typeof rows)[number]) =>
+		r.name || `${r.sourceName || r.source} to ${r.destinationName || r.destination}`;
 	return (
-		<FlowMatrix
-			addSignal={signal}
-			chipLabels={{ allow: p.allowed, deny: p.denied }}
-			rows={rows.map((r) => ({
-				id: String(r.id),
-				source: r.source,
-				destination: r.destination,
-				network: r.network,
-				protocol: r.protocol,
-				port: r.port ?? "",
-				action: r.action,
-				name: r.name ?? "",
-				subnet: r.subnet ?? "",
-				sourceName: r.sourceName ?? "",
-				destinationName: r.destinationName ?? "",
-			}))}
-			bricks={bricks.map((b) => b.name).filter(Boolean)}
-			actions={[
-				{ value: "allow", label: f.allow },
-				{ value: "deny", label: f.deny },
-			]}
-			error={error}
-			labels={{
-				...f,
-				add: p.addFlow,
-				search: p.findHost,
-				from: p.flowFrom,
-				to: p.flowTo,
-				zone: p.zone,
-				allowed: p.allowed,
-				show: p.show,
-				rowMenu: p.rowMenu,
-			}}
-			onAdd={(d) => {
-				if (!check("", d)) return false;
-				void save([...rows, toApi(Math.max(0, ...rows.map((r) => r.id)) + 1, d)]);
-			}}
-			onEdit={(id, d) => {
-				if (!check(id, d)) return false;
-				void save(rows.map((r) => (String(r.id) === id ? { ...r, ...toApi(r.id, d) } : r)));
-			}}
-			onRemove={(id) => void save(rows.filter((r) => String(r.id) !== id))}
-		/>
+		<>
+			{used.length ? (
+				<UsedAlert
+					names={used.map(label)}
+					onShow={() => setCurrent({ id: String(used[0]?.id), at: Date.now() })}
+				/>
+			) : null}
+			<FlowMatrix
+				current={current}
+				missing={
+					checked
+						? {
+								label: t.library.fn.flows.notInCode,
+								ids: new Set(
+									rows.filter((r) => result.get(String(r.id)) === false).map((r) => String(r.id)),
+								),
+							}
+						: undefined
+				}
+				addSignal={signal}
+				chipLabels={{ allow: p.allowed, deny: p.denied }}
+				rows={rows.map((r) => ({
+					id: String(r.id),
+					source: r.source,
+					destination: r.destination,
+					network: r.network,
+					protocol: r.protocol,
+					port: r.port ?? "",
+					action: r.action,
+					name: r.name ?? "",
+					subnet: r.subnet ?? "",
+					sourceName: r.sourceName ?? "",
+					destinationName: r.destinationName ?? "",
+				}))}
+				bricks={bricks.map((b) => b.name).filter(Boolean)}
+				actions={[
+					{ value: "allow", label: f.allow },
+					{ value: "deny", label: f.deny },
+				]}
+				error={error}
+				labels={{
+					...f,
+					add: p.addFlow,
+					search: p.findHost,
+					from: p.flowFrom,
+					to: p.flowTo,
+					zone: p.zone,
+					allowed: p.allowed,
+					show: p.show,
+					rowMenu: p.rowMenu,
+				}}
+				onAdd={(d) => {
+					if (!check("", d)) return false;
+					void save([...rows, toApi(Math.max(0, ...rows.map((r) => r.id)) + 1, d)]);
+				}}
+				onEdit={(id, d) => {
+					if (!check(id, d)) return false;
+					void save(rows.map((r) => (String(r.id) === id ? { ...r, ...toApi(r.id, d) } : r)));
+				}}
+				onRemove={(id) => void save(rows.filter((r) => String(r.id) !== id))}
+			/>
+		</>
 	);
 }
 
@@ -510,6 +573,7 @@ export function FlowMatrixPage() {
 	const { t } = useI18n();
 	const { page, a, chips } = useTables();
 	const hashAdd = useRouterState({ select: (s) => s.location.hash === "add" });
+	const check = useFlowCheck(a?.path);
 	// The hash "add" opens the editor once; the menu item opens it again.
 	const [adds, setAdds] = useState(0);
 	const signal = adds + (hashAdd ? 1 : 0);
@@ -523,7 +587,20 @@ export function FlowMatrixPage() {
 						render={(x) => <Link to="/library/flows" {...x} />}
 					/>
 				}
-				action={a ? <PageExport page="flows" /> : undefined}
+				action={
+					a ? (
+						<>
+							<Button
+								className="min-h-control"
+								disabled={check.busy}
+								onClick={() => void check.run()}
+							>
+								{t.library.fn.flows.check}
+							</Button>
+							<PageExport page="flows" />
+						</>
+					) : undefined
+				}
 				menu={
 					a ? [{ label: t.design.page.addFlow, onClick: () => setAdds((n) => n + 1) }] : undefined
 				}
@@ -536,7 +613,12 @@ export function FlowMatrixPage() {
 						{(frame) => (
 							<>
 								{frame.alerts}
-								<Matrix a={a} frame={frame} signal={signal} />
+								{check.error ? (
+									<p role="alert" className="text-ui text-danger-text">
+										{check.error}
+									</p>
+								) : null}
+								<Matrix a={a} frame={frame} signal={signal} checked={check.result} />
 							</>
 						)}
 					</FileFrame>

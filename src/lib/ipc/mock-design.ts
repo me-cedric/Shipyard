@@ -8,6 +8,7 @@ import type {
 	DesignList_Serialize,
 	FlowRow_Deserialize,
 	FlowRow_Serialize,
+	FlowsChecked_Serialize,
 	Screen_Serialize,
 	Text,
 	TokenFile,
@@ -26,6 +27,8 @@ export type MockDesign = {
 	files: Files;
 	/** The targets that `design_open` handed to the OS. */
 	opened: string[];
+	/** The last check of each flow table against the code, by path. */
+	checks: Record<string, FlowsChecked_Serialize>;
 };
 
 export type Entity = { ref: string; title: string; status: string | null };
@@ -364,7 +367,7 @@ export function seedDesign(): MockDesign {
 		),
 	};
 	for (const [name, text] of Object.entries(DIAGRAMS)) files[`${DIR.diagram}/${name}`] = file(text);
-	return { files, opened: [] };
+	return { files, opened: [], checks: {} };
 }
 
 // ---------------------------------------------------------------- list
@@ -651,6 +654,40 @@ export function flowsSave(
 		...(r.destinationName ? { destinationName: r.destinationName } : {}),
 	}));
 	return putText(d.files, rel, stringify({ rows: clean }, YAML), stamp, !d.files[rel]);
+}
+
+/** The hosts that the code of the mock project calls. */
+const CODE_HOSTS = ["10.20.0.20", "10.20.0.53", "api.example.com"];
+
+/** The host that a flow goes to, as `shipyard_core::flows`: a name or an address, no network. */
+const hostOf = (destination: string) => {
+	const d = (destination.trim().replace(/\/32$/, "").split(":")[0] ?? "").toLowerCase();
+	return d.includes(".") && /^[a-z0-9.-]+$/.test(d) ? d : null;
+};
+
+export function flowsChecked(d: MockDesign, rel: string): FlowsChecked_Serialize | null {
+	return d.checks[rel] ?? null;
+}
+
+/** Check a flow table against the code: one result for each flow. */
+export function flowsCheck(d: MockDesign, rel: string): FlowsChecked_Serialize {
+	resolvePath(rel, DESIGN_FOLDERS);
+	if (!isUnder(rel, DIR.flow)) throw `not a flow file: ${rel}`;
+	const text = d.files[rel]?.text;
+	if (text === undefined) throw `${rel}: no such file`;
+	const rows = (parse(text) as { rows?: FlowRow_Serialize[] } | null)?.rows ?? [];
+	const done = {
+		at: new Date().toISOString(),
+		rows: rows.map((r) => {
+			const host = hostOf(r.destination);
+			return {
+				id: r.id,
+				inCode: host === null ? null : CODE_HOSTS.some((h) => h === host || h.endsWith(`.${host}`)),
+			};
+		}),
+	};
+	d.checks[rel] = done;
+	return done;
 }
 
 // ---------------------------------------------------------------- try

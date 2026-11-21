@@ -55,4 +55,14 @@ export const libraryFnEs: typeof libraryFnEn = {
 		text: "Texto de la versión",
 		none: "Ninguna versión anterior",
 	},
+	flows: {
+		check: "Comprobar con el código",
+		notInCode: "No está en el código",
+		usedOne: "1 flujo está denegado y el código lo usa",
+		usedMany: "{count} flujos están denegados y el código los usa",
+		show: "Mostrarlo",
+		ask: "Pedir el cambio",
+		askText:
+			"El código llama a los hosts de estos flujos denegados: {names}. Cambia los flujos o el código.",
+	},
 };

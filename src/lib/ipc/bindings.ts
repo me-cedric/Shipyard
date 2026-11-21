@@ -410,6 +410,8 @@ export const commands = {
 	designAdrCreate: (title: string) => typedError<Adr, AppError_Serialize>(__TAURI_INVOKE("design_adr_create", { title })),
 	designAdrDecide: (path: string, decision: Decision, comment: string, stamp: string) => typedError<Written_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_adr_decide", { path, decision, comment, stamp })),
 	designFlowsSave: (path: string, rows: FlowRow_Deserialize[], stamp: string | null) => typedError<Written_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_flows_save", { path, rows, stamp })),
+	designFlowsCheck: (path: string) => typedError<FlowsChecked_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_flows_check", { path })),
+	designFlowsChecked: (path: string) => typedError<FlowsChecked_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("design_flows_checked", { path })),
 	designTry: (request: TryRequest_Deserialize, click: boolean) => typedError<TryResponse, AppError_Serialize>(__TAURI_INVOKE("design_try", { request, click })),
 	designOpen: (target: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("design_open", { target })),
 	designBytes: (path: string) => typedError<number[], AppError_Serialize>(__TAURI_INVOKE("design_bytes", { path })),
@@ -2563,6 +2565,30 @@ export type FlowAction_Deserialize = "allow" | "Allow" | "deny" | "Deny";
 /**  Named `FlowAction` in the bindings: `work::Action` has the name `Action`. */
 export type FlowAction_Serialize = "allow" | "deny";
 
+/**
+ *  What the check against the code found for one flow (`spec:library-functions#REQ-011`).
+ *  `in_code` is `None` when the destination is not a host that a URL can name: a network or a brick.
+ */
+export type FlowCheck = FlowCheck_Serialize | FlowCheck_Deserialize;
+
+/**
+ *  What the check against the code found for one flow (`spec:library-functions#REQ-011`).
+ *  `in_code` is `None` when the destination is not a host that a URL can name: a network or a brick.
+ */
+export type FlowCheck_Deserialize = {
+	id: number,
+	inCode?: boolean | null,
+};
+
+/**
+ *  What the check against the code found for one flow (`spec:library-functions#REQ-011`).
+ *  `in_code` is `None` when the destination is not a host that a URL can name: a network or a brick.
+ */
+export type FlowCheck_Serialize = {
+	id: number,
+	inCode: boolean | null,
+};
+
 /**  One feature: its title, its place in Flow and the refs of its parts. */
 export type FlowFeature = FlowFeature_Serialize | FlowFeature_Deserialize;
 
@@ -2662,6 +2688,21 @@ export type FlowRow_Serialize = {
 	/**  The bricks of `bricks.json` that the flow leaves from and goes to, by name. */
 	sourceName?: string,
 	destinationName?: string,
+};
+
+/**  The result of the last check of a flow table against the code (`spec:library-functions#REQ-011`). */
+export type FlowsChecked = FlowsChecked_Serialize | FlowsChecked_Deserialize;
+
+/**  The result of the last check of a flow table against the code (`spec:library-functions#REQ-011`). */
+export type FlowsChecked_Deserialize = {
+	at: string,
+	rows: FlowCheck_Deserialize[],
+};
+
+/**  The result of the last check of a flow table against the code (`spec:library-functions#REQ-011`). */
+export type FlowsChecked_Serialize = {
+	at: string,
+	rows: FlowCheck_Serialize[],
 };
 
 /**  When the focus ring shows: for the keyboard only, or for each focus. */

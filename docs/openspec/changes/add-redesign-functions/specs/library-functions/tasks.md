@@ -26,7 +26,7 @@ Plan: [plan.md](plan.md)
 - [x] T008 Tests for REQ-008 (F34, Chart kinds of dashboard tiles): each scenario of the spec, beside `src/features/knowledge/dashboards.tsx`, `crates/shipyard-core/src/tile.rs`. REQ-008.
 - [x] T009 Tests for REQ-009 (F35, Pin a dashboard to Today): each scenario of the spec, beside `src/features/knowledge/dashboards.tsx`, `src/features/home/role-panels.tsx`. REQ-009.
 - [x] T010 Tests for REQ-010 (F36, Release picker of Dashboards): each scenario of the spec, beside `src/features/knowledge/dashboards.tsx`. REQ-010.
-- [ ] T011 [P] Tests for REQ-011 (F37, Check against the code of the flow matrix): each scenario of the spec, beside `src/features/design/flows.tsx`, `crates/shipyard-core/src/flows.rs`. REQ-011.
+- [x] T011 [P] Tests for REQ-011 (F37, Check against the code of the flow matrix): each scenario of the spec, beside `src/features/design/flows.tsx`, `crates/shipyard-core/src/flows.rs`. REQ-011.
 - [ ] T012 Tests for REQ-012 (F38, Stale chip on the map of the code): each scenario of the spec, beside `src/features/knowledge/graph.tsx`, `crates/shipyard-app/src/knowledge.rs`. REQ-012.
 - [ ] T013 [P] Tests for REQ-013 (F39, Link from an endpoint to its feature): each scenario of the spec, beside `src/features/design/api.tsx`. REQ-013.
 - [x] T014 [P] Build REQ-001 (F26, Opened last keeps items): `src/features/library/recent.ts`, `src/features/library/library-home.tsx`. REQ-001.
@@ -39,7 +39,7 @@ Plan: [plan.md](plan.md)
 - [x] T021 Build REQ-008 (F34, Chart kinds of dashboard tiles): `src/features/knowledge/dashboards.tsx`, `crates/shipyard-core/src/tile.rs`, `crates/shipyard-app/src/knowledge.rs`, `src/lib/ipc/mock-knowledge.ts`. REQ-008.
 - [x] T022 Build REQ-009 (F35, Pin a dashboard to Today): `src/features/knowledge/dashboards.tsx`, `src/features/home/role-panels.tsx`, `src/lib/knowledge/`. REQ-009.
 - [x] T023 Build REQ-010 (F36, Release picker of Dashboards): `src/features/knowledge/dashboards.tsx`. REQ-010.
-- [ ] T024 [P] Build REQ-011 (F37, Check against the code of the flow matrix): `src/features/design/flows.tsx`, `crates/shipyard-core/src/flows.rs`, `crates/shipyard-app/src/design.rs`, `src/lib/ipc/mock-design.ts`. REQ-011.
+- [x] T024 [P] Build REQ-011 (F37, Check against the code of the flow matrix): `src/features/design/flows.tsx`, `crates/shipyard-core/src/flows.rs`, `crates/shipyard-app/src/design.rs`, `src/lib/ipc/mock-design.ts`. REQ-011.
 - [ ] T025 Build REQ-012 (F38, Stale chip on the map of the code): `src/features/knowledge/graph.tsx`, `crates/shipyard-app/src/knowledge.rs`, `src/lib/ipc/mock-knowledge.ts`. REQ-012.
 - [ ] T026 [P] Build REQ-013 (F39, Link from an endpoint to its feature): `src/features/design/api.tsx`. REQ-013.
 - [ ] T027 Shared files: add the commands to the map of `src/lib/ipc/mock.ts` and to `crates/shipyard-app/src/lib.rs`, run `pnpm ipc:gen`, add the strings in English, French, German and Spanish to `src/lib/i18n/`.
