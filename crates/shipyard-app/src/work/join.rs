@@ -244,8 +244,9 @@ pub fn team_join_requests(s: &AppState) -> Res<Vec<JoinRequest>> {
         .collect())
 }
 
-/// Accepts a join request: sets `role` on the entry in the team file on the branch of the pull
-/// request, pushes the branch and merges the pull request. It needs the merge right, and a click.
+/// Accepts a join request: adds the entry of the branch to the team file of the base with `role`
+/// and no admin or extra rights, refuses any other change on the branch, pushes the branch and
+/// merges the pull request. It needs the merge right, and a click.
 pub fn team_join_accept(s: &AppState, number: u32, role: &str, click: bool) -> Res<()> {
     crate::work::need_click(
         s,
@@ -275,20 +276,48 @@ pub fn team_join_accept(s: &AppState, number: u32, role: &str, click: bool) -> R
     let rev = repo
         .rev_sha(&format!("{remote}/{}", pull.source_branch))
         .map_err(err)?;
-    let mut team = read_team(
-        &repo
-            .text_at(&rev, TEAM_PATH)
-            .map_err(err)?
-            .ok_or("the branch holds no team file")?,
-        None,
-    )
-    .map_err(err)?;
-    let member = team
+    // The branch belongs to the person who asks: trust nothing on it but the one new entry.
+    let (base, files) = repo
+        .changed_from_merge_base(&rev, &format!("{remote}/{}", pull.target_branch))
+        .map_err(err)?;
+    if files.iter().any(|f| f != TEAM_PATH) {
+        return Err("the branch changes more than the team file".into());
+    }
+    let read = |at: &str| -> Res<Team> {
+        read_team(
+            &repo
+                .text_at(at, TEAM_PATH)
+                .map_err(err)?
+                .ok_or("a team file is missing")?,
+            None,
+        )
+        .map_err(err)
+    };
+    let theirs = read(&rev)?;
+    let mut team = read(&base)?;
+    let mut entry = theirs
         .members
-        .iter_mut()
+        .iter()
         .find(|m| m.handle == handle)
+        .cloned()
         .ok_or("the branch holds no entry for this person")?;
-    member.role = role.as_str().into();
+    if team.members.iter().any(|m| m.handle == handle) {
+        return Err("this person is already in the team".into());
+    }
+    let others: Vec<_> = theirs
+        .members
+        .iter()
+        .filter(|m| m.handle != handle)
+        .collect();
+    if others.len() != team.members.len() || others.iter().zip(&team.members).any(|(a, b)| *a != b)
+    {
+        return Err("the branch changes another member".into());
+    }
+    entry.role = role.as_str().into();
+    entry.admin = false;
+    entry.roles.clear();
+    entry.rights.clear();
+    team.members.push(entry);
     let text = write_team(&team, None).map_err(err)?;
     repo.commit_file_to_branch(
         &rev,

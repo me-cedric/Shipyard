@@ -299,6 +299,79 @@ fn accept_sets_the_role_on_the_branch_and_merges_and_needs_the_merge_right() {
     );
 }
 
+/// Zed edits the branch of the join request, then the screen of Ana accepts.
+fn tampered(edit: impl FnOnce(&Path)) -> (Fx, Res<()>) {
+    let f = fx(true);
+    sent_join(&f);
+    let main = head(&f.root);
+    git(&f.root, &["checkout", "-q", "shipyard/join-zed"]);
+    edit(&f.root);
+    git(&f.root, &["add", "-u"]);
+    git(&f.root, &["commit", "-q", "-m", "tamper"]);
+    git(&f.root, &["push", "-q", "origin", "shipyard/join-zed"]);
+    git(&f.root, &["checkout", "-q", &main]);
+    f.http
+        .get("/merge_requests/7", 200, &mr("shipyard/join-zed"))
+        .put("/merge_requests/7/merge", "", 200, "{}");
+    let r = team_join_accept(&f.s, 7, "developer", true);
+    (f, r)
+}
+
+fn edit_team(root: &Path, f: impl FnOnce(&mut Team)) {
+    let mut t = read_team(
+        &std::fs::read_to_string(root.join(TEAM_PATH)).unwrap(),
+        None,
+    )
+    .unwrap();
+    f(&mut t);
+    std::fs::write(root.join(TEAM_PATH), write_team(&t, None).unwrap()).unwrap();
+}
+
+fn no_merge(f: &Fx) -> bool {
+    f.http.requests().iter().all(|r| r.method != Method::Put)
+}
+
+#[test]
+fn accept_refuses_a_branch_that_edits_another_member_or_touches_another_file() {
+    let (f, r) = tampered(|root| {
+        edit_team(root, |t| t.members[0].role = "viewer".into());
+    });
+    assert!(r.unwrap_err().contains("another member"));
+    assert!(no_merge(&f));
+    let (f, r) = tampered(|root| {
+        std::fs::write(root.join("evil.txt"), "x").unwrap();
+        git(root, &["add", "evil.txt"]);
+    });
+    assert!(r.unwrap_err().contains("more than the team file"));
+    assert!(no_merge(&f));
+    let (f, r) = tampered(|root| edit_team(root, |t| t.members.retain(|m| m.handle != "ana")));
+    assert!(r.unwrap_err().contains("another member"));
+    assert!(no_merge(&f));
+}
+
+#[test]
+fn accept_resets_admin_and_extra_rights_on_the_new_entry() {
+    let (f, r) = tampered(|root| {
+        edit_team(root, |t| {
+            let z = t.members.iter_mut().find(|m| m.handle == "zed").unwrap();
+            z.admin = true;
+            z.roles = vec!["techlead".into()];
+            z.rights = vec!["+code-merge".into()];
+        });
+    });
+    r.unwrap();
+    let out = Command::new("git")
+        .current_dir(f.dir.path().join("acme/web.git"))
+        .args(["show", &format!("shipyard/join-zed:{TEAM_PATH}")])
+        .output()
+        .unwrap();
+    let team = read_team(&String::from_utf8(out.stdout).unwrap(), None).unwrap();
+    let z = team.resolve("zed").unwrap();
+    assert!(!z.admin && z.roles.is_empty() && z.rights.is_empty());
+    assert_eq!(z.role, "developer");
+    assert!(team.resolve("ana").unwrap().admin);
+}
+
 #[test]
 fn refuse_closes_the_pull_request_and_only_a_join_request() {
     let f = fx(true);

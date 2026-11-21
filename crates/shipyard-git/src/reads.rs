@@ -127,6 +127,27 @@ impl Repo {
             .diff_tree_to_workdir_with_index(Some(&tree), Some(&mut o))?)
     }
 
+    /// The merge base of `rev` and `base`, and the files that `rev` changed since it (committed
+    /// work only), with `/` separators.
+    pub fn changed_from_merge_base(&self, rev: &str, base: &str) -> Result<(String, Vec<String>)> {
+        let to = self.repo.revparse_single(rev)?.peel_to_commit()?;
+        let from = self.repo.revparse_single(base)?.peel_to_commit()?.id();
+        let mb = self
+            .repo
+            .find_commit(self.repo.merge_base(to.id(), from)?)?;
+        let diff = self
+            .repo
+            .diff_tree_to_tree(Some(&mb.tree()?), Some(&to.tree()?), None)?;
+        let files = diff
+            .deltas()
+            .filter_map(|d| {
+                let p = d.new_file().path().or_else(|| d.old_file().path())?;
+                Some(p.to_string_lossy().replace('\\', "/"))
+            })
+            .collect();
+        Ok((mb.id().to_string(), files))
+    }
+
     /// Every file that the run changed against `base`, committed or not, with `/` separators.
     pub fn changed_since(&self, base: &str) -> Result<Vec<String>> {
         Ok(self
