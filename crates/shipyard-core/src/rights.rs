@@ -462,7 +462,7 @@ pub fn role_hidden(team: &Team, role: Role) -> Vec<String> {
         .filter(|(k, _)| Role::parse(k) == Some(role))
         .filter_map(|(_, block)| block.iter().find(|(k, _)| k.trim() == HIDE_KEY))
         .filter_map(|(_, cell)| hide_list(cell))
-        .last()
+        .next_back()
         .unwrap_or_default()
 }
 

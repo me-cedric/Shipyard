@@ -125,6 +125,7 @@ fn highest(reply: serde_json::Value) -> serde_json::Value {
 /// The address is `https`, or `http` on a local host. Sends no credential. `seen` is the last
 /// version that ran. After an update (`current` above `seen`) the notes are the sections in
 /// between. With no `seen` (first start) or no update, the notes are empty.
+#[cfg(test)]
 pub fn check(
     http: &dyn Http,
     release_url: &str,
