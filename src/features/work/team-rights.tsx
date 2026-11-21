@@ -771,7 +771,7 @@ function JoinCard({ j }: { j: { number: number; name: string; asked: string } })
 	const { failure, run } = useGuard();
 	const [role, setRole] = useState<string>(isRole(j.asked) ? j.asked : "viewer");
 	return (
-		<AttentionCard who={j.name} title={format(c.title, { name: j.name })}>
+		<AttentionCard heading="h2" who={j.name} title={format(c.title, { name: j.name })}>
 			<div className="flex flex-wrap items-center gap-2.5">
 				<span className="text-n-11">{c.as}</span>
 				<Select
@@ -825,7 +825,12 @@ export function JoinAsked() {
 					<JoinCard key={j.number} j={j} />
 				))}
 			{asked.map((h) => (
-				<AttentionCard key={h} who={h} title={format(t.rights.team.asks, { name: h })} />
+				<AttentionCard
+					key={h}
+					heading="h2"
+					who={h}
+					title={format(t.rights.team.asks, { name: h })}
+				/>
 			))}
 		</>
 	);
