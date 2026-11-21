@@ -539,6 +539,28 @@ const scenes: Scene[] = [
 			await p.getByRole("dialog", { name: /^Leave this page\?/ }).waitFor();
 		},
 	},
+	// A file that changes outside the editor while a draft is open: the conflict choice shows at the save.
+	{
+		name: "file-changed-on-disk",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/handbook");
+			await p.getByRole("button", { name: "Getting started" }).first().click();
+			await p.getByRole("main").getByRole("button", { name: "Text", exact: true }).click();
+			await p.getByRole("main").getByRole("textbox").first().click();
+			await p.keyboard.press("End");
+			await p.keyboard.type(" More.");
+			// A string: the Node type check has no DOM names. The write comes from outside the editor, with the stamp of the read.
+			await p.evaluate(`(async () => {
+				const call = window.__TAURI_INTERNALS__.invoke;
+				const path = "docs/handbook/getting-started.md";
+				const r = await call("doc_read_one", { path });
+				await call("doc_write_one", { path, text: r.text + "\\nChanged elsewhere.\\n", stamp: r.stamp, create: false });
+			})()`);
+			await p.getByRole("button", { name: "Save", exact: true }).click();
+			await p.getByRole("alert").filter({ hasText: "The file changed on disk" }).waitFor();
+		},
+	},
 	// The chip and the alert after Check against the code (spec:library-functions#REQ-011).
 	{
 		name: "library-flows-not-in-code",
@@ -574,7 +596,22 @@ const scenes: Scene[] = [
 		},
 	},
 	{ name: "feature-chat", run: (p) => openFeature(p, /refuse an empty token/, "Chat") },
-	{ name: "setup-tickets", run: (p) => go(p, "/setup/project?page=tickets") },
+	{
+		name: "setup-tickets",
+		run: async (p) => {
+			// The statuses map to steps in Setup / Automation: seed that map, so each row shows its step.
+			await p.evaluate(`(async () => {
+				const call = window.__TAURI_INTERNALS__.invoke;
+				const c = await call("connections_add", { draft: { name: "Issue tracker", group: "tracker", kind: "linear", url: "", user: null } });
+				await call("connections_set_secret", { id: c.id, secret: "demo" });
+				const { automation } = await call("sync_automation_get");
+				const status_map = { Queued: { status: "To Do" }, Working: { status: "In Progress" }, PROpen: { status: "In Review" } };
+				await call("sync_automation_save", { automation: { ...automation, status_map } });
+				await call("sync_now");
+			})()`);
+			await go(p, "/setup/project?page=tickets");
+		},
+	},
 	{ name: "setup-extensions", run: (p) => go(p, "/setup/project?page=extensions") },
 	{ name: "setup-automation", run: (p) => go(p, "/setup/project?page=automation") },
 	{ name: "setup-plugins", run: (p) => go(p, "/setup/project?page=plugins") },

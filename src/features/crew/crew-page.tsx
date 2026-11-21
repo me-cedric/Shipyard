@@ -1,5 +1,5 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { AgentsToggle } from "@/features/factory/agents-toggle";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { NoProject } from "@/features/shell/no-project";
@@ -21,7 +21,7 @@ import { Segmented } from "@/ui/atoms/segmented";
 import { PlusIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
-import { PageHeader } from "@/ui/molecules/page-header";
+import { PageHeader, PageSwitchContext } from "@/ui/molecules/page-header";
 import { atWork, byRun, LiveRows, useAgentRows } from "./live";
 import { MemberForm } from "./member";
 
@@ -48,6 +48,7 @@ export function CrewPage() {
 	// closes the member page and a link opens one person.
 	const search = useSearch({ strict: false }) as { view?: string; member?: unknown };
 	const navigate = useNavigate();
+	const slot = useContext(PageSwitchContext);
 	const { can } = useRights();
 	const live = search.view === "live";
 	const active = useActiveProject().data;
@@ -135,43 +136,56 @@ export function CrewPage() {
 	const spend = spent.reduce((a, r) => a + (r.usd ?? 0), 0);
 	// The limit of a feature is the budget of its run. When the open runs differ, the lowest shows.
 	const limits = spent.flatMap((r) => (r.budget == null ? [] : [r.budget]));
+	// The way back to the cards, left of the section switch. It is a choice of two views, not a second section switch.
+	const viewSwitch = (
+		<div className="shrink-0">
+			<Segmented
+				label={t.factory.runsList.view}
+				value="live"
+				onValueChange={setView}
+				items={[
+					{ value: "cards", label: c.cards },
+					{ value: "live", label: c.live },
+				]}
+			/>
+		</div>
+	);
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-			<PageHeader
-				icon={icon}
-				title={title}
-				action={
-					live ? (
-						// The way back to the cards. It is a choice of two views, not a second section switch.
-						<div className="shrink-0">
-							<Segmented
-								label={t.factory.runsList.view}
-								value="live"
-								onValueChange={setView}
-								items={[
-									{ value: "cards", label: c.cards },
-									{ value: "live", label: c.live },
-								]}
-							/>
-						</div>
-					) : (
-						<AgentsToggle />
-					)
+			<PageSwitchContext.Provider
+				value={
+					slot && live
+						? {
+								...slot,
+								node: (
+									<>
+										{viewSwitch}
+										{slot.node}
+									</>
+								),
+							}
+						: slot
 				}
-				menu={
-					live
-						? undefined
-						: [
-								{ label: c.live, onClick: () => setView("live") },
-								{
-									label: c.addPerson,
-									icon: <PlusIcon size={14} />,
-									disabled: !can("project.settings"),
-									onClick: () => show(null),
-								},
-							]
-				}
-			/>
+			>
+				<PageHeader
+					icon={icon}
+					title={title}
+					action={live ? undefined : <AgentsToggle />}
+					menu={
+						live
+							? undefined
+							: [
+									{ label: c.live, onClick: () => setView("live") },
+									{
+										label: c.addPerson,
+										icon: <PlusIcon size={14} />,
+										disabled: !can("project.settings"),
+										onClick: () => show(null),
+									},
+								]
+					}
+				/>
+			</PageSwitchContext.Provider>
 			<div className="flex flex-col gap-6 px-4 pb-4">
 				{live ? (
 					<LiveRows {...agents} />

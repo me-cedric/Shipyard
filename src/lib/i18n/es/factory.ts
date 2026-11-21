@@ -333,6 +333,7 @@ export const factoryEs: typeof factoryEn = {
 		ended: "Terminadas",
 		endedAll: "Sesiones terminadas",
 		none: "Ninguna",
+		showAll: "Ver las {n}",
 		review: "Revisión del pull request {number}",
 		estimate: "Estimaciones {name}",
 		tile: "Mosaico del panel {name}",

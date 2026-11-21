@@ -1,5 +1,5 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useContext, useMemo } from "react";
+import { useContext, useMemo, useState } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
@@ -33,6 +33,8 @@ const PANEL_BUTTON = "border-primary-fg/20 bg-primary-fg/15 hover:bg-primary-fg/
 const ON_PANEL = `${PANEL_BUTTON} text-primary-fg`;
 /** The Stop button on that panel: light orange, like the design (dark orange on the light panel of the dark theme). */
 const STOP_ON_PANEL = `${PANEL_BUTTON} ${ATTENTION_ON_PANEL}`;
+/** The rows of the list that show before "Show all", as in the design. */
+const FIRST = 3;
 const idOf = (s: SessionView) => `${s.run}/${s.step}`;
 
 /** The live output of a session: what its tool wrote, or the words that say it writes none. */
@@ -101,6 +103,7 @@ export function CrewSessions() {
 	const runs = useRuns().data;
 	const { gate } = useRights();
 	const slot = useContext(PageSwitchContext);
+	const [all, setAll] = useState(false);
 	// The page of the ended sessions has no section switch: it claims the switch and draws none.
 	const day = usePlainDay();
 	const bare = useMemo(() => slot && { ...slot, node: null }, [slot]);
@@ -214,37 +217,49 @@ export function CrewSessions() {
 					<Card className="py-2">
 						<section aria-label={s.here}>
 							<h2 className={SIDE_HEAD}>{s.here}</h2>
-							{here.map((r) => (
+							{here.map((r, i) =>
+								all || i < FIRST || r === shown ? (
+									<Row
+										key={r.id}
+										className={cn("min-h-18 w-full py-2", r === shown && "bg-accent-subtle/40")}
+										render={(props) => (
+											<button
+												type="button"
+												aria-pressed={r === shown}
+												{...props}
+												onClick={() =>
+													void navigate({
+														to: "/crew/sessions",
+														search: { session: idOf(r.session) } as never,
+														replace: true,
+													})
+												}
+											/>
+										)}
+									>
+										<Avatar agent name={nameOf(r.session.step)} />
+										<span className="flex min-w-0 flex-1 flex-col text-left">
+											<span className="truncate font-semibold">{name(r)}</span>
+											<span className="truncate text-n-11">{detail(r)}</span>
+										</span>
+										{r === shown ? (
+											<Badge variant="accent">{s.shown}</Badge>
+										) : r.session.state === "gate" ? (
+											<Badge variant="you">{s.waits}</Badge>
+										) : null}
+									</Row>
+								) : null,
+							)}
+							{!all && here.length > FIRST ? (
 								<Row
-									key={r.id}
-									className={cn("min-h-18 w-full py-2", r === shown && "bg-accent-subtle/40")}
+									className="min-h-12 w-full py-2 font-semibold"
 									render={(props) => (
-										<button
-											type="button"
-											aria-pressed={r === shown}
-											{...props}
-											onClick={() =>
-												void navigate({
-													to: "/crew/sessions",
-													search: { session: idOf(r.session) } as never,
-													replace: true,
-												})
-											}
-										/>
+										<button type="button" {...props} onClick={() => setAll(true)} />
 									)}
 								>
-									<Avatar agent name={nameOf(r.session.step)} />
-									<span className="flex min-w-0 flex-1 flex-col text-left">
-										<span className="truncate font-semibold">{name(r)}</span>
-										<span className="truncate text-n-11">{detail(r)}</span>
-									</span>
-									{r === shown ? (
-										<Badge variant="accent">{s.shown}</Badge>
-									) : r.session.state === "gate" ? (
-										<Badge variant="you">{s.waits}</Badge>
-									) : null}
+									{format(s.showAll, { n: here.length })}
 								</Row>
-							))}
+							) : null}
 							<MachineRows />
 						</section>
 					</Card>

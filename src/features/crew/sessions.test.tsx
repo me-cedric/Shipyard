@@ -16,8 +16,11 @@ function hold() {
 	return unwrap(commands.estimateAgentStart("mvp-1", [task], true)).catch((e: unknown) => e);
 }
 /** The panel shows one session: pick the estimate in the list first. */
-const pick = async (user: ReturnType<typeof userEvent.setup>) =>
-	user.click(await screen.findByRole("button", { name: /Estimates mvp-1/ }));
+const pick = async (user: ReturnType<typeof userEvent.setup>, name = /Estimates mvp-1/) => {
+	// The list shows its first rows: Show all adds the rest.
+	await user.click(await screen.findByRole("button", { name: /^Show all \d+$/ }));
+	await user.click(await screen.findByRole("button", { name }));
+};
 const estimates = async () =>
 	(await unwrap(commands.sessionsList())).filter((s) => s.step === "estimate");
 
@@ -116,12 +119,33 @@ describe("Crew / Sessions: a tile build", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const build = unwrap(commands.dashboardTileBuild("team", "Runs", 1)).catch((e) => e);
 		const router = mountApp("/crew/sessions");
-		await user.click(await screen.findByRole("button", { name: /Dashboard tile team/ }));
+		await pick(user, /Dashboard tile team/);
 		await user.click(await screen.findByRole("button", { name: "Stop team" }));
 		expect(await build).toMatchObject({ code: "stopped" });
 		await waitFor(() =>
 			expect(screen.queryByRole("button", { name: /Dashboard tile team/ })).toBeNull(),
 		);
+		await idle(router);
+	});
+});
+
+// spec:app-redesign#REQ-016: the list shows the first rows and a button that shows the rest.
+describe("Crew / Sessions: the list", () => {
+	it("shows three rows and Show all shows the rest", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const router = mountApp("/crew/sessions");
+		const here = async () =>
+			(await screen.findByRole("region", { name: "On this machine" })).querySelectorAll(
+				"[aria-pressed]",
+			);
+		const more = await screen.findByRole("button", { name: /^Show all \d+$/ });
+		const count = Number(more.textContent?.replace("Show all ", ""));
+		expect(count).toBeGreaterThan(3);
+		expect(await here()).toHaveLength(3);
+		await user.click(more);
+		expect(await here()).toHaveLength(count);
+		expect(screen.queryByRole("button", { name: /^Show all/ })).toBeNull();
 		await idle(router);
 	});
 });

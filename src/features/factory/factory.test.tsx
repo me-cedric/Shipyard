@@ -169,6 +169,8 @@ describe("Factory tabs", () => {
 		const agent = mockState().agentPr;
 		if (agent) agent.running = [141];
 		router = mountApp("/crew/sessions");
+		// The list shows the first rows: Show all opens the rest.
+		await user.click(await screen.findByRole("button", { name: /^Show all/ }));
 		await user.click(await screen.findByRole("button", { name: /Review of pull request 141/ }));
 		const panel = within(
 			await screen.findByRole("region", { name: "Live output of Review of pull request 141" }),

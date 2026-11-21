@@ -135,6 +135,7 @@ steps:
     mode: plan
     needs: [grill]
     gate: human
+    approver: techlead
     tools: [read_ticket, read_ref, ask_question, post_progress, report]
   - id: build
     role: worker

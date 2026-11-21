@@ -135,6 +135,12 @@ describe("Crew / Live", () => {
 		expect(main.getAllByRole("navigation")).toHaveLength(1);
 		const view = within(main.getByRole("group", { name: "View" }));
 		expect(view.getByRole("button", { name: "Live" })).toHaveAttribute("aria-pressed", "true");
+		// The design puts the view switch left of the section tabs.
+		expect(
+			view
+				.getByRole("button", { name: "Live" })
+				.compareDocumentPosition(main.getByRole("navigation")) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
 		await user.click(view.getByRole("button", { name: "Cards" }));
 		await waitFor(() => expect(router.state.location.search).toEqual({}));
 		expect(await screen.findByRole("list", { name: "People" })).toBeInTheDocument();

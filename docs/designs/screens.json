@@ -1441,6 +1441,16 @@
         "adr:0023"
       ],
       "file": "docs/assets/screenshots/leave-page.png"
+    },
+    {
+      "id": "SCR-194",
+      "slug": "file-changed-on-disk",
+      "title": "File changed on disk: a file that changed outside the editor, with a draft open, shows the alert The file changed on disk with Keep mine and Reload",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/file-changed-on-disk.png"
     }
   ]
 }

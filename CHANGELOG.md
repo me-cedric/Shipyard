@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.2.0]
+- Crew / Sessions shows the first sessions with Show all, and Crew / Live puts the Cards and Live switch before the sections.
 - Leaving a page with a file that is not saved names the file and offers Stay, Leave and Save and leave.
 - Library keeps more: Opened last holds specs, decisions, diagrams and documents with a kind chip and Pin; Project rules has Earlier versions and a Handbook page has History and an author line, each with Read and Restore (a restore writes the old text and commits nothing); Documents has Add a file, which keeps a Word file as Word.
 - A Markdown deck has Edit, Export PDF and Speaker notes (a `Note:` block after a slide); Learn has an Experts card, Add a word (written to `docs/glossary.md`) and a second pill on a step; Reports offer PDF (macOS first), Word, Excel and Markdown, with a Costing card, Pages that link to a report, a date and a person on each written report, and a form that asks the title, the client and the date before it writes the Complete dossier.

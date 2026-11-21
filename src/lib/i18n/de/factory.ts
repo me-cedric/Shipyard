@@ -338,6 +338,7 @@ export const factoryDe: typeof factoryEn = {
 		ended: "Beendet",
 		endedAll: "Beendete Sitzungen",
 		none: "Keine",
+		showAll: "Alle {n} zeigen",
 		review: "Prüfung des Pull Requests {number}",
 		estimate: "Schätzungen {name}",
 		tile: "Dashboard-Kachel {name}",

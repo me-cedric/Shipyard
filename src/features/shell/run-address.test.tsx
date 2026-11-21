@@ -152,6 +152,8 @@ describe("Run address", () => {
 		const router = mountApp("/factory/sessions");
 		// A row picks the session; Open in its panel opens the run at its unit.
 		const here = await screen.findByRole("region", { name: "On this machine" });
+		// The list shows the first rows: Show all opens the rest.
+		await user.click(await within(here).findByRole("button", { name: /^Show all/ }));
 		// The row names the feature: the title of the run of the session.
 		const title = (await find(first?.key ?? "")).title;
 		// The rows come in as the sessions and the runs load.
