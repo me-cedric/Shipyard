@@ -6,7 +6,7 @@ Biblioteca se abre con cuatro puertas. Cada puerta nombra lo que buscas, y conti
 
 Biblioteca no tiene selector de secciones. En cada página de Biblioteca, haz clic en Biblioteca arriba para volver a las puertas.
 
-Las fichas Qué está probado, Respuestas y Glosario abren la página que las contiene. La ficha Aprender muestra cuántos pasos de la ruta has terminado. Bajo las puertas, las tarjetas Fijado y Abierto por último listan páginas: Fijar guarda una página en Fijado, y Quitar la retira.
+Las fichas Qué está probado, Respuestas y Glosario abren la página que las contiene. La ficha Aprender muestra cuántos pasos de la ruta has terminado. Bajo las puertas, las tarjetas Fijado y Abierto por último listan páginas: Fijar guarda una página en Fijado, y Quitar la retira. Abierto por último guarda también los elementos con una ref (una spec, una decisión, un diagrama, un documento): cada fila muestra una etiqueta de su tipo, su nombre y Fijar.
 
 ## Leer y cambiar un elemento
 
@@ -54,6 +54,8 @@ Mapa dibuja los elementos del proyecto en grupos, con los enlaces entre ellos. F
 
 Con el origen Código, el mapa muestra las carpetas del código. Una línea entre dos carpetas es más gruesa cuando hay más llamadas entre sus archivos. Selecciona una carpeta para ver sus archivos, y luego un archivo para ver sus símbolos y qué los llama o qué llaman. Mostrar todo vuelve al mapa. Índice inicia el servidor de índice del código cuando está apagado, construye el índice y detiene el servidor. Si el programa termina con un error, la página nombra el programa, su código de salida y sus últimas líneas: corrige la causa y haz clic de nuevo en Índice. La tarjeta del símbolo tiene Explicar y Abrir en el editor, y Especificaciones y decisiones que lo usan abre el inspector. Huérfanos muestra los archivos que ninguna llamada alcanza ni deja. El selector Conocimiento y Código está arriba, y Código tiene la dirección `/library/graph?source=code`.
 
+Un archivo cuya spec cambió después de su último cambio muestra la etiqueta Obsoleto.
+
 ### Arquitectura
 
 Arquitectura muestra los modelos de arquitectura del proyecto como vistas. Las vistas se dibujan a partir del texto del modelo. Unas fichas bajo el título eligen el modelo, y Nuevo modelo añade uno. El selector Imagen, Ambos, Texto, con Editar, está en el encabezado; en Ambos la imagen está a la izquierda y el texto a la derecha.
@@ -81,6 +83,8 @@ Pantallas muestra las pantallas del producto y los tokens de diseño de tu proye
 
 API muestra los contratos de API. Abre un contrato para leer sus rutas. Prueba una ruta contra un servidor del contrato. La lista muestra los puntos de acceso de todos los contratos. Probar: elige un servidor, un método y una ruta y haz clic en Enviar; la respuesta aparece en la caja oscura de debajo.
 
+La tarjeta de un endpoint enlaza al cambio que cita el contrato.
+
 ### Datos
 
 Datos muestra los modelos de datos: las tablas y los enlaces entre ellas. Buscar una tabla filtra la lista. La imagen marca claves y enlaces, y el selector Imagen, Ambos, Texto muestra el texto `.dbml`.
@@ -88,6 +92,8 @@ Datos muestra los modelos de datos: las tablas y los enlaces entre ellas. Buscar
 ### Flujos de red
 
 Flujos de red lista los flujos de red como tabla: de dónde, a dónde, el puerto y el protocolo. Añade, cambia o quita una fila, y guarda. Cada fila tiene Desde, Hasta y Por qué. El selector Flujos y Bloques y la tarjeta Bloques y hosts muestran las otras vistas. Abrir la matriz completa abre `/library/flows/matrix`: una página con el enlace Flujos de red para volver, fichas de filtro, Buscar un host y una fila por flujo (Permitir o Denegar), con Editar y Quitar en el menú de la fila. Añadir un flujo está en el menú Más de la matriz, y Editar como texto abre el archivo.
+
+Comprobar con el código busca en el código los hosts que llama. Una fila dice No está en el código cuando ningún código llama a su host, y una tarjeta nombra cada flujo denegado que el código usa, con Mostrarlo y Pedir el cambio.
 
 ## Por qué es así
 
@@ -102,6 +108,8 @@ Decisiones contiene los registros de decisión (ADR). Cada registro da una decis
 
 Reglas del proyecto muestra una tarjeta numerada por regla que todo cambio debe seguir. Editar cambia el texto, y Añadir una regla añade una al final. La tarjeta Quién puede cambiar las reglas enlaza con Equipo / Derechos (Cambiar los derechos), y Quién sigue las reglas lista los roles de agente.
 
+Versiones anteriores lista los commits que cambiaron el archivo. Leer muestra una versión antigua; Restaurar escribe su texto en el archivo y no hace commit, así que aún puede deshacerse.
+
 ## Aprender y compartir
 
 ### Aprender
@@ -113,15 +121,21 @@ Aprender ayuda a una persona nueva a orientarse.
 - Rutas de aprendizaje: cursos, certificaciones y lecturas, con los expertos del equipo que pueden ayudar. Elige una persona y marca los pasos que esa persona terminó. La tabla de progreso del equipo muestra cada persona y cada ruta. El avance del equipo está en la columna derecha: una fila por persona, con una barra y N de M.
 - Canales: los canales de noticias del proyecto. Pega la dirección RSS o Atom de un sitio y haz clic en Suscribirse. La aplicación lee cada canal y guarda una copia durante una hora.
 
+Expertos es una tarjeta con las personas del archivo del equipo y sus temas. Añadir una palabra escribe una palabra y su sentido en `docs/glossary.md`, y el glosario lee ese archivo junto a las specs. Un paso puede tener una segunda etiqueta: Lectura, Curso o Certificación.
+
 ### Guía del equipo
 
 Guía del equipo muestra el árbol de páginas a la izquierda, con Buscar una página, y la página abierta. Páginas que enlazan aquí lista las páginas que la citan, y Pedir a un agente que la actualice envía una petición preparada al asistente. Pasa a Editar para cambiar una página: el selector Lectura, Ambos, Texto muestra la página como se lee, la página junto a su texto, o solo el texto. Haz clic en Página nueva para añadir una. La fila Manual, con F1, abre el manual.
+
+Historial, en una página, lista del mismo modo los commits que la cambiaron, y la página dice quién la cambió por última vez.
 
 ### Documentos
 
 Documentos lista los documentos del proyecto, con una ficha para el formato. Abre uno con Lectura, Ambos o Texto y haz clic en Editar para cambiarlo. Buscar en el texto, Renombrar y Eliminar están en el menú Más. La tarjeta Archivo tiene Mostrar en la carpeta y Exportar. La tarjeta El planificador puede usar este documento tiene Convertir en diapositivas y Convertir en especificación: cada uno envía una petición preparada al asistente. Exporta el dosier de arquitectura y la documentación funcional como archivos Word, y una hoja de cliente como archivo Excel. Cada exportación abre un diálogo Guardar como con el nombre rellenado y la carpeta de tu último guardado; Cancelar no exporta nada. Tras guardar, Mostrar en la carpeta y Abrir funcionan sobre el archivo nuevo.
 
 Un archivo Word tiene una portada, un índice (Word rellena los números de página cuando pide actualizar los campos), los diagramas Mermaid del proyecto como imágenes, y números de página. Un archivo LikeC4 o draw.io se muestra como imagen cuando hay un PNG con el mismo nombre a su lado, y si no como su ruta. Una hoja Excel tiene una fila de cabecera con estilo que queda en pantalla.
+
+Añadir un archivo copia cualquier archivo que elija en la carpeta de documentos. Un archivo Word sigue siendo un archivo Word.
 
 ### Diapositivas
 
@@ -133,6 +147,8 @@ Diapositivas contiene las presentaciones del proyecto. Cada presentación es un 
 - Exportar PDF: elige el archivo en el diálogo Guardar como. Cada diapositiva pasa a ser una página. Esto funciona solo en macOS.
 - Una presentación antigua escrita como texto se muestra en solo lectura. Haz clic en Convertir para pedir a un agente que la reescriba como presentación HTML.
 - Para eliminar una presentación, abre su menú y haz clic en Eliminar. El archivo va a la papelera.
+
+Una presentación escrita en Markdown tiene Editar, Exportar PDF y Notas del orador. Una nota es un bloque `Note:` después de una diapositiva. Exportar PDF funciona solo en macOS.
 
 ### Paneles
 
@@ -150,6 +166,8 @@ Crear un mosaico para mí pide a un agente que proponga un mosaico a partir de t
 
 El agente solo lee el proyecto. El panel no cambia hasta que haces clic en Aceptar. Si la página dice que el presupuesto se agotó, añade presupuesto y haz clic de nuevo en Crear. Un panel que no puedes cambiar no tiene Crear un mosaico para mí.
 
+Cada ficha tiene un gráfico: Número, Barras, Línea, Lista, Etapas del flujo, Gasto o Salud. El tipo de datos elige el primer gráfico; cámbielo en el menú de la ficha. Fijar en Hoy, en la página de edición, muestra el panel como una tarjeta en Hoy. Un selector de versiones junto a Editar deja en las fichas del gestor de incidencias solo las incidencias de la versión.
+
 ### Informes
 
 Informes lista cada archivo que Shipyard puede crear para una persona que no usa Shipyard: un cliente, un responsable, un auditor. Cada informe es un mosaico. Formato, arriba, muestra Todos los informes, o solo los archivos Word, los archivos Excel o las imágenes. Escrito para usted contiene tres documentos, cada uno con Abrir y Escribirlo. Un enlace lleva a Paneles.
@@ -161,6 +179,8 @@ Informes lista cada archivo que Shipyard puede crear para una persona que no usa
 Un informe se muestra solo cuando tu rol puede ver la página que contiene su exportación. El informe Flujos de red se muestra cuando el proyecto tiene un archivo de flujos. Cuando no queda ningún informe, Informes no tiene ficha. El menú Exportar de cada página funciona todavía.
 
 Una página de formulario tiene la dirección `/library/reports/change-request` o `/library/reports/work-done`, y el enlace Informes para volver. Rellena los campos (una solicitud de cambio pide Desde la versión, Hasta la versión y Personas que aprueban: Añadir muestra el equipo con una casilla por persona) y haz clic en Escribir el informe. Un campo obligatorio vacío da una línea de error y no escribe nada. Tras escribir, la tarjeta Escrito muestra cada archivo con su ruta, Mostrar en la carpeta y Abrir. Las tarjetas de la derecha listan los otros informes con formulario, los informes sin formulario (Todos los informes) y las partes del dosier completo.
+
+El selector de formato ofrece también PDF (solo macOS) y Markdown; cada informe de texto puede escribirse en Markdown. Un informe escrito muestra su fecha y su persona, Páginas que enlazan a un informe lista las páginas que lo citan, y Expediente completo pregunta el título, el cliente y la fecha antes de escribir.
 
 ### Manual
 

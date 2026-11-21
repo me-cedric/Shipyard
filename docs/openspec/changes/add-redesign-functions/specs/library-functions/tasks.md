@@ -42,8 +42,8 @@ Plan: [plan.md](plan.md)
 - [x] T024 [P] Build REQ-011 (F37, Check against the code of the flow matrix): `src/features/design/flows.tsx`, `crates/shipyard-core/src/flows.rs`, `crates/shipyard-app/src/design.rs`, `src/lib/ipc/mock-design.ts`. REQ-011.
 - [x] T025 Build REQ-012 (F38, Stale chip on the map of the code): `src/features/knowledge/graph.tsx`, `crates/shipyard-app/src/knowledge.rs`, `src/lib/ipc/mock-knowledge.ts`. REQ-012.
 - [x] T026 [P] Build REQ-013 (F39, Link from an endpoint to its feature): `src/features/design/api.tsx`. REQ-013.
-- [ ] T027 Shared files: add the commands to the map of `src/lib/ipc/mock.ts` and to `crates/shipyard-app/src/lib.rs`, run `pnpm ipc:gen`, add the strings in English, French, German and Spanish to `src/lib/i18n/`.
-- [ ] T028 Docs: `docs/flows/network-flows.json` is NOT changed (no new call); `docs/designs/screens.json` and the pictures for Slides, Learn, Reports, Dashboards and the flow matrix; the scenarios in `docs/delivery/test-plans/library-functions.feature`; the pictures in `docs/assets/screenshots/` and `docs/designs/screens.json` for each changed screen; one bullet each in `CHANGELOG.md` and `CHANGELOG.fr.md`; the page of the guide in four languages.
+- [x] T027 Shared files: add the commands to the map of `src/lib/ipc/mock.ts` and to `crates/shipyard-app/src/lib.rs`, run `pnpm ipc:gen`, add the strings in English, French, German and Spanish to `src/lib/i18n/`.
+- [x] T028 Docs: `docs/flows/network-flows.json` is NOT changed (no new call); `docs/designs/screens.json` and the pictures for Slides, Learn, Reports, Dashboards and the flow matrix; the scenarios in `docs/delivery/test-plans/library-functions.feature`; the pictures in `docs/assets/screenshots/` and `docs/designs/screens.json` for each changed screen; one bullet each in `CHANGELOG.md` and `CHANGELOG.fr.md`; the page of the guide in four languages.
 - [ ] T029 Run the commands of the Validation block of `plan.md`.
 - [ ] T030 Compare the build with the spec and fix stale artifacts.
 

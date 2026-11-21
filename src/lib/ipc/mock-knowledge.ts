@@ -168,7 +168,14 @@ export function seedKnowledge(): MockKnowledge {
 			),
 		},
 		// The spec changed after the ADR that it cites, so the graph marks it stale.
-		changed: { "spec:auth": 100, "adr:0004": 200, "adr:0001": 50 },
+		// The spec of the home page changed after its code, so the map of the code marks the file stale.
+		changed: {
+			"spec:auth": 100,
+			"adr:0004": 200,
+			"adr:0001": 50,
+			"spec:home": 300,
+			"src/features/home/home.tsx": 250,
+		},
 		server: true,
 		indexed: true,
 		exported: [],

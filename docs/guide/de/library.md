@@ -6,7 +6,7 @@ Bibliothek öffnet sich mit vier Türen. Jede Tür nennt, wonach Sie suchen, und
 
 Bibliothek hat keinen Umschalter für Abschnitte. Klicken Sie auf jeder Seite von Bibliothek oben auf Bibliothek, um zu den Türen zurückzukehren.
 
-Die Chips Was getestet ist, Antworten und Glossar öffnen die Seite, die sie enthält. Der Chip Lernen zeigt, wie viele Schritte des Pfads Sie beendet haben. Unter den Türen listen die Karten Angeheftet und Zuletzt geöffnet Seiten: Anheften hält eine Seite in Angeheftet, und Lösen entfernt sie.
+Die Chips Was getestet ist, Antworten und Glossar öffnen die Seite, die sie enthält. Der Chip Lernen zeigt, wie viele Schritte des Pfads Sie beendet haben. Unter den Türen listen die Karten Angeheftet und Zuletzt geöffnet Seiten: Anheften hält eine Seite in Angeheftet, und Lösen entfernt sie. Zuletzt geöffnet behält auch die Elemente mit einer Ref (eine Spec, eine Entscheidung, ein Diagramm, ein Dokument): Jede Zeile zeigt einen Chip für die Art, den Namen und Anheften.
 
 ## Ein Element lesen und ändern
 
@@ -54,6 +54,8 @@ Karte zeichnet die Elemente des Projekts in Gruppen, mit den Links zwischen ihne
 
 Mit der Quelle Code zeigt die Karte die Ordner des Codes. Eine Linie zwischen zwei Ordnern ist dicker, wenn mehr Aufrufe zwischen ihren Dateien laufen. Wählen Sie einen Ordner, um seine Dateien zu sehen, dann eine Datei, um ihre Symbole zu sehen und was sie aufruft oder was sie aufrufen. Alle anzeigen führt zur Karte zurück. Index startet den Code-Index-Server, wenn er aus ist, baut den Index und stoppt den Server wieder. Wenn das Programm mit einem Fehler endet, nennt die Seite das Programm, seinen Exit-Code und seine letzten Zeilen: Beheben Sie die Ursache, dann klicken Sie erneut auf Index. Die Karte des Symbols hat Erklären und Im Editor öffnen, und Spezifikationen und Entscheidungen, die es nutzen öffnet den Inspektor. Verwaiste zeigt die Dateien, die kein Aufruf erreicht oder verlässt. Der Umschalter Wissen und Code steht oben, und Code hat die Adresse `/library/graph?source=code`.
 
+Eine Datei, deren Spec sich nach ihrer letzten Änderung geändert hat, zeigt den Chip Veraltet.
+
 ### Architektur
 
 Architektur zeigt die Architekturmodelle des Projekts als Ansichten. Die Ansichten werden aus dem Text des Modells gezeichnet. Chips unter dem Titel wählen das Modell, und Neues Modell fügt eines hinzu. Der Umschalter Bild, Beide, Text, mit Bearbeiten, steht in der Kopfzeile; in Beide ist das Bild links und der Text rechts.
@@ -81,6 +83,8 @@ Bildschirme zeigt die Bildschirme des Produkts und die Design-Tokens Ihres Proje
 
 API zeigt die API-Verträge. Öffnen Sie einen Vertrag, um seine Routen zu lesen. Probieren Sie eine Route gegen einen Server des Vertrags aus. Die Liste zeigt die Endpunkte aller Verträge. Ausprobieren: Wählen Sie einen Server, eine Methode und einen Pfad, dann klicken Sie auf Senden; die Antwort erscheint im dunklen Feld darunter.
 
+Die Karte eines Endpunkts verweist auf die Änderung, die den Vertrag zitiert.
+
 ### Daten
 
 Daten zeigt die Datenmodelle: die Tabellen und die Links zwischen ihnen. Tabelle finden filtert die Liste. Das Bild markiert Schlüssel und Verknüpfungen, und der Umschalter Bild, Beide, Text zeigt den Text `.dbml`.
@@ -88,6 +92,8 @@ Daten zeigt die Datenmodelle: die Tabellen und die Links zwischen ihnen. Tabelle
 ### Netzwerkabläufe
 
 Netzwerkabläufe listet die Netzwerkabläufe als Tabelle: von wo, nach wo, der Port und das Protokoll. Fügen Sie eine Zeile hinzu, ändern oder entfernen Sie sie, dann speichern Sie. Jede Zeile hat Von, Nach und Warum. Der Umschalter Abläufe und Bausteine und die Karte Bausteine und Hosts zeigen die anderen Ansichten. Ganze Matrix öffnen öffnet `/library/flows/matrix`: eine Seite mit dem Link Netzwerkabläufe zurück, Filter-Chips, Host finden und einer Zeile je Ablauf (Erlauben oder Verweigern), mit Bearbeiten und Entfernen im Zeilenmenü. Fluss hinzufügen steht im Menü Mehr der Matrix, und Als Text bearbeiten öffnet die Datei.
+
+Mit dem Code abgleichen sucht im Code die Hosts, die er aufruft. Eine Zeile sagt Nicht im Code, wenn kein Code ihren Host aufruft, und eine Karte nennt jeden verweigerten Fluss, den der Code nutzt, mit Anzeigen und Änderung anfragen.
 
 ## Warum es so ist
 
@@ -102,6 +108,8 @@ Entscheidungen enthält die Entscheidungsprotokolle (ADRs). Jedes Protokoll nenn
 
 Projektregeln zeigt eine nummerierte Karte je Regel, die jede Änderung befolgen muss. Bearbeiten ändert den Text, und Regel hinzufügen fügt am Ende eine an. Die Karte Wer die Regeln ändern kann verweist auf Team / Rechte (Die Rechte ändern), und Wer die Regeln befolgt listet die Agentenrollen auf.
 
+Frühere Versionen listet die Commits auf, die die Datei geändert haben. Lesen zeigt eine alte Version; Wiederherstellen schreibt ihren Text in die Datei und committet nichts, so lässt es sich noch rückgängig machen.
+
 ## Lernen und teilen
 
 ### Lernen
@@ -113,15 +121,21 @@ Lernen hilft einer neuen Person, sich zurechtzufinden.
 - Lernpfade: Kurse, Zertifizierungen und Lektüren, mit den Experten des Teams, die helfen können. Wählen Sie eine Person, dann haken Sie die Schritte an, die diese Person beendet hat. Die Fortschrittstabelle des Teams zeigt jede Person und jeden Pfad. Der Fortschritt des Teams steht in der rechten Spalte: eine Zeile je Person, mit einem Balken und N von M.
 - Feeds: die Nachrichten-Feeds des Projekts. Fügen Sie die RSS- oder Atom-Adresse einer Website ein, dann klicken Sie auf Abonnieren. Die App liest jeden Feed und hält eine Kopie für eine Stunde.
 
+Experten ist eine Karte mit den Personen der Teamdatei und ihren Themen. Wort hinzufügen schreibt ein Wort und seine Bedeutung in `docs/glossary.md`, und das Glossar liest diese Datei neben den Specs. Ein Schritt kann einen zweiten Chip haben: Lektüre, Kurs oder Zertifizierung.
+
 ### Handbuch
 
 Handbuch zeigt links den Seitenbaum, mit Seite finden, und die geöffnete Seite. Seiten, die hierher verweisen listet die Seiten, die sie zitieren, und Einen Agenten bitten, sie zu aktualisieren schickt eine vorbereitete Anfrage an den Assistenten. Wechseln Sie zu Bearbeiten, um eine Seite zu ändern: Der Umschalter Lesen, Beide, Text zeigt die Seite, wie Sie sie lesen, die Seite neben ihrem Text oder nur den Text. Klicken Sie auf Neue Seite, um eine anzulegen. Die Zeile Anleitung, mit F1, öffnet die Anleitung.
+
+Verlauf listet auf einer Seite auf dieselbe Weise die Commits auf, die sie geändert haben, und die Seite nennt, wer sie zuletzt geändert hat.
 
 ### Dokumente
 
 Dokumente listet die Dokumente des Projekts, mit einem Chip für das Format. Öffnen Sie eines mit Lesen, Beide oder Text, dann klicken Sie auf Bearbeiten, um es zu ändern. Im Text suchen, Umbenennen und Löschen stehen im Menü Mehr. Die Karte Datei hat Im Ordner zeigen und Exportieren. Die Karte Die Planung kann dieses Dokument nutzen hat In Folien umwandeln und In eine Spezifikation umwandeln: Jedes schickt eine vorbereitete Anfrage an den Assistenten. Exportieren Sie das Architektur-Dossier und die funktionale Dokumentation als Word-Dateien und ein Kundenblatt als Excel-Datei. Jeder Export öffnet einen Dialog Speichern unter mit ausgefülltem Namen und dem Ordner Ihrer letzten Speicherung; Abbrechen exportiert nichts. Nach einer Speicherung funktionieren Im Ordner zeigen und Öffnen für die neue Datei.
 
 Eine Word-Datei hat ein Deckblatt, ein Inhaltsverzeichnis (Word füllt die Seitenzahlen, wenn es fragt, ob die Felder aktualisiert werden sollen), die Mermaid-Diagramme des Projekts als Bilder, und Seitenzahlen. Eine LikeC4- oder draw.io-Datei zeigt sich als Bild, wenn ein PNG mit demselben Namen daneben liegt, und sonst als ihr Pfad. Ein Excel-Blatt hat eine gestaltete Kopfzeile, die auf dem Bildschirm bleibt.
+
+Datei hinzufügen kopiert jede gewählte Datei in den Dokumentenordner. Eine Word-Datei bleibt eine Word-Datei.
 
 ### Folien
 
@@ -133,6 +147,8 @@ Folien enthält die Präsentationen des Projekts. Jede Präsentation ist eine HT
 - PDF exportieren: Wählen Sie die Datei im Dialog Speichern unter. Jede Folie wird eine Seite. Das funktioniert nur unter macOS.
 - Eine ältere, als Text geschriebene Präsentation zeigt sich schreibgeschützt. Klicken Sie auf Umwandeln, um einen Agenten zu bitten, sie als HTML-Präsentation neu zu schreiben.
 - Um eine Präsentation zu löschen, öffnen Sie ihr Menü, dann klicken Sie auf Löschen. Die Datei geht in den Papierkorb.
+
+Ein Deck in Markdown hat Bearbeiten, PDF exportieren und Sprechernotizen. Eine Notiz ist ein `Note:`-Block nach einer Folie. PDF exportieren funktioniert nur auf macOS.
 
 ### Dashboards
 
@@ -150,6 +166,8 @@ Kachel für mich bauen bittet einen Agenten, aus Ihren Worten eine Kachel vorzus
 
 Der Agent liest das Projekt nur. Das Dashboard ändert sich nicht, bis Sie auf Annehmen klicken. Wenn die Seite sagt, dass das Budget aufgebraucht ist, fügen Sie Budget hinzu, dann klicken Sie erneut auf Bauen. Ein Dashboard, das Sie nicht ändern können, hat kein Kachel für mich bauen.
 
+Jede Kachel hat ein Diagramm: Zahl, Balken, Linie, Liste, Flussstufen, Ausgaben oder Zustand. Die Art der Daten wählt das erste Diagramm; ändern Sie es im Menü der Kachel. An Heute anheften zeigt auf der Bearbeitungsseite das Dashboard als eine Karte auf Heute. Eine Releaseauswahl neben Bearbeiten behält in den Kacheln des Ticketsystems nur die Tickets des Releases.
+
 ### Berichte
 
 Berichte listet jede Datei, die Shipyard für eine Person erstellen kann, die Shipyard nicht nutzt: einen Kunden, eine Führungskraft, einen Prüfer. Jeder Bericht ist eine Kachel. Format, oben, zeigt Alle Berichte oder nur die Word-Dateien, die Excel-Dateien oder die Bilder. Für Sie geschrieben enthält drei Dokumente, jedes mit Öffnen und Schreiben. Ein Link führt zu Dashboards.
@@ -161,6 +179,8 @@ Berichte listet jede Datei, die Shipyard für eine Person erstellen kann, die Sh
 Ein Bericht zeigt sich nur, wenn Ihre Rolle die Seite sieht, die seinen Export enthält. Der Bericht Netzwerkabläufe zeigt sich, wenn das Projekt eine Ablaufdatei hat. Wenn kein Bericht übrig ist, hat Berichte keinen Chip. Das Menü Exportieren jeder Seite funktioniert weiterhin.
 
 Eine Formularseite hat die Adresse `/library/reports/change-request` oder `/library/reports/work-done` und den Link Berichte zurück. Füllen Sie die Felder aus (ein Änderungsantrag fragt Von Version, Bis Version und Personen, die freigeben: Hinzufügen zeigt das Team mit einem Kontrollkästchen je Person), dann klicken Sie auf Bericht schreiben. Ein leeres Pflichtfeld gibt eine Fehlerzeile und schreibt nichts. Nach dem Schreiben zeigt die Karte Geschrieben jede Datei mit ihrem Pfad, Im Ordner zeigen und Öffnen. Die Karten rechts listen die anderen Berichte mit Formular, die Berichte ohne Formular (Alle Berichte) und die Teile des vollständigen Dossiers.
+
+Die Formatwahl bietet auch PDF (nur macOS) und Markdown; jeder Textbericht kann als Markdown geschrieben werden. Ein geschriebener Bericht zeigt Datum und Person, Seiten, die auf einen Bericht verweisen listet die Seiten, die ihn zitieren, und Komplettes Dossier fragt Titel, Kunde und Datum, bevor es schreibt.
 
 ### Anleitung
 

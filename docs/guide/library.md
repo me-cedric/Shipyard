@@ -6,7 +6,7 @@ Library opens on four doors. Each door names what you look for, and holds one ch
 
 Library has no section switch. On each page of Library, click Library at the top to go back to the doors.
 
-The chips What is tested, Answers and Glossary open the page that holds them. The chip Learn shows how many steps of the path you finished. Under the doors, the cards Pinned and Opened last list pages: Pin keeps a page in Pinned, and Unpin removes it.
+The chips What is tested, Answers and Glossary open the page that holds them. The chip Learn shows how many steps of the path you finished. Under the doors, the cards Pinned and Opened last list pages: Pin keeps a page in Pinned, and Unpin removes it. Opened last also keeps the items that have a ref (a spec, a decision, a diagram, a document): each row shows a chip for its kind, its name and Pin.
 
 ## Read and change an item
 
@@ -54,6 +54,8 @@ Map draws the items of the project in groups, with the links between them. Filte
 
 With the source Code, the map shows the folders of the code. A line between two folders is thicker when more calls go between their files. Select a folder to see its files, then select a file to see its symbols and what calls them or what they call. Show all goes back to the map. Index starts the code index server when it is off, builds the index, and stops the server again. If the program ends with an error, the page names the program, its exit code and its last lines: fix the cause, then click Index again. The symbol card has Explain and Open in the editor, and Specs and decisions that use it opens the inspector. Orphans shows the files that no call reaches or leaves. The switch Knowledge and Code sits at the top, and Code has the address `/library/graph?source=code`.
 
+A file whose spec changed after its last change shows the chip Stale.
+
 ### Architecture
 
 Architecture shows the architecture models of the project as views. The views are drawn from the text of the model. Chips under the title pick the model, and New model adds one. The switch Picture, Both, Text, with Edit, sits in the header; in Both the picture is on the left and the text on the right.
@@ -81,6 +83,8 @@ Screens shows the screens of the product and the design tokens of your project. 
 
 API shows the API contracts. Open a contract to read its routes. Try a route against a server of the contract. The list shows the endpoints of all the contracts. Try it: pick a server, a method and a path, then click Send; the answer shows in the dark box under it.
 
+The card of an endpoint links to the change that cites the contract.
+
 ### Data
 
 Data shows the data models: the tables and the links between them. Find a table filters the list. The picture marks keys and links, and the switch Picture, Both, Text shows the `.dbml` text.
@@ -88,6 +92,8 @@ Data shows the data models: the tables and the links between them. Find a table 
 ### Network flows
 
 Network flows lists the network flows as a table: from where, to where, the port and the protocol. Add, change or remove a row, then save. Each row has From, To and Why. The switch Flows and Bricks and the card Bricks and hosts show the other views. Open the full matrix opens `/library/flows/matrix`: a page with the link Network flows back, filter chips, Find a host and one row for each flow (Allow or Deny), with Edit and Remove in the row menu. Add a flow is in the More menu of the matrix, and Edit as text opens the file.
+
+Check against the code scans the code for the hosts that it calls. A row says Not in the code when no code calls its host, and a card names each flow that is denied while the code uses it, with Show it and Ask for the change.
 
 ## Why it is so
 
@@ -102,6 +108,8 @@ Decisions holds the decision records (ADRs). Each record gives one decision, the
 
 Project rules shows one numbered card for each rule that every change must follow. Edit changes the text, and Add a rule adds one at the end. The card Who can change the rules links to Crew / Rights (Change the rights), and Who follows the rules lists the agent roles.
 
+Earlier versions lists the commits that changed the file. Read shows an old version; Restore writes its text into the file and commits nothing, so you can still undo it.
+
 ## Learn and share
 
 ### Learn
@@ -113,15 +121,21 @@ Learn helps a new person find their way.
 - Learning paths: courses, certifications and readings, with the experts of the team who can help. Pick a person, then tick the steps that this person finished. The team progress table shows each person and each path. Team progress sits in the right column: one row for each person, with a bar and N of M.
 - Feeds: the news feeds of the project. Paste the RSS or Atom address of a site, then click Subscribe. The app reads each feed and keeps a copy for one hour.
 
+Experts is a card with the people of the team file and their topics. Add a word writes a word and its meaning into `docs/glossary.md`, and the glossary reads that file beside the specs. A step can have a second pill: Reading, Course or Certification.
+
 ### Handbook
 
 Handbook shows the page tree on the left, with Find a page, and the open page. Pages that link here lists the pages that cite it, and Ask an agent to update it hands a prepared request to the assistant. Switch to Edit to change a page: the switch Read, Both, Text shows the page as you read it, the page beside its text, or the text alone. Click New page to add one. The Manual row, with F1, opens the manual.
+
+History, on a page, lists the commits that changed it in the same way, and the page says who changed it last.
 
 ### Documents
 
 Documents lists the documents of the project, with a pill for the format. Open one with Read, Both or Text, then click Edit to change it. Search in the text, Rename and Delete are in the More menu. The card File has Show in folder and Export. The card Planner can use this document has Turn into slides and Turn into a spec: each hands a prepared request to the assistant. Export the architecture dossier and the functional documentation as Word files, and a client sheet as an Excel file. Each export opens a Save as dialog with the name filled in and the folder of your last save; Cancel exports nothing. After a save, Show in folder and Open work on the new file.
 
 A Word file has a cover page, a contents list (Word fills the page numbers when it asks to update the fields), the Mermaid diagrams of the project as pictures, and page numbers. A LikeC4 or draw.io file shows as a picture when a PNG with the same name sits next to it, and as its path when not. An Excel sheet has a styled header row that stays on screen.
+
+Add a file copies any file that you choose into the documents folder. A Word file stays a Word file.
 
 ### Slides
 
@@ -133,6 +147,8 @@ Slides holds the presentations of the project. Each deck is one HTML file in `do
 - Export PDF: pick the file in the Save as dialog. Each slide becomes one page. This works on macOS only.
 - An older deck written as text shows read only. Click Convert to ask an agent to rewrite it as an HTML deck.
 - To delete a deck, open the menu of the deck, then click Delete. The file goes to the Trash.
+
+A deck that is written in Markdown has Edit, Export PDF and Speaker notes. A speaker note is a `Note:` block after a slide. Export PDF works on macOS only.
 
 ### Dashboards
 
@@ -150,6 +166,8 @@ Build a tile for me asks an agent to propose a tile from your words. You do not 
 
 The agent only reads the project. The dashboard does not change until you click Accept. If the page says that the budget is spent, add budget, then click Build again. A dashboard that you cannot change has no Build a tile for me.
 
+Each tile has a chart: Number, Bars, Line, List, Flow stages, Spend or Health. The kind of data picks the first chart; change it in the menu of the tile. Pin to Today, on the edit page, shows the dashboard as one card on Today. A picker of releases sits beside Edit and keeps only the tickets of the release in the tiles of the issue tracker.
+
 ### Reports
 
 Reports lists each file that Shipyard can make for a person who does not use Shipyard: a client, a manager, an auditor. Each report is a tile. Format, at the top, shows All the reports, or only the Word files, the Excel files or the pictures. Written for you holds three documents, each with Open and Write it. One link goes to Dashboards.
@@ -161,6 +179,8 @@ Reports lists each file that Shipyard can make for a person who does not use Shi
 A report shows only when your role can see the page that holds its export. The Network flows report shows when the project has a flow file. When no report is left, Reports has no chip. The Export menu of each page still works.
 
 A form page has the address `/library/reports/change-request` or `/library/reports/work-done`, and the link Reports back. Fill in the fields (a change request asks From version, To version and People who approve: Add shows the team with a check box for each person), then click Write the report. An empty required field gives an error line and writes nothing. After the write, the card Written shows each file with its path, Show in folder and Open. Cards on the right list the other reports that ask first, the reports with no form (All reports) and the parts of the complete dossier.
+
+The format switch also offers PDF (macOS only) and Markdown; each text report can be written as Markdown. A written report shows its date and its person, Pages that link to a report lists the pages that cite it, and Complete dossier asks the title, the client and the date before it writes.
 
 ### Manual
 

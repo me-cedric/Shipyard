@@ -4,13 +4,14 @@
     {
       "id": "SCR-001",
       "slug": "home",
-      "title": "Today, Needs you: the count in the title, one card with who asks, the feature, one large line and the answer (with Another answer for a free answer, and Later), a short queue with \"N more\", Working now, one small setup card, one slim time reminder and the link Panels for my role; the Ask bar in the top row of the page",
+      "title": "Today, Needs you: the count in the title, one card with who asks, the feature, one large line and the answer (with Another answer for a free answer, and Later), a short queue with \"N more\", Working now, one small setup card, one slim time reminder and the link Panels for my role; the Ask bar in the top row of the page A dashboard that you pin shows as one card with its tiles under the cards.",
       "artifacts": [
         "spec:shell",
         "spec:home-today",
         "spec:ux-declutter",
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/home.png"
     },
@@ -96,11 +97,12 @@
     {
       "id": "SCR-009",
       "slug": "knowledge",
-      "title": "Library / Learn: the title Learn this project, one path card with a numbered step and Start on the next one, the N of M bar, the glossary, the learning paths, the feeds, and the team progress in the right column",
+      "title": "Library / Learn: the title Learn this project, one path card with a numbered step and Start on the next one, the N of M bar, the glossary, the learning paths, the feeds, and the team progress in the right column The Experts card, Add a word and a second pill on a step are on the page.",
       "artifacts": [
         "spec:knowledge",
         "spec:ux-declutter",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/knowledge.png"
     },
@@ -141,11 +143,12 @@
     {
       "id": "SCR-013",
       "slug": "knowledge-slides",
-      "title": "Library / Slides: the deck cards on the left, the open deck on the right with a pager, a thumbnail strip, Present, Export PDF and Convert; the Library back link",
+      "title": "Library / Slides: the deck cards on the left, the open deck on the right with a pager, a thumbnail strip, Present, Export PDF and Convert; the Library back link A Markdown deck has Edit, Export PDF and Speaker notes.",
       "artifacts": [
         "spec:knowledge",
         "adr:0016",
-        "spec:app-redesign"
+        "spec:app-redesign",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/knowledge-slides.png"
     },
@@ -461,20 +464,22 @@
     {
       "id": "SCR-044",
       "slug": "library",
-      "title": "Library: four doors (What it must do, How it is built, Why it is so, Learn and share) with one chip for each page, the waiting items first, the chip What is tested, the cards Pinned and Opened last with Pin and Unpin",
+      "title": "Library: four doors (What it must do, How it is built, Why it is so, Learn and share) with one chip for each page, the waiting items first, the chip What is tested, the cards Pinned and Opened last with Pin and Unpin Opened last keeps specs, decisions, diagrams and documents with a kind chip and Pin.",
       "artifacts": [
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/library.png"
     },
     {
       "id": "SCR-045",
       "slug": "library-reports",
-      "title": "Library / Reports: one tile for each report with Export, Fill the form or a link to the page that holds it, the Format choice (All, Word, Excel, Picture), Written for you with Open and Write it, and the link Dashboards",
+      "title": "Library / Reports: one tile for each report with Export, Fill the form or a link to the page that holds it, the Format choice (All, Word, Excel, Picture), Written for you with Open and Write it, and the link Dashboards The format switch offers PDF, Word, Excel and Markdown; each written report shows a date and a person.",
       "artifacts": [
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/reports.png"
     },
@@ -595,11 +600,12 @@
     {
       "id": "SCR-071",
       "slug": "library-api",
-      "title": "Library / API: the endpoints of the contract files, one endpoint with its parameters, and Try it with a server, a method, a path, Send and the answer",
+      "title": "Library / API: the endpoints of the contract files, one endpoint with its parameters, and Try it with a server, a method, a path, Send and the answer The endpoint card links to the change that cites the contract.",
       "artifacts": [
         "spec:design",
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/library-api.png"
     },
@@ -705,22 +711,24 @@
     {
       "id": "SCR-081",
       "slug": "library-documents",
-      "title": "Library / Documents: the list with the format pill, Read or Text with Edit, the File card with Show in folder and Export, and Turn into slides and Turn into a spec; Rename, Delete and Search in the text are in More",
+      "title": "Library / Documents: the list with the format pill, Read or Text with Edit, the File card with Show in folder and Export, and Turn into slides and Turn into a spec; Rename, Delete and Search in the text are in More Add a file copies any file into the documents folder and keeps a Word file as Word.",
       "artifacts": [
         "spec:knowledge",
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/library-documents.png"
     },
     {
       "id": "SCR-082",
       "slug": "library-dashboards",
-      "title": "Library / Dashboards: the switch of the dashboards, read-only tiles, Edit, Export the report and Build a dashboard for me; New dashboard is in More; More numbers links to Crew, Flow and Plan",
+      "title": "Library / Dashboards: the switch of the dashboards, read-only tiles, Edit, Export the report and Build a dashboard for me; New dashboard is in More; More numbers links to Crew, Flow and Plan A picker of releases sits beside Edit and filters the tiles of the issue tracker.",
       "artifacts": [
         "spec:knowledge",
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/library-dashboards.png"
     },
@@ -1118,33 +1126,36 @@
     {
       "id": "SCR-160",
       "slug": "library-code-map",
-      "title": "Library / Map of the code (Map with the source Code): the folders as cards, the files and symbols of the chosen folder, the symbol card with Explain and Open in the editor, What it calls, Specs and decisions that use it, and Index again",
+      "title": "Library / Map of the code (Map with the source Code): the folders as cards, the files and symbols of the chosen folder, the symbol card with Explain and Open in the editor, What it calls, Specs and decisions that use it, and Index again A file whose spec changed after its last change shows the chip Stale.",
       "artifacts": [
         "spec:knowledge",
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/library-code-map.png"
     },
     {
       "id": "SCR-161",
       "slug": "library-flow-matrix",
-      "title": "Library / Network flows / Flow matrix: a full page with the back link Network flows, filter chips, Find a host, and one row for each flow with Allow or Deny and a row menu with Edit and Remove",
+      "title": "Library / Network flows / Flow matrix: a full page with the back link Network flows, filter chips, Find a host, and one row for each flow with Allow or Deny and a row menu with Edit and Remove Check against the code scans the code for the hosts that it calls: a row says Not in the code, and a card names a flow that is denied while the code uses it, with Show it and Ask for the change.",
       "artifacts": [
         "spec:design",
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/library-flow-matrix.png"
     },
     {
       "id": "SCR-162",
       "slug": "library-dashboard-edit",
-      "title": "Library / Dashboards / Edit: a full page with the back link Dashboards, Rename and Done, the card Add a tile with one chip for each kind and Build a tile for me, and the tiles with a handle, Settings and Remove",
+      "title": "Library / Dashboards / Edit: a full page with the back link Dashboards, Rename and Done, the card Add a tile with one chip for each kind and Build a tile for me, and the tiles with a handle, Settings and Remove Pin to Today shows the dashboard as one card on Today; each tile has a chart kind.",
       "artifacts": [
         "spec:knowledge",
         "spec:app-redesign",
-        "adr:0023"
+        "adr:0023",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/library-dashboard-edit.png"
     },

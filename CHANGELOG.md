@@ -1,6 +1,10 @@
 # Changelog
 
 ## [0.2.0]
+- Library keeps more: Opened last holds specs, decisions, diagrams and documents with a kind chip and Pin; Project rules has Earlier versions and a Handbook page has History and an author line, each with Read and Restore (a restore writes the old text and commits nothing); Documents has Add a file, which keeps a Word file as Word.
+- A Markdown deck has Edit, Export PDF and Speaker notes (a `Note:` block after a slide); Learn has an Experts card, Add a word (written to `docs/glossary.md`) and a second pill on a step; Reports offer PDF (macOS first), Word, Excel and Markdown, with a Costing card, Pages that link to a report, a date and a person on each written report, and a form that asks the title, the client and the date before it writes the Complete dossier.
+- A dashboard tile has a chart (Number, Bars, Line, List, Flow stages, Spend or Health), Edit has Pin to Today so that Today shows the dashboard as one card, and Dashboards has a picker of releases that filters the tiles of the issue tracker.
+- The flow matrix has Check against the code: a row says Not in the code when the code does not call its host, and a card names a flow that is denied while the code uses it, with Show it and Ask for the change; the map of the code shows Stale on a file whose spec changed after it, and an endpoint of API links to the change that cites it.
 - Each place follows its design picture: the first card starts right under the page title, the section switch keeps its highlight under its option, a card that needs you names the agent or the person with an avatar, the tour is a card with step bars and Skip the tour, the ticket fields are rows with a value button, Learn has an Experts card, and every dashboard tile has one height with its rows in a chart box.
 - Today / News keeps the mark of the news that was new when you opened it, and Mark all as read stays on until you click it.
 - The health of this computer counts in its title every problem that its tiles name, and a tile with something to fix shows the warning, not the check.
