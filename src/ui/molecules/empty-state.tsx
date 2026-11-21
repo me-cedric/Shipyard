@@ -17,11 +17,11 @@ export function EmptyState({
 	icon?: ReactNode;
 }) {
 	return (
-		<div className="flex flex-col items-center gap-3 py-8">
+		<div className="flex flex-col items-center gap-4 py-10">
 			<span aria-hidden="true" className="flex text-n-9">
 				{icon ?? <InboxIcon size={28} />}
 			</span>
-			<p className="text-14 font-medium text-n-11">{title}</p>
+			<p className="text-17 font-semibold text-n-11">{title}</p>
 			<div className="flex flex-wrap justify-center gap-2">
 				{action ? (
 					<Button

@@ -267,24 +267,15 @@ limits: { max_turns: 3, budget_usd: 1, stall_s: 300 }
 }
 
 #[test]
-fn max_turns_pauses_the_run_and_a_resume_gives_more_turns() {
+fn many_turns_never_stop_the_run_even_with_an_old_max_turns_key() {
+    // `ONE` still holds `max_turns: 3`: the key loads and is ignored (`adr:0025`).
     let fx = Fx::new(writes(true), &[ONE]);
     let run = fx.start("SHIP-1", &[]);
-    for _ in 0..3 {
+    for _ in 0..200 {
         fx.event("work", AgentEvent::Turn);
     }
     assert_eq!(fx.state(&run), RunState::Working);
-    fx.event("work", AgentEvent::Turn);
-    assert_eq!(fx.state(&run), RunState::Paused);
-    assert!(fx.agents.running().is_empty());
-    assert_eq!(fx.f.resume(&run, 0.0), Ok(RunState::Working));
-    fx.f.pump();
-    for _ in 0..3 {
-        fx.event("work", AgentEvent::Turn);
-    }
-    assert_eq!(fx.state(&run), RunState::Working);
-    fx.event("work", AgentEvent::Turn);
-    assert_eq!(fx.state(&run), RunState::Paused);
+    assert!(!fx.agents.running().is_empty());
 }
 
 #[test]
@@ -362,6 +353,19 @@ fn global_kill_switch_cancels_all_and_stops_pickup() {
     assert!(fx.f.start(&req).is_err());
     fx.f.set_kill_switch(false);
     assert!(fx.f.start(&req).is_ok());
+}
+
+#[test]
+fn cancel_all_cancels_live_runs_with_the_reason_and_leaves_the_switch() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    let a = fx.start("SHIP-1", &[]);
+    fx.f.cancel_all("stopped by Stop all agents");
+    assert_eq!(fx.state(&a), RunState::Cancelled);
+    assert!(!fx.f.kill_switch());
+    assert!(fx.agents.running().is_empty());
+    fx.f.set_kill_switch(true);
+    fx.f.cancel_all("again");
+    assert!(fx.f.kill_switch());
 }
 
 #[test]

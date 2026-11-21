@@ -6,12 +6,13 @@ import { Button } from "@/ui/atoms/button";
 import { Dialog } from "@/ui/organisms/dialog";
 
 /**
- * The window asked to close while a run or an assistant turn works.
- * The person keeps working, or closes anyway.
+ * The window asked to close while a run or an assistant turn works. The person lets the agents
+ * work (the window stays), or stops them (the window closes, and the work ends with it).
  */
 export function CloseGuard() {
 	const { t } = useI18n();
 	const { closeGuardOpen, setCloseGuardOpen } = useShell();
+	const m = t.workspace.moment;
 	const state = useQuery({
 		queryKey: ["close-guard"],
 		queryFn: () => unwrap(commands.closeGuardState()),
@@ -21,11 +22,22 @@ export function CloseGuard() {
 		<Dialog
 			open={closeGuardOpen}
 			onOpenChange={setCloseGuardOpen}
-			title={t.ui.closeGuard.title}
+			title={
+				state.data?.runs ? format(m.agents, { count: state.data.runs }) : t.ui.closeGuard.title
+			}
 			actions={
-				<Button variant="primary" onClick={() => void unwrap(commands.closeAnyway())}>
-					{t.ui.closeGuard.close}
-				</Button>
+				<>
+					<Button className="min-h-control" onClick={() => void unwrap(commands.closeAnyway())}>
+						{state.data?.runs ? m.stop : t.ui.closeGuard.close}
+					</Button>
+					<Button
+						variant="primary"
+						className="min-h-control"
+						onClick={() => setCloseGuardOpen(false)}
+					>
+						{state.data?.runs ? m.keep : t.ui.closeGuard.keep}
+					</Button>
+				</>
 			}
 		>
 			{state.data && state.data.runs + state.data.turns > 0 ? (

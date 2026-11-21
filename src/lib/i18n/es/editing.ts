@@ -5,7 +5,7 @@ export const editingEs: typeof editingEn = {
 	field: { title: "Título", status: "Estado", people: "Personas" },
 	adrStatus: { deprecated: "Obsoleta", superseded: "Reemplazada" } as Record<string, string>,
 	preview: "Vista previa",
-	sides: { editor: "Editor", preview: "Vista previa" },
+	sides: { picture: "Imagen", read: "Leer", both: "Ambos" },
 	openFigma: "Abrir en Figma",
 	next: {
 		plan: "Escribir el plan",

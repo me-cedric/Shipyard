@@ -1,0 +1,31 @@
+import type { runsRecipesEn } from "../runs-recipes";
+
+export const runsRecipesDe: typeof runsRecipesEn = {
+	pause: "Pausieren",
+	takeOver: "Übernehmen",
+	addDocument: "Dokument hinzufügen",
+	removeDocument: "{name} entfernen",
+	documentKinds: "{name}: Fügen Sie eine Markdown-, PDF- oder Word-Datei hinzu.",
+	tooLarge: "{name} ist größer als {size}.",
+	limit: "Limit",
+	limitAmount: "Limit des Features, in Dollar",
+	limitError: "Das Limit ist ein Betrag über null Dollar.",
+	stageAtOnce: "{name}, gleichzeitig",
+	warnAtPercent: "Warnen bei, in Prozent",
+	editWarn: "Warnen bei ändern",
+	warnAtError: "Warnen bei: eine ganze Zahl von 1 bis 100",
+	save: "Speichern",
+	thenFor: "Danach, {name}",
+	choice: {
+		stop_ask: "Anhalten und fragen",
+		pause: "Pausieren",
+		ask: "Mich fragen",
+		go_on: "Weitermachen",
+	},
+	role: "Wer genehmigt",
+	anyRole: "Alle",
+	kind: { agent: "Agent", person: "Person", check: "Prüfung" },
+	runsBeside: "Läuft neben anderen Schritten",
+	childrenBeside: "Unterschritte laufen nebeneinander",
+	alone: "Für dieses Rezept nicht mehr fragen",
+};

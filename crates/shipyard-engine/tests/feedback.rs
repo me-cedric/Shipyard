@@ -285,7 +285,7 @@ fn feedback_that_comes_while_the_run_is_blocked_waits_for_the_click() {
 }
 
 #[test]
-fn the_loop_stops_at_the_max_turns_of_the_run() {
+fn the_loop_goes_on_past_the_old_max_turns_of_the_run() {
     const QUICK: &str = "
 id: quick
 steps:
@@ -314,17 +314,7 @@ limits: { max_turns: 2, budget_usd: 5, stall_s: 300 }
     assert_eq!(fx.state(&run), RunState::PROpen);
 
     pr_event(&fx, PrEventKind::CiFailed);
-    // A pause with the cause max turns and one stop report (`delivery` REQ-020).
-    assert_eq!(fx.state(&run), RunState::Paused);
-    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
-    assert_eq!(e.cause, Cause::MaxTurns);
-    assert!(fx.logged(&run, "note").iter().any(|n| {
-        n["stop"]
-            .as_str()
-            .is_some_and(|s| s.starts_with("max turns (2)"))
-    }));
-    // A resume gives more turns, and the feedback that waited starts the round.
-    fx.f.resume(&run, 0.0).unwrap();
+    // No turn limit (`adr:0025`): the feedback round starts, the run does not pause.
     fx.f.pump();
     assert_eq!(fx.state(&run), RunState::Working);
 }
@@ -472,6 +462,30 @@ fn a_merge_while_the_run_is_blocked_closes_it() {
     fx.f.apply(&run, RunEvent::Block).unwrap();
     pr_event(&fx, PrEventKind::Merged);
     assert_eq!(fx.state(&run), RunState::Done);
+}
+
+#[test]
+fn a_person_closes_a_run_whose_pull_request_ended_on_the_code_host() {
+    // The code host merged it: the run closes as after the merge event of the sync.
+    let fx = Fx::new(writes(true), &[]);
+    let run = open(&fx);
+    fx.f.close_outside(&run, true).unwrap();
+    fx.f.pump();
+    assert_eq!(fx.state(&run), RunState::Done);
+    assert!(fx.f.close_outside(&run, true).is_err(), "a final run");
+    // The code host closed it with no merge: the run is cancelled with its stop report.
+    let fx = Fx::new(writes(true), &[]);
+    let run = open(&fx);
+    fx.f.apply(&run, RunEvent::Ask).unwrap();
+    fx.f.close_outside(&run, false).unwrap();
+    assert_eq!(fx.state(&run), RunState::Cancelled);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::PullRequestClosed);
+    // A run with no pull request has no event to take.
+    let fx = Fx::new(writes(true), &[]);
+    let run = fx.start("SHIP-1", &["wf:bug"]);
+    assert!(fx.f.close_outside(&run, true).is_err());
+    assert_ne!(fx.state(&run), RunState::Done);
 }
 
 #[test]

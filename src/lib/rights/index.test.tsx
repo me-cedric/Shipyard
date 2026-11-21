@@ -26,7 +26,7 @@ describe("rights", () => {
 	it("gives every right to a solo project", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const view = await unwrap(commands.rightsGet());
-		expect(view.person.rights).toHaveLength(10);
+		expect(view.person.rights).toHaveLength(11);
 	});
 
 	it("gives the level of each area and the rights that the levels allow", async () => {
@@ -36,6 +36,7 @@ describe("rights", () => {
 			rights: [...dev.rights],
 			access: {
 				work: "write",
+				plan: "write",
 				specs: "read",
 				design: "write",
 				knowledge: "write",

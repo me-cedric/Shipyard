@@ -178,6 +178,7 @@ pub fn create(s: &AppState, path: &str, name: &str, key: &str) -> Res<ProjectOut
 
 /// A new project gets the default pickup rules, so the pickup label shows in Settings.
 pub(crate) fn seed_automation(root: &Path) -> Result<(), String> {
+    let _file = super::sync::automation_lock();
     if matches!(read_automation(root), Ok(AutomationRead::Missing)) {
         write_automation(root, &Automation::default()).map_err(err)?;
     }

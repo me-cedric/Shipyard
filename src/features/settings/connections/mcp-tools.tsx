@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type McpServer, type McpTest_Serialize as McpTest, unwrap } from "@/lib/ipc";
@@ -20,12 +21,12 @@ export function McpTestResult({ name, result }: { name: string; result: McpTest 
 	const { t } = useI18n();
 	const m = t.extensions.mcp;
 	return result.ok ? (
-		<p role="status" className="flex items-center gap-1 px-3 pb-2 text-12 text-success-text">
+		<p role="status" className="flex items-center gap-1 px-6 pb-2 text-12 text-success-text">
 			<CheckIcon size={12} />
 			{format(m.passed, { name, count: result.tools.length })}
 		</p>
 	) : (
-		<div role="status" className="flex flex-col gap-1 px-3 pb-2">
+		<div role="status" className="flex flex-col gap-1 px-6 pb-2">
 			<span className="text-12 text-danger-text">{format(m.failed, { name })}</span>
 			<ErrorNotice error={result.error} />
 		</div>
@@ -53,7 +54,8 @@ export function useMcpTest(id: string) {
 }
 
 /** Test all and Add the recommended set, for the head of the MCP group. */
-export function McpGroupTools({ rows }: { rows: McpServer[] }) {
+/** The group actions of the MCP servers, with `extra` at the end of the same row. */
+export function McpGroupTools({ rows, extra }: { rows: McpServer[]; extra?: ReactNode }) {
 	const { t } = useI18n();
 	const m = t.extensions.mcp;
 	const qc = useQueryClient();
@@ -81,10 +83,10 @@ export function McpGroupTools({ rows }: { rows: McpServer[] }) {
 	};
 	const label = (id: string) => rows.find((r) => r.id === id)?.label ?? id;
 	return (
-		<div className="flex flex-col gap-1">
-			<div className="flex flex-wrap items-center gap-2">
+		<div className="flex flex-col items-end gap-1">
+			<div className="flex flex-wrap items-center justify-end gap-2">
 				<Button
-					variant="ghost"
+					variant="secondary"
 					disabled={busy || missing.length === 0}
 					onClick={() =>
 						void job(async () => setAdded(await unwrap(commands.mcpRecommendedEnable(true))))
@@ -94,13 +96,14 @@ export function McpGroupTools({ rows }: { rows: McpServer[] }) {
 					{missing.length ? m.recommended : m.complete}
 				</Button>
 				<Button
-					variant="ghost"
+					variant="secondary"
 					disabled={busy || enabled.length === 0}
 					onClick={() => void job(async () => setResults(await unwrap(commands.mcpTestAll())))}
 				>
 					<PlayIcon size={14} />
 					{m.testAll}
 				</Button>
+				{extra}
 			</div>
 			{added?.length ? (
 				<p role="status" className="px-1 text-12 text-n-11">

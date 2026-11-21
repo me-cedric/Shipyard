@@ -25,7 +25,7 @@ import type {
 } from "./bindings";
 import { type MockCompassSetup, seedCompassSetup } from "./mock-compass-setup";
 
-const VERSION = "1.0.2";
+const VERSION = "1.3.0";
 const OLD = "1.0.1";
 export const PLUGIN_PATH = "/mock/plugins/team-kit.zip";
 /** A plugin folder that passes, and one whose manifest has a fault on line 4. */
@@ -141,7 +141,18 @@ export function seedExtensions(): MockExtensions {
 		].map((c) => (c.id === "agents/openspec-guidance" ? { ...c, id: GUIDANCE } : c)),
 		files: ["AGENTS.md", "README.md"],
 		plugin: null,
-		installed: [],
+		// One plugin in the demo, so that the installed list shows a row with its switch.
+		installed: [
+			{
+				name: "docs-kit",
+				version: "1.2.0",
+				files: [],
+				settings: [],
+				mcp: [],
+				enabled: true,
+				source: null,
+			},
+		],
 		pluginSettings: {},
 		packaged: [],
 		openedLines: [],
@@ -237,6 +248,16 @@ export function catalogDeploy(m: MockExtensions, id: string): WriteReport {
 
 // ---------------------------------------------------------------- plugins
 
+/** The demo has one plugin folder that waits for review: the plugins page opens on it. Same literal as `extensions.tsx`. */
+export function seedWaitingPlugin() {
+	try {
+		if (!localStorage.getItem("shipyard.plugin-waiting"))
+			localStorage.setItem("shipyard.plugin-waiting", PLUGIN_DIR);
+	} catch {
+		// No storage: the demo opens on the plain page.
+	}
+}
+
 const PLUGIN_ITEMS = (m: MockExtensions): PluginItem_Serialize[] => {
 	const change = m.plugin ? "same" : "new";
 	return [
@@ -253,7 +274,8 @@ const PLUGIN_ITEMS = (m: MockExtensions): PluginItem_Serialize[] => {
 			kind: "file",
 			label: "AGENTS.md",
 			exists: m.files.includes("AGENTS.md"),
-			change,
+			// The file is in the project: the plugin changes it.
+			change: m.plugin ? "same" : "changed",
 			preview: null,
 		},
 		{ id: "setting:team", kind: "setting", label: "team", exists: false, change, preview: null },
@@ -305,6 +327,7 @@ export function pluginApply(m: MockExtensions, path: string, accepted: string[])
 				},
 			]
 		: saved;
+	const others = m.installed.filter((p) => p.name !== "team-kit");
 	m.installed = [
 		{
 			name: "team-kit",
@@ -315,6 +338,7 @@ export function pluginApply(m: MockExtensions, path: string, accepted: string[])
 			enabled: true,
 			source: path,
 		},
+		...others,
 	];
 	return {
 		report,

@@ -80,7 +80,7 @@ export function TerminalDrawer({ open, onHide }: { open: boolean; onHide: () => 
 				onReset={panel.reset}
 				className={{ bottom: "top-0", left: "inset-y-0 right-0", right: "inset-y-0 left-0" }[dock]}
 			/>
-			<div className="flex h-9 shrink-0 items-center gap-1 border-b px-2">
+			<div className="flex min-h-control shrink-0 items-center gap-1 border-b px-2">
 				<span className="flex text-n-10">
 					<CommandLineIcon size={14} />
 				</span>
@@ -93,7 +93,7 @@ export function TerminalDrawer({ open, onHide }: { open: boolean; onHide: () => 
 						<span
 							key={n}
 							className={cn(
-								"inline-flex h-7 min-w-0 shrink-0 items-center rounded-md text-ui",
+								"inline-flex min-h-control min-w-0 shrink-0 items-center rounded-md text-ui",
 								n === current ? "bg-surface-3 text-n-12 shadow-1" : "text-n-11 hover:bg-n-3",
 							)}
 						>
@@ -103,21 +103,17 @@ export function TerminalDrawer({ open, onHide }: { open: boolean; onHide: () => 
 								aria-selected={n === current}
 								onClick={() => setCurrent(n)}
 								title={name(n)}
-								className="h-7 max-w-32 truncate px-2.5"
+								className="max-w-32 truncate px-2.5"
 							>
 								{name(n)}
 							</button>
-							<IconButton
-								label={format(d.close, { name: name(n) })}
-								onClick={() => close(n)}
-								className="size-6"
-							>
+							<IconButton label={format(d.close, { name: name(n) })} onClick={() => close(n)}>
 								<XMarkIcon size={12} />
 							</IconButton>
 						</span>
 					))}
 				</div>
-				<IconButton label={d.add} onClick={() => add()} className="size-7">
+				<IconButton label={d.add} onClick={() => add()}>
 					<PlusIcon size={14} />
 				</IconButton>
 				<MenuButton

@@ -1,69 +1,112 @@
-import { useState } from "react";
-import { ApprovalRow, QuestionRow } from "@/features/home/inbox/inbox";
+import { useRef, useState } from "react";
+import { AgentAsk } from "@/features/flow/feature/agent-ask";
+import { DecisionCard } from "@/features/flow/feature/decision-card";
+import { StopCard, TicketReply } from "@/features/flow/feature/stop-card";
+import { stopAction } from "@/features/flow/stop-action";
+import { QuestionRow } from "@/features/home/inbox/inbox";
 import { useGuard } from "@/features/work/guard";
 import { useRunActions } from "@/lib/factory";
-import type { useRunWaits } from "@/lib/home";
-import { useI18n } from "@/lib/i18n";
+import { useInboxActions, type useRunWaits } from "@/lib/home";
+import { format, useI18n } from "@/lib/i18n";
 import type { RunLogEvent_Serialize, RunView } from "@/lib/ipc";
-import { openUrl } from "@/lib/menus";
 import { RightButton } from "@/lib/rights";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
-import { SpendMeter } from "@/ui/molecules/spend-meter";
+import { LinkButton } from "@/ui/atoms/link-button";
 import { PlanBlock, planOf } from "./plan";
-import { escalationOf, lastBlock, stopReason } from "./run-live";
-
-const STOPPED = ["Failed", "Paused", "Blocked"];
+import { agentOf, focusRunTitle } from "./run-summary";
 
 /**
- * What waits for the person, directly under the summary (REQ-031): the questions, the approvals,
- * the plan with its note, and the reason that a run stopped with the form that restarts it. It shows
- * nothing when nothing waits. The summary moves the focus here with its one action.
+ * What waits for the person (REQ-031), one decision at a time: the card of a stopped run (its fact
+ * and its one main action, with the question of Reply), else the plan with its note, else the
+ * approvals of the run as one decision. While another decision shows, the approvals fold to one
+ * button. It shows nothing when nothing waits. `ticket` is false on the ticket page: its Comments
+ * card already replies on the ticket.
  */
 export function RunNeeds({
 	run,
 	events,
 	waits,
+	ticket = true,
+	onFiles,
 }: {
 	run: RunView;
 	events: RunLogEvent_Serialize[];
 	waits: ReturnType<typeof useRunWaits>;
+	ticket?: boolean;
+	/** The plan in review: a link to the files that it changes. */
+	onFiles?: () => void;
 }) {
 	const { t } = useI18n();
-	const f = t.factory;
+	const x = t.flow.look.page;
 	const act = useRunActions();
+	const inbox = useInboxActions();
 	const { error, run: guard } = useGuard();
 	const [note, setNote] = useState("");
-	const [add, setAdd] = useState("");
-	const [message, setMessage] = useState("");
+	const changeRow = useRef<HTMLDivElement>(null);
+	const [pick, setPick] = useState<boolean | null>(null);
 	const id = run.id;
 	const plan = planOf(events);
-	const esc = escalationOf(events);
-	const budget = run.budgetUsd ?? null;
-	const stopped = STOPPED.includes(run.state);
+	const action = stopAction(run);
 	const planning = run.state === "PlanReview";
-	if (!(waits.questions.length || waits.approvals.length || stopped || planning)) return null;
-	const reason = stopReason(f.why, run, events);
-	const field = "scroll-mt-32";
+	if (!(waits.questions.length || waits.approvals.length || action || planning)) return null;
+	const agent = agentOf(run);
+	const folded = pick ?? (action !== null || planning || waits.questions.length > 0);
+	const [first] = waits.questions;
+	// The card of Reply holds the first question as one plain Answer field; the others are rows below.
+	const asked = action === "reply" ? first : undefined;
+	const questions = waits.questions
+		.filter((q) => q !== asked)
+		.map((q) => (
+			<div key={`${q.run}:${q.question.id}`} id={`question-${q.question.id}`}>
+				<QuestionRow item={q} noRun />
+			</div>
+		));
 	return (
-		<section aria-label={t.home.needsYou} className="flex flex-col gap-3">
-			{waits.questions.map((x) => (
-				<div key={`${x.run}:${x.question.id}`} id={`question-${x.question.id}`}>
-					<QuestionRow item={x} noRun />
+		<section aria-label={t.home.needsYou} className="flex flex-col gap-4">
+			{action === "reply" ? (
+				<div id={asked ? `question-${asked.question.id}` : undefined}>
+					<StopCard
+						run={run}
+						events={events}
+						action={action}
+						agent={agent}
+						question={asked?.question.question}
+						answer={
+							asked && {
+								options: asked.question.options,
+								freeText: asked.question.free_text,
+								recommended: asked.question.recommended,
+								unclear: asked.question.unclear,
+								edited: asked.question.edited,
+								// The card keeps the typed text until the answer went out (the guard resolves true).
+								onAnswer: (choice) =>
+									guard(() => inbox.answer(asked.run, asked.question.id, choice)),
+							}
+						}
+					/>
 				</div>
-			))}
-			{waits.approvals.map((a) => (
-				<div key={a.id} id={`approval-${a.id}`}>
-					<ApprovalRow approval={a} noRun />
-				</div>
-			))}
+			) : null}
+			{questions}
+			{action && action !== "reply" ? (
+				<StopCard run={run} events={events} action={action} agent={agent} />
+			) : null}
 			{planning ? (
-				<>
-					{plan ? <PlanBlock plan={plan} /> : null}
-					<div className="flex flex-wrap items-center gap-2">
+				<AgentAsk soft agent={agent} who={format(x.plan.has, { agent })} title={x.plan.ask}>
+					{plan ? (
+						<PlanBlock
+							plan={plan}
+							onEdit={(n) => {
+								setNote(`${n}: `);
+								changeRow.current?.querySelector("input")?.focus();
+							}}
+						/>
+					) : null}
+					{onFiles ? <LinkButton onClick={onFiles}>{x.plan.files}</LinkButton> : null}
+					<div ref={changeRow} className="flex flex-wrap items-center gap-2.5">
 						<Input
-							label={f.note}
-							className={`max-w-40 ${field}`}
+							label={x.plan.change}
+							className="flex-[1_1_200px] scroll-mt-32"
 							value={note}
 							onChange={(e) => setNote(e.target.value)}
 						/>
@@ -71,108 +114,41 @@ export function RunNeeds({
 							right="runs.approve"
 							onClick={() => void guard(() => act.planReject(id, note))}
 						>
-							{f.planReject}
+							{x.plan.back}
+						</RightButton>
+						<RightButton
+							right="runs.approve"
+							variant="primary"
+							onClick={() =>
+								void guard(() => act.planApprove(id)).then((ok) => ok && focusRunTitle())
+							}
+						>
+							{x.plan.approve}
 						</RightButton>
 					</div>
-				</>
+				</AgentAsk>
 			) : null}
-			{stopped ? (
-				<div
-					role="status"
-					className="flex flex-col gap-2 rounded-lg border bg-surface-1 p-3 text-ui text-n-12"
-				>
-					<span>{reason}</span>
-					{esc ? (
-						<div className="flex flex-col gap-1.5 text-n-11">
-							{esc.lines.length > 0 ? (
-								<details className="text-12">
-									<summary className="w-fit cursor-pointer select-none rounded-sm focus-visible:shadow-glow">
-										{f.why.lastLines}
-									</summary>
-									<pre className="overflow-x-auto font-mono text-11 whitespace-pre-wrap">
-										{esc.lines.join("\n")}
-									</pre>
-								</details>
-							) : null}
-							<span>
-								{f.why.tried}: {esc.tried}
-							</span>
-						</div>
-					) : null}
-					{run.state === "Blocked" ? (
-						<form
-							className="flex flex-wrap items-center gap-2"
-							onSubmit={(e) => {
-								e.preventDefault();
-								void guard(async () => {
-									await act.unblock(id, message);
-									setMessage("");
-								});
-							}}
-						>
-							<Input
-								label={f.unblockNote}
-								className={`w-64 ${field}`}
-								value={message}
-								onChange={(e) => setMessage(e.target.value)}
-							/>
-							<RightButton right="runs.start" type="submit" variant="primary">
-								{f.unblock}
-							</RightButton>
-							{esc?.cause === "nothing_to_deliver" ||
-							lastBlock(events)?.startsWith("nothing to deliver") ? (
-								<RightButton right="runs.start" onClick={() => void guard(() => act.closeDone(id))}>
-									{f.closeDone}
-								</RightButton>
-							) : null}
-							{/* A reply on the ticket by a team member also unblocks the run. */}
-							{run.url ? <Button onClick={() => openUrl(run.url)}>{f.replyOnTicket}</Button> : null}
-						</form>
-					) : null}
-					{run.state === "Paused" ? (
-						<form
-							className="flex flex-wrap items-center gap-2"
-							onSubmit={(e) => {
-								e.preventDefault();
-								void guard(async () => {
-									await act.resume(id, add.trim() === "" ? null : Number(add), message);
-									setMessage("");
-								});
-							}}
-						>
-							{budget === null ? null : (
-								<span className="flex w-48 items-center gap-2 text-12 text-n-12">
-									<span className="shrink-0">
-										${(run.costUsd ?? 0).toFixed(2)} / ${budget.toFixed(2)}
-									</span>
-									<SpendMeter usd={run.costUsd ?? 0} budget={budget} label={f.cost} />
-								</span>
-							)}
-							<Input
-								label={f.addBudget}
-								inputMode="decimal"
-								className={`w-40 ${field}`}
-								value={add}
-								onChange={(e) => setAdd(e.target.value)}
-							/>
-							<Input
-								label={f.unblockNote}
-								className={`w-64 ${field}`}
-								value={message}
-								onChange={(e) => setMessage(e.target.value)}
-							/>
-							<RightButton right="runs.start" type="submit" variant="primary">
-								{f.resume}
-							</RightButton>
-						</form>
-					) : null}
-				</div>
-			) : null}
+			{waits.approvals.length === 0 ? null : folded ? (
+				// One decision at a time: while a question waits, the approvals wait behind it.
+				waits.questions.length > 0 ? null : (
+					<Button className="w-fit" onClick={() => setPick(false)}>
+						{format(t.home.effectsWait, { count: waits.approvals.length })}
+					</Button>
+				)
+			) : (
+				<DecisionCard
+					approvals={waits.approvals}
+					agent={agent}
+					summary={plan?.summary.trim().split("\n")[0]}
+					onNotYet={() => setPick(true)}
+				/>
+			)}
 			{error ? (
 				<p role="alert" className="text-ui text-danger-text">
 					{error}
 				</p>
 			) : null}
+			{action && ticket ? <TicketReply run={run} /> : null}
 		</section>
 	);
 }

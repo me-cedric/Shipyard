@@ -45,7 +45,7 @@ export function ProjectImport() {
 			title={k.title}
 			icon={<ArrowDownTrayIcon size={14} />}
 			toolbar={
-				<Button variant="ghost" onClick={() => void run()}>
+				<Button variant="ghost" className="min-h-control" onClick={() => void run()}>
 					<ArrowDownTrayIcon size={14} />
 					{k.import}
 				</Button>

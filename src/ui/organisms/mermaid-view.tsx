@@ -76,7 +76,7 @@ export function MermaidView({
 	return plain ? (
 		picture
 	) : (
-		<ZoomFrame label={label} className="h-full min-h-40 rounded-md border border-n-7 bg-n-1">
+		<ZoomFrame label={label} className="h-full min-h-40" viewClassName="border border-n-7 bg-n-1">
 			{picture}
 		</ZoomFrame>
 	);

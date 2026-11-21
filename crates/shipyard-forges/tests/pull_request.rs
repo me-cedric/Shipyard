@@ -703,7 +703,7 @@ fn a_bad_slug_or_a_refusal_creates_nothing() {
     let gh = build(ForgeKind::GitHub, "https://github.com", fake.clone());
     assert!(gh.create_repo("web").is_err(), "no owner");
     assert!(gh.create_repo("acme/../x").is_err());
-    assert!(gh.create_repo("acme/new").is_err(), "the forge refuses");
+    assert!(gh.create_repo("acme/new").is_err(), "the code host refuses");
     assert!(
         fake.requests()
             .iter()

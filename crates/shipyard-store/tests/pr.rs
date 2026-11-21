@@ -20,6 +20,7 @@ fn pull(number: u64, state: PrState, ci: Ci, changes: bool) -> PullSnapshot {
         ci,
         changes_requested: changes,
         updated: "2026-10-29T10:00:00Z".into(),
+        author: String::new(),
     }
 }
 
@@ -132,4 +133,21 @@ fn a_forge_name_that_is_no_ref_is_refused() {
     let log = RunLog::open_memory().unwrap();
     assert!(record(&log, "run1", None, "Code Forge", 7, 1).is_err());
     assert!(log.run("run1").unwrap().is_empty());
+}
+
+#[test]
+fn a_row_carries_the_author_and_an_old_mirror_row_has_none() {
+    let mut grace = pull(7, PrState::Open, Ci::Passing, false);
+    grace.author = "Grace".into();
+    let m = mirror("code@acme/app", &[grace]);
+    assert_eq!(
+        rows(&m, "code", "code@acme/app").unwrap()[0].author,
+        "Grace"
+    );
+    // A snapshot stored before the field existed reads back with an empty author.
+    let old: PullSnapshot = serde_json::from_str(
+        r#"{"number":3,"title":"t","state":"Open","draft":false,"head_sha":"a","url":"u","ci":"Pending","changes_requested":false,"updated":"x"}"#,
+    )
+    .unwrap();
+    assert_eq!(old.author, "");
 }

@@ -83,7 +83,7 @@ impl PullApi for GitLab {
             .map_err(|e| e.not_found(&group))?;
         let Some(namespace_id) = shipyard_http::num(&ns, "/id") else {
             return Err(ForgeError::Rejected(format!(
-                "the forge returned no namespace id for {group}"
+                "the code host returned no namespace id for {group}"
             )));
         };
         let v = self.write(
@@ -129,7 +129,7 @@ impl PullApi for GitLab {
         let made = pull(&v);
         if made.number == 0 {
             return Err(ForgeError::Rejected(
-                "the forge accepted the request but returned no merge request".into(),
+                "the code host accepted the request but returned no merge request".into(),
             ));
         }
         Ok(made)

@@ -72,7 +72,8 @@ describe("mock extensions: manage", () => {
 	});
 
 	it("lists, switches and removes a plugin", async () => {
-		expect(await unwrap(commands.pluginList())).toEqual([]);
+		// The demo holds one plugin before the apply.
+		expect((await unwrap(commands.pluginList())).map((x) => x.name)).toEqual(["docs-kit"]);
 		await unwrap(commands.pluginApply(PLUGIN_PATH, ["file:docs/team.md", "mcp:docs"]));
 		const [p] = await unwrap(commands.pluginList());
 		expect(p).toMatchObject({ name: "team-kit", enabled: true, mcp: ["docs"] });
@@ -80,7 +81,7 @@ describe("mock extensions: manage", () => {
 		expect((await unwrap(commands.pluginList()))[0]?.enabled).toBe(false);
 		const out = await unwrap(commands.pluginRemove("team-kit", true));
 		expect(out.removed).toEqual(["docs/team.md"]);
-		expect(await unwrap(commands.pluginList())).toEqual([]);
+		expect((await unwrap(commands.pluginList())).map((x) => x.name)).toEqual(["docs-kit"]);
 		await expect(unwrap(commands.pluginRemove("team-kit", true))).rejects.toMatchObject({
 			details: expect.stringContaining("unknown"),
 		});

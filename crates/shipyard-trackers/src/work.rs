@@ -94,7 +94,7 @@ pub trait TrackerWrite: Tracker {
     /// `priority` is one of [`PRIORITIES`]. A tracker with no priority field refuses (Q-123).
     fn set_priority(&self, _key: &str, _priority: &str) -> Result<(), TrackerError> {
         Err(TrackerError::Refused(
-            "this tracker has no priority field".into(),
+            "this issue tracker has no priority field".into(),
         ))
     }
 
@@ -102,13 +102,37 @@ pub trait TrackerWrite: Tracker {
     /// A tracker with no type field refuses (Q-125).
     fn set_issue_type(&self, _key: &str, _name: &str) -> Result<(), TrackerError> {
         Err(TrackerError::Refused(
-            "this tracker has no issue type to change".into(),
+            "this issue tracker has no issue type to change".into(),
         ))
     }
 
     /// The due day as `YYYY-MM-DD`. `None` clears it. A tracker with no due date refuses (Q-125).
     fn set_due_date(&self, _key: &str, _day: Option<&str>) -> Result<(), TrackerError> {
-        Err(TrackerError::Refused("this tracker has no due date".into()))
+        Err(TrackerError::Refused(
+            "this issue tracker has no due date".into(),
+        ))
+    }
+
+    /// The types of ticket that `scope` holds, by name: the issue types of a Jira project, of a
+    /// GitHub organization, the work item types of an Azure DevOps project, the three types of
+    /// GitLab. A tracker with no type gives none (REQ-005 of `code-host-tickets`).
+    fn issue_types(&self, _scope: &str) -> Result<Vec<String>, TrackerError> {
+        Ok(Vec::new())
+    }
+
+    /// The releases of `scope` (as [`Tracker::scopes`] names it): the fix versions of a Jira
+    /// project, the milestones of a GitHub or GitLab repository, the iterations of an Azure
+    /// DevOps project, the projects of Linear (REQ-004 of `code-host-tickets`). By name.
+    fn releases(&self, _scope: &str) -> Result<Vec<String>, TrackerError> {
+        Ok(Vec::new())
+    }
+
+    /// Sets the one release of a ticket. `None` clears it. A name that the issue tracker does not
+    /// hold is refused, and nothing is sent.
+    fn set_release(&self, _key: &str, _release: Option<&str>) -> Result<(), TrackerError> {
+        Err(TrackerError::Refused(
+            "this issue tracker has no release".into(),
+        ))
     }
 
     /// Needs the `transitions` flag. A refusal is [`TrackerError::Refused`] with the reason (REQ-002).
@@ -135,14 +159,14 @@ pub trait TrackerWrite: Tracker {
         _log: &NewWorklog,
     ) -> Result<Worklog, TrackerError> {
         Err(TrackerError::Refused(
-            "this tracker cannot change a worklog".into(),
+            "this issue tracker cannot change a worklog".into(),
         ))
     }
 
     /// Delete a worklog that Shipyard sent. A tracker that cannot refuses.
     fn delete_worklog(&self, _click: &Click, _key: &str, _id: &str) -> Result<(), TrackerError> {
         Err(TrackerError::Refused(
-            "this tracker cannot delete a worklog".into(),
+            "this issue tracker cannot delete a worklog".into(),
         ))
     }
 
@@ -260,7 +284,7 @@ pub fn send_worklog(
     w.capabilities().require(Capability::TimeTracking)?;
     if entry.worklog.is_some() {
         return Err(TrackerError::Refused(
-            "the entry has a receipt: it is in the tracker".into(),
+            "the entry has a receipt: it is in the issue tracker".into(),
         ));
     }
     let key = entry
@@ -644,6 +668,41 @@ impl TrackerWrite for Jira {
         Ok(())
     }
 
+    fn issue_types(&self, scope: &str) -> Result<Vec<String>, TrackerError> {
+        let v = self.read(&format!("{API}/project/{}", encode(scope)), &[])?;
+        Ok(items(&v, "/issueTypes")
+            .iter()
+            .map(|t| text(t, "/name"))
+            .filter(|n| !n.is_empty())
+            .collect())
+    }
+
+    fn releases(&self, scope: &str) -> Result<Vec<String>, TrackerError> {
+        let v = self.read(&format!("{API}/project/{}/versions", encode(scope)), &[])?;
+        Ok(items(&v, "")
+            .iter()
+            .map(|r| text(r, "/name"))
+            .filter(|n| !n.is_empty())
+            .collect())
+    }
+
+    fn set_release(&self, key: &str, release: Option<&str>) -> Result<(), TrackerError> {
+        // One release: the list holds that one version. A version that does not exist is
+        // refused by Jira (400): the text names the reason.
+        let versions = match release {
+            Some(r) => json!([{ "name": r }]),
+            None => json!([]),
+        };
+        self.send(
+            Method::Put,
+            &format!("{API}/issue/{}", encode(key)),
+            &[],
+            json!({ "fields": { "fixVersions": versions } }),
+        )
+        .map(|_| ())
+        .map_err(refused)
+    }
+
     fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError> {
         self.capabilities().require(Capability::Transitions)?;
         let path = format!("{API}/issue/{}/transitions", encode(key));
@@ -893,6 +952,25 @@ impl GitHub {
         Ok(())
     }
 
+    /// The open milestones of `owner/repo`: the title and the number.
+    fn milestones(&self, slug: &str) -> Result<Vec<(String, u64)>, TrackerError> {
+        let req = Request::get(
+            build_url(
+                &format!("{}/repos/{slug}/milestones", self.api),
+                "",
+                &[("state", "open"), ("per_page", "100")],
+            ),
+            Auth::Bearer(self.token.clone()),
+        )
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28");
+        let v = self.http.json(&req)?;
+        Ok(items(&v, "")
+            .iter()
+            .filter_map(|m| Some((text(m, "/title"), num(m, "/number")?)))
+            .collect())
+    }
+
     fn patch(&self, key: &str, body: Value) -> Result<(), TrackerError> {
         let (slug, number) = github::split_key(key)?;
         self.send(
@@ -905,6 +983,49 @@ impl GitHub {
 }
 
 impl TrackerWrite for GitHub {
+    fn issue_types(&self, scope: &str) -> Result<Vec<String>, TrackerError> {
+        let owner = scope.split('/').next().unwrap_or_default();
+        let req = Request::get(
+            format!("{}/orgs/{}/issue-types", self.api, encode(owner)),
+            Auth::Bearer(self.token.clone()),
+        )
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28");
+        // A repository of a person has no issue types: the answer is 404, and the list is empty.
+        match self.http.json(&req) {
+            Ok(v) => Ok(items(&v, "")
+                .iter()
+                .map(|t| text(t, "/name"))
+                .filter(|n| !n.is_empty())
+                .collect()),
+            Err(shipyard_http::Error::Status { status: 404, .. }) => Ok(Vec::new()),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    fn releases(&self, scope: &str) -> Result<Vec<String>, TrackerError> {
+        Ok(self
+            .milestones(scope)?
+            .into_iter()
+            .map(|(title, _)| title)
+            .collect())
+    }
+
+    fn set_release(&self, key: &str, release: Option<&str>) -> Result<(), TrackerError> {
+        let (slug, _) = github::split_key(key)?;
+        let number = match release {
+            Some(r) => json!(
+                self.milestones(slug)?
+                    .into_iter()
+                    .find(|(title, _)| title == r)
+                    .ok_or_else(|| TrackerError::Refused(format!("no milestone named {r}")))?
+                    .1
+            ),
+            None => Value::Null,
+        };
+        self.patch(key, json!({ "milestone": number }))
+    }
+
     fn assign(&self, key: &str, account: &str) -> Result<(), TrackerError> {
         self.capabilities().require(Capability::Assignee)?;
         self.patch(key, json!({ "assignees": [account] }))

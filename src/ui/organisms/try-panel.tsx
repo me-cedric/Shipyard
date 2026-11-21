@@ -67,30 +67,21 @@ export function TryPanel({
 				void send();
 			}}
 		>
-			<div className="flex items-end gap-2">
+			<div className="flex flex-wrap items-center gap-2.5">
 				<Select
-					caption
 					label={labels.server}
 					items={servers.map((s) => ({ value: s, label: s }))}
 					value={server}
 					onValueChange={setServer}
-					className="max-w-64"
+					className="min-w-0 flex-[2_1_220px]"
 				/>
-				<Select
-					caption
-					label={labels.method}
-					items={METHODS}
-					value={method}
-					onValueChange={setMethod}
-				/>
-				<div className="min-w-0 flex-1">
-					<Input
-						caption
-						label={labels.path}
-						value={path}
-						onChange={(e) => setPath(e.target.value)}
-					/>
+				<Select label={labels.method} items={METHODS} value={method} onValueChange={setMethod} />
+				<div className="min-w-0 flex-[1_1_140px]">
+					<Input label={labels.path} value={path} onChange={(e) => setPath(e.target.value)} />
 				</div>
+				<Button type="submit" variant="primary" disabled={busy || !server}>
+					{labels.send}
+				</Button>
 			</div>
 			{params.length ? (
 				<div className="grid grid-cols-2 gap-2">
@@ -115,29 +106,26 @@ export function TryPanel({
 					className="font-mono"
 				/>
 			) : null}
-			<div>
-				<Button type="submit" variant="primary" disabled={busy || !server}>
-					{labels.send}
-				</Button>
-			</div>
 			{result?.failure ? (
 				<p role="alert" className="text-ui text-danger-text">
 					{labels.failure}: {result.failure}
 				</p>
 			) : null}
-			{result?.response ? (
-				<output className="flex flex-col gap-1">
-					<span className="flex items-center gap-2 text-12 text-n-11">
-						{labels.status}
-						<Badge variant={result.response.status < 400 ? "success" : "danger"}>
-							{result.response.status}
-						</Badge>
-					</span>
-					<pre className="max-h-64 overflow-auto rounded-md border border-n-7 bg-n-1 p-2 font-mono text-12">
-						{result.response.body}
-					</pre>
-				</output>
-			) : null}
+			<output className="flex min-h-30 flex-col gap-1 rounded-[14px] bg-n-12 p-4 text-n-5">
+				{result?.response ? (
+					<>
+						<span className="flex items-center gap-2 text-12">
+							{labels.status}
+							<Badge variant={result.response.status < 400 ? "success" : "danger"}>
+								{result.response.status}
+							</Badge>
+						</span>
+						<pre className="max-h-64 overflow-auto font-mono text-12 whitespace-pre-wrap">
+							{result.response.body}
+						</pre>
+					</>
+				) : null}
+			</output>
 		</form>
 	);
 }

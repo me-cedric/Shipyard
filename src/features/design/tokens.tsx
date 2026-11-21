@@ -5,7 +5,15 @@ import { commands, unwrap } from "@/lib/ipc";
 import { RightButton } from "@/lib/rights";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 
-const COLOR = /^(#|rgb|hsl|hwb|lab|lch|oklab|oklch|color\()/i;
+export const COLOR = /^(#|rgb|hsl|hwb|lab|lch|oklab|oklch|color\()/i;
+
+/** The token files of the open project. */
+export function useTokens() {
+	return useQuery({
+		queryKey: [...designKeys.list, "tokens"],
+		queryFn: () => unwrap(commands.designTokens()),
+	});
+}
 
 /** A token name can come twice in one file (two modes): the key counts each name. */
 function uniqueKeys<T extends { name: string }>(rows: T[]): [string, T][] {
@@ -25,10 +33,7 @@ function uniqueKeys<T extends { name: string }>(rows: T[]): [string, T][] {
 export function TokenView({ onAdd }: { onAdd: () => void }) {
 	const { t } = useI18n();
 	const s = t.design.screens;
-	const q = useQuery({
-		queryKey: [...designKeys.list, "tokens"],
-		queryFn: () => unwrap(commands.designTokens()),
-	});
+	const q = useTokens();
 	const files = q.data ?? [];
 	return (
 		// The region scrolls, so the keyboard needs to reach it (axe `scrollable-region-focusable`).

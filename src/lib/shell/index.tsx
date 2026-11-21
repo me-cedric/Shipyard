@@ -16,7 +16,10 @@ type ShellState = {
 	setInspectorOpen: (open: boolean) => void;
 	/** The ref that the inspector shows, or null. */
 	selectedRef: string | null;
-	openRef: (ref: string) => void;
+	/** `side`: a row of a page selects it, so the inspector stays a side panel and not a card over the page. */
+	openRef: (ref: string, side?: boolean) => void;
+	/** The selection came from a row of a page. */
+	sideSelected: boolean;
 	/** `openRef` for a ref whose page `path` is not open yet: the selection survives the arrival there. */
 	openRefAt: (ref: string, path: string) => void;
 	/** The view changed to `path`: the selection of the previous view goes, except one that came with the move. */
@@ -82,6 +85,7 @@ export function ShellProvider({
 }) {
 	const [inspectorOpen, setInspectorOpen] = useState(false);
 	const [selectedRef, setSelectedRef] = useState<string | null>(null);
+	const [sideSelected, setSideSelected] = useState(false);
 	const [detail, setDetail] = useState<{ title: string; node: ReactNode } | null>(null);
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [assistantOpen, setAssistantOpen] = useState(false);
@@ -104,10 +108,11 @@ export function ShellProvider({
 	const router = useRouter({ warn: false });
 	// A run and a pull request have their own page: the ref opens it, not the inspector.
 	const openRef = useCallback(
-		(ref: string) => {
+		(ref: string, side = false) => {
 			const run = runOfRef(ref) ?? pullOfRef(ref);
 			if (router && run) return void router.navigate(run);
 			setSelectedRef(ref);
+			setSideSelected(side === true);
 			setDetail(null);
 			setInspectorOpen(true);
 		},
@@ -123,7 +128,11 @@ export function ShellProvider({
 	);
 	const viewChanged = useCallback((path: string) => {
 		if (landing.current === path) landing.current = null;
-		else setSelectedRef(null);
+		else {
+			setSelectedRef(null);
+			setDetail(null);
+			setInspectorOpen(false);
+		}
 	}, []);
 	const explain = useCallback((ref: string) => {
 		setSelectedRef(ref);
@@ -165,6 +174,7 @@ export function ShellProvider({
 			inspectorOpen,
 			setInspectorOpen,
 			selectedRef,
+			sideSelected,
 			openRef,
 			openRefAt,
 			viewChanged,
@@ -202,6 +212,7 @@ export function ShellProvider({
 		[
 			inspectorOpen,
 			selectedRef,
+			sideSelected,
 			openRef,
 			openRefAt,
 			viewChanged,
@@ -238,6 +249,9 @@ export function useShell() {
 	if (!ctx) throw new Error("useShell needs ShellProvider");
 	return ctx;
 }
+
+/** The shell, or null outside the app shell (a card in a test or a gallery). */
+export const useShellIfAny = () => useContext(Ctx);
 
 export { askForm, useFormIntent, useFormIntentFor } from "./intent";
 export { pullHref, pullNumberOf, pullOfRef } from "./pull-href";

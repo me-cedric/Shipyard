@@ -411,7 +411,7 @@ fn issue_tracker_on_github_issues() {
     let report = l.step("sync: one tick", sync::run_tick(&l.s));
     if let Some(r) = &report {
         l.expect(
-            "sync: the tracker polled, nothing failed",
+            "sync: the issue tracker polled, nothing failed",
             !r.polled.is_empty() && r.failed.is_empty(),
             format!("{r:?}"),
         );
@@ -480,7 +480,7 @@ fn issue_tracker_on_github_issues() {
         work::mark_for_run(&l.s, &key, "feature", true),
     );
     l.step(
-        "assign: member chloe to the tracker account",
+        "assign: member chloe to the issue tracker account",
         work::assign(&l.s, &key, "chloe", true),
     );
     let body = format!("Live test comment {}", stamp());
@@ -608,6 +608,7 @@ fn code_host_pull_request_on_github() {
                 base: None,
                 draft: false,
                 labels: vec!["agent".into()],
+                reviewers: vec![],
             },
             true,
         ),
@@ -664,7 +665,7 @@ fn code_host_pull_request_on_github() {
         );
     }
     l.step(
-        "pull request: the labels of the forge",
+        "pull request: the labels of the code host",
         code::pull_labels(&l.s),
     );
 
@@ -752,6 +753,7 @@ fn spec_archive_in_a_pull_request() {
                 base: None,
                 draft: false,
                 labels: vec![],
+                reviewers: vec![],
             },
             true,
         ),
@@ -880,7 +882,7 @@ fn publish_a_local_project() {
                 format!("{:?}", o.slug),
             );
             l.expect(
-                "publish: origin matches the forge connection",
+                "publish: origin matches the code host connection",
                 o.connection.as_deref() == Some(l.forge.as_str()),
                 format!("{:?}", o.connection),
             );
@@ -895,7 +897,7 @@ fn publish_a_local_project() {
             shipyard_store::project::read_project_file(&local)
         {
             l.expect(
-                "publish: the project names the forge connection",
+                "publish: the project names the code host connection",
                 f.connections.and_then(|c| c.forge).as_deref() == Some(l.forge.as_str()),
                 "link_forge did not write",
             );

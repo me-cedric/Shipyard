@@ -1,5 +1,28 @@
 /** The strings of the Settings space that no other file holds. */
 export const settingsEn = {
+	scope: { project: "This project", computer: "This computer", me: "Me" },
+	pages: {
+		projectHealth: "Health of this project",
+		computerHealth: "Health of this computer",
+		logs: "Logs and feedback",
+		look: "Look and layout",
+	},
+	pills: {
+		details: "Details",
+		alone: "Agents may do alone",
+		automation: "Automation",
+		extensions: "Extensions",
+		connections: "AI tools and connections",
+		models: "Models and rules",
+		health: "Health",
+	},
+	parts: {
+		less: "Less: {name}",
+		more: "More: {name}",
+		ready: "Ready",
+		fix: "To fix",
+		off: "Off",
+	},
 	tiers: {
 		name: "Model tiers",
 		top: "Top",
@@ -58,7 +81,7 @@ export const settingsEn = {
 		tickets: "Tickets",
 		adrs: "ADRs",
 		qa: "Quality checks",
-		workflows: "Workflows",
+		workflows: "Recipes",
 		save: "Apply",
 		agents: "Agent tools",
 		agentsNone: "No agent tool found",
@@ -71,7 +94,7 @@ export const settingsEn = {
 		write: "Write the file",
 		cancel: "Cancel",
 		wired: "Written to {path}",
-		allowList: "Allow list",
+		allowList: "Allowed tools",
 		allowAll: "All tools",
 		allowRead: "Read only",
 		allowCustom: "Custom",
@@ -92,7 +115,6 @@ export const settingsEn = {
 		add: "Add PEM bundle",
 		remove: "Remove certificates",
 		count: "{count} certificates added",
-		none: "None added",
 	},
 	tools: {
 		title: "Toolchain",
@@ -121,6 +143,29 @@ export const settingsEn = {
 };
 
 export const settingsFr: typeof settingsEn = {
+	scope: { project: "Ce projet", computer: "Cet ordinateur", me: "Moi" },
+	pages: {
+		projectHealth: "Santé de ce projet",
+		computerHealth: "Santé de cet ordinateur",
+		logs: "Journaux et retours",
+		look: "Apparence et disposition",
+	},
+	pills: {
+		details: "Détails",
+		alone: "Ce que les agents font seuls",
+		automation: "Automatisation",
+		extensions: "Extensions",
+		connections: "Outils d'IA et connexions",
+		models: "Modèles et règles",
+		health: "Santé",
+	},
+	parts: {
+		less: "Moins : {name}",
+		more: "Plus : {name}",
+		ready: "Prêt",
+		fix: "À corriger",
+		off: "Désactivé",
+	},
 	tiers: {
 		name: "Niveaux de modèle",
 		top: "Haut",
@@ -179,7 +224,7 @@ export const settingsFr: typeof settingsEn = {
 		tickets: "Tickets",
 		adrs: "ADR",
 		qa: "Contrôles qualité",
-		workflows: "Workflows",
+		workflows: "Recettes",
 		save: "Appliquer",
 		agents: "Outils d'agent",
 		agentsNone: "Aucun outil d'agent trouvé",
@@ -192,7 +237,7 @@ export const settingsFr: typeof settingsEn = {
 		write: "Écrire le fichier",
 		cancel: "Annuler",
 		wired: "Écrit dans {path}",
-		allowList: "Liste permise",
+		allowList: "Outils permis",
 		allowAll: "Tous les outils",
 		allowRead: "Lecture seule",
 		allowCustom: "Personnalisée",
@@ -213,14 +258,13 @@ export const settingsFr: typeof settingsEn = {
 		add: "Ajouter un bundle PEM",
 		remove: "Retirer les certificats",
 		count: "{count} certificats ajoutés",
-		none: "Aucun ajouté",
 	},
 	tools: {
 		title: "Chaîne d’outils",
 		install: "Installer {name}",
 		missing: "Absent",
 		installed: "Installé",
-		group: { base: "Base", forge: "Code hosts", agent: "Agents", scanner: "Analyseurs" },
+		group: { base: "Base", forge: "Hébergeurs de code", agent: "Agents", scanner: "Analyseurs" },
 	},
 	ledger: {
 		title: "Constats dans le temps",

@@ -6,7 +6,7 @@ import { useActiveProject } from "@/lib/projects";
 import { useRights } from "@/lib/rights";
 import { cn } from "@/lib/utils";
 import { Input } from "@/ui/atoms/input";
-import { ChevronRightIcon, PlusIcon } from "@/ui/icons";
+import { PlusIcon } from "@/ui/icons";
 import { useRun } from "./use-run";
 
 type Row = { key: string; label: string; remote: boolean; create: boolean; name: string };
@@ -85,16 +85,23 @@ export function BranchSelector() {
 					role="combobox"
 					aria-expanded={open}
 					aria-label={t.code.branch}
-					className="inline-flex h-row min-w-24 shrink-0 items-center justify-between gap-2 rounded-md whitespace-nowrap border border-n-7 bg-n-1 px-2 text-ui text-n-12"
+					className="inline-flex min-h-control shrink-0 items-center gap-2 rounded-md whitespace-nowrap border border-n-7 bg-surface-1 px-4 font-mono font-semibold text-n-12 hover:bg-n-3"
 				>
+					<svg
+						aria-hidden="true"
+						viewBox="0 0 24 24"
+						className="size-4.5 shrink-0 fill-none stroke-current stroke-2"
+					>
+						<circle cx="7" cy="6" r="2.5" />
+						<circle cx="7" cy="18" r="2.5" />
+						<circle cx="17" cy="9" r="2.5" />
+						<path d="M7 8.5v7M17 11.5c0 3-4 3-7.5 4.5" />
+					</svg>
 					{head.name}
-					<span className="rotate-90 text-n-10">
-						<ChevronRightIcon size={12} />
-					</span>
 				</Popover.Trigger>
 				<Popover.Portal>
 					<Popover.Positioner side="bottom" align="start" sideOffset={4} className="z-50">
-						<Popover.Popup className="w-72 rounded-lg border border-n-6 bg-surface-3 p-1 text-ui shadow-3">
+						<Popover.Popup className="w-72 rounded-lg border border-n-6 bg-surface-3 p-2 text-ui shadow-3">
 							<Input
 								label={t.code.branchFilter}
 								type="search"
@@ -134,8 +141,8 @@ export function BranchSelector() {
 										tabIndex={-1}
 										onClick={() => pick(r)}
 										className={cn(
-											"flex h-row w-full cursor-pointer items-center gap-2 rounded-sm px-2 text-left text-n-12 hover:bg-n-5",
-											i === at && "bg-n-5",
+											"flex min-h-control w-full cursor-pointer items-center gap-2 rounded-md px-3 text-left text-n-12 hover:bg-n-3",
+											i === at && "bg-n-3",
 										)}
 									>
 										{r.create ? <PlusIcon size={12} /> : null}

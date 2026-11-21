@@ -39,6 +39,8 @@ pub struct RoleRights {
     pub access: Access,
     /// The rights that `access` gives.
     pub rights: Vec<Right>,
+    /// The places that the role does not see (`shell-setup-rights` REQ-011).
+    pub hidden: Vec<String>,
 }
 
 /// One row of the table to save.
@@ -47,6 +49,9 @@ pub struct RoleRights {
 pub struct RoleAccess {
     pub role: Role,
     pub access: Access,
+    /// The places that the role does not see. `None` keeps the ones of the team file.
+    #[serde(default)]
+    pub hidden: Option<Vec<String>>,
 }
 
 /// The roles of one member to save. The first role is the `role` of the member.
@@ -242,6 +247,7 @@ fn view_of(s: &AppState, a: &Active, narrow: bool) -> Res<RightsView> {
                 role,
                 access,
                 rights: access.rights(),
+                hidden: rights::role_hidden(src.team.as_ref().unwrap_or(&Team::default()), role),
             })
             .collect(),
     })
@@ -474,7 +480,17 @@ pub fn roles_save(s: &AppState, table: &[RoleAccess], members: &[MemberRoles]) -
             (role, new.map_or(old, |r| r.access))
         })
         .collect();
-    team.roles = rights::block(&rows);
+    let mut hidden = Vec::new();
+    for (role, _) in &rows {
+        let kept = rights::role_hidden(&team, *role);
+        let new = table.iter().rev().find(|r| r.role == *role);
+        let list = match new.and_then(|r| r.hidden.as_deref()) {
+            Some(places) => rights::clean_hidden(places)?,
+            None => kept,
+        };
+        hidden.push((*role, list));
+    }
+    team.roles = rights::block(&rows, &hidden);
     for mr in members {
         let m = team
             .members

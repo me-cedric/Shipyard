@@ -229,6 +229,8 @@ fn a_pull_request_decides_the_lane_of_a_run_in_review() {
         findings: vec![],
         worktree_kept: None,
         escalation: None,
+        day_pause: false,
+        approver: None,
     };
     let pr = |ci: &str, review: &str, draft: bool| PrRowView {
         reference: "pr:github:7".into(),
@@ -242,6 +244,7 @@ fn a_pull_request_decides_the_lane_of_a_run_in_review() {
         head_sha: "abc".into(),
         url: String::new(),
         updated: String::new(),
+        author: String::new(),
         lane: Lane::InReview,
         runs: vec![],
     };
@@ -266,6 +269,25 @@ fn a_pull_request_decides_the_lane_of_a_run_in_review() {
     // "/wt/01J" is not on this machine: no folder, no terminal.
     assert_eq!((u.runner.as_str(), u.dir.as_str()), ("claude", ""));
     assert_eq!((u.started, u.last), (10.0, 20.0));
+    // The stop action (REQ-014): the pull request that merged on the code host, the day budget.
+    use shipyard_core::feature::Stop;
+    assert_eq!(v.stop, None);
+    let merged = PrRowView {
+        state: "merged".into(),
+        ..pr("passing", "clear", false)
+    };
+    assert_eq!(run_view(&info, &[merged], 0, 0).stop, Some(Stop::CloseDone));
+    let paused = |day_pause| RunInfo {
+        run: shipyard_core::run::Run {
+            state: RunState::Paused,
+            return_to: Some(RunState::PROpen),
+        },
+        day_pause,
+        ..info.clone()
+    };
+    // The day budget: the run resumes by itself the next day, a click cannot resume it before.
+    assert_eq!(run_view(&paused(true), &[], 0, 0).stop, None);
+    assert_eq!(run_view(&paused(false), &[], 0, 0).stop, Some(Stop::Resume));
 }
 
 #[test]
@@ -305,6 +327,66 @@ fn cancel_the_kill_switch_and_the_plan_gate_are_one_call_each() {
             .is_err()
     );
     set_kill_switch(&fx.s, false);
+}
+
+#[test]
+fn stop_all_cancels_each_live_run_and_leaves_the_agents_on() {
+    let fx = fx(Writes::default());
+    let a = fx.start("SHIP-1");
+    assert!(stop_all(&fx.s, false).is_err(), "it needs a click");
+    assert_ne!(
+        run_get(&fx.s, &a).unwrap().unwrap().state,
+        RunState::Cancelled
+    );
+    stop_all(&fx.s, true).unwrap();
+    assert_eq!(
+        run_get(&fx.s, &a).unwrap().unwrap().state,
+        RunState::Cancelled
+    );
+    assert!(!kill_switch(&fx.s), "the agents stay on");
+    // A new run can start.
+    let b = fx.start("SHIP-2");
+    assert_ne!(
+        run_get(&fx.s, &b).unwrap().unwrap().state,
+        RunState::Cancelled
+    );
+    // Agents that are off stay off.
+    set_kill_switch(&fx.s, true);
+    stop_all(&fx.s, true).unwrap();
+    assert!(kill_switch(&fx.s));
+    set_kill_switch(&fx.s, false);
+}
+
+#[test]
+fn stop_all_is_refused_without_runs_start_and_cancels_nothing() {
+    let fx = fx(Writes::default());
+    let a = fx.start("SHIP-1");
+    // A team file that names nobody like this person: the role is viewer.
+    let team = shipyard_core::work::Team {
+        members: vec![shipyard_core::work::Member {
+            name: "ROOT".into(),
+            handle: "root".into(),
+            emails: vec!["root@example.com".into()],
+            role: "techlead".into(),
+            admin: true,
+            capacity: 5.0,
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+    let path = fx.repo.path().join(shipyard_store::work::TEAM_PATH);
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &path,
+        shipyard_store::work::write_team(&team, None).unwrap(),
+    )
+    .unwrap();
+    let err = stop_all(&fx.s, true).unwrap_err();
+    assert!(err.contains("runs.start"), "{err}");
+    assert_ne!(
+        run_get(&fx.s, &a).unwrap().unwrap().state,
+        RunState::Cancelled
+    );
 }
 
 #[test]
@@ -980,7 +1062,7 @@ fn a_workflow_is_made_from_a_preset_renamed_and_deleted() {
 fn the_default_workflow_and_a_workflow_of_a_live_run_stay() {
     let fx = fx(Writes::default());
     let e = delete_workflow(&fx.s, "feature").unwrap_err();
-    assert_eq!(e, "`feature` is the default workflow of the project");
+    assert_eq!(e, "`feature` is the default recipe of the project");
     assert!(rename_workflow(&fx.s, "feature", "other").is_err());
     assert!(workflow_read(&fx.s, "feature").is_ok());
     // The run of SHIP-1 uses the workflow `one`.
@@ -1114,4 +1196,139 @@ fn a_unit_folder_shows_only_when_it_exists_and_its_session_can_resume() {
     assert_eq!(at("claude", Some("s1"), &dir_s), dir_s);
     // Another AI tool needs only the folder.
     assert_eq!(at("codex", None, &dir_s), dir_s);
+}
+
+#[test]
+fn features_join_a_run_and_the_change_that_names_its_ticket() {
+    use shipyard_core::feature::Stage;
+    let fx = fx(Writes::default());
+    let run = fx.start("SHIP-1");
+    let root = fx.repo.path();
+    let why = "# Add x\n\n## Why\n\nTicket `wi:SHIP-1`.\n";
+    write_file(root, "docs/openspec/changes/add-x/proposal.md", why);
+    write_file(root, "docs/openspec/changes/lone/proposal.md", "# Lone\n");
+    write_file(
+        root,
+        "docs/openspec/changes/specced/proposal.md",
+        "# Specced\n",
+    );
+    write_file(
+        root,
+        "docs/openspec/changes/specced/specs/x/spec.md",
+        "# x\n",
+    );
+    let f = features(&fx.s).unwrap();
+    let got: Vec<_> = f
+        .iter()
+        .map(|f| {
+            (
+                f.ticket.as_deref(),
+                f.change.as_deref(),
+                f.run.clone(),
+                f.stage,
+            )
+        })
+        .collect();
+    assert_eq!(
+        got,
+        [
+            (
+                Some("wi:SHIP-1"),
+                Some("change:add-x"),
+                Some(format!("run:{run}")),
+                Stage::Build
+            ),
+            // Only its proposal: an idea. A spec file: the Spec stage.
+            (None, Some("change:lone"), None, Stage::Idea),
+            (None, Some("change:specced"), None, Stage::Spec),
+        ]
+    );
+    // The card facts of `app-redesign` REQ-011: the agent step that works, and what waits.
+    let who = shipyard_core::feature::Who {
+        name: "work".into(),
+        agent: true,
+    };
+    assert_eq!(f[0].who.as_ref(), Some(&who));
+    assert_eq!(f[0].run_state, Some(RunState::Working));
+    assert_eq!((f[0].approvals, f[0].questions), (2, 0));
+    assert_eq!((f[1].who.as_ref(), f[1].run_state), (None, None));
+}
+
+// `runs-recipes` REQ-001 to REQ-003 and REQ-009.
+
+#[test]
+fn a_person_pauses_a_working_run_and_the_view_names_the_stop() {
+    let fx = fx(Writes::default());
+    let run = fx.start("SHIP-1");
+    pause(&fx.s, &run).unwrap();
+    fx.agents.push("work", AgentEvent::Turn);
+    fx.s.factory.factory.pump();
+    let v = run_get(&fx.s, &run).unwrap().unwrap();
+    assert_eq!(v.state, RunState::Paused);
+    assert_eq!(v.stop, Some(shipyard_core::feature::Stop::Resume));
+    assert!(
+        pause(&fx.s, &run).is_err(),
+        "a paused run takes no second pause"
+    );
+    assert!(pause(&fx.s, "01JNOPE").is_err());
+}
+
+#[test]
+fn take_over_ends_the_run_with_the_reason_and_keeps_the_folder_of_the_run() {
+    let fx = fx(Writes::default());
+    let run = fx.start("SHIP-1");
+    let dir = take_over(&fx.s, &run).unwrap();
+    assert!(dir.contains(&run), "{dir}");
+    let v = run_get(&fx.s, &run).unwrap().unwrap();
+    assert_eq!(v.state, RunState::Cancelled);
+    assert!(
+        v.reason
+            .as_deref()
+            .is_some_and(|r| r.starts_with("Taken over by")),
+        "{:?}",
+        v.reason
+    );
+    assert!(take_over(&fx.s, &run).is_err(), "the run ended");
+}
+
+#[test]
+fn a_file_of_the_chat_goes_into_the_run_folder_within_the_limits_of_assistant_attach() {
+    let fx = fx(Writes::default());
+    let run = fx.start("SHIP-1");
+    let made = run_attach_file(&fx.s, &run, "dir/notes.md", b"use the endpoint").unwrap();
+    assert_eq!(
+        (made.kind.as_str(), made.name.as_str()),
+        ("text", "notes.md")
+    );
+    let kept = fx.s.dir.join("agents").join(&run).join("context/notes.md");
+    assert_eq!(std::fs::read(kept).unwrap(), b"use the endpoint");
+    let big = vec![b'a'; crate::assistant_attach::MAX_TEXT + 1];
+    let e = run_attach_file(&fx.s, &run, "big.txt", &big).unwrap_err();
+    assert!(e.contains("larger than 200 KiB"), "{e}");
+    assert!(run_attach_file(&fx.s, &run, "id_rsa", b"x").is_err());
+    assert!(run_attach_file(&fx.s, &run, "k.txt", b"password = \"abcdefgh12345\"").is_err());
+    fx.s.factory.factory.cancel(&run).unwrap();
+    assert!(
+        run_attach_file(&fx.s, &run, "late.md", b"x").is_err(),
+        "the run ended"
+    );
+}
+
+#[test]
+fn may_write_alone_turns_on_do_not_ask_again_for_that_recipe_only() {
+    use shipyard_store::automation_file::{AutomationRead, read_automation};
+    let fx = fx(Writes::default());
+    assert!(
+        recipe_allow_pr(&fx.s, "feature", false).is_err(),
+        "it needs the click of a person"
+    );
+    assert!(recipe_allow_pr(&fx.s, "nothing", true).is_err());
+    recipe_allow_pr(&fx.s, "feature", true).unwrap();
+    let AutomationRead::Valid(a) = read_automation(fx.repo.path()).unwrap() else {
+        panic!("a valid file");
+    };
+    assert_eq!(a.recipe_writes.keys().collect::<Vec<_>>(), ["feature"]);
+    assert!(a.recipe_writes["feature"].contains(&shipyard_core::pickup::WriteKind::OpenPr));
+    // The project switches stay as they were.
+    assert_eq!(a.writes, Automation::default().writes);
 }

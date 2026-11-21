@@ -1,5 +1,7 @@
 //! Network flow table: rows, filters and pure edits (spec `design`, REQ-016 to REQ-018).
 
+use std::collections::BTreeSet;
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -170,4 +172,131 @@ pub fn remove(rows: &[FlowRow], id: u32) -> Result<Vec<FlowRow>, String> {
         return Err(format!("no row {id}"));
     }
     Ok(rows.iter().filter(|r| r.id != id).cloned().collect())
+}
+
+/// What the check against the code found for one flow (`spec:library-functions#REQ-011`).
+/// `in_code` is `None` when the destination is not a host that a URL can name: a network or a brick.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FlowCheck {
+    pub id: u32,
+    pub in_code: Option<bool>,
+}
+
+/// The hosts that the URLs of a text name, in lowercase: `https://api.example.com:443/x` gives
+/// `api.example.com`. A host with a placeholder (`${HOST}`) or an IPv6 literal stays out.
+pub fn hosts_in(text: &str) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    for (at, _) in text.match_indices("://") {
+        let scheme = text[..at]
+            .chars()
+            .rev()
+            .take_while(char::is_ascii_alphabetic)
+            .count();
+        if scheme < 2 {
+            continue;
+        }
+        let rest = &text[at + 3..];
+        let end = rest
+            .find(|c: char| !(c.is_ascii_alphanumeric() || "-._~%!$&'()*+,;=:@".contains(c)))
+            .unwrap_or(rest.len());
+        let auth = &rest[..end];
+        let host = auth.rsplit('@').next().unwrap_or("");
+        let host = host.split(':').next().unwrap_or("").trim_end_matches('.');
+        let valid = host
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-')
+            && (host.contains('.') || host == "localhost");
+        if valid && !host.starts_with(['.', '-']) {
+            out.insert(host.to_lowercase());
+        }
+    }
+    out
+}
+
+/// The host that a flow goes to, when its destination names one: a host name or an address, with
+/// no mask (but `/32`) and no port. A network, or a name with a space (a brick), has none.
+fn host_of(destination: &str) -> Option<String> {
+    let d = destination.trim().trim_end_matches("/32");
+    let d = d.split(':').next().unwrap_or("").to_lowercase();
+    let host = !d.is_empty()
+        && d.contains('.')
+        && d.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-');
+    host.then_some(d)
+}
+
+/// One result for each flow. The code calls the host of a flow when a code host is that host or
+/// one of its subdomains.
+pub fn check_against_code(rows: &[FlowRow], hosts: &BTreeSet<String>) -> Vec<FlowCheck> {
+    rows.iter()
+        .map(|r| FlowCheck {
+            id: r.id,
+            in_code: host_of(&r.destination).map(|d| {
+                hosts
+                    .iter()
+                    .any(|h| *h == d || h.ends_with(&format!(".{d}")))
+            }),
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod code_check_tests {
+    use super::*;
+
+    fn row(id: u32, destination: &str, action: Action) -> FlowRow {
+        FlowRow {
+            id,
+            source: "app".into(),
+            destination: destination.into(),
+            network: "Internet".into(),
+            protocol: "tcp".into(),
+            port: None,
+            action,
+            note: None,
+            name: None,
+            subnet: None,
+            source_name: None,
+            destination_name: None,
+        }
+    }
+
+    #[test]
+    fn hosts_come_from_urls_only() {
+        let text = "get(\"https://API.Example.com:443/v1?x=1\"); ws://10.0.0.5:8080 \
+            https://user:pw@git.example.org/r https://${HOST}/x http://[::1]/ a://b.c x ://d.e \
+            https://localhost/ see https://docs.example.com.";
+        assert_eq!(
+            hosts_in(text).into_iter().collect::<Vec<_>>(),
+            [
+                "10.0.0.5",
+                "api.example.com",
+                "docs.example.com",
+                "git.example.org",
+                "localhost"
+            ]
+        );
+    }
+
+    #[test]
+    fn a_flow_is_in_the_code_when_a_code_host_is_its_host_or_a_subdomain() {
+        let hosts = hosts_in("https://api.example.com/x http://10.0.0.5/ https://other.test/");
+        let rows = [
+            row(1, "example.com", Action::Allow),
+            row(2, "10.0.0.5/32", Action::Deny),
+            row(3, "nowhere.test", Action::Allow),
+            row(4, "10.0.0.0/24", Action::Allow),
+            row(5, "Code host", Action::Allow),
+            row(6, "other.test:443", Action::Allow),
+        ];
+        let found: Vec<_> = check_against_code(&rows, &hosts)
+            .into_iter()
+            .map(|c| c.in_code)
+            .collect();
+        assert_eq!(
+            found,
+            [Some(true), Some(true), Some(false), None, None, Some(true)]
+        );
+    }
 }

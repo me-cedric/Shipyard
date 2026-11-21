@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import {
@@ -10,8 +10,11 @@ import {
 	unwrap,
 } from "@/lib/ipc";
 import { RightButton } from "@/lib/rights";
+import { useShell } from "@/lib/shell";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
+import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
 import { SparklesIcon } from "@/ui/icons";
@@ -189,4 +192,76 @@ export function AgentReview({ d }: { d: PullDetail }) {
 			{draft ? <Draft d={d} draft={draft} /> : null}
 		</>
 	);
+}
+
+/** The comments that a person marked as solved. shortcut: kept until the app reloads; keep them in the draft when a command can drop one finding. */
+const solved = new Set<string>();
+
+/**
+ * The comments of the agent reviews that wait, on one file of the local changes. A reply and
+ * "Apply the fix" leave a draft in the assistant: a person sends it. "Solved" hides the comment.
+ */
+export function LocalReview({ path }: { path: string }) {
+	const { t } = useI18n();
+	const n = t.forge.now;
+	const { ask } = useShell();
+	const [, redraw] = useState(0);
+	const [reply, setReply] = useState("");
+	const waiting =
+		useQuery({
+			queryKey: ["code", "pr-review", "waiting"],
+			queryFn: () => unwrap(commands.prReviewWaiting()),
+		}).data ?? [];
+	const drafts = useQueries({
+		queries: waiting.map((w) => ({
+			queryKey: ["code", "pr-review", w.number, w.headSha],
+			queryFn: () => unwrap(commands.prReviewGet(w.number, w.headSha)),
+		})),
+	});
+	const findings = drafts
+		.flatMap((d) => d.data?.findings ?? [])
+		.filter((f) => f.path === path && !solved.has(`${f.path}:${f.line}:${f.text}`));
+	return findings.map((f) => (
+		<section
+			key={`${f.line}:${f.text}`}
+			aria-label={format(n.comment, { line: f.line })}
+			className="mx-6 mb-5 flex flex-col gap-3 rounded-[14px] bg-n-3 p-4"
+		>
+			<p className="flex items-start gap-3">
+				<Avatar agent size="s" name={n.reviewer} />
+				<span className="min-w-0">
+					<span className="font-semibold">{n.reviewer}</span> {f.text}
+				</span>
+			</p>
+			<form
+				className="flex flex-wrap gap-2.5"
+				onSubmit={(e) => {
+					e.preventDefault();
+					if (!reply.trim()) return;
+					ask(format(n.replyPrompt, { path: f.path, line: f.line, text: f.text, reply }));
+					setReply("");
+				}}
+			>
+				<Input
+					label={n.reply}
+					className="flex-[1_1_200px]"
+					value={reply}
+					onChange={(e) => setReply(e.target.value)}
+				/>
+				<Button
+					onClick={() => ask(format(n.fixPrompt, { path: f.path, line: f.line, text: f.text }))}
+				>
+					{n.applyFix}
+				</Button>
+				<Button
+					onClick={() => {
+						solved.add(`${f.path}:${f.line}:${f.text}`);
+						redraw((x) => x + 1);
+					}}
+				>
+					{n.solved}
+				</Button>
+			</form>
+		</section>
+	));
 }

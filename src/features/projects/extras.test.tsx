@@ -9,9 +9,9 @@ describe("Settings / Project and Health: name, logo, git tools, linked inspect, 
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 	}, 20_000);
 
-	it("renames the project and sets its logo, which shows in the top bar", async () => {
+	it("renames the project and sets its logo, which shows in the rail", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		// The name is the first field of the project form; Save writes the project file.
 		const [name] = await screen.findAllByRole("textbox", { name: "Name" });
 		if (!name) throw new Error("no name field");
@@ -22,17 +22,19 @@ describe("Settings / Project and Health: name, logo, git tools, linked inspect, 
 			expect((await unwrap(commands.projectSettings()))?.file?.name).toBe("Alpha web"),
 		);
 		mockState().nextFile = "/Users/ada/logo.png";
-		const fresh = await screen.findByRole("region", { name: "Project" });
+		const fresh = await screen.findByRole("region", { name: "More" });
 		await user.click(within(fresh).getByRole("button", { name: "Choose a picture" }));
 		await waitFor(() => expect(mockState().extras.pictures.logo).toBeDefined());
-		expect(await screen.findByRole("img", { name: "Alpha web" })).toBeInTheDocument();
+		// The picture is a part of the project switch: the name of the switch says the project.
+		const project = await screen.findByRole("button", { name: "Project Alpha web" });
+		await waitFor(() => expect(project.querySelector("img")).not.toBeNull());
 	}, 20_000);
 
 	it("shows and restores a stash, and brings a lagging branch up to date after a click", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.codeStashPush("Half done"));
 		mockState().extras.behind["feat/auth/login"] = 2;
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		const panel = await screen.findByRole("region", { name: "Repository" });
 		await user.click(
 			await within(panel).findByRole("button", { name: "Show the changes of Half done" }),
@@ -51,11 +53,13 @@ describe("Settings / Project and Health: name, logo, git tools, linked inspect, 
 
 	it("inspects a linked project and writes a feedback e-mail", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/health");
+		const router = mountApp("/setup/project?page=health");
 		const panel = await screen.findByRole("region", { name: "Linked projects" });
 		await user.click(await within(panel).findByRole("button", { name: "Inspect API gateway" }));
 		expect(await screen.findByText("chore: deploy compass")).toBeInTheDocument();
-		await user.type(screen.getByRole("textbox", { name: "Title" }), "Slow board");
+		// The feedback is with the logs of this computer.
+		router.history.push("/setup/computer?page=logs");
+		await user.type(await screen.findByRole("textbox", { name: "Title" }), "Slow board");
 		await user.click(screen.getByRole("button", { name: "Open in mail" }));
 		await waitFor(() => expect(mockState().extras.mails).toHaveLength(1));
 		expect(mockState().extras.mails[0]).toContain("subject=Slow%20board");

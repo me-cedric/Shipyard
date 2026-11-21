@@ -1,26 +1,33 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "@tanstack/react-router";
+import { useEffect, useId, useRef, useState } from "react";
+import { webUrl } from "@/features/factory/runs/run-summary";
 import { type MergeMethod, type PullDetail, useForgeActions } from "@/lib/code";
 import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, toFailure, unwrap } from "@/lib/ipc";
+import { copyText, openUrl } from "@/lib/menus";
 import { useNotifications } from "@/lib/notifications";
 import { RightButton, useRights } from "@/lib/rights";
 import { Button } from "@/ui/atoms/button";
+import { linkClass } from "@/ui/atoms/link-button";
 import { Progress } from "@/ui/atoms/progress";
 import { Select } from "@/ui/atoms/select";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
+import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { Panel } from "@/ui/molecules/panel";
-import { SplitButton } from "@/ui/molecules/split-button";
+import { MenuButton } from "@/ui/molecules/menu-button";
+import { CloseConfirm } from "./close-confirm";
+import { FitSegmented } from "./fit-segmented";
 import { focusPullTitle } from "./focus-title";
-import { CI_STATUS, REVIEW_STATUS } from "./status";
+import { defaultMergeMethod } from "./merge-default";
+import { usePullAsk } from "./pull-ask";
 import { useRun } from "./use-run";
 
 /**
  * Archives a spec change in the branch of the pull request: one commit and a push. A change with
- * open items asks for a second click that says so.
+ * open items asks for a second click that says so. It is on the changed files page, under the commits.
  */
-function ArchiveBar({ number }: { number: number }) {
+export function ArchiveBar({ number }: { number: number }) {
 	const { t } = useI18n();
 	const { archiveSpec } = useForgeActions();
 	const changes = useQuery({
@@ -44,7 +51,7 @@ function ArchiveBar({ number }: { number: number }) {
 		}
 	};
 	return (
-		<div className="flex flex-wrap items-center gap-2 border-t px-3 py-2">
+		<Card pad className="flex flex-wrap items-center gap-2.5">
 			<Select
 				label={t.forge.change}
 				value={chosen}
@@ -65,37 +72,7 @@ function ArchiveBar({ number }: { number: number }) {
 				<span role="status">{format(t.forge.archived, { sha: done.slice(0, 7) })}</span>
 			) : null}
 			<ErrorNotice error={error} />
-		</div>
-	);
-}
-
-/** One of the three segments of the box: a word, a small meter and the numbers. */
-function Segment({
-	label,
-	value,
-	max,
-	text,
-	status,
-	statusLabel,
-	title,
-}: {
-	label: string;
-	value: number;
-	max: number;
-	text: string;
-	status?: Status;
-	statusLabel?: string;
-	title?: string;
-}) {
-	return (
-		<div title={title} className="flex min-w-0 flex-1 flex-col gap-1">
-			<p className="flex items-center gap-1.5 text-12 text-n-11">
-				{status ? <StatusDot status={status} label={statusLabel} className="size-2" /> : null}
-				{label}
-			</p>
-			<Progress value={value} max={max} label={label} />
-			<p className="text-12 text-n-12">{text}</p>
-		</div>
+		</Card>
 	);
 }
 
@@ -123,36 +100,130 @@ export function mergeStatus(d: PullDetail, t: Messages): { text: string; status:
 	return { text: p.ready, status: "success" };
 }
 
+/** The three bars of the merge summary: what is done of what the merge needs. */
+function barsOf(d: PullDetail, t: Messages) {
+	const x = t.flow.look.pull;
+	const count = (state: string) => d.checks.filter((c) => c.state === state).length;
+	const open = d.threads.filter((th) => !th.resolved).length;
+	return [
+		{
+			label: t.forge.checks,
+			done: count("passing"),
+			total: d.checks.length,
+			text: x.checksPass,
+			over: count("failing") > 0,
+			// The words of the three counts, for a screen reader: the bar says only the passing ones.
+			detail: format(t.forge.pullPage.checkCounts, {
+				passing: count("passing"),
+				failing: count("failing"),
+				pending: count("pending"),
+			}),
+		},
+		{
+			label: t.forge.pullPage.comments,
+			done: d.threads.length - open,
+			total: d.threads.length,
+			text: x.commentsSolved,
+			over: false,
+			detail: null,
+		},
+		{
+			label: t.forge.pullPage.approvals,
+			done: d.verdicts.filter((v) => v.state === "approved").length,
+			total: d.verdicts.length,
+			text: x.approvalsDone,
+			over: false,
+			detail: null,
+		},
+	];
+}
+
+/** The bars that are not full, for an open pull request that is not a draft. Else 0: the status line says the state. */
+const stepsOf = (d: PullDetail, t: Messages) =>
+	d.state === "open" && !d.draft ? barsOf(d, t).filter((b) => b.done < b.total).length : 0;
+
 /**
- * The merge box (REQ-043): the status line, three segments and the merge action. Merge names its
- * method in a confirmation. Failing checks or requested changes make the confirmation a danger
- * action that names the risk. Merge stays off for a draft or a pull request that is not open.
+ * The merge summary (REQ-043): the count of steps before the merge, else the status line, then the
+ * three bars. "Fix with an agent" opens the assistant with the failing checks and the open comments.
  */
-export function MergeBox({ d }: { d: PullDetail }) {
+export function MergeSummary({ d }: { d: PullDetail }) {
+	const { t } = useI18n();
+	const x = t.flow.look.pull;
+	const askPull = usePullAsk(d);
+	const steps = stepsOf(d, t);
+	const fixable =
+		steps > 0 &&
+		(d.checks.some((c) => c.state === "failing") || d.threads.some((th) => !th.resolved));
+	return (
+		<Card
+			pad
+			role="region"
+			aria-label={t.forge.pullPage.mergeBox}
+			className="flex flex-wrap items-center gap-6"
+		>
+			<p
+				role="status"
+				className="flex flex-[1_1_200px] items-center gap-3 text-20 font-semibold text-n-12"
+			>
+				{steps === 0 ? (
+					<StatusDot status={mergeStatus(d, t).status} label={mergeStatus(d, t).text} />
+				) : null}
+				{steps === 0
+					? mergeStatus(d, t).text
+					: steps === 1
+						? x.stepsOne
+						: format(x.stepsMany, { count: steps })}
+			</p>
+			{barsOf(d, t).map((b) => (
+				<div key={b.label} className="flex min-w-0 flex-[1_1_150px] flex-col gap-2">
+					<span className="font-semibold">{b.label}</span>
+					<Progress value={b.done} max={b.total} label={b.label} over={b.over} />
+					<span className="text-n-11">{format(b.text, { done: b.done, total: b.total })}</span>
+					{b.detail ? <span className="sr-only">{b.detail}</span> : null}
+				</div>
+			))}
+			{fixable ? (
+				<Button variant="primary" onClick={() => askPull(x.fixPrompt, x.none)}>
+					{x.fix}
+				</Button>
+			) : null}
+		</Card>
+	);
+}
+
+/**
+ * The merge card (REQ-043): the method, the merge action, the branches and the impact report. Merge
+ * names its method in a confirmation. Failing checks or requested changes make the confirmation a
+ * danger action that names the risk. Merge stays off for a draft or a pull request that is not open.
+ * More holds the actions of the state (mark ready, close), the web page, the ref and two questions
+ * to the assistant.
+ */
+export function MergeCard({ d }: { d: PullDetail }) {
 	const { t } = useI18n();
 	const p = t.forge.pullPage;
-	const { merge } = useForgeActions();
+	const x = t.flow.look.pull;
+	const { merge, ready, close } = useForgeActions();
 	const { push } = useNotifications();
 	const { gate } = useRights();
 	const { failure, busy, run } = useRun();
+	const router = useRouter();
+	const askPull = usePullAsk(d);
 	const [method, setMethod] = useState<MergeMethod | null>(null);
 	const [confirming, setConfirming] = useState(false);
-	const current = method ?? d.mergeMethods[0] ?? "merge";
-	const review = d.verdicts.some((v) => v.state === "changes-requested")
-		? "changes_requested"
-		: "clear";
+	const [closing, setClosing] = useState(false);
+	const current = method ?? defaultMergeMethod(d.mergeMethods);
 	const risk =
 		d.ci === "failing"
 			? t.forge.confirmFailing
-			: review === "changes_requested"
+			: d.verdicts.some((v) => v.state === "changes-requested")
 				? t.forge.confirmChanges
 				: null;
 	const line = mergeStatus(d, t);
-	const count = (state: string) => d.checks.filter((c) => c.state === state).length;
-	const approved = d.verdicts.filter((v) => v.state === "approved");
-	const open = d.threads.filter((th) => !th.resolved).length;
 	const off = d.draft || d.state !== "open";
-	const right = gate("code.merge");
+	const link = webUrl(d.url);
+	// shortcut: the route of the impact report belongs to another group, so the address is plain text; use a typed link when the route is in the router.
+	const report = `/flow/feature/${encodeURIComponent(d.reference)}/impact-report`;
+	const reason = useId();
 	const slot = useRef<HTMLDivElement>(null);
 	const back = useRef(false);
 	// Cancel puts the focus back on Merge.
@@ -177,89 +248,142 @@ export function MergeBox({ d }: { d: PullDetail }) {
 			}
 		});
 	return (
-		<Panel title={p.mergeBox} flush>
-			<div className="flex flex-wrap items-center gap-3 px-3 py-3">
-				<p role="status" className="flex min-w-0 flex-1 items-center gap-2 text-14 font-medium">
-					<StatusDot status={line.status} label={line.text} className="size-2.5" />
-					{line.text}
-				</p>
-				<div ref={slot} className="contents">
-					{confirming ? (
-						<>
-							<RightButton
-								right="code.merge"
-								variant={risk ? "danger" : "secondary"}
-								autoFocus
-								busy={busy}
-								onClick={confirm}
-							>
-								{format(risk ?? t.forge.confirmMerge, { method: t.forge.methods[current] })}
-							</RightButton>
-							<Button
-								disabled={busy}
-								onClick={() => {
-									back.current = true;
-									setConfirming(false);
-								}}
-							>
-								{t.forge.pullInline.cancel}
-							</Button>
-						</>
-					) : (
-						<SplitButton
-							label={t.forge.merge}
-							onClick={() => setConfirming(true)}
-							disabled={off || right.disabled}
-							reason={right.reason}
-							moreLabel={t.forge.method}
-							moreDisabled={off || right.disabled}
-							// One method is no choice: no arrow, no menu.
-							hideMore={d.mergeMethods.length <= 1}
-							items={d.mergeMethods.map((m) => ({
-								id: m,
-								label: t.forge.methods[m],
-								checked: m === current,
-								// Choosing a method starts the merge with it: the confirmation names it.
-								onSelect: () => {
-									setMethod(m);
-									setConfirming(true);
-								},
-							}))}
+		<Card pad role="region" aria-label={t.forge.merge} className="flex flex-col gap-3">
+			<div className="flex flex-wrap items-center justify-between gap-2.5 empty:hidden">
+				{/* One method is no choice: no switch. */}
+				{d.mergeMethods.length > 1 ? (
+					// A viewer cannot merge: the methods go off with Merge (a disabled fieldset turns its buttons off).
+					<fieldset
+						disabled={gate("code.merge").disabled}
+						title={gate("code.merge").reason}
+						className="m-0 w-fit min-w-0 border-0 p-0"
+					>
+						<FitSegmented
+							label={t.forge.method}
+							value={current}
+							onValueChange={setMethod}
+							items={d.mergeMethods.map((m) => ({ value: m, label: t.forge.methods[m] }))}
 						/>
-					)}
-				</div>
+					</fieldset>
+				) : null}
+				{closing ? (
+					<CloseConfirm
+						number={d.number}
+						onCancel={() => setClosing(false)}
+						onConfirm={() =>
+							void run(async () => {
+								setClosing(false);
+								await close(d.number, "");
+								focusPullTitle();
+							})
+						}
+					/>
+				) : null}
 			</div>
-			<div className="flex flex-wrap gap-4 border-t px-3 py-3">
-				<Segment
-					label={t.forge.checks}
-					value={count("passing")}
-					max={d.checks.length}
-					text={format(p.checkCounts, {
-						passing: count("passing"),
-						failing: count("failing"),
-						pending: count("pending"),
-					})}
-					status={CI_STATUS[d.ci] ?? "idle"}
-					statusLabel={t.forge.ci[d.ci as "none"]}
-				/>
-				<Segment
-					label={p.comments}
-					value={d.threads.length - open}
-					max={d.threads.length}
-					text={format(p.commentCounts, { open, total: d.threads.length })}
-				/>
-				<Segment
-					label={p.approvals}
-					value={approved.length}
-					max={d.verdicts.length}
-					text={format(p.approvalCounts, { approved: approved.length, total: d.verdicts.length })}
-					title={approved.map((v) => v.reviewer).join(", ") || undefined}
-					status={REVIEW_STATUS[review] ?? "idle"}
-					statusLabel={t.forge.review[review]}
-				/>
+			<div ref={slot} className="flex flex-col gap-2.5 [&>span]:flex [&_button]:w-full">
+				{confirming ? (
+					<>
+						<RightButton
+							right="code.merge"
+							variant={risk ? "danger" : "secondary"}
+							autoFocus
+							busy={busy}
+							onClick={confirm}
+						>
+							{format(risk ?? t.forge.confirmMerge, { method: t.forge.methods[current] })}
+						</RightButton>
+						<Button
+							disabled={busy}
+							onClick={() => {
+								back.current = true;
+								setConfirming(false);
+							}}
+						>
+							{t.forge.pullInline.cancel}
+						</Button>
+					</>
+				) : (
+					<RightButton
+						right="code.merge"
+						variant={line.status === "success" ? "primary" : "secondary"}
+						aria-label={x.mergePull}
+						aria-describedby={stepsOf(d, t) > 0 ? reason : undefined}
+						disabled={off}
+						onClick={() => setConfirming(true)}
+					>
+						{t.forge.merge}
+					</RightButton>
+				)}
 			</div>
-			{d.state === "open" ? <ArchiveBar number={d.number} /> : null}
-			<ErrorNotice error={failure} className="px-3 py-2" />
-		</Panel>
+			{/* With steps left, the summary shows their count: the reason in words describes Merge. */}
+			{stepsOf(d, t) > 0 ? (
+				<span id={reason} role="status" className="sr-only">
+					{line.text}
+				</span>
+			) : null}
+			<span className="font-mono text-14 text-n-11 [overflow-wrap:anywhere]">
+				{format(x.branches, { source: d.sourceBranch, target: d.targetBranch })}
+			</span>
+			<div className="flex items-center justify-between gap-2.5">
+				<a
+					href={report}
+					onClick={(e) => {
+						e.preventDefault();
+						router.history.push(report);
+					}}
+					className={linkClass}
+				>
+					{x.impactReport}
+				</a>
+				{closing ? null : (
+					<MenuButton
+						iconOnly
+						label={t.ui.more}
+						icon={<span aria-hidden="true">···</span>}
+						items={[
+							...(d.state === "open" && d.draft
+								? [
+										{
+											id: "ready",
+											label: t.forge.markReady,
+											...gate("code.write"),
+											onSelect: () => void run(() => ready(d.number)),
+										},
+									]
+								: []),
+							{
+								id: "review",
+								label: x.askReview,
+								onSelect: () => askPull(t.workspace.pr.prompt.review),
+							},
+							{
+								id: "reply",
+								label: x.askReply,
+								onSelect: () => askPull(t.workspace.pr.prompt.reply),
+							},
+							{
+								id: "browser",
+								label: p.openInBrowser,
+								disabled: !link,
+								onSelect: () => link && openUrl(link),
+							},
+							{ id: "copy", label: t.context.copyRef, onSelect: () => void copyText(d.reference) },
+							...(d.state === "open"
+								? [
+										{
+											id: "close",
+											label: t.forge.close,
+											danger: true,
+											...gate("code.write"),
+											onSelect: () => setClosing(true),
+										},
+									]
+								: []),
+						]}
+					/>
+				)}
+			</div>
+			<ErrorNotice error={failure} />
+		</Card>
 	);
 }

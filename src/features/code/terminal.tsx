@@ -1,29 +1,38 @@
-import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { type RefObject, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { CommandLineIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { useTerminal } from "./use-terminal";
+import { TerminalPage } from "./terminal-page";
+import { type ShellHandle, useTerminal } from "./use-terminal";
 
 /** One shell on a dark screen that fills its space. The tab and the drawer both show it. */
 export function TerminalScreen({
 	folder = null,
 	startup,
 	className,
+	handle,
 }: {
 	folder?: string | null;
 	/** A command that runs when the shell starts. */
 	startup?: string;
 	className?: string;
+	/** Filled with the controls of the shell while it runs. */
+	handle?: RefObject<ShellHandle | null>;
 }) {
 	const { t } = useI18n();
 	const host = useRef<HTMLDivElement>(null);
 	const [error, setError] = useState<unknown>(null);
-	const { ended, restart } = useTerminal(host, folder, setError, t.forge.terminal.ended, startup);
+	const { ended, restart } = useTerminal(
+		host,
+		folder,
+		setError,
+		t.forge.terminal.ended,
+		startup,
+		handle,
+	);
 	return (
 		<>
 			{error ? <ErrorNotice error={error} className="px-4 py-2 text-ui text-danger-text" /> : null}
@@ -39,7 +48,11 @@ export function TerminalScreen({
 						<Button onClick={restart}>{t.forge.terminal.restart}</Button>
 					</div>
 				) : null}
-				<section ref={host} aria-label={t.forge.terminal.label} className="min-h-0 flex-1 p-3" />
+				<section
+					ref={host}
+					aria-label={t.forge.terminal.label}
+					className="min-h-0 flex-1 p-6 [&_.xterm-scrollable-element]:bg-transparent! [&_.xterm-viewport]:bg-transparent!"
+				/>
 			</div>
 		</>
 	);
@@ -56,13 +69,7 @@ export function TerminalPanel({ folder = null }: { folder?: string | null }) {
 	);
 }
 
-/** The address `/code/terminal` opens the drawer and leaves the person on the first Code tab (REQ-014). */
+/** Code / Terminal (`spec:app-redesign#REQ-022`): the shell as a page of the section switch. The drawer stays for the other places. */
 export function Terminal() {
-	const { setTerminalOpen } = useShell();
-	const navigate = useNavigate();
-	useEffect(() => {
-		setTerminalOpen(true);
-		void navigate({ to: "/code/changes", replace: true });
-	}, [setTerminalOpen, navigate]);
-	return null;
+	return <TerminalPage />;
 }

@@ -6,7 +6,7 @@ import { mountApp } from "@/test/mount";
 async function openPalette(user: ReturnType<typeof userEvent.setup>) {
 	await screen.findByRole("navigation", { name: "Sidebar" });
 	await user.keyboard("{Control>}k{/Control}");
-	return screen.findByRole("combobox");
+	return screen.findByRole("combobox", { name: "Ask or tell Shipyard" });
 }
 
 describe("refs in the shell", () => {
@@ -18,7 +18,7 @@ describe("refs in the shell", () => {
 		const input = await openPalette(user);
 		await user.type(input, "Q-012");
 		expect(
-			await screen.findByRole("option", { name: /q:Q-012 Which tracker first\?/ }),
+			await screen.findByRole("option", { name: /q:Q-012 Which issue tracker first\?/ }),
 		).toBeVisible();
 		await user.clear(input);
 		await user.type(input, "polling");
@@ -31,7 +31,7 @@ describe("refs in the shell", () => {
 		const input = await openPalette(user);
 		await user.type(input, "Q-012");
 		const options = await screen.findAllByRole("option", { name: /Q-012/ });
-		expect(options[0]).toHaveTextContent("q:Q-012 Which tracker first?");
+		expect(options[0]).toHaveTextContent("q:Q-012 Which issue tracker first?");
 	});
 
 	it("opens the entity with its backlinks grouped by kind with a count", async () => {
@@ -41,13 +41,10 @@ describe("refs in the shell", () => {
 		await user.type(input, "polling");
 		await user.click(await screen.findByRole("option", { name: /adr:0004/ }));
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
-		expect(await within(inspector).findByRole("heading", { name: "Spec (2)" })).toBeVisible();
-		expect(within(inspector).getByRole("heading", { name: "Change (1)" })).toBeVisible();
-		expect(
-			within(inspector).getByRole("button", {
-				name: /^adr:0004, Polling sync with local mirror, Resolved$/,
-			}),
-		).toBeVisible();
+		// One line for each linked item, in a list.
+		expect(await within(inspector).findAllByRole("button", { name: /^spec:/ })).toHaveLength(2);
+		expect(within(inspector).getAllByRole("button", { name: /^change:/ })).toHaveLength(1);
+		expect(within(inspector).getByText("adr:0004", { selector: "code" })).toBeVisible();
 	});
 
 	it("opens a cited entity from a backlink chip with the keyboard", async () => {
@@ -55,19 +52,17 @@ describe("refs in the shell", () => {
 		mountApp("/home/today");
 		const input = await openPalette(user);
 		await user.type(input, "adr:0004");
-		await user.keyboard("{Enter}");
+		await user.keyboard("{ArrowDown}{Enter}");
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
 		const chip = await within(inspector).findByRole("button", {
 			name: /spec:auth, Spec: auth, Resolved/,
 		});
 		chip.focus();
-		await user.keyboard("{Enter}");
+		await user.keyboard("{ArrowDown}{Enter}");
 		await waitFor(() =>
-			expect(
-				within(inspector).getByRole("button", { name: /^spec:auth, Spec: auth, Resolved$/ }),
-			).toBeVisible(),
+			expect(within(inspector).getByText("spec:auth", { selector: "code" })).toBeVisible(),
 		);
-		expect(within(inspector).queryByRole("heading", { name: /Spec \(/ })).toBeNull();
+		expect(within(inspector).queryAllByRole("button", { name: /^spec:/ })).toHaveLength(0);
 	});
 
 	it("shows ghost rows and no text for an entity that nothing cites", async () => {
@@ -77,9 +72,7 @@ describe("refs in the shell", () => {
 		await user.type(input, "wi:SHIP-42");
 		await user.click(await screen.findByRole("option", { name: /Open wi:SHIP-42/ }));
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
-		expect(
-			await within(inspector).findByRole("button", { name: "wi:SHIP-42, Unresolved" }),
-		).toBeVisible();
+		expect(await within(inspector).findByText("wi:SHIP-42", { selector: "code" })).toBeVisible();
 		expect(within(inspector).queryAllByRole("heading", { level: 3 })).toHaveLength(0);
 	});
 
@@ -90,11 +83,12 @@ describe("refs in the shell", () => {
 		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Barre latérale" });
 		await user.keyboard("{Control>}k{/Control}");
-		await user.type(await screen.findByRole("combobox"), "adr:0004");
-		await user.keyboard("{Enter}");
+		await user.type(
+			await screen.findByRole("combobox", { name: "Demander ou dire à Shipyard" }),
+			"adr:0004",
+		);
+		await user.keyboard("{ArrowDown}{Enter}");
 		const inspector = await screen.findByLabelText("Inspecteur", { selector: "aside" });
-		expect(
-			await within(inspector).findByRole("heading", { name: "Spécification (2)" }),
-		).toBeVisible();
+		expect(await within(inspector).findAllByRole("button", { name: /^spec:/ })).toHaveLength(2);
 	});
 });

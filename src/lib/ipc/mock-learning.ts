@@ -38,6 +38,7 @@ export function seedLearning(): MockLearning {
 							kind: "certification",
 							title: "Cloud certification",
 							url: "https://learn.example.com/exam",
+							ref: "spec:auth",
 						},
 					],
 				},
@@ -135,7 +136,9 @@ export function pathSave(m: MockLearning, path: LearningPath_Deserialize, ok: bo
 		seen.add(stepId);
 		const url = s.url?.trim() || null;
 		if (url) checkAddress(url);
-		return { id: stepId, kind: s.kind, title: stepTitle, url };
+		const ref = s.ref?.trim() || undefined;
+		if (ref && (!ref.includes(":") || /\s/.test(ref))) throw `bad ref: ${ref}`;
+		return { id: stepId, kind: s.kind, title: stepTitle, url, ...(ref ? { ref } : {}) };
 	});
 	const next: LearningPath_Serialize = {
 		id,

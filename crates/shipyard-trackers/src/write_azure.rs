@@ -57,6 +57,19 @@ impl Azure {
         Ok(self.http.send(&req)?.ok()?)
     }
 
+    /// The iterations of the default team of `project`: the name and the path.
+    fn iterations(&self, project: &str) -> Result<Vec<(String, String)>, TrackerError> {
+        let v = self.call(
+            &format!("/{}/_apis/work/teamsettings/iterations", encode(project)),
+            &[],
+        )?;
+        Ok(items(&v, "/value")
+            .iter()
+            .map(|i| (text(i, "/name"), text(i, "/path")))
+            .filter(|(name, path)| !name.is_empty() && !path.is_empty())
+            .collect())
+    }
+
     /// Change a work item with a JSON Patch document.
     fn patch(&self, id: &str, ops: Vec<Value>) -> Result<Response, TrackerError> {
         let id = digits("work item", id)?;
@@ -257,6 +270,44 @@ impl TrackerWrite for Azure {
         self.patch(
             key,
             vec![op("add", "/fields/System.WorkItemType", json!(name))],
+        )
+        .map(|_| ())
+        .map_err(refused)
+    }
+
+    fn issue_types(&self, scope: &str) -> Result<Vec<String>, TrackerError> {
+        let v = self.call(&format!("/{}/_apis/wit/workitemtypes", encode(scope)), &[])?;
+        Ok(items(&v, "/value")
+            .iter()
+            .map(|t| text(t, "/name"))
+            .filter(|n| !n.is_empty())
+            .collect())
+    }
+
+    fn releases(&self, scope: &str) -> Result<Vec<String>, TrackerError> {
+        Ok(self
+            .iterations(scope)?
+            .into_iter()
+            .map(|(name, _)| name)
+            .collect())
+    }
+
+    fn set_release(&self, key: &str, release: Option<&str>) -> Result<(), TrackerError> {
+        let project = self.project(key)?;
+        // No release: the iteration goes back to the root, the project name.
+        let path = match release {
+            Some(r) => {
+                self.iterations(&project)?
+                    .into_iter()
+                    .find(|(name, _)| name == r)
+                    .ok_or_else(|| TrackerError::Refused(format!("no iteration named {r}")))?
+                    .1
+            }
+            None => project,
+        };
+        self.patch(
+            key,
+            vec![op("add", "/fields/System.IterationPath", json!(path))],
         )
         .map(|_| ())
         .map_err(refused)

@@ -343,6 +343,28 @@ fn history_pages_and_labels() {
 }
 
 #[test]
+fn file_history_lists_the_commits_of_one_path_and_reads_an_old_text() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    let a = commit(&r, "rules.md", "one\n", "docs: one");
+    commit(&r, "other.md", "x\n", "docs: other");
+    let b = commit(&r, "rules.md", "two\n", "docs: two");
+    let shas = |limit| -> Vec<String> {
+        r.file_history("rules.md", limit)
+            .unwrap()
+            .into_iter()
+            .map(|c| c.sha)
+            .collect()
+    };
+    assert_eq!(shas(10), vec![b.clone(), a.clone()]);
+    assert_eq!(shas(1), vec![b]);
+    assert!(r.file_history("missing.md", 10).unwrap().is_empty());
+    assert_eq!(r.file_at("rules.md", &a).unwrap().as_deref(), Some("one\n"));
+    // The file did not exist yet at that commit.
+    assert_eq!(r.file_at("other.md", &a).unwrap(), None);
+}
+
+#[test]
 fn branches_create_switch_and_refuse_a_dirty_overwrite() {
     let tmp = TempDir::new().unwrap();
     let r = init(tmp.path());
@@ -374,6 +396,23 @@ fn branches_create_switch_and_refuse_a_dirty_overwrite() {
         list.iter()
             .any(|b| b.name == "main" && b.is_head && b.kind == BranchKind::Local)
     );
+    // A branch with no upstream counts against main: one commit ahead, none behind. Main itself
+    // has no count against main.
+    let fix = list
+        .iter()
+        .find(|b| b.name == "fix/auth/login-timeout")
+        .unwrap();
+    assert_eq!((fix.base_ahead, fix.base_behind), (Some(1), Some(0)));
+    let main = list.iter().find(|b| b.name == "main").unwrap();
+    assert_eq!((main.base_ahead, main.base_behind), (None, None));
+    commit(&r, "b.txt", "b\n", "chore: b");
+    let fix = r
+        .branches()
+        .unwrap()
+        .into_iter()
+        .find(|b| b.name == "fix/auth/login-timeout")
+        .unwrap();
+    assert_eq!((fix.base_ahead, fix.base_behind), (Some(1), Some(1)));
 
     // An uncommitted edit that the switch would overwrite.
     write(&r, "a.txt", "dirty\n");

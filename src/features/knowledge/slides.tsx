@@ -1,28 +1,47 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { convertFileSrc, isTauri } from "@tauri-apps/api/core";
-import { type KeyboardEvent, lazy, Suspense, useEffect, useRef, useState } from "react";
+import {
+	type KeyboardEvent,
+	lazy,
+	type ReactNode,
+	Suspense,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { saveAs } from "@/lib/ipc/dialog";
 import { DOC_DIR, slug, useDeckList, useSlideTheme } from "@/lib/knowledge";
+import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
+import { requestEdit } from "@/lib/shell/selection";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/atoms/button";
+import { Button, buttonVariants } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import {
-	ArrowDownTrayIcon,
+	ChevronLeftIcon,
+	ChevronRightIcon,
 	PlayIcon,
-	PlusIcon,
 	PresentationChartIcon,
-	SparklesIcon,
 	XMarkIcon,
 } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
-import { MenuButton } from "@/ui/molecules/menu-button";
-import { EditorFrame } from "@/ui/organisms/editor-frame";
+import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { ListTab } from "./list-tab";
-import { appendSlide, costingSlide, nextSlide, planningSlide } from "./work-slides";
+import { CardHeader, PageCard } from "./pages";
+import {
+	appendMarkdown,
+	appendSlide,
+	costingMarkdown,
+	costingSlide,
+	nextSlide,
+	planningMarkdown,
+	planningSlide,
+	splitNote,
+} from "./work-slides";
 
 // reveal.js loads on the first Markdown deck, not on the first screen.
 const SlideDeck = lazy(() =>
@@ -32,12 +51,88 @@ const SlideDeck = lazy(() =>
 const isHtml = (path: string) => path.endsWith(".html");
 const htmlPath = (path: string) => path.replace(/\.md$/, ".html");
 
-const useDeckText = (path: string, enabled = true) =>
+const useDeckText = (path: string) =>
 	useQuery({
 		queryKey: ["knowledge", "thumb", path],
 		queryFn: () => unwrap(commands.docReadOne(path)),
-		enabled,
 	}).data?.text;
+
+const useSlides = (text: string | undefined) =>
+	useQuery({
+		queryKey: ["knowledge", "deck", text],
+		queryFn: () => commands.slideParse(text ?? ""),
+		enabled: text !== undefined,
+		placeholderData: (prev) => prev,
+	}).data?.slides ?? [];
+
+type Words = ReturnType<typeof useI18n>["t"]["knowledge"]["slides"];
+
+/**
+ * Appends a planning or costing slide, built from the data, to a deck: an HTML section before the
+ * end of the stage, or a Markdown slide after a rule (`spec:library-functions#REQ-004`).
+ */
+async function addWorkSlide(
+	path: string,
+	kind: "planning" | "costing",
+	words: Words,
+	lang: string,
+	conflict: string,
+) {
+	const file = await unwrap(commands.docReadOne(path));
+	const md = path.endsWith(".md");
+	const n = md ? 0 : nextSlide(file.text);
+	const sheets = await unwrap(commands.estimateList());
+	const slide =
+		kind === "costing"
+			? md
+				? costingMarkdown(sheets, words, lang)
+				: costingSlide(sheets, words, lang, n)
+			: await Promise.all(
+					sheets
+						.filter((s) => s.state === "ready")
+						.map(async (s) => ({
+							name: s.name ?? s.slug,
+							plan: await unwrap(commands.planGet(s.slug)),
+						})),
+				).then((plans) =>
+					md ? planningMarkdown(plans, words, lang) : planningSlide(plans, words, lang, n),
+				);
+	const text = md ? appendMarkdown(file.text, slide) : appendSlide(file.text, slide);
+	const w = await unwrap(commands.docWriteOne(path, text, file.stamp, false));
+	if (w.conflict) throw new Error(conflict);
+}
+
+/** The row under the stage: the slide before, the place in the deck, the slide after. */
+function Pager({
+	place,
+	first,
+	last,
+	onBefore,
+	onAfter,
+	end,
+}: {
+	place: string;
+	first?: boolean;
+	last?: boolean;
+	onBefore: () => void;
+	onAfter: () => void;
+	/** A control at the end of the row. */
+	end?: ReactNode;
+}) {
+	const k = useI18n().t.knowledge.slides;
+	return (
+		<div className="flex items-center gap-2.5">
+			<IconButton variant="outline" label={k.before} disabled={first} onClick={onBefore}>
+				<ChevronLeftIcon size={20} />
+			</IconButton>
+			<span className="font-semibold text-n-12">{place}</span>
+			<IconButton variant="outline" label={k.after} disabled={last} onClick={onAfter}>
+				<ChevronRightIcon size={20} />
+			</IconButton>
+			{end ? <span className="ml-auto">{end}</span> : null}
+		</div>
+	);
+}
 
 /** The keys that move a deck. The host gives them to the frame when the frame has no focus. */
 const KEYS = new Set([
@@ -69,7 +164,7 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 	const [failure, setFailure] = useState<unknown>(null);
 	const [exporting, setExporting] = useState(false);
 	const app = isTauri();
-	const text = useDeckText(path, !app);
+	const text = useDeckText(path);
 	// nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- the deck frame has an opaque origin: only "*" reaches it
 	const send = (key: string) => frame.current?.contentWindow?.postMessage({ deckKey: key }, "*");
 	const onKey = (e: KeyboardEvent<HTMLElement>) => {
@@ -98,34 +193,11 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 			if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
 		};
 	}, [present]);
-	/** Appends a planning or costing slide, built from the data, before the end of the stage. */
 	const add = async (kind: "planning" | "costing") => {
 		try {
 			setFailure(null);
 			setNote(null);
-			const file = await unwrap(commands.docReadOne(path));
-			const n = nextSlide(file.text);
-			const sheets = await unwrap(commands.estimateList());
-			const slide =
-				kind === "costing"
-					? costingSlide(sheets, k.slides, lang, n)
-					: planningSlide(
-							await Promise.all(
-								sheets
-									.filter((s) => s.state === "ready")
-									.map(async (s) => ({
-										name: s.name ?? s.slug,
-										plan: await unwrap(commands.planGet(s.slug)),
-									})),
-							),
-							k.slides,
-							lang,
-							n,
-						);
-			const w = await unwrap(
-				commands.docWriteOne(path, appendSlide(file.text, slide), file.stamp, false),
-			);
-			if (w.conflict) throw new Error(t.knowledge.editor.conflict);
+			await addWorkSlide(path, kind, k.slides, lang, t.knowledge.editor.conflict);
 			await qc.invalidateQueries({ queryKey: ["knowledge", "thumb", path] });
 			setRev((r) => r + 1);
 		} catch (e) {
@@ -147,34 +219,25 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 			setExporting(false);
 		}
 	};
+	// The frame has no origin: the host gives it the keys, and cannot read the slide that it shows.
+	const count = nextSlide(text ?? "") - 1;
 	return (
-		<EditorFrame
-			title={title}
-			refId={`doc:${path}`}
-			actions={
-				<>
-					<MenuButton
-						label={k.slides.add}
-						icon={<PlusIcon size={14} />}
-						items={[
-							{ id: "planning", label: k.slides.planning, onSelect: () => void add("planning") },
-							{ id: "costing", label: k.slides.costing, onSelect: () => void add("costing") },
-						]}
-					/>
-					<Button busy={exporting} onClick={() => void exportPdf()}>
-						<ArrowDownTrayIcon size={14} />
-						{k.slides.exportPdf}
-					</Button>
-					<Button onClick={() => setPresent(true)}>
-						<PlayIcon size={14} />
-						{k.slides.present}
-					</Button>
-				</>
-			}
-			labels={k.editor}
-		>
-			{note ? <p className="text-ui text-n-11">{note}</p> : null}
-			{failure ? <ErrorNotice error={failure} className="text-ui text-danger-text" /> : null}
+		<section aria-label={title} className="flex min-w-0 flex-col gap-4">
+			<CardHeader title={title}>
+				<Button className="min-h-control" busy={exporting} onClick={() => void exportPdf()}>
+					{k.slides.exportPdf}
+				</Button>
+				<Button variant="primary" className="min-h-control" onClick={() => setPresent(true)}>
+					<PlayIcon size={16} />
+					{k.slides.present}
+				</Button>
+			</CardHeader>
+			{note ? (
+				<p role="status" className="text-n-11">
+					{note}
+				</p>
+			) : null}
+			{failure ? <ErrorNotice error={failure} className="text-danger-text" /> : null}
 			<section
 				ref={stage}
 				aria-label={present ? k.slides.present : k.slides.slides}
@@ -185,7 +248,7 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 				className={cn(
 					present
 						? "fixed inset-0 z-50 bg-surface-0"
-						: "relative aspect-video w-full overflow-hidden rounded-md border border-n-7",
+						: "relative aspect-video max-h-[36vh] w-full overflow-hidden rounded-lg border border-dashed border-n-8 bg-surface-1",
 				)}
 			>
 				{present ? (
@@ -207,81 +270,208 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 					className="size-full border-0"
 				/>
 			</section>
-		</EditorFrame>
+			<Pager
+				place={format(k.slides.count, { count })}
+				onBefore={() => send("ArrowLeft")}
+				onAfter={() => send("ArrowRight")}
+			/>
+			<div className="flex flex-wrap gap-2.5">
+				<Button className="min-h-control" onClick={() => void add("planning")}>
+					{k.slides.planning}
+				</Button>
+				<Button className="min-h-control" onClick={() => void add("costing")}>
+					{k.slides.costing}
+				</Button>
+			</div>
+		</section>
 	);
 }
 
-/** An older Markdown deck: read only, with Present and a Convert that asks an agent for HTML. */
+/**
+ * A Markdown deck. The stage shows one slide in the deck theme, with the pager and the strip of
+ * slides. Edit opens the text, Export PDF writes the slides, and Speaker notes shows the `Note:`
+ * block of the slide. Present covers the window, and the last action asks an agent for HTML.
+ */
 function MarkdownDeck({ path, title }: { path: string; title: string }) {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const k = t.knowledge;
+	const f = t.library.fn.slides;
+	const qc = useQueryClient();
 	const { ask } = useShell();
-	const text = useDeckText(path) ?? "";
 	const theme = useSlideTheme().data?.value;
 	const [present, setPresent] = useState(false);
-	const slides =
-		useQuery({
-			queryKey: ["knowledge", "deck", text],
-			queryFn: () => commands.slideParse(text),
-			placeholderData: (prev) => prev,
-		}).data?.slides ?? [];
+	const [editing, setEditing] = useState(false);
+	const [notes, setNotes] = useState(false);
+	const [note, setNote] = useState<string | null>(null);
+	const [failure, setFailure] = useState<unknown>(null);
+	const [exporting, setExporting] = useState(false);
+	const parts = useSlides(useDeckText(path)).map(splitNote);
+	const slides = parts.map((p) => p.body);
+	const [chosen, setChosen] = useState(1);
+	const at = Math.min(chosen, Math.max(slides.length, 1));
+	const exportPdf = async () => {
+		try {
+			setFailure(null);
+			setNote(null);
+			const dest = await saveAs(slug(title) || "deck", "pdf");
+			if (!dest) return;
+			setExporting(true);
+			await unwrap(commands.deckPdf(path, dest));
+			setNote(format(t.reports.exported, { path: dest }));
+		} catch (e) {
+			setFailure(e);
+		} finally {
+			setExporting(false);
+		}
+	};
+	const add = async (kind: "planning" | "costing") => {
+		try {
+			setFailure(null);
+			setNote(null);
+			await addWorkSlide(path, kind, k.slides, lang, k.editor.conflict);
+			await qc.invalidateQueries({ queryKey: ["knowledge"] });
+		} catch (e) {
+			setFailure(e);
+		}
+	};
+	// The text of the deck in the editor of a page: the request makes it open on the text.
+	if (editing) {
+		return (
+			<PageCard
+				path={path}
+				title={title}
+				footer={
+					<Button variant="primary" className="min-h-control" onClick={() => setEditing(false)}>
+						{f.done}
+					</Button>
+				}
+			/>
+		);
+	}
 	return (
-		<EditorFrame
-			title={title}
-			refId={`doc:${path}`}
-			actions={
-				<>
-					<Button
-						onClick={() => ask(format(k.slides.askConvert, { from: path, to: htmlPath(path) }))}
-					>
-						<SparklesIcon size={14} />
-						{k.slides.convert}
-					</Button>
-					<Button onClick={() => setPresent(true)} disabled={slides.length === 0}>
-						<PlayIcon size={14} />
-						{k.slides.present}
-					</Button>
-				</>
-			}
-			labels={k.editor}
-		>
+		<section aria-label={title} className="flex min-w-0 flex-col gap-4">
+			<CardHeader title={title}>
+				<RightButton
+					right="knowledge.edit"
+					className="min-h-control"
+					onClick={() => {
+						requestEdit(path);
+						setEditing(true);
+					}}
+				>
+					{f.edit}
+				</RightButton>
+				<Button className="min-h-control" busy={exporting} onClick={() => void exportPdf()}>
+					{k.slides.exportPdf}
+				</Button>
+				<Button
+					variant="primary"
+					className="min-h-control"
+					onClick={() => setPresent(true)}
+					disabled={slides.length === 0}
+				>
+					<PlayIcon size={16} />
+					{k.slides.present}
+				</Button>
+			</CardHeader>
+			{note ? (
+				<p role="status" className="text-n-11">
+					{note}
+				</p>
+			) : null}
+			{failure ? <ErrorNotice error={failure} className="text-danger-text" /> : null}
 			{theme ? (
-				<Suspense fallback={<Loading rows={3} />}>
-					<div className="min-h-0 overflow-auto">
-						<SlideDeck
-							slides={slides}
-							style={theme}
-							label={`${k.slides.slides} (${slides.length})`}
-							slideLabel={(n) => format(k.slides.slide, { n })}
-						/>
-					</div>
-					{present ? (
-						<SlideDeck
-							present
-							slides={slides}
-							style={theme}
-							label={k.slides.present}
-							slideLabel={(n) => format(k.slides.slide, { n })}
-							onLeave={() => setPresent(false)}
-						/>
-					) : null}
+				// The stage keeps its 16:9 box: a deck never shows an empty area of no height.
+				<section
+					aria-label={`${k.slides.slides} (${slides.length})`}
+					className="flex aspect-video max-h-[36vh] w-full flex-col justify-center overflow-auto rounded-lg border border-dashed border-n-8 p-[6%] text-17"
+					style={{ background: theme.background, color: theme.text, fontFamily: theme.font }}
+				>
+					<MarkdownView source={slides[at - 1] ?? ""} label={format(k.slides.slide, { n: at })} />
+				</section>
+			) : (
+				<Loading rows={3} />
+			)}
+			<Pager
+				place={format(k.slides.of, { n: at, count: slides.length })}
+				first={at <= 1}
+				last={at >= slides.length}
+				onBefore={() => setChosen(at - 1)}
+				onAfter={() => setChosen(at + 1)}
+				end={
+					<Button
+						className="min-h-control"
+						aria-pressed={notes}
+						onClick={() => setNotes((n) => !n)}
+					>
+						{f.notes}
+					</Button>
+				}
+			/>
+			{notes ? (
+				<section
+					aria-label={f.notes}
+					className="whitespace-pre-wrap rounded-md bg-n-3 px-4 py-3 text-n-12"
+				>
+					{parts[at - 1]?.note || <span className="text-n-11">{f.noNote}</span>}
+				</section>
+			) : null}
+			<div className="flex flex-wrap gap-2.5">
+				<Button className="min-h-control" onClick={() => void add("planning")}>
+					{k.slides.planning}
+				</Button>
+				<Button className="min-h-control" onClick={() => void add("costing")}>
+					{k.slides.costing}
+				</Button>
+				<Button
+					className="min-h-control"
+					onClick={() => ask(format(k.slides.askConvert, { from: path, to: htmlPath(path) }))}
+				>
+					{k.slides.convert}
+				</Button>
+			</div>
+			<div className="overflow-x-auto p-0.5">
+				<div className="flex gap-2.5">
+					{slides.map((_, i) => (
+						<button
+							// biome-ignore lint/suspicious/noArrayIndexKey: the slides keep their order
+							key={i}
+							type="button"
+							aria-label={format(k.slides.slide, { n: i + 1 })}
+							aria-pressed={i + 1 === at}
+							onClick={() => setChosen(i + 1)}
+							className={cn(
+								"flex aspect-video w-30 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed border-n-8 bg-surface-1 font-medium text-n-11",
+								i + 1 === at && "border-2 border-solid border-accent bg-accent-tint text-n-12",
+							)}
+						>
+							{i + 1}
+						</button>
+					))}
+				</div>
+			</div>
+			{present && theme ? (
+				<Suspense fallback={null}>
+					<SlideDeck
+						present
+						slides={slides}
+						style={theme}
+						label={k.slides.present}
+						slideLabel={(n) => format(k.slides.slide, { n })}
+						onLeave={() => setPresent(false)}
+					/>
 				</Suspense>
 			) : null}
-		</EditorFrame>
+		</section>
 	);
 }
 
 /** The face of a Markdown deck in the grid: its first slide on a 16:9 frame in the deck theme. */
-function MarkdownThumb({ path }: { path: string }) {
+function MarkdownThumb({ path, title }: { path: string; title: string }) {
 	const theme = useSlideTheme().data?.value;
 	const text = useDeckText(path);
-	const deck = useQuery({
-		queryKey: ["knowledge", "deck", text],
-		queryFn: () => commands.slideParse(text ?? ""),
-		enabled: text !== undefined,
-	}).data;
-	const first = (deck?.slides[0] ?? "").split("\n").filter((l) => l.trim());
-	const head = first.find((l) => l.startsWith("#"))?.replace(/^#+\s*/, "") ?? deck?.title ?? "";
+	const first = (useSlides(text)[0] ?? "").split("\n").filter((l) => l.trim());
+	const head = first.find((l) => l.startsWith("#"))?.replace(/^#+\s*/, "") ?? title;
 	const rest = first.filter((l) => !l.startsWith("#")).slice(0, 3);
 	// Both colours or none: a background with no text colour leaves token text on the deck
 	// background (light grey on white in the dark theme). Each line gets the colour too.
@@ -290,17 +480,13 @@ function MarkdownThumb({ path }: { path: string }) {
 	return (
 		<span
 			// Token colours until the deck theme loads: the face never shows text on an unknown background.
-			className="@container relative flex aspect-video flex-col justify-center gap-1.5 overflow-hidden rounded-md border bg-surface-1 px-4 text-n-12 shadow-1"
+			className="@container relative flex aspect-video flex-col justify-center gap-1.5 overflow-hidden rounded-lg border border-dashed border-n-8 bg-surface-1 px-4 text-n-12"
 			style={
 				themed
 					? { background: themed.background, color: themed.text, fontFamily: themed.font }
 					: undefined
 			}
 		>
-			<span
-				className="absolute inset-x-0 top-0 h-1"
-				style={{ background: theme?.accent ?? "var(--accent)" }}
-			/>
 			<span className="truncate text-16 font-semibold" style={ink}>
 				{head}
 			</span>
@@ -319,10 +505,6 @@ function MarkdownThumb({ path }: { path: string }) {
 					{l.replace(/^[-*]\s*/, "")}
 				</span>
 			))}
-			{/* Solid: a see-through badge takes the deck background, which loads later, and its contrast with it. */}
-			<span className="absolute right-2 bottom-1.5 rounded-full bg-surface-0 px-1.5 font-mono text-11 text-n-12">
-				{deck?.slides.length ?? 0}
-			</span>
 		</span>
 	);
 }
@@ -330,14 +512,25 @@ function MarkdownThumb({ path }: { path: string }) {
 /** The face of an HTML deck: its title. A live frame for each card would run every deck at once. */
 function HtmlThumb({ title }: { title: string }) {
 	return (
-		<span className="relative flex aspect-video items-center overflow-hidden rounded-md border bg-n-12 px-4 text-n-1 shadow-1">
-			<span className="absolute inset-x-0 top-0 h-1 bg-accent" />
+		<span className="flex aspect-video items-center overflow-hidden rounded-lg border border-dashed border-n-8 bg-surface-1 px-4 text-n-12">
 			<span className="truncate text-16 font-semibold">{title}</span>
 		</span>
 	);
 }
 
-/** Knowledge / Slides: the decks of the repository as a grid (REQ-017). New deck asks an agent. */
+/** The line under the name of a deck: its number of slides. */
+function DeckCount({ path }: { path: string }) {
+	const k = useI18n().t.knowledge.slides;
+	const text = useDeckText(path);
+	const parsed = useSlides(isHtml(path) ? undefined : text).length;
+	const count = isHtml(path) ? nextSlide(text ?? "") - 1 : parsed;
+	return <span className="text-n-10">{format(k.count, { count })}</span>;
+}
+
+/**
+ * Library / Slides: the decks of the repository as cards, and the open deck beside them (REQ-017).
+ * New deck asks an agent.
+ */
 export function Slides() {
 	const { t } = useI18n();
 	const k = t.knowledge.slides;
@@ -349,13 +542,24 @@ export function Slides() {
 			icon={<PresentationChartIcon size={16} />}
 			noun={k.newDeck}
 			nameLabel={k.name}
+			find={k.find}
 			base={DOC_DIR.slides}
 			rows={rows}
 			create={(name) =>
 				ask(format(k.askNew, { name, path: `${DOC_DIR.slides}/${slug(name)}.html` }))
 			}
 			thumb={(row) =>
-				isHtml(row.path) ? <HtmlThumb title={row.title} /> : <MarkdownThumb path={row.path} />
+				isHtml(row.path) ? (
+					<HtmlThumb title={row.title} />
+				) : (
+					<MarkdownThumb path={row.path} title={row.title} />
+				)
+			}
+			pills={(row) => <DeckCount path={row.path} />}
+			extra={
+				<Link to="/library/documents" className={buttonVariants()}>
+					{k.fromDocument}
+				</Link>
 			}
 		>
 			{(row) =>

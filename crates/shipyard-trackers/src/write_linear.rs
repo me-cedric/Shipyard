@@ -58,6 +58,18 @@ impl Linear {
         Ok(text(&made, "/data/issueLabelCreate/issueLabel/id"))
     }
 
+    /// The projects of the workspace: the name and the id.
+    fn projects(&self) -> Result<Vec<(String, String)>, TrackerError> {
+        let v = self.gql(
+            "query { projects(first: 100) { nodes { id name } } }",
+            json!({}),
+        )?;
+        Ok(items(&v, "/data/projects/nodes")
+            .iter()
+            .map(|p| (text(p, "/name"), text(p, "/id")))
+            .collect())
+    }
+
     fn update_issue(&self, id: &str, input: Value) -> Result<(), TrackerError> {
         self.mutate(
             "mutation($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { success } }",
@@ -132,6 +144,24 @@ impl TrackerWrite for Linear {
         // Linear priority: 1 urgent, 2 high, 3 medium, 4 low. Lowest shares the last place.
         let n = super::work::rank(priority)?.min(4);
         self.update_issue(&self.issue_id(key)?, json!({ "priority": n }))
+    }
+
+    fn releases(&self, _scope: &str) -> Result<Vec<String>, TrackerError> {
+        Ok(self.projects()?.into_iter().map(|(name, _)| name).collect())
+    }
+
+    fn set_release(&self, key: &str, release: Option<&str>) -> Result<(), TrackerError> {
+        let project = match release {
+            Some(r) => json!(
+                self.projects()?
+                    .into_iter()
+                    .find(|(name, _)| name == r)
+                    .ok_or_else(|| TrackerError::Refused(format!("no project named {r}")))?
+                    .1
+            ),
+            None => Value::Null,
+        };
+        self.update_issue(&self.issue_id(key)?, json!({ "projectId": project }))
     }
 
     fn set_due_date(&self, key: &str, day: Option<&str>) -> Result<(), TrackerError> {

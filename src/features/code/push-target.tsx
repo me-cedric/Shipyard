@@ -17,12 +17,14 @@ export function GateNotice({ push }: { push: boolean }) {
 	// Keys start with `code`, so every git action reads them again.
 	const c18 = t.review.chain;
 	const [asking, setAsking] = useState<{ from: string; to: string; name: string } | null>(null);
-	const target = useQuery({
+	// A commit shows no line about the target: the cached answer of a push must not leak into it.
+	const pushTarget = useQuery({
 		queryKey: ["code", "push-target"],
 		queryFn: () => unwrap(commands.codePushTarget()),
 		enabled: push,
 		retry: false,
 	}).data;
+	const target = push ? pushTarget : undefined;
 	const chain =
 		useQuery({
 			queryKey: ["code", "chain-gate", push],
@@ -35,13 +37,17 @@ export function GateNotice({ push }: { push: boolean }) {
 			? [format(w.onDefault, { branch: target.branch ?? "", remote: target.remote })]
 			: []),
 	];
-	if (lines.length === 0 && chain.length === 0) return null;
+	const warnings = chain;
+	if (lines.length === 0 && warnings.length === 0) return null;
 	return (
-		<div role="status" className="flex flex-col gap-1 px-3 py-1 text-ui text-warning-text">
+		<div
+			role="status"
+			className="mx-4 mb-3 flex flex-col gap-2 rounded-lg border border-warning bg-warning-subtle px-4 py-3 text-ui text-n-12"
+		>
 			{lines.map((l) => (
 				<p key={l}>{l}</p>
 			))}
-			{chain.map((c) => {
+			{warnings.map((c) => {
 				const to = t.projects.path[c.to as "specs"] ?? c.to;
 				return (
 					<div key={`${c.from}:${c.to}`} className="flex items-center gap-2">
@@ -53,7 +59,6 @@ export function GateNotice({ push }: { push: boolean }) {
 							})}
 						</p>
 						<Button
-							variant="ghost"
 							aria-label={format(c18.acknowledgeName, { name: to })}
 							onClick={() => setAsking({ from: c.from, to: c.to, name: to })}
 						>

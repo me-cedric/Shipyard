@@ -32,6 +32,8 @@ describe("shortcut chords", () => {
 describe("keyboard shortcuts overlay (shell REQ-005)", () => {
 	it("opens with its chord and lists each action with its chord", async () => {
 		const user = userEvent.setup();
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}{Shift>}k{/Shift}{/Control}");
@@ -39,10 +41,14 @@ describe("keyboard shortcuts overlay (shell REQ-005)", () => {
 		expect(await d.findByText("Ctrl+Shift+S")).toBeVisible();
 		expect(d.getByRole("button", { name: "Change Sync" })).toBeVisible();
 		expect(d.getByText("Ctrl+K")).toBeVisible();
+		// The key comes first in its row, then the name.
+		expect(d.getByText("Ctrl+K").closest("li")?.firstElementChild).toHaveTextContent("Ctrl+K");
 	});
 
 	it("rebinds an action, runs it with the new chord and stores it in the preferences", async () => {
 		const user = userEvent.setup();
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}{Shift>}k{/Shift}{/Control}");
@@ -58,6 +64,8 @@ describe("keyboard shortcuts overlay (shell REQ-005)", () => {
 
 	it("refuses a chord that another action holds and a chord without Mod", async () => {
 		const user = userEvent.setup();
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}{Shift>}k{/Shift}{/Control}");
@@ -73,6 +81,8 @@ describe("keyboard shortcuts overlay (shell REQ-005)", () => {
 	it("keeps a stored chord after a reload of the preferences", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.prefsSet({ shortcuts: { "toggle-inspector": "mod+shift+u" } }));
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}{Shift>}u{/Shift}{/Control}");
@@ -83,6 +93,18 @@ describe("keyboard shortcuts overlay (shell REQ-005)", () => {
 			),
 		);
 	});
+
+	it("keeps a chord that a person stored for an area of before the six places", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.prefsSet({ shortcuts: { "go-design": "mod+shift+d" } }));
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const router = mountApp("/today");
+		await screen.findByRole("navigation", { name: "Sidebar" });
+		await user.keyboard("{Control>}{Shift>}d{/Shift}{/Control}");
+		await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/library\//));
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
 });
 
 describe("native menu", () => {
@@ -92,7 +114,7 @@ describe("native menu", () => {
 			for (const id of MENU_ACTIONS) expect(labels[id], id).toBeTruthy();
 			expect(labels.go).toBeTruthy();
 		}
-		expect(menuLabels(en)["go-factory"]).toBe("Factory");
+		expect(menuLabels(en)["go-flow"]).toBe("Flow");
 		expect(menuLabels(fr)["shortcuts-help"]).toBe("Raccourcis clavier");
 	});
 });
@@ -117,15 +139,37 @@ describe("close guard", () => {
 			</Providers>,
 		);
 
-	it("names the work in flight and closes only after Close anyway", async () => {
+	it("names the agents at work and closes only after Stop them and close", async () => {
 		const user = userEvent.setup();
 		mockState().inFlight = { runs: 2, turns: 1, drafts: 0 };
 		mount();
 		await user.click(await screen.findByRole("button", { name: "ask" }));
 		const d = await dialog();
+		expect(await screen.findByRole("dialog", { name: "Agents still at work: 2" })).toBeVisible();
 		expect(await d.findByText("2 runs and 1 assistant turns are in progress.")).toBeVisible();
 		expect(mockState().closed).toBe(false);
-		await user.click(d.getByRole("button", { name: "Close anyway" }));
+		const stop = d.getByRole("button", { name: "Stop them and close" });
+		expect(stop).toHaveClass("min-h-control");
+		await user.click(stop);
+		await waitFor(() => expect(mockState().closed).toBe(true));
+	});
+
+	it("keeps the window and the agents on Keep them working", async () => {
+		const user = userEvent.setup();
+		mockState().inFlight = { runs: 1, turns: 0, drafts: 0 };
+		mount();
+		await user.click(await screen.findByRole("button", { name: "ask" }));
+		await user.click(await (await dialog()).findByRole("button", { name: "Keep them working" }));
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		expect(mockState().closed).toBe(false);
+	});
+
+	it("says Close anyway when only unsaved files hold the window", async () => {
+		const user = userEvent.setup();
+		mockState().inFlight = { runs: 0, turns: 0, drafts: 1 };
+		mount();
+		await user.click(await screen.findByRole("button", { name: "ask" }));
+		await user.click(await (await dialog()).findByRole("button", { name: "Close anyway" }));
 		await waitFor(() => expect(mockState().closed).toBe(true));
 	});
 

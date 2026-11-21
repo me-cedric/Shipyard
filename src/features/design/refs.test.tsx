@@ -1,10 +1,12 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
+import { mockState } from "@/lib/ipc/mock";
 import { Decisions } from "./decisions";
 import { Diagrams } from "./diagrams";
 import { mountDesign } from "./harness";
 
+const files = () => mockState().design.files;
 const list = async (name: string) => within(await screen.findByRole("list", { name }));
 const inspector = async () =>
 	within(await screen.findByRole("complementary", { name: "Inspector" }));
@@ -22,9 +24,10 @@ describe("the ref of a design artifact", () => {
 		await mountDesign(<Diagrams />);
 		await user.click((await list("Diagrams")).getByRole("button", { name: /context/ }));
 		// The inspector header offers Copy ref too: any of them copies the same ref.
-		await user.click(
-			(await screen.findAllByRole("button", { name: "Copy ref" }))[0] as HTMLElement,
-		);
+		// The reference sits in the "More" menu of the page.
+		const [more] = await screen.findAllByRole("button", { name: "More" });
+		await user.click(more as HTMLElement);
+		await user.click(await screen.findByRole("menuitem", { name: "Copy ref" }));
 		expect(writeText).toHaveBeenCalledWith("diagram:context");
 	});
 
@@ -33,27 +36,32 @@ describe("the ref of a design artifact", () => {
 		await mountDesign(<Diagrams />);
 		await user.click((await list("Diagrams")).getByRole("button", { name: /context/ }));
 		const panel = await inspector();
-		expect(await panel.findByRole("button", { name: /^diagram:context/ })).toBeInTheDocument();
+		expect(await panel.findByText("diagram:context", { selector: "code" })).toBeInTheDocument();
 		// The design doc and the home screen cite the diagram.
-		expect(await panel.findByRole("heading", { name: "Document (1)" })).toBeInTheDocument();
-		expect(panel.getByRole("heading", { name: "Screen (1)" })).toBeInTheDocument();
+		expect(await panel.findAllByRole("button", { name: /^doc:/ })).toHaveLength(1);
+		expect(panel.getAllByRole("button", { name: /^screen:/ })).toHaveLength(1);
 		expect(panel.getByRole("button", { name: /^screen:home/ })).toBeInTheDocument();
 	});
 
 	it("shows the citation of an ADR in its backlinks", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Decisions />);
-		await user.click((await list("Decisions")).getByRole("button", { name: /0004/ }));
+		await user.click((await list("Decisions")).getByRole("button", { name: /Polling sync/ }));
 		const panel = await inspector();
-		expect(await panel.findByRole("heading", { name: /^Document \(\d+\)$/ })).toBeInTheDocument();
+		expect(await panel.findAllByRole("button", { name: /^doc:/ })).not.toHaveLength(0);
 	});
 
 	it("shows ghost rows for an artifact that nothing cites", async () => {
 		const user = userEvent.setup();
+		// The demo decisions are cited: this one is cited by nothing.
+		files()["docs/decisions/0005-use-queues.md"] = {
+			text: "---\nstatus: accepted\ndate: 2026-10-30\ndecision-makers: [ada]\n---\n# Use queues\n## Context and problem statement\n\nWhy.\n",
+			stamp: "1",
+		};
 		await mountDesign(<Decisions />);
-		await user.click((await list("Decisions")).getByRole("button", { name: /0003/ }));
+		await user.click((await list("Decisions")).getByRole("button", { name: /Use queues/ }));
 		const panel = await inspector();
-		await panel.findByRole("button", { name: /^adr:0003/ });
+		await panel.findByText("adr:0005", { selector: "code" });
 		await waitFor(() => expect(panel.queryAllByRole("heading", { level: 3 })).toHaveLength(0));
 	});
 });

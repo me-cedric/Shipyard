@@ -5,7 +5,7 @@ import { ChevronDownIcon } from "../icons";
 import { type MenuButtonItem, MenuList } from "./menu-button";
 
 const PART =
-	"inline-flex h-full items-center gap-1.5 px-2 text-ui text-n-11 transition-colors duration-(--duration-fast) hover:bg-n-3 hover:text-n-12 focus-visible:outline-offset-[-2px] disabled:pointer-events-none disabled:opacity-50";
+	"inline-flex items-center gap-1.5 px-2 text-ui text-n-11 transition-colors duration-(--duration-fast) hover:bg-n-3 hover:text-n-12 focus-visible:outline-offset-[-2px] disabled:pointer-events-none disabled:opacity-50";
 
 /**
  * One joined control: the main part runs the main action, the arrow part opens a list of other
@@ -50,7 +50,7 @@ export function SplitButton({
 		<span
 			title={disabled ? reason : undefined}
 			className={cn(
-				"inline-flex h-7 shrink-0 items-stretch overflow-hidden rounded-md border border-n-7",
+				"inline-flex min-h-control shrink-0 items-stretch overflow-hidden rounded-md border border-n-7",
 				className,
 			)}
 		>

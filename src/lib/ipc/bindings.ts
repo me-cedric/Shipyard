@@ -57,8 +57,8 @@ export const commands = {
 	personasList: () => typedError<Persona[], AppError_Serialize>(__TAURI_INVOKE("personas_list")),
 	personasSave: (personas: Persona[]) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("personas_save", { personas })),
 	assignmentsRead: () => typedError<Assignments, AppError_Serialize>(__TAURI_INVOKE("assignments_read")),
-	ticketsConfigGet: () => typedError<TicketsConfig, AppError_Serialize>(__TAURI_INVOKE("tickets_config_get")),
-	ticketsConfigSave: (config: TicketsConfig) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("tickets_config_save", { config })),
+	ticketsConfigGet: () => typedError<TicketsConfig_Serialize, AppError_Serialize>(__TAURI_INVOKE("tickets_config_get")),
+	ticketsConfigSave: (config: TicketsConfig_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("tickets_config_save", { config })),
 	ticketsLinks: () => typedError<TicketLink[], AppError_Serialize>(__TAURI_INVOKE("tickets_links")),
 	deliveryNotes: () => typedError<DeliveryNote[], AppError_Serialize>(__TAURI_INVOKE("delivery_notes")),
 	projectsOverview: () => typedError<ProjectCard_Serialize[], AppError_Serialize>(__TAURI_INVOKE("projects_overview")),
@@ -74,6 +74,15 @@ export const commands = {
 	connectionsAdd: (draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, AppError_Serialize>(__TAURI_INVOKE("connections_add", { draft })),
 	connectionsEdit: (id: string, draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, AppError_Serialize>(__TAURI_INVOKE("connections_edit", { id, draft })),
 	connectionsRemove: (id: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("connections_remove", { id })),
+	/**  The connections that Sign out would remove the token of: the list of its confirmation. */
+	accountSignOutList: () => typedError<Connection_Serialize[], AppError_Serialize>(__TAURI_INVOKE("account_sign_out_list")),
+	/**
+	 *  Sign out: remove the tokens of the code host and the issue tracker from the keychain of this
+	 *  computer. The sign-in of an AI tool or of OpenRouter stays. It needs the click of a person.
+	 */
+	accountSignOut: (click: boolean) => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("account_sign_out", { click })),
+	/**  Sign out of one connection: remove its token from the keychain. It needs the click of a person. */
+	connectionsSignOut: (id: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("connections_sign_out", { id, click })),
 	connectionsUsers: (id: string) => typedError<ConnectionUser[], AppError_Serialize>(__TAURI_INVOKE("connections_users", { id })),
 	/**  Write-only: the secret goes to the keychain and no command returns it. */
 	connectionsSetSecret: (id: string, secret: string) => typedError<Connection_Serialize, AppError_Serialize>(__TAURI_INVOKE("connections_set_secret", { id, secret })),
@@ -139,6 +148,8 @@ export const commands = {
 	codePullMerge: (number: number, method: MergeMethod, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_merge", { number, method, click })),
 	codePullReady: (number: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_ready", { number, click })),
 	codePullClose: (number: number, reason: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_close", { number, reason, click })),
+	codePullRerun: (number: number, click: boolean) => typedError<number, AppError_Serialize>(__TAURI_INVOKE("code_pull_rerun", { number, click })),
+	codePullReviewers: () => typedError<Reviewer[], AppError_Serialize>(__TAURI_INVOKE("code_pull_reviewers")),
 	codePullSendBack: (number: number, text: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_send_back", { number, text, click })),
 	codePullArchiveSpec: (number: number, change: string, confirmed: boolean, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("code_pull_archive_spec", { number, change, confirmed, click })),
 	deviceLoginStart: (id: string, click: boolean) => typedError<DeviceStart, AppError_Serialize>(__TAURI_INVOKE("device_login_start", { id, click })),
@@ -166,8 +177,16 @@ export const commands = {
 	/**  The proposal for the `gates` of the active project. It reads files and writes nothing. */
 	codeGatesPropose: () => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("code_gates_propose")),
 	codeGatesSave: (gates: string[], click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_gates_save", { gates, click })),
+	pageHistory: (path: string) => typedError<CommitInfo[], AppError_Serialize>(__TAURI_INVOKE("page_history", { path })),
+	pageVersion: (path: string, sha: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("page_version", { path, sha })),
+	/**  Writes an earlier version into the page, after the click of a person. It does not commit. */
+	pageRestore: (path: string, sha: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("page_restore", { path, sha, click })),
 	docSearch: (query: string) => typedError<DocHit[], AppError_Serialize>(__TAURI_INVOKE("doc_search", { query })),
 	docDocxList: () => typedError<PageEntry[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_list")),
+	/**  Copies a file that the person chose into the documents folder, after the click of a person. */
+	docAddFile: (source: string, click: boolean) => typedError<PageEntry, AppError_Serialize>(__TAURI_INVOKE("doc_add_file", { source, click })),
+	/**  One document as a Word file or as a PDF (macOS first), at the path of a save dialog. */
+	docDownload: (path: string, dest: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("doc_download", { path, dest, click })),
 	docDocxRead: (path: string) => typedError<Paragraph[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_read", { path })),
 	deckList: () => typedError<PageEntry[], AppError_Serialize>(__TAURI_INVOKE("deck_list")),
 	/**  Prints the deck with its print style sheet to a PDF at `dest`, one page per slide. */
@@ -183,6 +202,7 @@ export const commands = {
 	codeImpactList: () => typedError<ImpactEntry[], AppError_Serialize>(__TAURI_INVOKE("code_impact_list")),
 	codeImpactRead: (path: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("code_impact_read", { path })),
 	codeImpactAnalyze: (base: string, click: boolean) => typedError<ImpactEntry, AppError_Serialize>(__TAURI_INVOKE("code_impact_analyze", { base, click })),
+	codeImpactPlanSave: (path: string, lines: PlanLine[], click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_impact_plan_save", { path, lines, click })),
 	/**  Opens a terminal. `folder` is relative to the project root. Returns the id of the shell. */
 	terminalOpen: (id: string, folder: string | null, cols: number, rows: number) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("terminal_open", { id, folder, cols, rows })),
 	terminalWrite: (id: string, data: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("terminal_write", { id, data })),
@@ -233,7 +253,18 @@ export const commands = {
 	prReviewStop: (number: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("pr_review_stop", { number })),
 	prReviewWaiting: () => typedError<ReviewWait[], AppError_Serialize>(__TAURI_INVOKE("pr_review_waiting")),
 	prWriteText: (base: string | null, click: boolean) => typedError<PrText, AppError_Serialize>(__TAURI_INVOKE("pr_write_text", { base, click })),
+	estimateAgentStart: (slug: string, taskIds: string[], click: boolean) => typedError<EstimateProposal[], AppError_Serialize>(__TAURI_INVOKE("estimate_agent_start", { slug, taskIds, click })),
+	estimateAgentStop: (slug: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("estimate_agent_stop", { slug })),
+	dashboardTileBuild: (slug: string, text: string, budgetUsd: number | null) => typedError<TileProposal, AppError_Serialize>(__TAURI_INVOKE("dashboard_tile_build", { slug, text, budgetUsd })),
 	machineSessions: () => typedError<MachineSession_Serialize[], AppError_Serialize>(__TAURI_INVOKE("machine_sessions")),
+	machineSessionTake: (pid: number, click: boolean) => typedError<TakeOver, AppError_Serialize>(__TAURI_INVOKE("machine_session_take", { pid, click })),
+	/**
+	 *  The last lines of the live output of a session, from the history file of its tool. Empty when
+	 *  the tool writes none that Shipyard reads.
+	 */
+	machineSessionOutput: (runner: string, session: string) => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("machine_session_output", { runner, session })),
+	/**  The load of the agent processes: processor and memory. */
+	machineLoad: () => typedError<MachineLoad, AppError_Serialize>(__TAURI_INVOKE("machine_load")),
 	machineSessionStop: (pid: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("machine_session_stop", { pid, click })),
 	machineSpend: (days: number) => typedError<Spend, AppError_Serialize>(__TAURI_INVOKE("machine_spend", { days })),
 	machineBudgetSet: (runner: string, usd: number | null) => typedError<Budget[], AppError_Serialize>(__TAURI_INVOKE("machine_budget_set", { runner, usd })),
@@ -261,6 +292,8 @@ export const commands = {
 	creatorBootstrap: (click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("creator_bootstrap", { click })),
 	assistantAttach: (thread: string, name: string, bytes: number[]) => typedError<Attachment, AppError_Serialize>(__TAURI_INVOKE("assistant_attach", { thread, name, bytes })),
 	feedbackOpen: (kind: FeedbackKind, title: string, details: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("feedback_open", { kind, title, details, click })),
+	/**  Copy a file for the feedback and give the copy to show. */
+	feedbackAttach: (path: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("feedback_attach", { path, click })),
 	debugLog: () => typedError<LogLine[], AppError_Serialize>(__TAURI_INVOKE("debug_log")),
 	/**  The model of each tier for each runner (`factory` REQ-012). Settings / Connections edits it. */
 	tiersGet: () => typedError<RunnerTiers_Serialize[], AppError_Serialize>(__TAURI_INVOKE("tiers_get")),
@@ -282,7 +315,7 @@ export const commands = {
 	/**  The last lines of the audit log of the open project. */
 	rightsAuditTail: () => typedError<AuditLine_Serialize[], AppError_Serialize>(__TAURI_INVOKE("rights_audit_tail")),
 	/**  Save the table of the roles and the roles of the members. */
-	rightsRolesSave: (table: RoleAccess[], members: MemberRoles[]) => typedError<RightsView_Serialize, AppError_Serialize>(__TAURI_INVOKE("rights_roles_save", { table, members })),
+	rightsRolesSave: (table: RoleAccess_Deserialize[], members: MemberRoles[]) => typedError<RightsView_Serialize, AppError_Serialize>(__TAURI_INVOKE("rights_roles_save", { table, members })),
 	workTeam: () => typedError<TeamView_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_team")),
 	workTeamAddMe: (click: boolean) => typedError<TeamView_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_team_add_me", { click })),
 	/**  Ask to join the team of the open project (REQ-011). */
@@ -300,6 +333,12 @@ export const commands = {
 	workTicketPrioritySet: (key: string, priority: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_ticket_priority_set", { key, priority, click })),
 	workTicketTypeSet: (key: string, name: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_ticket_type_set", { key, name, click })),
 	workTicketDueSet: (key: string, day: string | null, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_ticket_due_set", { key, day, click })),
+	workTicketReleaseSet: (key: string, release: string | null, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_ticket_release_set", { key, release, click })),
+	workReleases: () => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("work_releases")),
+	workTeamJoinRequests: () => typedError<JoinRequest[], AppError_Serialize>(__TAURI_INVOKE("work_team_join_requests")),
+	workTeamJoinAccept: (number: number, role: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_team_join_accept", { number, role, click })),
+	workTeamJoinRefuse: (number: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_team_join_refuse", { number, click })),
+	workIssueTypes: () => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("work_issue_types")),
 	filesCreateFile: (path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("files_create_file", { path, click })),
 	filesCreateFolder: (path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("files_create_folder", { path, click })),
 	filesRename: (from: string, to: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("files_rename", { from, to, click })),
@@ -330,6 +369,8 @@ export const commands = {
 	planCalendarGet: () => typedError<Calendar_Serialize, AppError_Serialize>(__TAURI_INVOKE("plan_calendar_get")),
 	planDecisionsSave: (decisions: Decisions_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("plan_decisions_save", { decisions })),
 	planCalendarSave: (calendar: Calendar_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("plan_calendar_save", { calendar })),
+	/**  Fill my time from my work: the runs of my tickets and my commits of the day. */
+	timeFillDay: (member: string | null, day: string, click: boolean) => typedError<Filled_Serialize, AppError_Serialize>(__TAURI_INVOKE("time_fill_day", { member, day, click })),
 	timeList: (member: string | null, month: string) => typedError<TimeView_Serialize, AppError_Serialize>(__TAURI_INVOKE("time_list", { member, month })),
 	timeAdd: (member: string | null, day: string, minutes: number, note: string, ticket: string | null, offsetMinutes: number, reduceRemaining: boolean) => typedError<TimeSent_Serialize, AppError_Serialize>(__TAURI_INVOKE("time_add", { member, day, minutes, note, ticket, offsetMinutes, reduceRemaining })),
 	timeUpdate: (member: string | null, day: string, id: string, minutes: number, note: string, offsetMinutes: number, click: boolean) => typedError<TimeSent_Serialize, AppError_Serialize>(__TAURI_INVOKE("time_update", { member, day, id, minutes, note, offsetMinutes, click })),
@@ -343,6 +384,7 @@ export const commands = {
 	workItemPreview: (row: Row_Deserialize) => typedError<DiffRow_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_item_preview", { row })),
 	workItemCreate: (row: Row_Deserialize, click: boolean) => typedError<ApplyRow_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_item_create", { row, click })),
 	runsList: () => typedError<RunView_Serialize[], AppError_Serialize>(__TAURI_INVOKE("runs_list")),
+	featuresList: () => typedError<FlowFeature_Serialize[], AppError_Serialize>(__TAURI_INVOKE("features_list")),
 	runGetOne: (run: string) => typedError<RunView_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("run_get_one", { run })),
 	runLogPage: (run: string, after: number, limit: number) => typedError<RunLogPage_Serialize, AppError_Serialize>(__TAURI_INVOKE("run_log_page", { run, after, limit })),
 	sessionsList: () => typedError<SessionView_Serialize[], AppError_Serialize>(__TAURI_INVOKE("sessions_list")),
@@ -354,6 +396,10 @@ export const commands = {
 	runStart: (key: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("run_start", { key })),
 	runCancel: (run: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_cancel", { run })),
 	runResume: (run: string, addUsd: number | null, addTokens: number, note: string | null) => typedError<RunState, AppError_Serialize>(__TAURI_INVOKE("run_resume", { run, addUsd, addTokens, note })),
+	runPause: (run: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_pause", { run })),
+	recipeAllowPrWrite: (recipe: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("recipe_allow_pr_write", { recipe, click })),
+	runTakeOver: (run: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("run_take_over", { run })),
+	runAttach: (run: string, name: string, bytes: number[]) => typedError<Attachment, AppError_Serialize>(__TAURI_INVOKE("run_attach", { run, name, bytes })),
 	runUnblock: (run: string, note: string | null) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_unblock", { run, note })),
 	runCloseDone: (run: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_close_done", { run })),
 	runPlanApprove: (run: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("run_plan_approve", { run })),
@@ -362,6 +408,7 @@ export const commands = {
 	/**  Why the run log file did not open, or `null`. The runs of this session are then not kept. */
 	runLogDegraded: () => typedError<string | null, AppError_Serialize>(__TAURI_INVOKE("run_log_degraded")),
 	killSwitchSet: (on: boolean) => typedError<boolean, AppError_Serialize>(__TAURI_INVOKE("kill_switch_set", { on })),
+	agentsStopAll: (click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("agents_stop_all", { click })),
 	workflowsList: () => typedError<WorkflowItem_Serialize[], AppError_Serialize>(__TAURI_INVOKE("workflows_list")),
 	workflowGet: (id: string) => typedError<WorkflowFile_Serialize, AppError_Serialize>(__TAURI_INVOKE("workflow_get", { id })),
 	workflowCheck: (id: string, text: string) => typedError<WorkflowFile_Serialize, AppError_Serialize>(__TAURI_INVOKE("workflow_check", { id, text })),
@@ -377,6 +424,8 @@ export const commands = {
 	rolesList: () => typedError<RoleItem_Serialize[], AppError_Serialize>(__TAURI_INVOKE("roles_list")),
 	roleGet: (id: string) => typedError<RoleFile_Serialize, AppError_Serialize>(__TAURI_INVOKE("role_get", { id })),
 	roleWrite: (id: string, text: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("role_write", { id, text })),
+	/**  Set the model tier of an agent role. */
+	roleModelSet: (id: string, tier: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("role_model_set", { id, tier })),
 	questionsList: () => typedError<QuestionView_Serialize[], AppError_Serialize>(__TAURI_INVOKE("questions_list")),
 	questionAnswer: (run: string, id: string, choice: QuestionChoice) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("question_answer", { run, id, choice })),
 	messagesList: () => typedError<MessageView[], AppError_Serialize>(__TAURI_INVOKE("messages_list")),
@@ -384,6 +433,7 @@ export const commands = {
 	approvalsList: () => typedError<ApprovalView[], AppError_Serialize>(__TAURI_INVOKE("approvals_list")),
 	approvalApprove: (id: number) => typedError<string | null, AppError_Serialize>(__TAURI_INVOKE("approval_approve", { id })),
 	approvalReject: (id: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("approval_reject", { id })),
+	approvalsAllowRecipe: (ids: number[]) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("approvals_allow_recipe", { ids })),
 	pullsList: () => typedError<PrRowView[], AppError_Serialize>(__TAURI_INVOKE("pulls_list")),
 	pullsStatusGet: () => typedError<PullsStatus_Serialize, AppError_Serialize>(__TAURI_INVOKE("pulls_status_get")),
 	designList: () => typedError<DesignList_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_list")),
@@ -392,6 +442,8 @@ export const commands = {
 	designAdrCreate: (title: string) => typedError<Adr, AppError_Serialize>(__TAURI_INVOKE("design_adr_create", { title })),
 	designAdrDecide: (path: string, decision: Decision, comment: string, stamp: string) => typedError<Written_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_adr_decide", { path, decision, comment, stamp })),
 	designFlowsSave: (path: string, rows: FlowRow_Deserialize[], stamp: string | null) => typedError<Written_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_flows_save", { path, rows, stamp })),
+	designFlowsCheck: (path: string) => typedError<FlowsChecked_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_flows_check", { path })),
+	designFlowsChecked: (path: string) => typedError<FlowsChecked_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("design_flows_checked", { path })),
 	designTry: (request: TryRequest_Deserialize, click: boolean) => typedError<TryResponse, AppError_Serialize>(__TAURI_INVOKE("design_try", { request, click })),
 	designOpen: (target: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("design_open", { target })),
 	designBytes: (path: string) => typedError<number[], AppError_Serialize>(__TAURI_INVOKE("design_bytes", { path })),
@@ -406,6 +458,7 @@ export const commands = {
 	figmaTokens: (file: string) => typedError<DesignToken[], AppError_Serialize>(__TAURI_INVOKE("figma_tokens", { file })),
 	specsChanges: () => typedError<ChangeView_Serialize[], AppError_Serialize>(__TAURI_INVOKE("specs_changes")),
 	specsChangeCreate: (title: string) => typedError<ChangeView_Serialize, AppError_Serialize>(__TAURI_INVOKE("specs_change_create", { title })),
+	specsChangeInputAdd: (id: string, name: string, bytes: number[]) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("specs_change_input_add", { id, name, bytes })),
 	specsChangeFromTicket: (key: string, click: boolean) => typedError<TicketChange_Serialize, AppError_Serialize>(__TAURI_INVOKE("specs_change_from_ticket", { key, click })),
 	specsChangeDelegate: (key: string, workflow: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("specs_change_delegate", { key, workflow, click })),
 	specsRead: (path: string) => typedError<Text, AppError_Serialize>(__TAURI_INVOKE("specs_read", { path })),
@@ -432,6 +485,10 @@ export const commands = {
 	/**  Fails when the worktree of the thread holds changes: discard it first. */
 	assistantDelete: (thread: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("assistant_delete", { thread })),
 	assistantWorktreeDiscard: (thread: string, force: boolean) => typedError<ThreadView_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_worktree_discard", { thread, force })),
+	/**  Keep the change of one file, or of all with no path. Returns the files that are left to review. */
+	assistantFileKeep: (thread: string, path: string | null) => typedError<FileDiff[], AppError_Serialize>(__TAURI_INVOKE("assistant_file_keep", { thread, path })),
+	/**  Revert one file of the thread. Returns the files that are left to review. */
+	assistantFileUndo: (thread: string, path: string) => typedError<FileDiff[], AppError_Serialize>(__TAURI_INVOKE("assistant_file_undo", { thread, path })),
 	assistantDiff: (thread: string) => typedError<FileDiff[], AppError_Serialize>(__TAURI_INVOKE("assistant_diff", { thread })),
 	assistantSaveDraft: (thread: string, draft: string, context: Context_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("assistant_save_draft", { thread, draft, context })),
 	assistantSettingsSet: (thread: string, settings: ThreadSettings_Deserialize) => typedError<ThreadView_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_settings_set", { thread, settings })),
@@ -445,8 +502,8 @@ export const commands = {
 	assistantSend: (thread: string, text: string, quotes: Quote[], context: Context_Deserialize) => typedError<TurnResult_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_send", { thread, text, quotes, context })),
 	/**  Stops the running turn of a thread. The turn ends with the reply that came so far. */
 	assistantStop: (thread: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("assistant_stop", { thread })),
-	/**  The tool calls of the running turn of a thread so far. Empty when no turn runs. */
-	assistantLive: (thread: string) => typedError<TraceStep[], AppError_Serialize>(__TAURI_INVOKE("assistant_live", { thread })),
+	/**  The tool calls and the tokens of the running turn of a thread so far. Empty when no turn runs. */
+	assistantLive: (thread: string) => typedError<LiveTurn, AppError_Serialize>(__TAURI_INVOKE("assistant_live", { thread })),
 	/**  Grants the tool that the last message waits for and resumes the session. */
 	assistantGrant: (thread: string) => typedError<TurnResult_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_grant", { thread })),
 	/**  Resumes the session after a failed turn. It does not send the first request again. */
@@ -479,6 +536,8 @@ export const commands = {
 	dashboardSaveOne: (slug: string, dashboard: Dashboard_Deserialize, stamp: string | null) => typedError<Written_Serialize, AppError_Serialize>(__TAURI_INVOKE("dashboard_save_one", { slug, dashboard, stamp })),
 	dashboardTile: (kind: string) => typedError<TileData_Serialize, AppError_Serialize>(__TAURI_INVOKE("dashboard_tile", { kind })),
 	learnGet: () => typedError<Learn, AppError_Serialize>(__TAURI_INVOKE("learn_get")),
+	/**  Adds a word to the glossary file, after the click of a person. */
+	glossaryAddWord: (term: string, meaning: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("glossary_add_word", { term, meaning, click })),
 	learningGet: () => typedError<Learning_Serialize, AppError_Serialize>(__TAURI_INVOKE("learning_get")),
 	/**  Reads each feed of the project. `refresh` reads again even when the copy is fresh. */
 	learningFeedsRead: (refresh: boolean) => typedError<FeedRead_Serialize[], AppError_Serialize>(__TAURI_INVOKE("learning_feeds_read", { refresh })),
@@ -489,30 +548,36 @@ export const commands = {
 	/**  `step` is `<path>/<step>`. */
 	learningProgressSet: (person: string, step: string, done: boolean, click: boolean) => typedError<Learning_Serialize, AppError_Serialize>(__TAURI_INVOKE("learning_progress_set", { person, step, done, click })),
 	exportDiagramsGet: () => typedError<DiagramSource[], AppError_Serialize>(__TAURI_INVOKE("export_diagrams_get")),
-	exportDossierFile: (text: ExportText, views: ViewImage[], path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_dossier_file", { text, views, path })),
-	exportFunctionalFile: (text: ExportText, path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_functional_file", { text, path })),
-	exportSheetFile: (text: ExportText, sheets: SheetIn[], path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_sheet_file", { text, sheets, path })),
+	exportDossierFile: (text: ExportText_Deserialize, views: ViewImage[], path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_dossier_file", { text, views, path })),
+	exportFunctionalFile: (text: ExportText_Deserialize, path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_functional_file", { text, path })),
+	exportSheetFile: (text: ExportText_Deserialize, sheets: SheetIn[], path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_sheet_file", { text, sheets, path })),
 	/**
 	 *  The dossier with every section gathered by the app. Seven titles in `text.sections`. It needs
 	 *  the click of a person. `views` may be empty.
 	 */
-	exportDossierCompleteFile: (text: ExportText, views: ViewImage[], path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_dossier_complete_file", { text, views, path, click })),
+	exportDossierCompleteFile: (text: ExportText_Deserialize, views: ViewImage[], path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_dossier_complete_file", { text, views, path, click })),
 	/**  The estimate sheets as an `.xlsx`: days, no money. */
-	exportCostingFile: (text: ExportText, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_costing_file", { text, path, click })),
+	exportCostingFile: (text: ExportText_Deserialize, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_costing_file", { text, path, click })),
 	/**  The network flows as an `.xlsx`, one worksheet for each flow file. */
-	exportFlowsFile: (text: ExportText, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_flows_file", { text, path, click })),
+	exportFlowsFile: (text: ExportText_Deserialize, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_flows_file", { text, path, click })),
 	/**  The RAID register as an `.xlsx`. */
-	exportRaidFile: (text: ExportText, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_raid_file", { text, path, click })),
+	exportRaidFile: (text: ExportText_Deserialize, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_raid_file", { text, path, click })),
 	/**  The plan of one estimate sheet as an `.xlsx`. */
-	exportScheduleFile: (text: ExportText, slug: string, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_schedule_file", { text, slug, path, click })),
+	exportScheduleFile: (text: ExportText_Deserialize, slug: string, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_schedule_file", { text, slug, path, click })),
 	/**  The Gantt of one estimate sheet as an `.svg`. */
-	exportGanttFile: (text: ExportText, slug: string, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_gantt_file", { text, slug, path, click })),
+	exportGanttFile: (text: ExportText_Deserialize, slug: string, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_gantt_file", { text, slug, path, click })),
 	/**  The security findings as an `.xlsx`, one worksheet for each scanner. */
-	exportSecurityFile: (text: ExportText, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_security_file", { text, path, click })),
+	exportSecurityFile: (text: ExportText_Deserialize, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_security_file", { text, path, click })),
 	/**  The work done between two refs as an `.xlsx`. `from` and `to` are `YYYY-MM-DD` and required. */
-	exportWorkDoneFile: (text: ExportText, base: string, head: string, from: string, to: string, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_work_done_file", { text, base, head, from, to, path, click })),
+	exportWorkDoneFile: (text: ExportText_Deserialize, base: string, head: string, from: string, to: string, path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_work_done_file", { text, base, head, from, to, path, click })),
 	/**  Writes the change request files in the delivery folder of the project. */
-	exportChangeRequestFiles: (title: string, base: string, head: string, approvers: string[], click: boolean) => typedError<ChangeRequestOut, AppError_Serialize>(__TAURI_INVOKE("export_change_request_files", { title, base, head, approvers, click })),
+	exportChangeRequestFiles: (title: string, base: string, head: string, approvers: string[], click: boolean) => typedError<ChangeRequestOut_Serialize, AppError_Serialize>(__TAURI_INVOKE("export_change_request_files", { title, base, head, approvers, click })),
+	/**  Writes the change request as Markdown and PDF in the delivery folder (macOS first). */
+	exportChangeRequestPdfFiles: (title: string, base: string, head: string, approvers: string[], click: boolean) => typedError<ChangeRequestOut_Serialize, AppError_Serialize>(__TAURI_INVOKE("export_change_request_pdf_files", { title, base, head, approvers, click })),
+	/**  The reports that a person wrote, the last one of each. */
+	reportsWrittenGet: () => typedError<WrittenReport[], AppError_Serialize>(__TAURI_INVOKE("reports_written_get")),
+	/**  Notes that the person wrote a report: the Written for you rows show the person and the day. */
+	reportsWrittenAdd: (report: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("reports_written_add", { report, click })),
 	compassGet: () => typedError<Compass_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("compass_get")),
 	compassPreview: (kind: EntryKind, id: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("compass_preview", { kind, id })),
 	compassApply: (entries: string[]) => typedError<CompassApplied, AppError_Serialize>(__TAURI_INVOKE("compass_apply", { entries })),
@@ -580,12 +645,20 @@ export const commands = {
 	/**  The commit of the sync action. It does nothing when the option is off. */
 	autoCommitRun: () => typedError<string | null, AppError_Serialize>(__TAURI_INVOKE("auto_commit_run")),
 	closeGuardState: () => typedError<InFlight, AppError_Serialize>(__TAURI_INVOKE("close_guard_state")),
+	/**  The runs of the open project that work, for the question of a project close. */
+	projectsCloseState: () => typedError<ProjectRun[], AppError_Serialize>(__TAURI_INVOKE("projects_close_state")),
+	/**  Stop the runs of the open project and close it. */
+	projectsCloseStop: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("projects_close_stop")),
 	/**  Close past the guard. `destroy` does not raise a second request. */
 	closeAnyway: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("close_anyway")),
 	/**  The editors with an unsaved draft now. */
 	closeGuardDrafts: (count: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("close_guard_drafts", { count })),
 	/**  Where the app keeps its data, and whether the portable mode is on. */
 	appDataFolder: () => typedError<DataFolder, AppError_Serialize>(__TAURI_INVOKE("app_data_folder")),
+	/**  Turn the portable mode on or off. The change shows after the next start. */
+	appPortableSet: (on: boolean, click: boolean) => typedError<DataFolder, AppError_Serialize>(__TAURI_INVOKE("app_portable_set", { on, click })),
+	/**  Move the data to a new folder after the confirmation of the view, then restart the app. */
+	appDataFolderMove: (to: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("app_data_folder_move", { to, click })),
 	pictureGet: (which: Picture) => typedError<Image | null, AppError_Serialize>(__TAURI_INVOKE("picture_get", { which })),
 	pictureSet: (which: Picture, path: string | null, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("picture_set", { which, path, click })),
 	/**  Opens the mail app with the feedback, after a click. Nothing is sent by Shipyard. */
@@ -619,6 +692,8 @@ export const commands = {
 	 *  It installs nothing.
 	 */
 	updateCheck: () => typedError<UpdateInfo, AppError_Serialize>(__TAURI_INVOKE("update_check")),
+	/**  The budgets that reached Warn at this month, for the notice. */
+	budgetStatus: () => typedError<BudgetStatus, AppError_Serialize>(__TAURI_INVOKE("budget_status")),
 	/**  Hide the panel. The Escape key calls it. */
 	trayClose: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("tray_close")),
 	/**  Open Shipyard: show the main window and hide the panel. */
@@ -641,6 +716,8 @@ export type Access = {
 	runs: Level,
 	settings: Level,
 	costs: Level,
+	/**  `plan.edit`. The default is the level of `work`. */
+	plan: Level,
 	/**  `code.merge`. */
 	merge: boolean,
 	/**  `runs.approve`. */
@@ -651,7 +728,7 @@ export type Action = "create" | "update" | "unchanged";
 
 /**  What a person can do about an error. The view maps each kind to a button. */
 export type ActionKind = 
-/**  Open a Settings field. `target` is the route and the anchor id of the row, such as `/settings/project#issue-tracker`. */
+/**  Open a Settings field. `target` is the route and the anchor id of the row, such as `/setup/project#issue-tracker`. */
 "setting" | 
 /**  Read the tracker again. */
 "sync" | 
@@ -767,6 +844,8 @@ export type ApprovalView = {
 	/**  The ticket of the run, `""` when the run is gone. */
 	key: string,
 	title: string,
+	/**  The workflow of the run: the recipe that "Do not ask again" names (`app-redesign` REQ-013). */
+	workflow: string,
 	/**  `transition`, `labels`, `comment`, `push`, `open_pr` or `resolve_threads`. */
 	kind: string,
 	/**  One line that names the write. */
@@ -1035,6 +1114,12 @@ export type Automation_Deserialize = {
 	/**  Key: a run state name (`RunState::as_str`). */
 	status_map?: { [key in string]: StateMapping_Deserialize },
 	writes?: Writes_Deserialize,
+	/**
+	 *  Key: a workflow id (a recipe). The kinds of write that a person allowed for the runs of
+	 *  that workflow only, with "Do not ask again for this recipe" (`app-redesign` REQ-013). A
+	 *  write goes out when its project switch is on or when its recipe names its kind.
+	 */
+	recipe_writes?: { [key in string]: WriteKind[] },
 	/**  The reviewers of a pull request that a run opens (`delivery` REQ-012, `q:Q-029`). */
 	reviewers?: string[],
 	/**  The assignee of that pull request when the ticket names none (`delivery` REQ-012). */
@@ -1054,6 +1139,12 @@ export type Automation_Serialize = {
 	/**  Key: a run state name (`RunState::as_str`). */
 	status_map: { [key in string]: StateMapping_Serialize },
 	writes: Writes_Serialize,
+	/**
+	 *  Key: a workflow id (a recipe). The kinds of write that a person allowed for the runs of
+	 *  that workflow only, with "Do not ask again for this recipe" (`app-redesign` REQ-013). A
+	 *  write goes out when its project switch is on or when its recipe names its kind.
+	 */
+	recipe_writes?: { [key in string]: WriteKind[] },
 	/**  The reviewers of a pull request that a run opens (`delivery` REQ-012, `q:Q-029`). */
 	reviewers?: string[],
 	/**  The assignee of that pull request when the ticket names none (`delivery` REQ-012). */
@@ -1203,6 +1294,12 @@ export type Branch_Deserialize = {
 	upstream?: string | null,
 	ahead: number,
 	behind: number,
+	/**
+	 *  The commits of a local branch that the default branch (`main`) has not, and the commits of
+	 *  `main` that it has not. `None` for `main` itself, for a remote branch and with no `main`.
+	 */
+	base_ahead?: number | null,
+	base_behind?: number | null,
 	/**  Full id of the tip. */
 	tip: string,
 };
@@ -1216,6 +1313,12 @@ export type Branch_Serialize = {
 	upstream: string | null,
 	ahead: number,
 	behind: number,
+	/**
+	 *  The commits of a local branch that the default branch (`main`) has not, and the commits of
+	 *  `main` that it has not. `None` for `main` itself, for a remote branch and with no `main`.
+	 */
+	base_ahead: number | null,
+	base_behind: number | null,
 	/**  Full id of the tip. */
 	tip: string,
 };
@@ -1239,6 +1342,23 @@ export type Budget = {
 	usd: number | null,
 };
 
+/**  A budget that reached the Warn at level this month. */
+export type BudgetReached = {
+	/**  An empty text is the budget of all AI tools together. */
+	runner: string,
+	spentUsd: number | null,
+	budgetUsd: number | null,
+	/**  The share of the budget that is spent, in percent, rounded down. */
+	percent: number,
+};
+
+export type BudgetStatus = {
+	/**  The level in percent, as a whole number: the label of the setting reads it. */
+	warnPercent: number,
+	month: string,
+	reached: BudgetReached[],
+};
+
 /**
  *  Money budgets in USD (`factory` REQ-022, REQ-032). Key `*` is the budget of every day or of
  *  every member that has no key of its own. No entry means no budget (`q:Q-023`, option 1).
@@ -1254,6 +1374,15 @@ export type Budgets_Deserialize = {
 	day?: { [key in string]: number | null },
 	/**  Key: the name of the ticket assignee. */
 	member?: { [key in string]: number | null },
+	/**  Key: a ticket key. The limit covers all runs of the feature (`runs-recipes` REQ-005). */
+	feature?: { [key in string]: number | null },
+	/**
+	 *  The percent of a budget where the alert shows, for the project. Default 80
+	 *  (`runs-recipes` REQ-006).
+	 */
+	warn_at?: number | null,
+	/**  What happens at the limit of each kind of budget. */
+	at_limit?: Thens_Deserialize,
 };
 
 /**
@@ -1265,6 +1394,15 @@ export type Budgets_Serialize = {
 	day: { [key in string]: number | null },
 	/**  Key: the name of the ticket assignee. */
 	member: { [key in string]: number | null },
+	/**  Key: a ticket key. The limit covers all runs of the feature (`runs-recipes` REQ-005). */
+	feature?: { [key in string]: number | null },
+	/**
+	 *  The percent of a budget where the alert shows, for the project. Default 80
+	 *  (`runs-recipes` REQ-006).
+	 */
+	warn_at?: number,
+	/**  What happens at the limit of each kind of budget. */
+	at_limit?: Thens_Serialize,
 };
 
 /**  Working days and public holidays (REQ-016). */
@@ -1384,11 +1522,28 @@ export type ChainWatch_Serialize = {
 };
 
 /**  The files of one change request, as paths relative to the project. */
-export type ChangeRequestOut = {
+export type ChangeRequestOut = ChangeRequestOut_Serialize | ChangeRequestOut_Deserialize;
+
+/**  The files of one change request, as paths relative to the project. */
+export type ChangeRequestOut_Deserialize = {
 	/**  `CR-003`. */
 	id: string,
 	markdown: string,
+	/**  Empty when the report is a PDF. */
 	docx: string,
+	/**  The PDF of a report that was written as PDF. */
+	pdf?: string | null,
+};
+
+/**  The files of one change request, as paths relative to the project. */
+export type ChangeRequestOut_Serialize = {
+	/**  `CR-003`. */
+	id: string,
+	markdown: string,
+	/**  Empty when the report is a PDF. */
+	docx: string,
+	/**  The PDF of a report that was written as PDF. */
+	pdf: string | null,
 };
 
 export type ChangeView = ChangeView_Serialize | ChangeView_Deserialize;
@@ -1513,6 +1668,8 @@ export type Choice = "ours" | "theirs" |
 /**  Ours, then theirs. */
 "both" | "neither";
 
+export type Ci = "passing" | "failing" | "pending";
+
 export type CliLogin = {
 	/**  `gh` or `glab`. */
 	tool: string,
@@ -1533,12 +1690,16 @@ export type CodeGraph_Deserialize = {
 	state: CodeState,
 	nodes: GraphNode_Deserialize[],
 	edges: CodeEdge[],
+	/**  The files whose spec changed after their last change. Only the overview fills it. */
+	stale: string[],
 };
 
 export type CodeGraph_Serialize = {
 	state: CodeState,
 	nodes: GraphNode_Serialize[],
 	edges: CodeEdge[],
+	/**  The files whose spec changed after their last change. Only the overview fills it. */
+	stale: string[],
 };
 
 export type CodeState = 
@@ -1884,7 +2045,10 @@ export type Dashboard_Serialize = {
 
 export type DataFolder = {
 	path: string,
+	/**  The app runs on the folder next to it now. */
 	portable: boolean,
+	/**  The `portable` marker is next to the app: the next start runs on the folder next to it. */
+	marker: boolean,
 };
 
 export type Decision = "accept" | "reject";
@@ -2136,7 +2300,16 @@ export type ErrorAction = {
 
 export type ErrorCode = 
 /**  Not in the table: the view shows the details. */
-"unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_id_invalid" | "change_exists" | "run_not_started" | "run_active" | "merge_draft" | "merge_closed" | "merge_method" | "forge_unreachable" | "cert_untrusted" | "forge_denied" | "forge_missing" | "git_nothing_staged" | "git_identity" | "git_busy" | "git_no_upstream" | "no_terminal" | "terminal_gone" | "device_not_set" | "no_editor" | "no_first_commit" | "remote_address" | "remote_exists" | "sheet_frozen" | "feed_invalid" | "setting_invalid" | "gitlab_no_mcp" | "gitlab_address" | "read_only" | "agents_stopped" | "agent_limit" | "budget_spent" | "head_missing" | "no_changes" | "review_posted" | "review_running" | "figma_no_token" | "branch_diverged" | "picture_invalid" | "review_no_result" | "agent_no_text" | "agent_no_title" | "review_no_draft" | "review_empty" | "no_base" | "figma_address" | "no_member" | "no_account" | "unknown_member" | "not_found" | "no_remote" | "secret_found" | "file_too_big" | "file_unsupported" | "path_invalid" | "already_exists" | "file_changed" | "no_compass" | "tool_missing" | "tool_failed" | "connection_kind" | "sign_in_failed" | "git_state" | "thread_state" | "stopped" | "import_not_planned" | "server_off" | "input_invalid" | "tracker_unsupported" | "project_file_invalid" | "doc_not_stale" | "git_dirty";
+"unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_id_invalid" | "change_exists" | "run_not_started" | "run_active" | "merge_draft" | "merge_closed" | "merge_method" | "forge_unreachable" | "cert_untrusted" | "forge_denied" | "forge_missing" | "git_nothing_staged" | "git_identity" | "git_busy" | "git_no_upstream" | "no_terminal" | "terminal_gone" | "device_not_set" | "no_editor" | "no_first_commit" | "remote_address" | "remote_exists" | "sheet_frozen" | "feed_invalid" | "setting_invalid" | "gitlab_no_mcp" | "gitlab_address" | "read_only" | "agents_stopped" | "agent_limit" | "budget_spent" | "head_missing" | "no_changes" | "review_posted" | "review_running" | "figma_no_token" | "branch_diverged" | "picture_invalid" | "review_no_result" | "agent_no_text" | "agent_no_title" | "review_no_draft" | "review_empty" | "no_base" | "figma_address" | "no_member" | "no_account" | "unknown_member" | "not_found" | "no_remote" | "secret_found" | "file_too_big" | "file_unsupported" | "path_invalid" | "already_exists" | "file_changed" | "no_compass" | "tool_missing" | "tool_failed" | "connection_kind" | "sign_in_failed" | "git_state" | "thread_state" | "stopped" | "tile_no_result" | "tile_time_limit" | "import_not_planned" | "server_off" | "input_invalid" | "tracker_unsupported" | "project_file_invalid" | "doc_not_stale" | "git_dirty";
+
+/**  What the agent proposes for one task, in days. It is not in the sheet. */
+export type EstimateProposal = {
+	task: string,
+	best: number | null,
+	likely: number | null,
+	worst: number | null,
+	assumptions: string[],
+};
 
 /**
  *  A source of events that can notify the person (spec `shell`, REQ-008). One list feeds the
@@ -2149,6 +2322,8 @@ export type EventSource =
 "run" | "sync-failure" | "update" | 
 /**  The remote head moved. */
 "remote-head" | 
+/**  A budget reached its Warn at level (`shell-setup-rights` REQ-007). */
+"budget" | 
 /**  A run ended, done or failed. */
 "run-ended" | 
 /**  The checks of a pull request of the person passed or failed. */
@@ -2180,7 +2355,13 @@ export type ExplainContext_Serialize = {
  *  The words of a document, in the language of the person. `sections` holds one title for each
  *  section: five for the dossier, four for the functional documentation.
  */
-export type ExportText = {
+export type ExportText = ExportText_Serialize | ExportText_Deserialize;
+
+/**
+ *  The words of a document, in the language of the person. `sections` holds one title for each
+ *  section: five for the dossier, four for the functional documentation.
+ */
+export type ExportText_Deserialize = {
 	title: string,
 	empty: string,
 	gap: string,
@@ -2188,6 +2369,28 @@ export type ExportText = {
 	/**  The title of the contents list. */
 	contents: string,
 	sections: string[],
+	/**  The client of the report: it goes on the cover with the project (`spec:library-functions#REQ-007`). */
+	client?: string | null,
+	/**  The day of the cover, `YYYY-MM-DD`. Another text gives today. */
+	date?: string | null,
+};
+
+/**
+ *  The words of a document, in the language of the person. `sections` holds one title for each
+ *  section: five for the dossier, four for the functional documentation.
+ */
+export type ExportText_Serialize = {
+	title: string,
+	empty: string,
+	gap: string,
+	generated: string,
+	/**  The title of the contents list. */
+	contents: string,
+	sections: string[],
+	/**  The client of the report: it goes on the cover with the project (`spec:library-functions#REQ-007`). */
+	client: string | null,
+	/**  The day of the cover, `YYYY-MM-DD`. Another text gives today. */
+	date: string | null,
 };
 
 export type ExternalSource = {
@@ -2215,6 +2418,16 @@ export type ExternalState =
 "drift" | 
 /**  A person edited files of the source: a sync keeps them. */
 "edited";
+
+/**
+ *  A kind of ticket that the person added to the four fixed ones (REQ-005 of
+ *  `code-host-tickets`). Its name is the type in the issue tracker. Its parent is a fixed kind
+ *  (`epic`, `story`, `task`, `subtask`) or the name of an earlier added kind.
+ */
+export type ExtraKind = {
+	name: string,
+	parent: string,
+};
 
 export type FactorySend = FactorySend_Serialize | FactorySend_Deserialize;
 
@@ -2348,6 +2561,19 @@ export type FileView = {
 	text: string,
 };
 
+/**  What a Fill wrote: the entries that are new. */
+export type Filled = Filled_Serialize | Filled_Deserialize;
+
+/**  What a Fill wrote: the entries that are new. */
+export type Filled_Deserialize = {
+	entries: TimeEntry_Deserialize[],
+};
+
+/**  What a Fill wrote: the entries that are new. */
+export type Filled_Serialize = {
+	entries: TimeEntry_Serialize[],
+};
+
 /**  Which tickets an agent may take. A ticket must match every set part (REQ-006). */
 export type Filter = Filter_Serialize | Filter_Deserialize;
 
@@ -2448,6 +2674,93 @@ export type FlowAction_Deserialize = "allow" | "Allow" | "deny" | "Deny";
 /**  Named `FlowAction` in the bindings: `work::Action` has the name `Action`. */
 export type FlowAction_Serialize = "allow" | "deny";
 
+/**
+ *  What the check against the code found for one flow (`spec:library-functions#REQ-011`).
+ *  `in_code` is `None` when the destination is not a host that a URL can name: a network or a brick.
+ */
+export type FlowCheck = FlowCheck_Serialize | FlowCheck_Deserialize;
+
+/**
+ *  What the check against the code found for one flow (`spec:library-functions#REQ-011`).
+ *  `in_code` is `None` when the destination is not a host that a URL can name: a network or a brick.
+ */
+export type FlowCheck_Deserialize = {
+	id: number,
+	inCode?: boolean | null,
+};
+
+/**
+ *  What the check against the code found for one flow (`spec:library-functions#REQ-011`).
+ *  `in_code` is `None` when the destination is not a host that a URL can name: a network or a brick.
+ */
+export type FlowCheck_Serialize = {
+	id: number,
+	inCode: boolean | null,
+};
+
+/**  One feature: its title, its place in Flow and the refs of its parts. */
+export type FlowFeature = FlowFeature_Serialize | FlowFeature_Deserialize;
+
+/**  One feature: its title, its place in Flow and the refs of its parts. */
+export type FlowFeature_Deserialize = {
+	title: string,
+	stage: Stage,
+	mark?: Mark | null,
+	/**  `wi:<key>`. */
+	ticket?: string | null,
+	/**  `change:<id>`. */
+	change?: string | null,
+	/**  `run:<id>`. */
+	run?: string | null,
+	/**  `pr:<code-host>:<number>`. */
+	pr?: string | null,
+	/**
+	 *  The agent step that works now, else the assignee of the ticket, else the author of the pull
+	 *  request (REQ-011).
+	 */
+	who?: Who | null,
+	/**
+	 *  The facts of the state line: the state of the run, what waits for a person, the checks of
+	 *  the pull request.
+	 */
+	runState?: RunState | null,
+	approvals: number,
+	questions: number,
+	checks?: Ci | null,
+	/**  The main action of a stopped run (`stop_of`). `None`: nothing waits on a stop. */
+	stop?: Stop | null,
+};
+
+/**  One feature: its title, its place in Flow and the refs of its parts. */
+export type FlowFeature_Serialize = {
+	title: string,
+	stage: Stage,
+	mark: Mark | null,
+	/**  `wi:<key>`. */
+	ticket: string | null,
+	/**  `change:<id>`. */
+	change: string | null,
+	/**  `run:<id>`. */
+	run: string | null,
+	/**  `pr:<code-host>:<number>`. */
+	pr: string | null,
+	/**
+	 *  The agent step that works now, else the assignee of the ticket, else the author of the pull
+	 *  request (REQ-011).
+	 */
+	who: Who | null,
+	/**
+	 *  The facts of the state line: the state of the run, what waits for a person, the checks of
+	 *  the pull request.
+	 */
+	runState: RunState | null,
+	approvals: number,
+	questions: number,
+	checks: Ci | null,
+	/**  The main action of a stopped run (`stop_of`). `None`: nothing waits on a stop. */
+	stop: Stop | null,
+};
+
 export type FlowRow = FlowRow_Serialize | FlowRow_Deserialize;
 
 export type FlowRow_Deserialize = {
@@ -2484,6 +2797,21 @@ export type FlowRow_Serialize = {
 	/**  The bricks of `bricks.json` that the flow leaves from and goes to, by name. */
 	sourceName?: string,
 	destinationName?: string,
+};
+
+/**  The result of the last check of a flow table against the code (`spec:library-functions#REQ-011`). */
+export type FlowsChecked = FlowsChecked_Serialize | FlowsChecked_Deserialize;
+
+/**  The result of the last check of a flow table against the code (`spec:library-functions#REQ-011`). */
+export type FlowsChecked_Deserialize = {
+	at: string,
+	rows: FlowCheck_Deserialize[],
+};
+
+/**  The result of the last check of a flow table against the code (`spec:library-functions#REQ-011`). */
+export type FlowsChecked_Serialize = {
+	at: string,
+	rows: FlowCheck_Serialize[],
 };
 
 /**  When the focus ring shows: for the keyboard only, or for each focus. */
@@ -2734,6 +3062,18 @@ export type JoinAsk = {
 	role: string,
 };
 
+/**  One join request that waits on the code host (REQ-010 of `code-host-tickets`). */
+export type JoinRequest = {
+	number: number,
+	/**  The name of the person, from the title of the pull request. */
+	name: string,
+	/**  The handle of the new member entry: the end of the branch name. */
+	handle: string,
+	/**  The role that the person asked for. `viewer` when the text does not say. */
+	asked: string,
+	url: string,
+};
+
 export type JoinSent = JoinSent_Serialize | JoinSent_Deserialize;
 
 export type JoinSent_Deserialize = {
@@ -2852,6 +3192,11 @@ export type LearningStep_Deserialize = {
 	title: string,
 	/**  An `https` address of the course or the exam. */
 	url?: string | null,
+	/**
+	 *  The item of the project that the step is about (`spec:auth`). Its step in Learn gets the
+	 *  kind of this step as a second pill (`spec:library-functions#REQ-005`).
+	 */
+	ref?: string | null,
 };
 
 export type LearningStep_Serialize = {
@@ -2861,6 +3206,11 @@ export type LearningStep_Serialize = {
 	title: string,
 	/**  An `https` address of the course or the exam. */
 	url: string | null,
+	/**
+	 *  The item of the project that the step is about (`spec:auth`). Its step in Learn gets the
+	 *  kind of this step as a second pill (`spec:library-functions#REQ-005`).
+	 */
+	ref?: string,
 };
 
 export type Learning_Deserialize = {
@@ -2905,6 +3255,8 @@ export type Limits_Deserialize = {
 	per_project?: number | null,
 	/**  By ticket status name at pickup. */
 	per_status?: { [key in string]: number },
+	/**  By stage of the run, beside the limits by status (`runs-recipes` REQ-007). */
+	per_stage?: StageLimits_Deserialize,
 };
 
 /**  Run limits (REQ-007). `global` counts the active runs of every project on this machine and its agent reviews. */
@@ -2913,6 +3265,8 @@ export type Limits_Serialize = {
 	per_project?: number,
 	/**  By ticket status name at pickup. */
 	per_status?: { [key in string]: number },
+	/**  By stage of the run, beside the limits by status (`runs-recipes` REQ-007). */
+	per_stage?: StageLimits_Serialize,
 };
 
 export type LineKind = "same" | "add" | "del";
@@ -2926,6 +3280,15 @@ export type LinkLine = {
 	line: number,
 	before: string,
 	after: string,
+};
+
+/**
+ *  The running turn of a thread: its tool calls and the tokens so far. The ring of the composer
+ *  reads the tokens while the turn runs (0 when the runner reports none yet).
+ */
+export type LiveTurn = {
+	steps: TraceStep[],
+	usedTokens: number,
 };
 
 export type Load = {
@@ -2971,6 +3334,20 @@ export type LogPage = {
 	has_more: boolean,
 };
 
+/**
+ *  The load of the agent processes: the sum of their processor use and memory, with the size of
+ *  the computer, so a view can draw each as a share (`shell-setup-rights` REQ-003).
+ */
+export type MachineLoad = {
+	/**  The agent processes at work now. */
+	processes: number,
+	/**  The share of all processor cores that they use, from 0 to 100. */
+	cpuPercent: number | null,
+	memoryBytes: number | null,
+	/**  The memory of the computer. 0 when the system does not say. */
+	memoryTotal: number | null,
+};
+
 /**  One AI session on this computer. */
 export type MachineSession = MachineSession_Serialize | MachineSession_Deserialize;
 
@@ -2993,6 +3370,8 @@ export type MachineSession_Deserialize = {
 	costUsd: number | null,
 	/**  The process to stop, for a running session. */
 	pid?: number | null,
+	/**  The id that the tool resumes the session with. Empty: the tool wrote no history. */
+	session: string,
 };
 
 /**  One AI session on this computer. */
@@ -3014,7 +3393,15 @@ export type MachineSession_Serialize = {
 	costUsd: number | null,
 	/**  The process to stop, for a running session. */
 	pid: number | null,
+	/**  The id that the tool resumes the session with. Empty: the tool wrote no history. */
+	session: string,
 };
+
+/**
+ *  Why a feature waits. `NeedsYou` and `Blocked` ask a person to act; `Stopped` means that no
+ *  agent works on it (REQ-014).
+ */
+export type Mark = "needs_you" | "blocked" | "stopped";
 
 export type Marker = Marker_Serialize | Marker_Deserialize;
 
@@ -3228,6 +3615,8 @@ export type Member_Deserialize = {
 	/**  Days per week. */
 	capacity?: number | null,
 	skills?: string[],
+	/**  What this person can teach: the topics of the Experts card of Learn. */
+	topics?: string[],
 	/**  `None` when the file has none, or when the seal is on and this machine has no passphrase. */
 	dayRate?: number | null,
 	availability?: Availability_Deserialize,
@@ -3255,6 +3644,8 @@ export type Member_Serialize = {
 	/**  Days per week. */
 	capacity: number | null,
 	skills: string[],
+	/**  What this person can teach: the topics of the Experts card of Learn. */
+	topics?: string[],
 	/**  `None` when the file has none, or when the seal is on and this machine has no passphrase. */
 	dayRate?: number | null,
 	availability: Availability_Serialize,
@@ -3404,6 +3795,8 @@ export type OpenPull_Deserialize = {
 	base?: string | null,
 	draft: boolean,
 	labels: string[],
+	/**  Reviewers to ask, as `Reviewer::id` of [`pull_reviewers`] (REQ-006). */
+	reviewers?: string[],
 };
 
 export type OpenPull_Serialize = {
@@ -3413,6 +3806,8 @@ export type OpenPull_Serialize = {
 	base: string | null,
 	draft: boolean,
 	labels: string[],
+	/**  Reviewers to ask, as `Reviewer::id` of [`pull_reviewers`] (REQ-006). */
+	reviewers: string[],
 };
 
 export type OpenStatus = "opened" | "not-repository" | "folder-not-empty" | "invalid" | "failed";
@@ -3427,6 +3822,8 @@ export type OpenedPull_Deserialize = {
 	missingLabels: string[],
 	/**  The forge refused the labels. The pull request exists: this is not a failure of the open. */
 	labelError?: string | null,
+	/**  The forge refused the reviewers. The pull request exists: this is not a failure of the open. */
+	reviewerError?: string | null,
 };
 
 export type OpenedPull_Serialize = {
@@ -3437,6 +3834,8 @@ export type OpenedPull_Serialize = {
 	missingLabels: string[],
 	/**  The forge refused the labels. The pull request exists: this is not a failure of the open. */
 	labelError: string | null,
+	/**  The forge refused the reviewers. The pull request exists: this is not a failure of the open. */
+	reviewerError: string | null,
 };
 
 export type OrcaSession = OrcaSession_Serialize | OrcaSession_Deserialize;
@@ -3656,6 +4055,17 @@ export type Picture =
 "logo" | 
 /**  The picture of the person. */
 "avatar";
+
+/**
+ *  One line of the action plan of an impact report: a check box and an owner (REQ-009 of
+ *  `code-host-tickets`). The file holds it as `- [x] text (owner: name)`. It makes no ticket.
+ */
+export type PlanLine = {
+	text: string,
+	done: boolean,
+	/**  The name of the owner. Blank: nobody. */
+	owner: string,
+};
 
 export type PlanRow = {
 	path: string,
@@ -3877,6 +4287,8 @@ export type PrRowView = {
 	headSha: string,
 	url: string,
 	updated: string,
+	/**  The login or name of the author on the code host (REQ-008 of `code-host-tickets`). */
+	author: string,
 	lane: Lane,
 	/**  The runs that opened this pull request. */
 	runs: string[],
@@ -3914,6 +4326,8 @@ export type PrefsPatch_Deserialize = {
 	defaultAgent?: string | null,
 	defaultModel?: string | null,
 	autoUpdateCheck?: boolean | null,
+	releaseChannel?: ReleaseChannel | null,
+	sound?: boolean | null,
 	promptLang?: string | null,
 	diagramFormat?: string | null,
 	/**  `Some(None)` is not sent by the view: a patch with `clear_accent` goes back to the theme. */
@@ -3961,6 +4375,8 @@ export type PrefsPatch_Serialize = {
 	defaultAgent: string | null,
 	defaultModel: string | null,
 	autoUpdateCheck: boolean | null,
+	releaseChannel: ReleaseChannel | null,
+	sound: boolean | null,
 	promptLang: string | null,
 	diagramFormat: string | null,
 	/**  `Some(None)` is not sent by the view: a patch with `clear_accent` goes back to the theme. */
@@ -4027,6 +4443,13 @@ export type Prefs_Deserialize = {
 	defaultModel?: string,
 	/**  Whether the app checks for a new version at start and every 6 hours. */
 	autoUpdateCheck?: boolean,
+	/**
+	 *  The releases that the check follows. Preview reads the pre-releases of the same release
+	 *  address (`shell-setup-rights` REQ-007).
+	 */
+	releaseChannel?: ReleaseChannel,
+	/**  A system notification makes a sound. */
+	sound?: boolean,
 	/**  Language of the prompts that the assistant sends: `en` or `fr`. Empty follows the interface. */
 	promptLang?: string,
 	/**  Format of a new diagram board: one of `DIAGRAM_FORMATS`. Empty is the first one. */
@@ -4118,6 +4541,13 @@ export type Prefs_Serialize = {
 	defaultModel: string,
 	/**  Whether the app checks for a new version at start and every 6 hours. */
 	autoUpdateCheck: boolean,
+	/**
+	 *  The releases that the check follows. Preview reads the pre-releases of the same release
+	 *  address (`shell-setup-rights` REQ-007).
+	 */
+	releaseChannel: ReleaseChannel,
+	/**  A system notification makes a sound. */
+	sound: boolean,
 	/**  Language of the prompts that the assistant sends: `en` or `fr`. Empty follows the interface. */
 	promptLang: string,
 	/**  Format of a new diagram board: one of `DIAGRAM_FORMATS`. Empty is the first one. */
@@ -4377,6 +4807,13 @@ export type ProjectOutcome_Serialize = {
 	status: OpenStatus,
 	project: ProjectEntry_Serialize | null,
 	message: string | null,
+};
+
+/**  One run of the open project that works now. */
+export type ProjectRun = {
+	run: string,
+	/**  The ticket. */
+	key: string,
 };
 
 export type ProjectSettings = ProjectSettings_Serialize | ProjectSettings_Deserialize;
@@ -4775,6 +5212,9 @@ export type RefusedRow = {
 	reason: string,
 };
 
+/**  Which releases the update check follows: the stable ones, or the pre-releases too. */
+export type ReleaseChannel = "stable" | "preview";
+
 /**  One page of repositories (REQ-019). */
 export type RepoPage = RepoPage_Serialize | RepoPage_Deserialize;
 
@@ -4965,6 +5405,13 @@ export type ReviewWait = {
 	reference: string,
 };
 
+/**  A user of the code host that a pull request can ask for a review (REQ-006). */
+export type Reviewer = {
+	/**  What [`PullApi::add_reviewers`] takes: a login, a username or an identity id. */
+	id: string,
+	name: string,
+};
+
 /**  The verdict of one reviewer (REQ-021). */
 export type ReviewerVerdict = {
 	reviewer: string,
@@ -4975,7 +5422,9 @@ export type ReviewerVerdict = {
 /**  One right. Each write command and each write tool needs one (REQ-007). */
 export type Right = "work.edit" | "specs.edit" | "design.edit" | "knowledge.edit" | "code.write" | "code.merge" | "runs.start" | "runs.approve" | "project.settings" | 
 /**  The one read right: amounts of money (REQ-005). */
-"costs.view";
+"costs.view" | 
+/**  Estimates, the plan calendar and the write to the issue tracker (`shell-setup-rights` REQ-004). */
+"plan.edit";
 
 /**  The person in the open project and the rights that the person has now. */
 export type RightsPerson = RightsPerson_Serialize | RightsPerson_Deserialize;
@@ -4992,6 +5441,8 @@ export type RightsPerson_Deserialize = {
 	admin: boolean,
 	/**  The read-only profile of the project is on. */
 	readOnly: boolean,
+	/**  The places that the roles of the person do not see (`shell-setup-rights` REQ-011). */
+	hidden: string[],
 	/**  The levels after the personal narrowing and the read-only profile. */
 	access: Access,
 	/**  The rights that the levels give, in the order of [`Right::ALL`]. */
@@ -5010,6 +5461,8 @@ export type RightsPerson_Serialize = {
 	admin: boolean,
 	/**  The read-only profile of the project is on. */
 	readOnly: boolean,
+	/**  The places that the roles of the person do not see (`shell-setup-rights` REQ-011). */
+	hidden: string[],
 	/**  The levels after the personal narrowing and the read-only profile. */
 	access: Access,
 	/**  The rights that the levels give, in the order of [`Right::ALL`]. */
@@ -5066,9 +5519,22 @@ export type RightsView_Serialize = {
 export type Role = Role_Serialize | Role_Deserialize;
 
 /**  One row of the table to save. */
-export type RoleAccess = {
+export type RoleAccess = RoleAccess_Serialize | RoleAccess_Deserialize;
+
+/**  One row of the table to save. */
+export type RoleAccess_Deserialize = {
 	role: TeamRole,
 	access: Access,
+	/**  The places that the role does not see. `None` keeps the ones of the team file. */
+	hidden?: string[] | null,
+};
+
+/**  One row of the table to save. */
+export type RoleAccess_Serialize = {
+	role: TeamRole,
+	access: Access,
+	/**  The places that the role does not see. `None` keeps the ones of the team file. */
+	hidden: string[] | null,
 };
 
 export type RoleFile = RoleFile_Serialize | RoleFile_Deserialize;
@@ -5121,6 +5587,8 @@ export type RoleRights = {
 	access: Access,
 	/**  The rights that `access` gives. */
 	rights: Right[],
+	/**  The places that the role does not see (`shell-setup-rights` REQ-011). */
+	hidden: string[],
 };
 
 export type RoleSkillKind = "role" | "skill";
@@ -5325,6 +5793,13 @@ export type RunView_Deserialize = {
 	 *  newest error of the AI tool. `None` for a run that works or ended well.
 	 */
 	reason?: string | null,
+	/**  The main action of the stop (`app-redesign` REQ-014). `None`: the run waits on no stop. */
+	stop?: Stop | null,
+	/**
+	 *  The team role that approves the plan that waits (`runs-recipes` REQ-008). `None`: any
+	 *  person with the right to approve.
+	 */
+	approver?: string | null,
 };
 
 /**  A run with what a card needs (`factory` REQ-027, REQ-038). */
@@ -5358,6 +5833,13 @@ export type RunView_Serialize = {
 	 *  newest error of the AI tool. `None` for a run that works or ended well.
 	 */
 	reason: string | null,
+	/**  The main action of the stop (`app-redesign` REQ-014). `None`: the run waits on no stop. */
+	stop: Stop | null,
+	/**
+	 *  The team role that approves the plan that waits (`runs-recipes` REQ-008). `None`: any
+	 *  person with the right to approve.
+	 */
+	approver?: string,
 };
 
 export type Runner = Runner_Serialize | Runner_Deserialize;
@@ -5788,6 +6270,26 @@ export type StackPreset = {
 	gates: string[],
 };
 
+/**  The five stages of Flow, in order. */
+export type Stage = "idea" | "spec" | "build" | "review" | "ready";
+
+/**  The number of active runs that each stage may hold at once. `None`: no limit. */
+export type StageLimits = StageLimits_Serialize | StageLimits_Deserialize;
+
+/**  The number of active runs that each stage may hold at once. `None`: no limit. */
+export type StageLimits_Deserialize = {
+	plan?: number | null,
+	build?: number | null,
+	review?: number | null,
+};
+
+/**  The number of active runs that each stage may hold at once. `None`: no limit. */
+export type StageLimits_Serialize = {
+	plan?: number,
+	build?: number,
+	review?: number,
+};
+
 export type Stash = {
 	/**  Position in the list: 0 is the newest. A drop moves the ones after it. */
 	index: number,
@@ -5832,6 +6334,8 @@ export type StepTree = {
 	tokens: number,
 	usd: number | null,
 	requests: RequestView[],
+	/**  The tool calls of the step, in order (`shell-setup-rights` REQ-003). */
+	tools: ToolCallView[],
 };
 
 export type StepView = StepView_Serialize | StepView_Deserialize;
@@ -5861,6 +6365,12 @@ export type Step_Deserialize = {
 	workspace?: Workspace,
 	needs?: string[],
 	gate?: Gate,
+	/**
+	 *  The team role that approves a `gate: human` step, as `team.yaml` names it. Only a person
+	 *  with this role approves, and only this role gets the card on Today (`runs-recipes`
+	 *  REQ-008). Absent: any person with the right to approve.
+	 */
+	approver?: string | null,
 	/**  `<step>.<field>`: one child for each item of that output. `<step>` is in `needs`. */
 	for_each?: string | null,
 	max_parallel?: number | null,
@@ -5892,6 +6402,12 @@ export type Step_Serialize = {
 	workspace: Workspace,
 	needs?: string[],
 	gate: Gate,
+	/**
+	 *  The team role that approves a `gate: human` step, as `team.yaml` names it. Only a person
+	 *  with this role approves, and only this role gets the card on Today (`runs-recipes`
+	 *  REQ-008). Absent: any person with the right to approve.
+	 */
+	approver?: string,
 	/**  `<step>.<field>`: one child for each item of that output. `<step>` is in `needs`. */
 	for_each?: string,
 	max_parallel?: number,
@@ -5909,6 +6425,24 @@ export type Step_Serialize = {
 	max_rounds?: number,
 	action?: StepAction,
 };
+
+/**
+ *  The one main action of a stopped run (REQ-014, `adr:0023`): the card of Flow, Today and the
+ *  Ask bar name it with no run log.
+ */
+export type Stop = 
+/**  The run waits for an answer. */
+"reply" | 
+/**  Blocked. */
+"unblock" | 
+/**  Paused because a budget was reached. */
+"add_budget" | 
+/**  Failed. */
+"try_again" | 
+/**  Paused by a person, or for another cause. */
+"resume" | 
+/**  Nothing to deliver, or the pull request closed or merged on the code host. */
+"close_done";
 
 export type Suggestion = {
 	handle: string,
@@ -5962,6 +6496,15 @@ export type SyncStatus = "idle" | "running" | "failed";
 export type SyntaxError = {
 	line: number,
 	message: string,
+};
+
+/**
+ *  What Take control gives the view: the folder and the command that open the session again in
+ *  the Shipyard terminal (`shell-setup-rights` REQ-002).
+ */
+export type TakeOver = {
+	cwd: string,
+	command: string,
 };
 
 /**
@@ -6203,6 +6746,43 @@ export type ThemeView_Serialize = {
 	stamp: string | null,
 } & Loaded<DeckTheme_Serialize>;
 
+/**  What a run does when a budget is spent (`runs-recipes` REQ-006, `adr:0024`). */
+export type Then = 
+/**  The run pauses and the report asks a person (the default). */
+"stop_ask" | 
+/**  The run pauses and keeps the report to itself. */
+"pause" | 
+/**  The run pauses and only the app asks: no comment on the issue tracker. */
+"ask" | 
+/**  The budget is a warning only. The run goes on. */
+"go_on";
+
+/**
+ *  The choice `Then` of each kind of budget. A run budget (recipe) and a feature limit are both
+ *  `feature`.
+ */
+export type Thens = Thens_Serialize | Thens_Deserialize;
+
+/**
+ *  The choice `Then` of each kind of budget. A run budget (recipe) and a feature limit are both
+ *  `feature`.
+ */
+export type Thens_Deserialize = {
+	feature?: Then,
+	day?: Then,
+	member?: Then,
+};
+
+/**
+ *  The choice `Then` of each kind of budget. A run budget (recipe) and a feature limit are both
+ *  `feature`.
+ */
+export type Thens_Serialize = {
+	feature: Then,
+	day: Then,
+	member: Then,
+};
+
 export type Thread = Thread_Serialize | Thread_Deserialize;
 
 export type ThreadSettings = ThreadSettings_Serialize | ThreadSettings_Deserialize;
@@ -6250,6 +6830,8 @@ export type Thread_Deserialize = {
 	id: string,
 	project: string,
 	title: string,
+	/**  A person or the AI tool gave the title: no automatic name replaces it. */
+	named?: boolean,
 	settings: ThreadSettings_Deserialize,
 	context: Context_Deserialize,
 	draft: string,
@@ -6259,7 +6841,7 @@ export type Thread_Deserialize = {
 	granted?: string[],
 	messages: ChatMessage[],
 	usage: Usage,
-	worktree?: Worktree | null,
+	worktree?: Worktree_Deserialize | null,
 	created: number,
 	updated: number,
 };
@@ -6268,6 +6850,8 @@ export type Thread_Serialize = {
 	id: string,
 	project: string,
 	title: string,
+	/**  A person or the AI tool gave the title: no automatic name replaces it. */
+	named: boolean,
 	settings: ThreadSettings_Serialize,
 	context: Context_Serialize,
 	draft: string,
@@ -6277,7 +6861,7 @@ export type Thread_Serialize = {
 	granted: string[],
 	messages: ChatMessage[],
 	usage: Usage,
-	worktree: Worktree | null,
+	worktree: Worktree_Serialize | null,
 	created: number,
 	updated: number,
 };
@@ -6325,6 +6909,8 @@ export type TicketEditCaps = {
 	dueDate: boolean,
 	/**  The estimate in days changes (a tracker with time tracking). */
 	estimate: boolean,
+	/**  The release changes: the fix version, the milestone, the iteration or the project. */
+	release: boolean,
 };
 
 /**  The link of a ticket to its Jira issue (`docs/delivery/tickets.json`, read only). */
@@ -6353,7 +6939,9 @@ export type TicketRows_Serialize = {
 	rows: TimeRow_Serialize[],
 };
 
-export type TicketsConfig = {
+export type TicketsConfig = TicketsConfig_Serialize | TicketsConfig_Deserialize;
+
+export type TicketsConfig_Deserialize = {
 	epic: string,
 	story: string,
 	task: string,
@@ -6366,6 +6954,25 @@ export type TicketsConfig = {
 	specBaseUrl: string,
 	/**  `feature` or `group`. */
 	hierarchy: string,
+	/**  The kinds that were added, parents before children. */
+	extraKinds?: ExtraKind[],
+};
+
+export type TicketsConfig_Serialize = {
+	epic: string,
+	story: string,
+	task: string,
+	subtask: string,
+	/**  `timetracking`, `points` or `none`. */
+	estimateMode: string,
+	estimateField: string,
+	hoursPerDay: number | null,
+	labels: string[],
+	specBaseUrl: string,
+	/**  `feature` or `group`. */
+	hierarchy: string,
+	/**  The kinds that were added, parents before children. */
+	extraKinds: ExtraKind[],
 };
 
 export type Tile = Tile_Serialize | Tile_Deserialize;
@@ -6392,6 +6999,14 @@ export type TileData_Serialize = {
 	off: string | null,
 };
 
+/**  A tile that the agent proposes. It is on no dashboard until a person accepts it. */
+export type TileProposal = {
+	kind: string,
+	title: string,
+	w: number,
+	h: number,
+};
+
 export type Tile_Deserialize = {
 	id: string,
 	kind: string,
@@ -6401,6 +7016,8 @@ export type Tile_Deserialize = {
 	h: number,
 	/**  A name that a person gave the tile. Empty for the name of its kind. */
 	title?: string,
+	/**  The chart kind of the tile (`shipyard_core::tile::CHARTS`). Empty: the default chart of its kind. */
+	chart?: string,
 };
 
 export type Tile_Serialize = {
@@ -6412,6 +7029,8 @@ export type Tile_Serialize = {
 	h: number,
 	/**  A name that a person gave the tile. Empty for the name of its kind. */
 	title?: string,
+	/**  The chart kind of the tile (`shipyard_core::tile::CHARTS`). Empty: the default chart of its kind. */
+	chart?: string,
 };
 
 /**  A time entry that a person wrote (REQ-020, REQ-021). */
@@ -6524,6 +7143,13 @@ export type Token = {
 export type TokenFile = {
 	path: string,
 	tokens: Token[],
+};
+
+/**  One tool call of a step, as the runner recorded it in the run log. */
+export type ToolCallView = {
+	name: string,
+	/**  The input of the call as the runner wrote it: a path, a command or a short text. */
+	target: string,
 };
 
 export type ToolCheck = {
@@ -6714,6 +7340,12 @@ export type WatchNotice_Serialize = {
 	changes: HeadChange_Serialize[],
 };
 
+/**  Who works on a feature (REQ-011): an agent step of the run, or a person. */
+export type Who = {
+	name: string,
+	agent: boolean,
+};
+
 export type WireState = "wired" | "out-of-date" | "not-wired";
 
 /**  One detected agent tool. */
@@ -6793,6 +7425,8 @@ export type WorkItemView_Deserialize = {
 	/**  The estimate and the time spent, in minutes, when the tracker holds them. */
 	estimateMinutes?: number | null,
 	spentMinutes?: number | null,
+	/**  The release of the issue tracker: its fix version, milestone, iteration or project. */
+	release?: string | null,
 };
 
 export type WorkItemView_Serialize = {
@@ -6822,6 +7456,8 @@ export type WorkItemView_Serialize = {
 	/**  The estimate and the time spent, in minutes, when the tracker holds them. */
 	estimateMinutes: number | null,
 	spentMinutes: number | null,
+	/**  The release of the issue tracker: its fix version, milestone, iteration or project. */
+	release: string | null,
 };
 
 export type WorkState = "clean" | "changed" | "behind" | "ahead" | "missing";
@@ -6877,8 +7513,6 @@ export type WorkflowLimits = WorkflowLimits_Serialize | WorkflowLimits_Deseriali
 
 /**  Limits of each run of the workflow (REQ-035). */
 export type WorkflowLimits_Deserialize = {
-	/**  No limit when absent: a run stops on its budget or its stall timeout. */
-	max_turns?: number | null,
 	/**  No run budget when absent: the shared budgets still apply. */
 	budget_usd?: number | null,
 	stall_s: number,
@@ -6892,8 +7526,6 @@ export type WorkflowLimits_Deserialize = {
 
 /**  Limits of each run of the workflow (REQ-035). */
 export type WorkflowLimits_Serialize = {
-	/**  No limit when absent: a run stops on its budget or its stall timeout. */
-	max_turns: number | null,
 	/**  No run budget when absent: the shared budgets still apply. */
 	budget_usd: number | null,
 	stall_s: number,
@@ -6965,12 +7597,40 @@ export type Workflow_Serialize = {
 export type Workspace = "worktree" | "shared" | "none";
 
 /**  The worktree of an agent-mode thread (Q-047: one for each thread, kept until the person acts). */
-export type Worktree = {
+export type Worktree = Worktree_Serialize | Worktree_Deserialize;
+
+/**  The worktree of an agent-mode thread (Q-047: one for each thread, kept until the person acts). */
+export type Worktree_Deserialize = {
 	path: string,
 	branch: string,
 	/**  The commit that the diff reads against. */
 	base: string,
+	/**
+	 *  The files that the person kept, each as `<path>` and a hash of its diff, joined by a tab.
+	 *  A kept file leaves the review until its diff changes. A thread saved before this holds none.
+	 */
+	kept?: string[],
 };
+
+/**  The worktree of an agent-mode thread (Q-047: one for each thread, kept until the person acts). */
+export type Worktree_Serialize = {
+	path: string,
+	branch: string,
+	/**  The commit that the diff reads against. */
+	base: string,
+	/**
+	 *  The files that the person kept, each as `<path>` and a hash of its diff, joined by a tab.
+	 *  A kept file leaves the review until its diff changes. A thread saved before this holds none.
+	 */
+	kept: string[],
+};
+
+/**
+ *  One kind of write that an approval names: the `kind` of the approval (`app-redesign` REQ-013).
+ *  A durable permission of a recipe covers exactly these kinds (constitution 5.4). A push with
+ *  force with lease has no kind: no permission covers it.
+ */
+export type WriteKind = "transition" | "labels" | "comment" | "push" | "open_pr" | "resolve_threads";
 
 /**  What a write did: the files that it wrote and the files that it kept. */
 export type WriteReport = {
@@ -7008,6 +7668,14 @@ export type Writes_Serialize = {
 
 /**  The result of a write. With `conflict`, nothing was written and `stamp` is the stamp on disk. */
 export type Written = Written_Serialize | Written_Deserialize;
+
+/**  One report that a person wrote: its id (`dossier`), the person and the day. */
+export type WrittenReport = {
+	report: string,
+	who: string,
+	/**  `YYYY-MM-DD`. */
+	date: string,
+};
 
 /**  The result of a write. With `conflict`, nothing was written and `stamp` is the stamp on disk. */
 export type Written_Deserialize = {

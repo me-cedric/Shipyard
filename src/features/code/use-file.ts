@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { commands, type FileView, unwrap } from "@/lib/ipc";
-
-export type FileText = FileView;
+import { commands, unwrap } from "@/lib/ipc";
 
 /** The working copy file for the viewer (REQ-036), or the file at `rev`. */
 export function useFile(path: string, rev: string | null = null) {

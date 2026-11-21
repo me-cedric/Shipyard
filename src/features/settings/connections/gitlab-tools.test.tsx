@@ -24,7 +24,7 @@ describe("Settings / Connections: GitLab tools", () => {
 	it("offers Sign in again for an older sign-in, then the switch that adds the server with no token", async () => {
 		const user = userEvent.setup();
 		const id = await gitlab(["api"]);
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const row = await screen.findByRole("group", { name: "Code host" });
 		expect(within(row).queryByRole("switch", { name: "GitLab tools" })).toBeNull();
 		await user.click(within(row).getByRole("button", { name: "Sign in again" }));
@@ -51,7 +51,7 @@ describe("Settings / Connections: GitLab tools", () => {
 		const id = await gitlab(["api", "mcp"]);
 		const project = mockState().projects[0];
 		if (project) project.overrides = { ...project.overrides, readOnly: true };
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const row = await screen.findByRole("group", { name: "Code host" });
 		expect(within(row).queryByRole("button", { name: "Sign in again" })).toBeNull();
 		await user.click(await within(row).findByRole("switch", { name: "GitLab tools" }));

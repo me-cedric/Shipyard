@@ -1,45 +1,40 @@
 import { useQuery } from "@tanstack/react-query";
+import { SetupCard } from "@/features/settings/parts";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, type Finding_Serialize, unwrap } from "@/lib/ipc";
+import { commands, unwrap } from "@/lib/ipc";
+import { useHealth } from "@/lib/projects";
 import { Badge } from "@/ui/atoms/badge";
-import { ClockIcon } from "@/ui/icons";
-import { Panel } from "@/ui/molecules/panel";
+import { Row } from "@/ui/molecules/row";
 
-/** Settings / Health: one row each time the findings changed, newest first. Reading it records a snapshot. */
-export function DoctorLedger({ findings }: { findings: Finding_Serialize[] }) {
+/**
+ * Setup / Logs and feedback: one row each time the findings changed, newest first. Reading it
+ * records a snapshot. The page Logs and feedback mounts this part.
+ */
+export function FindingsOverTime() {
 	const { t } = useI18n();
 	const l = t.settings.ledger;
+	const findings = useHealth().data ?? [];
 	// A new set of findings reads the ledger again, and that read records the snapshot.
 	const ledger = useQuery({
 		queryKey: ["doctor", "ledger", findings.map((f) => f.id).join(",")],
 		queryFn: () => unwrap(commands.doctorLedger()),
 	});
-	const rows = ledger.data ?? [];
 	return (
-		<Panel
-			id="doctor-ledger"
-			title={l.title}
-			count={rows.length}
-			icon={<ClockIcon size={14} />}
-			flush
-		>
-			{rows.map((e) => (
-				<div
-					key={e.at}
-					className="flex min-h-9 items-center gap-3 border-b px-3 py-1 last:border-b-0"
-				>
-					<time dateTime={e.at} className="w-44 font-mono text-12 text-n-11">
+		<SetupCard id="doctor-ledger" title={l.title}>
+			{(ledger.data ?? []).map((e) => (
+				<Row key={e.at}>
+					<time dateTime={e.at} className="font-mono text-ui font-normal text-n-11">
 						{e.at.replace("T", " ").replace("Z", "")}
 					</time>
-					<span className="w-12 text-right font-mono text-ui">{e.items.length}</span>
 					{e.added > 0 ? (
-						<Badge variant="warning">{format(l.added, { count: e.added })}</Badge>
+						<Badge variant="neutral">{format(l.added, { count: e.added })}</Badge>
 					) : null}
 					{e.resolved > 0 ? (
 						<Badge variant="success">{format(l.resolved, { count: e.resolved })}</Badge>
 					) : null}
-				</div>
+					<span className="sr-only">{e.items.length}</span>
+				</Row>
 			))}
-		</Panel>
+		</SetupCard>
 	);
 }

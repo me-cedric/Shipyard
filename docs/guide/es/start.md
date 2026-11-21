@@ -1,102 +1,107 @@
 # Primeros pasos
 
-Shipyard ayuda a un equipo a entregar un proyecto de software: el diseño, las especificaciones, el trabajo, los agentes, el código y el conocimiento. Todo queda en los archivos del proyecto, así que el equipo lo comparte con git.
+Shipyard ayuda a un equipo a entregar un proyecto de software: las funcionalidades, el plan, las personas y los agentes, las especificaciones, el diseño y el código. Todo queda en los archivos del proyecto, así que el equipo lo comparte con git.
 
 ## La ventana
 
-- La barra izquierda contiene los espacios: Inicio, Diseño, Especificaciones, Trabajo, Fábrica, Código, Conocimiento y Ajustes.
-- Las pestañas de un espacio están arriba en la página. Cada pestaña tiene un icono y su nombre.
+- La barra izquierda contiene los siete lugares: Hoy, Flujo, Plan, Equipo, Biblioteca, Código y Configuración. Este manual tiene una página para cada lugar.
+- Las secciones de un lugar están arriba en la página, en un solo selector. Biblioteca no tiene selector: se abre con cuatro puertas, y cada una de sus páginas tiene un enlace Biblioteca que vuelve a ellas.
 - El inspector de la derecha muestra el elemento que seleccionas.
-- La barra de estado de abajo muestra el proyecto, el estado de la sincronización y el control de commit, con el número de archivos modificados junto a Commit.
-- La barra superior contiene Atrás y Adelante, Sincronizar, Actividad, la búsqueda, los botones Archivos y Terminal, Preguntar, las notificaciones y el menú de la cuenta.
-  - Sincronizar muestra cuántos commits llevas de adelanto y de retraso.
-  - Actividad muestra el recuento Requiere tu atención y una marca mientras una ejecución o una sesión está activa. Su panel tiene tres partes: Requiere tu atención (un enlace a Inicio / Hoy), Ejecuciones (Detener y un enlace a Fábrica / Ejecuciones) y Sesiones (Detener y un enlace a Fábrica / Sesiones).
-  - Preguntar es un botón dividido. Haz clic en la parte principal para abrir o cerrar el asistente. La flecha abre los elementos de Preguntar.
-  - El menú de la cuenta (tu foto) contiene Ajustes / Yo, Tema (Claro, Oscuro, Sistema), Manual, Atajos, Novedades y Repetir el recorrido.
-- El asistente se abre en el lateral. Hazle una pregunta sobre el proyecto. Cada conversación es una pestaña, y un punto marca una pestaña con una respuesta nueva.
-  - Bajo el cuadro de mensaje, una barra tiene el botón de adjuntar, un botón con el modelo y el esfuerzo (abre los modelos de la herramienta de IA, los niveles de esfuerzo y los modelos de las otras herramientas de IA), el permiso, el anillo de contexto y Enviar.
-  - En el modo Agente el permiso es Editar con aprobación, Auto: aceptar ediciones u Omitir permisos. Omitir permisos salta cada aprobación de Claude Code o Codex: Shipyard te lo pregunta la primera vez en cada proyecto, lo muestra en rojo mientras está activo, y lo rechaza en un proyecto de solo lectura y mientras el interruptor de agentes está apagado.
-  - Escribe `/` al inicio de un mensaje para listar los comandos de la herramienta de IA seleccionada. El texto llega a la herramienta de IA tal como lo escribiste.
-  - Cada conversación mantiene una sesión de agente, así que un mensaje posterior continúa el trabajo anterior.
-- En Ajustes, luego Yo, elige el lado de la barra y de los cajones, el color de acento, el formato de fecha, una barra superior estrecha y tu foto.
+- La barra lateral contiene también el nombre del proyecto arriba y tu cuenta abajo.
+  - El nombre del proyecto abre un menú con tus proyectos y la página Proyectos.
+  - Tu cuenta abre el menú de la cuenta, junto a la barra lateral. La fila de la cuenta muestra tu nombre y tus iniciales.
+- La fila superior de cada página contiene el botón de la barra lateral, Atrás y Adelante, la barra Preguntar o indicar a Shipyard, la marca de sincronización y los botones Asistente y Terminal, que abren el panel del asistente y el terminal desde cualquier página. La ventana no tiene barra superior ni barra de estado.
+  - La marca de sincronización muestra el estado del repositorio. Haz clic en ella para ver los archivos modificados, la rama, Sincronizar y Commit. Consulta la página Código, Sincronizar.
+  - Preguntar o indicar a Shipyard es la única barra para una pregunta, un lugar y una acción. Consulta la página La barra Preguntar.
+  - El menú de la cuenta contiene tu nombre y tu rol con Cambiar (Configuración / Yo), Tema (Claro, Oscuro, Sistema), Idioma, Manual, Atajos, Novedades, Repetir el recorrido, Buscar una actualización, Acerca de Shipyard con la versión, y Salud. Atajos y Novedades se abren como cuadros de diálogo.
+- Por debajo de 1100 px, los botones Archivos y Terminal están en el menú Más.
 
-La ventana se abre con el tamaño que tenía al cerrarla. Para guardar los datos de la app junto a la app (en una memoria USB, por ejemplo), pon un archivo vacío llamado `portable` junto a la app.
+La ventana se abre con el tamaño con el que la cerraste. Para guardar los datos de la aplicación junto a la aplicación (en una memoria USB, por ejemplo), pon un archivo vacío llamado `portable` junto a la aplicación.
 
 ## El elemento de la barra de menús
 
-- El icono de Shipyard está en la barra de menús (la bandeja del sistema en Windows y Linux). Un punto en el icono significa que algo te espera.
-- Un clic abre un panel pequeño: el gasto de hoy y del mes, las ejecuciones activas con Detener, el recuento Requiere tu atención con sus primeros elementos, el interruptor de agentes, el estado de la sincronización, el proyecto y Abrir Shipyard.
-- El panel pide el mismo clic que la app para cada acción que escribe.
-- En Ajustes, luego Yo, desactiva el elemento de la barra de menús.
+- Un clic abre un panel pequeño. La cabecera nombra el proyecto y el estado de sincronización (Sincronizado, o Falló la sincronización). Después vienen las cosas que te esperan (la misma lista que Hoy), En curso con dos ejecuciones, Ver todo (n) en su fila de título para el resto, cada una con Detener, el recordatorio de registrar el tiempo, Agentes con el gasto de hoy y del mes y el interruptor de agentes, Sincronizar, y Abrir Shipyard. El pie se queda abajo mientras el centro se desplaza.
+- Un clic abre un panel pequeño: el gasto de hoy y del mes, las ejecuciones activas con Detener, lo que te espera (la misma lista que en Hoy), el recordatorio de registrar el tiempo, el interruptor de agentes, el estado de la sincronización, el proyecto y Abrir Shipyard.
+- El panel pide el mismo clic que la aplicación para cada acción que escribe.
+- En Configuración, luego Yo, desactiva el elemento de la barra de menús.
+
+## Primer inicio
+
+La página del primer inicio se muestra solo en el primer inicio. Hace una pregunta: ¿qué rol te corresponde? Elige un icono (Product owner, Jefe de proyecto, Arquitecto, Responsable técnico, Analista de negocio, Desarrollador, Tester, Diseñador, Lector u Otro) y haz clic en Continuar. El icono del lector dice «Solo miro». Después abre un proyecto, clona un repositorio o empieza un proyecto nuevo, o elige un proyecto reciente. Después de eso, cuando no hay ningún proyecto abierto (por ejemplo tras Cerrar proyecto), una tarjeta dice No hay ningún proyecto abierto, con Nuevo proyecto y Abrir un proyecto. Consulta la página Proyectos.
+
+En Hoy, una tarjeta pequeña de configuración nombra el paso siguiente de la lista: proyecto, herramienta de IA, modelos, gestor de tickets, plataforma de código, equipo, permisos, primera decisión, primera especificación, primer ticket asignado y primera ejecución. Cada paso tiene una acción que nombra el paso siguiente real, como Instalar, Iniciar sesión, Elegir o Conectar. Continuar, en la tarjeta, abre Configuración / Inicio, que muestra los mismos pasos, una pregunta cada vez. En Hoy la tarjeta se oculta cuando no queda nada por hacer.
 
 ## El recorrido
 
 - El recorrido no se abre en el primer inicio. Se abre una vez, cuando abres tu primer proyecto. Tiene seis pasos: el ciclo, abrir un proyecto, conectar el gestor de tickets y la plataforma de código, elegir la herramienta de IA, los permisos y la primera ejecución en un ticket.
-- Haz clic en Siguiente y Atrás, o pulsa las flechas izquierda y derecha. Cerrar termina el recorrido en cualquier paso. No se vuelve a abrir solo.
-- Para verlo otra vez, elige Repetir el recorrido en el menú de la cuenta o en el menú Ayuda, o escribe Repetir el recorrido en la paleta, o ve a Ajustes, luego Yo, luego Permisos.
+- Haz clic en Siguiente y Atrás, o pulsa las flechas Izquierda y Derecha. Cerrar termina el recorrido en cualquier paso. No se abre de nuevo por sí solo.
+- Para verlo otra vez, elige Repetir el recorrido en el menú de la cuenta o en el menú Ayuda, o escribe Repetir el recorrido en la barra Preguntar, o ve a Configuración, luego Este ordenador, luego Permisos.
 - El último paso abre este manual.
 
 ## Permisos
 
-Shipyard pide un permiso del sistema solo después de que hagas clic en Permitir. El recorrido y Ajustes / Yo muestran cada uno con su estado: Activado, Desactivado, Sin solicitar, No necesario o Desconocido.
+Shipyard pide un permiso del sistema solo después de que hagas clic en Permitir. El recorrido y Configuración / Este ordenador muestran cada uno con su estado: Activado, Desactivado, Sin solicitar, No necesario o Desconocido.
 
 | Permiso | macOS | Windows | Linux |
 |---|---|---|---|
-| Notificaciones | Permitir muestra el aviso del sistema. Desactivado abre Ajustes del Sistema. | Enviar una prueba y Abrir Ajustes del Sistema. | Enviar una prueba. |
+| Notificaciones | Permitir muestra la petición del sistema. Desactivado abre Ajustes del Sistema. | Enviar una prueba, y Abrir Ajustes del Sistema. | Enviar una prueba. |
 | Documentos, Escritorio y Descargas | Permitir deja que macOS pregunte por cada carpeta. Desactivado abre Privacidad y seguridad / Archivos y carpetas. | No necesario. | No necesario. |
 
-Shipyard no pide acceso total al disco, la cámara, el micrófono ni la ubicación. Un proyecto en un volumen extraíble o de red recibe el aviso de macOS al abrirse.
-
-## Primer inicio
-
-La página del primer inicio pregunta tu rol. Elígelo y haz clic en Continuar. Después abre una carpeta, clona un repositorio o empieza un proyecto nuevo. Sin proyecto abierto, cada espacio muestra esta misma elección: Abrir una carpeta, Clonar un repositorio y Proyecto nuevo.
-
-En Inicio, luego Hoy, una sola lista Empezar da los pasos siguientes en orden: proyecto, herramienta de IA, modelos, gestor de tickets, plataforma de código, equipo, permisos, primera decisión, primera especificación, primer ticket asignado y primera ejecución. Cada elemento tiene una acción que nombra el paso siguiente real, como Instalar, Iniciar sesión, Elegir o Conectar. Ajustes / Yo muestra la misma tarjeta. En Hoy se oculta cuando no queda nada por hacer.
-
-## Abrir un proyecto
-
-1. Ve a Inicio, luego Proyectos.
-2. Haz clic en Abrir una carpeta local y elige la carpeta de tu proyecto. O crea un proyecto nuevo.
-3. Cuando la carpeta aún no es un proyecto, haz clic en Convertir en proyecto.
-
-## Orientarse
-
-- Pulsa Ctrl+K (Cmd+K en un Mac) para abrir la paleta. Escribe el nombre de una página, de un elemento o de una acción.
-- En la paleta, escribe unas palabras para buscar en el texto de tus documentos, decisiones, especificaciones, preguntas, tickets y diseños. Las mayúsculas y los acentos no importan («decision» encuentra «décision»), cada palabra debe coincidir, y la última palabra puede ser un comienzo. Los resultados se agrupan por tipo, muestran un extracto corto con las palabras marcadas y ponen primero una página que citan muchos elementos. Elige Preguntar al asistente para poner esos elementos como contexto en el cuadro de mensaje del asistente. No se envía nada hasta que lo envíes. El documento que abres desde un resultado marca las palabras.
-- Las listas de Diseño y Conocimiento tienen un cuadro Buscar que filtra la lista con la misma búsqueda.
-- Pulsa Ctrl+1 a Ctrl+8 para ir a un espacio.
-- Abre la paleta y elige Abrir el manual de esta página para leer la ayuda de la página que ves.
-- Pulsa Ctrl+[ y Ctrl+] (Cmd en un Mac), o haz clic en Atrás y Adelante en la barra superior, para moverte entre las vistas que abriste.
-- Pulsa F1, o elige Manual en el menú de la cuenta, para leer la ayuda de la página que ves.
-- Haz clic en el botón de la barra lateral, en el extremo izquierdo de la barra superior, para ocultar o mostrar la barra lateral.
-- Por debajo de 1100 px, los botones Archivos y Terminal están en el menú Más.
-- Haz clic en el botón Terminal para abrir o cerrar el cajón del terminal. Terminal y Manual no son pestañas. La paleta y el menú de la ventana mantienen sus entradas.
-- Haz clic en Sincronizar para sincronizar. Haz clic en la flecha junto a él para Solo traer o para Push.
-- Cuando un error tiene un botón que abre un ajuste, haz clic en él. La página se abre en la fila exacta, mueve el foco a su control y lo marca durante 2 segundos.
-- Mantén Ctrl (Cmd en un Mac) y gira la rueda del ratón sobre un diagrama o una imagen para hacer zoom. Arrastra para moverlo. Usa Pantalla completa para una vista grande.
-- Pulsa Ctrl+= y Ctrl+- para cambiar el tamaño del texto, y Ctrl+0 para volver a 16 px. Ajustes / Yo ofrece la misma opción.
-- Pulsa Ctrl+Shift+K para ver todos los atajos de teclado.
+Shipyard no pide Acceso total al disco, la cámara, el micrófono ni la ubicación. Un proyecto en un volumen extraíble o de red recibe la petición de macOS cuando se abre.
 
 ## Tu rol
 
-En Ajustes, luego Yo, elige tu rol. El rol fija el espacio que se abre primero. Un responsable técnico empieza en Fábrica, Ejecuciones. Un jefe de proyecto empieza en Trabajo, Tablero.
+En Configuración, luego Yo, elige tu rol. El rol fija la página que se abre primero y los paneles de Hoy. Consulta la página Equipo, Derechos.
+
+| Rol | Primera página |
+|---|---|
+| Product owner | Flujo / Lista |
+| Jefe de proyecto | Plan / Cronograma |
+| Arquitecto | Biblioteca / Decisiones |
+| Responsable técnico | Flujo |
+| Analista de negocio | Biblioteca / Especificaciones |
+| Desarrollador | Flujo |
+| Tester | Biblioteca / Planes de pruebas |
+| Diseñador | Biblioteca / Pantallas |
+| Lector (Solo miro) | Hoy |
+
+Cuando tu rol no ve su primera página, se abre Hoy. Sin rol, se abre Hoy.
+
+## Orientarse
+
+- Pulsa Ctrl+K (Cmd+K en un Mac) para ir a la barra Preguntar. Escribe el nombre de una página, un elemento o una acción, y usa las flechas e Intro.
+- Pulsa de Ctrl+1 a Ctrl+7 para ir a un lugar.
+- Pulsa F1, o elige Manual en el menú de la cuenta, o elige Abrir el manual de esta página en la barra Preguntar, para leer la ayuda de la página que ves. El manual se abre en la página del lugar, en la sección donde estabas.
+- Pulsa Ctrl+[ y Ctrl+] (Cmd en un Mac), o haz clic en Atrás y Adelante en la fila superior, para moverte entre las páginas que abriste.
+- Haz clic en el botón de la barra lateral, en el extremo izquierdo de la fila superior, para ocultar o mostrar la barra lateral.
+- Elige Terminal o Archivos en la barra Preguntar o indicar a Shipyard para abrir o cerrar el cajón del terminal o el cajón de los archivos.
+- Una dirección de una versión anterior funciona todavía: abre la página que contiene la misma función ahora.
+- Cuando un error tiene un botón que abre un ajuste, haz clic en él. La página se abre en la fila exacta, mueve el foco a su control y lo marca durante 2 segundos.
+- Mantén Ctrl (Cmd en un Mac) y gira la rueda del ratón sobre un diagrama o una imagen para hacer zoom. Arrastra para moverlo. Usa Pantalla completa para una vista grande.
+- Pulsa Ctrl+= y Ctrl+- para cambiar el tamaño del texto, y Ctrl+0 para volver a 16 px. Configuración / Yo tiene la misma opción.
+- Pulsa Ctrl+Shift+K para ver todos los atajos de teclado.
+- Cada botón, campo e interruptor mide 44 px de alto o más. Las páginas funcionan en una ventana de 960 por 600 px sin desplazamiento lateral.
 
 ## Seguro por defecto
 
-- La app nunca envía un cambio a un gestor de tickets o a una plataforma de código sin tu clic.
-- Un token va al llavero de tu ordenador. La app nunca lo vuelve a mostrar.
+- La aplicación nunca envía un cambio a un gestor de tickets o a una plataforma de código sin tu clic.
+- Un token va al llavero de tu ordenador. La aplicación no lo muestra nunca más.
 - Un proyecto con un perfil de solo lectura no acepta ningún cambio.
 
 ## Palabras
 
 | Palabra | Significado |
 |---|---|
+| Lugar | Una entrada de la barra izquierda, como Flujo o Biblioteca. |
+| Funcionalidad | Una cosa que construir. Flujo la muestra una vez, con su ticket, su especificación, el trabajo del agente y su pull request. |
+| Receta | Los pasos que un agente sigue en una funcionalidad: plan, trabajo, revisión y luego una pull request. |
+| Equipo | Las personas y los agentes del proyecto. |
 | Ref | El nombre corto de un elemento, como `adr:0003` o `wi:ACME-12`. Haz clic en una ref para abrir su elemento. |
-| Gestor de tickets | La herramienta que contiene los tickets: Jira, GitHub, GitLab, Azure DevOps o Linear. |
-| Plataforma de código | El servidor que contiene el código: GitHub o GitLab. |
+| Gestor de tickets | La herramienta que guarda los tickets: Jira, GitHub, GitLab, Azure DevOps o Linear. |
+| Plataforma de código | El servidor que guarda el código: GitHub o GitLab. |
 | Ejecución | Un trabajo de un agente en un ticket. |
-| Especificación | Un texto que dice lo que el producto debe hacer. |
-| ADR | Un registro de decisión: una decisión, sus opciones y sus razones. |
+| Especificación | Un texto que dice qué debe hacer el producto. |
+| ADR | Un registro de decisión: una decisión, sus opciones y sus motivos. |
 | Servidor MCP | Una herramienta que un agente puede llamar, como Jira o Figma. |
 
-Pasa el ratón sobre una palabra marcada en la lista, en el recorrido o en una página vacía, o pon el foco del teclado en ella. Una frase la explica, con un enlace al manual. Las palabras marcadas son gestor de tickets, plataforma de código, herramienta de IA, modelo, especificación, decisión, ejecución y pull request.
+Pasa el puntero sobre una palabra marcada en la lista Empezar, en el recorrido o en una página vacía, o lleva el foco del teclado a ella. Una frase la explica, con un enlace al manual. Las palabras marcadas son gestor de tickets, plataforma de código, herramienta de IA, modelo, especificación, decisión, ejecución y pull request.

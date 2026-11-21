@@ -16,7 +16,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use shipyard_core::run::{BUDGET_ALERT, BudgetLevel};
+use shipyard_core::run::BudgetLevel;
 use shipyard_core::workflow::{StepState, Workspace};
 use shipyard_mcp::tools::agent::{Handoff, Message as ToolMessage, SpawnSubtask};
 use shipyard_mcp::tools::read_ref;
@@ -317,9 +317,7 @@ impl Inner {
                         )
                 })
                 .map(|s| s.id.clone())
-                .ok_or_else(|| {
-                    format!("no step with role `{}` is left in this workflow", h.role)
-                })?,
+                .ok_or_else(|| format!("no step with role `{}` is left in this recipe", h.role))?,
         };
         if target == own {
             return Err("a step cannot hand off to itself".into());
@@ -368,7 +366,7 @@ impl Inner {
         if self.budget_level(run_id) != BudgetLevel::Under {
             return Err(format!(
                 "the run budget is at {} % or more: no new subtask",
-                (BUDGET_ALERT * 100.0) as u32
+                (self.budget_rules(run_id).1 * 100.0).round() as u32
             ));
         }
         let max = step.max_parallel() as usize;

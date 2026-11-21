@@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { clearMocks } from "@tauri-apps/api/mocks";
 import { configure } from "@testing-library/react";
 import { installMockIpc, resetMock } from "@/lib/ipc/mock";
+import { laterPermissions } from "@/lib/shell/permissions-later";
 import { clearTabSelections } from "@/lib/shell/selection";
 import { settleRouters } from "./routers";
 
@@ -17,7 +18,7 @@ globalThis.ResizeObserver ??= class {
 Element.prototype.scrollIntoView ??= () => {};
 window.scrollTo = () => {};
 
-// A fixed Wednesday: day rules (the Thursday timesheet reminder) give the same result every day.
+// A fixed Wednesday: day rules (the timesheet reminder shows Monday to Friday) give the same result every day.
 // Only Date is mocked; timers stay real.
 vi.setSystemTime(new Date("2026-10-28T10:00:00"));
 
@@ -26,6 +27,8 @@ beforeEach(() => {
 	resetMock();
 	installMockIpc();
 	clearTabSelections();
+	// The card of the missing permissions has its own tests: no other test opens with it.
+	laterPermissions();
 });
 afterEach(async () => {
 	await settleRouters();

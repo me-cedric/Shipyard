@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 import { useWatchNotice } from "@/lib/code";
@@ -21,8 +22,9 @@ import { useShell } from "@/lib/shell";
 import { TICK_EVENT, useSyncTick } from "@/lib/sync";
 import { useUpdateCheck } from "@/lib/updates";
 import type { Action } from "./actions";
+import { useBudgetNotice } from "./budget-notice";
 
-/** The palette actions that the native menu runs (REQ-012). The Rust menu holds the same ids. */
+/** The palette actions that the native menu runs (REQ-012). The Go menu shows the seven places once (adr:0023). */
 export const MENU_ACTIONS = [
 	"project-open",
 	"project-switch",
@@ -36,14 +38,13 @@ export const MENU_ACTIONS = [
 	"toggle-inspector",
 	"toggle-assistant",
 	"toggle-theme",
-	"go-home",
-	"go-design",
-	"go-specs",
-	"go-work",
-	"go-factory",
+	"go-today",
+	"go-flow",
+	"go-plan",
+	"go-crew",
+	"go-library",
 	"go-code",
-	"go-knowledge",
-	"go-settings",
+	"go-setup",
 	"shortcuts-help",
 	"update-check",
 	"nav-back",
@@ -87,14 +88,13 @@ export const menuLabels = (t: Messages): Record<string, string> => ({
 	"toggle-inspector": t.shell.toggleInspector,
 	"toggle-assistant": t.ui.menu.toggleAssistant,
 	"toggle-theme": t.ui.menu.toggleTheme,
-	"go-home": t.space.home,
-	"go-design": t.space.design,
-	"go-specs": t.space.specs,
-	"go-work": t.space.work,
-	"go-factory": t.space.factory,
-	"go-code": t.space.code,
-	"go-knowledge": t.space.knowledge,
-	"go-settings": t.space.settings,
+	"go-today": t.ui.place.today,
+	"go-flow": t.ui.place.flow,
+	"go-plan": t.ui.place.plan,
+	"go-crew": t.ui.place.crew,
+	"go-library": t.ui.place.library,
+	"go-code": t.ui.place.code,
+	"go-setup": t.ui.place.setup,
 	"shortcuts-help": t.ui.menu.shortcuts,
 	"update-check": t.menu.updateCheck,
 	"nav-back": t.workspace.view.back,
@@ -149,6 +149,20 @@ function useOpenRefEvent() {
 	useEffect(() => {
 		if (!isTauri()) return;
 		const off = listen<string>(OPEN_REF_EVENT, (e) => latest.current(e.payload));
+		return () => void off.then((f) => f());
+	}, []);
+}
+
+/** The menu bar panel opens a page of the window, such as the time page. The payload is its path. */
+export const OPEN_PATH_EVENT = "open-path";
+
+function useOpenPathEvent() {
+	const navigate = useNavigate();
+	const latest = useRef(navigate);
+	latest.current = navigate;
+	useEffect(() => {
+		if (!isTauri()) return;
+		const off = listen<string>(OPEN_PATH_EVENT, (e) => void latest.current({ to: e.payload }));
 		return () => void off.then((f) => f());
 	}, []);
 }
@@ -225,6 +239,7 @@ export function useShellEvents() {
 	useTickNotices();
 	useProjectSwitchedEvent();
 	useOpenRefEvent();
+	useOpenPathEvent();
 
 	// A question, an approval or a run that needs the person: one entry and one system notice (REQ-008).
 	// A run that ends and an automatic review draft add their own entry (their own switch).
@@ -254,6 +269,8 @@ export function useShellEvents() {
 			if (more) await push(more);
 		})().catch(logError);
 	});
+
+	useBudgetNotice();
 
 	// One check at start and one every 6 hours, while the switch in Settings / Me is on.
 	const { autoUpdateCheck, loaded } = usePrefs();

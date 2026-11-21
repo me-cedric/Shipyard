@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { openSync } from "@/features/shell/test-open";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
@@ -13,44 +14,41 @@ async function cleanCopy() {
 	await unwrap(commands.codeDiscard(["src"], false));
 }
 
-const bar = async () => within(await screen.findByRole("contentinfo"));
-// The one Sync action sits in the context bar on top.
-const top = async () => within(await screen.findByRole("banner"));
-
 describe("the sync action and the connection state rows", () => {
-	it("runs one tick from the context bar and the row shows the state with the time", async () => {
+	it("runs one tick from the card of the sync mark and the row shows the state with the time", async () => {
 		const user = userEvent.setup();
 		const id = await withTracker();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const row = await screen.findByRole("group", { name: "Acme" });
 		// Nothing synced yet: the dash, no time.
 		expect(await within(row).findByRole("status")).toHaveTextContent("Idle");
 		expect(row.querySelector("time")).toBeNull();
-		await user.click((await top()).getByRole("button", { name: "Sync" }));
+		await user.click((await openSync(user)).getByRole("button", { name: "Sync" }));
 		await waitFor(() => expect(mockState().sync.ticks).toBe(1));
 		await waitFor(() => expect(row.querySelector("time")).not.toBeNull());
 		expect(mockState().sync.lastOk[id]).toBeGreaterThan(0);
 		expect(mockState().sync.mirror.length).toBeGreaterThan(0);
 	});
 
-	it("shows the failed state with the reason, and the status bar says why", async () => {
+	it("shows the failed state with the reason, and the card of the sync mark says why", async () => {
 		const user = userEvent.setup();
 		await withTracker(false);
 		await cleanCopy();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const row = await screen.findByRole("group", { name: "Acme" });
-		await user.click((await top()).getByRole("button", { name: "Sync" }));
+		const card = await openSync(user);
+		await user.click(card.getByRole("button", { name: "Sync" }));
 		await waitFor(() => expect(within(row).getByRole("status")).toHaveTextContent("Failed"));
 		expect(within(row).getByRole("status")).toHaveTextContent("This connection has no token yet.");
-		expect((await bar()).getAllByRole("alert")[0]).toHaveTextContent(
-			"This connection has no token yet.",
-		);
-		expect((await bar()).getByRole("button", { name: "Open settings" })).toBeVisible();
+		// The one alert is the live region beside the mark; the card shows the same reason.
+		expect(screen.getAllByRole("alert")[0]).toHaveTextContent("This connection has no token yet.");
+		expect(card.getByText("This connection has no token yet.")).toBeVisible();
+		expect(card.getByRole("button", { name: "Open settings" })).toBeVisible();
 	});
 
 	it("focuses the pickup label field when the address names its anchor", async () => {
 		await withTracker();
-		mountApp("/settings/project#pickup-label");
+		mountApp("/setup/project?page=automation#pickup-label");
 		await waitFor(() => expect(screen.getByRole("textbox", { name: "Label" })).toHaveFocus());
 	});
 
@@ -77,7 +75,7 @@ describe("the sync action and the connection state rows", () => {
 			}),
 		);
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const row = await screen.findByRole("group", { name: "Acme" });
 		expect(within(row).queryByRole("status")).toBeNull();
 	});
@@ -86,11 +84,19 @@ describe("the sync action and the connection state rows", () => {
 describe("Settings / Project, group Automation", () => {
 	it("starts from the defaults with the write switches on", async () => {
 		await withTracker();
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=automation");
 		expect(await screen.findByRole("spinbutton", { name: "Interval (s)" })).toHaveValue(60);
 		expect(screen.getByRole("textbox", { name: "Label" })).toHaveValue("shipyard");
-		expect(screen.getByRole("spinbutton", { name: "Global" })).toHaveValue(2);
-		for (const name of ["Push", "Pull request", "Ticket transition", "Ticket comment"])
+		const less = screen.getByRole("button", { name: "Less: On this computer" });
+		expect(within(less.parentElement as HTMLElement).getByText("2")).toBeVisible();
+		// The main switch is on while the limit of this computer is above zero.
+		expect(screen.getByRole("switch", { name: "Agents pick up tickets alone" })).toBeChecked();
+		for (const name of [
+			"Push the branch",
+			"Open the pull request",
+			"Move the ticket",
+			"Comment in the issue tracker",
+		])
 			expect(screen.getByRole("switch", { name })).toBeChecked();
 		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 	});
@@ -98,7 +104,7 @@ describe("Settings / Project, group Automation", () => {
 	it("refuses an interval under 30 s and keeps the old file", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=automation");
 		const interval = await screen.findByRole("spinbutton", { name: "Interval (s)" });
 		await user.clear(interval);
 		await user.type(interval, "10");
@@ -110,7 +116,7 @@ describe("Settings / Project, group Automation", () => {
 	it("saves the pickup filter, the limits, the mapping and a write switch", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=automation");
 		const interval = await screen.findByRole("spinbutton", { name: "Interval (s)" });
 		await user.clear(interval);
 		await user.type(interval, "45");
@@ -119,14 +125,15 @@ describe("Settings / Project, group Automation", () => {
 		await user.type(screen.getByRole("textbox", { name: "Statuses" }), "To Do, Ready");
 		await user.type(screen.getByRole("textbox", { name: "Per status" }), "To Do=1");
 		await user.type(screen.getByRole("textbox", { name: "Done, Status" }), "Closed");
-		await user.click(screen.getByRole("switch", { name: "Ticket comment" }));
+		await user.click(screen.getByRole("switch", { name: "Comment in the issue tracker" }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().sync.file).toBe("valid"));
 		const a = mockState().sync.automation;
 		expect(a.interval).toBe(45);
 		expect(a.pickup).toEqual({ label: "agent", statuses: ["To Do", "Ready"] });
 		expect(a.concurrency).toEqual({ global: 2, per_status: { "To Do": 1 } });
-		expect(a.status_map).toEqual({ Done: { status: "Closed" } });
+		// The step Done stands for the two states Merged and Done.
+		expect(a.status_map).toEqual({ Done: { status: "Closed" }, Merged: { status: "Closed" } });
 		expect(a.writes).toEqual({
 			push: true,
 			pull_request: true,
@@ -137,21 +144,118 @@ describe("Settings / Project, group Automation", () => {
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
 	});
 
+	it("sets the limit of a stage beside the limits by status (runs-recipes REQ-007)", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/setup/project?page=automation");
+		const build = await screen.findByRole("group", { name: "Build, at once" });
+		// No limit yet: the stepper shows the limit of the computer, and the file holds none.
+		expect(within(build).getByRole("status")).toHaveTextContent("2");
+		await user.click(screen.getByRole("button", { name: "More: Build, at once" }));
+		await user.click(screen.getByRole("button", { name: "Less: Plan, at once" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(mockState().sync.automation.concurrency?.per_stage).toEqual({ plan: 1, build: 3 }),
+		);
+		// The saved file resets the form, and the stages show their limits.
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
+		expect(
+			within(screen.getByRole("group", { name: "Build, at once" })).getByRole("status"),
+		).toHaveTextContent("3");
+		expect(
+			within(screen.getByRole("group", { name: "Review, at once" })).getByRole("status"),
+		).toHaveTextContent("2");
+	});
+
+	it("clears the limit of the project again, so the file holds none", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/setup/project?page=automation");
+		await user.click(await screen.findByRole("button", { name: "More: In this project" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().sync.automation.concurrency?.per_project).toBe(3));
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
+		await user.clear(screen.getByRole("spinbutton", { name: "Per project" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(mockState().sync.automation.concurrency?.per_project).toBeUndefined(),
+		);
+	});
+
+	it("shows Mixed, read-only, for a step whose states differ, and keeps both values", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/setup/project?page=automation");
+		await user.type(
+			await screen.findByRole("textbox", { name: "State: Merged, Status" }),
+			"Released",
+		);
+		await user.type(screen.getByRole("textbox", { name: "State: Done, Status" }), "Closed");
+		const step = screen.getByRole("textbox", { name: "Done, Status" });
+		expect(step).toHaveAttribute("placeholder", "Mixed");
+		expect(step).toHaveAttribute("readonly");
+		await user.type(step, "x");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().sync.file).toBe("valid"));
+		expect(mockState().sync.automation.status_map).toEqual({
+			Merged: { status: "Released" },
+			Done: { status: "Closed" },
+		});
+	});
+
 	it("names a per-status value that is not name=number", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=automation");
 		await user.type(await screen.findByRole("textbox", { name: "Per status" }), "To Do");
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("Per status: name=number");
 	});
 
+	it("removes a kind of a recipe permission in the draft, and Save sends it with the rest", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().sync.file = "valid";
+		mockState().sync.automation.recipe_writes = { feature: ["transition", "open_pr"] };
+		mountApp("/setup/project?page=automation");
+		const interval = await screen.findByRole("spinbutton", { name: "Interval (s)" });
+		await user.clear(interval);
+		await user.type(interval, "45");
+		await user.click(
+			screen.getByRole("button", { name: "Remove Open a pull request for feature" }),
+		);
+		// Remove changes the draft only: the file keeps both kinds, the edit of the form stays.
+		expect(mockState().sync.automation.recipe_writes).toEqual({
+			feature: ["transition", "open_pr"],
+		});
+		expect(
+			screen.queryByRole("button", { name: "Remove Open a pull request for feature" }),
+		).toBeNull();
+		expect(screen.getByRole("spinbutton", { name: "Interval (s)" })).toHaveValue(45);
+		await user.click(screen.getByRole("button", { name: "Remove Move the ticket for feature" }));
+		expect(screen.queryByText("Allowed for a recipe")).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().sync.automation.recipe_writes).toBeUndefined());
+		expect(mockState().sync.automation.interval).toBe(45);
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
+	});
+
+	it("shows no recipe permission list when none exists", async () => {
+		await withTracker();
+		mountApp("/setup/project?page=automation");
+		await screen.findByRole("spinbutton", { name: "Interval (s)" });
+		expect(screen.queryByText("Allowed for a recipe")).toBeNull();
+		expect(screen.queryByRole("button", { name: /^Remove .+ for / })).toBeNull();
+	});
+
 	it("is in French when the language is French", async () => {
 		mockState().prefs.lang = "fr";
 		await withTracker();
-		mountApp("/settings/project");
+		mountApp("/setup/project?page=automation");
 		expect(await screen.findByRole("spinbutton", { name: "Intervalle (s)" })).toBeInTheDocument();
-		expect(screen.getByRole("switch", { name: "Commentaire du ticket" })).toBeInTheDocument();
+		expect(
+			screen.getByRole("switch", { name: "Commenter dans l'outil de suivi" }),
+		).toBeInTheDocument();
 		expect(screen.getByRole("textbox", { name: "Terminé, Statut" })).toBeInTheDocument();
 	});
 });

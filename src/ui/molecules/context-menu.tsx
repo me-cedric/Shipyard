@@ -1,6 +1,7 @@
 import { ContextMenu as BaseContextMenu } from "@base-ui/react/context-menu";
 import { Fragment, type ReactNode, useRef } from "react";
 import { Kbd } from "../atoms/kbd";
+import { MENU_ITEM, MENU_POPUP } from "./menu-button";
 
 export type MenuItem = {
 	id: string;
@@ -43,7 +44,7 @@ export function ContextMenu({ items, children }: { items?: MenuItem[]; children:
 			</BaseContextMenu.Trigger>
 			<BaseContextMenu.Portal>
 				<BaseContextMenu.Positioner className="z-50">
-					<BaseContextMenu.Popup className="min-w-40 rounded-lg border border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring origin-(--transform-origin) data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 p-1 text-ui">
+					<BaseContextMenu.Popup className={MENU_POPUP}>
 						{items.map((item) => (
 							<Fragment key={item.id}>
 								{item.separated ? <BaseContextMenu.Separator className="my-1 h-px bg-n-6" /> : null}
@@ -52,7 +53,7 @@ export function ContextMenu({ items, children }: { items?: MenuItem[]; children:
 									disabled={item.disabled}
 									title={item.disabled ? item.reason : undefined}
 									aria-description={item.disabled ? item.reason : undefined}
-									className="flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5 data-[disabled]:cursor-default data-[disabled]:text-n-9"
+									className={MENU_ITEM}
 								>
 									{item.icon ? (
 										<span aria-hidden="true" className="text-n-10">

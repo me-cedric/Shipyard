@@ -66,21 +66,24 @@ export function RefChip({
 					onDragStart={(e) => e.dataTransfer.setData("text/plain", refId)}
 					// An unresolved chip has no entity to open.
 					onClick={() => state !== "unresolved" && onOpen?.(refId)}
+					// The hit box is 44 px high. The negative margin keeps the line of the text at the height of the chip.
 					className={cn(
-						"inline-flex h-5 max-w-full min-w-0 items-center gap-1.5 rounded-sm border border-n-7 bg-n-2 px-1.5 font-mono text-11 text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-4",
+						"group -my-3 inline-flex min-h-control max-w-full min-w-0 items-center rounded-sm",
 						className,
 					)}
 				>
-					<span aria-hidden="true" className="text-n-10">
-						{kind === "pr" && brandOf(host) ? (
-							<BrandIcon name={host} size={12} />
-						) : (
-							(KIND_ICON[kind] ?? <DocumentTextIcon size={12} />)
-						)}
-					</span>
-					<span className="min-w-0 truncate">{text ?? refId}</span>
-					<span aria-hidden="true">
-						<StatusDot status={STATE_DOT[state]} className="size-2" />
+					<span className="inline-flex h-5 min-w-0 items-center gap-1.5 rounded-sm border border-n-7 bg-n-2 px-1.5 font-mono text-11 text-n-12 transition-colors duration-(--duration-fast) group-hover:bg-n-4">
+						<span aria-hidden="true" className="text-n-10">
+							{kind === "pr" && brandOf(host) ? (
+								<BrandIcon name={host} size={12} />
+							) : (
+								(KIND_ICON[kind] ?? <DocumentTextIcon size={12} />)
+							)}
+						</span>
+						<span className="min-w-0 truncate">{text ?? refId}</span>
+						<span aria-hidden="true">
+							<StatusDot status={STATE_DOT[state]} className="size-2" />
+						</span>
 					</span>
 				</button>
 			</Tooltip>

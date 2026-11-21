@@ -412,7 +412,7 @@ impl Dispatch for FactoryHost {
     }
 
     fn reserved(&self) -> usize {
-        crate::pr_agent::running_count()
+        crate::pr_agent::running_count() + crate::estimate_agent::running_count()
     }
 
     fn start(&self, request: &StartRequest) -> Result<(), String> {
@@ -772,6 +772,21 @@ pub struct RunView {
     /// Why a failed, paused or blocked run stopped: the newest `stop` or `blocked` note, or the
     /// newest error of the AI tool. `None` for a run that works or ended well.
     pub reason: Option<String>,
+    /// The main action of the stop (`app-redesign` REQ-014). `None`: the run waits on no stop.
+    pub stop: Option<shipyard_core::feature::Stop>,
+    /// The team role that approves the plan that waits (`runs-recipes` REQ-008). `None`: any
+    /// person with the right to approve.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approver: Option<String>,
+}
+
+/// The state of a pull request row of the mirror.
+fn pr_state(state: &str) -> shipyard_core::pickup::PrState {
+    match state {
+        "open" => shipyard_core::pickup::PrState::Open,
+        "merged" => shipyard_core::pickup::PrState::Merged,
+        _ => shipyard_core::pickup::PrState::Closed,
+    }
 }
 
 fn run_view(r: &RunInfo, pulls: &[PrRowView], questions: u32, approvals: u32) -> RunView {
@@ -786,6 +801,11 @@ fn run_view(r: &RunInfo, pulls: &[PrRowView], questions: u32, approvals: u32) ->
         changes_requested: p.review == "changes_requested",
         draft: p.draft,
     });
+    let cause = r.escalation.as_ref().map(|e| e.cause);
+    let pr_state = pr.as_ref().map(|p| pr_state(&p.state));
+    // A run that the day budget paused waits for the next day: a resume cannot go on before.
+    let stop = shipyard_core::feature::stop_of(r.run.state, cause, pr_state)
+        .filter(|s| !(r.day_pause && *s == shipyard_core::feature::Stop::Resume));
     RunView {
         id: r.id.clone(),
         reference: format!("run:{}", r.id),
@@ -837,6 +857,8 @@ fn run_view(r: &RunInfo, pulls: &[PrRowView], questions: u32, approvals: u32) ->
         open_questions: questions,
         approvals,
         reason: None,
+        stop,
+        approver: r.approver.clone(),
     }
 }
 
@@ -863,7 +885,7 @@ pub fn runs(s: &AppState) -> Res<Vec<RunView>> {
             let mut v = run_view(r, &pulls, open as u32, waiting as u32);
             if matches!(
                 v.state,
-                RunState::Failed | RunState::Paused | RunState::Blocked
+                RunState::Failed | RunState::Paused | RunState::Blocked | RunState::Cancelled
             ) {
                 v.reason = stop_reason(s, &r.id);
             }
@@ -872,6 +894,102 @@ pub fn runs(s: &AppState) -> Res<Vec<RunView>> {
         .collect();
     out.reverse();
     Ok(out)
+}
+
+/// The features of the active project (`app-redesign` REQ-012): the mirror tickets, the spec
+/// changes, the runs and the pull requests, joined by their refs. No new store.
+pub fn features(s: &AppState) -> Res<Vec<shipyard_core::feature::FlowFeature>> {
+    use shipyard_core::feature::{ChangePart, PrPart, RunPart, TicketPart};
+    let Some(a) = active(s)? else {
+        return Ok(Vec::new());
+    };
+    let items = crate::commands::sync::items(s, &Default::default())?;
+    let tickets: Vec<TicketPart> = items
+        .iter()
+        .map(|t| TicketPart {
+            key: t.key.clone(),
+            title: t.title.clone(),
+            done: t.category == "done",
+            assignee: t.assignee.clone(),
+        })
+        .collect();
+    let root = Path::new(&a.entry.path);
+    let changes: Vec<ChangePart> = crate::specs::changes(s)?
+        .into_iter()
+        .map(|c| {
+            let link = format!("change:{}", c.id);
+            // shortcut: the first `wi:` ref of the proposal, in the key form of Jira; a ticket of
+            // another issue tracker links through the mirror only.
+            let cited = std::fs::read_to_string(root.join(&c.path).join("proposal.md"))
+                .ok()
+                .and_then(|t| {
+                    let rest = t.split_once("wi:")?.1;
+                    let key: String = rest
+                        .chars()
+                        .take_while(|c| c.is_ascii_alphanumeric() || *c == '-')
+                        .collect();
+                    shipyard_core::refs::parse(&format!("wi:{key}")).map(|_| key)
+                });
+            let ticket = items
+                .iter()
+                .find(|t| t.linked.as_deref() == Some(link.as_str()))
+                .map(|t| t.key.clone())
+                .or(cited);
+            // Each artifact but the proposal sits under `specs/` of the change.
+            let has_spec = c.artifacts.iter().any(|a| {
+                a.artifact != "proposal"
+                    && !matches!(a.status, shipyard_core::specs::ArtifactStatus::Missing)
+            });
+            ChangePart {
+                id: c.id,
+                title: c.title,
+                ticket,
+                has_spec,
+            }
+        })
+        .collect();
+    let runs: Vec<RunPart> = runs(s)?
+        .into_iter()
+        .map(|r| RunPart {
+            pr: r.pr.as_ref().map(|p| u64::from(p.number)),
+            step: r
+                .steps
+                .iter()
+                .find(|st| st.state == StepState::Running)
+                .map(|st| st.id.clone()),
+            approvals: r.approvals,
+            questions: r.open_questions,
+            stop: r.stop,
+            run: shipyard_core::run::Run {
+                state: r.state,
+                return_to: r.return_to,
+            },
+            id: r.id,
+            key: r.key,
+            title: r.title,
+        })
+        .collect();
+    let prs: Vec<PrPart> = crate::delivery::pr_rows(s)?
+        .into_iter()
+        .map(|p| PrPart {
+            reference: p.reference,
+            number: u64::from(p.number),
+            title: p.title,
+            state: pr_state(&p.state),
+            // shortcut: the mirror keeps no author of a pull request, add it to `PrRow` when a
+            // card must name the person of a pull request with no ticket.
+            author: None,
+            checks: match p.ci.as_str() {
+                "passing" => Some(shipyard_core::delivery::Ci::Passing),
+                "failing" => Some(shipyard_core::delivery::Ci::Failing),
+                "pending" => Some(shipyard_core::delivery::Ci::Pending),
+                _ => None,
+            },
+        })
+        .collect();
+    Ok(shipyard_core::feature::features(
+        &tickets, &changes, &runs, &prs,
+    ))
 }
 
 /// The newest reason in the last events of the run log (REQ-004): a `stop` or `blocked` note, or
@@ -1000,6 +1118,7 @@ pub fn sessions(s: &AppState) -> Res<Vec<SessionView>> {
         });
     Ok(crate::pr_agent::sessions(&a.entry.id)
         .into_iter()
+        .chain(crate::estimate_agent::sessions(&a.entry.id))
         .chain(runs)
         .collect())
 }
@@ -1084,6 +1203,7 @@ pub fn usage(s: &AppState) -> Res<UsageView> {
 pub fn budget_save(s: &AppState, scope: &str, key: &str, usd: Option<f64>) -> Res<()> {
     crate::rights::require(s, crate::rights::Right::ProjectSettings, "budget_set", key)?;
     let (id, root) = root_of(s)?;
+    let _file = crate::commands::sync::automation_lock();
     set_budget(&root, scope, key, usd).map_err(err)?;
     if let AutomationRead::Valid(a) = read_automation(&root).map_err(err)? {
         s.factory.factory.set_budgets(&id, a.budgets);
@@ -1206,6 +1326,104 @@ pub fn cancel(s: &AppState, run: &str) -> Res<()> {
     done(s, s.factory.factory.cancel(run))
 }
 
+/// A person pauses a working run at the end of its turn (`runs-recipes` REQ-001).
+pub fn pause(s: &AppState, run: &str) -> Res<()> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "run_pause", run)?;
+    done(s, s.factory.factory.pause(run))
+}
+
+/// A person takes a run over (`runs-recipes` REQ-002): the run ends as `Cancelled` with the
+/// reason "Taken over by <person>", the branch and the worktree stay, the person becomes the
+/// assignee of the ticket and the worktree opens in the editor. Returns the worktree folder. A
+/// ticket that cannot be assigned, or no editor, does not undo the take over.
+pub fn take_over(s: &AppState, run: &str) -> Res<String> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "run_take_over", run)?;
+    let a = active(s)?.ok_or("no project is open")?;
+    let f = &s.factory.factory;
+    let info = f
+        .run_info(run)
+        .filter(|r| r.project == a.entry.id)
+        .ok_or_else(|| format!("no run {run}"))?;
+    if info.run.state.is_final() {
+        return Err("the run ended".into());
+    }
+    let who = crate::work::me_name(s)
+        .or_else(|| crate::rights::actor(s, &a.entry.id).map(|x| x.by))
+        .unwrap_or_else(|| "a person".into());
+    done(s, f.cancel_because(run, &format!("Taken over by {who}")))?;
+    crate::work::assign_me(s, &info.key);
+    let dir = run_folders(s, run)?.run_path(run).map_err(err)?;
+    if let Err(e) =
+        crate::openers::open_folder_in_editor_with(&crate::openers::app_dirs(), None, &dir)
+    {
+        eprintln!("take over {run}: {e}");
+    }
+    Ok(dir.display().to_string())
+}
+
+/// A file that a person adds to the chat of a run (`runs-recipes` REQ-003). The file goes into
+/// the run folder of the app data with the limits of `assistant_attach`, and the next turn reads
+/// it as context. A text file goes in as a quote that is data, an image as its path.
+pub fn run_attach_file(
+    s: &AppState,
+    run: &str,
+    name: &str,
+    bytes: &[u8],
+) -> Res<crate::assistant_attach::Attachment> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "run_attach", run)?;
+    let a = active(s)?.ok_or("no project is open")?;
+    let f = &s.factory.factory;
+    f.run_info(run)
+        .filter(|r| r.project == a.entry.id)
+        .ok_or_else(|| format!("no run {run}"))?;
+    if !plain(run) {
+        return Err(format!("`{run}` is not a plain run id"));
+    }
+    let dir = s.dir.join("agents").join(run).join("context");
+    let made = crate::assistant_attach::attach(&dir, name, bytes)?;
+    if made.kind == "text" {
+        std::fs::create_dir_all(&dir).map_err(err)?;
+        std::fs::write(dir.join(&made.name), bytes).map_err(err)?;
+    }
+    f.add_context(run, &format!("the file `{}`", made.name), &made.quote)?;
+    s.factory.publish();
+    Ok(made)
+}
+
+/// "May write: Alone" of a recipe step that opens a pull request (`runs-recipes` REQ-009). The
+/// click is the approval "Do not ask again for this recipe": the file gets `open_pr` for that
+/// recipe. The form of the automation file cannot add a kind, so this command does. It needs the
+/// settings right, the approve right and the click of a person.
+pub fn recipe_allow_pr(s: &AppState, recipe: &str, click: bool) -> Res<()> {
+    use crate::rights::Right;
+    use shipyard_store::automation_file::{AutomationRead, read_automation, write_automation};
+    crate::work::need_click(s, click, Right::ProjectSettings, "recipe_allow_pr", recipe)?;
+    crate::rights::require(s, Right::RunsApprove, "recipe_allow_pr", recipe)?;
+    if !workflows(s)?.iter().any(|w| w.id == recipe) {
+        return Err(format!("no recipe `{recipe}` in this project"));
+    }
+    let (_, root) = root_of(s)?;
+    let file = crate::commands::sync::automation_lock();
+    let mut automation = match read_automation(&root).map_err(err)? {
+        AutomationRead::Missing => Default::default(),
+        AutomationRead::Valid(a) => a,
+        AutomationRead::Invalid(_) => {
+            return Err("the automation file is not valid: fix it first".into());
+        }
+    };
+    automation
+        .recipe_writes
+        .entry(recipe.to_string())
+        .or_default()
+        .insert(shipyard_core::pickup::WriteKind::OpenPr);
+    write_automation(&root, &automation).map_err(err)?;
+    drop(file);
+    crate::commands::sync::refresh(s);
+    s.sync.changed();
+    s.factory.publish();
+    Ok(())
+}
+
 /// Raise the budget and resume a paused run (`factory` REQ-005).
 pub fn resume(
     s: &AppState,
@@ -1229,10 +1447,41 @@ pub fn unblock(s: &AppState, run: &str, note: Option<&str>) -> Res<()> {
     done(s, s.factory.factory.unblock_with(run, note))
 }
 
-/// A run blocked with nothing to deliver ends as `Done`: the work is on the base already.
+/// A run blocked with nothing to deliver ends as `Done`: the work is on the base already. A run
+/// whose pull request merged or closed on the code host takes that event now (`stop_of`).
 pub fn close_done(s: &AppState, run: &str) -> Res<()> {
+    use shipyard_core::pickup::PrState;
     crate::rights::require(s, crate::rights::Right::RunsStart, "run_close_done", run)?;
-    done(s, s.factory.factory.close_done(run))
+    let f = &s.factory.factory;
+    let outside = match f.run_info(run).and_then(|r| r.pr) {
+        Some(n) => pr_rows(s)?
+            .into_iter()
+            .find(|p| u64::from(p.number) == n)
+            .map(|p| pr_state(&p.state)),
+        None => None,
+    };
+    done(
+        s,
+        match outside {
+            Some(PrState::Merged) => f.close_outside(run, true),
+            Some(PrState::Closed) => f.close_outside(run, false),
+            _ => f.close_done(run),
+        },
+    )
+}
+
+/// A human step that names a role: only a person with that role approves or rejects it
+/// (`runs-recipes` REQ-008).
+fn require_approver(s: &AppState, run: &str) -> Res<()> {
+    let Some(role) = s.factory.factory.run_info(run).and_then(|r| r.approver) else {
+        return Ok(());
+    };
+    let person = crate::rights::current(s)?.person;
+    if shipyard_core::rights::may_approve_as(&person, &role) {
+        Ok(())
+    } else {
+        Err(format!("only the role {role} approves this step"))
+    }
 }
 
 pub fn approve_plan(s: &AppState, run: &str) -> Res<()> {
@@ -1242,11 +1491,13 @@ pub fn approve_plan(s: &AppState, run: &str) -> Res<()> {
         "run_plan_approve",
         run,
     )?;
+    require_approver(s, run)?;
     done(s, s.factory.factory.approve_plan(run))
 }
 
 pub fn reject_plan(s: &AppState, run: &str, note: &str) -> Res<()> {
     crate::rights::require(s, crate::rights::Right::RunsApprove, "run_plan_reject", run)?;
+    require_approver(s, run)?;
     done(s, s.factory.factory.reject_plan(run, note))
 }
 
@@ -1259,9 +1510,27 @@ pub fn set_kill_switch(s: &AppState, on: bool) -> bool {
     s.factory.factory.set_kill_switch(on);
     if on {
         crate::pr_agent::stop_all();
+        crate::estimate_agent::stop_all();
     }
     s.factory.publish();
     on
+}
+
+/// "Stop all agents" (`spec:app-redesign#REQ-016`): cancels each active run and each agent action.
+/// The agents stay on: the kill switch keeps its value, so a new run can start.
+pub fn stop_all(s: &AppState, click: bool) -> Res<()> {
+    crate::work::need_click(
+        s,
+        click,
+        crate::rights::Right::RunsStart,
+        "agents_stop_all",
+        "",
+    )?;
+    s.factory.factory.cancel_all("stopped by Stop all agents");
+    crate::pr_agent::stop_all();
+    crate::estimate_agent::stop_all();
+    s.factory.publish();
+    Ok(())
 }
 
 /// A run that a person moves by hand to a state that the machine allows (`delivery`: `Closed`
@@ -1273,7 +1542,7 @@ pub fn close(s: &AppState, run: &str) -> Res<RunState> {
 
 // ---------------------------------------------------------------- workflows and roles
 
-fn root_of(s: &AppState) -> Res<(String, PathBuf)> {
+pub(crate) fn root_of(s: &AppState) -> Res<(String, PathBuf)> {
     let e = s
         .registry()?
         .active()
@@ -1417,7 +1686,7 @@ pub fn workflow_read(s: &AppState, id: &str) -> Res<WorkflowFile> {
     let id = file_id(id)?;
     let (root, loaded) = fresh(s)?;
     let text = std::fs::read_to_string(root.join(WORKFLOWS_DIR).join(format!("{id}.yaml")))
-        .map_err(|_| format!("no workflow `{id}`"))?;
+        .map_err(|_| format!("no recipe `{id}`"))?;
     let (workflow, issue) = check_workflow(id, &text, &loaded);
     Ok(WorkflowFile {
         id: id.into(),
@@ -1543,7 +1812,7 @@ pub enum WorkflowSource {
 
 fn refuse_existing(root: &Path, id: &str) -> Res<()> {
     if workflow_path(root, id).exists() {
-        return Err(format!("a workflow `{id}` exists"));
+        return Err(format!("a recipe `{id}` exists"));
     }
     Ok(())
 }
@@ -1581,7 +1850,7 @@ fn refuse_in_use(s: &AppState, id: &str) -> Res<()> {
     }
     .unwrap_or_else(|| DEFAULT_WORKFLOW.into());
     if default == id {
-        return Err(format!("`{id}` is the default workflow of the project"));
+        return Err(format!("`{id}` is the default recipe of the project"));
     }
     let live = s
         .factory
@@ -1624,7 +1893,7 @@ pub fn delete_workflow(s: &AppState, id: &str) -> Res<()> {
     let id = file_id(id)?;
     let (_, root) = root_of(s)?;
     refuse_in_use(s, id)?;
-    std::fs::remove_file(workflow_path(&root, id)).map_err(|_| format!("no workflow `{id}`"))?;
+    std::fs::remove_file(workflow_path(&root, id)).map_err(|_| format!("no recipe `{id}`"))?;
     let _ = ensure(s);
     Ok(())
 }
@@ -1821,6 +2090,12 @@ pub async fn runs_list(app: AppHandle) -> Api<Vec<RunView>> {
 
 #[tauri::command]
 #[specta::specta]
+pub async fn features_list(app: AppHandle) -> Api<Vec<shipyard_core::feature::FlowFeature>> {
+    blocking(app, features).await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn run_get_one(app: AppHandle, run: String) -> Api<Option<RunView>> {
     blocking(app, move |s| run_get(s, &run)).await
 }
@@ -1866,6 +2141,35 @@ pub async fn run_start(app: AppHandle, key: String) -> Api<String> {
 #[specta::specta]
 pub async fn run_cancel(app: AppHandle, run: String) -> Api<()> {
     blocking(app, move |s| cancel(s, &run)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn run_pause(app: AppHandle, run: String) -> Api<()> {
+    blocking(app, move |s| pause(s, &run)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn run_take_over(app: AppHandle, run: String) -> Api<String> {
+    blocking(app, move |s| take_over(s, &run)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn run_attach(
+    app: AppHandle,
+    run: String,
+    name: String,
+    bytes: Vec<u8>,
+) -> Api<crate::assistant_attach::Attachment> {
+    blocking(app, move |s| run_attach_file(s, &run, &name, &bytes)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn recipe_allow_pr_write(app: AppHandle, recipe: String, click: bool) -> Api<()> {
+    blocking(app, move |s| recipe_allow_pr(s, &recipe, click)).await
 }
 
 #[tauri::command]
@@ -1924,6 +2228,12 @@ pub async fn kill_switch_get(app: AppHandle) -> Api<bool> {
 #[specta::specta]
 pub async fn kill_switch_set(app: AppHandle, on: bool) -> Api<bool> {
     blocking(app, move |s| Ok(set_kill_switch(s, on))).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn agents_stop_all(app: AppHandle, click: bool) -> Api<()> {
+    blocking(app, move |s| stop_all(s, click)).await
 }
 
 #[tauri::command]

@@ -38,10 +38,13 @@ pub enum Right {
     /// The one read right: amounts of money (REQ-005).
     #[serde(rename = "costs.view")]
     CostsView,
+    /// Estimates, the plan calendar and the write to the issue tracker (`shell-setup-rights` REQ-004).
+    #[serde(rename = "plan.edit")]
+    PlanEdit,
 }
 
 impl Right {
-    pub const ALL: [Right; 10] = [
+    pub const ALL: [Right; 11] = [
         Right::WorkEdit,
         Right::SpecsEdit,
         Right::DesignEdit,
@@ -52,6 +55,7 @@ impl Right {
         Right::RunsApprove,
         Right::ProjectSettings,
         Right::CostsView,
+        Right::PlanEdit,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -66,6 +70,7 @@ impl Right {
             Right::RunsApprove => "runs.approve",
             Right::ProjectSettings => "project.settings",
             Right::CostsView => "costs.view",
+            Right::PlanEdit => "plan.edit",
         }
     }
 
@@ -84,6 +89,7 @@ impl Right {
             Right::RunsStart | Right::RunsApprove => Area::Runs,
             Right::ProjectSettings => Area::Settings,
             Right::CostsView => Area::Costs,
+            Right::PlanEdit => Area::Plan,
         }
     }
 
@@ -112,10 +118,12 @@ pub enum Area {
     Settings,
     /// Amounts of money. Not a space: `none` hides the amounts.
     Costs,
+    /// Estimates and the plan: `read` is See, `write` is Change. Time entries stay personal.
+    Plan,
 }
 
 impl Area {
-    pub const ALL: [Area; 8] = [
+    pub const ALL: [Area; 9] = [
         Area::Work,
         Area::Specs,
         Area::Design,
@@ -124,6 +132,7 @@ impl Area {
         Area::Runs,
         Area::Settings,
         Area::Costs,
+        Area::Plan,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -136,6 +145,7 @@ impl Area {
             Area::Runs => "runs",
             Area::Settings => "settings",
             Area::Costs => "costs",
+            Area::Plan => "plan",
         }
     }
 
@@ -184,6 +194,8 @@ pub struct Access {
     pub runs: Level,
     pub settings: Level,
     pub costs: Level,
+    /// `plan.edit`. The default is the level of `work`.
+    pub plan: Level,
     /// `code.merge`.
     pub merge: bool,
     /// `runs.approve`.
@@ -196,7 +208,7 @@ impl Access {
     /// Each area `read`, no action: the read-only profile.
     const READ: Access = Access::of([Level::Read; 8], false, false);
 
-    /// The levels in the order of [`Area::ALL`].
+    /// The levels in the order of [`Area::ALL`] without Plan: Plan starts at the level of `work`.
     const fn of(l: [Level; 8], merge: bool, approve: bool) -> Access {
         Access {
             work: l[0],
@@ -207,6 +219,7 @@ impl Access {
             runs: l[5],
             settings: l[6],
             costs: l[7],
+            plan: l[0],
             merge,
             approve,
         }
@@ -227,6 +240,7 @@ impl Access {
             Area::Runs => &mut self.runs,
             Area::Settings => &mut self.settings,
             Area::Costs => &mut self.costs,
+            Area::Plan => &mut self.plan,
         }
     }
 
@@ -385,7 +399,7 @@ impl Role {
             Role::Developer => Access::of([W, R, W, W, W, W, R, N], false, true),
             Role::Qa => Access::of([W, W, R, W, W, W, R, N], false, false),
             Role::Designer => Access::of([W, R, W, W, R, R, R, N], false, false),
-            Role::Viewer => Access::of([R, R, R, R, R, R, R, N], false, false),
+            Role::Viewer => Access::of([R, R, R, R, N, R, R, N], false, false),
         }
     }
 }
@@ -414,9 +428,73 @@ pub fn table(team: &Team) -> Vec<(Role, Access)> {
         .collect()
 }
 
-/// The `roles:` block that gives `table`: the cells that differ from the defaults. A role with
-/// the defaults has no entry.
-pub fn block(table: &[(Role, Access)]) -> BTreeMap<String, BTreeMap<String, Cell>> {
+/// The places that a role can hide (`shell-setup-rights` REQ-011): each place but Today and
+/// Setup, which the person needs to get back.
+pub const HIDEABLE: [&str; 5] = ["flow", "plan", "crew", "library", "code"];
+/// The key of the places that a role does not see, in the `roles:` block: `hide: plan,code`.
+const HIDE_KEY: &str = "hide";
+
+/// The places of a `hide` cell, in the order of [`HIDEABLE`]. `None` for a cell that is no list
+/// of known places.
+fn hide_list(cell: &Cell) -> Option<Vec<String>> {
+    let Cell::Text(text) = cell else {
+        return None;
+    };
+    let named: Vec<&str> = text
+        .split(',')
+        .map(str::trim)
+        .filter(|p| !p.is_empty())
+        .collect();
+    named.iter().all(|p| HIDEABLE.contains(p)).then(|| {
+        HIDEABLE
+            .iter()
+            .filter(|p| named.contains(p))
+            .map(|p| (*p).to_string())
+            .collect()
+    })
+}
+
+impl Role {
+    /// The places that the role does not see until the team says otherwise (the design of the
+    /// Role views page).
+    pub fn default_hidden(self) -> Vec<String> {
+        let places: &[&str] = match self {
+            Role::Po | Role::Pm => &["code"],
+            Role::Ba | Role::Viewer => &["crew", "code"],
+            Role::Architect => &["plan"],
+            Role::Qa => &["plan", "crew"],
+            Role::Designer => &["plan", "crew", "code"],
+            Role::Techlead | Role::Developer => &[],
+        };
+        places.iter().map(|p| (*p).to_string()).collect()
+    }
+}
+
+/// The places that `role` does not see in this team: the `hide` cell of its `roles:` block, or
+/// [`Role::default_hidden`] when the block has none. An empty cell hides none.
+pub fn role_hidden(team: &Team, role: Role) -> Vec<String> {
+    team.roles
+        .iter()
+        .filter(|(k, _)| Role::parse(k) == Some(role))
+        .filter_map(|(_, block)| block.iter().find(|(k, _)| k.trim() == HIDE_KEY))
+        .filter_map(|(_, cell)| hide_list(cell))
+        .next_back()
+        .unwrap_or_else(|| role.default_hidden())
+}
+
+/// The places to save for a role: the known ones, in the order of [`HIDEABLE`]. An unknown place
+/// is refused.
+pub fn clean_hidden(places: &[String]) -> Result<Vec<String>, String> {
+    hide_list(&Cell::Text(places.join(",")))
+        .ok_or_else(|| format!("a role hides only: {}", HIDEABLE.join(", ")))
+}
+
+/// The `roles:` block that gives `table` and `hidden`: the cells that differ from the defaults.
+/// A role with the defaults has no entry.
+pub fn block(
+    table: &[(Role, Access)],
+    hidden: &[(Role, Vec<String>)],
+) -> BTreeMap<String, BTreeMap<String, Cell>> {
     table
         .iter()
         .filter_map(|(role, a)| {
@@ -433,6 +511,11 @@ pub fn block(table: &[(Role, Access)]) -> BTreeMap<String, BTreeMap<String, Cell
                 if on != was {
                     cells.insert(key.into(), Cell::Flag(on));
                 }
+            }
+            if let Some((_, h)) = hidden.iter().find(|(r, _)| r == role)
+                && *h != role.default_hidden()
+            {
+                cells.insert(HIDE_KEY.into(), Cell::Text(h.join(",")));
             }
             (!cells.is_empty()).then(|| (role.as_str().to_string(), cells))
         })
@@ -620,6 +703,8 @@ pub struct Person {
     pub admin: bool,
     /// The read-only profile of the project is on.
     pub read_only: bool,
+    /// The places that the roles of the person do not see (`shell-setup-rights` REQ-011).
+    pub hidden: Vec<String>,
     /// The levels after the personal narrowing and the read-only profile.
     pub access: Access,
     /// The rights that the levels give, in the order of [`Right::ALL`].
@@ -676,7 +761,24 @@ pub fn person(
     if admin {
         access.settings = access.settings.max(Level::Read);
     }
+    // A person sees a place when one of the roles sees it. An admin sees each place.
+    let mut hidden: Vec<String> = match (member, found) {
+        (Some(m), _) if !m.admin => HIDEABLE
+            .iter()
+            .map(|p| (*p).to_string())
+            .filter(|p| roles.iter().all(|r| role_hidden(team, *r).contains(p)))
+            .collect(),
+        _ => Vec::new(),
+    };
+    // The personal role of this machine only hides more. A team admin sees each place; a solo
+    // person sees the places of the role they picked.
+    for p in personal.map_or_else(Vec::new, |r| personal_hidden(team, r)) {
+        if !hidden.contains(&p) && (found == Found::Solo || !admin) {
+            hidden.push(p);
+        }
+    }
     Person {
+        hidden,
         member: member.map(|m| m.handle.clone()),
         found,
         role: roles.first().copied(),
@@ -685,6 +787,26 @@ pub fn person(
         read_only,
         rights: access.rights(),
         access,
+    }
+}
+
+/// Does `person` approve a step that names `role` (`runs-recipes` REQ-008)? Only a member with that
+/// role does. A solo person has every right and approves each step.
+pub fn may_approve_as(person: &Person, role: &str) -> bool {
+    person.found == Found::Solo
+        || person
+            .roles
+            .iter()
+            .any(|r| r.as_str().eq_ignore_ascii_case(role))
+}
+
+/// The places that a personal role of this machine hides: the same map as [`personal_access`].
+fn personal_hidden(team: &Team, role: &str) -> Vec<String> {
+    match role.trim().to_ascii_lowercase().as_str() {
+        "" | "none" => Vec::new(),
+        "lead" => role_hidden(team, Role::Po),
+        "junior" => role_hidden(team, Role::Developer),
+        other => Role::parse(other).map_or_else(Vec::new, |r| role_hidden(team, r)),
     }
 }
 
@@ -699,6 +821,7 @@ pub fn unknown(read_only: bool) -> Person {
         roles: vec![Role::Viewer],
         admin: false,
         read_only,
+        hidden: Vec::new(),
         rights: access.rights(),
         access,
     }
@@ -754,9 +877,10 @@ pub fn findings(team: &Team) -> Vec<Finding> {
     }
     for (role, cells) in &team.roles {
         let mut probe = Access::default();
-        let bad = cells
-            .iter()
-            .filter(|(k, c)| Role::parse(role).is_none() || !probe.apply(k, c));
+        let bad = cells.iter().filter(|(k, c)| {
+            let known = (k.trim() == HIDE_KEY && hide_list(c).is_some()) || probe.apply(k, c);
+            Role::parse(role).is_none() || !known
+        });
         for (key, cell) in bad {
             let value = match cell {
                 Cell::Flag(on) => on.to_string(),

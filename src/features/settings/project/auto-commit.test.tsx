@@ -8,7 +8,7 @@ describe("Settings / Project: auto-commit", () => {
 	it("is off by default and turns on with one switch", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		const toggle = await screen.findByRole("switch", { name: "Auto-commit" });
 		await waitFor(() => expect(toggle).not.toBeChecked());
 		await user.click(toggle);

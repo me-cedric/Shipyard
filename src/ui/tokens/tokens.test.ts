@@ -28,13 +28,47 @@ const block = (selector: string) => {
 const decl = (body: string, name: string) =>
 	// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp, javascript.lang.security.audit.incomplete-sanitization.incomplete-sanitization -- test input is a fixed token name
 	new RegExp(`${name.replace("*", "\\*")}:\\s*([^;]+);`).exec(body)?.[1]?.trim();
-/** Lightness of the light and the dark value of a light-dark(oklch(), oklch()) token. */
+/** The light and the dark value of a light-dark() token. A project hue reads as the default blue. */
+const pair = (body: string, name: string) => {
+	const v = (decl(body, name) ?? "").replace(/var\(--accent-hue(?:, \d+)?\)/g, "265");
+	const m = /^light-dark\(\s*(#\w+|oklch\([^)]*\))\s*,\s*(#\w+|oklch\([^)]*\))\s*\)$/.exec(v);
+	return { light: m?.[1] ?? "", dark: m?.[2] ?? "" };
+};
+/** The linear sRGB parts of a hex colour or an `oklch(L C H)` colour. */
+const linear = (colour: string): number[] => {
+	if (colour.startsWith("#"))
+		return [1, 3, 5].map((i) => {
+			const v = Number.parseInt(colour.slice(i, i + 2), 16) / 255;
+			return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+		});
+	const [L = 0, C = 0, H = 0] = (/oklch\(([^)]*)\)/.exec(colour)?.[1] ?? "")
+		.split(/\s+/)
+		.map(Number);
+	const a = C * Math.cos((H * Math.PI) / 180);
+	const b = C * Math.sin((H * Math.PI) / 180);
+	const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+	const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+	const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+	const clamp = (x: number) => Math.min(1, Math.max(0, x));
+	return [
+		clamp(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+		clamp(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+		clamp(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s),
+	];
+};
+/** The relative luminance (WCAG) of a colour. */
+const luminance = (colour: string) => {
+	const [r = 0, g = 0, b = 0] = linear(colour);
+	return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (x: string, y: string) => {
+	const [hi, lo] = [luminance(x), luminance(y)].sort((p, q) => q - p);
+	return ((hi ?? 0) + 0.05) / ((lo ?? 0) + 0.05);
+};
+/** The luminance of the light and the dark value of a light-dark() token. */
 const lightness = (body: string, name: string) => {
-	// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- test input is a fixed token name
-	const m = new RegExp(
-		`${name}:\\s*light-dark\\(oklch\\(([\\d.]+)[^)]*\\),\\s*oklch\\(([\\d.]+)`,
-	).exec(body);
-	return { light: Number(m?.[1]), dark: Number(m?.[2]) };
+	const { light, dark } = pair(body, name);
+	return { light: luminance(light), dark: luminance(dark) };
 };
 
 describe("tokens (REQ-001)", () => {
@@ -53,18 +87,34 @@ describe("tokens (REQ-001)", () => {
 		}
 	});
 
-	it("allows only the type sizes 11, 12, 13, 14, 16 and 20", () => {
+	it("allows only the type sizes 11, 12, 13, 14, 15, 16, 17, 20, 30 and 44", () => {
 		const sizes = [...theme.matchAll(/--text-(\d+):\s*([\d.]+)rem/g)].map(
 			(m) => `${m[1]}:${Number(m[2]) * 16}`,
 		);
-		expect(sizes).toEqual(["11:11", "12:12", "13:13", "14:14", "16:16", "20:20"]);
+		expect(sizes).toEqual([
+			"11:11",
+			"12:12",
+			"13:13",
+			"14:14",
+			"15:15",
+			"16:16",
+			"17:17",
+			"20:20",
+			"30:30",
+			"44:44",
+		]);
+		expect(decl(theme, "--text-30--line-height")).toBe("1.2");
+		expect(decl(theme, "--text-30--letter-spacing")).toBe("-0.01em");
+		expect(decl(theme, "--text-44--line-height")).toBe("1.1");
+		expect(decl(theme, "--text-44--letter-spacing")).toBe("-0.02em");
 	});
 
-	it("allows the radii 4, 8, 12 and 16, and only the elevation shadows", () => {
-		expect(decl(theme, "--radius-sm")).toBe("4px");
-		expect(decl(theme, "--radius-md")).toBe("8px");
-		expect(decl(theme, "--radius-lg")).toBe("12px");
-		expect(decl(theme, "--radius-xl")).toBe("16px");
+	it("allows the radii 9, 12, 14 and 20, and only the elevation shadows", () => {
+		expect(decl(theme, "--radius-sm")).toBe("9px");
+		expect(decl(theme, "--radius-md")).toBe("12px");
+		expect(decl(theme, "--radius-field")).toBe("14px");
+		expect(decl(theme, "--radius-lg")).toBe("20px");
+		expect(decl(theme, "--radius-xl")).toBe("20px");
 		for (const s of ["--shadow-*", "--inset-shadow-*", "--drop-shadow-*"])
 			expect(decl(theme, s)).toBe("initial");
 		const inline = block("@theme inline");
@@ -73,15 +123,19 @@ describe("tokens (REQ-001)", () => {
 		expect(decl(inline, "--shadow-glow")).toBe("var(--accent-glow)");
 	});
 
-	it("defines four surfaces, a dark-mode highlight, the accent gradient and soft status tints (ADR 0014)", () => {
+	it("defines four surfaces, shadows that go in dark, a flat fill under the old gradient name and soft status tints", () => {
 		for (let i = 0; i <= 3; i++) expect(decl(root, `--surface-${i}`), `surface-${i}`).toBeDefined();
-		expect(decl(root, "--highlight")).toMatch(/^light-dark\(/);
-		for (const n of [1, 2, 3]) expect(decl(root, `--elevation-${n}`)).toContain("var(--highlight)");
-		expect(decl(root, "--accent-gradient")).toContain("var(--gradient-to)");
-		expect(decl(root, "--gradient-to")).toContain("calc(h + 40)");
+		// In dark, a current item and a card have no shadow. A popup keeps one.
+		for (const n of [1, 2]) expect(decl(root, `--elevation-${n}`)).toContain("transparent)");
+		expect(decl(root, "--elevation-3")).not.toContain("transparent");
+		expect(block("@utility bg-accent-gradient")).toContain("var(--primary)");
+		expect(decl(root, "--gradient-to")).toBe("var(--accent)");
+		expect(decl(root, "--accent-glow")).toBe("0 0 0 2px var(--accent)");
 		for (const c of ["accent", "success", "warning", "danger", "info"])
 			expect(decl(root, `--${c}-soft`), `${c}-soft`).toContain(`var(--${c})`);
-		expect(css).toContain("@utility bg-canvas");
+		// The page ground is flat: one colour, no picture.
+		expect(block("@utility bg-canvas")).toContain("background-color: var(--surface-0)");
+		expect(block("@utility bg-canvas")).not.toContain("background-image");
 		expect(css).toContain("font-variant-numeric: tabular-nums");
 	});
 
@@ -122,6 +176,103 @@ describe("tokens (REQ-001)", () => {
 			for (const re of rules) if (re.test(text)) hits.push(`${path}: ${re}`);
 		}
 		expect(hits).toEqual([]);
+	});
+});
+
+describe("the look of the redesign (app-redesign REQ-025, REQ-026)", () => {
+	const root = block(":root");
+	const inline = block("@theme inline");
+
+	it("defines one attention colour with a soft ground and a text colour, for both themes", () => {
+		for (const k of ["--attention", "--attention-subtle", "--attention-text"])
+			expect(decl(root, k), k).toMatch(/^light-dark\(/);
+		expect(decl(root, "--attention-soft")).toContain("var(--attention)");
+		expect(decl(root, "--attention-strong")).toMatch(/^light-dark\(/);
+		for (const k of ["", "-strong", "-subtle", "-text", "-soft"])
+			expect(decl(inline, `--color-attention${k}`), k).toBe(`var(--attention${k})`);
+	});
+
+	it("keeps the attention colour distinct from the status colours and the accent", () => {
+		/** The HSL hue of a hex colour, in degrees. Orange is near 25: red is 0, the blue accent 225. */
+		const hue = (hex: string) => {
+			const [r = 0, g = 0, b = 0] = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
+			const max = Math.max(r, g, b);
+			const d = max - Math.min(r, g, b);
+			const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+			return (h * 60 + 360) % 360;
+		};
+		for (const v of Object.values(pair(root, "--attention"))) {
+			expect(hue(v)).toBeGreaterThan(15);
+			expect(hue(v)).toBeLessThan(40);
+		}
+		expect(hue(pair(root, "--accent").light)).toBeGreaterThan(200);
+	});
+
+	it("uses the attention colour only in the attention card, the tag for the person and a meter over its budget", () => {
+		const hits = Object.keys(sources).filter(
+			(p) =>
+				// The outline and glyph classes of a card to act on come from attention-card.tsx.
+				!/\.test\.tsx?$|gallery\/|molecules\/(?:attention-card|spend-meter)\.tsx$|atoms\/(?:badge|progress)\.tsx$/.test(
+					p,
+				) &&
+				/\battention(?:-|\b)/.test(sources[p] ?? "") &&
+				/(?:text|bg|border|ring|outline)-attention/.test(sources[p] ?? ""),
+		);
+		expect(hits).toEqual([]);
+	});
+
+	it("defines a 44 px control height", () => {
+		expect(decl(root, "--control-h")).toBe("44px");
+		expect(css).toContain("@utility min-h-control");
+	});
+
+	it("puts cards on a calmer ground in light: white cards on a grey ground", () => {
+		expect(pair(root, "--surface-1").light).toBe("#ffffff");
+		expect(pair(root, "--surface-2").light).toBe("#ffffff");
+		expect(luminance(pair(root, "--surface-0").light)).toBeLessThan(1);
+	});
+
+	it("defines the selected ground and the primary fill, and gives each a class", () => {
+		expect(decl(root, "--accent-tint")).toMatch(/^light-dark\(/);
+		expect(decl(root, "--primary")).toBe("var(--n-12)");
+		expect(decl(root, "--primary-fg")).toMatch(/^light-dark\(/);
+		for (const k of ["accent-tint", "primary", "primary-fg"])
+			expect(decl(inline, `--color-${k}`), k).toBe(`var(--${k})`);
+		expect(decl(block(":root[data-accent]"), "--accent-tint")).toContain("var(--accent-hue)");
+	});
+
+	it("draws the focus ring 2 px wide in the accent", () => {
+		expect(css).toContain("outline: var(--focus-width, 2px) solid var(--accent);");
+	});
+
+	it("gives text, each tag pair and each fill 4.5:1 or more in Light, Dark and OLED (WCAG AA)", () => {
+		const oled = block('[data-scheme="oled"]');
+		const value = (name: string, mode: "light" | "dark" | "oled"): string => {
+			const own = mode === "oled" ? decl(oled, name) : undefined;
+			if (own) return own;
+			const ref = /^var\((--[\w-]+)\)$/.exec(decl(root, name) ?? "")?.[1];
+			return ref ? value(ref, mode) : pair(root, name)[mode === "light" ? "light" : "dark"];
+		};
+		const pairs = [
+			...["--n-12", "--n-11", "--n-10"].flatMap((t) =>
+				["--surface-0", "--surface-1", "--n-3", "--n-4", "--accent-tint"].map((g) => [t, g]),
+			),
+			["--attention-text", "--attention-subtle"],
+			["--success-text", "--success-subtle"],
+			["--accent-text", "--accent-subtle"],
+			["--accent-text", "--accent-tint"],
+			["--primary-fg", "--primary"],
+			["--accent-fg", "--accent"],
+			["--accent", "--surface-0"],
+			["--accent", "--surface-1"],
+			["--danger-text", "--surface-0"],
+			["--danger-text", "--surface-1"],
+		] as const;
+		for (const mode of ["light", "dark", "oled"] as const)
+			for (const [t, g] of pairs) {
+				const ratio = contrast(value(t ?? "", mode), value(g ?? "", mode));
+				expect(ratio, `${t} on ${g} in ${mode}`).toBeGreaterThanOrEqual(4.5);
+			}
 	});
 });
 
@@ -187,12 +338,14 @@ describe("motion (REQ-002)", () => {
 });
 
 describe("fonts (REQ-003)", () => {
-	it("uses Inter for text until Switzer is licensed, and Departure Mono for code", () => {
+	it("uses Geist for text and Geist Mono for code, from the packages of the app", () => {
 		const theme = block("@theme");
-		expect(decl(theme, "--font-sans")).toMatch(/^"Inter Variable"/);
-		expect(decl(theme, "--font-mono")).toMatch(/^"Departure Mono"/);
-		expect(fonts).toContain("@fontsource-variable/inter");
-		expect(fonts).toContain("DepartureMono-Regular.woff2");
+		expect(decl(theme, "--font-sans")).toMatch(/^"Geist Variable"/);
+		expect(decl(theme, "--font-mono")).toMatch(/^"Geist Mono Variable"/);
+		expect(fonts).toContain('@import "@fontsource-variable/geist";');
+		expect(fonts).toContain('@import "@fontsource-variable/geist-mono";');
+		// No font comes from the network.
+		expect(fonts).not.toMatch(/https?:/);
 		expect(css).toContain('@import "./fonts.css"');
 	});
 
@@ -214,7 +367,7 @@ describe("themes (REQ-011)", () => {
 		const root = block(":root");
 		expect(lightness(root, "--n-1").dark).toBeLessThan(0.3);
 		expect(lightness(root, "--n-1").light).toBeGreaterThan(0.9);
-		expect(lightness(root, "--n-12").dark).toBeGreaterThan(0.9);
+		expect(lightness(root, "--n-12").dark).toBeGreaterThan(0.8);
 		expect(lightness(root, "--n-12").light).toBeLessThan(0.3);
 	});
 });
@@ -239,29 +392,27 @@ describe("high contrast (REQ-012)", () => {
 	});
 
 	it("moves the accent text further from the soft accent tint of the active page tab", () => {
-		const ls = (body: string) =>
-			[...(decl(body, "--accent-text") ?? "").matchAll(/oklch\(([\d.]+)/g)].map((m) =>
-				Number(m[1]),
-			);
-		const [dl = 0, dd = 0] = ls(root);
-		const [hl = 0, hd = 0] = ls(high);
-		expect(hl).toBeLessThan(dl);
-		expect(hd).toBeGreaterThan(dd);
+		const d = lightness(root, "--accent-text");
+		const h = lightness(high, "--accent-text");
+		expect(h.light).toBeLessThan(d.light);
+		expect(h.dark).toBeGreaterThan(d.dark);
 	});
 });
 
 describe("densities (REQ-013)", () => {
-	it("uses a 28 px row and 13 px text by default", () => {
+	it("uses a 28 px row and 15 px text by default, on a line of 1.45", () => {
 		const root = block(":root");
 		expect(decl(root, "--row-h")).toBe("28px");
 		// rem, so that the text size of Settings / Me scales it
-		expect(decl(root, "--text-ui")).toBe("0.8125rem");
+		expect(decl(root, "--text-ui")).toBe("0.9375rem");
+		expect(block("@utility text-ui")).toContain("line-height: 1.45");
+		expect(block("\tbody")).toContain("line-height: 1.45");
 	});
 
 	it("changes the row height and the text size in compact, and nothing else", () => {
 		const compact = block(':root[data-density="compact"]');
 		expect(decl(compact, "--row-h")).toBe("24px");
-		expect(decl(compact, "--text-ui")).toBe("0.75rem");
+		expect(decl(compact, "--text-ui")).toBe("0.8125rem");
 		expect([...compact.matchAll(/--[\w-]+:/g)].map((m) => m[0])).toEqual([
 			"--row-h:",
 			"--text-ui:",
@@ -269,54 +420,38 @@ describe("densities (REQ-013)", () => {
 	});
 });
 
-/** The relative luminance (WCAG) of an `oklch(L C H)` colour, through linear sRGB. */
-const luminance = (oklch: string) => {
-	const [L = 0, C = 0, H = 0] = (/oklch\(([^)]*)\)/.exec(oklch)?.[1] ?? "")
-		.split(/\s+/)
-		.map(Number);
-	const a = C * Math.cos((H * Math.PI) / 180);
-	const b = C * Math.sin((H * Math.PI) / 180);
-	const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
-	const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
-	const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
-	const clamp = (x: number) => Math.min(1, Math.max(0, x));
-	const r = clamp(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s);
-	const g = clamp(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s);
-	const bl = clamp(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s);
-	return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
-};
-const contrast = (x: string, y: string) => {
-	const [hi, lo] = [luminance(x), luminance(y)].sort((p, q) => q - p);
-	return ((hi ?? 0) + 0.05) / ((lo ?? 0) + 0.05);
-};
-
 describe("OLED theme (themes REQ-001)", () => {
 	const oled = block(
 		':root[data-theme="oled"],\n:root[data-theme="oled"] .canvas-dark,\n[data-scheme="oled"]',
 	);
 	const root = block(":root");
-	/** The dark half of a light-dark() token of :root. */
-	const dark = (name: string) => /,\s*(oklch\([^)]*\))\)$/.exec(decl(root, name) ?? "")?.[1] ?? "";
+	/** The value in OLED: its own, or the dark half of the light-dark() token of :root. */
+	const value = (name: string) => decl(oled, name) ?? pair(root, name).dark;
 
 	it("forces the dark scheme on a true black base", () => {
 		expect(decl(oled, "color-scheme")).toBe("dark");
-		expect(decl(oled, "--surface-0")).toBe("oklch(0 0 0)");
-		expect(decl(oled, "--n-1")).toBe("oklch(0 0 0)");
+		expect(decl(oled, "--surface-0")).toBe("#000000");
+		expect(decl(oled, "--n-1")).toBe("#000000");
 		expect(css).toContain(':root[data-theme="oled"] .canvas-dark');
 	});
 
-	it("lifts each surface by a small step", () => {
-		const ls = [0, 1, 2, 3].map((i) =>
-			Number(/oklch\(([\d.]+)/.exec(decl(oled, `--surface-${i}`) ?? "")?.[1]),
-		);
-		for (let i = 1; i < 4; i++) {
-			expect(ls[i] ?? 0).toBeGreaterThan(ls[i - 1] ?? 0);
-			expect((ls[i] ?? 0) - (ls[i - 1] ?? 0)).toBeLessThanOrEqual(0.12);
+	it("lifts each raised surface by a small step above the black base", () => {
+		for (const i of [1, 2, 3]) {
+			const l = luminance(value(`--surface-${i}`));
+			expect(l, `surface-${i}`).toBeGreaterThan(luminance(value("--surface-0")));
+			expect(l, `surface-${i}`).toBeLessThanOrEqual(0.02);
 		}
 	});
 
 	it("keeps the accent of the dark theme", () => {
-		for (const k of ["--accent", "--accent-text", "--accent-subtle", "--success", "--danger"])
+		for (const k of [
+			"--accent",
+			"--accent-text",
+			"--accent-subtle",
+			"--attention",
+			"--success",
+			"--danger",
+		])
 			expect(decl(oled, k), k).toBeUndefined();
 	});
 
@@ -329,15 +464,20 @@ describe("OLED theme (themes REQ-001)", () => {
 			"--n-2",
 			"--n-3",
 			"--n-4",
-		].map((k) => [k, decl(oled, k) ?? ""] as const);
+		].map((k) => [k, value(k)] as const);
 		const texts = [
-			...["--n-10", "--n-11", "--n-12"].map((k) => [k, decl(oled, k) ?? ""] as const),
-			...["--accent-text", "--success-text", "--warning-text", "--danger-text", "--info-text"].map(
-				(k) => [k, dark(k)] as const,
-			),
-		];
+			"--n-10",
+			"--n-11",
+			"--n-12",
+			"--accent-text",
+			"--attention-text",
+			"--success-text",
+			"--warning-text",
+			"--danger-text",
+			"--info-text",
+		].map((k) => [k, value(k)] as const);
 		for (const [tk, tv] of texts) {
-			expect(tv, tk).toMatch(/^oklch\(/);
+			expect(tv, tk).toMatch(/^(?:#|oklch\()/);
 			for (const [gk, gv] of grounds)
 				expect(contrast(tv, gv), `${tk} on ${gk}`).toBeGreaterThanOrEqual(4.5);
 		}

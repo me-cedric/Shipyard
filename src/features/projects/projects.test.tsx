@@ -1,11 +1,17 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
+import { openAccount } from "@/features/shell/test-open";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 
-const open = (path = "/mock/alpha") => unwrap(commands.projectsOpen(path, false));
+const open = async (path = "/mock/alpha") => {
+	const opened = await unwrap(commands.projectsOpen(path, false));
+	// No agent works: a close asks nothing (`shell-setup-rights` REQ-012 has its own tests).
+	for (const r of mockState().factory.runs) r.state = "Done";
+	return opened;
+};
 /** The first run starts with the role. Continue shows the three starts. */
 const next = async (user: ReturnType<typeof userEvent.setup>, name = "Continue") =>
 	user.click(await screen.findByRole("button", { name }));
@@ -13,27 +19,44 @@ const firstRunButtons = () => within(screen.getByRole("main")).getAllByRole("but
 
 describe("first run", () => {
 	beforeEach(() => localStorage.removeItem("shipyard.cloneFolder"));
-	it("shows the role as named cards, then three starts, with one primary action", async () => {
+	it("shows the role as tiles, then three starts, with one primary action", async () => {
 		const user = userEvent.setup();
 		mountApp("/home/today");
-		await screen.findByRole("button", { name: "Continue" });
+		const go = await screen.findByRole("button", { name: "Continue" });
 		expect(screen.queryByRole("button", { name: "Open a local folder" })).toBeNull();
-		const roles = within(screen.getByRole("radiogroup", { name: "Role" })).getAllByRole("radio");
-		expect(roles.map((r) => r.closest("label")?.textContent)).toEqual([
+		// A bare page: no rail, no top row. The skip link stays.
+		expect(screen.queryByRole("navigation")).toBeNull();
+		expect(screen.queryByRole("combobox", { name: "Ask or tell Shipyard" })).toBeNull();
+		expect(screen.getByRole("button", { name: "Skip to the content" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { level: 1, name: "What is your job?" })).toBeVisible();
+		expect(screen.getByRole("img", { name: "Step 1 of 3" })).toBeVisible();
+		const roles = within(screen.getByRole("group", { name: "What is your job?" })).getAllByRole(
+			"button",
+		);
+		expect(roles.map((r) => r.textContent)).toEqual([
 			"Product owner",
 			"Project manager",
+			"Business analyst",
 			"Architect",
 			"Tech lead",
-			"Business analyst",
 			"Developer",
 			"Tester",
 			"Designer",
-			"Viewer",
+			"I only look",
 			"Other",
 		]);
-		expect(screen.getByRole("radio", { name: "Other" })).toBeChecked();
-		await user.click(screen.getByRole("radio", { name: "Tech lead" }));
-		await waitFor(() => expect(screen.getByRole("radio", { name: "Tech lead" })).toBeChecked());
+		expect(screen.getByRole("button", { name: "Other", pressed: true })).toBeInTheDocument();
+		// Continue is the one primary action of the step.
+		expect(firstRunButtons().filter((b) => b.className.includes("bg-primary"))).toEqual([go]);
+		// The large button: 52 px high, 220 px wide or more. The block is in the middle of the window.
+		expect(go).toHaveClass("min-h-13", "min-w-55", "text-17");
+		expect(go).not.toHaveClass("min-h-control");
+		expect(go.parentElement).toHaveClass("min-h-full", "justify-center");
+		await user.click(screen.getByRole("button", { name: "Tech lead" }));
+		await waitFor(() =>
+			expect(screen.getByRole("button", { name: "Tech lead", pressed: true })).toBeInTheDocument(),
+		);
+		expect(screen.getByRole("button", { name: "Other", pressed: false })).toBeInTheDocument();
 		// A click selects. Continue saves and shows the three starts.
 		expect(mockState().prefs.role).not.toBe("techlead");
 		await next(user);
@@ -45,26 +68,27 @@ describe("first run", () => {
 			"Clone a repository",
 			"Create a project",
 		]);
-		expect(buttons.filter((b) => b.className.includes("bg-accent"))).toHaveLength(1);
-		expect(buttons[0]?.className).toContain("bg-accent");
+		// Each start is a tile of the same weight: the step has no primary button.
+		expect(buttons.filter((b) => b.className.includes("bg-primary"))).toHaveLength(0);
 	});
 
-	it("starts at the three starts for a saved role, and keeps the role", async () => {
+	it("shows the No project card, not the first run, for a saved role, and keeps the role", async () => {
 		mockState().prefs.role = "qa";
 		mountApp("/home/today");
-		await screen.findByRole("button", { name: "Open a local folder" });
+		await screen.findByRole("button", { name: "Open a project" });
 		expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
-		expect(screen.getByRole("heading", { level: 2, name: "Project" })).toHaveTextContent(
-			/^Project$/,
-		);
+		// The first run is for the first launch only: no step bar, no start question.
+		expect(screen.getByRole("heading", { level: 1, name: "No project is open" })).toBeVisible();
+		expect(screen.queryByRole("heading", { name: "How do you start?" })).toBeNull();
+		expect(screen.queryByRole("img", { name: /^Step / })).toBeNull();
 		expect(mockState().prefs.role).toBe("qa");
 	});
 
-	it("starts at the three starts when the list holds a project", async () => {
+	it("shows the No project card when the list holds a project", async () => {
 		await open("/mock/alpha");
 		await unwrap(commands.projectsClose());
 		mountApp("/home/today");
-		await screen.findByRole("button", { name: "Open a local folder" });
+		await screen.findByRole("button", { name: "Open a project" });
 		expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
 	});
 
@@ -73,11 +97,9 @@ describe("first run", () => {
 		mountApp("/home/today");
 		await next(user);
 		await waitFor(() =>
-			expect(screen.getByRole("heading", { level: 2, name: "Project" })).toHaveFocus(),
+			expect(screen.getByRole("heading", { level: 1, name: "How do you start?" })).toHaveFocus(),
 		);
-		expect(screen.getByRole("heading", { level: 2, name: "Project" })).toHaveTextContent(
-			"2Project",
-		);
+		expect(screen.getByRole("img", { name: "Step 2 of 3" })).toBeVisible();
 	});
 
 	it("opens a local folder and lists it in the switcher", async () => {
@@ -85,7 +107,9 @@ describe("first run", () => {
 		mountApp("/home/today");
 		await next(user);
 		await user.click(await screen.findByRole("button", { name: "Open a local folder" }));
-		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: /^Project/ })).toHaveTextContent("alpha");
 		expect(mockState().projects).toHaveLength(1);
 	});
@@ -96,7 +120,9 @@ describe("first run", () => {
 		mountApp("/home/today");
 		await next(user);
 		await user.click(await screen.findByRole("button", { name: "Open a local folder" }));
-		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeInTheDocument();
 		expect(mockState().projects[0]?.path).toBe("/mock/bare");
 	});
 
@@ -109,7 +135,9 @@ describe("first run", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent("No Git repository in /mock/plain");
 		expect(mockState().projects).toHaveLength(0);
 		await user.click(screen.getByRole("button", { name: "Make it a project" }));
-		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeInTheDocument();
 		expect(mockState().projects[0]?.path).toBe("/mock/plain");
 	});
 
@@ -118,13 +146,20 @@ describe("first run", () => {
 		mountApp("/home/today");
 		await next(user);
 		await user.click(await screen.findByRole("button", { name: "Create a project" }));
+		// All steps shows the folder and the key. The guided steps keep their defaults.
+		await user.click(await screen.findByRole("button", { name: "All steps" }));
 		expect(await screen.findByDisplayValue("/mock/Projects")).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Create" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Create the project" })).toBeDisabled();
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme Web");
-		expect(screen.getByRole("textbox", { name: "Key" })).toHaveValue("ACMEWE");
-		await user.click(screen.getByRole("button", { name: "Create" }));
+		expect(screen.getByRole("textbox", { name: "Short key for tickets" })).toHaveValue("ACMEWE");
+		await waitFor(() =>
+			expect(screen.getByRole("button", { name: "Create the project" })).toBeEnabled(),
+		);
+		await user.click(screen.getByRole("button", { name: "Create the project" }));
 		await user.click(await screen.findByRole("button", { name: "Open" }));
-		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeInTheDocument();
 		expect(mockState().projects[0]).toMatchObject({
 			name: "Acme Web",
 			key: "ACMEWE",
@@ -143,7 +178,7 @@ describe("first run", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Choose a folder" }));
 		await user.click(screen.getByRole("button", { name: "Clone" }));
-		await screen.findByRole("heading", { level: 1, name: "Today" });
+		await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ });
 		expect(mockState().projects[0]?.path).toBe("/mock/alpha/shipyard");
 	});
 
@@ -201,18 +236,36 @@ describe("project switcher", () => {
 		);
 	});
 
-	it("offers Open folder, Clone, Close project and Remove from list in the one menu", async () => {
+	it("offers Projects, Open folder, Clone, Close project and Remove from list in the one menu", async () => {
 		const user = userEvent.setup();
 		await open("/mock/alpha");
 		mountApp("/home/today");
 		await user.click(await screen.findByRole("button", { name: /^Project/ }));
 		const menu = within(await screen.findByRole("menu"));
 		expect(menu.getAllByRole("menuitem").map((i) => i.textContent)).toEqual([
+			"Projects",
 			"Open a local folder",
 			"Clone a repository",
 			"Close project",
 			"Remove from list",
 		]);
+	});
+
+	it("opens the Projects page from the project name, with no section switch", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		const router = mountApp("/home/today");
+		await user.click(await screen.findByRole("button", { name: /^Project/ }));
+		await user.click(await screen.findByRole("menuitem", { name: "Projects" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/projects"));
+		// The page is a lazy chunk: under the load of the full run it can take more than a second.
+		await screen.findByRole("heading", { level: 1, name: "Projects" }, { timeout: 5000 });
+		// The heading of the loading state leaves when the cards come: read the one that stays.
+		await waitFor(() =>
+			expect(screen.getByRole("heading", { level: 1, name: "Projects" })).toBeInTheDocument(),
+		);
+		expect(screen.queryByRole("navigation", { name: "Tabs" })).toBeNull();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
 	it("opens a folder from the menu", async () => {
@@ -243,17 +296,20 @@ describe("project switcher", () => {
 		);
 	});
 
-	it("closes the project, keeps it in the list and opens it again from the first run", async () => {
+	it("closes the project, keeps it in the list and opens it again from the No project card", async () => {
 		const user = userEvent.setup();
 		await open("/mock/alpha");
 		mountApp("/home/today");
 		await user.click(await screen.findByRole("button", { name: /^Project/ }));
 		await user.click(await screen.findByRole("menuitem", { name: "Close project" }));
-		const recent = await screen.findByRole("list", { name: "Recent projects" });
+		await user.click(await screen.findByRole("button", { name: "Open a project" }));
+		const recent = within(await screen.findByRole("menu"));
 		expect(await unwrap(commands.projectsActive())).toBeNull();
 		expect(mockState().projects).toHaveLength(1);
-		await user.click(within(recent).getByRole("button", { name: /alpha/ }));
-		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+		await user.click(recent.getByRole("menuitem", { name: /alpha/ }));
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeInTheDocument();
 		expect((await unwrap(commands.projectsActive()))?.name).toBe("alpha");
 	});
 
@@ -303,25 +359,28 @@ describe("project switcher", () => {
 		await open("/mock/alpha");
 		mockState().prefs.sidebarOpen = false;
 		mountApp("/home/today");
-		// The switcher sits in the context bar since W10: it keeps the name when the sidebar folds.
+		// The switcher sits in the rail (look pass 1). A closed rail shows icons only: the name stays in the spoken name.
 		const trigger = await screen.findByRole("button", { name: /^Project/ });
-		await waitFor(() => expect(trigger).toHaveTextContent("alpha"));
+		await waitFor(() => expect(trigger).toHaveAccessibleName("Project alpha"));
 		await user.click(trigger);
 		expect(await screen.findByRole("menuitemradio", { name: /alpha/ })).toBeInTheDocument();
 	});
 
-	it("shows the recent projects of the registry, the last used first, on the first run", async () => {
+	it("shows the recent projects of the registry, the last used first, on the No project card", async () => {
+		const user = userEvent.setup();
 		await open("/mock/alpha");
 		await open("/mock/beta");
 		await unwrap(commands.projectsClose());
 		Object.assign(mockState().projects[0] ?? {}, { lastUsed: 200 });
 		Object.assign(mockState().projects[1] ?? {}, { lastUsed: 100 });
 		mountApp("/home/today");
-		const recent = await screen.findByRole("list", { name: "Recent projects" });
+		await user.click(await screen.findByRole("button", { name: "Open a project" }));
+		const menu = within(await screen.findByRole("menu"));
 		expect(
-			within(recent)
-				.getAllByRole("button")
-				.map((b) => b.textContent),
+			menu
+				.getAllByRole("menuitem")
+				.map((i) => i.textContent)
+				.slice(0, 2),
 		).toEqual(["alpha", "beta"]);
 	});
 
@@ -330,11 +389,13 @@ describe("project switcher", () => {
 		await open("/mock/alpha");
 		Object.assign(mockState().projects[0] ?? {}, { lastView: "/settings/health" });
 		mountApp("/home/today");
+		// The old address of Health opens Health of this project, under This project.
 		expect(
-			await screen.findByRole("link", { name: "Health", current: "page" }),
+			await screen.findByRole("link", { name: "This project", current: "page" }),
 		).toBeInTheDocument();
-		await user.click(screen.getByRole("link", { name: "Specs" }));
-		await waitFor(() => expect(mockState().projects[0]?.lastView).toBe("/specs/changes"));
+		expect(await screen.findByRole("button", { name: "Check again" })).toBeInTheDocument();
+		await user.click(screen.getByRole("link", { name: "Library" }));
+		await waitFor(() => expect(mockState().projects[0]?.lastView).toBe("/library/home"));
 	});
 });
 
@@ -342,7 +403,7 @@ describe("Settings / Project", () => {
 	it("saves the paths to the project file and shows one primary action", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		const input = await screen.findByRole("textbox", { name: "Decisions" });
 		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 		await user.clear(input);
@@ -355,7 +416,7 @@ describe("Settings / Project", () => {
 	it("lists every path key and writes only the keys that the person changes", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		for (const name of ["Diagrams", "Models", "Flows", "Test plans", "Dashboards", "Data models"])
 			expect(await screen.findByRole("textbox", { name })).toBeInTheDocument();
 		expect(screen.getByRole("textbox", { name: "Models" })).toHaveValue("docs/models");
@@ -371,7 +432,7 @@ describe("Settings / Project", () => {
 	it("edits the tracker scope and keeps it when the paths are saved", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		const scope = await screen.findByRole("textbox", { name: "Issue tracker scope" });
 		await user.type(scope, "PROJ");
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -397,7 +458,7 @@ describe("Settings / Project", () => {
 			}),
 		);
 		await unwrap(commands.connectionsSetSecret(c.id, "tok-scope-1"));
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		await user.click(await screen.findByRole("combobox", { name: "Issue tracker scope" }));
 		await user.click(await screen.findByRole("option", { name: "OPS" }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -426,7 +487,7 @@ describe("Settings / Project", () => {
 			}),
 		);
 		await open();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		await user.click(await screen.findByRole("combobox", { name: "Issue tracker" }));
 		await user.click(await screen.findByRole("option", { name: "Acme" }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -445,7 +506,7 @@ describe("Settings / Project", () => {
 	it("marks an override and applies the accent while the project is active", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
+		const router = mountApp("/setup/project");
 		await user.click(await screen.findByRole("combobox", { name: "Accent" }));
 		await user.click(await screen.findByRole("option", { name: "Violet" }));
 		await waitFor(() => expect(document.documentElement.dataset.accent).toBe("violet"));
@@ -453,14 +514,14 @@ describe("Settings / Project", () => {
 		await user.click(await screen.findByRole("option", { name: "Dark" }));
 		await waitFor(() => expect(document.documentElement.dataset.theme).toBe("dark"));
 		expect(screen.getAllByRole("img", { name: "Set by the project" }).length).toBeGreaterThan(0);
-		await user.click(screen.getByRole("link", { name: "Me" }));
-		await screen.findByRole("combobox", { name: "Language" });
+		router.history.push("/setup/me");
+		await screen.findByRole("group", { name: "Language" });
 		expect(screen.getAllByRole("img", { name: "Set by the project" })).toHaveLength(1);
-		expect(mockState().prefs.theme).toBe("system");
+		expect(mockState().prefs.theme).toBe("light");
 	});
 
 	it("shows the first-run action when no project is active", async () => {
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
 	});
 });
@@ -477,7 +538,7 @@ describe("Settings / Project, project import", () => {
 				conflicts: ["docs/c.md"],
 			},
 		});
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		await user.click(await screen.findByRole("button", { name: "Import a project" }));
 		expect(await screen.findByRole("heading", { name: "Copied (1)" })).toBeInTheDocument();
 		expect(spy).toHaveBeenCalledOnce();
@@ -497,7 +558,7 @@ describe("Settings / Project, project import", () => {
 			status: "error",
 			error: { code: "unknown", details: "no source folder", action: null },
 		});
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		await user.click(await screen.findByRole("button", { name: "Import a project" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("no source folder");
 		spy.mockRestore();
@@ -505,57 +566,113 @@ describe("Settings / Project, project import", () => {
 });
 
 describe("Settings / Health", () => {
-	it("lists four groups with a count and offers one fix for each finding", async () => {
+	it("lists the groups of the project with a count, the problems of this computer apart, and one fix for each finding", async () => {
 		await open();
-		mountApp("/settings/health");
-		const compliance = await screen.findByRole("heading", { name: "Compliance (1)" });
-		expect(compliance).toBeInTheDocument();
-		for (const name of ["Tools (0)", "Broken refs (1)", "Generated files (0)"])
-			expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+		const router = mountApp("/setup/computer?page=health");
+		expect(await screen.findByRole("heading", { name: /^\d+ problems?$/ })).toBeInTheDocument();
+		expect(screen.queryByRole("region", { name: "Rules and skills of the agents" })).toBeNull();
+		router.history.push("/setup/project?page=health");
+		expect(
+			await screen.findByRole("region", { name: "Rules and skills of the agents" }),
+		).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "2 things to fix in this project" })).toBeVisible();
+		expect(screen.queryByRole("region", { name: "Tools of this computer" })).toBeNull();
+		for (const name of ["Broken links between specs and docs"])
+			expect(screen.getByRole("region", { name })).toBeInTheDocument();
+		// A group with no finding has no card.
+		expect(screen.queryByRole("region", { name: "Files that tools generate" })).toBeNull();
+		expect(screen.getAllByText("1 to fix")).toHaveLength(2);
 		expect(screen.getByText("Broken ref adr:0009")).toBeInTheDocument();
-		expect(screen.getAllByRole("button", { name: /^(Write|Open|Recheck)$/ })).toHaveLength(2);
+		expect(screen.getAllByRole("button", { name: /^(Fix|Recheck)$/ })).toHaveLength(2);
 	});
 
 	it("shows the new file first and writes it only after the confirm click", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/health");
-		await user.click(await screen.findByRole("button", { name: "Write" }));
+		mountApp("/setup/project?page=health");
+		const card = await screen.findByRole("region", { name: "Rules and skills of the agents" });
+		await user.click(within(card).getByRole("button", { name: "Fix" }));
 		expect(await screen.findByLabelText(".gitignore")).toHaveTextContent(".DS_Store");
 		expect(mockState().fixed).toEqual([]);
 		await user.click(screen.getByRole("button", { name: "Confirm" }));
 		await waitFor(() => expect(mockState().fixed).toEqual(["ignore-missing"]));
-		await screen.findByRole("heading", { name: "Compliance (0)" });
+		await screen.findByRole("heading", { name: "1 thing to fix in this project" });
+		expect(screen.queryByRole("region", { name: "Rules and skills of the agents" })).toBeNull();
 	});
 
-	it("shows ghost rows and the ok shape for a healthy project", async () => {
+	it("says that nothing is to fix in a healthy project", async () => {
 		await open();
 		mockState().fixed = ["ignore-missing", "ref-broken:adr:0009>spec:auth"];
-		mountApp("/settings/health");
-		const main = await screen.findByRole("main");
-		expect(await within(main).findByRole("img", { name: "Success" })).toBeInTheDocument();
-		// No fix button of a finding: the bootstrap, console and feedback panels have their own.
+		mountApp("/setup/project?page=health");
 		expect(
-			within(main).queryAllByRole("button", { name: /^(Write|Open|Apply|Recheck)$/ }),
+			await screen.findByRole("heading", { name: "Nothing to fix in this project" }),
+		).toBeInTheDocument();
+		// No fix button of a finding: the skills and the linked projects have their own.
+		expect(
+			within(screen.getByRole("main")).queryAllByRole("button", {
+				name: /^(Fix|Recheck)$/,
+			}),
 		).toHaveLength(0);
 	});
 
-	it("shows the worst finding in the status bar and opens Health from it", async () => {
+	it("links the health of the project to the health of the product and of this computer", async () => {
+		const user = userEvent.setup();
+		await open();
+		const router = mountApp("/setup/project?page=health");
+		const also = within(await screen.findByRole("region", { name: "Also" }));
+		await user.click(also.getByRole("link", { name: "Health of this computer" }));
+		await waitFor(() => expect(router.state.location.href).toBe("/setup/computer?page=health"));
+		expect(await screen.findByRole("heading", { name: /^\d+ problems?$/ })).toBeInTheDocument();
+	});
+
+	it("shows on the health of this computer that a tool of this computer has a finding", async () => {
+		await open();
+		const run = vi.spyOn(commands, "healthRun").mockResolvedValue({
+			status: "ok",
+			data: [
+				{
+					id: "tool-missing:git",
+					group: "tools",
+					severity: "error",
+					code: "tool-missing",
+					detail: "git",
+					source: null,
+					fix: { kind: "recheck" },
+				},
+			],
+		} as Awaited<ReturnType<typeof commands.healthRun>>);
+		const router = mountApp("/setup/computer?page=health");
+		// The missing pnpm and the finding of git: both count, beside the skills and the first setup.
+		const title = await screen.findByRole("heading", { name: /^\d+ problems$/ });
+		expect(Number(/^\d+/.exec(title.textContent ?? "")?.[0])).toBeGreaterThanOrEqual(2);
+		expect(screen.getByRole("region", { name: "Tools of this computer" })).toBeInTheDocument();
+		// The project does not count it.
+		router.history.push("/setup/project?page=health");
+		expect(
+			await screen.findByRole("heading", { name: "Nothing to fix in this project" }),
+		).toBeInTheDocument();
+		run.mockRestore();
+	});
+
+	it("shows the worst finding in the account menu and opens Health from it", async () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/home/today");
-		const bar = await screen.findByRole("contentinfo");
-		const link = await within(bar).findByRole("link", { name: /Health \(2\)/ });
+		const link = await (await openAccount(user)).findByRole("menuitem", { name: /Health \(2\)/ });
 		expect(within(link).getByRole("img", { name: "Warning" })).toBeInTheDocument();
 		await user.click(link);
-		expect(await screen.findByRole("heading", { name: "Compliance (1)" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("region", { name: "Rules and skills of the agents" }),
+		).toBeInTheDocument();
 	});
 
 	it("reads French", async () => {
 		await open();
 		mockState().prefs.lang = "fr";
-		mountApp("/settings/health");
-		expect(await screen.findByRole("heading", { name: "Conformité (1)" })).toBeInTheDocument();
+		mountApp("/setup/project?page=health");
+		expect(
+			await screen.findByRole("region", { name: "Règles et compétences des agents" }),
+		).toBeInTheDocument();
 		expect(screen.getByText("Référence rompue adr:0009")).toBeInTheDocument();
 	});
 });
@@ -564,8 +681,11 @@ describe("Settings / Project, delivery files", () => {
 	it("edits a persona rate and refuses a negative one with the reason", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
+		mountApp("/setup/project");
 		const section = await screen.findByRole("region", { name: "Personas" });
+		// A name shows as plain text and opens its field on a click.
+		await user.click(within(section).getAllByRole("button", { name: /^Name: / })[0] as HTMLElement);
+		expect(within(section).getByRole("textbox", { name: "Name" })).toBeInTheDocument();
 		const rates = within(section).getAllByRole("spinbutton", { name: "Daily sale rate" });
 		await user.clear(rates[0] as HTMLElement);
 		await user.type(rates[0] as HTMLElement, "650");
@@ -573,7 +693,7 @@ describe("Settings / Project, delivery files", () => {
 		await waitFor(() => expect(mockState().delivery.personas[0]?.tjm).toBe(650));
 		// A save resets the draft: the region is a new element.
 		const again = () => within(screen.getByRole("region", { name: "Personas" }));
-		await user.click(await screen.findByRole("button", { name: "Add persona" }));
+		await user.click(await screen.findByRole("button", { name: "Add a persona" }));
 		await user.click(again().getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().delivery.personas).toHaveLength(3));
 		const low = await screen.findAllByRole("spinbutton", { name: "Daily cost" });
@@ -585,29 +705,30 @@ describe("Settings / Project, delivery files", () => {
 	it("saves the issue types and the hours of a day, and refuses 0 hours", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
-		const section = within(await screen.findByRole("region", { name: "Tickets" }));
-		const story = section.getByRole("textbox", { name: "Story type" });
+		mountApp("/setup/project?page=tickets");
+		const kinds = within(await screen.findByRole("region", { name: "Kinds of ticket" }));
+		await user.click(kinds.getByRole("button", { name: "Story" }));
+		const story = kinds.getByRole("textbox", { name: "Story type" });
 		await user.clear(story);
 		await user.type(story, "Récit");
-		const hours = section.getByRole("spinbutton", { name: "Hours per day" });
-		await user.clear(hours);
-		await user.type(hours, "0");
-		await user.click(section.getByRole("button", { name: "Save" }));
-		expect(await section.findByRole("alert")).toHaveTextContent("between 1 and 24");
-		await user.clear(hours);
-		await user.type(hours, "8");
-		await user.click(section.getByRole("button", { name: "Save" }));
+		// The stepper stops at the bounds of 1 and 24 hours: 0 cannot be set.
+		const less = screen.getByRole("button", { name: "Less: Hours in a day" });
+		for (let i = 0; i < 8; i++) await user.click(less);
+		expect(less).toBeDisabled();
+		await user.click(screen.getByRole("button", { name: "More: Hours in a day" }));
+		await user.click(screen.getByRole("button", { name: "More: Hours in a day" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().delivery.tickets.story).toBe("Récit"));
-		expect(mockState().delivery.tickets.hoursPerDay).toBe(8);
+		expect(mockState().delivery.tickets.hoursPerDay).toBe(3);
 	});
 
 	it("shows the folder and the remote, and saves how often the app looks at the remote", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/project");
-		const section = within(await screen.findByRole("region", { name: "Project" }));
-		expect(await section.findByText("/mock/alpha")).toBeInTheDocument();
+		mountApp("/setup/project");
+		const project = within(await screen.findByRole("region", { name: "Project" }));
+		expect(await project.findByText("/mock/alpha")).toBeInTheDocument();
+		const section = within(await screen.findByRole("region", { name: "More" }));
 		expect(await section.findByText("https://example.com/acme/project.git")).toBeInTheDocument();
 		await user.click(await section.findByRole("combobox", { name: "Look at the remote every" }));
 		await user.click(await screen.findByRole("option", { name: "60 min" }));

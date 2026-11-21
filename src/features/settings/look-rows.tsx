@@ -1,32 +1,30 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { useI18n } from "@/lib/i18n";
+import { useState } from "react";
+import { format, useI18n } from "@/lib/i18n";
 import {
 	type Accent,
 	commands,
+	confirmDialog,
 	type FocusRing,
 	type Motion,
 	type PanelSide,
+	pickFolder,
 	unwrap,
 } from "@/lib/ipc";
-import { formatDay, usePrefs } from "@/lib/prefs";
+import { logError } from "@/lib/log";
+import { CODE_FONTS, formatDay, UI_FONTS, usePrefs } from "@/lib/prefs";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
-import { Select } from "@/ui/atoms/select";
-import { Switch } from "@/ui/atoms/switch";
-import {
-	ArrowUpTrayIcon,
-	CalendarDaysIcon,
-	FolderOpenIcon,
-	Squares2X2Icon,
-	SwatchIcon,
-	UserCircleIcon,
-	ViewColumnsIcon,
-} from "@/ui/icons";
+import { Button } from "@/ui/atoms/button";
+import { Segmented } from "@/ui/atoms/segmented";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SPRING, useReducedMotionPref } from "@/ui/motion";
-import { PictureField } from "./picture-field";
+import { Fold } from "./connections/fold";
+import { TextPref } from "./me/personal";
+import { ValueSelect } from "./me/value-select";
+import { Column, Columns, SetupCard, SetupRow, Stepper, Toggle } from "./parts";
 
-const ACCENTS: Accent[] = ["blue", "violet", "green", "orange", "rose"];
-const SIZES = [14, 15, 16, 17, 18, 19, 20];
 const SAMPLE = "2026-10-31";
 
 /** A live sample: the ring in the chosen width, and a dot that moves unless the motion is reduced. */
@@ -56,215 +54,314 @@ export function LookPreview({ width }: { width: number }) {
 	);
 }
 
-/** Settings / Me: the look of the app, the close choice, the picture and the data folder (W12). */
-export function useLookRows() {
-	const { t, lang } = useI18n();
+const BASE_SIZE = 16;
+
+/** The four accents of the design and the colour of the theme, as round swatches. The fifth accent is under More. */
+const ACCENTS: Accent[] = ["blue", "green", "violet", "orange"];
+
+function Colour() {
+	const { t } = useI18n();
 	const l = t.extras.look;
 	const p = usePrefs();
-	const folder = useQuery({
-		queryKey: ["app", "data-folder"],
-		queryFn: () => unwrap(commands.appDataFolder()),
-	}).data;
-	const sides = [
-		{ value: "left", label: l.left },
-		{ value: "right", label: l.right },
-	];
-	return [
-		{
-			id: "avatar",
-			icon: <UserCircleIcon size={14} />,
-			label: t.extras.picture.avatar,
-			control: <PictureField which="avatar" label={t.extras.picture.avatar} />,
-		},
-		{
-			id: "accent",
-			icon: <SwatchIcon size={14} />,
-			label: l.accent,
-			control: (
-				<Select
-					label={l.accent}
-					value={p.accent ?? "theme"}
-					onValueChange={(v) => p.setPrefs({ accent: v === "theme" ? null : (v as Accent) })}
+	const swatch = (key: string, label: string, accent: Accent | null) => {
+		const on = (p.accent ?? "theme") === key;
+		return (
+			<button
+				key={key}
+				type="button"
+				aria-label={label}
+				aria-pressed={on}
+				title={label}
+				onClick={() => p.setPrefs({ accent })}
+				data-accent-swatch={accent ?? undefined}
+				className={cn(
+					"size-11 cursor-pointer rounded-full border border-n-7 outline-offset-3",
+					accent ? "bg-accent" : "bg-n-12",
+					on && "outline-3 outline-n-12",
+				)}
+			/>
+		);
+	};
+	return (
+		<SetupCard id="accent" title={t.personal.setup.colour}>
+			{/* biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box */}
+			<div role="group" aria-label={l.accent} className="flex flex-wrap gap-4 px-6 pt-2 pb-5">
+				{ACCENTS.map((a) => swatch(a, l.accents[a], a))}
+				{swatch("theme", l.accentTheme, null)}
+			</div>
+			<Fold label={t.ui.more}>
+				<div className="flex gap-4 px-6 pt-2 pb-3">{swatch("rose", l.accents.rose, "rose")}</div>
+			</Fold>
+		</SetupCard>
+	);
+}
+
+function Side({
+	id,
+	label,
+	value,
+	onChange,
+}: {
+	id: string;
+	label: string;
+	value: PanelSide;
+	onChange: (v: PanelSide) => void;
+}) {
+	const { t } = useI18n();
+	return (
+		<SetupRow id={id} label={label}>
+			{/* The thumb track is 52 px: the negative margin keeps the row at 60 px. */}
+			<span className="-my-1 flex">
+				<Segmented
+					label={label}
+					value={value}
+					onValueChange={onChange}
 					items={[
-						{ value: "theme", label: l.accentTheme },
-						...ACCENTS.map((a) => ({ value: a, label: l.accents[a] })),
+						{ value: "left", label: t.extras.look.left },
+						{ value: "right", label: t.extras.look.right },
 					]}
 				/>
-			),
-		},
-		{
-			id: "nav-side",
-			icon: <ViewColumnsIcon size={14} />,
-			label: l.navSide,
-			control: (
-				<Select
-					label={l.navSide}
-					value={p.navSide}
-					onValueChange={(v) => p.setPrefs({ navSide: v as PanelSide })}
-					items={sides}
-				/>
-			),
-		},
-		{
-			id: "drawer-side",
-			icon: <ViewColumnsIcon size={14} />,
-			label: l.drawerSide,
-			control: (
-				<Select
-					label={l.drawerSide}
-					value={p.drawerSide}
-					onValueChange={(v) => p.setPrefs({ drawerSide: v as PanelSide })}
-					items={sides}
-				/>
-			),
-		},
-		{
-			id: "text-size",
-			icon: <SwatchIcon size={14} />,
-			label: t.workspace.view.size,
-			control: (
-				<Select
-					label={t.workspace.view.size}
-					value={String(p.uiScale)}
-					onValueChange={(v) => p.setPrefs({ uiScale: Number(v) })}
-					items={SIZES.map((n) => ({ value: String(n), label: `${n} px` }))}
-				/>
-			),
-		},
-		{
-			id: "narrow-bar",
-			icon: <ViewColumnsIcon size={14} />,
-			label: l.narrowBar,
-			control: (
-				<Switch
+			</span>
+		</SetupRow>
+	);
+}
+
+function Layout() {
+	const { t } = useI18n();
+	const l = t.extras.look;
+	const s = t.personal.setup;
+	const p = usePrefs();
+	return (
+		<SetupCard title={s.layout}>
+			<Side
+				id="nav-side"
+				label={s.menuPlaces}
+				value={p.navSide}
+				onChange={(v) => p.setPrefs({ navSide: v })}
+			/>
+			<Side
+				id="drawer-side"
+				label={s.sidePanel}
+				value={p.drawerSide}
+				onChange={(v) => p.setPrefs({ drawerSide: v })}
+			/>
+			<SetupRow id="narrow-bar" label={l.narrowBar}>
+				<Toggle
 					label={l.narrowBar}
-					iconOnly
 					checked={p.narrowBar}
 					onCheckedChange={(c) => p.setPrefs({ narrowBar: c })}
 				/>
-			),
-		},
-		{
-			id: "tray",
-			icon: <ViewColumnsIcon size={14} />,
-			label: l.tray,
-			control: (
-				<Switch
-					label={l.tray}
-					iconOnly
-					checked={p.tray}
-					onCheckedChange={(c) => p.setPrefs({ tray: c })}
-				/>
-			),
-		},
-		{
-			id: "motion",
-			icon: <SwatchIcon size={14} />,
-			label: l.motion,
-			control: (
-				<Select
+			</SetupRow>
+			<SetupRow id="tray" label={s.trayIcon}>
+				<Toggle label={l.tray} checked={p.tray} onCheckedChange={(c) => p.setPrefs({ tray: c })} />
+			</SetupRow>
+		</SetupCard>
+	);
+}
+
+function MotionAndFocus() {
+	const { t } = useI18n();
+	const l = t.extras.look;
+	const s = t.personal.setup;
+	const p = usePrefs();
+	return (
+		<SetupCard title={s.motionFocus}>
+			<SetupRow id="motion" label={l.motion}>
+				<Toggle
 					label={l.motion}
-					value={p.motion}
-					onValueChange={(v) => p.setPrefs({ motion: v as Motion })}
-					items={[
-						{ value: "system", label: l.motionSystem },
-						{ value: "reduce", label: l.motionReduce },
-					]}
+					checked={p.motion === "system"}
+					onCheckedChange={(c) => p.setPrefs({ motion: (c ? "system" : "reduce") as Motion })}
 				/>
-			),
-		},
-		{
-			id: "focus-ring",
-			icon: <SwatchIcon size={14} />,
-			label: l.focusRing,
-			control: (
-				<Select
+			</SetupRow>
+			<SetupRow id="focus-ring" label={s.ring}>
+				<Toggle
 					label={l.focusRing}
-					value={p.focusRing}
-					onValueChange={(v) => p.setPrefs({ focusRing: v as FocusRing })}
-					items={[
-						{ value: "keyboard", label: l.focusKeyboard },
-						{ value: "always", label: l.focusAlways },
-					]}
+					checked={p.focusRing === "always"}
+					onCheckedChange={(c) =>
+						p.setPrefs({ focusRing: (c ? "always" : "keyboard") as FocusRing })
+					}
 				/>
-			),
-		},
-		{
-			id: "focus-width",
-			icon: <SwatchIcon size={14} />,
-			label: l.focusWidth,
-			control: (
-				<Select
+			</SetupRow>
+			<SetupRow id="focus-width" label={s.ringWidth}>
+				<Stepper
 					label={l.focusWidth}
-					value={String(p.focusWidth)}
-					onValueChange={(v) => p.setPrefs({ focusWidth: Number(v) })}
-					items={[2, 3].map((n) => ({ value: String(n), label: `${n} px` }))}
+					value={p.focusWidth}
+					min={2}
+					max={3}
+					onValueChange={(v) => p.setPrefs({ focusWidth: v })}
 				/>
-			),
-		},
-		{
-			id: "look-preview",
-			icon: <SwatchIcon size={14} />,
-			label: l.preview,
-			control: <LookPreview width={p.focusWidth} />,
-		},
-		{
-			id: "all-pages",
-			icon: <Squares2X2Icon size={14} />,
-			label: l.showAllPages,
-			control: (
-				<Switch
-					label={l.showAllPages}
-					iconOnly
-					checked={p.showAllPages}
-					onCheckedChange={(c) => p.setPrefs({ showAllPages: c })}
+			</SetupRow>
+			<SetupRow id="look-preview" label={l.preview}>
+				<LookPreview width={p.focusWidth} />
+			</SetupRow>
+		</SetupCard>
+	);
+}
+
+function Text() {
+	const { t, lang } = useI18n();
+	const l = t.extras.look;
+	const f = t.personal.prefs;
+	const s = t.personal.setup;
+	const p = usePrefs();
+	const keys = (map: Record<string, string>) =>
+		Object.keys(map).map((k) => ({ value: k, label: f.font[k as keyof typeof f.font] ?? k }));
+	return (
+		<SetupCard title={s.text}>
+			<SetupRow id="ui-font" label={s.fontApp}>
+				<ValueSelect
+					label={f.uiFont}
+					value={p.uiFont || "system"}
+					onValueChange={(v) => p.setPrefs({ uiFont: v })}
+					items={keys(UI_FONTS)}
 				/>
-			),
-		},
-		{
-			id: "date-format",
-			icon: <CalendarDaysIcon size={14} />,
-			label: l.dateFormat,
-			control: (
-				<Select
+			</SetupRow>
+			<SetupRow id="code-font" label={s.fontCode}>
+				<ValueSelect
+					label={f.codeFont}
+					value={p.codeFont || "system"}
+					onValueChange={(v) => p.setPrefs({ codeFont: v })}
+					items={keys(CODE_FONTS)}
+				/>
+			</SetupRow>
+			<SetupRow label={s.fontTerminal}>
+				<TextPref
+					label={f.terminalFont}
+					placeholder="MesloLGS NF"
+					value={p.terminalFont}
+					onSave={(v) => p.setPrefs({ terminalFont: v })}
+				/>
+			</SetupRow>
+			<SetupRow label={s.terminalSize}>
+				<Stepper
+					label={f.terminalSize}
+					value={p.terminalFontSize}
+					min={8}
+					max={24}
+					onValueChange={(v) => p.setPrefs({ terminalFontSize: v })}
+				/>
+			</SetupRow>
+			<SetupRow id="date-format" label={s.dates}>
+				<ValueSelect
 					label={l.dateFormat}
 					value={p.dateFormat || "follow"}
 					onValueChange={(v) => p.setPrefs({ dateFormat: v === "follow" ? "" : v })}
 					items={[
 						{ value: "follow", label: `${l.dateFollow} (${formatDay(SAMPLE, "", lang)})` },
-						...["iso", "dmy", "mdy"].map((f) => ({
-							value: f,
-							label: formatDay(SAMPLE, f, lang),
-						})),
+						...["iso", "dmy", "mdy"].map((x) => ({ value: x, label: formatDay(SAMPLE, x, lang) })),
 					]}
 				/>
-			),
-		},
-		{
-			id: "close-push",
-			icon: <ArrowUpTrayIcon size={14} />,
-			label: l.closePush,
-			control: (
-				<Switch
-					label={l.closePush}
-					iconOnly
-					checked={p.closePush}
-					onCheckedChange={(c) => p.setPrefs({ closePush: c })}
+			</SetupRow>
+		</SetupCard>
+	);
+}
+
+function Computer() {
+	const { t } = useI18n();
+	const l = t.extras.look;
+	const f = t.personal.prefs;
+	const p = usePrefs();
+	const qc = useQueryClient();
+	const folder = useQuery({
+		queryKey: ["app", "data-folder"],
+		queryFn: () => unwrap(commands.appDataFolder()),
+	}).data;
+	const [failure, setFailure] = useState<unknown>(null);
+	// Change (`spec:shell-setup-rights#REQ-008`): pick a folder, ask, then move the data and restart.
+	const change = async () => {
+		setFailure(null);
+		try {
+			const path = await pickFolder();
+			if (!path) return;
+			if (!(await confirmDialog(format(t.shellFn.data.confirmMove, { path })))) return;
+			await unwrap(commands.appDataFolderMove(path, true));
+		} catch (e) {
+			logError(e);
+			setFailure(e);
+		}
+	};
+	const portable = async (on: boolean) => {
+		setFailure(null);
+		try {
+			await unwrap(commands.appPortableSet(on, true));
+		} catch (e) {
+			logError(e);
+			setFailure(e);
+		} finally {
+			await qc.invalidateQueries({ queryKey: ["app", "data-folder"] });
+		}
+	};
+	return (
+		<SetupCard title={t.personal.setup.moreComputer}>
+			<SetupRow label={f.shell}>
+				<TextPref
+					label={f.shell}
+					placeholder={f.shellHint}
+					value={p.terminalShell}
+					onSave={(v) => p.setPrefs({ terminalShell: v })}
 				/>
-			),
-		},
-		{
-			id: "data-folder",
-			icon: <FolderOpenIcon size={14} />,
-			label: l.dataFolder,
-			control: folder ? (
-				<span className="flex items-center gap-2">
-					<span className="max-w-80 truncate font-mono text-12 text-n-11" title={folder.path}>
+			</SetupRow>
+			{folder ? (
+				<SetupRow id="data-folder" label={l.dataFolder}>
+					<span className="max-w-80 truncate font-mono text-13 text-n-11" title={folder.path}>
 						{folder.path}
 					</span>
 					{folder.portable ? <Badge variant="info">{l.portable}</Badge> : null}
-				</span>
-			) : null,
-		},
-	];
+					<Button
+						className="min-h-control"
+						aria-label={t.shellFn.data.changeTo}
+						onClick={() => void change()}
+					>
+						{t.shellFn.data.change}
+					</Button>
+				</SetupRow>
+			) : null}
+			{folder ? (
+				<SetupRow id="portable-mode" label={t.shellFn.data.portable}>
+					<Toggle
+						label={t.shellFn.data.portable}
+						checked={folder.marker}
+						onCheckedChange={(on) => void portable(on)}
+					/>
+				</SetupRow>
+			) : null}
+			<SetupRow id="close-push" label={t.personal.setup.closePush}>
+				<Toggle
+					label={l.closePush}
+					checked={p.closePush}
+					onCheckedChange={(c) => p.setPrefs({ closePush: c })}
+				/>
+			</SetupRow>
+			<ErrorNotice error={failure} className="px-6" />
+			<Fold label={t.ui.more}>
+				<SetupRow id="all-pages" label={l.showAllPages}>
+					<Toggle
+						label={l.showAllPages}
+						checked={p.showAllPages}
+						onCheckedChange={(c) => p.setPrefs({ showAllPages: c })}
+					/>
+				</SetupRow>
+			</Fold>
+		</SetupCard>
+	);
 }
+
+/** Setup / Me / Look and layout: the colour, the layout, the motion and focus, the text and what is of this computer. */
+export function LookPage() {
+	return (
+		<Columns>
+			<Column>
+				<Colour />
+				<Layout />
+				<MotionAndFocus />
+			</Column>
+			<Column>
+				<Text />
+				<Computer />
+			</Column>
+		</Columns>
+	);
+}
+
+/** The text size as a percent of the base size. */
+export const textSizeShown = (px: number) => `${Math.round((px / BASE_SIZE) * 100)} %`;

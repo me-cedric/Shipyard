@@ -9,11 +9,18 @@ const open = async () => {
 	await unwrap(commands.filesCreateFile("docs/openspec/x/spec.md", true));
 };
 
+/** The docs chain is in the details of the report, in the More menu. */
+const details = async (user: ReturnType<typeof userEvent.setup>) => {
+	await user.click(await screen.findByRole("button", { name: "More" }));
+	await user.click(await screen.findByRole("menuitem", { name: "Details" }));
+};
+
 describe("Docs chain acknowledgement", () => {
 	it("keeps a stale link as it is with a reason, and takes the reason back", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/code/impacts");
+		mountApp("/flow/impacts/report");
+		await details(user);
 		expect(await screen.findByRole("heading", { name: "Docs chain (1)" })).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Acknowledge Test plans" }));
 		const dialog = within(await screen.findByRole("dialog"));
@@ -30,16 +37,16 @@ describe("Docs chain acknowledgement", () => {
 
 	it("shows a red badge on the page whose artifacts are stale, and none after an acknowledgement", async () => {
 		await open();
-		mountApp("/specs/changes");
+		mountApp("/library/home");
 		const link = await screen.findByRole("link", { name: /Test plans/ });
 		await waitFor(() => expect(link).toHaveTextContent("Out of date"));
-		expect(screen.getByRole("link", { name: /Capabilities/ })).not.toHaveTextContent("Out of date");
+		expect(screen.getByRole("link", { name: /^Specs/ })).not.toHaveTextContent("Out of date");
 	});
 
 	it("shows no badge when the link was acknowledged", async () => {
 		await open();
 		await unwrap(commands.codeChainAck("main", "specs", "test-plans", "Not needed", true));
-		mountApp("/specs/changes");
+		mountApp("/library/home");
 		const link = await screen.findByRole("link", { name: /Test plans/ });
 		await waitFor(() => expect(mockState().review?.acks).toHaveLength(1));
 		expect(link).not.toHaveTextContent("Out of date");
@@ -60,14 +67,15 @@ describe("Docs chain acknowledgement", () => {
 		const user = userEvent.setup();
 		await open();
 		const start = vi.spyOn(commands, "codeDocsUpdateStart");
-		mountApp("/code/impacts");
+		mountApp("/flow/impacts/report");
+		await details(user);
 		const update = await screen.findByRole("button", { name: "Update with an agent: Test plans" });
 		expect(start).not.toHaveBeenCalled();
 		await user.click(update);
 		expect(start).toHaveBeenCalledWith("test-plans", "branch", true);
 		expect(await screen.findByRole("link", { name: "Run of Test plans" })).toHaveAttribute(
 			"href",
-			"/factory/runs",
+			"/flow/flow",
 		);
 		// The acknowledge action stays.
 		expect(screen.getByRole("button", { name: "Acknowledge Test plans" })).toBeInTheDocument();
@@ -88,7 +96,8 @@ describe("Docs chain acknowledgement", () => {
 			status: "ok",
 			data: [{ path: "docs/models/a.c4", error: "line 3: unexpected token" }],
 		});
-		mountApp("/code/impacts");
+		mountApp("/flow/impacts/report");
+		await details(user);
 		await user.click(
 			await screen.findByRole("button", { name: "Update with an agent: Test plans" }),
 		);

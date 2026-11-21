@@ -18,7 +18,7 @@
       "additionalProperties": false,
       "required": ["stall_s"],
       "properties": {
-        "max_turns": { "type": "integer", "minimum": 1 },
+        "max_turns": { "type": "integer", "description": "Old key. Accepted and ignored: a run has no turn limit (adr:0025)." },
         "budget_usd": { "type": "number", "exclusiveMinimum": 0 },
         "stall_s": { "type": "integer", "minimum": 1 },
         "review_rounds": { "type": "integer", "minimum": 1, "default": 4 },
@@ -42,6 +42,7 @@
         "workspace": { "enum": ["worktree", "shared", "none"], "default": "shared" },
         "needs": { "type": "array", "items": { "$ref": "#/$defs/id" }, "uniqueItems": true },
         "gate": { "enum": ["none", "human"], "default": "none" },
+        "approver": { "type": "string", "minLength": 1 },
         "for_each": { "type": "string", "pattern": "^[a-z0-9_-]+\\.[^.].*$" },
         "max_parallel": { "type": "integer", "minimum": 1, "default": 2 },
         "retry": { "type": "integer", "minimum": 0, "default": 0 },

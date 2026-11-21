@@ -1,6 +1,29 @@
 import type { settingsEn } from "../settings";
 
 export const settingsEs: typeof settingsEn = {
+	scope: { project: "Este proyecto", computer: "Este ordenador", me: "Yo" },
+	pages: {
+		projectHealth: "Salud de este proyecto",
+		computerHealth: "Salud de este ordenador",
+		logs: "Registros y comentarios",
+		look: "Aspecto y disposición",
+	},
+	pills: {
+		details: "Detalles",
+		alone: "Lo que los agentes hacen solos",
+		automation: "Automatización",
+		extensions: "Extensiones",
+		connections: "Herramientas de IA y conexiones",
+		models: "Modelos y reglas",
+		health: "Salud",
+	},
+	parts: {
+		less: "Menos: {name}",
+		more: "Más: {name}",
+		ready: "Listo",
+		fix: "Por corregir",
+		off: "Desactivado",
+	},
 	tiers: {
 		name: "Niveles de modelo",
 		top: "Superior",
@@ -59,7 +82,7 @@ export const settingsEs: typeof settingsEn = {
 		tickets: "Tickets",
 		adrs: "ADR",
 		qa: "Comprobaciones de calidad",
-		workflows: "Flujos de trabajo",
+		workflows: "Recetas",
 		save: "Aplicar",
 		agents: "Herramientas de agente",
 		agentsNone: "No se encontró ninguna herramienta de agente",
@@ -72,7 +95,7 @@ export const settingsEs: typeof settingsEn = {
 		write: "Escribir el archivo",
 		cancel: "Cancelar",
 		wired: "Escrito en {path}",
-		allowList: "Lista de permitidas",
+		allowList: "Herramientas permitidas",
 		allowAll: "Todas las herramientas",
 		allowRead: "Solo lectura",
 		allowCustom: "Personalizada",
@@ -93,7 +116,6 @@ export const settingsEs: typeof settingsEn = {
 		add: "Añadir paquete PEM",
 		remove: "Quitar certificados",
 		count: "{count} certificados añadidos",
-		none: "Ninguno añadido",
 	},
 	tools: {
 		title: "Herramientas de desarrollo",

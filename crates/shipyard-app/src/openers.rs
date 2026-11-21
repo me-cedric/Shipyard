@@ -134,6 +134,34 @@ pub fn open_in_editor_with(
     Ok(())
 }
 
+/// Open a folder in an editor of the machine (`runs-recipes` REQ-002). The folder is data: its
+/// path is the only argument, and a path that starts with `-` is refused.
+pub fn open_folder_in_editor_with(dirs: &[PathBuf], editor: Option<&str>, dir: &Path) -> Res<()> {
+    let path = dir
+        .to_str()
+        .filter(|p| !p.starts_with('-'))
+        .ok_or("the folder is not valid")?;
+    if !dir.is_dir() {
+        return Err(format!("no folder {path}"));
+    }
+    let found = detect_in(dirs);
+    let (_, bin) = match editor {
+        Some(id) => found.into_iter().find(|(e, _)| e.id == id),
+        None => found.into_iter().next(),
+    }
+    .ok_or("no code editor was found")?;
+    let mut cmd = Command::new(bin);
+    let mut child = quiet(&mut cmd)
+        .arg(path)
+        .current_dir(dir)
+        .spawn()
+        .map_err(err)?;
+    std::thread::spawn(move || {
+        let _ = child.wait();
+    });
+    Ok(())
+}
+
 pub fn open_in_editor(s: &AppState, editor: Option<&str>, rel: &str, line: Option<u32>) -> Res<()> {
     let root = PathBuf::from(&s.registry()?.active().ok_or("no active project")?.path);
     open_in_editor_with(&root, &app_dirs(), editor, rel, line)

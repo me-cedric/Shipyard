@@ -24,7 +24,10 @@ stateDiagram-v2
   Active --> WaitingForAnswer: Ask
   Active --> Blocked: Block, an escalation (cause, last lines, stop report)
   Active --> RetryQueued: Retry
-  Active --> Paused: BudgetStop or max turns
+  Active --> Paused: BudgetStop
+  Planning --> Paused: Pause, a person, at the end of the turn
+  Working --> Paused: Pause, a person, at the end of the turn
+  SelfReview --> Paused: Pause, a person, at the end of the turn
   Active --> Failed: Fail, runs of older logs only (Q-166)
   WaitingForAnswer --> Active: Answered, back to the return state
   WaitingForAnswer --> Blocked: Block, no answer after 72 h, keeps the return state
@@ -32,7 +35,7 @@ stateDiagram-v2
   Blocked --> Active: Unblock or a reply on the ticket, one more round
   Blocked --> Done: Finished, a person closes a run with nothing to deliver
   RetryQueued --> Active: RetryDue
-  Paused --> Active: Resume with budget left, more turns, or the next day for a day budget
+  Paused --> Active: Resume with budget left, more turns, a person pause, or the next day for a day budget
   WaitingForAnswer --> Merged: PrMerged
   Blocked --> Merged: PrMerged
   RetryQueued --> Merged: PrMerged
@@ -55,4 +58,6 @@ stateDiagram-v2
     Caps for the whole run: 3 failed attempts per step,
     4 review rounds, 3 feedback rounds, 8 fix rounds.
     The same failure twice in a row escalates at once.
+    A paused run keeps its slot in the run limits and its stage.
+    A stage at its limit (Plan, Build, Review) keeps a run where it is until a slot is free.
   end note

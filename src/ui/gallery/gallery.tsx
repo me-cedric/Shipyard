@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { type Theme, usePrefs } from "@/lib/prefs";
 import { AnimatedIcon } from "../atoms/animated-icon";
@@ -6,21 +6,26 @@ import { Avatar } from "../atoms/avatar";
 import { Badge } from "../atoms/badge";
 import { Button } from "../atoms/button";
 import { Checkbox } from "../atoms/checkbox";
+import { Chip } from "../atoms/chip";
 import { IconButton } from "../atoms/icon-button";
 import { Input } from "../atoms/input";
 import { Kbd } from "../atoms/kbd";
+import { LinkButton } from "../atoms/link-button";
 import { LiveDot } from "../atoms/live-dot";
 import { Progress } from "../atoms/progress";
+import { Segmented } from "../atoms/segmented";
 import { Select } from "../atoms/select";
 import { Skeleton } from "../atoms/skeleton";
 import { Sparkline } from "../atoms/sparkline";
 import { type Status, StatusDot } from "../atoms/status-dot";
+import { StepBar } from "../atoms/step-bar";
 import { Switch } from "../atoms/switch";
 import { Textarea } from "../atoms/textarea";
 import {
 	ArrowPathIcon,
 	BellIcon,
 	CheckIcon,
+	ClockIcon,
 	Cog6ToothIcon,
 	ComputerDesktopIcon,
 	HomeIcon,
@@ -33,6 +38,9 @@ import {
 	ViewColumnsIcon,
 	XMarkIcon,
 } from "../icons";
+import { AskBar } from "../molecules/ask-bar";
+import { AttentionCard } from "../molecules/attention-card";
+import { BackLink } from "../molecules/back-link";
 import { BacklinkList } from "../molecules/backlink-list";
 import { BoardColumn } from "../molecules/board-column";
 import { Card } from "../molecules/card";
@@ -41,24 +49,33 @@ import { ConflictBlock, type ConflictChoice } from "../molecules/conflict-block"
 import { ConnectionRow } from "../molecules/connection-row";
 import { ContextMenu } from "../molecules/context-menu";
 import { DiffView } from "../molecules/diff-view";
+import { Door } from "../molecules/door";
 import { EmptyState } from "../molecules/empty-state";
 import { FileRow } from "../molecules/file-row";
 import { FilterBar } from "../molecules/filter-bar";
 import { FindingRow } from "../molecules/finding-row";
 import { FlagList } from "../molecules/flag-list";
+import { GroupSection } from "../molecules/group-section";
 import { MemberRow, SuggestionRow } from "../molecules/member-row";
 import { NotificationRow } from "../molecules/notification-row";
-import { PageHeader } from "../molecules/page-header";
+import { Option } from "../molecules/option";
+import { PageHeader, PageSwitchContext } from "../molecules/page-header";
 import { Panel } from "../molecules/panel";
+import { PlaceMenu } from "../molecules/place-menu";
 import { ProjectSwitcher } from "../molecules/project-switcher";
 import { RefChip } from "../molecules/ref-chip";
+import { Row as CardRow } from "../molecules/row";
 import { SecretInput } from "../molecules/secret-input";
+import { SectionSwitch } from "../molecules/section-switch";
 import { SettingsRow } from "../molecules/settings-row";
+import { SpendMeter } from "../molecules/spend-meter";
+import { StageLine } from "../molecules/stage-line";
 import { Stat } from "../molecules/stat";
 import { StatStrip } from "../molecules/stat-strip";
 import { SyncStatus } from "../molecules/sync-status";
 import { TicketCard } from "../molecules/ticket-card";
 import { TicketRow } from "../molecules/ticket-row";
+import { TILE_GRID, Tile } from "../molecules/tile";
 import { Timeline, TimelineItem } from "../molecules/timeline";
 import { ViewTabs } from "../molecules/view-tabs";
 import { ApplyDialog } from "../organisms/apply-dialog";
@@ -116,7 +133,20 @@ const SOFT = [
 	"bg-info-soft",
 ];
 const SHADOWS = ["shadow-1", "shadow-2", "shadow-3", "shadow-glow"];
-const SIZES = ["text-11", "text-12", "text-13", "text-14", "text-16", "text-20"];
+const SIZES = [
+	"text-11",
+	"text-12",
+	"text-13",
+	"text-14",
+	"text-15",
+	"text-16",
+	"text-17",
+	"text-20",
+	"text-30",
+	"text-44",
+];
+// The page header claims the switch; the gallery has no shell to tell.
+const SWITCH_CLAIM = () => () => {};
 
 function Row({ name, children }: { name: string; children: ReactNode }) {
 	return (
@@ -182,6 +212,7 @@ function Atoms() {
 	const [lang, setLang] = useState("a");
 	const [sync, setSync] = useState(false);
 	const [rings, setRings] = useState(0);
+	const [segment, setSegment] = useState("a");
 	return (
 		<div>
 			<Row name="Button">
@@ -190,8 +221,18 @@ function Atoms() {
 				<Button variant="ghost">Button</Button>
 				<Button variant="danger">Button</Button>
 				<Button disabled>Button</Button>
+				<Button size="lg" variant="primary">
+					Button
+				</Button>
+				<Button size="lg">Button</Button>
+			</Row>
+			<Row name="LinkButton">
+				<LinkButton>{t.common.open}</LinkButton>
 			</Row>
 			<Row name="IconButton">
+				<IconButton variant="outline" label={t.gallery.atoms}>
+					<ArrowPathIcon size={20} />
+				</IconButton>
 				<IconButton label={t.common.search} shortcut="⌘K">
 					<MagnifyingGlassIcon size={16} />
 				</IconButton>
@@ -227,6 +268,34 @@ function Atoms() {
 				<Badge variant="warning">Badge</Badge>
 				<Badge variant="danger">Badge</Badge>
 				<Badge variant="info">Badge</Badge>
+				<Badge variant="you">Badge</Badge>
+				<Badge variant="success" dot>
+					Badge
+				</Badge>
+				<Badge variant="you" dot>
+					Badge
+				</Badge>
+			</Row>
+			<Row name="Chip">
+				<Chip>Chip</Chip>
+				<Chip selected>Chip</Chip>
+			</Row>
+			<Row name="StepBar">
+				<StepBar total={5} current={4} label={t.status.active} />
+			</Row>
+			<Row name="Segmented">
+				<div className="w-80">
+					<Segmented
+						label="Segmented"
+						value={segment}
+						onValueChange={setSegment}
+						items={[
+							{ value: "a", label: "Light" },
+							{ value: "b", label: "Dark" },
+							{ value: "c", label: "System" },
+						]}
+					/>
+				</div>
 			</Row>
 			<Row name="StatusDot">
 				{STATUSES.map((s) => (
@@ -234,7 +303,9 @@ function Atoms() {
 				))}
 			</Row>
 			<Row name="Avatar, Kbd">
-				<Avatar name="Cédric Meyer" />
+				<Avatar name="Ada Lovelace" />
+				<Avatar name="Ada Lovelace" size="s" />
+				<Avatar name="Builder" agent />
 				<Kbd>⌘K</Kbd>
 			</Row>
 			<Row name="Skeleton">
@@ -243,6 +314,7 @@ function Atoms() {
 			<Row name="LiveDot, Progress">
 				<LiveDot label={t.status.active} />
 				<Progress value={3} max={5} label={t.status.active} className="w-48" />
+				<Progress over value={5} max={5} label={t.status.active} className="w-48" />
 			</Row>
 			<Row name="Sparkline">
 				<Sparkline values={[2, 4, 3, 6, 5, 8, 7, 9]} className="w-32" />
@@ -327,6 +399,65 @@ function Molecules() {
 				<div className="w-96">
 					<SettingsRow icon={<SunIcon size={14} />} label={t.prefs.theme}>
 						<Switch label={t.prefs.theme} iconOnly />
+					</SettingsRow>
+				</div>
+			</Row>
+			<Row name="PlaceMenu">
+				<div className="w-56">
+					<PlaceMenu
+						items={[
+							{ id: "today", label: "Today", icon: <HomeIcon size={20} />, current: true },
+							{ id: "flow", label: "Flow", icon: <InboxIcon size={20} />, count: 3 },
+						]}
+						end={{ id: "setup", label: "Setup", icon: <Cog6ToothIcon size={20} /> }}
+					/>
+				</div>
+				<PlaceMenu
+					narrow
+					items={[{ id: "today", label: "Today", icon: <HomeIcon size={20} />, current: true }]}
+				/>
+			</Row>
+			<Row name="AskBar">
+				<div className="w-96">
+					<AskBar onSubmit={noop} />
+				</div>
+			</Row>
+			<Row name="StageLine">
+				<StageLine stage="build" mark="needs_you" />
+			</Row>
+			<Row name="AttentionCard">
+				<div className="w-96">
+					<AttentionCard who="Ana" title="Approve the plan">
+						<Button>{t.common.open}</Button>
+					</AttentionCard>
+				</div>
+				<div className="w-96">
+					<AttentionCard
+						icon={<ClockIcon size={16} />}
+						title="No time logged today"
+						action={<Button variant="primary">{t.common.open}</Button>}
+					/>
+				</div>
+			</Row>
+			<Row name="SectionSwitch">
+				<SectionSwitch
+					label={t.ui.sections}
+					items={[
+						{ id: "a", label: "Backlog", current: true },
+						{ id: "b", label: "Board" },
+					]}
+				/>
+			</Row>
+			<Row name="Door">
+				<div className="w-48">
+					<Door label="Specs" icon={<InboxIcon size={24} />} count={4} onClick={noop} />
+				</div>
+			</Row>
+			<Row name="Value row (SettingsRow)">
+				<div className="w-96">
+					<SettingsRow label="Branch">
+						<span>main</span>
+						<Button>{t.common.open}</Button>
 					</SettingsRow>
 				</div>
 			</Row>
@@ -608,6 +739,26 @@ function Molecules() {
 			</Row>
 			<Row name="PageHeader">
 				<div className="w-full">
+					<PageSwitchContext.Provider
+						value={{
+							claim: SWITCH_CLAIM,
+							node: (
+								<SectionSwitch
+									label={t.ui.sections}
+									items={[
+										{ id: "a", label: "Start", current: true },
+										{ id: "b", label: "Me" },
+									]}
+								/>
+							),
+						}}
+					>
+						<PageHeader
+							title={t.gallery.molecules}
+							back={<BackLink label={t.gallery.atoms} />}
+							action={<Button variant="primary">{t.home.refresh}</Button>}
+						/>
+					</PageSwitchContext.Provider>
 					<PageHeader
 						icon={<InboxIcon size={16} />}
 						title={t.home.needsYou}
@@ -628,6 +779,57 @@ function Molecules() {
 						{ label: t.ui.spendToday, value: "$4.20", trend: [1, 3, 2, 5, 4, 6] },
 					]}
 				/>
+			</Row>
+			<Row name="SpendMeter">
+				<div className="flex w-64 flex-col gap-3">
+					<SpendMeter usd={2} budget={10} label={t.ui.spendToday} />
+					<SpendMeter usd={9} budget={10} label={t.ui.spendToday} />
+					<SpendMeter usd={12} budget={10} label={t.ui.spendToday} />
+				</div>
+			</Row>
+			<Row name="GroupSection">
+				<Card className="w-96 py-2">
+					<GroupSection name="Open" count={2}>
+						<CardRow>The login page</CardRow>
+						<CardRow>The home page</CardRow>
+					</GroupSection>
+				</Card>
+			</Row>
+			<Row name="Card, Row">
+				<Card className="w-96 py-2">
+					<CardRow>
+						<Avatar name="Builder" agent />
+						<span className="font-semibold">Approve the pull request</span>
+					</CardRow>
+					<CardRow
+						render={(props) => (
+							<button type="button" {...props} className={`${props.className} w-full text-left`} />
+						)}
+					>
+						<span className="font-semibold">{t.common.open}</span>
+						<Kbd className="ml-auto">F1</Kbd>
+					</CardRow>
+				</Card>
+				<Card pad className="w-64">
+					Card pad
+				</Card>
+			</Row>
+			<Row name="Option">
+				<div className="flex w-96 flex-col gap-2.5">
+					<Option selected trailing={<Badge variant="accent">Badge</Badge>}>
+						The login page
+					</Option>
+					<Option>The home page</Option>
+				</div>
+			</Row>
+			<Row name="Tile">
+				<div className={`${TILE_GRID} w-full`}>
+					<Tile selected label="Developer" icon={<InboxIcon size={24} />} />
+					<Tile label="Product owner" icon={<BellIcon size={24} />} />
+				</div>
+			</Row>
+			<Row name="BackLink">
+				<BackLink label="Flow" />
 			</Row>
 			<Row name="Panel, Card">
 				<Panel title={t.home.questions} count={2} className="w-80">
@@ -657,6 +859,8 @@ function Molecules() {
 function Organisms() {
 	const { t } = useI18n();
 	const [open, setOpen] = useState(false);
+	const [text, setText] = useState("");
+	const bar = useRef<HTMLInputElement>(null);
 	const [panel, setPanel] = useState(true);
 	const [commit, setCommit] = useState(false);
 	const [dialog, setDialog] = useState(false);
@@ -665,13 +869,14 @@ function Organisms() {
 	return (
 		<div>
 			<Row name="CommandPalette">
-				<Button onClick={() => setOpen(true)}>
-					<MagnifyingGlassIcon size={14} />
-					{t.palette.title}
-				</Button>
 				<CommandPalette
 					open={open}
 					onOpenChange={setOpen}
+					text={text}
+					onTextChange={setText}
+					onSubmit={noop}
+					inputRef={bar}
+					shortcut="Ctrl+K"
 					groups={[
 						{
 							id: "go",
@@ -864,7 +1069,7 @@ function Templates() {
 							</div>
 						}
 						main={<div className="p-3" />}
-						statusbar={<StatusDot status="success" />}
+						contextbar={<StatusDot status="success" />}
 					/>
 				</div>
 			</Row>

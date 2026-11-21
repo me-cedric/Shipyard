@@ -1,24 +1,30 @@
+import { codeHostEs } from "../code-host";
 import type { Messages } from "../en";
 import { assistantEs } from "./assistant";
 import { forgeEs } from "./code";
 import { costingEs } from "./costing";
 import { creatorEs } from "./creator";
+import { crewEs } from "./crew";
 import { designEs } from "./design";
 import { doctorEs } from "./doctor";
 import { editingEs } from "./editing";
 import { extensionsEs } from "./extensions";
 import { extrasEs } from "./extras";
 import { factoryEs } from "./factory";
+import { flowEs } from "./flow";
 import { glossaryEs } from "./glossary";
 import { homeEs } from "./home";
 import { knowledgeEs } from "./knowledge";
+import { libraryEs } from "./library";
 import { onboardingEs } from "./onboarding";
 import { panelsEs } from "./panels";
 import { personalEs } from "./personal";
+import { planEs } from "./plan";
 import { reportsEs } from "./reports";
 import { reviewEs } from "./review";
 import { rightsEs } from "./rights";
 import { settingsEs } from "./settings";
+import { shellFnEs } from "./shell-fn";
 import { specsEs } from "./specs";
 import { uiEs } from "./ui";
 import { workspaceEs } from "./workspace";
@@ -39,7 +45,7 @@ export const es: Messages = {
 		dark: "Oscuro",
 		oled: "OLED",
 		system: "Sistema",
-		"system-oled": "Sistema, OLED en oscuro",
+		"system-oled": "Sistema con OLED",
 	},
 	prefs: {
 		theme: "Tema",
@@ -48,10 +54,10 @@ export const es: Messages = {
 		contrast: "Alto contraste",
 		role: "Rol",
 		releaseUrl: "Dirección de versiones",
-		autoUpdate: "Buscar actualizaciones automáticamente",
-		promptLang: "Idioma de los prompts del asistente",
+		autoUpdate: "Actualización automática",
+		promptLang: "Idioma de los prompts",
 		promptFollow: "Igual que la interfaz",
-		diagramFormat: "Formato de los tableros nuevos",
+		diagramFormat: "Formato de diagramas",
 		compact: "Compacta",
 		languageFiles: "Archivos de idioma",
 		importLanguage: "Importar idioma",
@@ -67,11 +73,31 @@ export const es: Messages = {
 		title: "Paleta de comandos",
 		placeholder: "Buscar",
 		empty: "Sin resultados",
-		actions: "Acciones",
-		projects: "Proyectos recientes",
-		refs: "Refs",
 		ask: "Preguntar al asistente",
 		askPrompt: "Usa estos elementos como contexto:\n{items}\n\nMi pregunta: ",
+		goTo: "Ir a",
+		do: "Hacer",
+		openAssistant: "Abrir el asistente completo",
+		startOnTicket: "Iniciar un agente en un ticket",
+		syncNow: "Sincronizar ahora",
+		markBlocked: "Bloqueada",
+		markStopped: "Detenida",
+		markNeeds: "Te necesita",
+		noAnswer: "Nada encontrado",
+		reply: "Responder",
+		send: "Enviar",
+		esc: "esc",
+		/** The heading of an answer: `One` for one feature, the other with `{count}`. */
+		headBlocked: "{count} funcionalidades están bloqueadas.",
+		headBlockedOne: "1 funcionalidad está bloqueada.",
+		headStopped: "{count} funcionalidades están detenidas.",
+		headStoppedOne: "1 funcionalidad está detenida.",
+		headNeeds: "{count} funcionalidades te necesitan.",
+		headNeedsOne: "1 funcionalidad te necesita.",
+		/** Words of a question, comma separated: the answer part matches them in the text. */
+		wordsBlocked: "bloque,atasc",
+		wordsStopped: "deten,fall",
+		wordsNeeds: "necesit,espera,atenci",
 	},
 	inspector: {
 		title: "Inspector",
@@ -81,11 +107,18 @@ export const es: Messages = {
 		notCommitted: "Aún sin commit",
 		open: "Abrir",
 		edit: "Editar",
+		explain: "Explicar con un agente",
+		linked: "Vinculado con",
+		copyRef: "Copiar la referencia",
+		state: {
+			resolved: "Este elemento está en el proyecto.",
+			unresolved: "El proyecto aún no tiene un elemento con este nombre.",
+			broken: "Este enlace apunta a un elemento que ya no existe.",
+		},
 	},
 	nav: {
 		sidebar: "Barra lateral",
 		main: "Principal",
-		status: "Estado",
 		expand: "Expandir",
 		collapse: "Contraer",
 		tabs: "Pestañas",
@@ -100,11 +133,10 @@ export const es: Messages = {
 		pulls: "Sin pull requests",
 		codeHost: "Sin plataforma de código",
 		connections: "Sin conexiones",
-		items: "Sin elementos",
 		needsYou: "Nada requiere tu atención",
 		questions: "Sin preguntas",
 		changes: "Sin cambios",
-		capabilities: "Sin capacidades",
+		capabilities: "Sin especificaciones",
 		file: "Ningún archivo seleccionado",
 		commit: "Ningún commit seleccionado",
 		compass: "Sin reglas",
@@ -120,7 +152,7 @@ export const es: Messages = {
 		sessions: "Sin sesiones",
 		runs: "Sin ejecuciones",
 		run: "Sin ejecución",
-		graph: "Sin grafo",
+		graph: "Sin mapa",
 		dashboards: "Sin paneles",
 		testPlans: "Sin planes de pruebas",
 	},
@@ -137,28 +169,33 @@ export const es: Messages = {
 		design: "Diseño",
 		specs: "Especificaciones",
 		work: "Trabajo",
-		factory: "Fábrica",
+		factory: "Flujo",
 		code: "Código",
 		knowledge: "Conocimiento",
 		settings: "Ajustes",
 	},
 	tabs: {
-		home: { today: "Hoy", projects: "Proyectos" },
+		home: {
+			today: "Requiere tu atención",
+			news: "Novedades",
+			activity: "Actividad",
+			projects: "Proyectos",
+		},
 		design: {
 			diagrams: "Diagramas",
 			architecture: "Arquitectura",
 			decisions: "Decisiones",
 			api: "API",
 			data: "Datos",
-			flows: "Flujos",
+			flows: "Flujos de red",
 			screens: "Pantallas",
 		},
 		specs: {
 			changes: "Propuestas",
-			capabilities: "Capacidades",
+			capabilities: "Especificaciones",
 			questions: "Preguntas",
 			"test-plans": "Planes de pruebas",
-			constitution: "Constitución",
+			constitution: "Reglas del proyecto",
 		},
 		work: {
 			backlog: "Backlog",
@@ -170,12 +207,13 @@ export const es: Messages = {
 		},
 		factory: {
 			runs: "Ejecuciones",
-			workflows: "Flujos de trabajo",
+			workflows: "Recetas",
 			"agents-map": "Mapa de agentes",
 			sessions: "Sesiones",
 			usage: "Uso",
 		},
 		code: {
+			now: "Ahora",
 			changes: "Cambios locales",
 			history: "Historial",
 			branches: "Ramas",
@@ -185,7 +223,7 @@ export const es: Messages = {
 			terminal: "Terminal",
 		},
 		knowledge: {
-			graph: "Grafo",
+			graph: "Mapa",
 			handbook: "Guía del equipo",
 			manual: "Manual",
 			documents: "Documentos",
@@ -201,16 +239,7 @@ export const es: Messages = {
 			me: "Yo",
 			health: "Salud",
 		},
-	},
-	noun: {
-		home: "Proyecto",
-		design: "Diagrama",
-		specs: "Cambio",
-		work: "Elemento",
-		factory: "Ejecución",
-		code: "Rama",
-		knowledge: "Documento",
-		settings: "Conexión",
+		setup: { start: "Inicio", project: "Este proyecto", computer: "Este ordenador", me: "Yo" },
 	},
 	role: {
 		none: "Otro",
@@ -230,7 +259,7 @@ export const es: Messages = {
 	forge: forgeEs,
 	knowledge: knowledgeEs,
 	costing: costingEs,
-	notFound: { title: "No encontrado", home: "Inicio" },
+	notFound: { title: "No encontrado", home: "Hoy" },
 	routeError: {
 		message: "Esta página no se cargó. Revisa la red e inténtalo de nuevo.",
 		retry: "Reintentar",
@@ -242,17 +271,53 @@ export const es: Messages = {
 		health: "Salud",
 		version: "Versión {version}",
 		lines: "Cambios: {added} líneas añadidas, {removed} eliminadas",
-		whatsNew: { title: "Novedades de {version}", none: "Sin notas para esta versión." },
+		whatsNew: {
+			title: "Novedades de {version}",
+			none: "Sin notas para esta versión.",
+			added: "Nuevo",
+			fixed: "Corregido",
+			all: "Todas las versiones",
+		},
 		toggleSidebar: "Mostrar u ocultar la barra lateral",
 		toggleInspector: "Mostrar u ocultar el inspector",
 		openRef: "Abrir {ref}",
 		themeTo: "Tema: {name}",
 		langTo: "Idioma: {name}",
 		activity: "Actividad",
-		needsNone: "Nada requiere su acción",
 		runsNone: "Ninguna ejecución activa",
 		account: "Cuenta",
 		changedFiles: "Archivos modificados",
+		change: "Cambiar",
+		menu: {
+			manual: "Manual",
+			shortcuts: "Atajos",
+			whatsNew: "Novedades",
+			tour: "Repetir el recorrido",
+			update: "Buscar una actualización",
+		},
+	},
+	refGroup: {
+		project: "Proyectos",
+		member: "Miembros",
+		diagram: "Diagramas",
+		model: "Arquitectura",
+		adr: "Decisiones",
+		api: "API",
+		data: "Datos",
+		flow: "Flujos de red",
+		screen: "Pantallas",
+		change: "Cambios",
+		spec: "Especificaciones",
+		test: "Planes de pruebas",
+		q: "Preguntas",
+		wi: "Elementos de trabajo",
+		est: "Estimaciones",
+		wf: "Recetas",
+		run: "Ejecuciones",
+		pr: "Pull requests",
+		commit: "Commits",
+		doc: "Documentos",
+		conn: "Conexiones",
 	},
 	refKind: {
 		project: "Proyecto",
@@ -270,7 +335,7 @@ export const es: Messages = {
 		q: "Pregunta",
 		wi: "Elemento de trabajo",
 		est: "Estimación",
-		wf: "Flujo de trabajo",
+		wf: "Receta",
 		run: "Ejecución",
 		pr: "Pull request",
 		commit: "Commit",
@@ -279,6 +344,8 @@ export const es: Messages = {
 	},
 	projects: {
 		switcher: "Proyecto",
+		job: "¿Cuál es tu trabajo?",
+		start: "¿Cómo empiezas?",
 		open: "Abrir una carpeta local",
 		clone: "Clonar un repositorio",
 		create: "Crear un proyecto",
@@ -325,7 +392,7 @@ export const es: Messages = {
 		},
 		trackerScope: "Alcance del gestor de tickets",
 		paths: "Rutas",
-		workflow: "Flujo de trabajo predeterminado",
+		workflow: "Receta predeterminada",
 		save: "Guardar",
 		overrides: "Anulaciones",
 		accent: "Color de acento",
@@ -399,7 +466,7 @@ export const es: Messages = {
 			"team-no-admin":
 				"Ningún admin en el archivo del equipo: cada persona tiene todos los derechos",
 		},
-		fix: { write: "Escribir", open: "Abrir", apply: "Aplicar", recheck: "Volver a comprobar" },
+		fix: { write: "Corregir", open: "Corregir", apply: "Corregir", recheck: "Volver a comprobar" },
 		confirm: "Confirmar",
 	},
 	connections: {
@@ -584,13 +651,11 @@ export const es: Messages = {
 	},
 	sync: {
 		state: { idle: "Inactivo", running: "En curso", failed: "Fallido" },
-		failures: "{count} fallos seguidos",
 		backlog: {
 			import: "Importar",
 			openTickets: "{count} tickets abiertos",
 			confirm: "Confirmar",
 			cancel: "Cancelar",
-			adopt: "Adoptar",
 			key: "Clave del ticket",
 			status: "Estado",
 			allStatuses: "Todos los estados",
@@ -614,15 +679,27 @@ export const es: Messages = {
 			priority: "Prioridad",
 			map: "Correspondencia de estados",
 			mapStatus: "Estado",
+			mixed: "Variado",
 			mapLabels: "Etiquetas",
 			writes: "Interruptores de escritura",
 			write: {
-				push: "Push",
-				pullRequest: "Pull request",
-				trackerTransition: "Transición del ticket",
-				trackerComment: "Comentario del ticket",
+				push: "Subir la rama",
+				pullRequest: "Abrir la pull request",
+				trackerTransition: "Mover el ticket",
+				trackerComment: "Comentar en el gestor de tickets",
 			},
 			save: "Guardar",
+			recipes: "Permitido para una receta",
+			kind: {
+				transition: "Mover el ticket",
+				labels: "Etiquetas del ticket",
+				comment: "Comentario del ticket",
+				push: "Push",
+				open_pr: "Abrir un pull request",
+				resolve_threads: "Cerrar los hilos de revisión",
+			},
+			remove: "Quitar",
+			removeKind: "Quitar {kind} para {recipe}",
 			error: {
 				interval: "Intervalo: al menos {min} s",
 				number: "{name}: un número entero",
@@ -657,7 +734,6 @@ export const es: Messages = {
 		priority: { 0: "Urgente", 1: "Prioridad alta", 2: "Prioridad media", 3: "Prioridad baja" },
 		daysShort: "{days} d",
 		milestone: "Hito {name}: {day}",
-		capacity: "Capacidad {days} de 5 días",
 		heatmap: "Horas por día",
 		heatmapSize: "Ancho del mapa de calor",
 		hoursShort: "{hours} h",
@@ -688,6 +764,10 @@ export const es: Messages = {
 			description: "Descripción",
 			saveDescription: "Guardar descripción",
 			removeLabel: "Quitar {label}",
+			set: "Definir",
+			addALabel: "Añadir una etiqueta",
+			give: "Dar a los agentes",
+			pickup: "Los agentes pueden tomarla",
 			priority: "Prioridad",
 			priorities: {
 				highest: "Máxima",
@@ -878,6 +958,7 @@ export const es: Messages = {
 			"pr-checks": "Comprobaciones del pull request",
 			"scan-failed": "Análisis fallido",
 			"review-draft": "Borrador de revisión",
+			budget: "Presupuesto",
 		},
 		runDone: "{key}: ejecución terminada",
 		runFailed: "{key}: ejecución fallida",
@@ -915,6 +996,10 @@ export const es: Messages = {
 	assistant: assistantEs,
 	design: designEs,
 	factory: factoryEs,
+	flow: flowEs,
+	crewPlace: crewEs,
+	planPlace: planEs,
+	library: libraryEs,
 	glossary: glossaryEs,
 	settings: settingsEs,
 	specs: specsEs,
@@ -928,6 +1013,8 @@ export const es: Messages = {
 	editing: editingEs,
 	review: reviewEs,
 	rights: rightsEs,
+	shellFn: shellFnEs,
 	extras: extrasEs,
 	onboarding: onboardingEs,
+	codeHost: codeHostEs,
 };

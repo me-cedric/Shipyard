@@ -105,6 +105,7 @@ fn item(v: &Value) -> WorkItem {
         url: text(v, "/html_url"),
         updated: text(v, "/updated_at"),
         time: None,
+        release: Some(text(v, "/milestone/title")).filter(|r| !r.is_empty()),
     }
 }
 

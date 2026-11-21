@@ -3,8 +3,8 @@ import { PageHeader } from "../molecules/page-header";
 
 /**
  * The frame of a Work view: a toolbar, then the list. The detail of a row opens in the inspector
- * of the shell, so the list keeps the whole width. The title and the icon show as the page header
- * of the tab (visual language v2, update-ux-declutter REQ-017).
+ * of the shell, so the list keeps the whole width. The title shows as the page header of the tab
+ * (update-ux-declutter REQ-017). The icon draws nothing: the page header has no icon tile.
  */
 export function ListDetail({
 	title,
@@ -28,7 +28,7 @@ export function ListDetail({
 		<div className="flex min-h-0 flex-1 flex-col">
 			<PageHeader icon={icon} title={title} count={count} chips={chips} action={action} />
 			{toolbar ? (
-				<div className="flex min-h-9 shrink-0 flex-wrap items-center gap-2 px-4 pb-3">
+				<div className="flex min-h-control shrink-0 flex-wrap items-center gap-2 px-4 pb-3">
 					{toolbar}
 				</div>
 			) : null}

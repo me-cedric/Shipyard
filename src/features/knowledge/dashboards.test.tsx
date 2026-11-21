@@ -1,4 +1,4 @@
-import { createEvent, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, createEvent, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
@@ -8,6 +8,14 @@ import { mountKnowledge } from "./harness";
 
 const FILE = "docs/dashboards/team.yaml";
 const tile = async (name: string) => within(await screen.findByRole("region", { name }));
+/** The edit page of the dashboard of the mock project. */
+const mountEdit = () => mountKnowledge("dashboards", "/library/dashboards/team/edit");
+/** Opens the menu of a tile and picks one of its items. */
+const pick = async (user: ReturnType<typeof userEvent.setup>, name: string, item: string) => {
+	await user.click(await screen.findByRole("button", { name: `More ${name}` }));
+	const role = item === "Show as table" ? "menuitemcheckbox" : "menuitem";
+	await user.click(await screen.findByRole(role, { name: item }));
+};
 
 describe("Knowledge / Dashboards", () => {
 	it("shows a dashboard as a grid of tiles with a count, each drawn from the data of the project", async () => {
@@ -25,7 +33,7 @@ describe("Knowledge / Dashboards", () => {
 		await mountKnowledge("dashboards");
 		const work = await unwrap(commands.dashboardTile("questions"));
 		const t = await tile("Questions");
-		await user.click(await t.findByRole("button", { name: "Show as table" }));
+		await pick(user, "Questions", "Show as table");
 		const rows = within(await t.findByRole("table")).getAllByRole("row");
 		expect(rows).toHaveLength(work.rows.length + 1);
 	});
@@ -37,10 +45,26 @@ describe("Knowledge / Dashboards", () => {
 		expect(quality).toHaveTextContent("Source off: quality");
 	});
 
+	it("names the issue tracker on a tile whose issue tracker is not linked", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await unwrap(
+			commands.dashboardSaveOne(
+				"team",
+				{ title: "Team", tiles: [{ id: "a", kind: "tracker-assignee", x: 0, y: 0, w: 4, h: 3 }] },
+				null,
+			),
+		);
+		mountApp("/knowledge/dashboards");
+		const items = await screen.findByRole("region", { name: "Items by assignee" });
+		await waitFor(() => expect(items).toHaveTextContent("Source off: issue tracker"));
+	});
+
 	it("saves a moved tile to the file", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("dashboards");
-		await user.click(await (await tile("Work items")).findByRole("button", { name: "Move right" }));
+		await mountEdit();
+		await user.click(await screen.findByRole("button", { name: "Tile settings Work items" }));
+		const panel = within(await screen.findByRole("complementary", { name: "Tile settings" }));
+		await user.click(panel.getByRole("button", { name: "Move right" }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.dashboardGetOne("team"))).value.tiles[0]?.x).toBe(1),
 		);
@@ -48,7 +72,7 @@ describe("Knowledge / Dashboards", () => {
 	});
 
 	it("moves a tile when it is dragged to another column", async () => {
-		await mountKnowledge("dashboards");
+		await mountEdit();
 		const item = (await screen.findByRole("region", { name: "Work items" })).closest("li");
 		const grid = item?.parentElement;
 		if (!(item && grid)) throw new Error("grid");
@@ -74,7 +98,61 @@ describe("Knowledge / Dashboards", () => {
 		files()[FILE] = { text: old.replace("version: 1", "version: 2"), stamp: "7" };
 		await mountKnowledge("dashboards");
 		expect(await screen.findByText("Read only")).toBeInTheDocument();
-		expect(screen.queryByRole("button", { name: "Move right" })).toBeNull();
+		expect(screen.queryByRole("link", { name: "Edit" })).toBeNull();
+		cleanup();
+		await mountEdit();
+		expect(await screen.findByText("Read only")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: /^Tile settings/ })).toBeNull();
+		expect(screen.queryByRole("button", { name: /^Remove tile/ })).toBeNull();
+	});
+
+	it("shows no edit control on a tile in read mode, and Edit opens the edit page", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("dashboards");
+		await tile("Runs");
+		expect(screen.queryByRole("button", { name: /^(Tile settings|Remove tile)/ })).toBeNull();
+		expect(screen.queryByRole("group", { name: "Add a tile" })).toBeNull();
+		await user.click(await screen.findByRole("link", { name: "Edit" }));
+		expect(await screen.findByRole("heading", { level: 1, name: "Team" })).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "Dashboards" })).toHaveAttribute(
+			"href",
+			"/library/dashboards",
+		);
+		await user.click(screen.getByRole("link", { name: "Done" }));
+		expect(
+			await screen.findByRole("heading", { level: 1, name: "Dashboards" }),
+		).toBeInTheDocument();
+	});
+
+	it("renames a dashboard on its edit page", async () => {
+		const user = userEvent.setup();
+		await mountEdit();
+		// The shell has a "Rename" of its own: take the one of the page.
+		const page = within(await screen.findByRole("main"));
+		await user.click(await page.findByRole("button", { name: "Rename" }));
+		const name = screen.getByRole("textbox", { name: "Dashboard name" });
+		await user.clear(name);
+		await user.type(name, "Delivery");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(await screen.findByRole("heading", { level: 1, name: "Delivery" })).toBeInTheDocument();
+		expect((await unwrap(commands.dashboardGetOne("team"))).value.title).toBe("Delivery");
+	});
+
+	it("links to the pages that hold more numbers", async () => {
+		await mountKnowledge("dashboards");
+		const more = within(await screen.findByRole("region", { name: "More numbers" }));
+		expect(more.getByRole("link", { name: "Spend of the agents" })).toHaveAttribute(
+			"href",
+			"/crew/spend",
+		);
+		expect(more.getByRole("link", { name: "Quality gates" })).toHaveAttribute(
+			"href",
+			"/flow/health",
+		);
+		expect(more.getByRole("link", { name: "Plan and load of people" })).toHaveAttribute(
+			"href",
+			"/plan/timeline",
+		);
 	});
 
 	it("shows the states of the Runs tile as plain words, not as codes", async () => {
@@ -87,22 +165,23 @@ describe("Knowledge / Dashboards", () => {
 	it("pins a tile, and the pinned tile shows at the top of Dashboards and not on Home", async () => {
 		const user = userEvent.setup();
 		const router = await mountKnowledge("dashboards");
-		await user.click(await (await tile("Runs")).findByRole("button", { name: "Pin to Home" }));
+		await pick(user, "Runs", "Pin to Today");
 		expect(await screen.findByRole("heading", { name: "Pinned (1)" })).toBeInTheDocument();
 		await router.navigate({ to: "/home/today" });
-		await screen.findByRole("heading", { level: 1, name: "Today" });
+		await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ });
 		expect(screen.queryByRole("heading", { name: /^Pinned/ })).toBeNull();
 		await router.navigate({ to: "/knowledge/dashboards" });
 		const pinned = within(await screen.findByRole("region", { name: "Pinned" }));
-		await user.click(await pinned.findByRole("button", { name: "Unpin from Home" }));
+		await user.click(await pinned.findByRole("button", { name: "More Runs" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Unpin from Today" }));
 		await waitFor(() => expect(screen.queryByRole("heading", { name: /^Pinned/ })).toBeNull());
 	});
 
 	it("adds a tile, renames and widens it in its settings, and removes it", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("dashboards");
-		await user.click(await screen.findByRole("button", { name: "Add tile" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Specs" }));
+		await mountEdit();
+		const kinds = within(await screen.findByRole("group", { name: "Add a tile" }));
+		await user.click(kinds.getByRole("button", { name: "Specs" }));
 		const saved = async () => (await unwrap(commands.dashboardGetOne("team"))).value.tiles;
 		await waitFor(async () => expect((await saved()).map((x) => x.id)).toContain("specs"));
 		await user.click(await screen.findByRole("button", { name: "Tile settings Specs" }));
@@ -124,8 +203,10 @@ describe("Knowledge / Dashboards", () => {
 	it("creates a dashboard from a template", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("dashboards");
-		await user.click(await screen.findByRole("button", { name: "New dashboard" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Project manager" }));
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(
+			await screen.findByRole("menuitem", { name: "New dashboard: Project manager" }),
+		);
 		await waitFor(async () =>
 			expect((await unwrap(commands.dashboardGetOne("pm"))).value.tiles.map((x) => x.kind)).toEqual(
 				["tracker-open", "tracker-status", "tracker-assignee", "estimates", "questions", "work"],
@@ -149,7 +230,7 @@ describe("Knowledge / Dashboards", () => {
 		const items = await unwrap(commands.syncItems({}));
 		const open = items.filter((i) => i.category !== "done");
 		const t = await tile("Items by assignee");
-		await user.click(await t.findByRole("button", { name: "Show as table" }));
+		await pick(user, "Items by assignee", "Show as table");
 		const total = async () =>
 			within(await t.findByRole("table"))
 				.getAllByRole("row")
@@ -168,10 +249,178 @@ describe("Knowledge / Dashboards", () => {
 
 	it("starts a project that has no dashboard with one primary action", async () => {
 		const user = userEvent.setup();
-		delete mockState().knowledge.files[FILE];
+		const files = mockState().knowledge.files;
+		for (const f of Object.keys(files)) if (f.startsWith("docs/dashboards/")) delete files[f];
 		await mountKnowledge("dashboards");
 		await user.click(await screen.findByRole("button", { name: "Dashboards" }));
 		expect(await screen.findByRole("list", { name: "Tiles (10)" })).toBeInTheDocument();
 		expect(mockState().knowledge.files[FILE]).toBeDefined();
+	});
+});
+
+describe("Dashboards / Build a tile for me (spec:app-redesign#REQ-032, #REQ-033)", () => {
+	const saved = async () => (await unwrap(commands.dashboardGetOne("team"))).value.tiles;
+	/** Opens the form, says what the tile must show and starts the build. */
+	const build = async (user: ReturnType<typeof userEvent.setup>, words: string) => {
+		await user.click(await screen.findByRole("button", { name: "Build a tile for me" }));
+		await user.type(screen.getByRole("textbox", { name: "What the tile must show" }), words);
+		await user.click(screen.getByRole("button", { name: "Build" }));
+	};
+	const proposed = async () =>
+		within(await screen.findByRole("region", { name: "Proposed tile" }, { timeout: 4000 }));
+
+	it("shows a proposed tile with Accept and Discard, and the dashboard does not change", async () => {
+		const user = userEvent.setup();
+		await mountEdit();
+		const before = mockState().knowledge.files[FILE]?.text;
+		await build(user, "Runs by state");
+		const p = await proposed();
+		expect(p.getByRole("region", { name: "Runs by state" })).toBeInTheDocument();
+		expect(p.getByRole("button", { name: "Accept" })).toBeInTheDocument();
+		expect(p.getByRole("button", { name: "Discard" })).toBeInTheDocument();
+		expect(mockState().knowledge.files[FILE]?.text).toBe(before);
+		expect(screen.getByRole("list", { name: "Tiles (4)" })).toBeInTheDocument();
+	});
+
+	it("puts the tile on the dashboard when the person accepts it", async () => {
+		const user = userEvent.setup();
+		await mountEdit();
+		await build(user, "Specs health");
+		await user.click((await proposed()).getByRole("button", { name: "Accept" }));
+		await waitFor(async () =>
+			expect((await saved()).at(-1)).toMatchObject({ kind: "specs", title: "Specs health", w: 4 }),
+		);
+		expect(await screen.findByRole("list", { name: "Tiles (5)" })).toBeInTheDocument();
+		expect(screen.queryByRole("region", { name: "Proposed tile" })).toBeNull();
+	});
+
+	it("drops the proposed tile on Discard", async () => {
+		const user = userEvent.setup();
+		await mountEdit();
+		await build(user, "Specs health");
+		await user.click((await proposed()).getByRole("button", { name: "Discard" }));
+		expect(screen.queryByRole("region", { name: "Proposed tile" })).toBeNull();
+		expect(await saved()).toHaveLength(4);
+		expect(screen.getByRole("textbox", { name: "What the tile must show" })).toBeInTheDocument();
+	});
+
+	it("is a session while it runs, and Stop ends it with no tile and no error", async () => {
+		const user = userEvent.setup();
+		await mountEdit();
+		await build(user, "Runs by state");
+		expect(await screen.findByText("The agent builds the tile")).toHaveRole("status");
+		const rows = await unwrap(commands.sessionsList());
+		expect(rows[0]).toMatchObject({ key: "team", step: "tile", state: "running" });
+		await user.click(screen.getByRole("button", { name: "Stop" }));
+		expect(
+			await screen.findByRole("textbox", { name: "What the tile must show" }),
+		).toBeInTheDocument();
+		expect(screen.queryByRole("region", { name: "Proposed tile" })).toBeNull();
+		expect(screen.queryByRole("alert")).toBeNull();
+		expect(await unwrap(commands.sessionsList())).toEqual(
+			expect.not.arrayContaining([expect.objectContaining({ step: "tile" })]),
+		);
+		expect(await saved()).toHaveLength(4);
+	});
+
+	it("sends the budget that the person set, and says when the budget is spent", async () => {
+		const user = userEvent.setup();
+		await mountEdit();
+		await user.click(await screen.findByRole("button", { name: "Build a tile for me" }));
+		const budget = within(screen.getByRole("group", { name: "Budget (USD)" }));
+		expect(budget.getByRole("status")).toHaveTextContent("$2");
+		await user.click(budget.getByRole("button", { name: "More budget" }));
+		expect(budget.getByRole("status")).toHaveTextContent("$3");
+		const sent = vi.spyOn(commands, "dashboardTileBuild");
+		await user.type(screen.getByRole("textbox", { name: "What the tile must show" }), "spent");
+		await user.click(screen.getByRole("button", { name: "Build" }));
+		// The shared budget is spent: more budget for the tile changes nothing, so the page does not say it.
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"The budget is spent. The review waits for the next budget.",
+		);
+		expect(sent).toHaveBeenCalledWith("team", "spent", 3);
+		// The budget of the tile is spent: the page says to add budget.
+		sent.mockResolvedValueOnce({
+			status: "error",
+			error: "the budget of $3.00 is spent: the tile waits for a larger budget",
+		} as never);
+		await user.click(screen.getByRole("button", { name: "Build" }));
+		await waitFor(() =>
+			expect(screen.getByRole("alert")).toHaveTextContent(
+				"The budget is spent. Add budget, then build again.",
+			),
+		);
+		sent.mockRestore();
+	});
+
+	it("keeps the proposed tile when the file changed on disk, and accepts it on the next click", async () => {
+		const user = userEvent.setup();
+		await mountEdit();
+		await build(user, "Specs health");
+		const p = await proposed();
+		// The file changes behind the page while the proposal waits.
+		const d = await unwrap(commands.dashboardGetOne("team"));
+		await unwrap(commands.dashboardSaveOne("team", d.value, d.stamp));
+		await user.click(p.getByRole("button", { name: "Accept" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("The file changed on disk");
+		expect(await saved()).toHaveLength(4);
+		await user.click((await proposed()).getByRole("button", { name: "Accept" }));
+		expect(await screen.findByRole("list", { name: "Tiles (5)" })).toBeInTheDocument();
+		expect(screen.queryByRole("region", { name: "Proposed tile" })).toBeNull();
+		expect(screen.queryByRole("alert")).toBeNull();
+	});
+
+	it("keeps the form open while a build runs, and stops each build of the dashboard", async () => {
+		const user = userEvent.setup();
+		await mountEdit();
+		// A build of the same dashboard that this page did not start.
+		const other = unwrap(commands.dashboardTileBuild("team", "Runs", 1)).catch((e) => e);
+		await build(user, "Runs by state");
+		expect(await screen.findByText("The agent builds the tile")).toHaveRole("status");
+		expect(screen.getByRole("button", { name: "Build a tile for me" })).toBeDisabled();
+		await user.click(screen.getByRole("button", { name: "Stop" }));
+		expect(await other).toMatchObject({ code: "stopped" });
+		expect(await unwrap(commands.sessionsList())).toEqual(
+			expect.not.arrayContaining([expect.objectContaining({ step: "tile" })]),
+		);
+	});
+
+	it("stops the build when the person leaves the page", async () => {
+		const user = userEvent.setup();
+		await mountEdit();
+		await build(user, "Runs by state");
+		expect(await screen.findByText("The agent builds the tile")).toHaveRole("status");
+		const stop = vi.spyOn(commands, "prReviewStop");
+		cleanup();
+		await waitFor(() => expect(stop).toHaveBeenCalledTimes(1));
+		stop.mockRestore();
+	});
+
+	it("has no build button on a read-only dashboard", async () => {
+		const files = () => mockState().knowledge.files;
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const old = files()[FILE]?.text ?? "";
+		files()[FILE] = { text: old.replace("version: 1", "version: 2"), stamp: "7" };
+		await mountEdit();
+		expect(await screen.findByText("Read only")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Build a tile for me" })).toBeNull();
+	});
+
+	it("turns the build button off for a person without the right knowledge.edit", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		mountApp("/library/dashboards/team/edit");
+		const button = await screen.findByRole("button", { name: "Build a tile for me" });
+		expect(button).toBeDisabled();
+		expect(button).toHaveAccessibleDescription(
+			"Needs the right knowledge.edit (your role: Viewer)",
+		);
 	});
 });

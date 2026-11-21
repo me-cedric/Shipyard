@@ -9,17 +9,17 @@ const field = () => screen.findByRole("textbox", { name: "Plugin archive path" }
 describe("Settings / Extensions: plugin author tools", () => {
 	it("picks a zip with the file picker", async () => {
 		const user = userEvent.setup();
-		await mountTab("extensions");
+		await mountTab("plugins");
 		mockState().nextFile = PLUGIN_PATH;
 		await user.click(await screen.findByRole("button", { name: "Choose a zip" }));
 		await waitFor(async () => expect(await field()).toHaveValue(PLUGIN_PATH));
 		await user.click(screen.getByRole("button", { name: "Review" }));
-		expect(await screen.findByRole("heading", { name: "New (4)" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Adds (3)" })).toBeInTheDocument();
 	});
 
 	it("copies the sample to a picked folder and opens it as a project", async () => {
 		const user = userEvent.setup();
-		await mountTab("extensions");
+		await mountTab("plugins");
 		mockState().nextFolder = "/mock/work";
 		await user.click(await screen.findByRole("button", { name: "New plugin" }));
 		await waitFor(async () => expect(await field()).toHaveValue("/mock/work/acme-sample"));
@@ -28,17 +28,17 @@ describe("Settings / Extensions: plugin author tools", () => {
 
 	it("tries a folder in this project and shows the filled file", async () => {
 		const user = userEvent.setup();
-		await mountTab("extensions");
+		await mountTab("plugins");
 		await user.type(await field(), PLUGIN_DIR);
 		await user.click(screen.getByRole("button", { name: "Try in this project" }));
-		expect(await screen.findByRole("heading", { name: "New (4)" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Adds (3)" })).toBeInTheDocument();
 		expect(screen.getByText("Team: core")).toBeInTheDocument();
 		expect(mockState().extensions.files).not.toContain("docs/team.md");
 	});
 
 	it("packages a folder to a zip", async () => {
 		const user = userEvent.setup();
-		await mountTab("extensions");
+		await mountTab("plugins");
 		await user.type(await field(), PLUGIN_DIR);
 		await user.click(screen.getByRole("button", { name: "Package" }));
 		expect(await screen.findByText("Package written: /mock/team-kit.zip")).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe("Settings / Extensions: plugin author tools", () => {
 
 	it("shows a manifest fault with its line and opens that line", async () => {
 		const user = userEvent.setup();
-		await mountTab("extensions");
+		await mountTab("plugins");
 		await user.type(await field(), BROKEN_DIR);
 		await user.click(screen.getByRole("button", { name: "Try in this project" }));
 		const alert = await screen.findByRole("alert");
@@ -60,10 +60,11 @@ describe("Settings / Extensions: plugin author tools", () => {
 
 	it("shows the files that a saved setting changes through the review", async () => {
 		const user = userEvent.setup();
-		await mountTab("extensions");
+		const router = await mountTab("plugins");
 		await user.type(await field(), PLUGIN_PATH);
 		await user.click(screen.getByRole("button", { name: "Review" }));
 		await user.click(await screen.findByRole("button", { name: "Apply plugin (4)" }));
+		router.history.push("/setup/project?page=extensions");
 		await user.click(await screen.findByRole("button", { name: "Settings of team-kit" }));
 		const form = await screen.findByRole("form", { name: "Settings of team-kit" });
 		await user.click(within(form).getByRole("combobox", { name: "team" }));

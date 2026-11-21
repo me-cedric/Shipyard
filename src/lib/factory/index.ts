@@ -107,6 +107,13 @@ export function useRunActions() {
 		return {
 			start: (key: string) => run(commands.runStart(key)),
 			cancel: (id: string) => run(commands.runCancel(id)),
+			/** Pause at the end of the turn (`runs-recipes` REQ-001). */
+			pause: (id: string) => run(commands.runPause(id)),
+			/** The run ends as cancelled, the ticket is mine and the worktree opens in the editor. Gives the folder. */
+			takeOver: (id: string) => run(commands.runTakeOver(id)),
+			/** A file for the next turn of the run (`runs-recipes` REQ-003). */
+			attach: (id: string, name: string, bytes: number[]) =>
+				run(commands.runAttach(id, name, bytes)),
 			resume: (id: string, addUsd: number | null, note?: string) =>
 				run(commands.runResume(id, addUsd ?? 0, 0, note?.trim() || null)),
 			unblock: (id: string, note?: string) => run(commands.runUnblock(id, note?.trim() || null)),
@@ -206,6 +213,8 @@ export function useFactoryWrites() {
 			write: (kind: "workflow" | "role", id: string, text: string) =>
 				run(kind === "workflow" ? commands.workflowWrite(id, text) : commands.roleWrite(id, text)),
 			killSwitch: (on: boolean) => run(commands.killSwitchSet(on)),
+			// A person's click: the agents stay on, each live run stops.
+			stopAll: () => run(commands.agentsStopAll(true)),
 			reviewStop: (number: number) => run(commands.prReviewStop(number)),
 			// The budgets sit in the automation file: its read changes too.
 			budget: async (scope: string, key: string, usd: number | null) => {
@@ -223,6 +232,15 @@ export const machineKeys = {
 	sessions: ["machine", "sessions"] as const,
 	spend: (days: number) => ["machine", "spend", days] as const,
 };
+
+/** The processor and memory of the agent processes only. It reads again every 5 s. */
+export function useMachineLoad() {
+	return useQuery({
+		queryKey: ["machine", "load"],
+		queryFn: () => unwrap(commands.machineLoad()),
+		refetchInterval: 5000,
+	});
+}
 
 /** Every AI session on this computer, not only the factory runs. It reads again every 5 s. */
 export function useMachineSessions() {
@@ -303,6 +321,7 @@ export function useMachineWrites() {
 		};
 		return {
 			stop: (pid: number) => run(commands.machineSessionStop(pid, true)),
+			take: (pid: number) => run(commands.machineSessionTake(pid, true)),
 			budget: (runner: string, usd: number | null) => run(commands.machineBudgetSet(runner, usd)),
 		};
 	}, [qc]);

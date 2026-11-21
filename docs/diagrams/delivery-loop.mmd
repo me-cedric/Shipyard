@@ -24,7 +24,7 @@ flowchart LR
   WI -->|"label, assignee, status"| Claim
   Claim --> Run
   Run --> Ask
-  Ask -->|"yes: ask_question"| Q["Question in Home / Needs you<br/>and on the ticket"]
+  Ask -->|"yes: ask_question"| Q["Question in Today<br/>and on the ticket"]
   Q -->|"answer"| Run
   Ask -->|"no"| Self
   Self -->|"blocking finding or red gate: fix round, no click<br/>caps: 3 attempts per step, 3 feedback, 8 fix"| Run

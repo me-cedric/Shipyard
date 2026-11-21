@@ -24,13 +24,16 @@ describe("Design / Diagrams formats", () => {
 		const user = userEvent.setup();
 		mockState().prefs.diagramFormat = "bpmn";
 		await mountDesign(<Diagrams />);
-		await user.click(await screen.findByRole("button", { name: "Diagram" }));
+		await user.click(await screen.findByRole("button", { name: "BPMN" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		await user.type(dialog.getByRole("textbox", { name: "Name" }), "Flow");
 		expect(dialog.getByRole("combobox", { name: "Format" })).toHaveTextContent("BPMN");
 		await user.click(dialog.getByRole("button", { name: "Create" }));
 		await waitFor(() => expect(files()["docs/diagrams/flow.bpmn"]?.text).toContain("<bpmn:task"));
-		await user.click(await screen.findByRole("button", { name: "Convert to" }));
+		await user.click(
+			await within(await screen.findByRole("main")).findByRole("button", { name: "Open" }),
+		);
+		await user.click(await screen.findByRole("button", { name: /Change the format/ }));
 		await user.click(await screen.findByRole("menuitem", { name: "Mermaid" }));
 		await waitFor(() => expect(files()["docs/diagrams/flow.mmd"]?.text).toContain("flowchart LR"));
 		expect(files()["docs/diagrams/flow.bpmn"]).toBeDefined();

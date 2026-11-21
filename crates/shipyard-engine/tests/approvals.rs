@@ -3,7 +3,10 @@
 mod fx;
 
 use fx::{Fx, ONE, writes};
-use shipyard_core::pickup::Writes;
+use std::collections::BTreeSet;
+
+use serde_json::json;
+use shipyard_core::pickup::{WriteKind, Writes};
 use shipyard_core::run::{Cause, RunEvent, RunState};
 use shipyard_engine::approvals::Write;
 
@@ -420,4 +423,233 @@ fn a_run_from_before_team_rights_acts_for_the_person_of_the_project_and_waiting_
     fx.f.set_actor("ship", Some(fx::solo()));
     assert!(fx.f.approvals().is_empty());
     assert_eq!(fx.writer.sent().len(), waiting);
+}
+
+// ---- the switches of a recipe (`app-redesign` REQ-013, constitution 5.4)
+
+/// No project switch, and the kinds `on` for the workflow `recipe` only.
+fn recipe(recipe: &str, on: &BTreeSet<WriteKind>) -> shipyard_core::pickup::Automation {
+    let mut a = shipyard_core::pickup::Automation {
+        writes: Writes::default(),
+        ..Default::default()
+    };
+    a.recipe_writes.insert(recipe.into(), on.clone());
+    a
+}
+
+fn kinds(k: &[WriteKind]) -> BTreeSet<WriteKind> {
+    k.iter().copied().collect()
+}
+
+/// Each kind: the ticket move, the labels, a comment, a push, a pull request, a thread reply.
+fn every() -> BTreeSet<WriteKind> {
+    use WriteKind::*;
+    kinds(&[Transition, Labels, Comment, Push, OpenPr, ResolveThreads])
+}
+
+fn moves() -> BTreeSet<WriteKind> {
+    kinds(&[WriteKind::Transition, WriteKind::Labels])
+}
+
+#[test]
+fn a_recipe_switch_sends_the_write_of_that_recipe_at_once() {
+    let fx = Fx::new(Writes::default(), &[ONE]);
+    fx.f.set_project(
+        "ship",
+        fx.project(|p| p.automation = recipe("one", &every())),
+    );
+    fx.start("SHIP-1", &[]);
+    assert_eq!(fx.writer.sent().len(), 2, "the ticket move and the labels");
+    assert!(fx.f.approvals().is_empty());
+}
+
+#[test]
+fn a_run_of_another_recipe_still_waits() {
+    let fx = Fx::new(Writes::default(), &[ONE]);
+    fx.f.set_project(
+        "ship",
+        fx.project(|p| p.automation = recipe("bug", &every())),
+    );
+    let run = fx.start("SHIP-1", &[]);
+    assert!(fx.writer.sent().is_empty());
+    assert_eq!(fx.f.approvals().len(), 2);
+    assert!(fx.f.approvals().iter().all(|a| a.run == run));
+}
+
+#[test]
+fn a_recipe_switch_never_sends_a_push_with_force_with_lease() {
+    let fx = Fx::new(Writes::default(), &[ONE]);
+    fx.f.set_project(
+        "ship",
+        fx.project(|p| p.automation = recipe("one", &every())),
+    );
+    let run = fx.start("SHIP-1", &[]);
+    let push = |force_with_lease| Write::Push {
+        run: run.clone(),
+        branch: "feat/x/y".into(),
+        base: "main".into(),
+        force_with_lease,
+    };
+    assert_eq!(fx.f.write(&run, push(false)), Ok(Some(String::new())));
+    assert_eq!(fx.f.write(&run, push(true)), Ok(None));
+    assert_eq!(fx.f.approvals().pop().unwrap().write, push(true));
+}
+
+#[test]
+fn a_recipe_switch_still_needs_the_right_of_the_person_of_the_run() {
+    use shipyard_engine::run_engine::Actor;
+    let fx = Fx::new(Writes::default(), &[ONE]);
+    fx.f.set_project(
+        "ship",
+        fx.project(|p| p.automation = recipe("one", &every())),
+    );
+    let cy = Actor {
+        by: "cy".into(),
+        rights: Vec::new(),
+        hidden: Vec::new(),
+    };
+    fx.f.set_actor("ship", Some(cy));
+    fx.start("SHIP-1", &[]);
+    assert!(fx.writer.sent().is_empty());
+    assert_eq!(fx.f.approvals().len(), 2);
+}
+
+#[test]
+fn a_recipe_grant_logs_itself_and_sends_no_write_that_waits() {
+    let fx = Fx::new(Writes::default(), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    assert_eq!(fx.f.approvals().len(), 2);
+    fx.f.allow_recipe(&run, recipe("one", &moves()), &moves())
+        .unwrap();
+    // A write that already waits keeps its question: the caller approves the named ids.
+    assert!(fx.writer.sent().is_empty());
+    assert_eq!(fx.f.approvals().len(), 2);
+    let log = fx.logged(&run, "write");
+    let grant = log
+        .iter()
+        .find(|w| w["state"] == "recipe_allowed")
+        .expect("the grant is in the run log");
+    assert_eq!(grant["workflow"], "one");
+    assert_eq!(grant["kinds"], json!(["transition", "labels"]));
+    // The next run of the recipe does not ask.
+    fx.f.cancel(&run).unwrap();
+    let before = fx.writer.sent().len();
+    let next = fx.start("SHIP-2", &[]);
+    assert!(fx.f.approvals().iter().all(|a| a.run != next));
+    assert!(fx.writer.sent().len() > before);
+}
+
+#[test]
+fn a_recipe_grant_sends_only_the_named_ids_and_later_writes() {
+    let fx = Fx::new(Writes::default(), &[ONE]);
+    let a = fx.start("SHIP-1", &[]);
+    fx.start("SHIP-2", &[]);
+    // The order of the run ids is not the order of the starts: find B by its ticket.
+    let b =
+        fx.f.approvals()
+            .into_iter()
+            .find(|x| matches!(&x.write, Write::Transition { key, .. } if key == "SHIP-2"))
+            .unwrap()
+            .run;
+    let of = |run: &str| -> Vec<_> {
+        let mut w: Vec<_> =
+            fx.f.approvals()
+                .into_iter()
+                .filter(|x| x.run == run)
+                .collect();
+        w.sort_by_key(|x| x.id);
+        w
+    };
+    let (a_waits, b_waits) = (of(&a), of(&b));
+    assert_eq!((a_waits.len(), b_waits.len()), (2, 2));
+    // The person sees the ticket move of run A and grants its kind for the recipe.
+    let named = a_waits
+        .iter()
+        .find(|x| matches!(x.write, Write::Transition { .. }))
+        .unwrap()
+        .clone();
+    let on = kinds(&[WriteKind::Transition]);
+    fx.f.allow_recipe(&a, recipe("one", &on), &on).unwrap();
+    fx.f.approve(named.id).unwrap();
+    assert_eq!(fx.writer.sent(), std::slice::from_ref(&named.write));
+    // The labels of A were not named, and B never was in the question: they still wait.
+    assert_eq!(of(&b), b_waits);
+    assert!(
+        of(&a)
+            .iter()
+            .all(|x| matches!(x.write, Write::Labels { .. }))
+    );
+    // A reload of the project or of the person does not send them either.
+    fx.f.set_project("ship", fx.project(|p| p.automation = recipe("one", &on)));
+    fx.f.set_actor("ship", Some(fx::solo()));
+    assert_eq!(of(&b), b_waits);
+    assert_eq!(of(&a).len(), 1);
+    assert_eq!(fx.writer.sent().len(), 1);
+    // A new ticket move of the recipe goes out with no question.
+    let later = Write::Transition {
+        key: "SHIP-1".into(),
+        status: "In Review".into(),
+    };
+    assert_eq!(fx.f.write(&a, later.clone()), Ok(Some(String::new())));
+    assert_eq!(fx.writer.sent().last(), Some(&later));
+    assert_eq!(of(&b), b_waits);
+}
+
+#[test]
+fn the_kill_switch_holds_the_writes_that_a_recipe_grant_covers() {
+    let fx = Fx::new(Writes::default(), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    fx.f.set_kill_switch(true);
+    let waiting = fx.f.approvals().len();
+    assert!(waiting > 0);
+    fx.f.allow_recipe(&run, recipe("one", &every()), &every())
+        .unwrap();
+    assert!(fx.writer.sent().is_empty());
+    assert_eq!(fx.f.approvals().len(), waiting);
+}
+
+#[test]
+fn a_recipe_kind_covers_that_kind_only() {
+    // A grant of the ticket move alone: the labels share the project switch, not the grant.
+    let fx = Fx::new(Writes::default(), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    fx.f.allow_recipe(
+        &run,
+        recipe("one", &kinds(&[WriteKind::Transition])),
+        &kinds(&[WriteKind::Transition]),
+    )
+    .unwrap();
+    fx.f.cancel(&run).unwrap();
+    let next = fx.start("SHIP-2", &[]);
+    assert!(
+        fx.writer
+            .sent()
+            .iter()
+            .all(|w| matches!(w, Write::Transition { .. }))
+    );
+    let left: Vec<_> =
+        fx.f.approvals()
+            .into_iter()
+            .filter(|a| a.run == next)
+            .collect();
+    assert_eq!(left.len(), 1);
+    assert!(matches!(left[0].write, Write::Labels { .. }));
+}
+
+#[test]
+fn each_write_has_its_own_kind_and_force_with_lease_has_none() {
+    let push = |force_with_lease| Write::Push {
+        run: "r".into(),
+        branch: "b".into(),
+        base: "main".into(),
+        force_with_lease,
+    };
+    assert_eq!(push(true).kind(), None);
+    assert_eq!(push(false).kind(), Some(WriteKind::Push));
+    let threads = Write::ResolveThreads {
+        run: "r".into(),
+        threads: vec![],
+        reply: String::new(),
+    };
+    assert_eq!(threads.kind(), Some(WriteKind::ResolveThreads));
 }

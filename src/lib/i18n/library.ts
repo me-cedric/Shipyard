@@ -1,0 +1,56 @@
+import { libraryFnEn, libraryFnFr } from "./library-fn";
+
+/** The strings of the home of Library (`spec:app-redesign#REQ-020`). */
+export const libraryEn = {
+	title: "Library",
+	back: "Library",
+	views: { home: "Library", reports: "Reports" },
+	doors: {
+		what: "What it must do",
+		how: "How it is built",
+		why: "Why it is so",
+		learn: "Learn and share",
+	},
+	questionsOne: "1 open question",
+	questionsMany: "{count} open questions",
+	decisionsOne: "1 decision waits",
+	decisionsMany: "{count} decisions wait",
+	tested: "What is tested",
+	answers: "Answers",
+	glossary: "Glossary",
+	learnProgress: "{label}, {done} of {total}",
+	pinned: "Pinned",
+	openedLast: "Opened last",
+	pin: "Pin",
+	unpin: "Unpin",
+	pinPage: "Pin {name}",
+	unpinPage: "Unpin {name}",
+	fn: libraryFnEn,
+};
+
+export const libraryFr: typeof libraryEn = {
+	title: "Bibliothèque",
+	back: "Bibliothèque",
+	views: { home: "Bibliothèque", reports: "Rapports" },
+	doors: {
+		what: "Ce qu'il doit faire",
+		how: "Comment il est construit",
+		why: "Pourquoi c'est ainsi",
+		learn: "Apprendre et partager",
+	},
+	questionsOne: "1 question ouverte",
+	questionsMany: "{count} questions ouvertes",
+	decisionsOne: "1 décision en attente",
+	decisionsMany: "{count} décisions en attente",
+	tested: "Ce qui est testé",
+	answers: "Réponses",
+	glossary: "Glossaire",
+	learnProgress: "{label}, {done} sur {total}",
+	pinned: "Épinglé",
+	openedLast: "Ouvert en dernier",
+	pin: "Épingler",
+	unpin: "Désépingler",
+	pinPage: "Épingler {name}",
+	unpinPage: "Désépingler {name}",
+	fn: libraryFnFr,
+};

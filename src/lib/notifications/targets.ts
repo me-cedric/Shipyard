@@ -10,7 +10,8 @@ export type NoticeWhere =
 	| { source: "scan-failed"; name: string }
 	| { source: "sync-failure" }
 	| { source: "remote-head" }
-	| { source: "update" };
+	| { source: "update" }
+	| { source: "budget" };
 
 /**
  * The one place that maps a source to its target. `undefined`: the notice stays plain text (the
@@ -29,13 +30,15 @@ export function noticeTarget(w: NoticeWhere): NoticeTarget | undefined {
 			return { ref: `run:${w.run}` };
 		case "pr-checks":
 		case "review-draft":
-			return w.ref ? { ref: w.ref } : { route: "/code/pull-requests" };
+			return w.ref ? { ref: w.ref } : { route: "/code/now" };
 		case "scan-failed":
-			return { route: "/code/quality", anchor: `check-${w.name}` };
+			return { route: "/flow/health", anchor: `check-${w.name}` };
 		case "sync-failure":
-			return { route: "/settings/project", anchor: "issue-tracker" };
+			return { route: "/setup/project", anchor: "issue-tracker" };
 		case "remote-head":
 			return { route: "/code/branches" };
+		case "budget":
+			return { route: "/crew/spend" };
 		case "update":
 			return undefined;
 	}

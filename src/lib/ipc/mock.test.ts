@@ -6,6 +6,9 @@ import { unwrap } from "./result";
 describe("mock ipc", () => {
 	it("serves the app info and the preferences", async () => {
 		expect(await commands.appInfo()).toEqual({ name: "Shipyard", version: "0.1.0", os: "browser" });
+		resetMock();
+		// A person with no stored theme opens in Light (`app-redesign` REQ-025).
+		expect((await unwrap(commands.prefsGet())).theme).toBe("light");
 		const prefs = await unwrap(commands.prefsSet({ theme: "dark" }));
 		expect(prefs.theme).toBe("dark");
 		expect(mockState().prefs.theme).toBe("dark");
@@ -31,6 +34,16 @@ describe("mock ipc", () => {
 		expect((await unwrap(commands.updateCheck())).notes).toContain("0.1.0");
 	});
 
+	it("hides the places of the personal role for a solo person, and none with no role", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await unwrap(commands.prefsSet({ role: "po" }));
+		expect((await unwrap(commands.rightsGet())).person.hidden).toEqual(["code"]);
+		await unwrap(commands.prefsSet({ role: "designer" }));
+		expect((await unwrap(commands.rightsGet())).person.hidden).toEqual(["plan", "crew", "code"]);
+		await unwrap(commands.prefsSet({ role: "none" }));
+		expect((await unwrap(commands.rightsGet())).person.hidden).toEqual([]);
+	});
+
 	it("serves the rights of the person: solo gives each right, read only keeps the read right", async () => {
 		await expect(unwrap(commands.rightsGet())).rejects.toBeTruthy();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
@@ -38,7 +51,7 @@ describe("mock ipc", () => {
 		expect([solo.person.found, solo.person.admin, solo.person.rights.length]).toEqual([
 			"solo",
 			true,
-			10,
+			11,
 		]);
 		expect(solo.roles.find((r) => r.role === "developer")?.rights).not.toContain("code.merge");
 		mockState().person = {
@@ -160,7 +173,7 @@ describe("mock ipc", () => {
 			{ details: expect.stringContaining("email") },
 		);
 		await expect(bad({ group: "forge", kind: "linear" })).rejects.toMatchObject({
-			details: expect.stringContaining("not a forge"),
+			details: expect.stringContaining("not a code host"),
 		});
 		expect(mockState().connections).toEqual([]);
 	});

@@ -76,6 +76,7 @@ impl Threads {
             id,
             project: project.into(),
             title: title.into(),
+            named: !title.is_empty(),
             settings,
             context: Context::default(),
             draft: String::new(),
@@ -108,6 +109,7 @@ impl Threads {
     pub fn rename(&self, project: &str, id: &str, title: &str) -> Result<Thread> {
         let mut t = self.get(project, id)?;
         t.title = title.trim().into();
+        t.named = true;
         self.save(&t)?;
         Ok(t)
     }

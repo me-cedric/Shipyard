@@ -3,154 +3,129 @@ import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
+import { openAccount, openSync } from "./test-open";
 
 const top = async () => within((await screen.findAllByRole("banner"))[0] as HTMLElement);
 const alpha = () => unwrap(commands.projectsOpen("/mock/alpha", false));
 
-describe("top bar (ux-declutter REQ-009 to REQ-013)", () => {
-	it("holds 13 controls or fewer at 1100 px, a split button counting as one", async () => {
+describe("top row (ux-declutter REQ-009 to REQ-013)", () => {
+	it("holds the rail toggle, Back, Forward, the Ask bar, the sync mark, Assistant and Terminal", async () => {
 		await alpha();
 		mountApp("/home/today");
 		const bar = await top();
-		await bar.findByRole("button", { name: "Sync" });
-		// The arrow part of a split button belongs to its main part.
-		const arrows = ["More ways to sync", "Ask the assistant"];
+		await bar.findByRole("button", { name: /^Sync state: / });
 		const controls = bar
 			.getAllByRole("button")
-			.concat(bar.queryAllByRole("link"), bar.queryAllByRole("combobox"))
-			.filter((c) => !arrows.includes(c.getAttribute("aria-label") ?? ""));
+			.concat(bar.queryAllByRole("link"), bar.queryAllByRole("combobox"));
 		expect(controls.length).toBeLessThanOrEqual(13);
-		for (const gone of [/^Theme: /, "Open the manual for this page", "Assistant"])
+		for (const name of ["Hide sidebar", "Back", "Forward", "Assistant", "Terminal"])
+			expect(bar.getByRole("button", { name })).toHaveClass("size-(--control-h)");
+		// The project is in the rail. The branch, Sync and the files left the row.
+		for (const gone of [
+			/^Theme: /,
+			"Open the manual for this page",
+			"Search",
+			"Ask",
+			/^Activity/,
+			"Notifications",
+			/^Switch project/,
+			/^Account/,
+			"Sync",
+			"Files",
+		])
 			expect(bar.queryByRole("button", { name: gone })).toBeNull();
+		expect(bar.queryByRole("combobox", { name: "Working branch" })).toBeNull();
+		// One bar replaces the search button, the palette and the Ask button.
+		const ask = bar.getByRole("combobox", { name: "Ask or tell Shipyard" });
+		expect(ask).toHaveClass("min-h-control");
+		expect(bar.getByText("Ctrl+K")).toBeInTheDocument();
 	});
 
-	it("has one Activity button with the counts in its name and the three parts in its panel", async () => {
+	// spec:app-redesign#REQ-022: the sync state is one mark, and its card opens Code / Now.
+	it("shows the sync state as one mark whose card links to Code / Now", async () => {
 		const user = userEvent.setup();
 		await alpha();
-		mountApp("/home/today");
+		const router = mountApp("/today/today");
 		const bar = await top();
-		const button = await bar.findByRole("button", {
-			name: /^Activity: Needs you \(\d+\), Active runs \(\d+\), Active sessions \(2\)$/,
-		});
-		expect(bar.queryByRole("link", { name: /^Active runs/ })).toBeNull();
-		expect(bar.queryByRole("button", { name: /^Active sessions/ })).toBeNull();
-		await user.click(button);
-		const panel = within(await screen.findByRole("dialog"));
-		expect(panel.getByRole("link", { name: /^Needs you/ })).toHaveAttribute("href", "/home/today");
-		expect(panel.getByRole("link", { name: /^Active runs/ })).toHaveAttribute(
+		expect(await bar.findByRole("button", { name: /^Sync state: / })).toBeVisible();
+		const card = await openSync(user);
+		expect(card.getByRole("link", { name: /^Changed files \(\d+\)$/ })).toHaveAttribute(
 			"href",
-			"/factory/runs",
+			"/code/now",
 		);
-		expect(panel.getByRole("link", { name: "All sessions" })).toHaveAttribute(
-			"href",
-			"/factory/sessions",
-		);
-		expect(panel.getAllByRole("button", { name: /^Stop ACME/ }).length).toBeGreaterThan(0);
-		// Sessions work, so the live mark shows.
-		expect(button.querySelector("[class*='absolute']")).not.toBeNull();
-		await user.click(panel.getByRole("button", { name: "Stop Codex beta" }));
-		await waitFor(() =>
-			expect(mockState().machine.sessions.some((s) => s.pid === 4188)).toBe(false),
-		);
+		expect(card.getByRole("combobox", { name: "Working branch" })).toBeVisible();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
-	it("stops a live run from the panel after a confirmation", async () => {
-		const user = userEvent.setup();
-		await alpha();
-		const cancel = vi.spyOn(commands, "runCancel");
-		mountApp("/home/today");
-		await user.click(await (await top()).findByRole("button", { name: /^Activity/ }));
-		const panel = within(await screen.findByRole("dialog"));
-		await user.click(panel.getAllByRole("button", { name: /^Stop ACME/ })[0] as HTMLElement);
-		expect(cancel).not.toHaveBeenCalled();
-		await user.click(await panel.findByRole("button", { name: /^Stop .*\?$/ }));
-		await waitFor(() => expect(cancel).toHaveBeenCalledTimes(1));
-	});
-
-	it("opens the avatar menu with the theme as one choice, the manual and the other entries", async () => {
+	it("opens the account menu with the theme as one choice, the manual and the other entries", async () => {
 		const user = userEvent.setup();
 		mockState().prefs.customTheme = "ocean";
+		// The default theme is light (q:Q-168): the test starts from System to see the change.
+		mockState().prefs.theme = "system";
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/today");
-		const bar = await top();
-		await user.click(await bar.findByRole("button", { name: "Account" }));
-		expect(await screen.findByRole("menuitem", { name: "Settings / Me" })).toBeVisible();
+		const menu = await openAccount(user);
+		// The header row opens Setup / Me.
+		expect(menu.getByRole("menuitem", { name: /Change$/ })).toBeVisible();
 		for (const n of [
-			"Open the manual for this page",
-			"Keyboard shortcuts",
-			"What's new",
-			"Replay the tour",
+			/^Manual/,
+			"Shortcuts",
+			"What is new",
+			"Show the tour again",
+			"Check for an update",
+			"Language English",
+			/^Health/,
 		])
-			expect(screen.getByRole("menuitem", { name: n })).toBeVisible();
+			expect(menu.getByRole("menuitem", { name: n })).toBeVisible();
+		// The language row is a button that shows the current language.
+		expect(menu.getByRole("menuitem", { name: "Language English" })).toHaveTextContent(/^English$/);
+		// The version row is an item that does nothing: the arrow keys reach it.
+		expect(menu.getByRole("menuitem", { name: /^About Shipyard/ })).toHaveAttribute(
+			"aria-disabled",
+			"true",
+		);
 		// The shortcuts show beside the items that have one.
+		expect(menu.getByRole("menuitem", { name: /^Manual/ })).toHaveTextContent("F1");
+		// The theme is one segmented row: three choices in one group.
+		const themes = within(menu.getByRole("group", { name: "Theme" }));
+		expect(themes.getAllByRole("menuitemradio")).toHaveLength(3);
 		expect(
-			screen.getByRole("menuitem", { name: "Open the manual for this page" }),
-		).toHaveTextContent("F1");
-		const system = screen.getByRole("menuitemradio", { name: "Theme: System", checked: true });
-		expect(system).toHaveTextContent("✓");
+			themes.getByRole("menuitemradio", { name: "Theme: System", checked: true }),
+		).toHaveTextContent("System");
 		expect(
-			screen.getByRole("menuitemradio", { name: "Theme: Light", checked: false }),
+			themes.getByRole("menuitemradio", { name: "Theme: Light", checked: false }),
 		).toBeVisible();
-		await user.click(screen.getByRole("menuitemradio", { name: "Theme: Light" }));
+		await user.click(themes.getByRole("menuitemradio", { name: "Theme: Light" }));
 		await waitFor(() => expect(mockState().prefs.theme).toBe("light"));
 		// A theme choice also clears the custom theme, as the old button did.
 		expect(mockState().prefs.customTheme).toBe("");
 	});
 
-	it("turns the stop of a run off for a person without the right to start runs", async () => {
+	it("opens Setup / Me from the header row of the account menu", async () => {
 		const user = userEvent.setup();
-		await alpha();
-		mockState().person = {
-			member: "bo",
-			found: "email",
-			role: "viewer",
-			admin: false,
-			readOnly: false,
-			rights: [],
-		};
-		mountApp("/home/today");
-		await user.click(await (await top()).findByRole("button", { name: /^Activity/ }));
-		const panel = within(await screen.findByRole("dialog"));
-		const stops = await panel.findAllByRole("button", { name: /^Stop ACME/ });
-		for (const s of stops) expect(s).toBeDisabled();
-	});
-
-	it("opens the manual from the avatar menu", async () => {
-		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/home/today");
-		await user.click(await (await top()).findByRole("button", { name: "Account" }));
-		await user.click(
-			await screen.findByRole("menuitem", { name: "Open the manual for this page" }),
-		);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/knowledge/manual"));
+		const menu = await openAccount(user);
+		await user.click(menu.getByRole("menuitem", { name: /Change$/ }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/me"));
 	});
 
-	it("toggles the assistant with the main part of Ask and opens the items with the arrow", async () => {
+	it("opens the manual from the account menu", async () => {
 		const user = userEvent.setup();
-		await alpha();
-		mountApp("/work/backlog");
-		const bar = await top();
-		const ask = await bar.findByRole("button", { name: "Ask", pressed: false });
-		await user.click(ask);
-		expect(await bar.findByRole("button", { name: "Ask", pressed: true })).toBeVisible();
-		await user.click(bar.getByRole("button", { name: "Ask the assistant" }));
-		expect(await screen.findByRole("menuitem", { name: "Explain" })).toBeVisible();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const router = mountApp("/home/today");
+		const menu = await openAccount(user);
+		await user.click(menu.getByRole("menuitem", { name: /^Manual/ }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/manual"));
 	});
 
-	it("keeps Ask on a page of no item type, with its arrow off, and shows its shortcut", async () => {
-		mountApp("/home/today");
-		const bar = await top();
-		const ask = await bar.findByRole("button", { name: "Ask" });
-		expect(ask).toHaveAttribute("title", expect.stringMatching(/^Ask \(.+\)$/));
-		expect(bar.getByRole("button", { name: "Ask the assistant" })).toBeDisabled();
-	});
-
-	it("opens the assistant with a canned prompt in the language of the preference", async () => {
+	it("lists the canned prompts of the page under Do, in the language of the preference", async () => {
 		const user = userEvent.setup();
 		mockState().prefs.promptLang = "fr";
 		await alpha();
-		mountApp("/design/decisions");
-		await user.click(await (await top()).findByRole("button", { name: "Ask the assistant" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Explain" }));
+		mountApp("/library/decisions");
+		await user.click(await screen.findByRole("combobox", { name: "Ask or tell Shipyard" }));
+		await user.click(await screen.findByRole("option", { name: "Explain" }));
 		await waitFor(
 			() =>
 				expect(
@@ -160,7 +135,17 @@ describe("top bar (ux-declutter REQ-009 to REQ-013)", () => {
 		);
 	}, 20_000);
 
-	it("shows the ahead and behind counts on Sync and the changed files in the status bar", async () => {
+	it("lists no canned prompt on a page of no item type", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mountApp("/today/today");
+		await user.click(await screen.findByRole("combobox", { name: "Ask or tell Shipyard" }));
+		expect(await screen.findByRole("option", { name: /^Assistant/ })).toBeVisible();
+		expect(screen.queryByRole("option", { name: "Explain" })).toBeNull();
+	});
+
+	it("shows the ahead and behind counts on Sync and the changed files in the card of the sync mark", async () => {
+		const user = userEvent.setup();
 		await alpha();
 		const real = await commands.codeStatus();
 		if (real.status !== "ok") throw new Error("no status");
@@ -169,12 +154,13 @@ describe("top bar (ux-declutter REQ-009 to REQ-013)", () => {
 			data: { ...real.data, ahead: 2, behind: 1 },
 		});
 		mountApp("/home/today");
-		const sync = await (await top()).findByRole("button", { name: /^Sync/ });
-		expect(sync).toHaveAccessibleName("Sync 2 ahead 1 behind");
-		const bar = within((await screen.findByRole("contentinfo")) as HTMLElement);
-		expect(await bar.findByRole("link", { name: /^Changed files \(\d+\)$/ })).toHaveAttribute(
+		const card = await openSync(user);
+		expect(card.getByRole("button", { name: /^Sync/ })).toHaveAccessibleName(
+			"Sync 2 ahead 1 behind",
+		);
+		expect(card.getByRole("link", { name: /^Changed files \(\d+\)$/ })).toHaveAttribute(
 			"href",
-			"/code/changes",
+			"/code/now",
 		);
 	});
 });

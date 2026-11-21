@@ -102,6 +102,17 @@ pub fn run_turn_live(
     on_start: &dyn Fn(CancelHandle),
     on_step: &dyn Fn(&[TraceStep]),
 ) -> TurnOutput {
+    run_turn_metered(i, on_start, on_step, &|_| {})
+}
+
+/// Like [`run_turn_live`]. `on_usage` gets the usage so far after each usage event, so a caller
+/// with a budget can cancel the turn.
+pub fn run_turn_metered(
+    i: TurnInput,
+    on_start: &dyn Fn(CancelHandle),
+    on_step: &dyn Fn(&[TraceStep]),
+    on_usage: &dyn Fn(&Usage),
+) -> TurnOutput {
     let keep = i.session.map(String::from);
     let resumed = i.session.is_some() && i.kind != TurnKind::Send;
     let request = match (&i.kind, resumed) {
@@ -214,6 +225,7 @@ pub fn run_turn_live(
                     cached_tokens: cached_tokens.min(u32::MAX as u64) as u32,
                     cost_usd: cost_usd.unwrap_or(0.0),
                 });
+                on_usage(&usage);
             }
             Event::Error { message } => {
                 error.get_or_insert(message);

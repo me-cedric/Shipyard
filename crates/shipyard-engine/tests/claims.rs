@@ -202,7 +202,7 @@ fn a_heartbeat_with_the_switch_off_writes_no_stamp() {
     assert_eq!(
         w.tracker.stamp_writes(),
         1,
-        "no tracker write with the switch off"
+        "no issue tracker write with the switch off"
     );
 }
 

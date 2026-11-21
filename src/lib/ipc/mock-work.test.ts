@@ -77,6 +77,14 @@ describe("mock work: the seed", () => {
 		]);
 	});
 
+	it("keeps the roles block when a save sends the members only", async () => {
+		await withTracker();
+		mockState().work.team.roles = { viewer: { code: "read" } };
+		const { team } = await unwrap(commands.workTeam());
+		const back = await unwrap(commands.workTeamSave({ members: team.members }));
+		expect(back.team.roles).toEqual({ viewer: { code: "read" } });
+	});
+
 	it("moves the plan when the team changes and refuses a duplicate handle", async () => {
 		await withTracker();
 		const before = await unwrap(commands.planGet("mvp-1"));
@@ -100,7 +108,7 @@ describe("mock work: the seed", () => {
 describe("mock work: the rules of the Rust commands", () => {
 	beforeEach(() => resetMock());
 
-	it("writes to the tracker only on a click, and ranks members without assigning", async () => {
+	it("writes to the issue tracker only on a click, and ranks members without assigning", async () => {
 		await withTracker();
 		const ranked = await unwrap(commands.workSuggest("ACME-3"));
 		expect(ranked).toHaveLength(5);
@@ -124,6 +132,15 @@ describe("mock work: the rules of the Rust commands", () => {
 		);
 		await unwrap(commands.workTransition("ACME-3", "Done", true));
 		expect(mockState().sync.mirror.find((t) => t.key === "ACME-3")?.category).toBe("done");
+	});
+
+	it("fills only the sheet of the signed-in person", async () => {
+		await withTracker();
+		const other = mockState().work.team.members.find((m) => m.handle !== "ada");
+		await expect(
+			unwrap(commands.timeFillDay(other?.handle ?? "", "2026-11-20", true)),
+		).rejects.toMatchObject({ message: expect.stringMatching(/only your own/) });
+		await unwrap(commands.timeFillDay("ada", "2026-11-20", true));
 	});
 
 	it("removes a label and sets a priority only on a click and with a known value", async () => {
@@ -350,7 +367,7 @@ describe("mock work: the rules of the Rust commands", () => {
 		).toEqual(["est:mvp-1"]);
 	});
 
-	it("tells the views the tracker, the flags, the scope, the label and the member", async () => {
+	it("tells the views the issue tracker, the flags, the scope, the label and the member", async () => {
 		await withTracker("ACME");
 		expect(await unwrap(commands.workContext(0))).toMatchObject({
 			tracker: "acme",

@@ -5,6 +5,7 @@
 import { parse, stringify } from "yaml";
 import type {
 	CodeGraph_Serialize,
+	CommitInfo,
 	Dashboard_Deserialize,
 	Dashboard_Serialize,
 	DashEntry,
@@ -18,6 +19,7 @@ import type {
 	KGraph_Serialize,
 	Learn,
 	PageEntry,
+	Paragraph,
 	Resolved_Serialize,
 	SheetIn,
 	Text,
@@ -40,6 +42,7 @@ const YAML = { indentSeq: false };
 const VERSION = 1;
 const FOLDERS = { handbook: "docs/handbook", documents: "docs/documents", slides: "docs/slides" };
 const DASH = "docs/dashboards";
+export const GLOSSARY = "docs/glossary.md";
 const THEME = `${FOLDERS.slides}/theme.yaml`;
 const TILES = [
 	"work",
@@ -54,6 +57,7 @@ const TILES = [
 	"tracker-assignee",
 ];
 const TILE_ROWS = 50;
+const CHARTS = ["number", "bars", "line", "list", "stages", "spend", "health"];
 
 export type MockKnowledge = {
 	files: Files;
@@ -65,10 +69,14 @@ export type MockKnowledge = {
 	indexed: boolean;
 	/** The files that the export commands "wrote": kind and path. */
 	exported: {
-		kind: "dossier" | "functional" | "sheet" | "pdf";
+		kind: "dossier" | "functional" | "sheet" | "pdf" | "document";
 		path: string;
 		views?: ViewImage[];
 	}[];
+	/** The earlier versions of a page by path, newest first: the commit and the text at that commit. */
+	history: Record<string, { info: CommitInfo; text: string }[]>;
+	/** The files of the documents folder that are neither Markdown nor Word, by path. */
+	others: string[];
 };
 
 /** What the Knowledge commands read from the other mocks. */
@@ -86,7 +94,7 @@ const file = (text: string): Files[string] => ({ text, stamp: "1" });
 
 // ---------------------------------------------------------------- seed
 
-const DECK = `# Kickoff\n\nShipyard, one place for the work\n\n---\n\n## Goals\n\n- One graph of refs\n- One factory\n- One handbook\n\n---\n\n## Decisions\n\n- adr:0001 Use Tauri\n- adr:0004 Polling sync\n\n---\n\n## Plan\n\n1. Specs first\n2. Waves\n\n---\n\n## Questions\n\nAsk now.\n`;
+const DECK = `# Kickoff\n\nShipyard, one place for the work\n\n---\n\n## Goals\n\n- One map of refs\n- One crew\n- One handbook\n\n---\n\n## Decisions\n\n- adr:0001 Use Tauri\n- adr:0004 Polling sync\n\n---\n\n## Plan\n\n1. Specs first\n2. Waves\n\nNote: Name the three waves.\n\n---\n\n## Questions\n\nAsk now.\n`;
 
 const DASHBOARD: Dashboard_Serialize = {
 	version: VERSION,
@@ -95,9 +103,23 @@ const DASHBOARD: Dashboard_Serialize = {
 		{ id: "work", kind: "work", x: 0, y: 0, w: 4, h: 3 },
 		{ id: "runs", kind: "runs", x: 4, y: 0, w: 4, h: 3 },
 		{ id: "questions", kind: "questions", x: 8, y: 0, w: 4, h: 3 },
-		{ id: "quality", kind: "quality", x: 0, y: 3, w: 6, h: 3 },
+		{ id: "quality", kind: "quality", x: 0, y: 3, w: 4, h: 3 },
 	],
 };
+
+/** Three more dashboards for the demo, so that the header switch shows. */
+const extra = (title: string, kinds: string[]): Dashboard_Serialize => ({
+	version: VERSION,
+	title,
+	tiles: kinds.map((kind, i) => ({
+		id: kind,
+		kind,
+		x: (i % 3) * 4,
+		y: Math.floor(i / 3) * 3,
+		w: 4,
+		h: 3,
+	})),
+});
 
 /** A small HTML deck (ADR 0016): two slides, the arrow keys and the messages of the frame host. */
 const HTML_DECK = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Roadmap</title>
@@ -120,7 +142,7 @@ export function seedKnowledge(): MockKnowledge {
 	return {
 		files: {
 			[`${h}/getting-started.md`]: file(
-				"# Getting started\n\nRead adr:0001 first, then the architecture overview. The first tracker is q:Q-012.\n",
+				"# Getting started\n\nRead adr:0001 first, then the architecture overview. The first issue tracker is q:Q-012.\n",
 			),
 			[`${h}/architecture/overview.md`]: file(
 				"# Architecture overview\n\nThe model is model:system. The domain stays in Rust (adr:0002) and sync polls (adr:0004).\n",
@@ -135,14 +157,69 @@ export function seedKnowledge(): MockKnowledge {
 			[`${FOLDERS.slides}/roadmap.html`]: file(HTML_DECK),
 			[THEME]: file(stringify(THEME_DEFAULT, YAML)),
 			[`${DASH}/team.yaml`]: file(stringify(DASHBOARD, YAML)),
+			[`${DASH}/team-delivery.yaml`]: file(
+				stringify(extra("Delivery", ["work", "runs", "questions"]), YAML),
+			),
+			[`${DASH}/team-quality.yaml`]: file(
+				stringify(extra("Quality", ["quality", "specs", "impact"]), YAML),
+			),
+			[`${DASH}/team-agents.yaml`]: file(
+				stringify(extra("Agents", ["runs", "estimates", "tracker-assignee"]), YAML),
+			),
 		},
 		// The spec changed after the ADR that it cites, so the graph marks it stale.
-		changed: { "spec:auth": 100, "adr:0004": 200, "adr:0001": 50 },
+		// The spec of the home page changed after its code, so the map of the code marks the file stale.
+		changed: {
+			"spec:auth": 100,
+			"adr:0004": 200,
+			"adr:0001": 50,
+			"spec:home": 300,
+			"src/features/home/home.tsx": 250,
+		},
 		server: true,
 		indexed: true,
 		exported: [],
+		others: [],
+		history: {
+			[`${h}/getting-started.md`]: [
+				version(
+					3,
+					"Grace Hopper",
+					"# Getting started\n\nRead adr:0001 first, then the architecture overview. The first issue tracker is q:Q-012.\n",
+				),
+				version(2, "Ada Lovelace", "# Getting started\n\nRead the architecture overview.\n"),
+			],
+			"docs/openspec/constitution.md": [
+				version(
+					5,
+					"Grace Hopper",
+					"# Constitution\n\n## Principles\n\n- The spec comes first.\n- A change that cannot be undone needs a click.\n",
+				),
+				version(
+					4,
+					"Ada Lovelace",
+					"# Constitution\n\n## Principles\n\n- The spec comes first.\n- Nothing ships with no test.\n",
+				),
+			],
+		},
 	};
 }
+
+/** One earlier version of a page, for the demo history. */
+const version = (n: number, author: string, text: string) => ({
+	info: {
+		sha: `${String(n).padStart(7, "0")}${"b".repeat(33)}`,
+		short: String(n).padStart(7, "0"),
+		summary: `docs: change ${n}`,
+		description: "",
+		author_name: author,
+		author_email: `${author.split(" ")[0]?.toLowerCase()}@example.com`,
+		time: 1_760_000_000 + n * 86_400,
+		parents: [],
+		labels: [],
+	},
+	text,
+});
 
 // ---------------------------------------------------------------- pages
 
@@ -184,7 +261,8 @@ export const deckList = (k: MockKnowledge): PageEntry[] =>
 
 /** `deck_pdf`: the mock keeps the path of the PDF. */
 export function deckPdf(k: MockKnowledge, path: string, dest: string): null {
-	if (!path.endsWith(".html") || !k.files[path]) throw `path not allowed: ${path}`;
+	if (!(path.endsWith(".html") || path.endsWith(".md")) || !k.files[path])
+		throw `path not allowed: ${path}`;
 	checkExport(dest, "pdf");
 	k.exported.push({ kind: "pdf", path: dest });
 	return null;
@@ -206,6 +284,123 @@ export function docWriteOne(
 	if (!html && !path.endsWith(".md")) throw "a page is a .md file";
 	resolvePath(path, html ? [FOLDERS.slides] : FOLDER_LIST);
 	return putText(k.files, path, text, stamp, create);
+}
+
+/** `page_history`: the earlier versions of a page, newest first. */
+export const pageHistory = (k: MockKnowledge, path: string): CommitInfo[] =>
+	(k.history[path] ?? []).map((v) => v.info);
+
+const versionOf = (k: MockKnowledge, path: string, sha: string) => {
+	const v = k.history[path]?.find((x) => x.info.sha === sha);
+	if (!v) throw `${path} is not in that version`;
+	return v.text;
+};
+
+/** `page_version`: the text of a page at a commit. */
+export const pageVersion = (k: MockKnowledge, path: string, sha: string): string =>
+	versionOf(k, path, sha);
+
+/** `page_restore`: writes the old text into the file `files` holds. Nothing is committed. */
+export function pageRestore(
+	k: MockKnowledge,
+	files: Files,
+	path: string,
+	sha: string,
+	click: boolean,
+): null {
+	if (!click) throw "this change needs the click of a person";
+	const text = versionOf(k, path, sha);
+	if (!files[path]) throw `${path} does not exist`;
+	if (files[path].text !== k.history[path]?.[0]?.text)
+		throw `${path} has changes that are not saved in a commit. Commit or undo them first.`;
+	putText(files, path, text, null, false);
+	return null;
+}
+
+/**
+ * `doc_download`: one document as Word or PDF. A Markdown document goes to either; a Word file is
+ * copied and has no PDF form.
+ */
+export function docDownload(
+	k: MockKnowledge,
+	docx: Record<string, unknown>,
+	path: string,
+	dest: string,
+	click: boolean,
+): null {
+	if (!click) throw "this change needs the click of a person";
+	const word = path.endsWith(".docx") && path in docx;
+	if (!word && !(path.endsWith(".md") && path in k.files)) throw `path not allowed: ${path}`;
+	checkTextPath(dest);
+	if (word && dest.toLowerCase().endsWith(".pdf")) throw `${path} is not a Markdown document`;
+	k.exported.push({ kind: "document", path: dest });
+	return null;
+}
+
+/**
+ * `doc_add_file`: a copy of the chosen file in the documents folder. A taken name gets a number.
+ * A Word file stays Word (`review.docx` holds it); a Markdown page goes to the files; any other
+ * file is only listed (`others`).
+ */
+export function docAddFile(
+	k: MockKnowledge,
+	docx: Record<string, Paragraph[]>,
+	source: string,
+	click: boolean,
+): PageEntry {
+	if (!click) throw "this change needs the click of a person";
+	const name = source.split(/[\\/]/).pop() ?? "";
+	if (!name || name.startsWith(".")) throw `${source} is not a file`;
+	const dot = name.lastIndexOf(".");
+	const [stem, ext] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
+	const taken = (p: string) => p in k.files || p in docx || k.others.includes(p);
+	let path = `${FOLDERS.documents}/${name}`;
+	for (let n = 2; taken(path); n++) path = `${FOLDERS.documents}/${stem}-${n}${ext}`;
+	if (ext === ".docx") docx[path] = [{ heading: 0, text: stem }];
+	else if (ext === ".md") k.files[path] = file(`# ${stem}\n`);
+	else k.others.push(path);
+	const file_ = path.slice(FOLDERS.documents.length + 1);
+	return { path, title: ext === ".docx" ? file_.slice(0, -5) : file_ };
+}
+
+/**
+ * `glossary_add_word`: a line `- word: meaning` under `### Glossary` in `docs/glossary.md`.
+ * `known` is the glossary that the specs and the file give now: a word in it is refused.
+ */
+export function glossaryAdd(
+	k: MockKnowledge,
+	known: { term: string }[],
+	term: string,
+	meaning: string,
+	click: boolean,
+): null {
+	if (!click) throw "this change needs the click of a person";
+	const [w, m] = [term.trim(), meaning.trim()];
+	const plain = (x: string) => x !== "" && x.length <= 500 && !/[\r\n]/.test(x);
+	if (!plain(w) || !plain(m) || w.includes(":") || w.length > 80)
+		throw "a word has a name with no colon and a meaning, each on one line";
+	if (known.some((g) => g.term.toLowerCase() === w.toLowerCase()))
+		throw `${w} is already in the glossary`;
+	const line = `- ${w}: ${m}\n`;
+	const old = k.files[GLOSSARY]?.text;
+	let text = `# Glossary\n\n### Glossary\n\n${line}`;
+	if (old !== undefined) {
+		// The line goes at the end of the `### Glossary` section: the reader stops at the next heading.
+		const lines = old.split("\n");
+		if (lines.at(-1) === "") lines.pop();
+		const i = lines.findIndex((l) => l.trimEnd() === "### Glossary");
+		if (i < 0) text = `${lines.join("\n")}\n\n### Glossary\n\n${line}`;
+		else {
+			const next = lines.findIndex((l, n) => n > i && l.startsWith("#"));
+			const end = next < 0 ? lines.length : next;
+			let at = i + 1;
+			for (let n = i + 1; n < end; n++) if (lines[n]?.trim()) at = n + 1;
+			lines.splice(at, 0, line.trimEnd());
+			text = `${lines.join("\n")}\n`;
+		}
+	}
+	putText(k.files, GLOSSARY, text, null, old === undefined);
+	return null;
 }
 
 /** The `doc:` entities and citations of the pages. */
@@ -271,13 +466,16 @@ const CALLS: [number, number][] = [
 	[0, 1],
 ];
 
+/** The spec that names a file of the mock code. */
+const CODE_SPEC: Record<string, string> = { "src/features/home/home.tsx": "spec:home" };
+
 const fileOf = (i: number) => SYMBOLS[i]?.[0] ?? "";
 const symbolId = (i: number) => `${fileOf(i)}::${SYMBOLS[i]?.[1]}`;
 
 /** The overview: the files, and the calls between two files counted. */
 export function graphCode(k: MockKnowledge): CodeGraph_Serialize {
-	if (!k.server) return { state: "off", nodes: [], edges: [] };
-	if (!k.indexed) return { state: "unindexed", nodes: [], edges: [] };
+	if (!k.server) return { state: "off", nodes: [], edges: [], stale: [] };
+	if (!k.indexed) return { state: "unindexed", nodes: [], edges: [], stale: [] };
 	const files = [...new Set(SYMBOLS.map(([f]) => f))];
 	const weight = new Map<string, number>();
 	for (const [a, b] of CALLS) {
@@ -285,8 +483,14 @@ export function graphCode(k: MockKnowledge): CodeGraph_Serialize {
 		const key = `${fileOf(a)}\n${fileOf(b)}`;
 		weight.set(key, (weight.get(key) ?? 0) + 1);
 	}
+	// The spec of a file changed after the last change of the file (`stale_code` of the core).
+	const stale = files.filter((f) => {
+		const at = k.changed[f] ?? 0;
+		return at > 0 && (k.changed[CODE_SPEC[f] ?? ""] ?? 0) > at;
+	});
 	return {
 		state: "ready",
+		stale,
 		nodes: files.map((f) => ({ ref: f, kind: "file", title: f, status: null, location: f })),
 		edges: [...weight].map(([key, w]) => {
 			const [source = "", target = ""] = key.split("\n");
@@ -297,12 +501,13 @@ export function graphCode(k: MockKnowledge): CodeGraph_Serialize {
 
 /** One file with its symbols and the symbols that call them or that they call. */
 export function graphCodeFocus(k: MockKnowledge, file: string): CodeGraph_Serialize {
-	if (!k.server) return { state: "off", nodes: [], edges: [] };
+	if (!k.server) return { state: "off", nodes: [], edges: [], stale: [] };
 	const calls = CALLS.filter(([a, b]) => fileOf(a) === file || fileOf(b) === file);
 	const used = [...new Set(calls.flat())];
 	const files = [...new Set(used.map(fileOf))];
 	return {
 		state: used.length ? "ready" : "unindexed",
+		stale: [],
 		nodes: [
 			...files.map((f) => ({ ref: f, kind: "file", title: f, status: null, location: f })),
 			...used.map((i) => ({
@@ -427,6 +632,7 @@ export function dashboardSave(
 	const ids = new Set<string>();
 	for (const t of tiles) {
 		if (!TILES.includes(t.kind)) throw `unknown tile: ${t.kind}`;
+		if (t.chart && !CHARTS.includes(t.chart)) throw `unknown chart: ${t.chart}`;
 		if (ids.has(t.id)) throw `tile id used twice: ${t.id}`;
 		ids.add(t.id);
 	}
@@ -503,6 +709,13 @@ export const checkTitles = (text: ExportText, n: number) => {
 	if (text.sections.length !== n) throw `expected ${n} section titles`;
 };
 
+/** A text report is a Word file, a Markdown file or a PDF: the extension of the path picks it. */
+export function checkTextPath(path: string) {
+	const ext = path.split(".").pop()?.toLowerCase() ?? "";
+	if (!["docx", "md", "pdf"].includes(ext)) throw "the file is not a .docx or .md or .pdf file";
+	checkExport(path, ext);
+}
+
 export function exportDossier(
 	k: MockKnowledge,
 	text: ExportText,
@@ -510,7 +723,7 @@ export function exportDossier(
 	path: string,
 ): null {
 	checkTitles(text, 5);
-	checkExport(path, "docx");
+	checkTextPath(path);
 	k.exported.push({ kind: "dossier", path, views });
 	return null;
 }
@@ -522,7 +735,7 @@ export const exportDiagrams = (): DiagramSource[] => [
 
 export function exportFunctional(k: MockKnowledge, text: ExportText, path: string): null {
 	checkTitles(text, 4);
-	checkExport(path, "docx");
+	checkTextPath(path);
 	k.exported.push({ kind: "functional", path });
 	return null;
 }
@@ -537,3 +750,7 @@ export function exportSheet(
 	k.exported.push({ kind: "sheet", path });
 	return null;
 }
+
+/** `doc_docx_list`: the Word files and the other files of the documents folder. */
+export const docOthers = (k: MockKnowledge): PageEntry[] =>
+	k.others.map((path) => ({ path, title: path.slice(FOLDERS.documents.length + 1) }));

@@ -1,6 +1,6 @@
 /** The address of a run page, as router link props. `unit` is the step that the Workflow tab shows. */
 export const runHref = (id: string, unit?: string) => ({
-	to: "/factory/runs/$runId" as const,
+	to: "/flow/runs/$runId" as const,
 	params: { runId: id },
 	search: unit ? { unit } : {},
 });

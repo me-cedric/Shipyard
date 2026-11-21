@@ -1034,7 +1034,7 @@ sleep 300"#,
 }
 
 #[test]
-fn turns_are_counted_by_events_so_the_caller_can_enforce_max_turns() {
+fn turns_are_counted_by_events_so_the_caller_can_count_them() {
     let f = fixture(
         r#"cat > /dev/null
 for i in 1 2 3 4 5 6; do

@@ -6,7 +6,16 @@ import { Button } from "@/ui/atoms/button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 
 /** Opens a project file in the first code editor that the machine has. Nothing shows when none is found. */
-export function OpenInEditor({ path, line }: { path: string; line?: number | null }) {
+export function OpenInEditor({
+	path,
+	line,
+	plain,
+}: {
+	path: string;
+	line?: number | null;
+	/** The outlined button "Open in the editor", without the name of the editor. */
+	plain?: boolean;
+}) {
 	const { t } = useI18n();
 	const editor = useEditors().data?.[0];
 	const [error, setError] = useState<unknown>(null);
@@ -14,7 +23,7 @@ export function OpenInEditor({ path, line }: { path: string; line?: number | nul
 	return (
 		<>
 			<Button
-				variant="ghost"
+				variant={plain ? undefined : "ghost"}
 				onClick={async () => {
 					try {
 						setError(null);
@@ -24,7 +33,7 @@ export function OpenInEditor({ path, line }: { path: string; line?: number | nul
 					}
 				}}
 			>
-				{format(t.forge.editor.openIn, { name: editor.name })}
+				{plain ? t.forge.history.openEditor : format(t.forge.editor.openIn, { name: editor.name })}
 			</Button>
 			<ErrorNotice error={error} />
 		</>

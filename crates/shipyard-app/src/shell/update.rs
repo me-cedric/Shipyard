@@ -56,26 +56,102 @@ fn parts(version: &str) -> Option<Vec<u64>> {
     core.split('.').map(|n| n.parse().ok()).collect()
 }
 
+/// The pre-release part of a version: `1.2.3-beta.1` gives `beta.1`. `None` for a release.
+fn pre(version: &str) -> Option<Vec<&str>> {
+    let v = version.trim().trim_start_matches('v');
+    let v = v.split('+').next()?;
+    v.split_once('-').map(|(_, p)| p.split('.').collect())
+}
+
+/// Order two pre-release parts: a number is below a word, numbers compare as numbers.
+fn pre_newer(current: &[&str], latest: &[&str]) -> bool {
+    for (c, l) in current.iter().zip(latest) {
+        match (c.parse::<u64>(), l.parse::<u64>()) {
+            (Ok(c), Ok(l)) if c != l => return l > c,
+            (Ok(_), Err(_)) => return true,
+            (Err(_), Ok(_)) => return false,
+            (Err(_), Err(_)) if c != l => return l > c,
+            _ => {}
+        }
+    }
+    latest.len() > current.len()
+}
+
 /// True when `latest` is a higher version than `current`. A text that is not a version is not newer.
+/// With the same numbers, a release is above its pre-release, and a later pre-release is above an earlier one.
 pub fn is_newer(current: &str, latest: &str) -> bool {
     match (parts(current), parts(latest)) {
+        (Some(c), Some(l)) if l == c => match (pre(current), pre(latest)) {
+            (Some(_), None) => true,
+            (Some(c), Some(l)) => pre_newer(&c, &l),
+            _ => false,
+        },
         (Some(c), Some(l)) => l > c,
         _ => false,
     }
+}
+
+/// The address that lists the releases with the pre-releases, from the address of the latest
+/// release: `.../releases/latest` gives `.../releases`. Another address stays as it is.
+fn preview_url(url: &str) -> String {
+    url.strip_suffix("/releases/latest")
+        .map_or_else(|| url.into(), |base| format!("{base}/releases"))
+}
+
+/// The release that the Preview channel follows: the highest version of a list that holds
+/// pre-releases and releases, with no draft. An answer that is one release stays as it is.
+fn highest(reply: serde_json::Value) -> serde_json::Value {
+    let serde_json::Value::Array(list) = reply else {
+        return reply;
+    };
+    let tag = |r: &serde_json::Value| {
+        text(r, "/tag_name")
+            .trim()
+            .trim_start_matches('v')
+            .to_string()
+    };
+    list.into_iter()
+        .filter(|r| r["draft"] != true && parts(&tag(r)).is_some())
+        .fold(serde_json::Value::Null, |best, r| {
+            if best.is_null() || is_newer(&tag(&best), &tag(&r)) {
+                r
+            } else {
+                best
+            }
+        })
 }
 
 /// Reads the release at `release_url` (a GitHub release answer: `tag_name` and `html_url`).
 /// The address is `https`, or `http` on a local host. Sends no credential. `seen` is the last
 /// version that ran. After an update (`current` above `seen`) the notes are the sections in
 /// between. With no `seen` (first start) or no update, the notes are empty.
+#[cfg(test)]
 pub fn check(
     http: &dyn Http,
     release_url: &str,
     current: &str,
     seen: Option<&str>,
 ) -> Result<UpdateInfo, String> {
+    check_on(http, release_url, current, seen, false)
+}
+
+/// Like [`check`]. `preview` reads the pre-releases of the same release address too
+/// (`shell-setup-rights` REQ-007).
+pub fn check_on(
+    http: &dyn Http,
+    release_url: &str,
+    current: &str,
+    seen: Option<&str>,
+    preview: bool,
+) -> Result<UpdateInfo, String> {
     let url = base_url(release_url).map_err(|e| e.to_string())?;
-    let reply = match http.json(&Request::get(url.clone(), Auth::None)) {
+    let asked = if preview {
+        base_url(&preview_url(release_url)).map_err(|e| e.to_string())?
+    } else {
+        url.clone()
+    };
+    let reply = match http.json(&Request::get(asked, Auth::None)) {
+        Ok(reply) if preview => highest(reply),
         Ok(reply) => reply,
         // A repository with no release yet answers 404: there is nothing newer, not a failure.
         Err(shipyard_http::Error::Status { status: 404, .. }) => {
@@ -125,6 +201,53 @@ mod tests {
         assert!(!is_newer("0.2.0", "0.2.0"));
         assert!(!is_newer("0.2.0", "0.1.9"));
         assert!(!is_newer("0.2.0", "latest"), "not a version");
+    }
+
+    #[test]
+    fn a_release_is_above_its_pre_release_and_pre_releases_order_by_part() {
+        assert!(is_newer("0.3.0-beta.1", "0.3.0"));
+        assert!(is_newer("0.3.0-beta.1", "0.3.0-beta.2"));
+        assert!(is_newer("0.3.0-beta.2", "0.3.0-beta.10"));
+        assert!(is_newer("0.3.0-alpha.3", "0.3.0-beta.1"));
+        assert!(!is_newer("0.3.0", "0.3.0-beta.9"));
+        assert!(!is_newer("0.3.0-beta.2", "0.3.0-beta.1"));
+        assert!(!is_newer("0.3.0-beta.1", "0.3.0-beta.1"));
+    }
+
+    #[test]
+    fn the_preview_channel_reads_the_pre_releases_of_the_same_address() {
+        let http = FakeHttp::new();
+        http.get(
+            "/repos/a/b/releases/latest",
+            200,
+            r#"{"tag_name":"v0.2.0","html_url":"https://example.com/r/0.2.0"}"#,
+        );
+        http.get(
+            "/repos/a/b/releases",
+            200,
+            r#"[{"tag_name":"v0.3.0-beta.1","html_url":"https://example.com/r/0.3.0-beta.1","prerelease":true},
+                {"tag_name":"v0.9.0","draft":true},
+                {"tag_name":"v0.2.0","html_url":"https://example.com/r/0.2.0"}]"#,
+        );
+        let url = "https://example.com/repos/a/b/releases/latest";
+        let stable = check_on(&http, url, "0.2.0", None, false).unwrap();
+        assert!(!stable.newer);
+        let preview = check_on(&http, url, "0.2.0", None, true).unwrap();
+        assert!(preview.newer);
+        assert_eq!(preview.latest, "0.3.0-beta.1");
+        assert_eq!(preview.url, "https://example.com/r/0.3.0-beta.1");
+        // The release address of the preferences is the one that both channels read.
+        assert!(
+            http.requests()
+                .iter()
+                .any(|r| r.url.ends_with("/repos/a/b/releases"))
+        );
+        // On the highest beta, nothing is newer.
+        assert!(
+            !check_on(&http, url, "0.3.0-beta.1", None, true)
+                .unwrap()
+                .newer
+        );
     }
 
     #[test]

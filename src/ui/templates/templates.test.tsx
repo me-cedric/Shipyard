@@ -24,20 +24,20 @@ describe("templates (REQ-006)", () => {
 		);
 	});
 
-	it("Shell uses a 56 px rail or a 220 px sidebar", () => {
+	it("Shell uses a 72 px rail or a 216 px sidebar", () => {
 		const { unmount } = renderApp(<Shell sidebar="s" main="m" sidebarOpen />);
 		const nav = screen.getByRole("navigation", { name: "Sidebar" });
-		expect(nav).toHaveStyle({ width: "220px" });
+		expect(nav).toHaveStyle({ width: "216px" });
 		expect(screen.getByRole("separator", { name: "Sidebar width" })).toBeInTheDocument();
 		expect(nav).toHaveAttribute("data-open", "true");
 		unmount();
 		renderApp(<Shell sidebar="s" main="m" sidebarOpen={false} />);
 		const rail = screen.getByRole("navigation", { name: "Sidebar" });
 		expect(rail).toHaveAttribute("data-open", "false");
-		expect(rail).toHaveStyle({ width: "56px" });
+		expect(rail).toHaveStyle({ width: "72px" });
 	});
 
-	it("ListDetail shows the page header with its icon and the toolbar above the list", () => {
+	it("ListDetail shows the page header with no icon tile and the toolbar above the list", () => {
 		renderApp(
 			<ListDetail
 				title="Backlog"
@@ -49,7 +49,7 @@ describe("templates (REQ-006)", () => {
 		);
 		const head = screen.getByRole("heading", { level: 1, name: "Backlog" });
 		expect(head).not.toHaveClass("sr-only");
-		expect(head.parentElement?.querySelector("svg")).not.toBeNull();
+		expect(head.parentElement?.querySelector("svg")).toBeNull();
 		expect(screen.getByRole("button", { name: "Filter" })).toBeInTheDocument();
 	});
 

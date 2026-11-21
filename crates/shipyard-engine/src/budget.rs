@@ -6,6 +6,7 @@
 use std::time::Duration;
 
 use serde_json::json;
+use shipyard_core::pickup::Then;
 use shipyard_core::run::{self, BudgetLevel, Cause, RunEvent, RunState};
 use shipyard_store::run_log::kind;
 
@@ -33,7 +34,9 @@ pub struct Gate {
 
 impl Inner {
     /// A budget is spent (REQ-022). The day budget alone pauses with no report, and the first
-    /// tick of the next day resumes the run. The run, token, step or member budget escalates.
+    /// tick of the next day resumes the run. The run, token, step, feature or member budget
+    /// escalates. A budget that a person set to Pause stops with no report and no escalation, and
+    /// one set to Ask me stops with the card of the app only (`runs-recipes` REQ-006).
     pub(crate) fn budget_stop(
         &mut self,
         run_id: &str,
@@ -45,9 +48,28 @@ impl Inner {
             .filter(|(_, l)| *l == BudgetLevel::Spent)
             .map(|(k, _)| k)
             .collect();
+        let (thens, _) = self.budget_rules(run_id);
+        let mut choices: Vec<Then> = spent
+            .iter()
+            .map(|k| match k.split_once(':').map(|(s, _)| s) {
+                Some("day") => thens.day,
+                Some("member") => thens.member,
+                _ => thens.feature,
+            })
+            .collect();
+        if own == BudgetLevel::Spent {
+            choices.push(thens.feature);
+        }
+        // The choice that tells the most wins when budgets of several kinds are spent.
+        let then = [Then::StopAsk, Then::Ask, Then::Pause]
+            .into_iter()
+            .find(|t| choices.contains(t))
+            .unwrap_or(Then::StopAsk);
         let day = spent.iter().find(|k| k.starts_with("day:"));
         match day {
-            Some(day) if own != BudgetLevel::Spent && spent.len() == 1 => {
+            Some(day)
+                if own != BudgetLevel::Spent && spent.len() == 1 && thens.day == Then::StopAsk =>
+            {
                 let day = day.to_string();
                 // The reason that the run page shows.
                 self.log(
@@ -60,13 +82,25 @@ impl Inner {
                     self.rec(run_id).c.day_pause = Some(day);
                 }
             }
+            _ if then == Then::Pause => {
+                let why = spent
+                    .first()
+                    .map_or("the budget of the run", |k| k.as_str());
+                self.log(
+                    run_id,
+                    None,
+                    kind::NOTE,
+                    json!({"stop": "budget", "budget": why}),
+                );
+                self.transition(run_id, RunEvent::BudgetStop);
+            }
             _ => {
                 let mut lines = vec!["budget".to_string()];
                 lines.extend(spent.iter().map(|k| format!("spent: {k}")));
                 if own == BudgetLevel::Spent {
                     lines.push("spent: the budget of the run".into());
                 }
-                self.escalate(run_id, Cause::Budget, &lines);
+                self.escalate_with(run_id, Cause::Budget, &lines, then != Then::Ask);
             }
         }
     }
@@ -154,13 +188,19 @@ impl Factory {
         };
         let b = &p.automation.budgets;
         let today = iso(Duration::from_secs(inner.clock.now().as_secs()))[..10].to_string();
+        let level = |spent: f64, usd: f64, then| {
+            crate::run_engine::soften(run::budget_level_at(spent, usd, b.warn()), then)
+        };
         let day = b.for_day(&today).map(|usd| {
             let spent = inner.day_spend(project).get(&today).map_or(0.0, |d| d.1);
-            (run::budget_level(spent, usd), format!("day {today}"))
+            (level(spent, usd, b.at_limit.day), format!("day {today}"))
         });
         let who = b.for_member(member).map(|usd| {
             let spent = inner.member_spend(project).get(member).map_or(0.0, |d| d.1);
-            (run::budget_level(spent, usd), format!("member {member}"))
+            (
+                level(spent, usd, b.at_limit.member),
+                format!("member {member}"),
+            )
         });
         let rank = |l: BudgetLevel| match l {
             BudgetLevel::Under => 0,

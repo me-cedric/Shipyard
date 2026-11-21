@@ -1,8 +1,17 @@
 import type { ReactNode } from "react";
-import { format, useI18n } from "@/lib/i18n";
+import { format, type Messages, useI18n } from "@/lib/i18n";
 import type { ApprovalView } from "@/lib/ipc";
 import { cn } from "@/lib/utils";
 import { Button } from "../atoms/button";
+
+/** The write in plain words, as the bar and the question name it. */
+export function approvalSentence(
+	said: Messages["home"]["approval"],
+	a: Pick<ApprovalView, "kind" | "key" | "title" | "force">,
+) {
+	const kind = a.force ? "force" : a.kind in said ? (a.kind as keyof typeof said) : "other";
+	return format(said[kind], { key: a.key || a.title });
+}
 
 /**
  * One write that waits for a click (delivery REQ-021 and the approvals of the Inbox). It names the
@@ -29,9 +38,7 @@ export function ApprovalBar({
 	body?: (text: string) => ReactNode;
 }) {
 	const { t } = useI18n();
-	const said = t.home.approval;
-	const kind = a.force ? "force" : a.kind in said ? (a.kind as keyof typeof said) : "other";
-	const sentence = format(said[kind], { key: a.key || a.title });
+	const sentence = approvalSentence(t.home.approval, a);
 	const command = a.kind === "push";
 	return (
 		<section

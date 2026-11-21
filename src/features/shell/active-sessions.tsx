@@ -3,12 +3,14 @@ import { AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { useMachineSessions, useMachineWrites } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
+import { useRights } from "@/lib/rights";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Leave } from "@/ui/atoms/leave";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { StopIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { hiddenSection } from "./places";
 
 /** The AI sessions that run on this computer. They are the same sessions as Factory / Sessions. */
 export function useLiveSessions() {
@@ -26,6 +28,8 @@ export function SessionsPart() {
 	const live = useLiveSessions();
 	const writes = useMachineWrites();
 	const [error, setError] = useState<unknown>(null);
+	// The link shows with Crew / Sessions (`spec:app-redesign#REQ-006`).
+	const seesAll = !hiddenSection(useRights().level, "crew", "sessions");
 	const compact = new Intl.NumberFormat(lang, { notation: "compact" });
 	const stop = (pid: number) => {
 		setError(null);
@@ -34,15 +38,17 @@ export function SessionsPart() {
 	return (
 		<section aria-label={p.title}>
 			<div className="flex min-h-row items-center gap-2 border-b px-3">
-				<h3 className="flex-1 text-12 font-medium text-n-11">
+				<h2 className="flex-1 text-12 font-medium text-n-11">
 					{format(t.count, { name: p.title, count: live.length })}
-				</h3>
-				<Link
-					to="/factory/sessions"
-					className="rounded-sm px-1 text-12 text-accent-text hover:underline"
-				>
-					{p.all}
-				</Link>
+				</h2>
+				{seesAll ? (
+					<Link
+						to="/crew/sessions"
+						className="rounded-sm px-1 text-12 text-accent-text hover:underline"
+					>
+						{p.all}
+					</Link>
+				) : null}
 			</div>
 			{error ? <ErrorNotice error={error} className="px-3 py-2 text-danger-text" /> : null}
 			{/* The list stays mounted so the last row can leave; the empty text sits after it. */}

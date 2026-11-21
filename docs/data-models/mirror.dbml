@@ -8,7 +8,7 @@
 Table tickets {
   source text [not null]
   key text [not null]
-  body text [not null] // JSON of one Ticket (work item and issue tracker fields)
+  body text [not null] // JSON of one Ticket (work item and issue tracker fields). The work item holds `release`: the fix version, milestone, iteration or project; a row from before this field has none
 
   indexes {
     (source, key) [pk]
@@ -18,7 +18,7 @@ Table tickets {
 Table pulls {
   source text [not null]
   number integer [not null]
-  body text [not null] // JSON of one PullSnapshot
+  body text [not null] // JSON of one PullSnapshot, with `author` (login or name); a row from before this field has an empty author
 
   indexes {
     (source, number) [pk]

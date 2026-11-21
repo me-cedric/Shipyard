@@ -12,6 +12,7 @@ import {
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import { useShell } from "@/lib/shell";
+import { seededNotices } from "./seed";
 import { type NoticeTarget, showAnchor } from "./targets";
 
 export * from "./sources";
@@ -29,6 +30,7 @@ const SOURCES: Record<string, EventSource> = {
 	"pr-checks": "pr-checks",
 	"scan-failed": "scan-failed",
 	"review-draft": "review-draft",
+	budget: "budget",
 };
 
 /** These sources reach the system only when the notice is `needs-you`. The older ones always do. */
@@ -100,11 +102,11 @@ const TOAST_MS = 6000;
  * that the person left on (Settings), and only while the window is in the background.
  */
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-	const [items, setItems] = useState<Notice[]>([]);
+	const [items, setItems] = useState<Notice[]>(seededNotices);
 	const [toasts, setToasts] = useState<Notice[]>([]);
 	const [held, setHeld] = useState(false);
 	// Not state: an update function can run twice, and an id seen must never come back.
-	const seen = useRef(new Set<string>());
+	const seen = useRef(new Set(seededNotices().map((i) => i.id)));
 	const itemsRef = useRef<Notice[]>([]);
 	itemsRef.current = items;
 

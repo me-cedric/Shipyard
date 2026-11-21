@@ -58,6 +58,8 @@ Every view shows the backlinks of its entity. The knowledge graph is this graph,
 
 The 40 routes become 7 spaces and one settings area. Tabs inside a space replace pages.
 
+Since `adr:0023` the menu shows six places and Setup: Today, Flow, Plan, Crew, Library, Code. Each place is a view on the spaces below, which stay the areas of the loop, the refs and the rights. The map from each view below to its place is in `docs/openspec/changes/update-app-redesign/specs/app-redesign/plan.md`.
+
 | Space | Views | Main roles |
 |---|---|---|
 | Home | Inbox ("Needs you"), My work, Activity | everyone |
@@ -196,12 +198,14 @@ limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }
 - Automation writes are off by default: push, pull request, tracker transition, tracker comment. A project admin turns each one on in Settings. That switch is the durable "yes" that agent-compass asks for.
 - Without the switch, each write waits in Home / Inbox for one click.
 - Budgets per run, per day, per member: tokens and money. Alert at 80 %. Hard stop moves the run to `Paused`.
-- Limits: stall timeout, max turns, kill switch per run and global.
+- Limits: stall timeout, kill switch per run and global. A run has no turn limit (`adr:0025`).
 - Secrets live in the OS keychain. They never go in arguments, files in the repo, or logs.
 - Never a worklog write without the person's action (kept from compass).
 - Rights: each write command and each write tool of the MCP server checks one of ten rights (`work.edit`, `specs.edit`, `design.edit`, `knowledge.edit`, `code.write`, `code.merge`, `runs.start`, `runs.approve`, `project.settings`, `costs.view`) in the backend, before it writes. The rights come from the role and the admin flag of the member in `.shipyard/team.yaml`, read from the default branch. A run acts for the member who started it. Each gated write and each refusal adds a line to the audit log (see 6).
 
 ### 5.9 Visualization
+
+Since `adr:0023`, Flow shows each feature once in five stages in place of the run lanes, and the live rows of Crew replace the agents map (`spec:app-redesign#REQ-010`, `spec:app-redesign#REQ-017`).
 
 - Factory / Runs: lanes Queued, Working, Needs you, In review, Ready to merge, Done.
 - Run view: the workflow DAG with live step states (xyflow), the event tail, the diff, the cost.
@@ -214,7 +218,7 @@ limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }
 - The nine roles: product owner, project manager, architect, tech lead, business analyst, developer, tester, designer, viewer. Work / Team holds the guided setup, the rights of each role, the audit tail and the one-time move of the roles of a machine into the file.
 - The PM assigns in Work. Shipyard suggests an assignee from skills and capacity.
 - Each member runs Shipyard on their machine. The rule "assigned to me" splits the agent work across the team.
-- Each role gets a first tab, a Home / Today with the panels of its job and its own Inbox routing. No page is hidden: a right turns a control off with its reason, never a view. The space of the first tab comes after Home in the sidebar.
+- Each role gets a first tab, a Home / Today with the panels of its job and its own Inbox routing. No page is hidden: a right turns a control off with its reason, never a view. Since `adr:0023` each role opens on its first page and the menu keeps one order (`spec:app-redesign#REQ-006`).
 - Junior mode: an "Explain" action on every entity. The assistant answers from the reference graph and cites refs. Knowledge / Learn builds a path from the ADRs, specs and architecture. A glossary comes from the specs.
 
 ## 7. Architecture

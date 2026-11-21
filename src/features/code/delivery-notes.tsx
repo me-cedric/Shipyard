@@ -2,44 +2,51 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
+import { copyText } from "@/lib/menus";
 import { useDeliveryNotes } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
-import { GroupSection } from "@/ui/molecules/group-section";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 
-/** The notes of `docs/delivery/impacts` of the project: a list and the text of the one that a person opens. */
+/** The notes of `docs/delivery/impacts` of the project: one card, the open note and a Copy button. */
 export function DeliveryNotes() {
 	const { t } = useI18n();
 	const notes = useDeliveryNotes().data ?? [];
 	const [path, setPath] = useState<string | null>(null);
+	const open = path ?? notes[0]?.path ?? null;
 	const text = useQuery({
-		queryKey: ["code", "delivery-note", path],
-		queryFn: () => unwrap(commands.codeFileRead(path ?? "", null)),
-		enabled: path !== null,
-	}).data;
+		queryKey: ["code", "delivery-note", open],
+		queryFn: () => unwrap(commands.codeFileRead(open ?? "", null)),
+		enabled: open !== null,
+	}).data?.text;
 	if (notes.length === 0) return null;
 	return (
-		<GroupSection name={t.workspace.notes.title} count={notes.length}>
+		<section
+			aria-label={t.workspace.notes.title}
+			className="flex min-w-0 flex-col gap-3 rounded-xl bg-surface-2 p-5 shadow-2"
+		>
+			<div className="flex items-center gap-3">
+				<h2 className="flex-1 text-13 font-semibold text-n-11">{t.workspace.notes.title}</h2>
+				<Button disabled={!text} onClick={() => copyText(text ?? "")}>
+					{t.flow.look.impact.copy}
+				</Button>
+			</div>
 			{notes.map((n) => {
 				const name = n.date ? `${n.title} · ${n.date}` : n.title;
 				return (
 					<Button
 						key={n.path}
 						variant="ghost"
+						className="-ml-4.5 self-start"
 						// The name holds the visible text.
 						aria-label={format(t.workspace.notes.open, { title: name })}
-						aria-pressed={n.path === path}
-						onClick={() => setPath(n.path === path ? null : n.path)}
+						aria-pressed={n.path === open}
+						onClick={() => setPath(n.path)}
 					>
 						{name}
 					</Button>
 				);
 			})}
-			{text?.text ? (
-				<div className="px-3 py-2">
-					<MarkdownView source={text.text} label={t.workspace.notes.title} />
-				</div>
-			) : null}
-		</GroupSection>
+			{text ? <MarkdownView source={text} label={t.workspace.notes.title} /> : null}
+		</section>
 	);
 }

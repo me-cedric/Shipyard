@@ -183,6 +183,24 @@ export function useTicketEditCaps() {
 	});
 }
 
+/** The releases of the issue tracker: the fix versions, milestones, iterations or projects. */
+export function useReleases() {
+	return useQuery({
+		queryKey: [...workKeys.all, "releases"],
+		queryFn: () => unwrap(commands.workReleases()),
+		retry: false,
+	});
+}
+
+/** The join requests that wait on the code host, with the role that each person asked for. */
+export function useJoinRequests() {
+	return useQuery({
+		queryKey: [...workKeys.all, "join-requests"],
+		queryFn: () => unwrap(commands.workTeamJoinRequests()),
+		retry: false,
+	});
+}
+
 /** The rows that an apply would write, for the sheets. Nothing is written (REQ-025). */
 export function useApplyPreview(slugs: string[], enabled: boolean) {
 	return useQuery({
@@ -227,6 +245,11 @@ export function useWorkActions() {
 				run(commands.workTicketEdit(key, null, null, days, true)),
 			setType: (key: string, name: string) => run(commands.workTicketTypeSet(key, name, true)),
 			setDue: (key: string, day: string | null) => run(commands.workTicketDueSet(key, day, true)),
+			setRelease: (key: string, release: string | null) =>
+				run(commands.workTicketReleaseSet(key, release, true)),
+			acceptJoin: (number: number, role: string) =>
+				run(commands.workTeamJoinAccept(number, role, true)),
+			refuseJoin: (number: number) => run(commands.workTeamJoinRefuse(number, true)),
 			setPriority: (key: string, priority: string) =>
 				run(commands.workTicketPrioritySet(key, priority, true)),
 			transition: (key: string, to: string) => run(commands.workTransition(key, to, true)),
@@ -245,6 +268,9 @@ export function useWorkActions() {
 			exportExcel: (slug: string, path: string) => run(commands.excelExport(slug, path)),
 			saveDecisions: (d: Decisions_Deserialize) => run(commands.planDecisionsSave(d)),
 			saveCalendar: (c: Calendar_Deserialize) => run(commands.planCalendarSave(c)),
+			/** Fill from my work: the runs of my tickets and my commits of the day become entries. */
+			fillTime: (member: string | null, day: string) =>
+				run(commands.timeFillDay(member, day, true)),
 			addTime: (
 				member: string | null,
 				day: string,

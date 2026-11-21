@@ -33,109 +33,143 @@ async function allButTeam() {
 	for (const p of st.permissions) p.state = "on";
 }
 
-const row = async (name: string) => within(await screen.findByRole("group", { name }));
+/** The steps of the guided start (Setup / Start), which took the list of Settings / Me (`spec:app-redesign#REQ-024`). */
+const steps = async () => within(await screen.findByRole("list", { name: s.title }));
+/** A step that is done adds the word Done to its name. */
+const doneName = (id: (typeof ITEMS)[number]) => new RegExp(`^${s.item[id]}\\s*${s.done}$`);
 const card = async () => within(await screen.findByRole("region", { name: s.title }));
+/** Open the step `id` of Setup / Start: its controls show beside the list. */
+const pick = async (user: ReturnType<typeof userEvent.setup>, id: (typeof ITEMS)[number]) =>
+	user.click(await (await steps()).findByRole("button", { name: new RegExp(`^${s.item[id]}`) }));
 
 describe("Get started checklist", () => {
-	it("shows the eleven items in order in Settings / Me", async () => {
+	it("shows the eleven items in order in Setup / Start, also from the old address of Settings / Me", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/settings/me");
-		const items = within(await screen.findByRole("region", { name: s.title }));
-		await waitFor(() => expect(items.getAllByRole("group")).toHaveLength(ITEMS.length));
-		items.getAllByRole("group").forEach((g, i) => {
-			expect(g).toHaveAccessibleName(s.item[ITEMS[i] ?? "project"]);
+		const router = mountApp("/settings/me#section-setup");
+		const items = await steps();
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/start"));
+		expect(items.getAllByRole("button")).toHaveLength(ITEMS.length);
+		items.getAllByRole("button").forEach((b, i) => {
+			expect(b).toHaveAccessibleName(new RegExp(`^${s.item[ITEMS[i] ?? "project"]}`));
 		});
-		expect(screen.getByRole("progressbar", { name: /^Get started/ })).toBeVisible();
+		// The project is open: its step is done, and the list shows it.
+		await waitFor(() =>
+			expect(items.getByRole("button", { name: doneName("project") })).toBeVisible(),
+		);
 	});
 
-	it("shows to do for each item of a fresh machine in Settings / Me", async () => {
-		mountApp("/settings/me");
-		for (const id of ["project", "ai", "tracker", "forge", "permissions"] as const) {
-			const r = await row(s.item[id]);
-			expect(await r.findByText(s.todo)).toBeInTheDocument();
-		}
+	it("shows to do for each item of a fresh machine in Setup / Start", async () => {
+		mountApp("/setup/start");
+		const items = await steps();
+		// A step to do has its name alone: no Done.
+		for (const id of ["project", "ai", "tracker", "forge", "permissions"] as const)
+			expect(items.getByRole("button", { name: s.item[id] })).toBeInTheDocument();
 	});
 
-	it("marks the same state on Today and in Settings / Me", async () => {
+	it("marks the same state on Today and in Setup / Start", async () => {
 		await allButTeam();
-		mountApp("/settings/me");
-		for (const id of ITEMS.filter((i) => i !== "team")) {
-			const r = await row(s.item[id]);
-			expect(await r.findByText(s.done)).toBeInTheDocument();
-		}
-		expect(await (await row(s.item.team)).findByText(s.todo)).toBeInTheDocument();
+		mountApp("/setup/start");
+		const items = await steps();
+		for (const id of ITEMS.filter((i) => i !== "team"))
+			expect(await items.findByRole("button", { name: doneName(id) })).toBeInTheDocument();
+		expect(items.getByRole("button", { name: s.item.team })).toBeInTheDocument();
 		const router = mountApp("/home/today");
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
-	it("lists only what is to do on Today", async () => {
+	it("shows only the next step on Today, and Continue opens the full list", async () => {
+		const user = userEvent.setup();
 		await allButTeam();
-		mountApp("/home/today");
+		const router = mountApp("/home/today");
 		const today = await card();
-		await today.findByRole("group", { name: s.item.team });
-		expect(today.getAllByRole("group")).toHaveLength(1);
+		expect(await today.findByText(s.item.team)).toBeInTheDocument();
+		await user.click(today.getByRole("link", { name: o.continue }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/start"));
+		expect((await steps()).getAllByRole("button")).toHaveLength(ITEMS.length);
 	});
 
 	it("says Sign in for an AI tool that is signed out", async () => {
 		await allButTeam();
 		mockState().prefs.defaultAgent = "codex";
-		const router = mountApp("/home/today");
+		const router = mountApp("/setup/start");
 		const user = userEvent.setup();
-		const today = await card();
-		await user.click(await today.findByRole("button", { name: s.action.signIn }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/agents-rules"));
-		expect(router.state.location.hash).toBe("tools");
+		await pick(user, "ai");
+		await user.click(await screen.findByRole("button", { name: s.action.signIn }));
+		await waitFor(() =>
+			expect(router.state.location.href).toBe("/setup/computer?page=models#tools"),
+		);
 	});
 
 	it("asks before it installs an AI tool, and names what it installs", async () => {
 		await allButTeam();
 		mockState().prefs.defaultAgent = "copilot";
-		mountApp("/home/today");
+		mountApp("/setup/start");
 		const user = userEvent.setup();
-		const today = await card();
-		await user.click(await today.findByRole("button", { name: "Install GitHub Copilot" }));
+		await pick(user, "ai");
+		await user.click(await screen.findByRole("button", { name: "Install GitHub Copilot" }));
 		expect(mockState().agents.runners.find((r) => r.id === "copilot")?.state).toBe("missing");
 		await user.click(
-			await today.findByRole("button", {
+			await screen.findByRole("button", {
 				name: "Run npm install -g copilot to install GitHub Copilot?",
 			}),
 		);
 		await waitFor(() =>
 			expect(mockState().agents.runners.find((r) => r.id === "copilot")?.state).toBe("detected"),
 		);
-		await waitFor(() => expect(today.queryByRole("group", { name: s.item.ai })).toBeNull());
+		await waitFor(() =>
+			expect(
+				within(screen.getByRole("list", { name: s.title })).getByRole("button", {
+					name: doneName("ai"),
+				}),
+			).toBeVisible(),
+		);
 	});
 
 	it("picks the AI tool in place on Today, and the item goes away", async () => {
 		const user = userEvent.setup();
 		await allButTeam();
 		mockState().prefs.defaultAgent = "";
-		mountApp("/home/today");
-		const today = await card();
-		await user.click(await today.findByRole("combobox", { name: en.personal.prefs.defaultAgent }));
-		await user.click(await screen.findByRole("option", { name: "Claude Code" }));
+		mountApp("/setup/start");
+		await pick(user, "ai");
+		// Setup / Start offers the AI tools as tiles (picture 008).
+		const tools = await screen.findByRole("group", { name: en.personal.prefs.defaultAgent });
+		await user.click(within(tools).getByRole("button", { name: "Claude Code" }));
 		await waitFor(() => expect(mockState().prefs.defaultAgent).toBe("claude"));
-		await waitFor(() => expect(today.queryByRole("group", { name: s.item.ai })).toBeNull());
+		await waitFor(() =>
+			expect(
+				within(screen.getByRole("list", { name: s.title })).getByRole("button", {
+					name: doneName("ai"),
+				}),
+			).toBeVisible(),
+		);
 	});
 
-	it("adds the person as the admin, then the card is gone", async () => {
+	it("adds the person as the admin, then the step is done and Today has no setup card", async () => {
 		const user = userEvent.setup();
 		await allButTeam();
-		mountApp("/home/today");
-		const today = await card();
-		await user.click(await today.findByRole("button", { name: s.action.team }));
+		const router = mountApp("/setup/start");
+		await pick(user, "team");
+		await user.click(await screen.findByRole("button", { name: s.action.team }));
 		await waitFor(() => expect(mockState().work?.team.members[0]?.admin).toBe(true));
+		await waitFor(() =>
+			expect(
+				within(screen.getByRole("list", { name: s.title })).getByRole("button", {
+					name: doneName("team"),
+				}),
+			).toBeVisible(),
+		);
+		await router.navigate({ to: "/home/today" });
 		await waitFor(() => expect(screen.queryByRole("region", { name: s.title })).toBeNull());
 	});
 
 	it("offers the team page with the member form beside Add me as admin", async () => {
 		const user = userEvent.setup();
 		await allButTeam();
-		const router = mountApp("/home/today");
-		const today = await card();
-		expect(await today.findByRole("button", { name: s.action.team })).toBeInTheDocument();
-		await user.click(await today.findByRole("button", { name: s.action.openTeam }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/work/team"));
+		const router = mountApp("/setup/start");
+		await pick(user, "team");
+		expect(await screen.findByRole("button", { name: s.action.team })).toBeInTheDocument();
+		await user.click(await screen.findByRole("button", { name: s.action.openTeam }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/crew"));
 		expect(await screen.findByRole("textbox", { name: "Handle" })).toBeInTheDocument();
 	});
 
@@ -143,36 +177,42 @@ describe("Get started checklist", () => {
 		const user = userEvent.setup();
 		await allButTeam();
 		mockState().prefs.defaultAgent = "";
-		const router = mountApp("/home/today");
-		const today = await card();
+		const router = mountApp("/setup/start");
+		await pick(user, "ai");
 		expect(
-			await today.findByRole("button", { name: "Install GitHub Copilot" }),
+			await screen.findByRole("button", { name: "Install GitHub Copilot" }),
 		).toBeInTheDocument();
-		await user.click(await today.findByRole("button", { name: s.action.openRunner }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/connections"));
-		expect(router.state.location.hash).toBe("connections-runner");
+		// The step has one main action; the door to the AI tools is the scope This computer.
+		const [computer] = await screen.findAllByRole("link", {
+			name: new RegExp(`^${s.scope.computer}`),
+		});
+		await user.click(computer as HTMLElement);
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/computer"));
+		expect(await screen.findByRole("region", { name: en.connections.group.runner })).toBeVisible();
 	});
 
 	it("links a done item to its page and marks the next item to do", async () => {
 		const user = userEvent.setup();
 		await allButTeam();
-		const router = mountApp("/settings/me");
-		const tracker = await row(s.item.tracker);
-		await user.click(await tracker.findByRole("button", { name: `View ${s.item.tracker}` }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/project"));
+		const router = mountApp("/setup/start");
+		const items = await steps();
+		await user.click(await items.findByRole("button", { name: doneName("tracker") }));
+		await user.click(await screen.findByRole("button", { name: `View ${s.item.tracker}` }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
 		expect(router.state.location.hash).toBe("issue-tracker");
 	});
 
 	it("marks the first item to do as the current step, and counts only the done ones", async () => {
 		await allButTeam();
-		mountApp("/settings/me");
-		const team = await screen.findByRole("group", { name: s.item.team });
+		mountApp("/setup/start");
+		const items = await steps();
+		const team = items.getByRole("button", { name: s.item.team });
 		await waitFor(() => expect(team).toHaveAttribute("aria-current", "step"));
 		expect(document.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
+		// The guided start has no progress bar: each done step says Done.
 		await waitFor(() =>
-			expect(screen.getByRole("progressbar", { name: /^Get started/ })).toHaveAttribute(
-				"aria-valuenow",
-				String(ITEMS.length - 1),
+			expect(items.getAllByRole("button", { name: new RegExp(`${s.done}$`) })).toHaveLength(
+				ITEMS.length - 1,
 			),
 		);
 	});
@@ -184,15 +224,16 @@ describe("Get started checklist", () => {
 		mockState().factory.tiers.forEach((t) => {
 			t.top = t.mid = t.small = "";
 		});
-		const router = mountApp("/home/today");
-		const today = await card();
-		await user.click(await today.findByRole("button", { name: s.action.models }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/agents-rules"));
-		expect(router.state.location.hash).toBe("tiers");
-		await router.navigate({ to: "/home/today" });
-		const again = await card();
-		await user.click(await again.findByRole("button", { name: s.action.connect }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/connections"));
+		const router = mountApp("/setup/start");
+		await pick(user, "models");
+		await user.click(await screen.findByRole("button", { name: s.action.models }));
+		await waitFor(() =>
+			expect(router.state.location.href).toBe("/setup/computer?page=models#tiers"),
+		);
+		await router.navigate({ to: "/setup/start" });
+		await pick(user, "forge");
+		await user.click(await screen.findByRole("button", { name: s.action.connect }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
 		// The item opens the add form on the code host, not on the issue tracker.
 		expect(await screen.findByRole("combobox", { name: "Type" })).toHaveTextContent("Code host");
 	});
@@ -209,30 +250,32 @@ describe("Get started checklist", () => {
 				connections: { ...settings.file.connections, forge: null },
 			}),
 		);
-		const router = mountApp("/home/today");
-		const today = await card();
-		await user.click(
-			await within(await today.findByRole("group", { name: s.item.forge })).findByRole("button", {
-				name: s.action.choose,
-			}),
-		);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/project"));
-		expect(router.state.location.hash).toBe("code-host");
+		const router = mountApp("/setup/start");
+		await pick(user, "forge");
+		await user.click(await screen.findByRole("button", { name: s.action.choose }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
+		expect(router.state.location.hash).toBe("more-code-host");
 	});
 
 	it("connects the code host in one click from a detected gh login", async () => {
 		const user = userEvent.setup();
 		mockState().logins = [{ tool: "gh", host: "example.com", user: "ada" }];
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/home/today");
+		mountApp("/setup/start");
+		await pick(user, "forge");
 		await user.click(await screen.findByRole("button", { name: "Connect with gh as ada" }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.projectSettings()))?.file?.connections?.forge).toBeTruthy(),
 		);
-		const today = await card();
-		await waitFor(() => expect(today.queryByRole("group", { name: s.item.forge })).toBeNull(), {
-			timeout: 5000,
-		});
+		await waitFor(
+			() =>
+				expect(
+					within(screen.getByRole("list", { name: s.title })).getByRole("button", {
+						name: doneName("forge"),
+					}),
+				).toBeVisible(),
+			{ timeout: 5000 },
+		);
 	}, 15_000);
 
 	it.each([
@@ -256,23 +299,26 @@ describe("Get started checklist", () => {
 	it("starts the creator from the tour and shows the items on their steps", async () => {
 		const user = userEvent.setup();
 		const router = mountApp("/home/today");
-		await screen.findByRole("navigation", { name: "Sidebar" });
+		// The first run shows without the shell.
+		await screen.findByRole("heading", { level: 1, name: en.projects.job });
 		// The tour opens by itself after the first project. A replay opens it with no project.
 		openTour();
 		const dialog = await screen.findByRole("dialog", { name: o.steps.loop.title });
 		await user.click(within(dialog).getByRole("button", { name: o.next }));
 		const step = await screen.findByRole("dialog", { name: o.steps.project.title });
 		await user.click(await within(step).findByRole("button", { name: s.action.project }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/home/projects"));
+		// The creator is a page of its own, behind Projects.
+		await waitFor(() => expect(router.state.location.pathname).toBe("/projects/new"));
 		await waitFor(() =>
 			expect(screen.queryByRole("dialog", { name: o.steps.project.title })).toBeNull(),
 		);
-		expect(await screen.findByRole("dialog", { name: en.creator.title })).toBeInTheDocument();
+		expect(await screen.findByRole("navigation", { name: en.creator.steps })).toBeInTheDocument();
 	});
 
 	it("speaks French", async () => {
 		mockState().prefs.lang = "fr";
-		mountApp("/settings/me");
-		expect(await screen.findByRole("group", { name: "Outil de suivi" })).toBeInTheDocument();
+		mountApp("/setup/start");
+		const items = within(await screen.findByRole("list", { name: "Pour commencer" }));
+		expect(items.getByRole("button", { name: "Outil de suivi" })).toBeInTheDocument();
 	});
 });

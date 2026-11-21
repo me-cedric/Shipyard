@@ -1,24 +1,23 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type { CSSProperties } from "react";
 import { useState } from "react";
+import { DetailColumn, LibraryPage, PageColumns, SideCards } from "@/features/library/page-parts";
 import { NoProject } from "@/features/shell/no-project";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
+import type { StepKind } from "@/lib/ipc";
 import { useLearn } from "@/lib/knowledge";
-import { usePanelSize } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
+import { Button } from "@/ui/atoms/button";
 import { Progress } from "@/ui/atoms/progress";
-import { AcademicCapIcon, ArrowPathIcon, BookOpenIcon, CheckIcon } from "@/ui/icons";
+import { AcademicCapIcon, ArrowPathIcon, CheckIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
-import { Panel } from "@/ui/molecules/panel";
-import { RefChip } from "@/ui/molecules/ref-chip";
-import { Splitter } from "@/ui/molecules/splitter";
-import { ListDetail } from "@/ui/templates/list-detail";
-import { LearnFeeds } from "./learn-feeds";
-import { LearnPaths } from "./learn-paths";
+import { AddWord } from "./add-word";
+import { LearnCard, LearnFeeds, useLearning } from "./learn-feeds";
+import { blankStep, type Draft, LearnActions, LearnPaths } from "./learn-paths";
 
 const DONE = "shipyard.learn.done";
 
@@ -41,10 +40,10 @@ function useDone() {
 }
 
 /**
- * Knowledge / Learn: the path (the architecture, the ADRs in number order, then the specs) as a
- * journey, and the glossary of the terms that the specs define. Each step is an entity ref; an
- * opened step counts as done (REQ-020, REQ-021). Below them: the learning paths of the team and the
- * feeds of the project.
+ * Library / Learn: the path (the architecture, the ADRs in number order, then the specs) as one card
+ * of slim rows with the next step marked, and the glossary of the terms that the specs define. A
+ * step that the person opened counts as done (REQ-020, REQ-021). Beside them: the learning paths of
+ * the team and the feeds of the project.
  */
 export function Learn() {
 	const { t } = useI18n();
@@ -54,128 +53,145 @@ export function Learn() {
 	const { openRef } = useShell();
 	const learn = useLearn().data;
 	const { done, mark } = useDone();
-	const side = usePanelSize("knowledge-learn-side", 352);
+	// The kind of the learning step that is about an item of the path: its second pill.
+	const second = new Map(
+		(useLearning().data?.paths ?? []).flatMap((p) =>
+			p.steps.flatMap((s) => (s.ref ? [[s.ref, s.kind] as const] : [])),
+		),
+	);
+	const [picked, setPicked] = useState<string | null>(null);
+	const [editing, setEditing] = useState<Draft | null>(null);
 	if (active === undefined) return <Loading title={k.title} icon={<AcademicCapIcon size={16} />} />;
 	if (active === null) return <NoProject title={k.title} icon={<AcademicCapIcon size={16} />} />;
 	const path = learn?.path ?? [];
 	const glossary = learn?.glossary ?? [];
-	const kinds = t.refKind as Record<string, string>;
+	const kinds: Record<string, string> = { ...t.refKind, ...k.kinds };
 	const finished = path.filter((s) => done.includes(s.ref)).length;
+	const current = path.find((s) => !done.includes(s.ref))?.ref;
 	const open = (ref: string) => {
 		mark(ref);
 		openRef(ref);
 	};
 	return (
-		<ListDetail title={k.title} icon={<AcademicCapIcon size={16} />} count={path.length}>
-			<div
-				style={{ "--side": `${side.size}px` } as CSSProperties}
-				className="grid min-h-0 flex-1 auto-rows-min gap-3 overflow-auto px-4 pt-1 pb-4 lg:grid-cols-[minmax(0,1fr)_var(--side)]"
-			>
-				<div className="flex min-w-0 flex-col gap-3">
-					{learn && path.length === 0 && glossary.length === 0 ? (
-						<EmptyState
-							title={t.empty.feeds}
-							action={{
-								label: t.home.refresh,
-								icon: <ArrowPathIcon size={14} />,
-								onClick: () => void qc.invalidateQueries({ queryKey: ["knowledge", "learn"] }),
-							}}
-						/>
-					) : (
-						<Panel
-							title={k.path}
-							count={path.length}
-							icon={<AcademicCapIcon size={14} />}
-							toolbar={
-								<span className="flex items-center gap-2">
-									<Progress
-										value={finished}
-										max={path.length}
-										label={k.progress}
-										className="w-28"
-									/>
-									<span className="font-mono text-12 text-n-11">
-										{finished}/{path.length}
-									</span>
+		<LibraryPage
+			title={k.heading}
+			action={
+				<LearnActions
+					picked={picked}
+					onPick={setPicked}
+					editing={editing !== null}
+					onNew={() => setEditing({ id: "", title: "", experts: [], steps: [blankStep()] })}
+				/>
+			}
+		>
+			{learn && path.length === 0 && glossary.length === 0 ? (
+				<EmptyState
+					title={t.empty.feeds}
+					action={{
+						label: t.home.refresh,
+						icon: <ArrowPathIcon size={14} />,
+						onClick: () => void qc.invalidateQueries({ queryKey: ["knowledge", "learn"] }),
+					}}
+				/>
+			) : (
+				<PageColumns>
+					<DetailColumn className="flex-[3_1_480px]">
+						<Card pad className="flex flex-col gap-4">
+							<div className="flex flex-wrap items-center gap-3.5">
+								<span className="text-17 font-semibold text-n-12">
+									{format(k.of, { n: finished, count: path.length })}
 								</span>
-							}
-							bodyClassName="p-3"
-						>
-							<ol aria-label={k.path} className="flex flex-col">
+								<Progress
+									value={finished}
+									max={path.length}
+									label={k.progress}
+									className="h-2.5 min-w-48 flex-1"
+								/>
+							</div>
+							<ol aria-label={k.path} className="flex flex-col gap-2.5">
 								{path.map((s, i) => {
 									const ok = done.includes(s.ref);
+									const now = s.ref === current;
 									return (
 										<li
 											key={s.ref}
-											className="relative flex gap-3 pb-3 last:pb-0 before:absolute before:top-7 before:bottom-0 before:left-3.5 before:w-px before:bg-n-6 last:before:hidden"
+											className="relative flex min-h-14 flex-wrap items-center gap-3.5 after:absolute after:top-[48px] after:left-[15px] after:h-2.5 after:w-0.5 after:bg-n-6 last:after:hidden"
 										>
 											<span
 												aria-hidden="true"
 												className={cn(
-													"z-10 flex size-7 shrink-0 items-center justify-center rounded-full border font-mono text-12",
-													ok
-														? "border-transparent bg-success-soft text-success-text"
-														: "bg-surface-2 text-n-11",
+													"flex size-8 shrink-0 items-center justify-center rounded-full border-2 font-semibold text-14",
+													now
+														? "border-accent bg-accent text-accent-fg ring-[5px] ring-accent/25"
+														: ok
+															? "border-transparent bg-success-soft text-success-text"
+															: "border-n-7 bg-surface-1 text-n-12",
 												)}
 											>
-												{ok ? <CheckIcon size={14} /> : i + 1}
+												{ok ? <CheckIcon size={16} /> : i + 1}
 											</span>
-											<span className="flex min-w-0 flex-1 flex-col gap-1 rounded-lg border bg-surface-2 px-3 py-2 shadow-1">
-												<span className="flex items-center gap-2">
-													<RefChip refId={s.ref} state="resolved" title={s.title} onOpen={open} />
-													<Badge>{kinds[s.kind] ?? s.kind}</Badge>
-												</span>
-												{/* The title opens the step too, not only the chip above it. */}
-												<button
-													type="button"
+											{/* The title opens the step. */}
+											<button
+												type="button"
+												onClick={() => open(s.ref)}
+												className={cn(
+													"min-h-control min-w-0 flex-1 text-left text-17",
+													now ? "font-semibold" : "font-medium",
+												)}
+											>
+												{s.title}
+											</button>
+											<Badge>{kinds[s.kind] ?? s.kind}</Badge>
+											{second.has(s.ref) ? (
+												<Badge variant="accent">{k.kind[second.get(s.ref) as StepKind]}</Badge>
+											) : null}
+											{now ? (
+												<Button
+													variant="primary"
+													className="min-h-control"
 													onClick={() => open(s.ref)}
-													className="truncate text-left text-ui text-n-12 hover:underline"
 												>
-													{s.title}
-												</button>
-											</span>
+													{k.start}
+												</Button>
+											) : null}
 										</li>
 									);
 								})}
 							</ol>
-						</Panel>
-					)}
-					<LearnPaths />
-				</div>
-				<div className="relative flex min-w-0 flex-col gap-3">
-					<Splitter
-						label={t.knowledge.resize.side}
-						value={side.size}
-						min={200}
-						max={480}
-						invert
-						onChange={side.set}
-						onReset={side.reset}
-						className="-left-2 hidden lg:block"
-					/>
-					<Panel title={k.glossary} count={glossary.length} icon={<BookOpenIcon size={14} />} flush>
-						<ul aria-label={k.glossary}>
-							{glossary.map((g) => (
-								<li key={g.term} className="flex flex-col gap-1 border-b px-3 py-2 last:border-b-0">
-									<span className="flex items-center gap-2">
+						</Card>
+						<LearnPaths
+							part="paths"
+							picked={picked}
+							editing={editing}
+							onEdit={setEditing}
+							items={path.map((s) => ({ ref: s.ref, title: s.title }))}
+						/>
+					</DetailColumn>
+					<SideCards className="flex-[2_1_320px]">
+						<LearnCard title={k.glossary}>
+							<ul aria-label={k.glossary} className="flex flex-col gap-2">
+								{glossary.map((g) => (
+									<li key={g.term} className="flex flex-col">
 										<button
 											type="button"
 											data-nav=""
 											onClick={() => openRef(g.spec)}
-											className="min-w-0 flex-1 truncate rounded-sm text-left font-medium text-ui text-n-12 hover:underline"
+											className="-mb-3 min-h-control w-fit max-w-full text-left font-semibold text-n-12 hover:underline"
 										>
 											{g.term}
 										</button>
-										<RefChip refId={g.spec} state="resolved" onOpen={openRef} />
-									</span>
-									<span className="text-12 text-n-11">{g.meaning}</span>
-								</li>
-							))}
-						</ul>
-					</Panel>
-					<LearnFeeds />
-				</div>
-			</div>
-		</ListDetail>
+										<span className="text-n-11">{g.meaning}</span>
+									</li>
+								))}
+							</ul>
+							<AddWord />
+						</LearnCard>
+						<LearnPaths part="experts" />
+						<LearnPaths part="team" />
+						<LearnFeeds />
+					</SideCards>
+				</PageColumns>
+			)}
+		</LibraryPage>
 	);
 }

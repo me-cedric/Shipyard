@@ -2,16 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, type RefObject, useEffect, useId, useRef, useState } from "react";
 import { mentionAt, slashQuery } from "@/lib/assistant/slash";
 import { format, useI18n } from "@/lib/i18n";
-import {
-	type AssistantMode,
-	type Attachment,
-	commands,
-	type Permission,
-	type ThreadSettings,
-	unwrap,
-} from "@/lib/ipc";
-import { usePrefs } from "@/lib/prefs";
-import { useActiveProject } from "@/lib/projects";
+import { type AssistantMode, type Attachment, commands, type Permission, unwrap } from "@/lib/ipc";
 import { useRefSearch } from "@/lib/refs";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -20,29 +11,45 @@ import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
 import { PaperAirplaneIcon, PlusIcon, StopIcon, XMarkIcon } from "@/ui/icons";
-import { Dialog } from "@/ui/organisms/dialog";
 import { CodexTrust } from "./codex-trust";
 import { ComposerMenu, type MenuItem } from "./composer-menu";
-import { GaugeView } from "./gauge";
+import { ContextBar } from "./context";
+import { SendToFactory } from "./factory-dialog";
+import { GaugeBars, GaugeView } from "./gauge";
 import { ModelMenu } from "./model-menu";
+import { usePermission } from "./permission";
 import type { Assistant } from "./use-assistant";
 
 const MODES: AssistantMode[] = ["ask", "plan", "agent"];
-const PERMISSIONS: Permission[] = ["approve", "auto", "bypass", "read_only"];
+/** The three levels of the full page. Bypass shows as Alone; its own switch is in the tools column. */
+const LEVELS = ["read_only", "approve", "auto"] as const;
+const LEVEL_LABEL = (t: ReturnType<typeof useI18n>["t"]) => ({
+	read_only: t.assistant.permission.read_only,
+	approve: t.assistant.page.asksFirst,
+	auto: t.assistant.page.alone,
+});
 // An `@` token that ends the text: the ref that the person typed.
 const TOKEN = /(^|\s)@(\S+)$/;
 
-/** The message box, and one bar under it: attach, model, permission, context ring and the one primary action. */
+/**
+ * The message box, and one bar under it: attach, model, permission, context ring and the one primary action.
+ * `full` is the composer of the Ask page: the context chips on top, two segmented controls and two bars.
+ */
 export function Composer({
 	a,
 	inputRef,
+	full,
+	onOpenRef,
 }: {
 	a: Assistant;
 	inputRef: RefObject<HTMLTextAreaElement | null>;
+	full?: boolean;
+	/** The context chips of the full composer open a ref with it. */
+	onOpenRef?: (ref: string) => void;
 }): ReactNode {
 	const { t } = useI18n();
 	const listId = useId();
-	const readOnly = usePrefs().profile.readOnly;
+	const { readOnly, levels, pick, change, dialogs } = usePermission(a);
 	const s = a.current?.thread.settings;
 	// A project with a read only profile gets the read only level and no other.
 	const { setSettings } = a;
@@ -92,27 +99,6 @@ export function Composer({
 		);
 		setFiles([]);
 	};
-	// Auto pre-approves the edit tools: one warning with the effect, and a click, before it applies.
-	const [warnAuto, setWarnAuto] = useState(false);
-	// Bypass permissions asks once for each project. A project with a read only profile never gets it.
-	const project = useActiveProject().data?.id ?? "";
-	const [warnBypass, setWarnBypass] = useState(false);
-	const bypassKey = `shipyard:bypass-confirmed:${project}`;
-	const runner = a.runners.find((r) => r.runner === s?.runner);
-	const levels = readOnly
-		? PERMISSIONS.filter((p) => p === "read_only")
-		: PERMISSIONS.filter((p) => p !== "bypass" || runner?.bypass);
-	const applyBypass = async () => {
-		if ((await a.setSettings({ permission: "bypass" })) && project)
-			localStorage.setItem(bypassKey, "1");
-		setWarnBypass(false);
-	};
-	/** A runner with no Bypass takes the thread back to Edit with approval. */
-	const change = (patch: Partial<ThreadSettings>) => {
-		const next = patch.runner ? a.runners.find((r) => r.runner === patch.runner) : runner;
-		const drop = s?.permission === "bypass" && !next?.bypass;
-		void a.setSettings(drop ? { ...patch, permission: "approve" } : patch);
-	};
 	// The slash menu and the `@` menu share one list. Escape closes it until the draft changes.
 	const [active, setActive] = useState(0);
 	const [closed, setClosed] = useState<string | null>(null);
@@ -155,56 +141,52 @@ export function Composer({
 		a.setDraft(text.slice(0, end.index + (end[1]?.length ?? 0)));
 		if (end[2]) void a.addRef(end[2]);
 	};
+	const mode = s ? (
+		<Segmented
+			label={t.assistant.mode.label}
+			value={s.mode}
+			onValueChange={(mode) => void a.setSettings({ mode })}
+			items={MODES.map((m) => ({ value: m, label: t.assistant.mode[m] }))}
+		/>
+	) : null;
+	const send = a.busy ? (
+		<Button onClick={a.stop}>
+			<StopIcon size={14} />
+			{t.assistant.stop}
+		</Button>
+	) : (
+		<Button variant="primary" disabled={!a.current || !a.draft.trim()} onClick={submit}>
+			<PaperAirplaneIcon size={14} />
+			{t.assistant.send}
+		</Button>
+	);
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: a drop target; the Attach file button is the keyboard path
 		<div
 			data-drop-zone
-			className="m-2 mt-0 flex flex-col gap-2 rounded-xl border bg-surface-2 p-2 shadow-1"
+			className={
+				full
+					? "flex flex-col gap-2 rounded-lg bg-surface-2 p-3 shadow-2"
+					: "m-2 mt-0 flex flex-col gap-2 rounded-xl border bg-surface-2 p-2 shadow-1"
+			}
 			onDragOver={(e) => e.preventDefault()}
 			onDrop={(e) => {
 				e.preventDefault();
 				void attach(e.dataTransfer.files);
 			}}
 		>
-			{s ? (
-				<Segmented
-					label={t.assistant.mode.label}
-					value={s.mode}
-					onValueChange={(mode) => void a.setSettings({ mode })}
-					items={MODES.map((m) => ({ value: m, label: t.assistant.mode[m] }))}
+			{full ? (
+				<ContextBar
+					a={a}
+					full
+					onAdd={() => picker.current?.click()}
+					onOpenRef={onOpenRef ?? (() => {})}
 				/>
-			) : null}
-			{s?.runner === "codex" ? <CodexTrust /> : null}
-			<Dialog
-				open={warnAuto}
-				onOpenChange={setWarnAuto}
-				title={t.assistant.autoWarn.title}
-				actions={
-					<Button
-						variant="primary"
-						onClick={() => {
-							void a.setSettings({ permission: "auto" });
-							setWarnAuto(false);
-						}}
-					>
-						{t.assistant.autoWarn.accept}
-					</Button>
-				}
-			>
-				<p className="text-ui text-n-11">{t.assistant.autoWarn.body}</p>
-			</Dialog>
-			<Dialog
-				open={warnBypass}
-				onOpenChange={setWarnBypass}
-				title={t.assistant.bypassWarn.title}
-				actions={
-					<Button variant="danger" onClick={() => void applyBypass()}>
-						{t.assistant.bypassWarn.accept}
-					</Button>
-				}
-			>
-				<p className="text-ui text-n-11">{t.assistant.bypassWarn.body}</p>
-			</Dialog>
+			) : (
+				mode
+			)}
+			{!full && s?.runner === "codex" ? <CodexTrust /> : null}
+			{dialogs}
 			<div className="relative">
 				{menuOpen ? (
 					<ComposerMenu
@@ -217,7 +199,9 @@ export function Composer({
 				<Textarea
 					ref={inputRef}
 					label={t.assistant.message}
-					rows={3}
+					rows={full ? 1 : 3}
+					className={full ? "min-h-11 resize-none" : undefined}
+					placeholder={full ? t.assistant.message : undefined}
 					value={a.draft}
 					aria-controls={menuOpen ? listId : undefined}
 					aria-activedescendant={menuOpen ? `${listId}-${current}` : undefined}
@@ -284,56 +268,77 @@ export function Composer({
 					) : null}
 				</div>
 			) : null}
-			<div className="flex flex-wrap items-center gap-1">
-				<input
-					ref={picker}
-					type="file"
-					multiple
-					hidden
-					data-testid="attach-input"
-					onChange={(e) => {
-						if (e.target.files) void attach(e.target.files);
-						e.target.value = "";
-					}}
-				/>
-				<IconButton
-					label={t.doctor.attach.add}
-					disabled={!a.current || a.busy}
-					onClick={() => picker.current?.click()}
-				>
-					<PlusIcon size={14} />
-				</IconButton>
-				{s ? <ModelMenu runners={a.runners} settings={s} onChange={change} /> : null}
-				{s ? (
-					<Select
-						label={t.assistant.permission.label}
-						value={s.permission}
-						disabled={s.mode !== "agent"}
-						// Bypass shows in the danger colour for as long as it is on.
-						className={s.permission === "bypass" ? "border-danger text-danger-text" : undefined}
-						items={levels.map((p) => ({ value: p, label: t.assistant.permission[p] }))}
-						onValueChange={(p) => {
-							if (p === "auto") setWarnAuto(true);
-							else if (p === "bypass" && !localStorage.getItem(bypassKey)) setWarnBypass(true);
-							else void a.setSettings({ permission: p as Permission });
-						}}
-					/>
-				) : null}
-				<span className="ml-auto flex items-center gap-2">
-					{a.current ? <GaugeView gauge={a.current.gauge} /> : null}
-					{a.busy ? (
-						<Button onClick={a.stop}>
-							<StopIcon size={14} />
-							{t.assistant.stop}
-						</Button>
-					) : (
-						<Button variant="primary" disabled={!a.current || !a.draft.trim()} onClick={submit}>
-							<PaperAirplaneIcon size={14} />
-							{t.assistant.send}
-						</Button>
-					)}
-				</span>
-			</div>
+			<input
+				ref={picker}
+				type="file"
+				multiple
+				hidden
+				data-testid="attach-input"
+				onChange={(e) => {
+					if (e.target.files) void attach(e.target.files);
+					e.target.value = "";
+				}}
+			/>
+			{full ? (
+				<>
+					<div className="flex flex-wrap items-center gap-2 [&_button]:whitespace-nowrap">
+						<div className="flex-none">{mode}</div>
+						{s ? (
+							<div className="flex-none">
+								<Segmented
+									label={t.assistant.permission.label}
+									value={s.permission === "bypass" ? "auto" : s.permission}
+									onValueChange={pick}
+									items={LEVELS.filter((p) => levels.includes(p)).map((p) => ({
+										value: p,
+										label: LEVEL_LABEL(t)[p],
+									}))}
+								/>
+							</div>
+						) : null}
+						{s ? <ModelMenu split runners={a.runners} settings={s} onChange={change} /> : null}
+						<span className="ml-auto flex flex-wrap items-center gap-2.5">
+							<SendToFactory a={a} variant="secondary" />
+						</span>
+					</div>
+					<div>{send}</div>
+					{a.current ? <GaugeBars gauge={a.current.gauge} /> : null}
+				</>
+			) : (
+				<div className="flex flex-wrap items-center gap-1">
+					<IconButton
+						label={t.doctor.attach.add}
+						disabled={!a.current || a.busy}
+						onClick={() => picker.current?.click()}
+					>
+						<PlusIcon size={14} />
+					</IconButton>
+					{s ? <ModelMenu runners={a.runners} settings={s} onChange={change} /> : null}
+					{s ? (
+						<Select
+							label={t.assistant.permission.label}
+							value={s.permission}
+							disabled={s.mode !== "agent"}
+							// Bypass shows in the danger colour for as long as it is on.
+							className={s.permission === "bypass" ? "border-danger text-danger-text" : undefined}
+							items={levels.map((p) => ({ value: p, label: t.assistant.permission[p] }))}
+							onValueChange={(p) => pick(p as Permission)}
+						/>
+					) : null}
+					<span className="ml-auto flex items-center gap-2">
+						{a.current ? (
+							<GaugeView
+								gauge={
+									a.busy && a.liveTokens
+										? { ...a.current.gauge, usedTokens: a.liveTokens }
+										: a.current.gauge
+								}
+							/>
+						) : null}
+						{send}
+					</span>
+				</div>
+			)}
 		</div>
 	);
 }

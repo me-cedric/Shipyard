@@ -1,51 +1,68 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { type ComponentType, useEffect, useRef, useState } from "react";
-import { useI18n } from "@/lib/i18n";
+import { MARK, useBare } from "@/features/shell/bare";
+import { format, useI18n } from "@/lib/i18n";
 import { commands, pickFolder, unwrap } from "@/lib/ipc";
-import { ROLES, type Role, usePrefs } from "@/lib/prefs";
+import { type Role, usePrefs } from "@/lib/prefs";
 import { outcomeError, type ProjectOutcome, useProjectActions, useProjects } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { StatusDot } from "@/ui/atoms/status-dot";
+import { StepBar } from "@/ui/atoms/step-bar";
 import {
 	ArrowDownTrayIcon,
 	BookOpenIcon,
-	ChatBubbleIcon,
+	CalendarDaysIcon,
+	ClipboardIcon,
 	CodeBracketIcon,
 	CpuChipIcon,
 	DocumentTextIcon,
 	FolderOpenIcon,
+	PencilIcon,
 	PlusIcon,
-	ShieldCheckIcon,
+	PuzzlePieceIcon,
 	Squares2X2Icon,
-	SwatchIcon,
 	UserCircleIcon,
-	ViewColumnsIcon,
 } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Option } from "@/ui/molecules/option";
 import { STATE_DOT } from "@/ui/molecules/project-switcher";
-import logo from "../../../docs/assets/logo.svg";
+import { TILE_GRID, Tile } from "@/ui/molecules/tile";
 import { useCloneFolder } from "./clone-folder";
-import { NewProjectDialog } from "./new-project/new-project-dialog";
 import { RepoPicker } from "./repo-picker";
 
 type Step = "role" | "start" | "clone";
 
 type IconProps = { size?: number };
 const ROLE_ICON: Record<Role, ComponentType<IconProps>> = {
-	po: ChatBubbleIcon,
-	pm: ViewColumnsIcon,
-	architect: Squares2X2Icon,
+	po: Squares2X2Icon,
+	pm: CalendarDaysIcon,
+	architect: PuzzlePieceIcon,
 	techlead: CpuChipIcon,
 	ba: DocumentTextIcon,
 	developer: CodeBracketIcon,
-	qa: ShieldCheckIcon,
-	designer: SwatchIcon,
+	qa: ClipboardIcon,
+	designer: PencilIcon,
 	viewer: BookOpenIcon,
 	none: UserCircleIcon,
 };
+
+/** The order of the design; Other stays last. */
+const ROLE_ORDER = [
+	"po",
+	"pm",
+	"ba",
+	"architect",
+	"techlead",
+	"developer",
+	"qa",
+	"designer",
+	"viewer",
+	"none",
+] as const satisfies readonly Role[];
 
 /** The project key from the name, as the app derives it: six letters or digits, a letter first. */
 export const keyOf = (name: string) => {
@@ -80,6 +97,7 @@ export function FolderField({ path, onPick }: { path: string; onPick: (path: str
 		<div className="flex gap-2">
 			<Input label={t.projects.folder} placeholder={t.projects.folder} value={path} readOnly />
 			<Button
+				className="min-h-control"
 				onClick={async () => {
 					const picked = await pickFolder();
 					if (picked) onPick(picked);
@@ -92,39 +110,19 @@ export function FolderField({ path, onPick }: { path: string; onPick: (path: str
 	);
 }
 
-/** The first run: the role as named cards, then three starts. Open a local folder is the one primary action. */
-export function FirstRun() {
+/**
+ * One start of a project (open, clone, switch): the busy flag, the error line, and the offer to make
+ * a project of a folder with no Git. The first run and the Projects page share it.
+ */
+export function useProjectStart() {
 	const { t } = useI18n();
-	const { role, loaded, setPrefs } = usePrefs();
-	const { openFolder, clone, switchTo } = useProjectActions();
 	const qc = useQueryClient();
 	const router = useRouter();
-	const projects = useProjects().data;
-	const recent = [...(projects ?? [])].sort((a, b) => b.lastUsed - a.lastUsed).slice(0, 5);
-	// The role step shows only for a person with no saved role and no project. Nothing shows before the prefs and the list load.
-	const [chosen, setStep] = useState<Step | null>(null);
-	const step: Step | null =
-		chosen ?? (loaded && projects ? (role !== "none" || projects.length ? "start" : "role") : null);
-	// The badge "2" shows only when the role step showed.
-	const sawRole = useRef(false);
-	if (step === "role") sawRole.current = true;
-	// A click on a card picks the role, from the saved one. Continue saves it.
-	const [picked, setPick] = useState<Role | null>(null);
-	const pick = picked ?? role;
-	// After Continue the keyboard focus moves to the start step.
-	const startHead = useRef<HTMLHeadingElement>(null);
-	useEffect(() => {
-		if (chosen === "start") startHead.current?.focus();
-	}, [chosen]);
 	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
-	const [url, setUrl] = useState("");
-	const [folder, setFolder] = useCloneFolder();
-	const [creating, setCreating] = useState(false);
 	// A folder without Git: the error offers to make it a project.
 	const [plain, setPlain] = useState<string | null>(null);
-
-	const run = async (start: () => Promise<ProjectOutcome | null>) => {
+	const run = async (start: () => Promise<ProjectOutcome | null | undefined>) => {
 		setBusy(true);
 		setError(null);
 		setPlain(null);
@@ -148,206 +146,189 @@ export function FirstRun() {
 			}
 			return o;
 		});
+	return { run, error, busy, plain, makeProject };
+}
 
-	const back = (
-		<Button variant="ghost" onClick={() => setStep("start")}>
-			{t.projects.back}
-		</Button>
+/** The error line of a start, with Make it a project for a folder with no Git. */
+export function StartError({ start }: { start: ReturnType<typeof useProjectStart> }) {
+	const { t } = useI18n();
+	const { error, plain, busy, makeProject } = start;
+	if (!error) return null;
+	return (
+		<div className="flex items-center gap-3">
+			<ErrorNotice error={error} className="flex-1 text-ui text-danger-text" />
+			{plain ? (
+				<Button
+					variant="primary"
+					className="min-h-control"
+					disabled={busy}
+					onClick={() => void makeProject(plain)}
+				>
+					{t.projects.makeProject}
+				</Button>
+			) : null}
+		</div>
 	);
+}
 
-	const big =
-		"h-28 w-full flex-col items-start justify-between whitespace-normal rounded-xl p-4 text-left text-14";
-	const tile = "flex size-9 items-center justify-center rounded-lg";
+/** The columns of the tiles of the first run: three in the 780 px column. */
+const GRID = cn(
+	TILE_GRID,
+	"w-full max-w-195 grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))]",
+);
+
+/**
+ * The first run: a bare page with one question for each step. The role, then the start (open a
+ * folder, clone, create), then the address of the clone. The page shows without the shell.
+ */
+export function FirstRun() {
+	useBare();
+	const { t } = useI18n();
+	const { role, loaded, setPrefs } = usePrefs();
+	const { openFolder, clone, switchTo } = useProjectActions();
+	const qc = useQueryClient();
+	const start = useProjectStart();
+	const { run, busy } = start;
+	const projects = useProjects().data;
+	const recent = [...(projects ?? [])].sort((a, b) => b.lastUsed - a.lastUsed).slice(0, 5);
+	// The role step shows only for a person with no saved role and no project. Nothing shows before the prefs and the list load.
+	const [chosen, setStep] = useState<Step | null>(null);
+	const step: Step | null =
+		chosen ?? (loaded && projects ? (role !== "none" || projects.length ? "start" : "role") : null);
+	// The role counts as a step only when the role step showed.
+	const sawRole = useRef(false);
+	if (step === "role") sawRole.current = true;
+	const steps: Step[] = sawRole.current ? ["role", "start", "clone"] : ["start", "clone"];
+	// A click on a tile picks the role, from the saved one. Continue saves it.
+	const [picked, setPick] = useState<Role | null>(null);
+	const pick = picked ?? role;
+	// After a change of step the keyboard focus moves to the question.
+	const question = useRef<HTMLHeadingElement>(null);
+	useEffect(() => {
+		if (chosen) question.current?.focus();
+	}, [chosen]);
+	const [url, setUrl] = useState("");
+	const [folder, setFolder] = useCloneFolder();
+	const router = useRouter();
+	if (!step) return null;
 
 	return (
-		<div className="flex flex-col items-center px-8 py-12">
-			<div className="flex w-full max-w-3xl flex-col gap-8">
-				<div className="flex items-center gap-4">
-					<span className="flex size-12 items-center justify-center rounded-xl border bg-surface-2 shadow-glow">
-						<img src={logo} alt="" className="size-8" />
-					</span>
-					<h1 className="flex-1 text-20 font-semibold text-n-12">{t.ui.welcome}</h1>
-				</div>
-				{step === "role" ? (
-					<section aria-labelledby="first-run-role" className="flex flex-col gap-2">
-						<h2
-							id="first-run-role"
-							className="flex items-center gap-2 text-14 font-medium text-n-12"
-						>
-							<span
-								aria-hidden="true"
-								className="flex size-5 items-center justify-center rounded-full bg-n-4 font-mono text-11"
-							>
-								1
-							</span>
-							{t.prefs.role}
-						</h2>
-						<div
-							role="radiogroup"
-							aria-labelledby="first-run-role"
-							className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-						>
-							{([...ROLES, "none"] as const).map((r) => {
-								const Icon = ROLE_ICON[r];
-								return (
-									<label
-										key={r}
-										className="flex h-12 cursor-pointer items-center gap-2.5 rounded-lg border bg-surface-2 px-3 text-ui text-n-12 shadow-1 transition-colors duration-(--duration-fast) hover:bg-n-3 has-checked:border-accent has-checked:bg-accent-soft has-checked:shadow-glow has-focus-visible:outline-[length:var(--focus-width,2px)] has-focus-visible:outline-accent"
-									>
-										<input
-											type="radio"
-											name="role"
-											value={r}
-											checked={pick === r}
-											onChange={() => setPick(r)}
-											className="sr-only"
-										/>
-										<Icon size={16} />
-										<span className="min-w-0 truncate">{t.role[r]}</span>
-									</label>
-								);
-							})}
-						</div>
-						<div className="flex justify-end">
-							<Button
-								variant="primary"
-								onClick={() => {
-									setPrefs({ role: pick });
-									setStep("start");
-								}}
-							>
-								{t.onboarding.continue}
-							</Button>
-						</div>
-					</section>
-				) : null}
-				{step === "start" ? (
-					<section aria-labelledby="first-run-start" className="flex flex-col gap-2">
-						<h2
-							id="first-run-start"
-							ref={startHead}
-							tabIndex={-1}
-							className="flex items-center gap-2 text-14 font-medium text-n-12 outline-none"
-						>
-							{sawRole.current ? (
-								<span
-									aria-hidden="true"
-									className="flex size-5 items-center justify-center rounded-full bg-n-4 font-mono text-11"
-								>
-									2
-								</span>
-							) : null}
-							{t.projects.switcher}
-						</h2>
-						<div className="grid gap-3 sm:grid-cols-3">
-							<button
-								type="button"
-								disabled={busy}
-								onClick={() => run(openFolder)}
-								className={cn(
-									big,
-									"border-transparent bg-accent-gradient text-accent-fg shadow-glow hover:brightness-110",
-								)}
-							>
-								<span aria-hidden="true" className={cn(tile, "bg-surface-0/25")}>
-									<FolderOpenIcon size={20} />
-								</span>
-								{t.projects.open}
-							</button>
-							<button
-								type="button"
-								onClick={() => setStep("clone")}
-								className={cn(big, "bg-surface-2 text-n-12")}
-							>
-								<span aria-hidden="true" className={cn(tile, "bg-info-soft text-info-text")}>
-									<ArrowDownTrayIcon size={20} />
-								</span>
-								{t.projects.clone}
-							</button>
-							<button
-								type="button"
-								onClick={() => setCreating(true)}
-								className={cn(big, "bg-surface-2 text-n-12")}
-							>
-								<span aria-hidden="true" className={cn(tile, "bg-success-soft text-success-text")}>
-									<PlusIcon size={20} />
-								</span>
-								{t.projects.create}
-							</button>
-						</div>
-					</section>
-				) : step === "clone" ? (
-					<div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-xl border bg-surface-1 p-4 shadow-2">
-						<h2 className="flex items-center gap-2 text-14 font-medium text-n-12">
-							<ArrowDownTrayIcon size={16} />
-							{t.projects.clone}
-						</h2>
-						<RepoPicker folder={folder} onDone={() => void qc.invalidateQueries()} />
-						<Input
-							label={t.projects.address}
-							placeholder={t.projects.address}
-							value={url}
-							onChange={(e) => setUrl(e.target.value)}
+		<div className="flex min-h-full flex-col items-center justify-center gap-9 px-4 py-12">
+			<span aria-hidden="true" className={MARK} />
+			<StepBar
+				total={steps.length}
+				current={steps.indexOf(step) + 1}
+				label={format(t.factory.stepOf, { n: steps.indexOf(step) + 1, total: steps.length })}
+				className="gap-2 *:w-11"
+			/>
+			<h1
+				id="first-run-question"
+				ref={question}
+				tabIndex={-1}
+				className="text-center text-44 font-semibold text-n-12 outline-none"
+			>
+				{step === "role" ? t.projects.job : step === "start" ? t.projects.start : t.projects.clone}
+			</h1>
+			{step === "role" ? (
+				<>
+					{/* biome-ignore lint/a11y/useSemanticElements: a fieldset needs a legend, and the question is the h1 */}
+					<div role="group" aria-labelledby="first-run-question" className={GRID}>
+						{ROLE_ORDER.map((r) => {
+							const Icon = ROLE_ICON[r];
+							return (
+								<Tile
+									key={r}
+									icon={<Icon size={24} />}
+									label={r === "viewer" ? t.home.roles.viewer : t.role[r]}
+									selected={pick === r}
+									onClick={() => setPick(r)}
+								/>
+							);
+						})}
+					</div>
+					<Button
+						variant="primary"
+						size="lg"
+						className="min-w-55"
+						onClick={() => {
+							setPrefs({ role: pick });
+							setStep("start");
+						}}
+					>
+						{t.onboarding.continue}
+					</Button>
+				</>
+			) : step === "start" ? (
+				<>
+					{/* biome-ignore lint/a11y/useSemanticElements: a fieldset needs a legend, and the question is the h1 */}
+					<div role="group" aria-labelledby="first-run-question" className={GRID}>
+						<Tile
+							icon={<FolderOpenIcon size={24} />}
+							label={t.projects.open}
+							disabled={busy}
+							onClick={() => run(openFolder)}
 						/>
-						<FolderField path={folder} onPick={setFolder} />
-						<div className="flex justify-between">
-							{back}
-							<Button
-								variant="primary"
-								disabled={busy || !url.trim() || !folder || !repoName(url)}
-								onClick={() => run(() => clone(url.trim(), `${folder}/${repoName(url)}`))}
-							>
-								{t.projects.cloneRun}
-							</Button>
-						</div>
+						<Tile
+							icon={<ArrowDownTrayIcon size={24} />}
+							label={t.projects.clone}
+							onClick={() => setStep("clone")}
+						/>
+						<Tile
+							icon={<PlusIcon size={24} />}
+							label={t.projects.create}
+							onClick={() => router.history.push("/projects/new")}
+						/>
 					</div>
-				) : null}
-				{error ? (
-					<div className="flex items-center gap-3">
-						<ErrorNotice error={error} className="flex-1 text-ui text-danger-text" />
-						{plain ? (
-							<Button variant="primary" disabled={busy} onClick={() => void makeProject(plain)}>
-								{t.projects.makeProject}
-							</Button>
-						) : null}
-					</div>
-				) : null}
-				{step === "start" && recent.length ? (
-					<section aria-labelledby="recent-projects" className="flex flex-col gap-2">
-						<h2 id="recent-projects" className="text-12 font-medium text-n-11">
-							{t.projects.recent}
-						</h2>
-						<ul aria-label={t.projects.recent} className="grid gap-2 sm:grid-cols-2">
-							{recent.map((p) => (
-								<li
-									key={p.id}
-									className="flex items-center gap-3 rounded-lg border bg-surface-2 px-3 py-2 shadow-1 transition-shadow duration-(--duration-base) hover:shadow-2"
-								>
-									<span
-										aria-hidden="true"
-										className={cn(tile, "bg-n-3 font-mono text-14 text-n-12")}
-									>
-										{p.name.slice(0, 1).toUpperCase()}
-									</span>
-									<span className="flex min-w-0 flex-1 flex-col">
-										<Button
-											variant="ghost"
+					{recent.length ? (
+						<section
+							aria-labelledby="recent-projects"
+							className="flex w-full max-w-195 flex-col gap-3"
+						>
+							<h2 id="recent-projects" className="text-17 font-semibold text-n-12">
+								{t.projects.recent}
+							</h2>
+							<ul aria-label={t.projects.recent} className="flex flex-col gap-2.5">
+								{recent.map((p) => (
+									<li key={p.id}>
+										<Option
 											title={p.path}
-											className="h-auto justify-start p-0 text-ui hover:bg-transparent hover:underline"
+											disabled={busy}
 											onClick={() => run(() => switchTo(p.id))}
 										>
 											<StatusDot status={STATE_DOT[p.state]} label={t.projects.state[p.state]} />
 											{p.name}
-										</Button>
-										<span className="truncate font-mono text-11 text-n-10">{p.path}</span>
-									</span>
-								</li>
-							))}
-						</ul>
-					</section>
-				) : null}
-				<NewProjectDialog open={creating} onClose={() => setCreating(false)} />
-			</div>
+										</Option>
+									</li>
+								))}
+							</ul>
+						</section>
+					) : null}
+				</>
+			) : (
+				<Card pad className="flex w-full max-w-md flex-col gap-3">
+					<RepoPicker folder={folder} onDone={() => void qc.invalidateQueries()} />
+					<Input
+						label={t.projects.address}
+						placeholder={t.projects.address}
+						value={url}
+						onChange={(e) => setUrl(e.target.value)}
+					/>
+					<FolderField path={folder} onPick={setFolder} />
+					<div className="flex justify-between">
+						<Button variant="ghost" onClick={() => setStep("start")}>
+							{t.projects.back}
+						</Button>
+						<Button
+							variant="primary"
+							disabled={busy || !url.trim() || !folder || !repoName(url)}
+							onClick={() => run(() => clone(url.trim(), `${folder}/${repoName(url)}`))}
+						>
+							{t.projects.cloneRun}
+						</Button>
+					</div>
+				</Card>
+			)}
+			<StartError start={start} />
 		</div>
 	);
 }

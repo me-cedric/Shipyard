@@ -14,7 +14,7 @@ describe("Onboarding tour", () => {
 	it("does not open at the first launch, before a project", async () => {
 		mockState().prefs.tourSeen = false;
 		mountApp("/home/today");
-		await screen.findByRole("heading", { level: 1, name: en.ui.welcome });
+		await screen.findByRole("heading", { level: 1, name: en.projects.job });
 		expect(screen.queryByRole("dialog")).toBeNull();
 		expect(mockState().prefs.tourSeen).toBe(false);
 	});
@@ -27,9 +27,11 @@ describe("Onboarding tour", () => {
 		const dialog = await screen.findByRole("dialog", { name: titles[0] });
 		// The glossary words of the sentence are marked (REQ-008).
 		const body = within(dialog).getByText(
-			(_, el) => el?.tagName === "P" && !!el.textContent?.startsWith("Design, specs"),
+			// The sentence names the six places and Setup, not the spaces of before (adr:0023).
+			(_, el) => el?.tagName === "P" && !!el.textContent?.startsWith("Today, Flow, Plan, Crew"),
 		);
-		expect(within(body).getByRole("button", { name: "specs" })).toBeInTheDocument();
+		expect(body).toHaveTextContent("Setup");
+		expect(within(body).getByRole("button", { name: "pull request" })).toBeInTheDocument();
 		expect(within(dialog).getByText("Step 1 of 6")).toBeInTheDocument();
 		await user.click(within(dialog).getByRole("button", { name: o.next }));
 		expect(await screen.findByRole("dialog", { name: titles[1] })).toBeInTheDocument();
@@ -42,14 +44,31 @@ describe("Onboarding tour", () => {
 		await waitFor(() => expect(mockState().prefs.tourSeen).toBe(true));
 	});
 
+	it("skips the tour with Skip the tour and marks it as seen", async () => {
+		const user = userEvent.setup();
+		mockState().prefs.tourSeen = false;
+		await openProject();
+		mountApp("/home/today");
+		const dialog = await screen.findByRole("dialog", { name: titles[0] });
+		expect(within(dialog).queryByRole("button", { name: en.common.close })).toBeNull();
+		await user.click(within(dialog).getByRole("button", { name: o.skip }));
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		await waitFor(() => expect(mockState().prefs.tourSeen).toBe(true));
+	});
+
 	it("stays closed once seen, replays from the palette at step 1 and ends on the manual", async () => {
 		const user = userEvent.setup();
+		// The first run shows without the shell: the Ask bar needs an open project.
+		await openProject();
 		const router = mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		expect(screen.queryByRole("dialog")).toBeNull();
 		await user.keyboard("{Control>}k{/Control}");
-		await user.type(await screen.findByRole("combobox"), o.replay);
-		await user.keyboard("{Enter}");
+		await user.type(
+			await screen.findByRole("combobox", { name: "Ask or tell Shipyard" }),
+			o.replay,
+		);
+		await user.keyboard("{ArrowDown}{Enter}");
 		const first = await screen.findByRole("dialog", { name: titles[0] });
 		expect(within(first).queryByRole("button", { name: o.back })).toBeNull();
 		for (const title of titles.slice(1)) {
@@ -58,7 +77,7 @@ describe("Onboarding tour", () => {
 		}
 		expect(screen.queryByRole("button", { name: o.next })).toBeNull();
 		await user.click(screen.getByRole("button", { name: o.manual }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/knowledge/manual"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/manual"));
 		expect(screen.queryByRole("dialog")).toBeNull();
 	});
 
@@ -96,8 +115,8 @@ describe("Onboarding tour", () => {
 		await user.tab();
 		await screen.findByRole("link", { name: en.glossary.manual });
 		await user.tab();
-		await user.keyboard("{Enter}");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/knowledge/manual"));
+		await user.keyboard("{ArrowDown}{Enter}");
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/manual"));
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	});
 
@@ -162,10 +181,29 @@ describe("Onboarding tour", () => {
 		expect(within(files).getByRole("button", { name: o.permissions.allow })).toBeInTheDocument();
 	});
 
-	it("shows the permissions and Replay the tour in Settings / Me", async () => {
+	it("asks for each permission that was not asked after one click on Allow all", async () => {
+		const user = userEvent.setup();
+		mockState().prefs.tourSeen = false;
+		await openProject();
+		mountApp("/home/today");
+		await screen.findByRole("dialog", { name: titles[0] });
+		for (let i = 0; i < 4; i++) await user.keyboard("{ArrowRight}");
+		const dialog = await screen.findByRole("dialog", { name: o.steps.permissions.title });
+		await user.click(await within(dialog).findByRole("button", { name: o.permissions.allowAll }));
+		await waitFor(() =>
+			expect(mockState().permissions.every((p) => p.state !== "notAsked")).toBe(true),
+		);
+		await waitFor(() =>
+			expect(within(dialog).queryByRole("button", { name: o.permissions.allowAll })).toBeNull(),
+		);
+	});
+
+	it("shows the permissions and Replay the tour in Setup / This computer", async () => {
 		const user = userEvent.setup();
 		mockState().permissions[1] = { kind: "files", state: "off", settings: true };
-		mountApp("/settings/me");
+		// The old address of the permissions opens This computer.
+		const router = mountApp("/settings/me#section-permissions");
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/computer"));
 		const files = await screen.findByRole("group", { name: o.permissions.kind.files });
 		expect(within(files).getByText(o.permissions.state.off)).toBeInTheDocument();
 		expect(within(files).getByRole("button", { name: o.permissions.settings })).toBeInTheDocument();

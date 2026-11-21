@@ -20,13 +20,225 @@ pub fn list(s: &AppState) -> Res<Vec<PageEntry>> {
     Ok(decks(&p.root, p.file.path("slides")))
 }
 
-/// The file of a deck: an `.html` file in the slides folder of the active project.
+/// The file of a deck: an `.html` or `.md` file in the slides folder of the active project.
 fn deck_file(s: &AppState, rel: &str) -> Res<PathBuf> {
     let p = project(s)?;
-    if !rel.ends_with(".html") {
+    if !(rel.ends_with(".html") || rel.ends_with(".md")) {
         return Err(format!("path not allowed: {rel}"));
     }
     resolve_in(&p.root, &p.file, rel, &["slides"])
+}
+
+/// A theme value goes into a style sheet: only the characters of a colour or a font name pass.
+fn css_value<'a>(value: &'a str, fallback: &'a str) -> &'a str {
+    let ok = !value.is_empty()
+        && value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || " #(),.%-'".contains(c));
+    if ok { value } else { fallback }
+}
+
+fn esc(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+/// `**bold**`, `*em*` and `` `code` `` in one line. The text is escaped first: no raw HTML passes.
+fn inline(text: &str) -> String {
+    fn pair(text: &str, mark: &str, tag: &str) -> String {
+        let parts: Vec<&str> = text.split(mark).collect();
+        // An odd number of marks leaves the last one as text.
+        let paired = parts.len() - (1 - parts.len() % 2);
+        let mut out = String::new();
+        for (i, part) in parts.iter().enumerate() {
+            match (i, i < paired) {
+                (0, _) => out.push_str(part),
+                (_, true) if i % 2 == 1 => out.push_str(&format!("<{tag}>{part}</{tag}>")),
+                (_, true) => out.push_str(part),
+                _ => out.push_str(&format!("{mark}{part}")),
+            }
+        }
+        out
+    }
+    let escaped = esc(text);
+    let parts: Vec<&str> = escaped.split('`').collect();
+    let paired = parts.len() - (1 - parts.len() % 2);
+    let mut out = String::new();
+    for (i, part) in parts.iter().enumerate() {
+        if i % 2 == 1 && i < paired {
+            out.push_str(&format!("<code>{part}</code>"));
+        } else {
+            let sep = if i > 0 && i % 2 == 1 { "`" } else { "" };
+            out.push_str(&format!(
+                "{sep}{}",
+                pair(&pair(part, "**", "strong"), "*", "em")
+            ));
+        }
+    }
+    out
+}
+
+/// A slide without its speaker note: the `Note:` line and the lines after it (not in a code fence).
+fn without_note(slide: &str) -> String {
+    let mut fenced = false;
+    let mut kept = Vec::new();
+    for line in slide.lines() {
+        if line.trim_start().starts_with("```") {
+            fenced = !fenced;
+        }
+        if !fenced && line.starts_with("Note:") {
+            break;
+        }
+        kept.push(line);
+    }
+    kept.join("\n")
+}
+
+/// Markdown of one slide as HTML: headings, lists, tables, code fences and paragraphs.
+fn slide_html(md: &str) -> String {
+    let mut out = String::new();
+    let mut para: Vec<String> = Vec::new();
+    let mut list: Option<(&str, Vec<String>)> = None;
+    let mut table: Vec<Vec<String>> = Vec::new();
+    let mut fence: Option<Vec<&str>> = None;
+    let cells = |l: &str| -> Vec<String> {
+        l.trim()
+            .trim_matches('|')
+            .split('|')
+            .map(|c| c.trim().to_string())
+            .collect()
+    };
+    macro_rules! flush {
+        () => {
+            if !para.is_empty() {
+                out.push_str(&format!("<p>{}</p>", inline(&para.join(" "))));
+                para.clear();
+            }
+            if let Some((tag, items)) = list.take() {
+                let li: String = items
+                    .iter()
+                    .map(|i| format!("<li>{}</li>", inline(i)))
+                    .collect();
+                out.push_str(&format!("<{tag}>{li}</{tag}>"));
+            }
+            if !table.is_empty() {
+                let row = |r: &Vec<String>, tag: &str| -> String {
+                    let c: String = r
+                        .iter()
+                        .map(|c| format!("<{tag}>{}</{tag}>", inline(c)))
+                        .collect();
+                    format!("<tr>{c}</tr>")
+                };
+                let (head, rows) = table.split_first().expect("a row");
+                let body: String = rows.iter().map(|r| row(r, "td")).collect();
+                out.push_str(&format!("<table>{}{body}</table>", row(head, "th")));
+                table.clear();
+            }
+        };
+    }
+    for line in md.lines() {
+        if let Some(code) = fence.as_mut() {
+            if line.trim_start().starts_with("```") {
+                out.push_str(&format!(
+                    "<pre><code>{}</code></pre>",
+                    esc(&code.join("\n"))
+                ));
+                fence = None;
+            } else {
+                code.push(line);
+            }
+            continue;
+        }
+        let t = line.trim();
+        if t.starts_with("```") {
+            flush!();
+            fence = Some(Vec::new());
+        } else if t.is_empty() {
+            flush!();
+        } else if let Some(h) = t.strip_prefix('#').map(|_| t.trim_start_matches('#')) {
+            flush!();
+            let level = (t.len() - h.len()).min(6);
+            out.push_str(&format!("<h{level}>{}</h{level}>", inline(h.trim())));
+        } else if t.starts_with('|') {
+            if !list.is_none() || !para.is_empty() {
+                flush!();
+            }
+            // The separator row `| --- | --- |` has no cell of text.
+            if !cells(t)
+                .iter()
+                .all(|c| c.chars().all(|ch| ch == '-' || ch == ':'))
+            {
+                table.push(cells(t));
+            }
+        } else if let Some(item) = t
+            .strip_prefix("- ")
+            .or_else(|| t.strip_prefix("* "))
+            .or_else(|| t.strip_prefix("+ "))
+        {
+            if para.len() + table.len() > 0 {
+                flush!();
+            }
+            list.get_or_insert(("ul", Vec::new()))
+                .1
+                .push(item.to_string());
+        } else if let Some((_, item)) = t
+            .split_once(". ")
+            .filter(|(n, _)| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()))
+        {
+            if para.len() + table.len() > 0 {
+                flush!();
+            }
+            list.get_or_insert(("ol", Vec::new()))
+                .1
+                .push(item.to_string());
+        } else {
+            if list.is_some() || !table.is_empty() {
+                flush!();
+            }
+            para.push(t.to_string());
+        }
+    }
+    if let Some(code) = fence {
+        out.push_str(&format!(
+            "<pre><code>{}</code></pre>",
+            esc(&code.join("\n"))
+        ));
+    }
+    flush!();
+    out
+}
+
+/// The print page of a Markdown deck: one 1920 x 1080 page for each slide in the colours of the
+/// deck theme, with no script and no speaker note. The PDF export prints it like an HTML deck.
+fn print_page(text: &str, theme: &shipyard_store::knowledge::DeckTheme) -> String {
+    let deck = shipyard_store::knowledge::parse_deck(text, "deck");
+    let slides: String = deck
+        .slides
+        .iter()
+        .map(|s| without_note(s))
+        .filter(|s| !s.trim().is_empty())
+        .map(|s| format!("<section class=\"slide\">{}</section>", slide_html(&s)))
+        .collect();
+    format!(
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>{}</title><style>\
+@page{{size:1920px 1080px;margin:0}}\
+html,body{{margin:0}}\
+body{{background:{};color:{};font:40px/1.45 {}}}\
+.slide{{box-sizing:border-box;width:1920px;height:1080px;padding:96px 128px;overflow:hidden;break-after:page;display:flex;flex-direction:column;justify-content:center;gap:24px;background:{}}}\
+h1{{font-size:96px;margin:0}}h2{{font-size:72px;margin:0}}h3,h4,h5,h6{{font-size:52px;margin:0}}p,ul,ol,pre{{margin:0}}\
+li{{margin:8px 0}}code{{font-family:ui-monospace,monospace;color:{}}}\
+table{{border-collapse:collapse}}th,td{{padding:12px 24px;text-align:left;border-bottom:2px solid {}}}\
+</style></head><body>{slides}</body></html>",
+        esc(&deck.title),
+        css_value(&theme.background, "#ffffff"),
+        css_value(&theme.text, "#1a1a1a"),
+        css_value(&theme.font, "system-ui"),
+        css_value(&theme.background, "#ffffff"),
+        css_value(&theme.accent, "#2563eb"),
+        css_value(&theme.accent, "#2563eb"),
+    )
 }
 
 /// `%XX` escapes to bytes, as `encodeURIComponent` writes them.
@@ -47,12 +259,47 @@ fn decode(text: &str) -> Option<String> {
     String::from_utf8(out).ok()
 }
 
+/// The report pages that the print window may load, by their `print-<n>` name. A page lives from
+/// `keep_page` to `drop_page`: the PDF export of a text report prints it.
+static PAGES: std::sync::Mutex<Vec<(String, String)>> = std::sync::Mutex::new(Vec::new());
+
+fn keep_page(html: String) -> String {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static N: AtomicU64 = AtomicU64::new(0);
+    let token = format!("print-{}", N.fetch_add(1, Ordering::Relaxed));
+    PAGES.lock().expect("pages").push((token.clone(), html));
+    token
+}
+
+fn drop_page(token: &str) {
+    PAGES.lock().expect("pages").retain(|(t, _)| t != token);
+}
+
+/// The bytes that the deck protocol gives for `rel`: a report page that was kept, a deck of the
+/// slides folder, or a Markdown deck as its print page.
+fn body_of(s: &AppState, rel: &str) -> Res<Vec<u8>> {
+    if rel.starts_with("print-") {
+        return PAGES
+            .lock()
+            .expect("pages")
+            .iter()
+            .find(|(t, _)| t == rel)
+            .map(|(_, html)| html.clone().into_bytes())
+            .ok_or_else(|| "no such page".to_string());
+    }
+    let bytes = std::fs::read(deck_file(s, rel)?).map_err(err)?;
+    if !rel.ends_with(".md") {
+        return Ok(bytes);
+    }
+    let text = String::from_utf8(bytes).map_err(err)?;
+    Ok(print_page(&text, &crate::knowledge::theme_get(s)?.loaded.value).into_bytes())
+}
+
 /// The answer of the `deck` protocol for the path of a request (`/<encoded repository path>`).
 pub fn respond(s: &AppState, uri_path: &str) -> Response<Vec<u8>> {
     let read = decode(uri_path.trim_start_matches('/'))
         .ok_or_else(|| "bad path".to_string())
-        .and_then(|rel| deck_file(s, &rel))
-        .and_then(|full| std::fs::read(full).map_err(err));
+        .and_then(|rel| body_of(s, &rel));
     let (status, body) = match read {
         Ok(bytes) => (StatusCode::OK, bytes),
         Err(_) => (StatusCode::NOT_FOUND, Vec::new()),
@@ -90,7 +337,7 @@ pub async fn deck_pdf(app: AppHandle, path: String, dest: String) -> Api<()> {
     })
     .await?;
     let (handle, out) = (app.clone(), tmp.clone());
-    tauri::async_runtime::spawn_blocking(move || print_pdf(&handle, &path, &out))
+    tauri::async_runtime::spawn_blocking(move || print_pdf(&handle, &path, &out, Paper::Slide))
         .await
         .map_err(err)??;
     blocking(app, move |s| {
@@ -101,17 +348,46 @@ pub async fn deck_pdf(app: AppHandle, path: String, dest: String) -> Api<()> {
     .await
 }
 
+/// The page of a PDF: a 16:9 slide with no margin, or an A4 page of a text report.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Paper {
+    Slide,
+    A4,
+}
+
+/// The PDF of an HTML page, printed in the hidden window like a deck. The page is kept for the
+/// print window only while it prints (`spec:library-functions#REQ-006`, macOS first).
+pub(crate) async fn print_html(app: &AppHandle, html: String, paper: Paper) -> Res<Vec<u8>> {
+    let token = keep_page(html);
+    let (handle, name) = (app.clone(), token.clone());
+    let tmp = {
+        let state = app.state::<AppState>();
+        state
+            .dir
+            .join(format!("report-print-{}.pdf", std::process::id()))
+    };
+    let out = tmp.clone();
+    let done = tauri::async_runtime::spawn_blocking(move || print_pdf(&handle, &name, &out, paper))
+        .await
+        .map_err(err);
+    drop_page(&token);
+    done??;
+    let bytes = std::fs::read(&tmp).map_err(err);
+    let _ = std::fs::remove_file(&tmp);
+    bytes
+}
+
 /// shortcut: macOS only. Windows (WebView2 `PrintToPdf`) and Linux (WebKitGTK print operation)
 /// need their own call; add them when a person exports a deck there.
 #[cfg(not(target_os = "macos"))]
-fn print_pdf(_app: &AppHandle, _rel: &str, _out: &Path) -> Res<()> {
+fn print_pdf(_app: &AppHandle, _rel: &str, _out: &Path, _paper: Paper) -> Res<()> {
     Err("the PDF export of a deck works on macOS only for now".into())
 }
 
 /// A hidden window with JavaScript off loads the deck from the `deck` protocol. WebKit prints it
 /// to `out` with the print style sheet of the deck: the text stays vector text.
 #[cfg(target_os = "macos")]
-fn print_pdf(app: &AppHandle, rel: &str, out: &Path) -> Res<()> {
+fn print_pdf(app: &AppHandle, rel: &str, out: &Path, paper: Paper) -> Res<()> {
     use std::time::Duration;
     use tauri::webview::PageLoadEvent;
     use tauri::{WebviewUrl, WebviewWindowBuilder};
@@ -137,7 +413,7 @@ fn print_pdf(app: &AppHandle, rel: &str, out: &Path) -> Res<()> {
             let to = out.to_path_buf();
             // Safety: on macOS the platform webview is a `WKWebView`; the call runs on the main thread.
             window
-                .with_webview(move |v| unsafe { print_to(v.inner().cast(), &to) })
+                .with_webview(move |v| unsafe { print_to(v.inner().cast(), &to, paper) })
                 .map_err(err)
         })
         .and_then(|()| wait_for(out, Duration::from_secs(60)));
@@ -190,7 +466,7 @@ fn pdf_done(out: &Path) -> bool {
 
 /// A save job to `out` on a 16:9 page with no margin, without a panel.
 #[cfg(target_os = "macos")]
-unsafe fn print_to(view: *mut objc2_web_kit::WKWebView, out: &Path) {
+unsafe fn print_to(view: *mut objc2_web_kit::WKWebView, out: &Path, paper: Paper) {
     use objc2_app_kit::{
         NSPrintInfo, NSPrintJobSavingURL, NSPrintSaveJob, NSPrintingPaginationMode,
     };
@@ -205,12 +481,17 @@ unsafe fn print_to(view: *mut objc2_web_kit::WKWebView, out: &Path) {
         info.setJobDisposition(NSPrintSaveJob);
         info.dictionary().insert(NSPrintJobSavingURL, &url);
     }
-    // A slide is 1920 x 1080 CSS pixels: 1440 x 810 points.
-    info.setPaperSize(NSSize::new(1440.0, 810.0));
-    info.setTopMargin(0.0);
-    info.setBottomMargin(0.0);
-    info.setLeftMargin(0.0);
-    info.setRightMargin(0.0);
+    // A slide is 1920 x 1080 CSS pixels: 1440 x 810 points, with no margin. A report is A4 with a
+    // margin of 50 points, and its text flows over the pages.
+    let (size, margin) = match paper {
+        Paper::Slide => (NSSize::new(1440.0, 810.0), 0.0),
+        Paper::A4 => (NSSize::new(595.0, 842.0), 50.0),
+    };
+    info.setPaperSize(size);
+    info.setTopMargin(margin);
+    info.setBottomMargin(margin);
+    info.setLeftMargin(margin);
+    info.setRightMargin(margin);
     info.setHorizontalPagination(NSPrintingPaginationMode::Fit);
     // Safety: the operation and the window belong to this view, on the main thread.
     unsafe {
@@ -258,12 +539,76 @@ mod tests {
 
         for bad in [
             "/docs%2Fhandbook%2Fx.html",
-            "/docs%2Fslides%2Fold.md",
+            "/docs%2Fhandbook%2Fx.md",
             "/docs%2Fslides%2F..%2Fhandbook%2Fx.html",
             "/docs%2Fslides%2Fa%ZZb.html",
         ] {
             assert_eq!(respond(&f.s, bad).status(), StatusCode::NOT_FOUND, "{bad}");
         }
+    }
+
+    #[test]
+    fn a_markdown_deck_is_served_as_a_print_page_with_no_notes_and_no_raw_html() {
+        let f = fx();
+        put(
+            f.repo.path(),
+            "docs/slides/old.md",
+            "# Old\n\n**Bold** and `code` <script>x</script>\n\n---\n\n## Two\n\n- a\n- b\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\nNote: say this aloud\n",
+        );
+        let ok = respond(&f.s, &format!("/{}", encode("docs/slides/old.md")));
+        assert_eq!(ok.status(), StatusCode::OK);
+        let html = String::from_utf8(ok.body().clone()).unwrap();
+        assert_eq!(
+            html.matches("<section class=\"slide\">").count(),
+            2,
+            "{html}"
+        );
+        assert!(html.contains("<h1>Old</h1>"));
+        assert!(html.contains("<strong>Bold</strong> and <code>code</code>"));
+        assert!(html.contains("&lt;script&gt;x&lt;/script&gt;"));
+        assert!(!html.contains("<script>"));
+        assert!(html.contains("<ul><li>a</li><li>b</li></ul>"));
+        assert!(html.contains("<th>A</th>") && html.contains("<td>2</td>"));
+        assert!(!html.contains("say this aloud"), "a note is not printed");
+        assert!(html.contains("@page"));
+        assert!(
+            ok.headers()[header::CONTENT_SECURITY_POLICY]
+                .to_str()
+                .unwrap()
+                .starts_with("default-src 'none'")
+        );
+    }
+
+    #[test]
+    fn a_report_page_is_served_once_to_the_print_window_under_the_strict_policy() {
+        let f = fx();
+        let token = keep_page("<p>report</p>".into());
+        let ok = respond(&f.s, &format!("/{}", encode(&token)));
+        assert_eq!(ok.status(), StatusCode::OK);
+        assert_eq!(ok.body(), b"<p>report</p>");
+        assert!(
+            ok.headers()[header::CONTENT_SECURITY_POLICY]
+                .to_str()
+                .unwrap()
+                .starts_with("default-src 'none'")
+        );
+        drop_page(&token);
+        assert_eq!(
+            respond(&f.s, &format!("/{}", encode(&token))).status(),
+            StatusCode::NOT_FOUND
+        );
+        // A page that was never kept is not found, and no path of the project is read for it.
+        assert_eq!(
+            respond(&f.s, "/print-nothing").status(),
+            StatusCode::NOT_FOUND
+        );
+    }
+
+    #[test]
+    fn a_theme_value_that_could_break_out_of_the_style_is_replaced() {
+        assert_eq!(css_value("#ffffff", "x"), "#ffffff");
+        assert_eq!(css_value("rgb(1, 2, 3)", "x"), "rgb(1, 2, 3)");
+        assert_eq!(css_value("red;}</style><script>", "x"), "x");
     }
 
     #[test]

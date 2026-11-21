@@ -38,12 +38,17 @@ const groups = async (name: string) => {
 };
 const has = (g: HTMLElement) => g.querySelector("[role=combobox], input") !== null;
 const row = async (name: string) => (await groups(name)).find((g) => !has(g)) as HTMLElement;
-const tier = async (name: string) => (await groups(name)).find(has) as HTMLElement;
+// The tier controls have their own names ("Claude Code Top"): the whole page holds them. The
+// default tool shows in the card, the others under "Other AI tools".
+const tier = async (_name: string) => {
+	await screen.findByRole("combobox", { name: "Claude Code Top" });
+	return screen.getByRole("main");
+};
 
 describe("Settings / Agents and rules: model tiers", () => {
 	it("shows the five runners: a picker for a detected tool, free text for the others", async () => {
-		mountApp("/settings/agents-rules");
-		expect(await screen.findByRole("heading", { name: "Model tiers (5)" })).toBeInTheDocument();
+		mountApp("/setup/computer?page=models");
+		expect(await screen.findByRole("region", { name: "Models" })).toBeInTheDocument();
 		const claude = await tier("Claude Code");
 		expect(
 			await within(claude).findByRole("combobox", { name: "Claude Code Top" }),
@@ -61,7 +66,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 	});
 
 	it("shows an effort only for a model that accepts one", async () => {
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const claude = await tier("Claude Code");
 		expect(
 			await within(claude).findByRole("combobox", { name: "Claude Code Top Effort" }),
@@ -79,7 +84,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 
 	it("saves a model and an effort that a person picks, and drops an effort the new model refuses", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const claude = await tier("Claude Code");
 		await user.click(
 			await within(claude).findByRole("combobox", { name: "Claude Code Top Effort" }),
@@ -97,7 +102,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 
 	it("saves a typed tier when the field loses focus", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const field = within(await tier("GitHub Copilot")).getByRole("textbox", {
 			name: "GitHub Copilot Top",
 		});
@@ -112,7 +117,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 
 	it("shows the refusal of a bad model id", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const group = await tier("GitHub Copilot");
 		await user.type(
 			within(group).getByRole("textbox", { name: "GitHub Copilot Mid" }),
@@ -127,7 +132,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 		const user = userEvent.setup();
 		const saved = mockState().factory.tiers.find((r) => r.runner === "codex");
 		if (saved) saved.midEffort = "minimal";
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const codex = await tier("Codex");
 		const mid = await within(codex).findByRole("combobox", { name: "Codex Mid Effort" });
 		expect(mid).toHaveTextContent("minimal (not supported)");
@@ -146,22 +151,23 @@ describe("Settings / Agents and rules: model tiers", () => {
 
 describe("Settings / Agents and rules: tool sign-in", () => {
 	it("shows one row for each tool with its state and one action", async () => {
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const claude = await row("Claude Code");
 		expect(within(claude).getAllByText("Signed in").length).toBeGreaterThan(0);
 		expect(within(claude).queryByRole("button")).toBeNull();
 		const codex = await row("Codex");
 		expect(within(codex).getAllByText("Signed out").length).toBeGreaterThan(0);
 		expect(within(codex).getByRole("button", { name: "Sign in" })).toBeInTheDocument();
-		expect(within(codex).getByRole("button", { name: "Use a code instead" })).toBeInTheDocument();
-		// A missing tool offers its install.
+		expect(screen.getByRole("button", { name: "Use a code instead" })).toBeInTheDocument();
+		// A missing tool shows its state only: the install is on AI tools and connections.
 		const gemini = await row("Gemini CLI");
-		expect(within(gemini).getByRole("button", { name: "Install Gemini CLI" })).toBeInTheDocument();
+		expect(within(gemini).getAllByText("Not installed").length).toBeGreaterThan(0);
+		expect(within(gemini).queryByRole("button")).toBeNull();
 	});
 
 	it("asks before it installs a missing tool, and names the tool", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer");
 		const gemini = await row("Gemini CLI");
 		await user.click(within(gemini).getByRole("button", { name: "Install Gemini CLI" }));
 		await user.click(
@@ -174,7 +180,7 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 
 	it("signs in from the keyboard and shows the new state", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const codex = await row("Codex");
 		within(codex).getByRole("button", { name: "Sign in" }).focus();
 		await user.keyboard("{Enter}");
@@ -186,7 +192,7 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 
 	it("opens the terminal with no project open", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/agents-rules");
+		mountApp("/setup/computer?page=models");
 		const codex = await row("Codex");
 		await user.click(within(codex).getByRole("button", { name: "Sign in" }));
 		const drawer = await screen.findByRole("region", { name: "Terminals" });
@@ -197,19 +203,18 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 	it("saves a Codex API key, then keeps no key in the view", async () => {
 		const user = userEvent.setup();
 		const save = vi.spyOn(commands, "runnerCodexApiKey");
-		mountApp("/settings/agents-rules");
-		const codex = await row("Codex");
-		await user.click(within(codex).getByRole("button", { name: "Use an API key" }));
-		const field = within(codex).getByLabelText("Codex API key");
+		mountApp("/setup/computer?page=models");
+		await user.click(await screen.findByRole("button", { name: "Use an API key" }));
+		const field = screen.getByLabelText("Codex API key");
 		expect(field).toHaveAttribute("type", "password");
 		await user.type(field, "sk-secret-1");
-		await user.click(within(codex).getByRole("button", { name: "Save" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(save).toHaveBeenCalledWith("sk-secret-1", true));
-		await waitFor(() => expect(within(codex).queryByLabelText("Codex API key")).toBeNull());
+		await waitFor(() => expect(screen.queryByLabelText("Codex API key")).toBeNull());
 		expect(document.body.innerHTML).not.toContain("sk-secret-1");
 		// The form opens again with an empty field.
-		await user.click(within(codex).getByRole("button", { name: "Use an API key" }));
-		expect(within(codex).getByLabelText("Codex API key")).toHaveValue("");
+		await user.click(await screen.findByRole("button", { name: "Use an API key" }));
+		expect(screen.getByLabelText("Codex API key")).toHaveValue("");
 		save.mockRestore();
 	});
 
@@ -218,14 +223,62 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 		const save = vi
 			.spyOn(commands, "runnerCodexApiKey")
 			.mockResolvedValueOnce({ status: "error", error: "The key is not valid." } as never);
-		mountApp("/settings/agents-rules");
-		const codex = await row("Codex");
-		await user.click(within(codex).getByRole("button", { name: "Use an API key" }));
-		await user.type(within(codex).getByLabelText("Codex API key"), "sk-bad-2");
-		await user.click(within(codex).getByRole("button", { name: "Save" }));
+		mountApp("/setup/computer?page=models");
+		await user.click(await screen.findByRole("button", { name: "Use an API key" }));
+		await user.type(screen.getByLabelText("Codex API key"), "sk-bad-2");
+		await user.click(screen.getByRole("button", { name: "Save" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("Check the fields, then try again.");
-		expect(within(codex).getByLabelText("Codex API key")).toHaveValue("");
+		expect(screen.getByLabelText("Codex API key")).toHaveValue("");
 		expect(document.body.innerHTML).not.toContain("sk-bad-2");
 		save.mockRestore();
+	});
+});
+
+// spec:shell-setup-rights#REQ-006: each role shows its description and its model tier, and a person changes the tier.
+describe("Settings / Agents and rules: a model for each agent role", () => {
+	it("shows the tier of each role and writes the project file of a bundled role on a change", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		delete mockState().factory.roles.scout;
+		expect(mockState().factory.roles.scout).toBeUndefined();
+		mountApp("/setup/computer?page=models");
+		const scout = await screen.findByRole("combobox", { name: "Model of Scout" });
+		expect(scout).toHaveTextContent("Fast");
+		expect(await screen.findByRole("combobox", { name: "Model of Worker" })).toHaveTextContent(
+			"Standard",
+		);
+		await user.click(scout);
+		await user.click(await screen.findByRole("option", { name: "Standard" }));
+		await waitFor(() => expect(mockState().factory.roles.scout).toContain("model: mid"));
+		// The description of the bundled role stays in the file.
+		expect(mockState().factory.roles.scout).toContain("description:");
+		await waitFor(() =>
+			expect(screen.getByRole("combobox", { name: "Model of Scout" })).toHaveTextContent(
+				"Standard",
+			),
+		);
+	});
+
+	it("is off without the right to change the settings of the project", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mockState().person = {
+			member: "ada",
+			found: "email",
+			role: "developer",
+			admin: false,
+			readOnly: false,
+			rights: ["work.edit"],
+		};
+		mountApp("/setup/computer?page=models");
+		const worker = await screen.findByRole("combobox", { name: "Model of Worker" });
+		await waitFor(() => expect(worker.closest("fieldset")).toBeDisabled());
+		await expect(unwrap(commands.roleModelSet("worker", "top"))).rejects.toBeDefined();
+		expect(mockState().factory.roles.worker).toBeUndefined();
+	});
+
+	it("refuses a tier that does not exist and a role file that is not a name", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await expect(unwrap(commands.roleModelSet("worker", "huge"))).rejects.toBeDefined();
+		await expect(unwrap(commands.roleModelSet("../x", "mid"))).rejects.toBeDefined();
 	});
 });

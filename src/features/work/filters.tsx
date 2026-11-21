@@ -46,13 +46,13 @@ export function ItemFilters({
 	items: WorkItem[];
 	value: Filters;
 	onChange: (next: Filters) => void;
-	fields: ("status" | "assignee" | "label" | "run")[];
+	fields: ("text" | "status" | "assignee" | "label" | "run")[];
 }) {
 	const { t } = useI18n();
 	const w = t.work.backlog;
 	const set = (patch: Partial<Filters>) => onChange({ ...value, ...patch });
 	const select = (
-		field: (typeof fields)[number],
+		field: Exclude<(typeof fields)[number], "text">,
 		label: string,
 		all: string,
 		options: { value: string; label: string }[],
@@ -67,13 +67,15 @@ export function ItemFilters({
 		) : null;
 	return (
 		<>
-			<FilterBar
-				query={value.text}
-				onQueryChange={(text) => set({ text })}
-				filters={[]}
-				active={[]}
-				onToggle={() => {}}
-			/>
+			{fields.includes("text") ? (
+				<FilterBar
+					query={value.text}
+					onQueryChange={(text) => set({ text })}
+					filters={[]}
+					active={[]}
+					onToggle={() => {}}
+				/>
+			) : null}
 			{select(
 				"status",
 				t.sync.backlog.status,

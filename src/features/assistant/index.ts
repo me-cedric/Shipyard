@@ -1,4 +1,4 @@
 export { AskOnItem } from "./ask-menu";
 export { AssistantPanel } from "./panel";
 export { SelectionActions } from "./selection-actions";
-export { type Assistant, useAssistant } from "./use-assistant";
+export { type Assistant, AssistantContext, useAssistant } from "./use-assistant";

@@ -1,30 +1,43 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { emit, listen } from "@tauri-apps/api/event";
-import { useEffect, useRef } from "react";
-import { AgentsToggle } from "@/features/factory/agents-toggle";
+import { useEffect, useRef, useState } from "react";
 import { useCounts } from "@/features/shell/counts";
-import { OPEN_REF_EVENT, PROJECT_SWITCHED_EVENT } from "@/features/shell/events";
+import { OPEN_PATH_EVENT, OPEN_REF_EVENT, PROJECT_SWITCHED_EVENT } from "@/features/shell/events";
 import { useGuard } from "@/features/work/guard";
-import { useDailySpend, useRunActions, useRuns } from "@/lib/factory";
-import { latestPerTicket, useInbox } from "@/lib/home";
+import { useCodeActions } from "@/lib/code";
+import {
+	useDailySpend,
+	useFactoryWrites,
+	useKillSwitch,
+	useRunActions,
+	useRuns,
+} from "@/lib/factory";
+import { latestPerTicket, useNeedsYou } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
 import { useActiveProject, useProjects } from "@/lib/projects";
-import { clock, TICK_EVENT, useSyncState, useSyncTick } from "@/lib/sync";
+import { clock, TICK_EVENT, useSyncNow, useSyncState, useSyncTick } from "@/lib/sync";
+import { Avatar } from "@/ui/atoms/avatar";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { LiveDot } from "@/ui/atoms/live-dot";
 import { Progress } from "@/ui/atoms/progress";
 import { Select } from "@/ui/atoms/select";
 import { Skeleton } from "@/ui/atoms/skeleton";
+import { Switch } from "@/ui/atoms/switch";
+import { ChevronRightIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 
-const FIRST = 3;
 /** The panel is 360 wide and at least 280 high: the window fits the content. */
 const WIDTH = 360;
 const MIN_H = 280;
 /** The panel grows with its content up to this share of the screen, then it scrolls. */
 const MAX_SHARE = 0.8;
+/** The panel lists this many things that need the person; a row opens the rest in Today. */
+const SHOWN = 3;
+/** The panel lists this many working rows; the heading opens all of them in the flow. */
+const SHOWN_RUNS = 2;
 /** The height of the tallest bar, in px: the box of the bars is 40 px. */
 const BAR_H = 40;
 
@@ -34,13 +47,21 @@ export function TrayView() {
 	const u = t.ui.tray;
 	const { tray } = usePrefs();
 	const qc = useQueryClient();
+	// The same list as Today (spec:app-redesign#REQ-008): all of it, the panel scrolls.
+	const { items, timesheet } = useNeedsYou();
+	// The count has the project check, as the menu has.
 	const { needsYou } = useCounts();
-	const inbox = useInbox();
 	const runs = latestPerTicket(useRuns().data ?? []).filter(
 		(r) => r.lane === "working" || r.lane === "needs_you",
 	);
 	const { cancel } = useRunActions();
-	const { error, run } = useGuard();
+	const { error, busy, run } = useGuard();
+	const kill = useKillSwitch().data;
+	const writes = useFactoryWrites();
+	const syncNow = useSyncNow();
+	const { pull } = useCodeActions();
+	// The chart of 7 days and the month are behind the spend figure.
+	const [chart, setChart] = useState(false);
 	// The spend of every AI tool on this computer, as Factory / Usage shows it: Shipyard runs are in it too.
 	const spend = useDailySpend(7);
 	const { monthBudget } = spend;
@@ -50,6 +71,7 @@ export function TrayView() {
 	useSyncTick();
 	const panel = useRef<HTMLElement>(null);
 	const content = useRef<HTMLDivElement>(null);
+	const foot = useRef<HTMLDivElement>(null);
 	// Escape closes the panel. The first control gets focus when the panel opens (the window gets focus).
 	// A panel that opens, or a sync tick, reads everything again: the figures are never old.
 	useEffect(() => {
@@ -86,7 +108,10 @@ export function TrayView() {
 			// The frame adds its border to the height of the content.
 			const frame = el.offsetHeight - el.clientHeight;
 			const max = Math.max(MIN_H, Math.round(window.screen.availHeight * MAX_SHARE));
-			const h = Math.min(max, Math.max(MIN_H, Math.ceil(inner.scrollHeight + frame)));
+			const h = Math.min(
+				max,
+				Math.max(MIN_H, Math.ceil(inner.scrollHeight + (foot.current?.offsetHeight ?? 0) + frame)),
+			);
 			void import("@tauri-apps/api/window")
 				.then((m) => m.getCurrentWindow().setSize(new m.LogicalSize(WIDTH, h)))
 				.catch(() => {});
@@ -104,32 +129,22 @@ export function TrayView() {
 	// The last 7 days, oldest first: a bar each, and a day with no row is a short one.
 	const week = spend.series;
 	const top = Math.max(...week.map((w) => w.usd), 0.01);
-	const items = [
-		...inbox.questions.map((q) => ({
-			id: `q${q.question.id}`,
-			text: `${q.key} ${q.question.question}`,
-			ref: `run:${q.run}`,
-		})),
-		...inbox.approvals.map((a) => ({ id: `a${a.id}`, text: a.summary, ref: `run:${a.run}` })),
-		...inbox.plans.map((r) => ({
-			id: `p${r.id}`,
-			text: `${r.key} ${r.title}`,
-			ref: `run:${r.id}`,
-		})),
-		...inbox.messages.map((m) => ({
-			id: `m${m.run}:${m.n}`,
-			text: `${m.key} ${m.text}`,
-			ref: `run:${m.run}`,
-		})),
-		...inbox.reviews.map((r) => ({ id: `r${r.number}`, text: r.title, ref: r.reference })),
-		...(inbox.timesheet ? [{ id: "timesheet", text: t.home.timesheetDay, ref: "" }] : []),
-	].slice(0, FIRST);
 	const last = Math.max(0, ...sync.map((c) => c.lastOk ?? 0));
 	const failed = sync.some((c) => c.status === "failed");
 	// Open the window on the item: it shows the ref in its inspector.
 	const openItem = async (ref: string) => {
 		await commands.trayOpen();
 		if (ref && isTauri()) await emit(OPEN_REF_EVENT, ref);
+	};
+	// The sync action of the main window: commit when auto-commit is on, one tick, then pull.
+	const syncAll = async () => {
+		await unwrap(commands.autoCommitRun());
+		const tick = await syncNow().then(
+			() => null,
+			(e: unknown) => e,
+		);
+		await pull();
+		if (tick) throw tick;
 	};
 	const switchTo = async (id: string) => {
 		await unwrap(commands.projectsSwitch(id));
@@ -141,108 +156,208 @@ export function TrayView() {
 	return (
 		<main
 			ref={panel}
-			className="max-h-screen overflow-auto rounded-xl border border-n-6 bg-surface-1/80 text-ui text-n-12"
+			className="flex max-h-screen flex-col overflow-hidden rounded-xl border border-n-6 bg-surface-0/90 text-ui text-n-12"
 		>
-			<div ref={content} className="flex flex-col gap-3 p-3">
-				<Select
-					label={t.projects.switcher}
-					placeholder={t.projects.switcher}
-					className="w-full min-w-0 max-w-full shrink"
-					value={active?.id ?? ""}
-					onValueChange={(id) => void run(() => switchTo(id))}
-					items={projects.map((p) => ({ value: p.id, label: p.name }))}
-				/>
-				<section
-					aria-label={t.ui.spendToday}
-					className="flex flex-col gap-2 rounded-lg bg-n-2/60 p-3"
-				>
-					<div className="flex items-end justify-between gap-3">
-						<div className="flex flex-col">
-							<span className="text-12 text-n-11">{t.ui.spendToday}</span>
-							{spend.ready ? (
-								<span className="text-20 font-semibold tabular-nums">{money.format(todayUsd)}</span>
-							) : (
-								<Skeleton className="h-7 w-20" />
-							)}
-						</div>
-						<div className="flex items-baseline gap-1.5">
-							<span className="text-12 text-n-11">{u.month}</span>
-							{spend.ready ? (
-								<span className="text-ui tabular-nums">{money.format(month)}</span>
-							) : (
-								<Skeleton className="h-5 w-12" />
-							)}
-						</div>
+			{/* Only this middle scrolls, and only when the content is taller than the frame. */}
+			<div className="min-h-0 flex-1 overflow-auto">
+				<div ref={content} className="flex flex-col gap-3 p-4 pb-3">
+					<div className="flex min-h-control items-center gap-2.5">
+						<span aria-hidden="true" className="size-7 shrink-0 rounded-sm bg-accent" />
+						{/* The name is the project switch. */}
+						<Select
+							label={t.projects.switcher}
+							placeholder={t.projects.switcher}
+							className="min-w-0 max-w-full shrink border-transparent bg-transparent px-1 font-semibold text-17"
+							value={active?.id ?? ""}
+							onValueChange={(id) => void run(() => switchTo(id))}
+							items={projects.map((p) => ({ value: p.id, label: p.name }))}
+						/>
+						{sync.length && (failed || last > 0) ? (
+							<Badge
+								role="status"
+								dot
+								variant={failed ? "danger" : "success"}
+								title={failed ? undefined : format(u.synced, { time: clock(last, lang) })}
+								className="ml-auto shrink-0"
+							>
+								{failed ? u.syncFailed : u.inSync}
+							</Badge>
+						) : null}
 					</div>
-					<div aria-hidden="true" className="flex h-10 items-end gap-1">
-						{week.map((v, i) => (
-							<span
-								key={v.day}
-								title={`${v.day}: ${money.format(v.usd)}`}
-								style={{ height: `${Math.max(2, (v.usd / top) * BAR_H)}px` }}
-								className={i === 6 ? "flex-1 rounded-sm bg-accent" : "flex-1 rounded-sm bg-n-6"}
-							/>
-						))}
-					</div>
-					{monthBudget == null ? null : (
-						<Progress value={month} max={monthBudget} label={u.month} />
-					)}
-				</section>
-				{runs.length ? (
-					<section aria-label={t.shell.runs} className="flex flex-col">
-						<h2 className="flex items-center gap-2 font-medium">
-							<LiveDot />
-							{format(u.running, { count: runs.length })}
-						</h2>
-						{runs.map((r) => (
-							<div key={r.id} className="flex h-row items-center justify-between gap-2">
-								<span className="truncate">
-									{r.key} {t.factory.lane[r.lane]}
-								</span>
-								<ConfirmButton
-									variant="ghost"
-									confirm={format(t.factory.machine.confirmStop, { name: r.key })}
-									onConfirm={() => void run(() => cancel(r.id))}
-									aria-label={format(t.factory.machine.stop, { name: r.key })}
-								>
-									{t.assistant.stop}
-								</ConfirmButton>
-							</div>
-						))}
-					</section>
-				) : null}
-				{needsYou > 0 || items.length ? (
-					<section aria-label={t.home.needsYou}>
-						<h2 className="font-medium">
-							{t.home.needsYou} ({needsYou})
-						</h2>
-						<ul>
-							{items.map((i) => (
-								<li key={i.id}>
+					{needsYou ? (
+						<Card aria-label={t.home.needsYou} role="region">
+							<div className="flex h-9 items-center justify-between pr-2 pl-4">
+								<h2 className="font-semibold text-13 text-n-11">
+									{format(needsYou === 1 ? t.home.needsOne : t.home.needsMany, {
+										count: needsYou,
+									})}
+								</h2>
+								{items.length > SHOWN ? (
 									<button
 										type="button"
-										onClick={() => void run(() => openItem(i.ref))}
-										className="block w-full truncate rounded-md px-2 py-1 text-left hover:bg-n-3"
+										onClick={() =>
+											void run(async () => {
+												await commands.trayOpen();
+												if (isTauri()) await emit(OPEN_PATH_EVENT, "/");
+											})
+										}
+										className="-my-1 inline-flex min-h-control items-center px-2 font-semibold text-accent"
 									>
-										{i.text}
+										{format(u.all, { count: items.length })}
 									</button>
-								</li>
+								) : null}
+							</div>
+							<ul>
+								{items.slice(0, SHOWN).map((i) => (
+									<li key={i.id} className="[&+&]:border-t [&+&]:border-n-6">
+										<button
+											type="button"
+											onClick={() => void run(() => openItem(i.ref))}
+											className="flex min-h-13 w-full items-center gap-3 px-4 text-left hover:bg-n-2"
+										>
+											<Avatar name={i.by || "Shipyard"} size="s" agent={i.who === "agent"} />
+											<span className="min-w-0 flex-1 truncate font-semibold">
+												{i.kind === "question" ? t.flow.state.answer : i.text}
+											</span>
+											<ChevronRightIcon size={16} />
+										</button>
+									</li>
+								))}
+							</ul>
+						</Card>
+					) : null}
+					{runs.length ? (
+						<Card aria-label={t.shell.runs} role="region">
+							<div className="flex h-9 items-center justify-between pr-2 pl-4">
+								<h2 className="font-semibold text-13 text-n-11">{u.running}</h2>
+								{runs.length > SHOWN_RUNS ? (
+									<button
+										type="button"
+										onClick={() =>
+											void run(async () => {
+												await commands.trayOpen();
+												if (isTauri()) await emit(OPEN_PATH_EVENT, "/flow/flow");
+											})
+										}
+										className="-my-1 inline-flex min-h-control items-center px-2 font-semibold text-accent"
+									>
+										{format(u.all, { count: runs.length })}
+									</button>
+								) : null}
+							</div>
+							{runs.slice(0, SHOWN_RUNS).map((r) => (
+								<div
+									key={r.id}
+									className="flex min-h-13 items-center gap-3 pr-2 pl-4 [&+&]:border-t [&+&]:border-n-6"
+								>
+									<Avatar name={r.workflow || "Shipyard"} size="s" agent />
+									<span className="min-w-0 flex-1 truncate font-semibold">{r.title || r.key}</span>
+									<ConfirmButton
+										className="px-3"
+										confirm={format(t.factory.machine.confirmStop, { name: r.title || r.key })}
+										onConfirm={() => void run(() => cancel(r.id))}
+										aria-label={format(t.factory.machine.stop, { name: r.title || r.key })}
+									>
+										{t.assistant.stop}
+									</ConfirmButton>
+								</div>
 							))}
-						</ul>
-					</section>
-				) : null}
-				<AgentsToggle />
-				{error ? (
-					<span role="alert" className="text-danger-text">
-						{error}
-					</span>
-				) : null}
-				{sync.length && (failed || last > 0) ? (
-					<span role="status" className={failed ? "text-danger-text" : "text-n-11"}>
-						{failed ? u.syncFailed : format(u.synced, { time: clock(last, lang) })}
-					</span>
-				) : null}
-				<Button variant="primary" onClick={() => void commands.trayOpen()}>
+						</Card>
+					) : null}
+					<Card className="flex min-h-13 flex-wrap items-center gap-x-3 px-4">
+						<span className="font-semibold">{u.agents}</span>
+						<button
+							type="button"
+							aria-expanded={chart}
+							aria-label={`${t.ui.spendToday} ${spend.ready ? money.format(todayUsd) : ""}`}
+							onClick={() => setChart((v) => !v)}
+							className="inline-flex min-h-control items-center text-n-11 tabular-nums hover:text-n-12"
+						>
+							{spend.ready ? money.format(todayUsd) : <Skeleton className="h-5 w-12" />}
+						</button>
+						{kill === undefined ? null : (
+							<span className="ml-auto">
+								<Switch
+									iconOnly
+									label={kill ? t.factory.agentsStopped : t.factory.agentsOn}
+									checked={!kill}
+									onCheckedChange={(on) => void run(() => writes.killSwitch(!on))}
+									className={kill ? "border-danger bg-danger-soft" : undefined}
+								/>
+							</span>
+						)}
+						{chart ? (
+							<section aria-label={t.ui.spendToday} className="flex w-full flex-col gap-2 pb-4">
+								<div className="flex items-end justify-between gap-3">
+									<div className="flex flex-col">
+										<span className="text-13 text-n-11">{t.ui.spendToday}</span>
+										{spend.ready ? (
+											<span className="font-semibold text-20 tabular-nums">
+												{money.format(todayUsd)}
+											</span>
+										) : (
+											<Skeleton className="h-7 w-20" />
+										)}
+									</div>
+									<div className="flex items-baseline gap-1.5">
+										<span className="text-13 text-n-11">{u.month}</span>
+										{spend.ready ? (
+											<span className="tabular-nums">{money.format(month)}</span>
+										) : (
+											<Skeleton className="h-5 w-12" />
+										)}
+									</div>
+								</div>
+								<div aria-hidden="true" className="flex h-10 items-end gap-1">
+									{week.map((v, i) => (
+										<span
+											key={v.day}
+											title={`${v.day}: ${money.format(v.usd)}`}
+											style={{ height: `${Math.max(2, (v.usd / top) * BAR_H)}px` }}
+											className={
+												i === 6 ? "flex-1 rounded-sm bg-accent" : "flex-1 rounded-sm bg-n-6"
+											}
+										/>
+									))}
+								</div>
+								{monthBudget == null ? null : (
+									<Progress value={month} max={monthBudget} label={u.month} />
+								)}
+							</section>
+						) : null}
+					</Card>
+					{timesheet ? (
+						<Card
+							role="region"
+							aria-label={t.home.logToday}
+							className="flex min-h-13 items-center gap-3 pr-2 pl-4"
+						>
+							<span className="mr-auto text-n-11">{t.home.logToday}</span>
+							<Button
+								className="px-3"
+								onClick={() =>
+									void run(async () => {
+										await commands.trayOpen();
+										if (isTauri()) await emit(OPEN_PATH_EVENT, "/plan/time");
+									})
+								}
+							>
+								{t.home.log}
+							</Button>
+						</Card>
+					) : null}
+					{error ? (
+						<span role="alert" className="text-danger-text">
+							{error}
+						</span>
+					) : null}
+				</div>
+			</div>
+			<div ref={foot} className="flex shrink-0 gap-2.5 bg-surface-0 px-4 pt-2 pb-4">
+				<Button className="flex-1" busy={busy} onClick={() => void run(syncAll)}>
+					{t.shell.sync}
+				</Button>
+				<Button variant="primary" className="flex-[2]" onClick={() => void commands.trayOpen()}>
 					{u.open}
 				</Button>
 			</div>

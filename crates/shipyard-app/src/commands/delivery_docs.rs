@@ -82,6 +82,24 @@ pub fn tickets_config(s: &AppState) -> Res<TicketsConfig> {
 pub fn tickets_config_set(s: &AppState, config: &TicketsConfig) -> Res<()> {
     crate::rights::require(s, crate::rights::Right::WorkEdit, "tickets_config_save", "")?;
     let root = root(s)?;
+    // A kind that is new needs a type in the issue tracker (REQ-005 of `code-host-tickets`). A kind
+    // that was saved before stays, whether the issue tracker answers or not.
+    let known = delivery_docs::tickets_config(&root).extra_kinds;
+    let fresh: Vec<&str> = config
+        .extra_kinds
+        .iter()
+        .map(|k| k.name.trim())
+        .filter(|n| !known.iter().any(|k| k.name.eq_ignore_ascii_case(n)))
+        .collect();
+    if !fresh.is_empty() {
+        let types = crate::work::issue_types(s)?;
+        if let Some(missing) = fresh
+            .iter()
+            .find(|n| !types.iter().any(|t| t.eq_ignore_ascii_case(n)))
+        {
+            return Err(format!("the issue tracker has no type named {missing}"));
+        }
+    }
     let _g = s.guard();
     delivery_docs::save_tickets_config(&root, config).map_err(|e| e.to_string())
 }

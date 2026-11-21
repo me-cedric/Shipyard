@@ -36,9 +36,10 @@ export const extrasEn = {
 		avatar: "Your picture",
 		logo: "Logo",
 		choose: "Choose a picture",
+		change: "Change",
 		remove: "Remove the picture",
 	},
-	project: { name: "Name", save: "Save" },
+	project: { name: "Name" },
 	feedbackMail: "Open in mail",
 	time: { pullMonth: "Read the month" },
 	usage: {
@@ -129,9 +130,10 @@ export const extrasFr: typeof extrasEn = {
 		avatar: "Votre photo",
 		logo: "Logo",
 		choose: "Choisir une image",
+		change: "Changer",
 		remove: "Retirer l'image",
 	},
-	project: { name: "Nom", save: "Enregistrer" },
+	project: { name: "Nom" },
 	feedbackMail: "Ouvrir dans la messagerie",
 	time: { pullMonth: "Lire le mois" },
 	usage: {

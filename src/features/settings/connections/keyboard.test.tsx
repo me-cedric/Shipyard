@@ -18,7 +18,7 @@ describe("Settings / Connections, keyboard and language", () => {
 	it("reaches Add, then Test, Edit and Remove of a connection, in that order, with Tab", async () => {
 		const user = userEvent.setup();
 		await seed();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const main = within(await screen.findByRole("main"));
 		const add = await main.findByRole("button", { name: "Connection" });
 		add.focus();
@@ -35,7 +35,7 @@ describe("Settings / Connections, keyboard and language", () => {
 	it("shows the main labels in French when the person chose French", async () => {
 		await unwrap(commands.prefsSet({ lang: "fr" }));
 		await seed();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const main = within(await screen.findByRole("main"));
 		expect(await main.findByRole("heading", { name: "Outils de suivi (1)" })).toBeInTheDocument();
 		expect(main.getByRole("button", { name: "Connexion" })).toBeInTheDocument();

@@ -2,16 +2,18 @@ import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { SPRING } from "../motion";
 
-/** Progress across steps: done steps out of all steps. The fill is the accent gradient. */
+/** The meter: a value out of a maximum. `over` shows a value that is over its limit. */
 export function Progress({
 	value,
 	max,
 	label,
+	over,
 	className,
 }: {
 	value: number;
 	max: number;
 	label: string;
+	over?: boolean;
 	className?: string;
 }) {
 	const pct = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
@@ -22,10 +24,10 @@ export function Progress({
 			aria-valuemin={0}
 			aria-valuemax={max}
 			aria-valuenow={value}
-			className={cn("h-1.5 w-full min-w-12 overflow-hidden rounded-full bg-n-4", className)}
+			className={cn("h-2 w-full min-w-12 overflow-hidden rounded-full bg-n-5", className)}
 		>
 			<motion.div
-				className="h-full rounded-full bg-accent-gradient"
+				className={cn("h-full rounded-full", over ? "bg-attention-strong" : "bg-accent")}
 				initial={false}
 				animate={{ width: `${pct}%` }}
 				transition={SPRING.smooth}

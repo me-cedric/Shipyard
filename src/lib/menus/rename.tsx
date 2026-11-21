@@ -69,15 +69,20 @@ function RenameDialog({ job, onClose }: { job: Job; onClose: () => void }) {
 			actions={
 				review ? (
 					<>
-						<Button variant="ghost" onClick={() => setReview(null)}>
+						<Button variant="ghost" className="min-h-control" onClick={() => setReview(null)}>
 							{u.renameBack}
 						</Button>
-						<Button variant="primary" onClick={() => void apply()}>
+						<Button variant="primary" className="min-h-control" onClick={() => void apply()}>
 							{u.rename}
 						</Button>
 					</>
 				) : (
-					<Button variant="primary" disabled={!valid} onClick={() => void check()}>
+					<Button
+						variant="primary"
+						className="min-h-control"
+						disabled={!valid}
+						onClick={() => void check()}
+					>
 						{u.renameReview}
 					</Button>
 				)

@@ -49,6 +49,15 @@ export {
 	UserCircleIcon,
 	UsersIcon,
 } from "./outline";
+export {
+	CodeIcon,
+	CrewIcon,
+	FlowIcon,
+	LibraryIcon,
+	PlanIcon,
+	SetupIcon,
+	TodayIcon,
+} from "./place";
 export { SidebarIcon } from "./sidebar";
 export { SunIcon } from "./sun";
 export { SwatchIcon } from "./swatch";

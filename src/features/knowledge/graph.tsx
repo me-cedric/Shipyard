@@ -1,4 +1,6 @@
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { LibraryPage } from "@/features/library/page-parts";
 import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
@@ -7,14 +9,13 @@ import { useNotifications } from "@/lib/notifications";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
-import { ArrowPathIcon, ShareIcon, XMarkIcon } from "@/ui/icons";
+import { Segmented } from "@/ui/atoms/segmented";
+import { ArrowPathIcon, CheckIcon, ShareIcon, XMarkIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
 import { Loading } from "@/ui/molecules/loading";
-import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { type CanvasNode, GraphCanvas, KindMark } from "@/ui/organisms/graph-canvas";
-import { ListDetail } from "@/ui/templates/list-detail";
 import {
 	boxOf,
 	cellOf,
@@ -24,22 +25,41 @@ import {
 	type GNode,
 	isCluster,
 } from "./graph-clusters";
+import { CodeMap, KnowledgeMap } from "./graph-map";
 
 type Source = "refs" | "code";
+type View = "map" | "table" | "graph";
 
 /** A call weight as a number of repeated links: the canvas draws a repeated link thicker. */
 const repeats = (w: number) => (w <= 1 ? 1 : Math.ceil(Math.log2(w)) + 1);
 
 /**
- * Knowledge / Graph: the reference graph or the code graph on one renderer. A click opens the
- * entity in the inspector. The graph edits nothing (REQ-001 to REQ-007).
+ * Library / Map: the knowledge or the code as group cards (Map), as a table, or as the force graph
+ * with its search and its kind filters (Graph). The address holds the source and the view
+ * (`?source=code`, `?view=graph`). The page edits nothing (REQ-001 to REQ-007).
  */
 export function Graph() {
 	const { t } = useI18n();
 	const k = t.knowledge;
 	const active = useActiveProject().data;
 	const { openRef, selectedRef } = useShell();
-	const [source, setSource] = useState<Source>("refs");
+	const navigate = useNavigate();
+	const search: { source?: unknown; view?: unknown } = useSearch({ strict: false });
+	const source: Source = search.source === "code" ? "code" : "refs";
+	const view: View = search.view === "graph" || search.view === "table" ? search.view : "map";
+	const go = (next: { source?: Source; view?: View }) =>
+		void navigate({
+			search: (prev: object) => {
+				const to = { source, view, ...next };
+				return {
+					...prev,
+					source: to.source === "code" ? "code" : undefined,
+					view: to.view === "map" ? undefined : to.view,
+				};
+			},
+			replace: true,
+		} as never);
+	const [only, setOnly] = useState<"orphan" | "stale" | null>(null);
 	const [query, setQuery] = useState("");
 	const [hidden, setHidden] = useState<string[]>([]);
 	const [focus, setFocus] = useGraphFocus();
@@ -183,107 +203,154 @@ export function Graph() {
 	if (active === undefined) return <Loading title={k.graph.title} icon={<ShareIcon size={16} />} />;
 	if (active === null) return <NoProject title={k.graph.title} icon={<ShareIcon size={16} />} />;
 	const wantsIndex = source === "code" && code !== undefined && code.state !== "ready";
+	const runIndex = () =>
+		index.mutate(undefined, {
+			onSuccess: async () => {
+				const id = `index:${Date.now()}`;
+				const nodes = await unwrap(commands.graphCode()).then((g) => g.nodes.length);
+				push({
+					id,
+					kind: "info",
+					title: nodes ? format(k.graph.indexed, { count: nodes }) : k.graph.indexedEmpty,
+				});
+			},
+			onError: (e) =>
+				push({
+					id: `index:${Date.now()}`,
+					kind: "error",
+					title: k.graph.indexFailed,
+					body: e.message,
+				}),
+		});
 	return (
-		<ListDetail
+		<LibraryPage
 			title={k.graph.title}
-			icon={<ShareIcon size={16} />}
-			count={shown.nodes.length}
-			chips={
-				<ViewTabs<Source>
-					label={k.graph.source}
-					value={source}
-					onValueChange={setSource}
-					tabs={[
-						{ value: "refs", label: k.graph.refs },
-						{ value: "code", label: k.graph.code },
-					]}
-				/>
-			}
-			toolbar={
+			menu={[
+				...(source === "code" ? (["graph"] as const) : (["map", "table", "graph"] as const))
+					.filter((id) => id !== view)
+					.map((id) => ({ label: k.graph.views[id], onClick: () => go({ view: id }) })),
+				// The filter of the knowledge map: it needs the flags that the knowledge items carry.
+				...(source === "refs" && view === "map"
+					? (["orphan", "stale"] as const)
+							.filter((f) => refs?.nodes.some((n) => n[f]))
+							.map((f) => ({
+								label: k.graph[f],
+								icon: only === f ? <CheckIcon size={14} /> : undefined,
+								onClick: () => setOnly(only === f ? null : f),
+							}))
+					: []),
+			]}
+			action={
 				<>
-					{wantsIndex ? null : (
-						<FilterBar
-							query={query}
-							onQueryChange={setQuery}
-							filters={kinds.map((x, i) => ({
-								id: x.id,
-								label: `${kindName(x.id)} ${x.n}`,
-								icon: <KindMark index={i} />,
-							}))}
-							active={kinds.map((x) => x.id).filter((id) => !hidden.includes(id))}
-							onToggle={(id) =>
-								setHidden((h) => (h.includes(id) ? h.filter((x) => x !== id) : [...h, id]))
-							}
+					<div>
+						<Segmented
+							label={k.graph.source}
+							value={source}
+							onValueChange={(to) => go({ source: to })}
+							items={(["refs", "code"] as const).map((id) => ({ value: id, label: k.graph[id] }))}
 						/>
-					)}
+					</div>
+					{source === "code" ? (
+						<div>
+							<Segmented
+								label={k.graph.view}
+								value={view}
+								onValueChange={(to) => go({ view: to })}
+								items={(view === "graph"
+									? (["map", "table", "graph"] as View[])
+									: (["map", "table"] as View[])
+								).map((id) => ({
+									value: id,
+									label: k.graph.views[id],
+								}))}
+							/>
+						</div>
+					) : null}
+					{source === "code" && !wantsIndex ? (
+						<Button className="min-h-control" busy={index.isPending} onClick={runIndex}>
+							{k.graph.indexAgain}
+						</Button>
+					) : null}
+				</>
+			}
+		>
+			{index.error ? <ErrorNotice error={index.error} /> : null}
+			{wantsIndex ? (
+				<EmptyState
+					title={t.empty.graph}
+					action={{
+						label: k.graph.index,
+						icon: <ArrowPathIcon size={14} />,
+						busy: index.isPending,
+						onClick: runIndex,
+					}}
+				/>
+			) : view === "map" ? (
+				source === "code" ? (
+					overview ? (
+						<CodeMap graph={overview} file={codeFocus} onFile={setCodeFocus} />
+					) : null
+				) : refs ? (
+					<KnowledgeMap graph={refs} focus={focus} only={only} />
+				) : null
+			) : (
+				<>
+					{view === "graph" ? (
+						<div className="flex flex-wrap items-center gap-2">
+							<FilterBar
+								query={query}
+								onQueryChange={setQuery}
+								filters={kinds.map((x, i) => ({
+									id: x.id,
+									label: `${kindName(x.id)} ${x.n}`,
+									icon: <KindMark index={i} />,
+								}))}
+								active={kinds.map((x) => x.id).filter((id) => !hidden.includes(id))}
+								onToggle={(id) =>
+									setHidden((h) => (h.includes(id) ? h.filter((x) => x !== id) : [...h, id]))
+								}
+							/>
+						</div>
+					) : null}
 					{(focus && source === "refs") || (codeFocus && source === "code") ? (
 						<Button
 							variant="ghost"
+							className="self-start"
 							onClick={() => (source === "code" ? setCodeFocus(null) : setFocus(null))}
 						>
 							<XMarkIcon size={14} />
 							{k.graph.clear}
 						</Button>
 					) : null}
+					{/* A frame with a height of its own: the canvas fills its parent. */}
+					<div className="flex h-[70vh] min-h-64 flex-col overflow-hidden rounded-lg bg-surface-2 shadow-2">
+						<GraphCanvas
+							key={view}
+							defaultTable={view === "table"}
+							nodes={drawn?.nodes ?? shown.nodes}
+							links={drawn?.links ?? shown.edges}
+							positions={drawn?.positions}
+							tableNodes={drawn?.table}
+							kinds={[
+								...kinds.map((x) => ({ id: x.id, label: kindName(x.id) })),
+								{ id: "folder", label: k.graph.folder },
+							]}
+							label={k.graph.title}
+							labels={k.canvas}
+							glow
+							selected={selectedRef}
+							onOpen={(id) => {
+								if (isCluster(id))
+									setOpen((o) => (o.includes(id) ? o.filter((x) => x !== id) : [...o, id]));
+								// A file of the map opens its calls; a symbol, or the file in focus, opens the inspector.
+								else if (source === "code" && id !== codeFocus && !id.includes("::"))
+									setCodeFocus(id);
+								else openRef(source === "code" ? `code:${id}` : id);
+							}}
+						/>
+					</div>
 				</>
-			}
-		>
-			{index.error ? <ErrorNotice error={index.error} className="px-3 py-1" /> : null}
-			{wantsIndex ? (
-				<div className="p-4">
-					<EmptyState
-						title={t.empty.graph}
-						action={{
-							label: k.graph.index,
-							icon: <ArrowPathIcon size={14} />,
-							busy: index.isPending,
-							onClick: () =>
-								index.mutate(undefined, {
-									onSuccess: async () => {
-										const id = `index:${Date.now()}`;
-										const nodes = await unwrap(commands.graphCode()).then((g) => g.nodes.length);
-										push({
-											id,
-											kind: "info",
-											title: nodes
-												? format(k.graph.indexed, { count: nodes })
-												: k.graph.indexedEmpty,
-										});
-									},
-									onError: (e) =>
-										push({
-											id: `index:${Date.now()}`,
-											kind: "error",
-											title: k.graph.indexFailed,
-											body: e.message,
-										}),
-								}),
-						}}
-					/>
-				</div>
-			) : (
-				<GraphCanvas
-					nodes={drawn?.nodes ?? shown.nodes}
-					links={drawn?.links ?? shown.edges}
-					positions={drawn?.positions}
-					tableNodes={drawn?.table}
-					kinds={[
-						...kinds.map((x) => ({ id: x.id, label: kindName(x.id) })),
-						{ id: "folder", label: k.graph.folder },
-					]}
-					label={k.graph.title}
-					labels={k.canvas}
-					glow
-					selected={selectedRef}
-					onOpen={(id) => {
-						if (isCluster(id))
-							setOpen((o) => (o.includes(id) ? o.filter((x) => x !== id) : [...o, id]));
-						// A file of the map opens its calls; a symbol, or the file in focus, opens the inspector.
-						else if (source === "code" && id !== codeFocus && !id.includes("::")) setCodeFocus(id);
-						else openRef(source === "code" ? `code:${id}` : id);
-					}}
-				/>
 			)}
-		</ListDetail>
+		</LibraryPage>
 	);
 }

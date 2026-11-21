@@ -44,4 +44,10 @@ fn a_sign_in_error_marks_the_tool_and_a_good_run_or_a_sign_in_clears_it() {
     assert!(signed_out_by_last_run("opencode"));
     clear_signed_out("opencode");
     assert!(!signed_out_by_last_run("opencode"));
+
+    // The words of Claude Code when its login expired.
+    run(
+        "cat > /dev/null\necho 'Failed to authenticate: this login reached its time limit and cannot be renewed. Run `claude auth login` to sign in again' >&2\nexit 1",
+    );
+    assert!(signed_out_by_last_run("opencode"));
 }

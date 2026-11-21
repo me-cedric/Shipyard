@@ -61,7 +61,7 @@ function Row({
 					type="button"
 					aria-expanded={open}
 					onClick={onToggle}
-					className="flex min-h-row min-w-0 flex-1 items-center gap-2 px-3 text-left text-n-11 focus-visible:shadow-glow"
+					className="flex min-h-control min-w-0 flex-1 items-center gap-2 px-3 text-left text-n-11 focus-visible:shadow-glow"
 				>
 					{open ? <ChevronDownIcon size={14} /> : <ChevronRightIcon size={14} />}
 					{mark && file.state ? (

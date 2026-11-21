@@ -1,7 +1,9 @@
+import { type ReactNode, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import type { ChatMessage, FileDiff } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
 import { cn, formatDuration } from "@/lib/utils";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { LiveDot } from "@/ui/atoms/live-dot";
@@ -14,6 +16,7 @@ import {
 	ChevronRightIcon,
 	ClipboardIcon,
 } from "@/ui/icons";
+import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
@@ -23,10 +26,17 @@ import type { Assistant } from "./use-assistant";
 
 /** A message as a bubble: the person on the right in the accent tint, the assistant on the left. */
 const BUBBLE = {
-	user: "flex max-w-[85%] flex-col gap-1 self-end rounded-2xl rounded-br-sm bg-accent-soft px-3 py-2 text-n-12",
+	user: "relative flex max-w-[85%] flex-col gap-1 self-end rounded-2xl rounded-br-sm bg-accent-soft px-3 py-2 text-n-12",
 	assistant:
 		"flex max-w-[92%] flex-col gap-2 self-start rounded-2xl rounded-bl-sm border bg-surface-2 px-3 py-2 shadow-1",
 };
+
+/** The actions under a message of the Ask page show on hover and on focus; the keyboard reaches them. */
+const QUIET =
+	"opacity-0 transition-opacity duration-(--duration-fast) motion-reduce:transition-none group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100";
+
+/** The Ask page: the answer is a card with the avatar of Shipyard, as the answer of the Ask bar. */
+const CARD = "flex flex-col gap-3.5 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2";
 
 const WRITES = /edit|write|patch/i;
 
@@ -52,14 +62,21 @@ function Steps({ steps }: { steps: ChatMessage["trace"] }) {
 }
 
 /** One line when the turn ends. The person expands it to see each tool call. */
-function Trace({ steps }: { steps: ChatMessage["trace"] }) {
+function Trace({ steps, full }: { steps: ChatMessage["trace"]; full?: boolean }) {
 	const { t, lang } = useI18n();
 	if (!steps.length) return null;
 	const total = steps.reduce((sum, s) => sum + s.ms, 0);
 	const files = filesTouched(steps);
 	return (
 		<details className="group text-12 text-n-11">
-			<summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-full border bg-n-2 px-2 py-0.5 hover:text-n-12 [&::-webkit-details-marker]:hidden">
+			<summary
+				className={cn(
+					"inline-flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden",
+					full
+						? "min-h-control font-semibold text-accent text-ui hover:text-accent-hover"
+						: "rounded-full border bg-n-2 px-2 py-0.5 hover:text-n-12",
+				)}
+			>
 				<span
 					aria-hidden="true"
 					className="transition-transform duration-(--duration-fast) group-open:rotate-90"
@@ -82,7 +99,7 @@ function Code({ lang, file, text }: { lang: string; file: string; text: string }
 			<figcaption className="flex items-center gap-2 border-b bg-n-2 px-2 text-12 text-n-11">
 				<span className="min-w-0 flex-1 truncate font-mono">{file}</span>
 				<span>{lang}</span>
-				<IconButton label={t.assistant.copyCode} className="size-6" onClick={() => copyText(text)}>
+				<IconButton label={t.assistant.copyCode} onClick={() => copyText(text)}>
 					<ClipboardIcon size={12} />
 				</IconButton>
 			</figcaption>
@@ -100,7 +117,9 @@ function Reply({
 	insert,
 	canInsert,
 	onOpenRef,
+	full,
 }: {
+	full?: boolean;
 	m: ChatMessage;
 	last: boolean;
 	a: Assistant;
@@ -113,7 +132,7 @@ function Reply({
 	const options = last && s.state === "done" && !a.busy ? replyOptions(m.text) : [];
 	return (
 		<>
-			<Trace steps={m.trace} />
+			<Trace steps={m.trace} full={full} />
 			{parseReply(m.text).map((p, i) =>
 				p.kind === "code" ? (
 					p.lang === "mermaid" ? (
@@ -165,7 +184,7 @@ function Reply({
 				</ul>
 			) : null}
 			{s.state === "done" && m.text ? (
-				<div className="-mb-1 flex gap-0.5">
+				<div className={cn("-mb-1 flex gap-0.5", full && QUIET)}>
 					<Button
 						variant="ghost"
 						className="h-6 px-1.5 text-12 text-n-11"
@@ -214,9 +233,121 @@ function Reply({
 	);
 }
 
-function Changed({ files }: { files: FileDiff[] }) {
+/** The added lines of a diff, without the marker. */
+const added = (text: string) =>
+	text
+		.split("\n")
+		.filter((l) => l.startsWith("+") && !l.startsWith("+++"))
+		.map((l) => l.slice(1));
+
+/** One changed file: its name, the count and a preview of the added lines. The name opens the full diff. */
+function FileBox({ f, actions }: { f: FileDiff; actions?: ReactNode }) {
+	const { t } = useI18n();
+	const [open, setOpen] = useState(false);
+	const lines = added(f.text);
+	return (
+		<div className="flex flex-col gap-2 rounded-md bg-n-2 p-4">
+			<div className="flex items-center gap-3">
+				<button
+					type="button"
+					aria-expanded={open}
+					onClick={() => setOpen(!open)}
+					className="min-h-control min-w-0 flex-1 truncate text-left font-mono text-12"
+				>
+					{f.path}
+				</button>
+				{lines.length ? (
+					<span className="font-semibold text-12 text-success-text">+{lines.length}</span>
+				) : null}
+				{actions}
+			</div>
+			{open ? (
+				<DiffView
+					text={f.text}
+					path={f.path}
+					binary={f.binary}
+					truncated={f.truncated}
+					label={format(t.assistant.diff, { name: f.path })}
+					binaryLabel={t.assistant.diffBinary}
+					truncatedLabel={t.assistant.diffTruncated}
+				/>
+			) : lines.length ? (
+				<pre className="overflow-hidden rounded-sm bg-success-subtle px-3 py-2 font-mono text-12 text-success-text">
+					{lines.slice(0, 3).join("\n")}
+				</pre>
+			) : null}
+		</div>
+	);
+}
+
+/** Undo and Keep of one file: Undo asks first, Keep takes the file out of the review (REQ-002). */
+function FileActions({
+	f,
+	onKeep,
+	onUndo,
+}: {
+	f: FileDiff;
+	onKeep: (path: string | null) => void;
+	onUndo: (path: string) => void;
+}) {
+	const { t } = useI18n();
+	return (
+		<>
+			<ConfirmButton
+				variant="secondary"
+				className="min-h-control"
+				aria-label={format(t.codeHost.undoFile, { name: f.path })}
+				confirm={t.assistant.undoConfirm}
+				onConfirm={() => onUndo(f.path)}
+			>
+				{t.assistant.undo}
+			</ConfirmButton>
+			<Button
+				variant="primary"
+				aria-label={format(t.codeHost.keepFile, { name: f.path })}
+				onClick={() => onKeep(f.path)}
+			>
+				{t.codeHost.keep}
+			</Button>
+		</>
+	);
+}
+
+function Changed({
+	files,
+	onKeep,
+	onUndo,
+	full,
+	inCard,
+}: {
+	files: FileDiff[];
+	onKeep: (path: string | null) => void;
+	onUndo: (path: string) => void;
+	full?: boolean;
+	/** The files sit inside the answer card: no card of their own. */
+	inCard?: boolean;
+}) {
 	const { t } = useI18n();
 	if (!files.length) return null;
+	const keepAll =
+		files.length > 1 ? (
+			<Button className="self-end" onClick={() => onKeep(null)}>
+				{t.codeHost.keepAll}
+			</Button>
+		) : null;
+	if (full)
+		return (
+			<section aria-label={t.assistant.changed} className={inCard ? "flex flex-col gap-2" : CARD}>
+				{files.map((f) => (
+					<FileBox
+						key={f.path}
+						f={f}
+						actions={<FileActions f={f} onKeep={onKeep} onUndo={onUndo} />}
+					/>
+				))}
+				{keepAll}
+			</section>
+		);
 	return (
 		<section aria-label={t.assistant.changed} className="flex flex-col gap-1 border-t pt-2">
 			<h3 className="text-12 font-medium">{t.assistant.changed}</h3>
@@ -232,8 +363,12 @@ function Changed({ files }: { files: FileDiff[] }) {
 						binaryLabel={t.assistant.diffBinary}
 						truncatedLabel={t.assistant.diffTruncated}
 					/>
+					<div className="flex flex-wrap gap-2 pt-2">
+						<FileActions f={f} onKeep={onKeep} onUndo={onUndo} />
+					</div>
 				</details>
 			))}
+			{keepAll}
 		</section>
 	);
 }
@@ -244,7 +379,10 @@ export function Messages({
 	insert,
 	canInsert,
 	onOpenRef,
+	full,
 }: {
+	/** The look of the Ask page. */
+	full?: boolean;
 	a: Assistant;
 	insert: (text: string) => void;
 	canInsert: boolean;
@@ -257,23 +395,44 @@ export function Messages({
 		<div
 			role="log"
 			aria-label={t.assistant.messages}
-			className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3"
+			className={cn(
+				"flex min-h-0 flex-1 flex-col overflow-y-auto",
+				full ? "gap-4 p-1" : "gap-3 p-3",
+			)}
 		>
 			{list.map((m, i) => (
 				<article
 					// biome-ignore lint/suspicious/noArrayIndexKey: the transcript only grows
 					key={i}
 					aria-label={m.role === "user" ? t.assistant.you : t.assistant.assistant}
-					className={m.role === "user" ? BUBBLE.user : BUBBLE.assistant}
+					className={cn(
+						"group",
+						m.role === "user"
+							? full
+								? `${BUBBLE.user} bg-n-3`
+								: BUBBLE.user
+							: full
+								? CARD
+								: BUBBLE.assistant,
+					)}
 				>
 					<h3 className="sr-only">{m.role === "user" ? t.assistant.you : t.assistant.assistant}</h3>
+					{full && m.role !== "user" ? (
+						<div aria-hidden="true" className="flex items-center gap-3 font-semibold">
+							<Avatar name="Shipyard" agent />
+							Shipyard
+						</div>
+					) : null}
 					{m.role === "user" ? (
 						<>
 							<p className="whitespace-pre-wrap text-ui">{m.text}</p>
 							{i === lastAsk && !a.busy ? (
 								<Button
 									variant="ghost"
-									className="h-6 self-end px-1.5 text-12"
+									className={cn(
+										"h-6 self-end px-1.5 text-12",
+										full && ["absolute right-0 -bottom-7", QUIET],
+									)}
 									onClick={() => void a.send(m.text, false, m.quotes)}
 								>
 									<ArrowPathIcon size={12} />
@@ -289,8 +448,18 @@ export function Messages({
 							insert={insert}
 							canInsert={canInsert}
 							onOpenRef={onOpenRef}
+							full={full}
 						/>
 					)}
+					{full && m.role !== "user" && i === list.length - 1 ? (
+						<Changed
+							files={a.changed}
+							onKeep={(path) => void a.keep(path)}
+							onUndo={(path) => void a.undoFile(path)}
+							full
+							inCard
+						/>
+					) : null}
 				</article>
 			))}
 			{a.pending !== null && a.running === (a.current?.thread.id ?? null) ? (
@@ -314,7 +483,14 @@ export function Messages({
 					) : null}
 				</>
 			) : null}
-			<Changed files={a.changed} />
+			{full && list.at(-1)?.role === "assistant" ? null : (
+				<Changed
+					files={a.changed}
+					onKeep={(path) => void a.keep(path)}
+					onUndo={(path) => void a.undoFile(path)}
+					full={full}
+				/>
+			)}
 		</div>
 	);
 }

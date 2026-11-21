@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { barTabs, SPACE_IDS, SPACES, tabLabel } from "@/features/shell";
+import { barSections, PLACE_IDS, SPACE_IDS, SPACES, tabLabel } from "@/features/shell";
 import { en } from "@/lib/i18n/en";
 import { fr } from "@/lib/i18n/fr";
 import { commands, unwrap } from "@/lib/ipc";
@@ -19,7 +19,7 @@ vi.mock("@/ui/organisms/excalidraw-board", () => ({
 
 // A view whose chunk fails to load until the flag turns off.
 const chunk = vi.hoisted(() => ({ fail: false }));
-vi.mock("@/features/work/estimates", async (orig) => {
+vi.mock("@/features/plan/estimates", async (orig) => {
 	if (chunk.fail) throw new Error("Failed to fetch dynamically imported module: /assets/x.js");
 	return orig();
 });
@@ -30,17 +30,26 @@ const current = (nav: HTMLElement) =>
 		.getAllByRole("link")
 		.find((l) => l.getAttribute("aria-current") === "page");
 
+// The place can add a live mark or a count to its name: the name starts with the place.
+const named = (place: string) => new RegExp(`^${place}`);
+
 describe("router", () => {
-	it.each(SPACE_IDS)("renders %s with its tabs and opens the first one", async (space) => {
-		mount(`/${space}`);
-		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
-		const links = within(tabs).getAllByRole("link");
-		expect(links.map((l) => l.textContent)).toEqual(
-			barTabs(space, null).map((tab) => tabLabel(en, space, tab)),
-		);
-		expect(links[0]).toHaveAttribute("aria-current", "page");
-		expect(current(await sidebar())).toHaveAccessibleName(en.space[space]);
-	});
+	// Library opens on its doors, with no switch: `library.test.tsx` checks it.
+	it.each(PLACE_IDS.filter((p) => p !== "library"))(
+		"renders %s with its sections and opens the first one",
+		async (place) => {
+			// The shell shows with an open project: without one the page is bare.
+			await unwrap(commands.projectsOpen("/mock/alpha", false));
+			mount(`/${place}`);
+			const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+			const links = within(tabs).getAllByRole("link");
+			expect(links.map((l) => l.textContent)).toEqual(
+				barSections(place).map(([space, tab]) => tabLabel(en, space, tab)),
+			);
+			await waitFor(() => expect(links[0]).toHaveAttribute("aria-current", "page"));
+			expect(current(await sidebar())).toHaveAccessibleName(named(en.ui.place[place]));
+		},
+	);
 
 	it("has a label in each language for each tab", () => {
 		for (const space of SPACE_IDS)
@@ -54,32 +63,42 @@ describe("router", () => {
 		mount("/home/today");
 		await userEvent.click(await screen.findByRole("button", { name: "Continue" }));
 		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
-		expect(screen.queryByRole("heading", { level: 1, name: "Today" })).toBeNull();
+		expect(
+			screen.queryByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeNull();
 	});
 
 	it("shows the heading of Today", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/home/today");
-		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeInTheDocument();
 	});
 
 	it.each([
-		["none", "Home"],
-		["pm", "Work"],
-		["developer", "Factory"],
+		["none", "Today"],
+		["pm", "Plan"],
+		["developer", "Flow"],
 	])("sends / to the home of role %s", async (role, name) => {
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/", role);
-		expect(current(await sidebar())).toHaveAccessibleName(name);
+		expect(current(await sidebar())).toHaveAccessibleName(named(name));
 	});
 
-	it("opens Factory for a junior, as for a developer, and keeps all 8 entries", async () => {
+	it("opens Flow for a junior, as for a developer, and keeps all 7 entries", async () => {
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/", "junior");
 		const nav = await sidebar();
-		expect(await within(nav).findByRole("link", { name: "Factory", current: "page" })).toBeTruthy();
+		expect(
+			await within(nav).findByRole("link", { name: named("Flow"), current: "page" }),
+		).toBeTruthy();
 		const links = within(nav).getAllByRole("link");
-		const names = ["Home", "Factory", "Design", "Specs", "Work", "Code", "Knowledge", "Settings"];
+		const names = ["Today", "Flow", "Plan", "Crew", "Library", "Code", "Setup"];
 		expect(links).toHaveLength(names.length);
-		for (const [i, name] of names.entries()) expect(links[i]).toHaveAccessibleName(name);
+		for (const [i, name] of names.entries()) expect(links[i]).toHaveAccessibleName(named(name));
 	});
 
 	it("shows the not-found view for an unknown path", async () => {
@@ -91,18 +110,21 @@ describe("router", () => {
 describe("shell", () => {
 	it("opens the palette with Mod+K and opens a ref in the inspector", async () => {
 		const user = userEvent.setup();
+		// The first run shows without the shell: the shell needs an open project.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/home");
 		await sidebar();
 		await user.keyboard("{Control>}k{/Control}");
-		await screen.findByRole("dialog");
-		const input = screen.getByRole("combobox");
+		const input = await screen.findByRole("combobox", { name: "Ask or tell Shipyard" });
 		await user.type(input, "wi:KEY-1");
 		await user.click(await screen.findByRole("option", { name: /Open wi:KEY-1/ }));
-		expect(await screen.findByRole("button", { name: "wi:KEY-1, Unresolved" })).toBeVisible();
+		expect(await screen.findByText("wi:KEY-1", { selector: "code" })).toBeVisible();
 	});
 
 	it("toggles the inspector with Mod+I", async () => {
 		const user = userEvent.setup();
+		// The shell shows with an open project: without one the page is bare.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/home");
 		await sidebar();
 		const inspector = screen.getByLabelText("Inspector", { selector: "aside" });
@@ -111,12 +133,15 @@ describe("shell", () => {
 		expect(inspector).toHaveAttribute("data-open", "true");
 	});
 
-	it("opens a space with Mod+2", async () => {
+	it("opens a place with Mod+2", async () => {
 		const user = userEvent.setup();
+		// The first run shows without the shell: the shell needs an open project.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/home");
 		await sidebar();
 		await user.keyboard("{Control>}2{/Control}");
-		expect(await screen.findByRole("link", { name: "Diagrams", current: "page" })).toBeTruthy();
+		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+		expect(await within(tabs).findByRole("link", { name: "Flow", current: "page" })).toBeTruthy();
 	});
 
 	it("opens the assistant with Mod+J, focuses its input and keeps the draft in the next view", async () => {
@@ -132,26 +157,34 @@ describe("shell", () => {
 		await waitFor(() => expect(input).toHaveFocus());
 		await user.type(input, "keep me");
 		await user.keyboard("{Control>}2{/Control}");
-		await screen.findByRole("link", { name: "Diagrams", current: "page" });
+		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+		await within(tabs).findByRole("link", { name: "Flow", current: "page" });
 		expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("keep me");
-		// The shell button closes it again. The open diagram has an editor header too: the shell one is first.
-		const [bar] = await screen.findAllByRole("banner");
-		await user.click(within(bar as HTMLElement).getByRole("button", { name: "Ask" }));
+		// The shortcut toggles it closed again: the Ask button left the top bar (app-redesign REQ-004).
+		await user.keyboard("{Control>}j{/Control}");
 		expect(panel).toHaveAttribute("data-open", "false");
 	});
 
-	it("shows sync, search, ask, bell and account on top, and only commit in the status bar", async () => {
+	it("shows the Ask bar and the sync mark in the top row, the account in the rail and no status bar", async () => {
+		const user = userEvent.setup();
+		// The first run shows without the shell: the shell needs an open project.
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/home");
 		const top = within((await screen.findByRole("banner")) as HTMLElement);
-		for (const name of ["Sync", "Search", "Ask", "Notifications", "Account"])
-			expect(top.getByRole("button", { name })).toBeInTheDocument();
-		const bar = (await screen.findByRole("contentinfo")) as HTMLElement;
-		expect(
-			within(bar)
-				.getAllByRole("button")
-				.map((b) => b.textContent),
-		).toEqual(["Commit"]);
-		expect(await within(bar).findByRole("img", { name: "Success" })).toBeInTheDocument();
+		expect(top.getByRole("combobox", { name: "Ask or tell Shipyard" })).toBeInTheDocument();
+		expect(screen.queryByRole("contentinfo")).toBeNull();
+		const rail = within(screen.getByRole("navigation", { name: "Sidebar" }));
+		expect(rail.getByRole("button", { name: /^Account/ })).toBeInTheDocument();
+		// Sync and Commit are in the card of the sync mark.
+		await user.click(top.getByRole("button", { name: /^Sync state/ }));
+		const card = within(await screen.findByRole("dialog", { name: "Sync state" }));
+		for (const name of ["Sync", "Commit"])
+			expect(card.getByRole("button", { name })).toBeInTheDocument();
+		// The health is in the account menu.
+		await user.keyboard("{Escape}");
+		await user.click(rail.getByRole("button", { name: /^Account/ }));
+		const health = await screen.findByRole("menuitem", { name: /^Health/ });
+		expect(await within(health).findByRole("img", { name: "Warning" })).toBeInTheDocument();
 	});
 
 	it("shows one plain sentence and a Retry when a view fails to load, and loads it on Retry", async () => {

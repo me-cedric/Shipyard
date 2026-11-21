@@ -7,7 +7,8 @@ import { graphNode, inspector, mountKnowledge } from "./harness";
 describe("Explain", () => {
 	it("opens the assistant on the entity and shows the answer with each cited ref as a chip", async () => {
 		const user = userEvent.setup();
-		await mountKnowledge("graph");
+		// The force graph is the view "Graph" of the map.
+		await mountKnowledge("graph", "/library/graph?view=graph");
 		const g = await unwrap(commands.graphGet());
 		const spec = g.nodes.find((n) => n.kind === "spec");
 		if (!spec) throw new Error("spec");
@@ -15,7 +16,7 @@ describe("Explain", () => {
 		await user.click(await graphNode(cluster?.id ?? ""));
 		await user.click(await graphNode(spec.ref));
 		const panel = await inspector();
-		await user.click(await within(panel).findByRole("button", { name: "Explain" }));
+		await user.click(await within(panel).findByRole("button", { name: "Explain with an agent" }));
 		const log = await screen.findByRole("log");
 		expect(await within(log).findByText(/part of the project graph/)).toBeInTheDocument();
 		expect(

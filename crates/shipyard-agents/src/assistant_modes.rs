@@ -77,15 +77,68 @@ pub fn workdir(data: &Path, root: &Path, thread: &mut Thread) -> Result<PathBuf,
         path: info.path.clone(),
         branch: info.branch.unwrap_or_default(),
         base,
+        kept: Vec::new(),
     });
     Ok(info.path.into())
 }
 
-/// The files that the thread changed in its worktree, with their diffs (REQ-009).
-pub fn diff(w: &Worktree) -> Result<Vec<FileDiff>, AgentError> {
+fn all_diffs(w: &Worktree) -> Result<Vec<FileDiff>, AgentError> {
     Repo::open(Path::new(&w.path))
         .and_then(|r| r.file_diffs_since(&w.base, MAX_DIFF))
         .map_err(git)
+}
+
+/// A file and its diff as one entry of `Worktree::kept`. FNV-1a: it needs to tell two texts
+/// apart, nothing more.
+fn kept_entry(d: &FileDiff) -> String {
+    let hash = d.text.bytes().fold(0xcbf2_9ce4_8422_2325_u64, |h, b| {
+        (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
+    });
+    format!("{}\t{hash:x}", d.path)
+}
+
+/// The files that the thread changed in its worktree and that the person has not kept, with their
+/// diffs (REQ-009). A kept file whose diff changed since comes back.
+pub fn diff(w: &Worktree) -> Result<Vec<FileDiff>, AgentError> {
+    Ok(all_diffs(w)?
+        .into_iter()
+        .filter(|d| !w.kept.contains(&kept_entry(d)))
+        .collect())
+}
+
+/// Keep the change of one file, or of every file in the review with `None` (REQ-002 of
+/// `code-host-tickets`). The file stays changed in the worktree and leaves the review list.
+pub fn keep(w: &mut Worktree, path: Option<&str>) -> Result<(), AgentError> {
+    let all = all_diffs(w)?;
+    let wanted: Vec<&FileDiff> = match path {
+        Some(p) => vec![
+            all.iter()
+                .find(|d| d.path == p)
+                .ok_or_else(|| AgentError::Run(format!("{p} has no change to keep")))?,
+        ],
+        None => all.iter().collect(),
+    };
+    for d in wanted {
+        let entry = kept_entry(d);
+        if !w.kept.contains(&entry) {
+            w.kept.retain(|k| !k.starts_with(&format!("{}\t", d.path)));
+            w.kept.push(entry);
+        }
+    }
+    Ok(())
+}
+
+/// Revert one file to its state at the base of the thread: the content that the project had, or
+/// no file when the agent made it. The other files stay. The change leaves the kept list.
+///
+/// shortcut: a renamed file reverts its new path only; its old path stays deleted. Revert both
+/// paths if a thread shows renames often.
+pub fn undo_file(w: &mut Worktree, path: &str) -> Result<(), AgentError> {
+    Repo::open(Path::new(&w.path))
+        .and_then(|r| r.restore_path(&w.base, path))
+        .map_err(git)?;
+    w.kept.retain(|k| !k.starts_with(&format!("{path}\t")));
+    Ok(())
 }
 
 /// Remove the worktree of a thread. Refuses one that holds changes unless `force`: the person

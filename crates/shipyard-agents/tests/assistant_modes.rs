@@ -58,6 +58,7 @@ fn thread(mode: AssistantMode) -> Thread {
         id: "th-1".into(),
         project: "ship".into(),
         title: String::new(),
+        named: false,
         settings,
         context: Context::default(),
         draft: String::new(),
@@ -280,4 +281,61 @@ fn bypass_maps_to_the_skip_permissions_flag_of_the_runner_in_agent_mode_only() {
     // Read only: no worktree, no write, no bypass.
     let a = launch_args("claude", AssistantMode::Agent, Permission::ReadOnly);
     assert_eq!(after(&a, "--permission-mode").as_deref(), Some("plan"));
+}
+
+#[test]
+fn keep_takes_a_file_out_of_the_review_and_undo_reverts_that_file_only() {
+    use shipyard_agents::assistant_modes::{keep, undo_file};
+    let f = fx();
+    let mut t = thread(AssistantMode::Agent);
+    t.settings.permission = Permission::Auto;
+    turn(&f, &mut t);
+    let mut w = t.worktree.clone().unwrap();
+    // The agent changed two files: one new, one that the project had.
+    std::fs::write(Path::new(&w.path).join("a.txt"), "two\n").unwrap();
+    let names = |w: &Worktree| {
+        let mut n: Vec<String> = diff(w).unwrap().into_iter().map(|d| d.path).collect();
+        n.sort();
+        n
+    };
+    assert_eq!(names(&w), ["a.txt", "changed.txt"]);
+
+    // Keep one file: it leaves the list, the other stays, and the file is still changed.
+    keep(&mut w, Some("a.txt")).unwrap();
+    assert_eq!(names(&w), ["changed.txt"]);
+    assert_eq!(
+        std::fs::read_to_string(Path::new(&w.path).join("a.txt")).unwrap(),
+        "two\n"
+    );
+    // A file that did not change cannot be kept.
+    assert!(keep(&mut w, Some("nothing.txt")).is_err());
+
+    // Undo one file: the new file goes, the kept file stays as the agent left it.
+    undo_file(&mut w, "changed.txt").unwrap();
+    assert!(!Path::new(&w.path).join("changed.txt").exists());
+    assert_eq!(
+        std::fs::read_to_string(Path::new(&w.path).join("a.txt")).unwrap(),
+        "two\n"
+    );
+    assert!(names(&w).is_empty());
+
+    // A kept file that the agent changes again comes back to the review.
+    std::fs::write(Path::new(&w.path).join("a.txt"), "three\n").unwrap();
+    assert_eq!(names(&w), ["a.txt"]);
+    // Undo a file that the project had: it goes back to the project content.
+    undo_file(&mut w, "a.txt").unwrap();
+    assert_eq!(
+        std::fs::read_to_string(Path::new(&w.path).join("a.txt")).unwrap(),
+        "one\n"
+    );
+    assert!(names(&w).is_empty());
+
+    // Keep all: every file that is left.
+    std::fs::write(Path::new(&w.path).join("b.txt"), "b\n").unwrap();
+    std::fs::write(Path::new(&w.path).join("c.txt"), "c\n").unwrap();
+    assert_eq!(names(&w), ["b.txt", "c.txt"]);
+    keep(&mut w, None).unwrap();
+    assert!(names(&w).is_empty());
+    // A path that leaves the worktree is refused.
+    assert!(undo_file(&mut w, "../outside.txt").is_err());
 }

@@ -42,6 +42,7 @@ export function CloneDialog({ open, onClose }: { open: boolean; onClose: () => v
 			actions={
 				<Button
 					variant="primary"
+					className="min-h-control"
 					disabled={busy || !url.trim() || !folder || !repoName(url)}
 					onClick={run}
 				>

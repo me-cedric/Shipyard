@@ -71,7 +71,7 @@ A right is the old name of a level. The backend checks a right, and a right is v
 | developer | write | read | write | write | write | write | read | none | no | yes |
 | qa | write | write | read | write | write | write | read | none | no | no |
 | designer | write | read | write | write | read | read | read | none | no | no |
-| viewer | read | read | read | read | read | read | read | none | no | no |
+| viewer | read | read | read | read | none | read | read | none | no | no |
 
 The `roles:` block of the team file changes this table for the team, one role and one cell at a time:
 
@@ -84,15 +84,15 @@ roles:
 
 | Role | First tab | Today panels |
 | ---- | --------- | ------------ |
-| po | Work / Backlog | Backlog health, ready items, roadmap |
-| pm | Work / Board | Plan, capacity, risks, spend |
-| architect | Design / Decisions | ADRs, drift, design questions |
-| techlead | Factory / Runs | Runs, quality, pull request review load |
-| ba | Specs / Changes | Spec changes, open questions |
-| developer | Factory / Runs | My tickets, my pull requests, review requests |
-| qa | Specs / Test plans | Test plans, failing checks |
-| designer | Design / Screens | Screens, design questions |
-| viewer | Home / Today | My tickets |
+| po | Flow / List | Backlog health, ready items, roadmap |
+| pm | Plan / Timeline | Plan, capacity, risks, spend |
+| architect | Library / Decisions | ADRs, drift, design questions |
+| techlead | Flow | Runs, quality, pull request review load |
+| ba | Library / Specs | Spec changes, open questions |
+| developer | Flow | My tickets, my pull requests, review requests |
+| qa | Library / Test plans | Test plans, failing checks |
+| designer | Library / Screens | Screens, design questions |
+| viewer | Today | My tickets |
 
 ### Requirements
 
@@ -108,7 +108,7 @@ roles:
 - REQ-010: Each gated write and each refusal SHALL add one line to the audit log of the project in the app data folder: time, member or unknown, how Shipyard found the person, right, command or tool, target ref and result. Each event of a run log SHALL carry `by`. Work / Team SHALL show the last 100 lines to a person with `project.settings`.
 - REQ-011: An unknown person SHALL ask to join from Work / Team: name, e-mail, account and asked role. Shipyard SHALL write the member with the role `viewer` and the asked role in the pull request text, on a new branch, and open a pull request for an admin. Without a code host connection, Shipyard SHALL copy the member entry for the person to send.
 - REQ-012: Home / Today SHALL show the panels of the role of the person, as the table lists, before the sections of `home-today`. A panel with nothing to show SHALL hide. A panel that shows money SHALL need `costs.view`.
-- REQ-013: Each role SHALL open on its first tab, as the table lists. The sidebar SHALL put the space of the first tab after Home.
+- REQ-013: Each role SHALL open on its first tab, as the table lists. A role that does not see its first tab SHALL open on Today. The menu SHALL keep its order for every role (`spec:app-redesign#REQ-006`).
 - REQ-014: The Inbox SHALL show an approval to each person with its right, a question to the assignee of its ticket and to the roles that own its topic, and a review request to the requested reviewers. The view "Everyone" SHALL show each item, one click away.
 - REQ-015: When this machine has project roles or an e-mail to role map, Shipyard SHALL propose once to write them in the team file as members. A person with `project.settings` SHALL confirm. The proposal SHALL map `lead` to `po` and `junior` to `developer` with `-code.merge` and `-runs.approve`, and SHALL list each page mode that it drops.
 - REQ-016: Work / Team SHALL offer a guided setup: add a member with name, e-mail and an account from the connections, pick a role, set the admin flag and the overrides. Each role SHALL show its rights before the save. The save SHALL write through the shared YAML writer and SHALL offer a pull request.
@@ -211,6 +211,11 @@ The roles SHALL be `po`, `pm`, `architect`, `techlead`, `ba`, `developer`, `qa`,
 - WHEN Shipyard gives the levels of `ana`
 - THEN `ana` has `write` in `specs` and in `design`
 
+#### Scenario: Member save keeps the block
+- GIVEN the team file has a `roles:` block
+- WHEN a person saves a member on Crew
+- THEN the team file still has the `roles:` block
+
 ### Requirement: REQ-006 Personal narrowing
 
 The personal role of Settings / Me and the read-only profile of a project SHALL only lower levels. The level of the person in each area SHALL be the lower of the level of the team file and the level of the personal role. The read-only profile SHALL leave `read` at most. Without a personal role, the levels of the team file apply. Settings SHALL never be `none` for an admin.
@@ -284,13 +289,13 @@ Home / Today SHALL show the panels of the role of the person, as the table lists
 
 ### Requirement: REQ-013 First tab of each role
 
-Each role SHALL open on its first tab, as the table lists. The sidebar SHALL put the space of the first tab after Home.
+Each role SHALL open on its first tab, as the table lists. A role that does not see its first tab SHALL open on Today. The menu SHALL keep its order for every role (`spec:app-redesign#REQ-006`).
 
 #### Scenario: Architect
 - GIVEN the member `ana` has the role `architect` and no last view
 - WHEN `ana` opens the project
-- THEN the main area shows Design / Decisions
-- AND Design is the second space of the sidebar
+- THEN the main area shows Library / Decisions
+- AND the menu shows the places in the same order as for every role
 
 ### Requirement: REQ-014 Inbox routing
 

@@ -71,6 +71,38 @@ impl Repo {
         Ok(out)
     }
 
+    /// Puts `path` back to its state at `rev`: the content of `rev` when it has the file, else the
+    /// file goes. The working copy and the index follow. No commit is made. The path stays inside
+    /// the working copy.
+    pub fn restore_path(&self, rev: &str, path: &str) -> Result<()> {
+        check_paths(&[path.to_string()])?;
+        let tree = self.repo.revparse_single(rev)?.peel_to_tree()?;
+        if tree.get_path(std::path::Path::new(path)).is_ok() {
+            let mut cb = git2::build::CheckoutBuilder::new();
+            cb.force().disable_pathspec_match(true).path(path);
+            self.repo.checkout_tree(tree.as_object(), Some(&mut cb))?;
+            return Ok(());
+        }
+        let mut index = self.repo.index()?;
+        // A path that the index does not hold is not an error: the file may be untracked.
+        let _ = index.remove_path(std::path::Path::new(path));
+        index.write()?;
+        match std::fs::remove_file(self.workdir().join(path)) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e.into()),
+            _ => Ok(()),
+        }
+    }
+
+    /// Full id of the commit that `rev` names.
+    pub fn rev_sha(&self, rev: &str) -> Result<String> {
+        Ok(self
+            .repo
+            .revparse_single(rev)?
+            .peel_to_commit()?
+            .id()
+            .to_string())
+    }
+
     /// Full id of HEAD.
     pub fn head_sha(&self) -> Result<String> {
         Ok(self.repo.head()?.peel_to_commit()?.id().to_string())
@@ -93,6 +125,27 @@ impl Repo {
         Ok(self
             .repo
             .diff_tree_to_workdir_with_index(Some(&tree), Some(&mut o))?)
+    }
+
+    /// The merge base of `rev` and `base`, and the files that `rev` changed since it (committed
+    /// work only), with `/` separators.
+    pub fn changed_from_merge_base(&self, rev: &str, base: &str) -> Result<(String, Vec<String>)> {
+        let to = self.repo.revparse_single(rev)?.peel_to_commit()?;
+        let from = self.repo.revparse_single(base)?.peel_to_commit()?.id();
+        let mb = self
+            .repo
+            .find_commit(self.repo.merge_base(to.id(), from)?)?;
+        let diff = self
+            .repo
+            .diff_tree_to_tree(Some(&mb.tree()?), Some(&to.tree()?), None)?;
+        let files = diff
+            .deltas()
+            .filter_map(|d| {
+                let p = d.new_file().path().or_else(|| d.old_file().path())?;
+                Some(p.to_string_lossy().replace('\\', "/"))
+            })
+            .collect();
+        Ok((mb.id().to_string(), files))
     }
 
     /// Every file that the run changed against `base`, committed or not, with `/` separators.

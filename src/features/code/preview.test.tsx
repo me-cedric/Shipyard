@@ -17,7 +17,7 @@ async function pick(name: string) {
 	await user.click(await screen.findByRole("button", { name }));
 }
 
-describe("Code / Changes preview", () => {
+describe("Code / Now, the preview of a changed file", () => {
 	it("shows an untracked image from the working copy", async () => {
 		await pick("me.png");
 		const img = await screen.findByRole("img", { name: "me.png" });

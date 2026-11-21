@@ -122,6 +122,7 @@ export function create(a: MockAssistant, env: Env, title: string | null): Thread
 		id: `T${String(a.seq).padStart(4, "0")}`,
 		project: env.project,
 		title: title?.trim() ?? "",
+		named: !!title?.trim(),
 		settings: {
 			runner: d.runner ?? "claude",
 			model: d.model,
@@ -183,6 +184,7 @@ export const get = (a: MockAssistant, env: Env, id: string) => view(find(a, env,
 export function rename(a: MockAssistant, env: Env, id: string, title: string): ThreadSummary {
 	const r = find(a, env, id);
 	r.thread.title = title.trim();
+	r.thread.named = true;
 	return summary(r);
 }
 
@@ -202,6 +204,23 @@ export function worktreeDiscard(a: MockAssistant, env: Env, id: string, force: b
 }
 
 export const diff = (a: MockAssistant, env: Env, id: string): FileDiff[] => find(a, env, id).files;
+
+/** Keep leaves the file changed and takes it out of the review. With no path it takes every file. */
+export function fileKeep(a: MockAssistant, env: Env, id: string, path: string | null): FileDiff[] {
+	const r = find(a, env, id);
+	if (!r.thread.worktree) throw "the thread has no change to keep";
+	if (path !== null && !r.files.some((f) => f.path === path)) throw `${path} has no change to keep`;
+	r.files = path === null ? [] : r.files.filter((f) => f.path !== path);
+	return r.files;
+}
+
+/** Undo reverts one file: it leaves the review and the other files stay. */
+export function fileUndo(a: MockAssistant, env: Env, id: string, path: string): FileDiff[] {
+	const r = find(a, env, id);
+	if (!r.thread.worktree) throw "the thread has no change to undo";
+	r.files = r.files.filter((f) => f.path !== path);
+	return r.files;
+}
 
 export function saveDraft(
 	a: MockAssistant,
@@ -340,8 +359,33 @@ function edit(r: Rec) {
 		path: `/mock/worktrees/${r.thread.id}`,
 		branch: `assistant/${r.thread.id}`,
 		base: "abc1234",
+		kept: [],
 	};
 	if (!r.files.length) r.files = [hello];
+}
+
+/**
+ * The thread of the demo project: an answer with its trace and one changed file, on Codex (the mock
+ * reports a quota for it), so that the Ask page shows each part.
+ */
+export function seedDemoThread(a: MockAssistant, project: string) {
+	create(a, { project, resolves: () => true }, "What blocks the release");
+	const r = a.threads.at(-1);
+	if (!r) return;
+	r.thread.settings.runner = "codex";
+	r.thread.settings.mode = "agent";
+	r.thread.messages.push(
+		{ ...reply("What blocks the release?"), role: "user" },
+		reply("Two features are blocked. I changed src/hello.ts in the worktree.", {
+			trace: [
+				step("Read", "docs/plan/MASTER-PLAN.md", 120),
+				step("Grep", "blocked", 80),
+				step("Edit", "src/hello.ts", 40),
+			],
+		}),
+	);
+	r.used = 120_000;
+	edit(r);
 }
 
 export function send(
@@ -493,7 +537,7 @@ export function toFactory(
 	const preview = toFactoryPreview(a, env, id);
 	const r = find(a, env, id);
 	if (r.thread.messages.some((m) => m.role === "user" && /refuse/i.test(m.text))) {
-		throw "The tracker refused the item: 400.";
+		throw "The issue tracker refused the item: 400.";
 	}
 	const action = r.sent ? "unchanged" : "create";
 	r.sent ??= `SHIP-${100 + a.seq}`;

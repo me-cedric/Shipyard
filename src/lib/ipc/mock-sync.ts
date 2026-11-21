@@ -53,6 +53,7 @@ const ticket = (
 	claimed: false,
 	estimateMinutes: n % 3 === 0 ? 480 : null,
 	spentMinutes: n % 3 === 0 ? 360 : null,
+	release: n % 4 === 1 ? "MVP 1" : null,
 });
 
 /** The fake tracker data set: ten open tickets and two closed ones. */
@@ -154,7 +155,27 @@ export function automationGet(sync: MockSync): AutomationView_Serialize {
 
 export function automationSave(sync: MockSync, a: Automation_Serialize) {
 	if ((a.interval ?? 60) < 30) throw `invalid automation file: interval = ${a.interval}`;
-	sync.automation = { ...defaultAutomation(), ...a };
+	// As `automation_save`: a save keeps only the kinds that both the file and the form name.
+	const file = sync.file === "valid" ? (sync.automation.recipe_writes ?? {}) : {};
+	const kept = Object.entries(file)
+		.map(
+			([recipe, kinds]) =>
+				[recipe, kinds.filter((k) => a.recipe_writes?.[recipe]?.includes(k))] as const,
+		)
+		.filter(([, kinds]) => kinds.length > 0);
+	const recipes = kept.length > 0 ? Object.fromEntries(kept) : undefined;
+	sync.automation = { ...defaultAutomation(), ...a, recipe_writes: recipes };
+	sync.file = "valid";
+}
+
+/** "May write: Alone": the click adds `open_pr` to the kinds that the recipe writes with no question. */
+export function allowRecipePr(sync: MockSync, recipe: string) {
+	const kinds = new Set(sync.automation.recipe_writes?.[recipe] ?? []);
+	kinds.add("open_pr");
+	sync.automation = {
+		...sync.automation,
+		recipe_writes: { ...sync.automation.recipe_writes, [recipe]: [...kinds] },
+	};
 	sync.file = "valid";
 }
 

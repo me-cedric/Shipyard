@@ -4,8 +4,7 @@ Feature: projects
   Scenario: First run: Empty install
     Given no project in the registry
     When a person starts Shipyard
-    Then the first run shows the role choice and the three starts with icon and noun labels
-    And only Open a local folder is a primary action
+    Then the first run asks the role, then shows the three starts with icon and noun labels
 
   @spec:projects#REQ-001
   Scenario: First run: Return start
@@ -182,8 +181,8 @@ Feature: projects
   @spec:projects#REQ-013
   Scenario: Health dot: Worst finding
     Given one warning and one error
-    When the status bar renders
-    Then the dot shows the error shape and colour
+    When the person opens the account menu
+    Then the dot of the Health item shows the error shape and colour
 
   @spec:projects#REQ-013
   Scenario: Health dot: Assistive label

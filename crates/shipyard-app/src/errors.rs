@@ -14,7 +14,7 @@ use specta::Type;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum ActionKind {
-    /// Open a Settings field. `target` is the route and the anchor id of the row, such as `/settings/project#issue-tracker`.
+    /// Open a Settings field. `target` is the route and the anchor id of the row, such as `/setup/project#issue-tracker`.
     Setting,
     /// Read the tracker again.
     Sync,
@@ -115,6 +115,8 @@ pub enum ErrorCode {
     GitState,
     ThreadState,
     Stopped,
+    TileNoResult,
+    TileTimeLimit,
     ImportNotPlanned,
     ServerOff,
     InputInvalid,
@@ -129,38 +131,51 @@ impl ErrorCode {
     fn action(self) -> Option<ErrorAction> {
         let (kind, target) = match self {
             Self::NoProject => (ActionKind::CreateProject, ""),
-            Self::NoMember | Self::UnknownMember => (ActionKind::Open, "/work/team#add-member"),
-            Self::NoTracker => (ActionKind::Setting, "/settings/project#issue-tracker"),
-            Self::NoSecret | Self::TokenRefused | Self::NoAccount | Self::DeviceNotSet => {
-                (ActionKind::Setting, "/settings/connections#connections")
-            }
-            Self::ScopeMissing => (ActionKind::Setting, "/settings/project#tracker-scope"),
-            Self::PickupOff => (ActionKind::Setting, "/settings/project#pickup-label"),
+            Self::NoMember | Self::UnknownMember => (ActionKind::Open, "/crew/crew#add-member"),
+            Self::NoTracker => (ActionKind::Setting, "/setup/project#issue-tracker"),
+            Self::NoSecret | Self::TokenRefused | Self::NoAccount | Self::DeviceNotSet => (
+                ActionKind::Setting,
+                "/setup/project?page=connections#connections",
+            ),
+            Self::ScopeMissing => (ActionKind::Setting, "/setup/project#tracker-scope"),
+            Self::PickupOff => (ActionKind::Setting, "/setup/project#pickup-label"),
             Self::TicketNotInMirror => (ActionKind::Sync, ""),
             Self::NodeMissing => (ActionKind::Install, "node"),
             Self::MergeDraft | Self::MergeClosed | Self::MergeMethod => {
-                (ActionKind::Open, "/code/pull-requests")
+                (ActionKind::Open, "/code/now")
             }
-            Self::ForgeDenied | Self::GitlabNoMcp | Self::GitlabAddress => {
-                (ActionKind::Setting, "/settings/connections#connections")
-            }
-            Self::CertUntrusted => (ActionKind::Setting, "/settings/connections#certificates"),
-            Self::GitNothingStaged => (ActionKind::Open, "/code/changes"),
+            Self::ForgeDenied | Self::GitlabNoMcp | Self::GitlabAddress => (
+                ActionKind::Setting,
+                "/setup/project?page=connections#connections",
+            ),
+            Self::CertUntrusted => (ActionKind::Setting, "/setup/computer#certificates"),
+            Self::GitNothingStaged => (ActionKind::Open, "/code/now"),
             Self::GitNoUpstream => (ActionKind::Open, "/code/branches"),
             Self::NoTerminal | Self::TerminalGone => {
-                (ActionKind::Setting, "/settings/me#terminal-app")
+                (ActionKind::Setting, "/setup/me#terminal-app")
             }
             Self::NoRemote => (ActionKind::Open, "/code/branches"),
-            Self::NoCompass => (ActionKind::Open, "/settings/agents-rules#compass-upgrade"),
-            Self::ToolMissing | Self::ToolFailed => (ActionKind::Open, "/settings/health#tools"),
-            Self::ConnectionKind => (ActionKind::Setting, "/settings/connections#connections"),
-            Self::SignInFailed => (ActionKind::Setting, "/settings/connections#connections"),
+            Self::NoCompass => (
+                ActionKind::Open,
+                "/setup/computer?page=models#compass-upgrade",
+            ),
+            Self::ToolMissing | Self::ToolFailed => {
+                (ActionKind::Open, "/setup/computer?page=health#tools")
+            }
+            Self::ConnectionKind => (
+                ActionKind::Setting,
+                "/setup/project?page=connections#connections",
+            ),
+            Self::SignInFailed => (
+                ActionKind::Setting,
+                "/setup/project?page=connections#connections",
+            ),
             Self::GitState => (ActionKind::Open, "/code/branches"),
-            Self::FigmaNoToken => (ActionKind::Open, "/design/screens"),
-            Self::ReadOnly | Self::ProjectFileInvalid => (ActionKind::Open, "/settings/project"),
-            Self::AgentsStopped => (ActionKind::Open, "/factory/runs"),
-            Self::GitIdentity => (ActionKind::Open, "/settings/me#me"),
-            Self::GitDirty => (ActionKind::Open, "/code/changes"),
+            Self::FigmaNoToken => (ActionKind::Open, "/library/screens"),
+            Self::ReadOnly | Self::ProjectFileInvalid => (ActionKind::Open, "/setup/project"),
+            Self::AgentsStopped => (ActionKind::Open, "/flow/flow"),
+            Self::GitIdentity => (ActionKind::Open, "/setup/me#me"),
+            Self::GitDirty => (ActionKind::Open, "/code/now"),
             _ => return None,
         };
         Some(ErrorAction {
@@ -185,7 +200,10 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("commit or stash your changes first", ErrorCode::GitDirty),
     ("switch to a branch first", ErrorCode::GitState),
     ("has no issue tracker connection", ErrorCode::NoTracker),
-    ("the tracker scope is not set", ErrorCode::ScopeMissing),
+    (
+        "the issue tracker scope is not set",
+        ErrorCode::ScopeMissing,
+    ),
     ("the pickup label is off", ErrorCode::PickupOff),
     ("not in the mirror", ErrorCode::TicketNotInMirror),
     ("needs the click of a person", ErrorCode::NeedsClick),
@@ -286,7 +304,7 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("unknown tile", ErrorCode::NotFound),
     ("unknown stack or agent", ErrorCode::NotFound),
     ("unknown member", ErrorCode::NotFound),
-    ("no workflow `", ErrorCode::NotFound),
+    ("no recipe `", ErrorCode::NotFound),
     ("no role `", ErrorCode::NotFound),
     ("no sheet `", ErrorCode::NotFound),
     ("no run ", ErrorCode::NotFound),
@@ -348,8 +366,8 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("manager vanished", ErrorCode::ToolMissing),
     ("the orca command", ErrorCode::ToolMissing),
     ("` failed:", ErrorCode::ToolFailed),
-    ("is not a tracker", ErrorCode::ConnectionKind),
-    ("is not a forge", ErrorCode::ConnectionKind),
+    ("is not an issue tracker", ErrorCode::ConnectionKind),
+    ("is not a code host", ErrorCode::ConnectionKind),
     (
         "the kind of a connection does not change",
         ErrorCode::ConnectionKind,
@@ -374,6 +392,10 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("switch the thread to agent mode", ErrorCode::ThreadState),
     ("nothing to retry", ErrorCode::ThreadState),
     ("the review was stopped", ErrorCode::Stopped),
+    ("the tile build was stopped", ErrorCode::Stopped),
+    ("is spent: the tile waits", ErrorCode::BudgetSpent),
+    ("the agent gave no tile", ErrorCode::TileNoResult),
+    ("the tile build took longer than", ErrorCode::TileTimeLimit),
     ("the test stopped", ErrorCode::Stopped),
     ("no import is planned", ErrorCode::ImportNotPlanned),
     ("turn the server on first", ErrorCode::ServerOff),
@@ -385,7 +407,7 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("is not an id", ErrorCode::InputInvalid),
     ("is not a plain run", ErrorCode::InputInvalid),
     ("is not a run id", ErrorCode::InputInvalid),
-    ("is not a workflow id", ErrorCode::InputInvalid),
+    ("is not a recipe id", ErrorCode::InputInvalid),
     ("bad commit id", ErrorCode::InputInvalid),
     ("bad project id", ErrorCode::InputInvalid),
     ("not a ref", ErrorCode::InputInvalid),
@@ -405,8 +427,16 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("not a runner", ErrorCode::InputInvalid),
     ("not a check of this project", ErrorCode::InputInvalid),
     ("not a host name", ErrorCode::InputInvalid),
-    ("this tracker has no", ErrorCode::TrackerUnsupported),
-    ("the tracker does not hold", ErrorCode::TrackerUnsupported),
+    ("this issue tracker has no", ErrorCode::TrackerUnsupported),
+    (
+        "the issue tracker does not hold",
+        ErrorCode::TrackerUnsupported,
+    ),
+    (
+        "this issue tracker does not support",
+        ErrorCode::TrackerUnsupported,
+    ),
+    ("this issue tracker cannot", ErrorCode::TrackerUnsupported),
     (
         "this is not a Figma project address",
         ErrorCode::FigmaAddress,
@@ -501,15 +531,15 @@ mod tests {
         let e = AppError::from("ACME-9 is not in the mirror: sync first");
         assert_eq!(e.code, ErrorCode::TicketNotInMirror);
         assert_eq!(e.action.unwrap().kind, ActionKind::Sync);
-        let e = AppError::from("set the tracker scope: the tracker scope is not set");
-        assert_eq!(e.action.unwrap().target, "/settings/project#tracker-scope");
+        let e = AppError::from("set the issue tracker scope: the issue tracker scope is not set");
+        assert_eq!(e.action.unwrap().target, "/setup/project#tracker-scope");
         assert_eq!(AppError::from("odd").code, ErrorCode::Unknown);
         let e = AppError::from("a draft pull request cannot merge: mark it ready first");
         assert_eq!(e.action.unwrap().kind, ActionKind::Open);
         let e = AppError::from("HTTP 401: bad credentials");
         assert_eq!(
             e.action.unwrap().target,
-            "/settings/connections#connections"
+            "/setup/project?page=connections#connections"
         );
         // A pull request that the code host does not know is a missing item, not an unknown error.
         let e = AppError::from("code host: not found: acme/web#999");
@@ -529,18 +559,15 @@ mod tests {
         // A proxy that the OS trusts and the client does not: the person adds its certificate.
         let e = AppError::from("network error: invalid peer certificate: UnknownIssuer");
         assert_eq!(e.code, ErrorCode::CertUntrusted);
-        assert_eq!(
-            e.action.unwrap().target,
-            "/settings/connections#certificates"
-        );
+        assert_eq!(e.action.unwrap().target, "/setup/computer#certificates");
         let e = AppError::from("invalid change id: Bad Id");
         assert_eq!((e.code, e.action), (ErrorCode::ChangeIdInvalid, None));
         let e = AppError::from("the terminal app is not installed: Kitty");
-        assert_eq!(e.action.unwrap().target, "/settings/me#terminal-app");
+        assert_eq!(e.action.unwrap().target, "/setup/me#terminal-app");
         // A named member that is not in the team is not the signed-in person.
         let e = AppError::from("the team has no member `zed`");
         assert_eq!(e.code, ErrorCode::UnknownMember);
-        assert_eq!(e.action.unwrap().target, "/work/team#add-member");
+        assert_eq!(e.action.unwrap().target, "/crew/crew#add-member");
         // Each entry of the table is reached: an earlier needle never hides a later one.
         // Sample of the grouped codes: each gets its action, or none.
         let e = AppError::from("unknown project: zed");
@@ -550,10 +577,16 @@ mod tests {
         assert_eq!(e.action.unwrap().target, "/code/branches");
         let e = AppError::from("the orca command is not installed");
         assert_eq!(e.code, ErrorCode::ToolMissing);
-        assert_eq!(e.action.unwrap().target, "/settings/health#tools");
+        assert_eq!(
+            e.action.unwrap().target,
+            "/setup/computer?page=health#tools"
+        );
         let e = AppError::from("`codebase-memory-mcp` failed: exited with code 3: no daemon");
         assert_eq!(e.code, ErrorCode::ToolFailed);
-        assert_eq!(e.action.unwrap().target, "/settings/health#tools");
+        assert_eq!(
+            e.action.unwrap().target,
+            "/setup/computer?page=health#tools"
+        );
         // The stderr tail of a program never picks the code, and the runner sign-in keeps its own.
         let e = AppError::from("`fake-mcp` failed: exited with code 2: no such file or directory");
         assert_eq!(e.code, ErrorCode::ToolFailed);
@@ -581,9 +614,9 @@ mod tests {
         // The texts of `docs_update_start` and the codes that name a Settings place.
         let e = AppError::from("the project file is not valid");
         assert_eq!(e.code, ErrorCode::ProjectFileInvalid);
-        assert_eq!(e.action.unwrap().target, "/settings/project");
+        assert_eq!(e.action.unwrap().target, "/setup/project");
         let e = AppError::from("commit or stash your changes first");
-        assert_eq!(e.action.unwrap().target, "/code/changes");
+        assert_eq!(e.action.unwrap().target, "/code/now");
         assert_eq!(
             AppError::from("this doc is not stale").code,
             ErrorCode::DocNotStale

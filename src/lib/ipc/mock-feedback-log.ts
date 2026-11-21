@@ -31,12 +31,3 @@ export const seedLog = (): MockLog => ({
 		{ at: "09:01:10", level: "error", message: "agent tools endpoint: port 47821 is in use" },
 	],
 });
-
-/** A line that looks like a secret is hidden, as the Rust log does. */
-export function logRecord(l: MockLog, level: string, message: string) {
-	l.lines.push({
-		at: "09:02:00",
-		level: ["info", "warn", "error"].includes(level) ? level : "info",
-		message: SECRET.test(message) ? "[line hidden: it held a secret]" : message,
-	});
-}

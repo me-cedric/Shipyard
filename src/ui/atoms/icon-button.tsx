@@ -9,12 +9,15 @@ export type IconButtonProps = Omit<ComponentProps<typeof BaseButton>, "aria-labe
 	shortcut?: string;
 	/** Why it is disabled: the tooltip and the description of the button. */
 	reason?: string;
+	/** `outline` is the white square with a border of the page top row. */
+	variant?: "ghost" | "outline";
 };
 
 export function IconButton({
 	label,
 	shortcut,
 	reason,
+	variant,
 	className,
 	children,
 	...props
@@ -25,7 +28,10 @@ export function IconButton({
 				aria-label={label}
 				aria-description={props.disabled ? reason : undefined}
 				className={cn(
-					"inline-flex size-(--row-h) shrink-0 items-center justify-center rounded-md border border-transparent text-n-11 transition-colors duration-(--duration-fast) hover:bg-n-3 hover:text-n-12 disabled:pointer-events-none disabled:opacity-50",
+					"inline-flex size-(--control-h) shrink-0 items-center justify-center rounded-md border transition-[color,background-color,scale] duration-(--duration-fast) active:scale-[.96] hover:bg-n-3 hover:text-n-12 disabled:pointer-events-none disabled:opacity-50",
+					variant === "outline"
+						? "border-n-7 bg-surface-1 text-n-12"
+						: "border-transparent text-n-11",
 					className,
 				)}
 				{...props}

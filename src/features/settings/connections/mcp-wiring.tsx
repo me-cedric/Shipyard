@@ -8,14 +8,13 @@ import {
 	type WireState,
 	type Wiring,
 } from "@/lib/ipc";
-import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { SettingsRow } from "@/ui/molecules/settings-row";
+import { SetupCard, SetupRow, StatePill } from "../parts";
 import { message } from "./keys";
 
 export const wiringKey = ["mcp", "wiring"] as const;
 
-const TONE = { wired: "success", "out-of-date": "warning", "not-wired": "neutral" } as const;
+const PILL = { wired: "ready", "out-of-date": "fix" } as const;
 const MARK = { same: " ", add: "+", del: "-" } as const;
 
 /**
@@ -48,34 +47,40 @@ export function McpWiring() {
 		"not-wired": o.stateNotWired,
 	};
 	const rows = list.data ?? [];
+	const p = t.personal.setup;
 	return (
-		<div className="flex flex-col rounded-lg border bg-surface-1 shadow-1">
-			<h3 className="px-3 pt-2 text-12 font-medium text-n-11">{o.agents}</h3>
+		<SetupCard title={p.shareTools}>
 			{rows.length === 0 && list.isSuccess ? (
-				<p className="px-3 py-2 text-ui text-n-11">{o.agentsNone}</p>
+				<p className="px-6 py-2 text-ui text-n-11">{o.agentsNone}</p>
 			) : null}
 			{rows.map((w: Wiring) => (
-				<SettingsRow key={w.id} label={w.label}>
-					<span className="max-w-72 truncate font-mono text-12 text-n-11" title={w.path}>
-						{w.path}
-					</span>
-					<Badge variant={TONE[w.state]}>{state[w.state]}</Badge>
+				<SetupRow key={w.id} label={<span title={w.path}>{w.label}</span>}>
+					{w.state === "not-wired" ? (
+						<span className="sr-only">{state[w.state]}</span>
+					) : (
+						<StatePill state={PILL[w.state]}>
+							{w.state === "wired" ? p.connected : state[w.state]}
+						</StatePill>
+					)}
 					{w.state === "wired" ? null : (
 						<Button
 							variant="secondary"
+							aria-label={format(w.state === "out-of-date" ? o.update : p.connectName, {
+								name: w.label,
+							})}
 							onClick={() =>
 								void attempt(async () =>
 									setReview({ id: w.id, r: await unwrap(commands.mcpWiringReview(w.id)) }),
 								)
 							}
 						>
-							{format(w.state === "out-of-date" ? o.update : o.wire, { name: w.label })}
+							{w.state === "out-of-date" ? t.personal.setup.update : p.connect}
 						</Button>
 					)}
-				</SettingsRow>
+				</SetupRow>
 			))}
 			{review ? (
-				<section aria-label={format(o.review, { path: review.r.path })} className="px-3 pb-2">
+				<section aria-label={format(o.review, { path: review.r.path })} className="px-6 pb-2">
 					<h4 className="py-1 font-mono text-12 text-n-11">
 						{format(o.review, { path: review.r.path })}
 					</h4>
@@ -117,15 +122,15 @@ export function McpWiring() {
 				</section>
 			) : null}
 			{note ? (
-				<p role="status" className="px-3 pb-2 text-ui text-success-text">
+				<p role="status" className="px-6 pb-2 text-ui text-success-text">
 					{note}
 				</p>
 			) : null}
 			{error ? (
-				<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
+				<p role="alert" className="px-6 pb-2 text-ui text-danger-text">
 					{error}
 				</p>
 			) : null}
-		</div>
+		</SetupCard>
 	);
 }

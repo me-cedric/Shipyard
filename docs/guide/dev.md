@@ -12,11 +12,11 @@
 | `crates/` | Rust workspace. Domain logic in `shipyard-core` has no I/O. |
 | `crates/shipyard-app/` | Tauri shell: `tauri.conf.json`, `capabilities/`, `icons/`, commands in `src/commands/`. |
 | `src/ui/` | Design system: `tokens`, `icons`, `atoms`, `molecules`, `organisms`, `templates`, `gallery`. Long lists use `VirtualList` and `DataTable` (TanStack Virtual and Table). |
-| `src/features/<space>/` | One folder per space. A feature imports only `@/ui`, `@/lib` and its own folder. |
+| `src/features/<space>/` | One folder per feature area, for example `flow`, `crew` or `code`. A place of the menu can show parts of more than one folder. A feature imports only `@/ui`, `@/lib` and its own folder. |
 | `src/lib/ipc/` | Generated bindings and the mock layer. |
-| `src/lib/i18n/` | English and French catalogues. `fr.ts` has the type of `en.ts`. |
+| `src/lib/i18n/` | English, French, German and Spanish catalogues. Each one has the type of `en.ts`. |
 | `e2e/` | Playwright tests on the Vite release build, with the mock IPC. |
-| `docs/guide/` | User pages, one for each space, and this guide. `docs/guide/fr/` has the French pages, with the same file names. |
+| `docs/guide/` | User pages, one for each place, and this guide. `docs/guide/fr/`, `de/` and `es/` have the French, German and Spanish pages, with the same file names and the same headings. |
 
 ## Run
 
@@ -70,7 +70,7 @@ pnpm build:sidecar   # only the sidecar: crates/shipyard-app/binaries/shipyard-<
 
 `pnpm test:e2e` builds the app with `VITE_MOCK_DEMO=0` and serves it on port 4174. One file covers each space, for example `e2e/work.spec.ts`. Run one file with `pnpm playwright test e2e/<name>.spec.ts`.
 
-- `e2e/a11y.spec.ts` runs axe (`@axe-core/playwright`) on every tab of every space, in the light and the dark theme, with reduced motion. A violation fails the test. A new tab joins the run when you add it to `SPACES` in `src/features/shell/spaces.ts`.
+- `e2e/a11y.spec.ts` runs axe (`@axe-core/playwright`) on each section of each place and on the pages off the section switches, in the light and the dark theme, with reduced motion, in a window of 960 by 600 px. A violation fails the test. A control under 44 px high and a page that scrolls sideways fail it too. A new section joins the run when you add it to `PLACES` in `src/features/shell/places.ts`. A page off the switches joins it in `OFF_SWITCH` of the test.
 - `e2e/design-system.spec.ts` covers the gallery: one page for each atomic layer, a focus ring on each layer button, the theme and language switch, and axe on each layer in both themes. The gallery exists in the dev build only. The test starts its own `vite` dev server on port 4175. It checks that the release build has no gallery route.
 - `pnpm test:personas` walks the first hour of each profile (project manager, architect, developer, tester, business analyst, functional lead, junior) in the demo build. It uses `playwright.personas.config.ts` and `e2e/personas/*.persona.ts`, and `pnpm test:e2e` does not run it. Set `PERSONAS_OUT` to a folder: each profile writes one screenshot for each step and a log with the clicks and the result of each step (ok, confusing, dead end, error). A step that the app cannot do fails the run softly and the walk continues.
 

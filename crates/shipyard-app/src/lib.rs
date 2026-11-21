@@ -25,6 +25,7 @@ pub mod doctor;
 pub mod doctor_bootstrap;
 pub mod documents;
 pub mod errors;
+pub mod estimate_agent;
 pub mod extensions;
 pub mod factory;
 pub mod feedback;
@@ -38,6 +39,7 @@ pub mod mcp_tools;
 pub mod openers;
 pub mod orca;
 pub mod outside;
+pub mod page_history;
 pub mod permissions;
 pub mod pkce;
 pub mod pr_agent;
@@ -48,6 +50,7 @@ pub mod questions;
 mod reports;
 pub mod request_tree;
 pub mod rights;
+pub mod role_model;
 pub mod runner_setup;
 pub mod runner_signin;
 pub mod sbom;
@@ -134,6 +137,9 @@ fn specta_builder() -> Builder<tauri::Wry> {
             conn::connections_add,
             conn::connections_edit,
             conn::connections_remove,
+            conn::account_sign_out_list,
+            conn::account_sign_out,
+            conn::connections_sign_out,
             conn::connections_users,
             conn::connections_set_secret,
             conn::connections_test,
@@ -193,6 +199,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::code::code_pull_merge,
             crate::code::code_pull_ready,
             crate::code::code_pull_close,
+            crate::code::code_pull_rerun,
+            crate::code::code_pull_reviewers,
             crate::code::code_pull_send_back,
             crate::code::code_pull_archive_spec,
             crate::device_login::device_login_start,
@@ -215,8 +223,13 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::qa::code_coverage,
             crate::qa::code_gates_propose,
             crate::qa::code_gates_save,
+            crate::page_history::page_history,
+            crate::page_history::page_version,
+            crate::page_history::page_restore,
             crate::documents::doc_search,
             crate::documents::doc_docx_list,
+            crate::documents::doc_add_file,
+            crate::documents::doc_download,
             crate::documents::doc_docx_read,
             crate::decks::deck_list,
             crate::decks::deck_pdf,
@@ -231,6 +244,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::code::code_impact_list,
             crate::code::code_impact_read,
             crate::code::code_impact_analyze,
+            crate::code::code_impact_plan_save,
             terminal::terminal_open,
             terminal::terminal_write,
             terminal::terminal_resize,
@@ -270,7 +284,13 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::pr_agent::pr_review_stop,
             crate::pr_agent::pr_review_waiting,
             crate::pr_agent::pr_write_text,
+            crate::estimate_agent::estimate_agent_start,
+            crate::estimate_agent::estimate_agent_stop,
+            crate::pr_agent::tile::dashboard_tile_build,
             crate::machine::machine_sessions,
+            crate::machine::machine_session_take,
+            crate::machine::machine_session_output,
+            crate::machine::machine_load,
             crate::machine::machine_session_stop,
             crate::machine::machine_spend,
             crate::machine::machine_budget_set,
@@ -297,6 +317,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::creator::creator_bootstrap,
             crate::assistant_attach::assistant_attach,
             crate::feedback::feedback_open,
+            crate::feedback::feedback_attach,
             crate::applog::debug_log,
             ag::tiers_get,
             ag::tiers_set,
@@ -330,6 +351,12 @@ fn specta_builder() -> Builder<tauri::Wry> {
             work::work_ticket_priority_set,
             work::work_ticket_type_set,
             work::work_ticket_due_set,
+            work::work_ticket_release_set,
+            work::work_releases,
+            work::join::work_team_join_requests,
+            work::join::work_team_join_accept,
+            work::join::work_team_join_refuse,
+            work::work_issue_types,
             files::files_create_file,
             files::files_create_folder,
             files::files_rename,
@@ -358,6 +385,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             costing::plan_calendar_get,
             work::plan_decisions_save,
             work::plan_calendar_save,
+            work::time_fill_day,
             work::time_list,
             work::time_add,
             work::time_update,
@@ -370,6 +398,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             work::work_item_preview,
             work::work_item_create,
             factory::runs_list,
+            factory::features_list,
             factory::run_get_one,
             factory::run_log_page,
             factory::sessions_list,
@@ -380,6 +409,10 @@ fn specta_builder() -> Builder<tauri::Wry> {
             factory::run_start,
             factory::run_cancel,
             factory::run_resume,
+            factory::run_pause,
+            factory::recipe_allow_pr_write,
+            factory::run_take_over,
+            factory::run_attach,
             factory::run_unblock,
             factory::run_close_done,
             factory::run_plan_approve,
@@ -387,6 +420,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             factory::kill_switch_get,
             factory::run_log_degraded,
             factory::kill_switch_set,
+            factory::agents_stop_all,
             factory::workflows_list,
             factory::workflow_get,
             factory::workflow_check,
@@ -402,6 +436,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             factory::roles_list,
             factory::role_get,
             factory::role_write,
+            crate::role_model::role_model_set,
             questions::questions_list,
             questions::question_answer,
             questions::messages_list,
@@ -409,6 +444,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             delivery::approvals_list,
             delivery::approval_approve,
             delivery::approval_reject,
+            delivery::approvals_allow_recipe,
             delivery::pulls_list,
             delivery::pulls_status_get,
             design::design_list,
@@ -417,6 +453,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             design::design_adr_create,
             design::design_adr_decide,
             design::design_flows_save,
+            design::design_flows_check,
+            design::design_flows_checked,
             design::design_try,
             design::design_open,
             design_preview::design_bytes,
@@ -429,6 +467,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             figma::figma_tokens,
             specs::specs_changes,
             specs::specs_change_create,
+            specs::specs_change_input_add,
             specs::specs_change_from_ticket,
             specs::specs_change_delegate,
             specs::specs_read,
@@ -454,6 +493,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             asst::assistant_rename,
             asst::assistant_delete,
             asst::assistant_worktree_discard,
+            asst::assistant_file_keep,
+            asst::assistant_file_undo,
             asst::assistant_diff,
             asst::assistant_save_draft,
             asst::assistant_settings_set,
@@ -489,6 +530,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             kw::dashboard_save_one,
             kw::dashboard_tile,
             kw::learn_get,
+            kw::glossary_add_word,
             crate::learning::learning_get,
             crate::learning::learning_feeds_read,
             crate::learning::learning_feed_add,
@@ -509,6 +551,9 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::reports::export_security_file,
             crate::reports::export_work_done_file,
             crate::reports::export_change_request_files,
+            crate::reports::export_change_request_pdf_files,
+            crate::reports::reports_written_get,
+            crate::reports::reports_written_add,
             ex::compass_get,
             ex::compass_preview,
             ex::compass_apply,
@@ -547,9 +592,13 @@ fn specta_builder() -> Builder<tauri::Wry> {
             auto_commit::auto_commit_set,
             auto_commit::auto_commit_run,
             close_guard::close_guard_state,
+            close_guard::projects_close_state,
+            close_guard::projects_close_stop,
             close_guard::close_anyway,
             close_guard::close_guard_drafts,
             window::app_data_folder,
+            window::app_portable_set,
+            window::app_data_folder_move,
             branding::picture_get,
             branding::picture_set,
             branding::feedback_mail,
@@ -569,6 +618,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             permissions::permissions_request,
             permissions::permissions_open_settings,
             sh::update_check,
+            crate::shell::budget::budget_status,
             tray::tray_close,
             tray::tray_open,
         ])
@@ -602,7 +652,7 @@ pub fn run() {
         })
         .setup(|app| {
             let exe = std::env::current_exe().ok();
-            let dir = window::data_dir(exe.as_deref(), app.path().app_data_dir()?);
+            let dir = window::start_dir(exe.as_deref(), app.path().app_data_dir()?);
             std::fs::create_dir_all(&dir)?;
             window::restore(app.handle(), &dir);
             app.manage(AppState::new(dir.clone()));

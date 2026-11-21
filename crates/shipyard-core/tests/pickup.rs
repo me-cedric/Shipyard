@@ -23,6 +23,7 @@ fn ticket(key: &str, status: &str, category: StatusCategory) -> Ticket {
         url: String::new(),
         updated: "2026-10-29T10:00:00Z".into(),
         time: None,
+        release: None,
     })
 }
 
@@ -85,6 +86,7 @@ fn pr(number: u64, state: PrState) -> PullSnapshot {
         ci: Ci::Pending,
         changes_requested: false,
         updated: "2026-10-29T10:00:00Z".into(),
+        author: String::new(),
     }
 }
 
@@ -623,6 +625,7 @@ fn pull(number: u64, state: PrState, draft: bool, head: &str) -> PullSnapshot {
         ci: Ci::None,
         changes_requested: false,
         updated: String::new(),
+        author: String::new(),
     }
 }
 
@@ -730,4 +733,106 @@ fn a_comment_of_a_person_is_one_that_the_system_did_not_store() {
     assert!(!person_comment(&comments, &set(&["1", "2"]), &set(&[])));
     assert!(!person_comment(&comments, &set(&["1"]), &set(&["2"])));
     assert!(person_comment(&comments, &set(&["1"]), &set(&[])));
+}
+
+// `runs-recipes` REQ-005, REQ-006 and REQ-007.
+
+#[test]
+fn a_plan_limit_keeps_a_ticket_waiting_while_the_stage_is_full() {
+    let mut auto = Automation::default();
+    auto.concurrency.global = 9;
+    auto.concurrency.per_stage.plan = Some(1);
+    let tickets = [todo("A-1"), todo("A-2")];
+    assert_eq!(pick(&auto, &tickets, &[], &[], false), ["A-1"]);
+    let planning = [run("r1", "A-7", RunState::Planning)];
+    assert!(pick(&auto, &tickets, &planning, &[], false).is_empty());
+    // A run in Build holds no Plan slot.
+    let building = [run("r1", "A-7", RunState::Working)];
+    assert_eq!(pick(&auto, &tickets, &building, &[], false), ["A-1"]);
+}
+
+#[test]
+fn the_stage_of_a_state_is_fixed() {
+    use RunState as S;
+    for (state, stage) in [
+        (S::Planning, LimitStage::Plan),
+        (S::PlanReview, LimitStage::Plan),
+        (S::Working, LimitStage::Build),
+        (S::SelfReview, LimitStage::Build),
+        (S::PROpen, LimitStage::Review),
+        (S::ChangesRequested, LimitStage::Review),
+    ] {
+        assert_eq!(LimitStage::of(state), Some(stage), "{state:?}");
+    }
+}
+
+#[test]
+fn a_stage_at_its_limit_counts_the_runs_of_that_stage_only() {
+    use shipyard_core::run::Run;
+    let limits = StageLimits {
+        build: Some(2),
+        ..StageLimits::default()
+    };
+    let build = Run {
+        state: RunState::Working,
+        return_to: None,
+    };
+    let paused = Run {
+        state: RunState::Paused,
+        return_to: Some(RunState::SelfReview),
+    };
+    let plan = Run {
+        state: RunState::Planning,
+        return_to: None,
+    };
+    assert!(!limits.full(LimitStage::Build, [build, plan]));
+    assert!(limits.full(LimitStage::Build, [build, build, plan]));
+    // A paused run keeps its slot.
+    assert!(limits.full(LimitStage::Build, [build, paused]));
+    // A stage with no limit is never full.
+    assert!(!limits.full(LimitStage::Plan, [plan, plan, plan]));
+}
+
+#[test]
+fn stage_limits_and_budget_choices_round_trip_and_stay_out_at_the_defaults() {
+    let text = "concurrency:\n  per_stage:\n    plan: 2\n    build: 3\nbudgets:\n  warn_at: 70\n  feature:\n    SHIP-1: 3.0\n  at_limit:\n    day: go_on\n    member: pause\n";
+    let a: Automation = serde_norway::from_str(text).unwrap();
+    assert_eq!(a.concurrency.per_stage.build, Some(3));
+    assert_eq!(a.concurrency.per_stage.review, None);
+    assert_eq!(a.budgets.warn_at, Some(70));
+    assert!((a.budgets.warn() - 0.7).abs() < 1e-9);
+    assert_eq!(a.budgets.for_feature("SHIP-1"), Some(3.0));
+    assert_eq!(a.budgets.at_limit.day, Then::GoOn);
+    assert_eq!(a.budgets.at_limit.member, Then::Pause);
+    assert_eq!(a.budgets.at_limit.feature, Then::StopAsk);
+    assert!(a.validate().is_empty());
+    let back: Automation = serde_norway::from_str(&serde_norway::to_string(&a).unwrap()).unwrap();
+    assert_eq!(back, a);
+    let text = serde_norway::to_string(&Automation::default()).unwrap();
+    for gone in ["per_stage", "warn_at", "at_limit", "feature"] {
+        assert!(!text.contains(gone), "{gone} in {text}");
+    }
+    assert!((Budgets::default().warn() - 0.8).abs() < 1e-9);
+}
+
+#[test]
+fn a_bad_warn_at_a_bad_feature_limit_and_a_zero_stage_limit_are_refused() {
+    let issue = |text: &str| {
+        let a: Automation = serde_norway::from_str(text).unwrap();
+        a.validate()
+            .into_iter()
+            .map(|i| i.field)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(issue("budgets:\n  warn_at: 0\n"), ["budgets.warn_at"]);
+    assert_eq!(issue("budgets:\n  warn_at: 101\n"), ["budgets.warn_at"]);
+    assert!(issue("budgets:\n  warn_at: 100\n").is_empty());
+    assert_eq!(
+        issue("budgets:\n  feature:\n    A-1: -1\n"),
+        ["budgets.feature.A-1"]
+    );
+    assert_eq!(
+        issue("concurrency:\n  per_stage:\n    review: 0\n"),
+        ["concurrency.per_stage.review"]
+    );
 }

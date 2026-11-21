@@ -1,0 +1,148 @@
+/** The strings of the controls of Shell, Setup and Rights that the redesign added (`spec:shell-setup-rights`). */
+export const shellFnEn = {
+	signOut: {
+		label: "Sign out",
+		confirm: "Remove the sign-in of {names}?",
+		none: "No code host or issue tracker is signed in",
+		done: "Signed out of {names}",
+	},
+	sessions: {
+		take: "Take control",
+		takeOf: "Take control of {name}",
+		confirmTake: "Stop {name} and open it in the terminal?",
+		taken: "Opened in the terminal",
+		noResume: "{name} has no session to open again",
+	},
+	load: {
+		processor: "Processor, {percent} %",
+		memory: "Memory, {value}",
+		processorBar: "Processor use",
+		memoryBar: "Memory use",
+		toolCalls: "Tool calls",
+	},
+	rights: {
+		codeMerge: "Code and merge",
+		placesTitle: "Places of {role}",
+		places: "Places",
+		hide: "{place} for {role}",
+		shown: "Shown",
+		hidden: "Hidden",
+	},
+	time: {
+		fill: "Fill from my work",
+		filled: "{count} rows added",
+		nothing: "Nothing to add",
+	},
+	roles: {
+		tier: "Model of {name}",
+		top: "Best",
+		mid: "Standard",
+		small: "Fast",
+	},
+	notify: {
+		budget: "A budget reaches {percent} %",
+		sound: "Sound",
+		channel: "Release channel",
+		stable: "Stable",
+		preview: "Preview",
+		budgetTitle: "A budget reached {percent} %",
+		budgetBody: "{name}: {spent} of {budget}",
+		allTools: "All AI tools",
+	},
+	data: {
+		change: "Change",
+		changeTo: "Change the data folder",
+		confirmMove: "Move the data to {path} and restart Shipyard?",
+		portable: "Portable mode",
+	},
+	feedback: {
+		attach: "Attach a file",
+		attached: "Shown in the file manager",
+	},
+	permissions: {
+		moment: "Shipyard needs {count} permissions",
+		momentOne: "Shipyard needs 1 permission",
+		later: "Later",
+	},
+	close: {
+		title: "Agents still work: {count}",
+		titleOne: "1 agent still works",
+		stop: "Stop them and close",
+		keep: "Keep them working",
+		cancel: "Cancel",
+	},
+};
+
+export const shellFnFr: typeof shellFnEn = {
+	signOut: {
+		label: "Se déconnecter",
+		confirm: "Retirer la connexion de {names} ?",
+		none: "Aucun hébergeur de code ni outil de suivi n'est connecté",
+		done: "Déconnecté de {names}",
+	},
+	sessions: {
+		take: "Prendre la main",
+		takeOf: "Prendre la main sur {name}",
+		confirmTake: "Arrêter {name} et l'ouvrir dans le terminal ?",
+		taken: "Ouvert dans le terminal",
+		noResume: "{name} n'a pas de session à rouvrir",
+	},
+	load: {
+		processor: "Processeur, {percent} %",
+		memory: "Mémoire, {value}",
+		processorBar: "Usage du processeur",
+		memoryBar: "Usage de la mémoire",
+		toolCalls: "Appels d'outils",
+	},
+	rights: {
+		codeMerge: "Code et fusion",
+		placesTitle: "Lieux de {role}",
+		places: "Lieux",
+		hide: "{place} pour {role}",
+		shown: "Visible",
+		hidden: "Masqué",
+	},
+	time: {
+		fill: "Remplir depuis mon travail",
+		filled: "{count} lignes ajoutées",
+		nothing: "Rien à ajouter",
+	},
+	roles: {
+		tier: "Modèle de {name}",
+		top: "Le meilleur",
+		mid: "Standard",
+		small: "Rapide",
+	},
+	notify: {
+		budget: "Un budget atteint {percent} %",
+		sound: "Son",
+		channel: "Canal de version",
+		stable: "Stable",
+		preview: "Préversion",
+		budgetTitle: "Un budget a atteint {percent} %",
+		budgetBody: "{name} : {spent} sur {budget}",
+		allTools: "Tous les outils d'IA",
+	},
+	data: {
+		change: "Changer",
+		changeTo: "Changer le dossier des données",
+		confirmMove: "Déplacer les données vers {path} et redémarrer Shipyard ?",
+		portable: "Mode portable",
+	},
+	feedback: {
+		attach: "Joindre un fichier",
+		attached: "Affiché dans le gestionnaire de fichiers",
+	},
+	permissions: {
+		moment: "Shipyard a besoin de {count} autorisations",
+		momentOne: "Shipyard a besoin d'1 autorisation",
+		later: "Plus tard",
+	},
+	close: {
+		title: "Agents encore au travail : {count}",
+		titleOne: "1 agent est encore au travail",
+		stop: "Les arrêter et fermer",
+		keep: "Les laisser travailler",
+		cancel: "Annuler",
+	},
+};

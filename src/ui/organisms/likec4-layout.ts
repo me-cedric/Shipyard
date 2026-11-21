@@ -7,6 +7,8 @@ export type LayoutNode = {
 	height: number;
 	/** The id of the node that holds this one. */
 	parent: string | null;
+	/** The kind of the element, such as "system". */
+	kind: string;
 };
 export type LayoutEdge = { id: string; label: string; points: [number, number][] };
 export type Layout = {
@@ -23,7 +25,10 @@ type Source = {
 	id: string;
 	title?: string | null;
 	bounds: { x: number; y: number; width: number; height: number };
-	nodes: readonly (Omit<LayoutNode, "parent"> & { parent?: string | null })[];
+	nodes: readonly (Omit<LayoutNode, "parent" | "kind"> & {
+		parent?: string | null;
+		kind?: string;
+	})[];
 	edges: readonly { id: string; label?: string | null; points: readonly (readonly number[])[] }[];
 };
 
@@ -58,6 +63,7 @@ export function toLayout(v: Source): Layout {
 			width: n.width,
 			height: n.height,
 			parent: n.parent ?? null,
+			kind: n.kind ?? "",
 		})),
 		edges: v.edges.map((e) => ({
 			id: e.id,

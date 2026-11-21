@@ -3,41 +3,65 @@ import { useGuard } from "@/features/work/guard";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { type Automation, syncKeys, useAutomation } from "@/lib/sync";
-import { Select } from "@/ui/atoms/select";
-import { SettingsRow } from "@/ui/molecules/settings-row";
+import { Segmented } from "@/ui/atoms/segmented";
+import { SetupRow, Toggle } from "../parts";
+import { MiniSwitch } from "./mini-switch";
 
-const OPTIONS = ["off", "draft", "post"] as const;
+type Choice = "off" | "draft" | "post";
 
 /**
- * Settings / Project: the agent review of each new pull request and head commit. It is one choice
- * of `.shipyard/automation.yaml`: Off, Draft (the draft waits on the page) or Post (a comment
- * review, never an approval).
+ * Setup / This project: the agent review of each new pull request and head commit. It is one choice
+ * of `.shipyard/automation.yaml`: off, Draft (the draft waits on the page) or Post (a comment
+ * review, never an approval). The switch turns it on as a draft.
  */
-export function AutoReview() {
+export function AutoReview({ inline }: { inline?: boolean }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const { error, run } = useGuard();
 	const view = useAutomation().data;
 	const label = t.forge.agent.auto;
-	const save = (next: (typeof OPTIONS)[number]) =>
+	const value: Choice = view?.automation.auto_review ?? "off";
+	const save = (next: Choice) =>
 		void run(async () => {
 			if (!view) return;
 			const automation: Automation = { ...view.automation, auto_review: next };
 			await unwrap(commands.syncAutomationSave(automation));
 			await qc.invalidateQueries({ queryKey: syncKeys.all });
 		});
+	const mode =
+		value === "off" ? null : (
+			<span className="w-44">
+				<Segmented
+					label={t.doctor.project.reviewMode}
+					value={value}
+					onValueChange={save}
+					items={(["draft", "post"] as const).map((o) => ({
+						value: o,
+						label: t.forge.agent.autoOptions[o],
+					}))}
+				/>
+			</span>
+		);
+	const control = {
+		label,
+		checked: value !== "off",
+		onCheckedChange: (on: boolean) => save(on ? "draft" : "off"),
+	};
 	return (
 		<>
-			<SettingsRow label={label}>
-				<Select
-					label={label}
-					value={view?.automation.auto_review ?? "off"}
-					onValueChange={(v) => save(v as (typeof OPTIONS)[number])}
-					items={OPTIONS.map((o) => ({ value: o, label: t.forge.agent.autoOptions[o] }))}
-				/>
-			</SettingsRow>
+			{inline ? (
+				<>
+					<MiniSwitch {...control} label={t.doctor.project.autoReview} />
+					{mode}
+				</>
+			) : (
+				<SetupRow label={t.doctor.project.autoReview}>
+					{mode}
+					<Toggle {...control} />
+				</SetupRow>
+			)}
 			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
+				<p role="alert" className="px-6 pb-2 text-ui text-danger-text">
 					{error}
 				</p>
 			) : null}

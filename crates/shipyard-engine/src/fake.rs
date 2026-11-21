@@ -91,6 +91,7 @@ pub fn ticket(key: &str, status: &str, category: StatusCategory) -> Ticket {
         url: format!("https://tracker.test/{key}"),
         updated: "2026-10-29T10:00:00Z".into(),
         time: None,
+        release: None,
     })
 }
 
@@ -288,7 +289,7 @@ impl TrackerPort for FakeTracker {
         let now = self.clock.now();
         let mut s = lock(&self.state);
         if s.refuse_stamp {
-            return Err("the tracker refused the comment".into());
+            return Err("the issue tracker refused the comment".into());
         }
         s.stamp_writes += 1;
         if let Some(other) = s.race.take() {

@@ -6,13 +6,14 @@ import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useCopy } from "@/lib/menus";
 import { useDay } from "@/lib/prefs";
+import { useShellIfAny } from "@/lib/shell";
 import { rememberSelection, requestEdit } from "@/lib/shell/selection";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Skeleton } from "@/ui/atoms/skeleton";
 import { BookOpenIcon, CheckIcon, ClipboardIcon, PencilIcon } from "@/ui/icons";
 import { blocks } from "@/ui/organisms/markdown-view";
-import { docTarget, refPage, refSelection } from "./ref-page";
+import { docTarget, featureOfRef, refPage, refSelection } from "./ref-page";
 
 const OUTLINE_MAX = 8;
 
@@ -112,6 +113,7 @@ export function ItemFacts({ path, docs, title }: { path: string; docs: boolean; 
 export function OpenActions({ refId }: { refId: string }) {
 	const { t } = useI18n();
 	const router = useRouter({ warn: false });
+	const shell = useShellIfAny();
 	const doc = docTarget(refId);
 	const page = doc?.page ?? refPage(refId);
 	const [viewing, setViewing] = useState(false);
@@ -128,17 +130,23 @@ export function OpenActions({ refId }: { refId: string }) {
 			</>
 		);
 	if (!page) return null;
-	const editable = doc?.page === "/knowledge/handbook";
+	const editable = doc?.page === "/library/handbook";
 	const go = (edit: boolean) => {
+		const feature = featureOfRef(refId);
+		if (feature) return void router.navigate(feature);
 		const open = doc ? ([doc.scope, doc.id] as const) : refSelection(t, refId);
 		if (open) rememberSelection(...open);
 		if (edit && doc && editable) requestEdit(doc.id);
+		// A connection is behind the door Connections of This project.
+		if (refId.startsWith("conn:"))
+			return void router.navigate({ href: "/setup/project?page=connections" });
+		// On its own page the item is selected there, and the card gives way to the side panel.
+		if (shell && router.state.location.pathname === page) return shell.openRef(refId, true);
 		void router.navigate({ to: page });
 	};
 	return (
 		<div className="flex flex-wrap gap-2">
-			<Button variant="ghost" onClick={() => go(false)}>
-				<BookOpenIcon size={14} />
+			<Button variant="primary" className="flex-1" onClick={() => go(false)}>
 				{t.inspector.open}
 			</Button>
 			{editable ? (

@@ -92,6 +92,7 @@ fn a_work_item_holds_no_tracker_field() {
         url: String::new(),
         updated: String::new(),
         time: None,
+        release: None,
     };
     let json = serde_json::to_value(&item).unwrap();
     let mut keys: Vec<&str> = json
@@ -110,6 +111,7 @@ fn a_work_item_holds_no_tracker_field() {
             "kind",
             "labels",
             "parent",
+            "release",
             "status",
             "time",
             "title",

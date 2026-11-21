@@ -1,8 +1,7 @@
 import { useI18n } from "@/lib/i18n";
-import { commands, type ExportText, saveAs, unwrap } from "@/lib/ipc";
+import { commands, type ExportText, unwrap } from "@/lib/ipc";
 import { type ExportItem, ExportMenu } from "./export-menu";
 import { renderViews } from "./export-views";
-import { ChangeRequestForm, WorkDoneForm } from "./forms";
 
 export type ExportPage =
 	| "documents"
@@ -14,21 +13,10 @@ export type ExportPage =
 	| "plan";
 
 /**
- * The Export menu of a page, one line to mount. `slug` is the estimate sheet of the plan. Each
- * item calls one Rust command, and a Rust refusal shows with its error action.
+ * The exports of each page. `slug` is the estimate sheet of the plan. Each item calls one Rust
+ * command, and a Rust refusal shows with its error action.
  */
-export function PageExport({
-	page,
-	slug,
-	disabled,
-	extra = [],
-}: {
-	page: ExportPage;
-	slug?: string;
-	disabled?: boolean;
-	/** Items that the page adds before the standard ones. */
-	extra?: ExportItem[];
-}) {
+export function useExportItems(slug?: string): Record<ExportPage, ExportItem[]> {
 	const { t } = useI18n();
 	const r = t.reports;
 	const words = (title: string, sections: string[] = []): ExportText => ({
@@ -46,11 +34,13 @@ export function PageExport({
 		label,
 		save: { name: id, ext, job: (path) => job(words(label), path) },
 	});
-	const items: Record<ExportPage, ExportItem[]> = {
+	return {
 		documents: [
 			{
 				id: "dossier-complete",
 				label: r.dossierComplete,
+				// A form asks the title, the client and the day first. Export keeps the default values.
+				form: true,
 				save: {
 					name: "dossier",
 					ext: "docx",
@@ -68,16 +58,24 @@ export function PageExport({
 			{
 				id: "change-request",
 				label: r.changeRequest,
-				form: (done, close) => <ChangeRequestForm done={done} close={close} />,
+				form: true,
+				// One click with the default title and versions, as the form starts.
+				quick: async (out) => {
+					const ask = [r.changeRequest, "main", "HEAD", [] as string[], true] as const;
+					const o = await unwrap(
+						out === "pdf"
+							? commands.exportChangeRequestPdfFiles(...ask)
+							: commands.exportChangeRequestFiles(...ask),
+					);
+					return [o.markdown, out === "pdf" ? (o.pdf ?? "") : o.docx];
+				},
 			},
 		],
 		workDone: [
 			{
 				id: "work-done",
 				label: r.workDone,
-				form: (done, close) => (
-					<WorkDoneForm done={done} close={close} pick={() => saveAs("work-done", "xlsx")} />
-				),
+				form: true,
 			},
 		],
 		costing: [
@@ -100,6 +98,23 @@ export function PageExport({
 			),
 		],
 	};
+}
+
+/** The Export menu of a page, one line to mount. */
+export function PageExport({
+	page,
+	slug,
+	disabled,
+	extra = [],
+}: {
+	page: ExportPage;
+	slug?: string;
+	disabled?: boolean;
+	/** Items that the page adds before the standard ones. */
+	extra?: ExportItem[];
+}) {
+	const items = useExportItems(slug);
+
 	return (
 		<ExportMenu
 			items={[...extra, ...items[page]]}

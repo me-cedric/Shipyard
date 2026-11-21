@@ -314,3 +314,56 @@ fn a_json_flows_file_reads_as_rows_and_saves_as_json() {
     let saved = file(&f, rel);
     assert!(saved.contains("\"ports\": \"443\"") && saved.contains("\"name\": \"web\""));
 }
+
+// spec:library-functions#REQ-011
+#[test]
+fn the_check_against_the_code_keeps_a_result_for_each_flow_in_the_app_data() {
+    let f = fx();
+    let rel = "docs/flows/edge.yaml";
+    let flow = |id, destination: &str, action| FlowRow {
+        id,
+        source: "app".into(),
+        destination: destination.into(),
+        network: "Internet".into(),
+        protocol: "https".into(),
+        port: None,
+        action,
+        note: None,
+        name: None,
+        subnet: None,
+        source_name: None,
+        destination_name: None,
+    };
+    let rows = [
+        flow(1, "api.example.com", Action::Deny),
+        flow(2, "nowhere.test", Action::Allow),
+        flow(3, "Code host", Action::Allow),
+    ];
+    flows_save(&f.s, rel, &rows, None).unwrap();
+    assert_eq!(flows_checked(&f.s, rel).unwrap(), None);
+    put_file(&f, "src/net.rs", "get(\"https://api.example.com/v1\");\n");
+    // A doc names hosts too, but it is not the code.
+    put_file(&f, "docs/notes.md", "See https://nowhere.test/\n");
+    let done = flows_check(&f.s, rel).unwrap();
+    assert_eq!(
+        done.rows
+            .iter()
+            .map(|c| (c.id, c.in_code))
+            .collect::<Vec<_>>(),
+        [(1, Some(true)), (2, Some(false)), (3, None)]
+    );
+    assert_eq!(flows_checked(&f.s, rel).unwrap(), Some(done));
+    // The result is in the app data folder, not in the repository.
+    assert!(!f.repo.path().join("flow-checks").exists());
+    assert!(
+        std::fs::read_dir(f.s.dir.join("flow-checks"))
+            .unwrap()
+            .count()
+            == 1
+    );
+    // The code changes: the next check follows it.
+    std::fs::remove_file(f.repo.path().join("src/net.rs")).unwrap();
+    let again = flows_check(&f.s, rel).unwrap();
+    assert_eq!(again.rows[0].in_code, Some(false));
+    assert!(flows_check(&f.s, "docs/diagrams/edge.yaml").is_err());
+}

@@ -42,6 +42,9 @@ use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::connections::{Connection, slug_text};
 use crate::rights::Right;
 
+mod fill;
+pub use fill::{Filled, time_fill};
+
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
@@ -561,6 +564,15 @@ pub fn team_save(s: &AppState, mut team: Team) -> Res<TeamView> {
     Ok(c.team())
 }
 
+/// The team save of the interface, which sends the members: a team with no `roles:` block keeps
+/// the block of the file. Crew / Rights changes the block (`rights::roles_save`).
+pub fn team_save_members(s: &AppState, mut team: Team) -> Res<TeamView> {
+    if team.roles.is_empty() {
+        team.roles = ctx(s)?.team().team.roles;
+    }
+    team_save(s, team)
+}
+
 /// Add the signed-in person to the team: the name of the git identity, a handle from the login
 /// (or the git e-mail) and the login as the issue tracker account. A person who is in the team
 /// already changes nothing. A click is needed, and a read-only project refuses.
@@ -679,7 +691,7 @@ pub fn assign(s: &AppState, key: &str, handle: &str, click: bool) -> Res<()> {
     let account = m
         .trackers
         .first()
-        .ok_or_else(|| format!("{} has no tracker account in team.yaml", m.name))?;
+        .ok_or_else(|| format!("{} has no issue tracker account in team.yaml", m.name))?;
     let t = tracker(s)?;
     let w = writer(s, &t)?;
     w.assign(key, account).map_err(err)?;
@@ -701,6 +713,13 @@ pub(crate) fn assign_me(s: &AppState, key: &str) {
     if let Err(e) = go() {
         eprintln!("assign {key}: {e}");
     }
+}
+
+/// The name of the person at this computer in the issue tracker, when it is known.
+pub(crate) fn me_name(s: &AppState) -> Option<String> {
+    let t = tracker(s).ok()?;
+    let me = s.connections.tracker(&t.id).ok()?.me().ok()?;
+    Some(me.name).filter(|n| !n.trim().is_empty())
 }
 
 /// Mark an item for agent work: add the pickup label of `automation.yaml` (REQ-008).
@@ -774,7 +793,7 @@ pub struct TicketComment {
 pub fn ticket_comments(s: &AppState, key: &str) -> Res<Vec<TicketComment>> {
     let t = tracker(s)?;
     if !t.caps.comments {
-        return Err("the tracker does not hold comments".into());
+        return Err("the issue tracker does not hold comments".into());
     }
     let w = writer(s, &t)?;
     Ok(writes::all_comments(&*w, key)
@@ -894,6 +913,8 @@ pub struct TicketEditCaps {
     pub due_date: bool,
     /// The estimate in days changes (a tracker with time tracking).
     pub estimate: bool,
+    /// The release changes: the fix version, the milestone, the iteration or the project.
+    pub release: bool,
 }
 
 pub fn ticket_edit_caps(s: &AppState) -> Res<TicketEditCaps> {
@@ -912,7 +933,56 @@ fn ticket_edit_caps_of(t: &Target) -> TicketEditCaps {
         issue_type: !matches!(t.kind, TrackerKind::GitHubIssues | TrackerKind::Linear),
         due_date: t.kind != TrackerKind::GitHubIssues,
         estimate: t.caps.time_tracking,
+        release: true,
     }
+}
+
+/// The releases of the issue tracker, by name (REQ-004 of `code-host-tickets`). The tracker lists
+/// its own (a version with no ticket yet shows too), and the releases of the mirrored tickets are
+/// added, so a tracker that cannot list still gives the ones in use. No write, no click.
+pub fn releases(s: &AppState) -> Res<Vec<String>> {
+    let t = tracker(s)?;
+    let mut all: Vec<String> = mirror_items(s, &t)?
+        .into_iter()
+        .filter_map(|i| i.release)
+        .collect();
+    if let (Some(scope), Ok(w)) = (t.scope.as_deref(), writer(s, &t)) {
+        all.extend(w.releases(scope).unwrap_or_default());
+    }
+    all.sort_by_key(|r| r.to_lowercase());
+    all.dedup();
+    Ok(all)
+}
+
+/// The types of ticket that the issue tracker holds, for the kinds of Setup / Tickets.
+pub fn issue_types(s: &AppState) -> Res<Vec<String>> {
+    let t = tracker(s)?;
+    let scope = t
+        .scope
+        .clone()
+        .ok_or("the project names no issue tracker scope")?;
+    writer(s, &t)?.issue_types(&scope).map_err(err)
+}
+
+/// Sets the one release of a ticket. `None` or a blank name clears it. The issue tracker refuses a
+/// release it does not hold, and nothing is sent for a name that is too long.
+pub fn ticket_release_set(s: &AppState, key: &str, release: Option<&str>, click: bool) -> Res<()> {
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "work_ticket_release_set",
+        key,
+    )?;
+    let release = release.map(str::trim).filter(|r| !r.is_empty());
+    if release.is_some_and(|r| r.len() > 120) {
+        return Err("the release is a name of 120 characters or fewer".into());
+    }
+    let t = tracker(s)?;
+    let w = writer(s, &t)?;
+    w.set_release(key, release).map_err(err)?;
+    refresh(s, &t, &*w, [key.to_string()]);
+    Ok(())
 }
 
 /// Sets the issue type by name. A blank name is refused, and a tracker with no type field refuses
@@ -931,7 +1001,7 @@ pub fn ticket_type_set(s: &AppState, key: &str, name: &str, click: bool) -> Res<
     }
     let t = tracker(s)?;
     if !ticket_edit_caps_of(&t).issue_type {
-        return Err("this tracker has no issue type to change".into());
+        return Err("this issue tracker has no issue type to change".into());
     }
     let w = writer(s, &t)?;
     w.set_issue_type(key, name).map_err(err)?;
@@ -954,7 +1024,7 @@ pub fn ticket_due_set(s: &AppState, key: &str, day: Option<&str>, click: bool) -
     }
     let t = tracker(s)?;
     if !ticket_edit_caps_of(&t).due_date {
-        return Err("this tracker has no due date".into());
+        return Err("this issue tracker has no due date".into());
     }
     let w = writer(s, &t)?;
     w.set_due_date(key, day).map_err(err)?;
@@ -994,7 +1064,7 @@ pub fn ticket_priority_set(s: &AppState, key: &str, priority: &str, click: bool)
     )?;
     let t = tracker(s)?;
     if !t.priority {
-        return Err("this tracker has no priority field".into());
+        return Err("this issue tracker has no priority field".into());
     }
     let w = writer(s, &t)?;
     w.set_priority(key, priority).map_err(err)?;
@@ -1281,6 +1351,8 @@ pub fn sheet_get(s: &AppState, slug: &str) -> Res<SheetView> {
 
 /// Write a sheet. It holds the entries and no total (REQ-010). A sealed project seals the file.
 pub fn sheet_save(s: &AppState, slug: &str, sheet: Sheet) -> Res<SheetView> {
+    // The Plan right gates the command, not the page (`shell-setup-rights` REQ-004).
+    crate::rights::require(s, crate::rights::Right::PlanEdit, "estimate_save", slug)?;
     let c = ctx(s)?;
     let rel = sheet_path(slug).map_err(err)?;
     // A frozen sheet takes one change: the unfreeze, with every entry as it was.
@@ -1454,6 +1526,7 @@ pub fn decisions_save(s: &AppState, decisions: &Decisions) -> Res<()> {
 }
 
 pub fn calendar_save(s: &AppState, calendar: &Calendar) -> Res<()> {
+    crate::rights::require(s, crate::rights::Right::PlanEdit, "plan_calendar_save", "")?;
     let c = ctx(s)?;
     let text = write_calendar(calendar).map_err(err)?;
     if c.json_only(CALENDAR_PATH, LAYOUT_CALENDAR) {
@@ -1758,7 +1831,7 @@ pub fn worklog_send(
     if entry.worklog.is_some() {
         // A change that did not reach the tracker: send it again. Else the receipt refuses.
         if entry.unsynced.is_none() {
-            return Err("the entry has a receipt: it is in the tracker".into());
+            return Err("the entry has a receipt: it is in the issue tracker".into());
         }
         push_update(&*w, &entry, offset_minutes, reduce_remaining)?;
         let entry = set_entry(s, &c, &rel, id, |e| e.unsynced = None)?;
@@ -1786,7 +1859,7 @@ pub fn worklog_send(
     let mut entries = read_time(&c.read(&rel)?.unwrap_or_default()).map_err(err)?;
     let at = entries.iter().position(|e| e.id == id).ok_or_else(|| {
         format!(
-            "the entry `{id}` is gone from {rel}: its worklog {} is in the tracker",
+            "the entry `{id}` is gone from {rel}: its worklog {} is in the issue tracker",
             log.id
         )
     })?;
@@ -2016,14 +2089,14 @@ pub fn preview(s: &AppState, slugs: &[String]) -> Res<Vec<DiffRow>> {
 pub(crate) fn container(t: &Target) -> Res<&str> {
     t.scope
         .as_deref()
-        .ok_or_else(|| "the tracker scope is not set".to_string())
+        .ok_or_else(|| "the issue tracker scope is not set".to_string())
 }
 
 /// Write the rows to the tracker, on the click of a person (REQ-026). The preview is computed
 /// again from the sheets and the mirror, so a stale preview writes nothing that the sheets no
 /// longer say. A failed row keeps the rows before it. Status and assignee are never written.
 pub fn apply(s: &AppState, slugs: &[String], click: bool) -> Res<Vec<ApplyRow>> {
-    need_click(s, click, crate::rights::Right::WorkEdit, "apply_run", "")?;
+    need_click(s, click, crate::rights::Right::PlanEdit, "apply_run", "")?;
     let c = ctx(s)?;
     let t = tracker(s)?;
     container(&t)?;
@@ -2051,7 +2124,7 @@ pub fn apply_rows(
     need_click(
         s,
         click,
-        crate::rights::Right::WorkEdit,
+        crate::rights::Right::PlanEdit,
         "apply_run_rows",
         "",
     )?;
@@ -2163,7 +2236,7 @@ pub async fn work_team_add_me(app: AppHandle, click: bool) -> Api<TeamView> {
 #[tauri::command]
 #[specta::specta]
 pub async fn work_team_save(app: AppHandle, team: Team) -> Api<TeamView> {
-    blocking(app, move |s| team_save(s, team)).await
+    blocking(app, move |s| team_save_members(s, team)).await
 }
 
 #[tauri::command]
@@ -2265,6 +2338,32 @@ pub async fn work_ticket_type_set(
     click: bool,
 ) -> Api<()> {
     blocking(app, move |s| ticket_type_set(s, &key, &name, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_issue_types(app: AppHandle) -> Api<Vec<String>> {
+    blocking(app, issue_types).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_releases(app: AppHandle) -> Api<Vec<String>> {
+    blocking(app, releases).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_ticket_release_set(
+    app: AppHandle,
+    key: String,
+    release: Option<String>,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| {
+        ticket_release_set(s, &key, release.as_deref(), click)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -2372,6 +2471,18 @@ pub async fn plan_decisions_save(app: AppHandle, decisions: Decisions) -> Api<()
 #[specta::specta]
 pub async fn plan_calendar_save(app: AppHandle, calendar: Calendar) -> Api<()> {
     blocking(app, move |s| calendar_save(s, &calendar)).await
+}
+
+/// Fill my time from my work: the runs of my tickets and my commits of the day.
+#[tauri::command]
+#[specta::specta]
+pub async fn time_fill_day(
+    app: AppHandle,
+    member: Option<String>,
+    day: String,
+    click: bool,
+) -> Api<Filled> {
+    blocking(app, move |s| time_fill(s, member.as_deref(), &day, click)).await
 }
 
 #[tauri::command]

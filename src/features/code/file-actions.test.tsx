@@ -5,12 +5,13 @@ import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 
 const alpha = () => unwrap(commands.projectsOpen("/mock/alpha", false));
+// The files and the terminal left the top row: the sync mark shows when the project is loaded.
 const bar = async () => within((await screen.findAllByRole("banner"))[0] as HTMLElement);
 
 async function openDrawer(user: ReturnType<typeof userEvent.setup>) {
 	await alpha();
 	mountApp("/home/today");
-	await (await bar()).findByRole("button", { name: "Files" });
+	await (await bar()).findByRole("button", { name: /^Sync state: / });
 	await user.keyboard("{Control>}p{/Control}");
 	return screen.findByRole("complementary", { name: "Files" });
 }
@@ -57,7 +58,7 @@ describe("File drawer actions", () => {
 		await alpha();
 		await unwrap(commands.projectOverridesSave({ readOnly: true } as never)).catch(() => {});
 		mountApp("/home/today");
-		await (await bar()).findByRole("button", { name: "Files" });
+		await (await bar()).findByRole("button", { name: /^Sync state: / });
 		await user.keyboard("{Control>}p{/Control}");
 		const drawer = await screen.findByRole("complementary", { name: "Files" });
 		expect(within(drawer).queryByRole("button", { name: "New file" })).toBeNull();

@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useRef } from "react";
 import { stopReason } from "@/features/factory/runs/run-live";
+import { routeInbox } from "@/features/home/inbox/routing";
 import { format, type Messages } from "@/lib/i18n";
 import {
 	type ApprovalView,
@@ -16,6 +17,9 @@ import {
 } from "@/lib/ipc";
 import type { Notice } from "@/lib/notifications";
 import { noticeTarget } from "@/lib/notifications/targets";
+import { useRights } from "@/lib/rights";
+import { useWorkItems } from "@/lib/sync";
+import { useWorkContext } from "@/lib/work";
 
 export type QuestionItem = QuestionView_Serialize;
 export type ApprovalItem = ApprovalView;
@@ -98,13 +102,12 @@ export function historyRuns<
 		});
 }
 
-const THURSDAY = 4;
 const localDay = (d: Date) =>
 	`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-/** "Timesheet day" shows on Thursday. It is one item, until a time entry of that day exists. */
+/** "Timesheet day" shows Monday to Friday. It is one item, until a time entry of that day exists. */
 export function timesheetDue(now: Date, loggedDays: string[]): boolean {
-	return now.getDay() === THURSDAY && !loggedDays.includes(localDay(now));
+	return now.getDay() >= 1 && now.getDay() <= 5 && !loggedDays.includes(localDay(now));
 }
 
 /** What waits for the person: open questions first, approvals, plans to review, messages. */
@@ -133,7 +136,7 @@ export function useInbox() {
 	const time = useQuery({
 		queryKey: ["work", "time", null, localDay(now).slice(0, 7)],
 		queryFn: () => unwrap(commands.timeList(null, localDay(now).slice(0, 7))),
-		enabled: now.getDay() === THURSDAY,
+		enabled: now.getDay() >= 1 && now.getDay() <= 5,
 	});
 	return {
 		loading: [questions, approvals, runs, messages, reviews].some((q) => q.isPending),
@@ -149,6 +152,137 @@ export function useInbox() {
 		messages: messages.data ?? [],
 		reviews: reviews.data ?? [],
 	};
+}
+
+/** One thing that needs the person, with the data of its row. */
+export type NeedsYouItem = {
+	/** Stable: the same thing keeps its id while it waits. */
+	id: string;
+	/** `agent` always today: a person asks through a review or a message of an agent. */
+	who: "agent" | "person";
+	/** The workflow or step that asks (REQ-007 names who asks). Empty when unknown. */
+	by: string;
+	/** The ticket key of the feature, `#12` for a pull request. */
+	key: string;
+	/** The title of the feature. */
+	title: string;
+	/** What is asked, in one line. */
+	text: string;
+	/** The ref that opens the thing, empty when it has none. */
+	ref: string;
+} & (
+	| { kind: "question"; item: QuestionItem }
+	/** `items`: every effect that waits for the run, as one question (`spec:app-redesign#REQ-013`). */
+	| { kind: "approval"; item: ApprovalItem; items: ApprovalItem[] }
+	| { kind: "plan"; item: RunItem }
+	| { kind: "review"; item: ReviewItem }
+	| { kind: "message"; item: MessageItem }
+);
+
+/** The approvals of one run are one question: one group for each run, in the order of the first. */
+function approvalsByRun(list: ApprovalItem[]): [ApprovalItem, ...ApprovalItem[]][] {
+	const groups = new Map<string, [ApprovalItem, ...ApprovalItem[]]>();
+	for (const a of list) {
+		const g = groups.get(a.run);
+		if (g) g.push(a);
+		else groups.set(a.run, [a]);
+	}
+	return [...groups.values()];
+}
+
+/**
+ * The one list of what needs the person (spec:app-redesign#REQ-007, REQ-008), routed by role. Order:
+ * questions, approvals, plan reviews, agent reviews, messages. The time reminder is not in it.
+ * Today, the count of the menu and the menu bar panel read this list.
+ */
+export function useNeedsYou(everyone = false) {
+	const raw = useInbox();
+	const { can, role, person } = useRights();
+	const me = useWorkContext().data?.me ?? null;
+	const work = useWorkItems({}).data ?? [];
+	const inbox = routeInbox(raw, {
+		everyone,
+		can,
+		role,
+		roles: person?.roles,
+		me,
+		assignee: (key) => work.find((i) => i.key === key)?.member,
+	});
+	const runs = useQuery({
+		queryKey: homeKeys.runs,
+		queryFn: () => unwrap(commands.runsList()),
+	}).data;
+	const named = (run: string) => runs?.find((r) => r.id === run)?.workflow ?? "";
+	const items: NeedsYouItem[] = [
+		...inbox.questions.map(
+			(item): NeedsYouItem => ({
+				id: `question:${item.run}:${item.question.id}`,
+				kind: "question",
+				who: "agent",
+				by: named(item.run),
+				key: item.key,
+				title: item.title,
+				text: item.question.question,
+				ref: `run:${item.run}`,
+				item,
+			}),
+		),
+		...approvalsByRun(inbox.approvals).map(
+			(items): NeedsYouItem => ({
+				id: `approvals:${items[0].run}`,
+				kind: "approval",
+				who: "agent",
+				by: named(items[0].run),
+				key: items[0].key,
+				title: items[0].title,
+				text: items.map((a) => a.summary).join(" · "),
+				ref: `run:${items[0].run}`,
+				item: items[0],
+				items,
+			}),
+		),
+		...inbox.plans.map(
+			(item): NeedsYouItem => ({
+				id: `plan:${item.id}`,
+				kind: "plan",
+				who: "agent",
+				by: item.workflow,
+				key: item.key,
+				title: item.title,
+				text: item.title,
+				ref: `run:${item.id}`,
+				item,
+			}),
+		),
+		...inbox.reviews.map(
+			(item): NeedsYouItem => ({
+				id: `review:${item.number}:${item.headSha}`,
+				kind: "review",
+				who: "agent",
+				by: "",
+				key: `#${item.number}`,
+				title: item.title,
+				text: item.title,
+				ref: item.reference,
+				item,
+			}),
+		),
+		...inbox.messages.map(
+			(item): NeedsYouItem => ({
+				id: `message:${item.run}:${item.n}`,
+				kind: "message",
+				who: "agent",
+				by: item.from || named(item.run),
+				key: item.key,
+				title: item.title,
+				text: item.text,
+				ref: `run:${item.run}`,
+				item,
+			}),
+		),
+	];
+	// The time reminder is its own card: it is not in `items`.
+	return { items, loading: raw.loading, timesheet: raw.timesheet };
 }
 
 /** Each write reads the Inbox again, also when it fails. */
@@ -169,6 +303,8 @@ export function useInboxActions() {
 				run(commands.questionAnswer(r, id, choice)),
 			approve: (id: number) => run(commands.approvalApprove(id)),
 			reject: (id: number) => run(commands.approvalReject(id)),
+			/** Approves these waiting effects of one run and stores the permission of the recipe for their kinds. */
+			allowRecipe: (ids: number[]) => run(commands.approvalsAllowRecipe(ids)),
 			planApprove: (r: string) => run(commands.runPlanApprove(r)),
 			planReject: (r: string, note: string) => run(commands.runPlanReject(r, note)),
 			markRead: (r: string, n: number) => run(commands.messageReadMark(r, n)),

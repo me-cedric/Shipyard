@@ -1,13 +1,18 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { type Messages, useI18n } from "@/lib/i18n";
-import { SPACES, type SpaceId, tabLabel } from "./spaces";
+import { PLACES, type PlaceId, sectionView } from "./places";
+import { tabLabel } from "./spaces";
 
-/** The name of the page at a path: its tab, else its space, else the app name. */
+/** The name of the page at a path: its section, else its place, else the app name. */
 export function pageTitle(t: Messages, path: string): string {
-	const [, space, tab] = path.split("/");
-	if (!space || !(space in SPACES)) return "Shipyard";
-	return (tab && tabLabel(t, space as SpaceId, tab)) || t.space[space as SpaceId];
+	const [, place, slug] = path.split("/");
+	// Projects and Impacts are pages off the section switches.
+	if (place === "projects") return t.tabs.home.projects;
+	if (place === "flow" && slug === "impacts") return t.tabs.code.impacts;
+	if (!place || !(place in PLACES)) return "Shipyard";
+	const view = slug ? sectionView(place as PlaceId, slug) : undefined;
+	return (view && tabLabel(t, ...view)) || t.ui.place[place as PlaceId];
 }
 
 /** A link that is first in the tab order and moves the focus to the main content. */

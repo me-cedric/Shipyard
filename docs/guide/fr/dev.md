@@ -12,11 +12,11 @@
 | `crates/` | Espace de travail Rust. La logique métier de `shipyard-core` n'a pas d'entrées-sorties. |
 | `crates/shipyard-app/` | Coque Tauri : `tauri.conf.json`, `capabilities/`, `icons/`, commandes dans `src/commands/`. |
 | `src/ui/` | Système de design : `tokens`, `icons`, `atoms`, `molecules`, `organisms`, `templates`, `gallery`. Les longues listes utilisent `VirtualList` et `DataTable` (TanStack Virtual et Table). |
-| `src/features/<space>/` | Un dossier par espace. Une fonctionnalité importe seulement `@/ui`, `@/lib` et son propre dossier. |
+| `src/features/<space>/` | Un dossier par domaine, par exemple `flow`, `crew` ou `code`. Un lieu du menu peut montrer des parties de plusieurs dossiers. Une fonctionnalité importe seulement `@/ui`, `@/lib` et son propre dossier. |
 | `src/lib/ipc/` | Les liaisons générées et la couche de simulation. |
-| `src/lib/i18n/` | Les catalogues anglais et français. `fr.ts` a le type de `en.ts`. |
+| `src/lib/i18n/` | Les catalogues anglais, français, allemand et espagnol. Chacun a le type de `en.ts`. |
 | `e2e/` | Tests Playwright sur la version de production de Vite, avec l'IPC simulé. |
-| `docs/guide/` | Les pages pour les utilisateurs, une par espace, et ce guide. `docs/guide/fr/` a les pages françaises, avec les mêmes noms de fichier. |
+| `docs/guide/` | Les pages pour les utilisateurs, une par lieu, et ce guide. `docs/guide/fr/`, `de/` et `es/` ont les pages françaises, allemandes et espagnoles, avec les mêmes noms de fichier et les mêmes titres. |
 
 ## Lancer
 
@@ -70,7 +70,7 @@ pnpm build:sidecar   # only the sidecar: crates/shipyard-app/binaries/shipyard-<
 
 `pnpm test:e2e` compile l'application avec `VITE_MOCK_DEMO=0` et la sert sur le port 4174. Un fichier couvre chaque espace, par exemple `e2e/work.spec.ts`. Lancez un seul fichier avec `pnpm playwright test e2e/<name>.spec.ts`.
 
-- `e2e/a11y.spec.ts` lance axe (`@axe-core/playwright`) sur chaque onglet de chaque espace, en thème clair et sombre, avec un mouvement réduit. Une violation fait échouer le test. Un nouvel onglet entre dans le lot quand vous l'ajoutez à `SPACES` dans `src/features/shell/spaces.ts`.
+- `e2e/a11y.spec.ts` lance axe (`@axe-core/playwright`) sur chaque section de chaque lieu et sur les pages hors des sélecteurs de section, en thème clair et sombre, avec un mouvement réduit, dans une fenêtre de 960 par 600 px. Une violation fait échouer le test. Un contrôle de moins de 44 px de haut et une page qui défile sur le côté le font échouer aussi. Une nouvelle section entre dans le lot quand vous l'ajoutez à `PLACES` dans `src/features/shell/places.ts`. Une page hors des sélecteurs y entre par `OFF_SWITCH` du test.
 - `e2e/design-system.spec.ts` couvre la galerie : une page pour chaque couche atomique, un anneau de focus sur chaque bouton de couche, le changement de thème et de langue, et axe sur chaque couche dans les deux thèmes. La galerie existe seulement dans la version de développement. Le test lance son propre serveur `vite` de développement sur le port 4175. Il vérifie que la version de production n'a pas de route de galerie.
 - `pnpm test:personas` parcourt la première heure de chaque profil (chef de projet, architecte, développeur, testeur, analyste métier, responsable fonctionnel, débutant) dans la version de démonstration. Il utilise `playwright.personas.config.ts` et `e2e/personas/*.persona.ts`, et `pnpm test:e2e` ne le lance pas. Fixez `PERSONAS_OUT` sur un dossier : chaque profil écrit une capture d'écran pour chaque étape et un journal avec les clics et le résultat de chaque étape (ok, confus, impasse, erreur). Une étape que l'application ne peut pas faire fait échouer le parcours en douceur, et le parcours continue.
 

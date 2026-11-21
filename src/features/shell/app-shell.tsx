@@ -1,9 +1,15 @@
-import { Outlet, useRouterState } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
-import { AskOnItem, AssistantPanel, SelectionActions, useAssistant } from "@/features/assistant";
+import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	AskOnItem,
+	AssistantContext,
+	AssistantPanel,
+	SelectionActions,
+	useAssistant,
+} from "@/features/assistant";
 import { FileDrawer } from "@/features/code/file-drawer";
 import { TerminalDrawer } from "@/features/code/terminal-drawer";
-import { Tour } from "@/features/onboarding";
+import { PermissionsMoment, Tour } from "@/features/onboarding";
 import { useCodeActions } from "@/lib/code";
 import { useAnchorArrival } from "@/lib/errors/anchor";
 import { useI18n } from "@/lib/i18n";
@@ -17,26 +23,27 @@ import { Inspector } from "@/ui/organisms/inspector";
 import { Toaster } from "@/ui/organisms/toaster";
 import { Shell } from "@/ui/templates/shell";
 import { useActions, useShortcuts } from "./actions";
+import { BareContext } from "./bare";
 import { CloseGuard } from "./close-guard";
 import { ContextBar } from "./context-bar";
 import { useDropFolder } from "./drop-folder";
 import { useCloseGuardEvent, useNativeMenu, useShellEvents } from "./events";
 import { RouteAnnouncer, SkipLink } from "./page-chrome";
-import { PaletteHost } from "./palette-host";
+import { ProjectCloseAsk } from "./project-close";
 import { RefDetail } from "./ref-detail";
 import { ShortcutHelp } from "./shortcut-help";
 import { Sidebar } from "./sidebar";
-import { StatusBar } from "./status-bar";
 import { ViewMemory } from "./view-memory";
 import { WhatsNew } from "./whats-new";
 
 function Frame() {
 	const { t } = useI18n();
-	const { sidebarOpen, navSide, drawerSide, narrowBar, terminalDock } = usePrefs();
+	const { sidebarOpen, navSide, drawerSide, terminalDock } = usePrefs();
 	const {
 		inspectorOpen,
 		setInspectorOpen,
 		selectedRef,
+		sideSelected,
 		openRef,
 		viewChanged,
 		detail,
@@ -58,8 +65,41 @@ function Frame() {
 	const project = useActiveProject().data;
 	const { commit: runCommit } = useCodeActions();
 	const { gate } = useRights();
-	const { list, sync, commit, assistant, palette, files, terminal, fetch, push, back, forward } =
-		useActions();
+	const {
+		list: all,
+		sync,
+		commit,
+		palette,
+		fetch,
+		push,
+		back,
+		forward,
+		assistant,
+		terminal,
+	} = useActions();
+	// The count of pages that show without the shell: the first run and "No project is open".
+	const [claims, setBare] = useState(0);
+	const claimBare = useCallback(() => {
+		setBare((n) => n + 1);
+		return () => setBare((n) => n - 1);
+	}, []);
+	// Before the first page shows, the frame is bare: the shell does not flash before the first run.
+	const first = useRouterState({
+		select: (s) => (s.resolvedLocation?.pathname ?? "/") === "/",
+	});
+	const shown = useRef(false);
+	if (!first) shown.current = true;
+	const bare = (first && !shown.current) || claims > 0;
+	// A bare page has no Ask bar: the actions that open it do nothing.
+	const list = useMemo(
+		() =>
+			bare
+				? all.map((a) =>
+						a.id === "palette" || a.id === "project-switch" ? { ...a, disabled: true } : a,
+					)
+				: all,
+		[all, bare],
+	);
 	useShortcuts(list);
 	useNativeMenu(list);
 	useShellEvents();
@@ -70,21 +110,25 @@ function Frame() {
 	// A detail belongs to the view that opened it: leaving the view closes it.
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	// One assistant for every space: the shell holds its state, so a change of view keeps it.
-	const chat = useAssistant({ open: assistantOpen, view: path, selected: selectedRef });
+	// The Ask page is the full assistant: it shows the same state, and the side panel leaves the frame.
+	const full = path === "/ask";
+	const chatOpen = assistantOpen || full;
+	const navigate = useNavigate();
+	const chat = useAssistant({ open: chatOpen, view: path, selected: selectedRef });
 	// The Explain action of the inspector, the palette and the menu waits for a thread.
 	const { current, busy, explain } = chat;
 	useEffect(() => {
-		if (!explainRef || !assistantOpen || !current || busy) return;
+		if (!explainRef || !chatOpen || !current || busy) return;
 		clearExplain();
 		void explain(explainRef);
-	}, [explainRef, assistantOpen, current, busy, explain, clearExplain]);
+	}, [explainRef, chatOpen, current, busy, explain, clearExplain]);
 	// A view that asks the assistant (a pull request, a conflict) leaves its text in the draft.
 	const { setDraft } = chat;
 	useEffect(() => {
-		if (prefill === null || !assistantOpen || !current) return;
+		if (prefill === null || !chatOpen || !current) return;
 		setDraft(prefill);
 		clearPrefill();
-	}, [prefill, assistantOpen, current, setDraft, clearPrefill]);
+	}, [prefill, chatOpen, current, setDraft, clearPrefill]);
 	const open = useRef(detail);
 	open.current = detail;
 	// A change of view closes the detail and drops the selection of the view that it leaves.
@@ -95,30 +139,37 @@ function Frame() {
 	const toggle = list.find((a) => a.id === "toggle-sidebar");
 	if (!toggle) throw new Error("Missing action: toggle-sidebar");
 	return (
-		<>
+		<BareContext.Provider value={claimBare}>
 			<SkipLink />
 			<RouteAnnouncer />
 			<Shell
 				sidebarOpen={sidebarOpen}
 				navSide={navSide}
 				drawerSide={drawerSide}
-				narrow={narrowBar}
+				bare={bare}
 				contextbar={
-					<ContextBar
-						sync={sync}
-						fetch={fetch}
-						push={push}
-						assistant={assistant}
-						palette={palette}
-						files={files}
-						terminal={terminal}
-						back={back}
-						forward={forward}
-						toggleSidebar={toggle}
-					/>
+					bare ? null : (
+						<ContextBar
+							sync={sync}
+							fetch={fetch}
+							push={push}
+							commit={commit}
+							actions={list}
+							palette={palette}
+							back={back}
+							forward={forward}
+							toggleSidebar={toggle}
+							assistant={assistant}
+							terminal={terminal}
+						/>
+					)
 				}
 				sidebar={<Sidebar />}
-				main={<Outlet />}
+				main={
+					<AssistantContext.Provider value={chat}>
+						<Outlet />
+					</AssistantContext.Provider>
+				}
 				drawer={
 					project && filesOpen ? (
 						<FileDrawer key={project.id} onClose={() => setFilesOpen(false)} />
@@ -135,18 +186,23 @@ function Frame() {
 				bottomDock={terminalDock}
 				assistantSide={chat.side}
 				assistant={
-					<AssistantPanel
-						assistant={chat}
-						open={assistantOpen}
-						onClose={() => setAssistantOpen(false)}
-						onOpenRef={openRef}
-					/>
+					full ? null : (
+						<AssistantPanel
+							assistant={chat}
+							open={assistantOpen}
+							onClose={() => setAssistantOpen(false)}
+							onOpenRef={openRef}
+							onFull={() => void navigate({ to: "/ask" })}
+						/>
+					)
 				}
 				inspector={
 					<Inspector
 						open={inspectorOpen}
 						onClose={() => setInspectorOpen(false)}
 						title={detail?.title ?? t.inspector.title}
+						// A link opens as a card over the page. The detail of a view and a row that a page selects stay a side panel.
+						card={!detail && selectedRef !== null && !sideSelected}
 					>
 						{detail ? (
 							detail.node
@@ -155,14 +211,14 @@ function Frame() {
 						) : null}
 					</Inspector>
 				}
-				statusbar={<StatusBar commit={commit} />}
 			/>
 			<Toaster toasts={toasts} onDismiss={dismiss} onHold={hold} />
-			<PaletteHost actions={list} />
 			<ShortcutHelp actions={list} />
 			<SelectionActions onAsk={ask} />
 			<AskOnItem />
 			<CloseGuard />
+			<ProjectCloseAsk />
+			<PermissionsMoment />
 			<WhatsNew />
 			<Tour />
 			<CommitDialog
@@ -172,7 +228,7 @@ function Frame() {
 				reason={gate("code.write").reason}
 			/>
 			<ViewMemory />
-		</>
+		</BareContext.Provider>
 	);
 }
 

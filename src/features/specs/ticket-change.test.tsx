@@ -4,13 +4,14 @@ import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 import { importAll, withTracker } from "@/test/tracker";
 
-describe("Specs / Changes: from a ticket", () => {
+describe("Flow / List: a change from a ticket", () => {
 	it("makes a change on a specs branch with the ticket text, then delegates it to an agent", async () => {
 		const user = userEvent.setup();
 		await withTracker();
 		await importAll();
-		mountApp("/specs/changes");
-		await user.click(await screen.findByRole("button", { name: "From a ticket" }));
+		mountApp("/flow/list");
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "From a ticket" }));
 		const dialog = await screen.findByRole("dialog");
 		await user.click(within(dialog).getByRole("combobox", { name: "Ticket" }));
 		await user.click(await screen.findByRole("option", { name: "ACME-2 Add export endpoint" }));
@@ -30,8 +31,9 @@ describe("Specs / Changes: from a ticket", () => {
 		await importAll();
 		const project = mockState().projects[0];
 		if (project) project.overrides = { ...project.overrides, readOnly: true };
-		mountApp("/specs/changes");
-		await user.click(await screen.findByRole("button", { name: "From a ticket" }));
+		mountApp("/flow/list");
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "From a ticket" }));
 		const dialog = await screen.findByRole("dialog");
 		await user.click(within(dialog).getByRole("combobox", { name: "Ticket" }));
 		await user.click(await screen.findByRole("option", { name: "ACME-2 Add export endpoint" }));

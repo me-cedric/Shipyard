@@ -10,6 +10,7 @@ fn thread() -> Thread {
         id: "th-1".into(),
         project: "ship".into(),
         title: String::new(),
+        named: false,
         settings: ThreadSettings::new("claude"),
         context: Context {
             view: "work/board".into(),

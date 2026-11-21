@@ -1,10 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { AnimatePresence } from "motion/react";
 import { type ReactNode, useState } from "react";
 import { connectionKeys, runnerKeys } from "@/features/settings/connections/keys";
 import { DefaultAgentSelect } from "@/features/settings/me/personal";
-import type { TabPath } from "@/features/shell";
 import { useGuard } from "@/features/work/guard";
 import { useDesignList } from "@/lib/design";
 import { useRuns } from "@/lib/factory";
@@ -16,8 +15,9 @@ import { RightButton } from "@/lib/rights";
 import { askForm } from "@/lib/shell";
 import { useChanges } from "@/lib/specs";
 import { useWorkItems } from "@/lib/sync";
+import { cn } from "@/lib/utils";
 import { useTeam, useWorkActions } from "@/lib/work";
-import { Button } from "@/ui/atoms/button";
+import { Button, buttonVariants } from "@/ui/atoms/button";
 import { Leave } from "@/ui/atoms/leave";
 import { Progress } from "@/ui/atoms/progress";
 import { StatusDot } from "@/ui/atoms/status-dot";
@@ -40,7 +40,8 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { Terms } from "@/ui/molecules/term";
-import { usePermissions } from "./permissions";
+import { usePermissions, usePermissionsPlace } from "./permissions";
+import { TourRow } from "./tour-row";
 import { closeTour } from "./tour-store";
 
 /** The steps of a new project, in the order of need. */
@@ -73,33 +74,41 @@ const ICON: Record<ItemId, ReactNode> = {
 	run: <PlayIcon size={14} />,
 };
 
+/** The models and rules: a sub-page of This computer (`spec:app-redesign#REQ-024`), `?page=<id>` on the scope address. */
+const MODELS = "/setup/computer?page=models";
+
 /** The page of each item: the place of its action, and where a done item links to. */
-const PLACE: Record<ItemId, { to: TabPath; hash?: string }> = {
-	project: { to: "/home/projects" },
-	ai: { to: "/settings/me", hash: "section-agent" },
-	models: { to: "/settings/agents-rules", hash: "tiers" },
-	tracker: { to: "/settings/project", hash: "issue-tracker" },
-	forge: { to: "/settings/project", hash: "code-host" },
-	team: { to: "/work/team" },
-	permissions: { to: "/settings/me", hash: "section-permissions" },
-	decision: { to: "/design/decisions" },
-	spec: { to: "/specs/changes" },
-	assign: { to: "/work/backlog" },
-	run: { to: "/factory/runs" },
+const PLACE: Record<ItemId, { to: string; hash?: string }> = {
+	project: { to: "/projects" },
+	ai: { to: "/setup/me", hash: "section-agent" },
+	models: { to: MODELS, hash: "tiers" },
+	tracker: { to: "/setup/project", hash: "issue-tracker" },
+	forge: { to: "/setup/project", hash: "code-host" },
+	team: { to: "/crew/crew" },
+	// The page depends on the role: `usePermissionsPlace`.
+	permissions: { to: "", hash: "section-permissions" },
+	decision: { to: "/library/decisions" },
+	spec: { to: "/flow/list" },
+	assign: { to: "/flow/list" },
+	run: { to: "/flow/flow" },
 };
 
 /**
- * Where an issue tracker or code host step goes. With an account (a connection): the select of the
- * project settings. With none, that select offers only None: Connections, with the add form open.
+ * Where an issue tracker or code host step goes. With an account (a connection): the select of
+ * This project (behind More). With none, that select offers only None: the connections on the same page, with
+ * the add form open.
  */
 export function connectTarget(
 	group: "tracker" | "forge",
 	hasAccount: boolean | undefined,
-): { to: "/settings/project" | "/settings/connections"; hash?: string; form?: string } {
+): { to: string; hash?: string; form?: string } {
 	if (hasAccount)
-		return { to: "/settings/project", hash: group === "tracker" ? "issue-tracker" : "code-host" };
+		return {
+			to: "/setup/project",
+			hash: group === "tracker" ? "more-issue-tracker" : "more-code-host",
+		};
 	return {
-		to: "/settings/connections",
+		to: "/setup/project?page=connections",
 		form: group === "tracker" ? "connection" : "connection:forge",
 	};
 }
@@ -199,6 +208,7 @@ function AddMe() {
 			<RightButton
 				right="project.settings"
 				variant="primary"
+				className="min-h-control"
 				busy={busy}
 				onClick={() => void add()}
 			>
@@ -237,11 +247,21 @@ function OneClick({
 	return (
 		<>
 			{confirm ? (
-				<ConfirmButton disabled={busy} confirm={confirm} onConfirm={() => void go()}>
+				<ConfirmButton
+					variant="primary"
+					disabled={busy}
+					confirm={confirm}
+					onConfirm={() => void go()}
+				>
 					{label}
 				</ConfirmButton>
 			) : (
-				<Button variant="primary" disabled={busy} onClick={() => void go()}>
+				<Button
+					variant="primary"
+					className="min-h-control"
+					disabled={busy}
+					onClick={() => void go()}
+				>
 					{label}
 				</Button>
 			)}
@@ -255,24 +275,33 @@ export function ChecklistControl({
 	id,
 	state,
 	pick = true,
+	pane,
 }: {
 	id: ItemId;
 	state: Checklist;
+	/** The step pane of Setup / Start: no status text and no select, only the actions. */
+	pane?: boolean;
 	/** Show the AI tool select. Settings / Me has it on the page already. */
 	pick?: boolean;
 }) {
 	const { t } = useI18n();
 	const s = t.onboarding.setup;
-	const navigate = useNavigate();
+	const router = useRouter();
+	const permissionsAt = usePermissionsPlace();
 	const done = state.done[id];
 	// A step that leaves the tour ends it: the tour marks itself as seen.
-	const go = (to: TabPath, hash?: string, form?: string) => () => {
+	// The address is text: a scope sub-page is a search value, which the typed links do not know.
+	const go = (to: string, hash?: string, form?: string) => () => {
 		if (form) askForm(form);
 		closeTour();
-		void navigate({ to, hash });
+		router.history.push(hash ? `${to}#${hash}` : to);
 	};
-	const open = (label: string, to: TabPath, hash?: string, form?: string, primary = true) => (
-		<Button variant={primary ? "primary" : undefined} onClick={go(to, hash, form)}>
+	const open = (label: string, to: string, hash?: string, form?: string, primary = true) => (
+		<Button
+			variant={primary ? "primary" : undefined}
+			className="min-h-control"
+			onClick={go(to, hash, form)}
+		>
 			{label}
 		</Button>
 	);
@@ -286,9 +315,23 @@ export function ChecklistControl({
 	const ai = () => {
 		// No default tool, or a missing one: what the old Install an agent step offered.
 		const gone = tool ? (tool.state === "missing" ? tool : undefined) : missing;
+		// The step pane of Setup / Start has one main action: install, else choose, else sign in.
+		// The other doors are on Setup / This computer.
+		if (pane)
+			return gone ? (
+				<OneClick
+					label={format(s.action.install, { name: gone.label })}
+					confirm={format(s.action.installConfirm, { name: gone.label, command: gone.install })}
+					run={() => unwrap(commands.runnerInstall(gone.id, true))}
+				/>
+			) : !tool ? (
+				open(s.action.choose, "/setup/me", "section-agent")
+			) : (
+				open(s.action.signIn, MODELS, "tools")
+			);
 		return (
 			<>
-				{!tool && !pick ? open(s.action.choose, "/settings/me", "section-agent") : null}
+				{!tool && !pick ? open(s.action.choose, "/setup/me", "section-agent") : null}
 				{gone ? (
 					<OneClick
 						label={format(s.action.install, { name: gone.label })}
@@ -297,21 +340,15 @@ export function ChecklistControl({
 					/>
 				) : null}
 				{tool && tool.state !== "missing"
-					? open(s.action.signIn, "/settings/agents-rules", "tools")
-					: open(
-							s.action.openRunner,
-							"/settings/connections",
-							"connections-runner",
-							undefined,
-							false,
-						)}
+					? open(s.action.signIn, MODELS, "tools")
+					: open(s.action.openRunner, "/setup/computer", "connections-runner", undefined, false)}
 			</>
 		);
 	};
 	const todo = done === false;
 	return (
 		<>
-			{done === undefined ? null : (
+			{done === undefined || pane ? null : (
 				<span
 					className={`flex items-center gap-1.5 text-ui ${done ? "text-success-text" : "text-n-11"}`}
 				>
@@ -321,20 +358,19 @@ export function ChecklistControl({
 					{done ? s.done : s.todo}
 				</span>
 			)}
-			{id === "ai" && pick ? <DefaultAgentSelect /> : null}
+			{id === "ai" && pick && !pane ? <DefaultAgentSelect /> : null}
 			{done ? (
 				<Button
+					className="min-h-control"
 					aria-label={format(s.action.viewItem, { name: s.item[id] })}
-					onClick={go(PLACE[id].to, PLACE[id].hash)}
+					onClick={go(PLACE[id].to || permissionsAt, PLACE[id].hash)}
 				>
 					{s.action.view}
 				</Button>
 			) : null}
-			{todo && id === "project"
-				? open(s.action.project, "/home/projects", undefined, "project")
-				: null}
+			{todo && id === "project" ? open(s.action.project, "/projects", undefined, "project") : null}
 			{todo && id === "ai" ? ai() : null}
-			{todo && id === "models" ? open(s.action.models, "/settings/agents-rules", "tiers") : null}
+			{todo && id === "models" ? open(s.action.models, MODELS, "tiers") : null}
 			{todo && id === "tracker" ? connect("tracker") : null}
 			{todo && id === "forge" ? (
 				login && file ? (
@@ -354,18 +390,18 @@ export function ChecklistControl({
 			{todo && id === "team" ? (
 				<>
 					<AddMe />
-					{open(s.action.openTeam, "/work/team", undefined, "member", false)}
+					{open(s.action.openTeam, "/crew/crew", undefined, "member", false)}
 				</>
 			) : null}
 			{todo && id === "permissions"
-				? open(s.action.permissions, "/settings/me", "section-permissions")
+				? open(s.action.permissions, permissionsAt, "section-permissions")
 				: null}
 			{todo && id === "decision"
-				? open(s.action.decision, "/design/decisions", undefined, "adr")
+				? open(s.action.decision, "/library/decisions", undefined, "adr")
 				: null}
-			{todo && id === "spec" ? open(s.action.spec, "/specs/changes", undefined, "change") : null}
-			{todo && id === "assign" ? open(s.action.assign, "/work/backlog", undefined, "assign") : null}
-			{todo && id === "run" ? open(s.action.run, "/factory/runs", undefined, "run") : null}
+			{todo && id === "spec" ? open(s.action.spec, "/flow/list", undefined, "change") : null}
+			{todo && id === "assign" ? open(s.action.assign, "/flow/list", undefined, "assign") : null}
+			{todo && id === "run" ? open(s.action.run, "/flow/flow", undefined, "run") : null}
 		</>
 	);
 }
@@ -375,12 +411,15 @@ export function ChecklistList({ ids }: { ids: readonly ItemId[] }) {
 	const { t } = useI18n();
 	const state = useChecklist();
 	return (
-		<ul aria-label={t.onboarding.setup.title} className="rounded-lg border bg-surface-2">
+		<ul
+			aria-label={t.onboarding.setup.title}
+			className="divide-y divide-n-6 rounded-lg border bg-surface-2"
+		>
 			{ids.map((id) => (
 				<li key={id}>
-					<SettingsRow icon={ICON[id]} label={<Terms>{t.onboarding.setup.item[id]}</Terms>}>
+					<TourRow icon={ICON[id]} label={<Terms>{t.onboarding.setup.item[id]}</Terms>}>
 						<ChecklistControl id={id} state={state} />
-					</SettingsRow>
+					</TourRow>
 				</li>
 			))}
 		</ul>
@@ -448,5 +487,48 @@ export function Checklist({
 				</Leave>
 			)}
 		</AnimatePresence>
+	);
+}
+
+/**
+ * The setup card of Today (picture 001): a ring with the progress, the name of the next step and
+ * Continue, which opens the full list in Setup / Start. It goes away when nothing is to do.
+ */
+export function SetupCard() {
+	const { t } = useI18n();
+	const s = t.onboarding.setup;
+	const state = useChecklist();
+	const next = ITEMS.find((item) => state.done[item] === false);
+	// A loading item is not done.
+	const done = ITEMS.filter((item) => state.done[item] === true).length;
+	if (!next) return null;
+	const text = format(t.home.setupStep, { done, total: ITEMS.length });
+	return (
+		<section
+			aria-label={s.title}
+			className="flex items-center gap-4 rounded-lg bg-surface-2 p-5 shadow-2"
+		>
+			<svg viewBox="0 0 44 44" aria-hidden="true" className="size-13 shrink-0 -rotate-90">
+				<circle cx="22" cy="22" r="18" fill="none" strokeWidth="5" className="stroke-n-5" />
+				<circle
+					cx="22"
+					cy="22"
+					r="18"
+					fill="none"
+					strokeWidth="5"
+					strokeLinecap="round"
+					pathLength={ITEMS.length}
+					strokeDasharray={`${done} ${ITEMS.length}`}
+					className="stroke-accent"
+				/>
+			</svg>
+			<div className="flex min-w-0 flex-col">
+				<span className="font-semibold text-n-12">{s.item[next]}</span>
+				<span className="text-n-11">{text}</span>
+			</div>
+			<Link to="/setup/start" className={cn(buttonVariants(), "ml-auto min-h-control")}>
+				{t.onboarding.continue}
+			</Link>
+		</section>
 	);
 }

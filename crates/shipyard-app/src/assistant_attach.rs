@@ -28,7 +28,7 @@ pub struct Attachment {
     pub bytes: u32,
 }
 
-fn plain_name(name: &str) -> Res<String> {
+pub(crate) fn plain_name(name: &str) -> Res<String> {
     let base = name.rsplit(['/', '\\']).next().unwrap_or("").trim();
     if base.is_empty() || base.starts_with('.') || base.chars().any(char::is_control) {
         return Err("the file name is not valid".into());

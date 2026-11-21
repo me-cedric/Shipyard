@@ -77,7 +77,7 @@ export function NextStepAction({ refId, title }: { refId: string; title: string 
 	});
 	if (!step) return null;
 
-	const go = (to: "/specs/changes" | "/home/today" | "/factory/runs" | "/code/pull-requests") =>
+	const go = (to: "/flow/list" | "/today/today" | "/flow/flow" | "/code/now") =>
 		void router?.navigate({ to });
 	const act = () => {
 		setBusy(true);
@@ -85,19 +85,18 @@ export function NextStepAction({ refId, title }: { refId: string; title: string 
 			if (step === "plan") {
 				const c = await specs.createChange(title);
 				rememberSelection("specs:changes", c.id);
-				go("/specs/changes");
+				go("/flow/list");
 			} else if (step === "split") setSplitting(plan?.id ?? rest);
 			else if (step === "assign" && me) await work.assign(rest, me);
 			else if (step === "start") {
 				await runs.start(rest);
-				go("/factory/runs");
-			} else if (step === "answer") go("/home/today");
-			else if (step === "review")
-				go(runState === "PlanReview" ? "/factory/runs" : "/code/pull-requests");
+				go("/flow/flow");
+			} else if (step === "answer") go("/today/today");
+			else if (step === "review") go(runState === "PlanReview" ? "/flow/flow" : "/code/now");
 			else if (step === "merge") {
 				const page = pullOfRef(refId);
 				if (page) void router?.navigate(page);
-				else go("/code/pull-requests");
+				else go("/code/now");
 			}
 		}).finally(() => setBusy(false));
 	};

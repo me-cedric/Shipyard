@@ -10,6 +10,7 @@ pub mod approvals;
 pub mod budget;
 pub mod children;
 pub mod claims;
+pub mod estimate;
 pub mod fake;
 pub mod feedback;
 mod fence;

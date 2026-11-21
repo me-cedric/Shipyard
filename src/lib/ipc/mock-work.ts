@@ -17,6 +17,7 @@ import type {
 	Feature_Deserialize,
 	Feature_Serialize,
 	Field,
+	JoinRequest,
 	Load,
 	Member_Deserialize,
 	Member_Serialize,
@@ -49,6 +50,7 @@ import type {
 	WorkContext_Serialize,
 	WorkItemView_Serialize,
 } from "./bindings";
+import { seedJoins } from "./mock-code-host";
 import { parseRef } from "./mock-refs";
 
 const LOCKED = "sealed: this machine has no passphrase";
@@ -86,6 +88,8 @@ export type MockWork = {
 	account: { login: string; name: string } | null;
 	today: string;
 	counter: number;
+	/** The join requests that wait on the code host (`code-host-tickets` REQ-010). */
+	joins: JoinRequest[];
 };
 
 // ---------------------------------------------------------------- seed
@@ -113,7 +117,10 @@ const member = (
 const seedTeam = (): Team_Serialize => ({
 	members: [
 		member("Ada Lovelace", "ada", "dev", ["api", "rust"], 520),
-		member("Grace Hopper", "grace", "dev", ["api", "web", "ui"], 500, 4),
+		{
+			...member("Grace Hopper", "grace", "dev", ["api", "web", "ui"], 500, 4),
+			topics: ["Billing"],
+		},
 		member("Alan Turing", "alan", "qa", ["test", "security"], 420),
 		member("Margaret Hamilton", "margaret", "lead", ["api", "plan"], 700, 3, {
 			absences: [{ from: "2026-11-16", to: "2026-11-20" }],
@@ -239,6 +246,7 @@ export const seedWork = (): MockWork => ({
 	account: { login: "ada", name: "Ada Lovelace" },
 	today: "2026-11-02",
 	counter: 10,
+	joins: seedJoins(),
 });
 
 /** No team, no sheet, no entry: the empty states of the views. */
@@ -561,6 +569,7 @@ const normMember = (m: Member_Deserialize): Member_Serialize => ({
 	...(m.rights?.length ? { rights: m.rights } : {}),
 	capacity: m.capacity ?? 0,
 	skills: m.skills ?? [],
+	...(m.topics?.length ? { topics: m.topics } : {}),
 	...(m.dayRate != null ? { dayRate: m.dayRate } : {}),
 	availability: normAvailability(m.availability),
 });
@@ -666,10 +675,9 @@ export function teamGet(w: MockWork): TeamView_Serialize {
 
 export function teamSave(w: MockWork, t: Team_Deserialize): TeamView_Serialize {
 	writable(w);
-	const team = {
-		members: (t.members ?? []).map(normMember),
-		...(t.roles && Object.keys(t.roles).length ? { roles: t.roles } : {}),
-	};
+	// A save with no `roles:` block keeps the block of the file (`work::team_save_members`).
+	const roles = t.roles && Object.keys(t.roles).length ? t.roles : w.team.roles;
+	const team = { members: (t.members ?? []).map(normMember), ...(roles ? { roles } : {}) };
 	// The last admin cannot remove the settings write (`rights::keeps_admin`).
 	if (w.team.members.some((m) => m.admin) && !team.members.some((m) => m.admin))
 		throw "the team needs one admin: the last admin cannot remove the settings write";
@@ -778,7 +786,7 @@ export function workAssign(
 		(x) => x.handle === handle || x.trackers.some((t) => t.toLowerCase() === handle.toLowerCase()),
 	);
 	if (!m) throw `unknown member \`${handle}\``;
-	if (m.trackers.length === 0) throw `${m.name} has no tracker account in team.yaml`;
+	if (m.trackers.length === 0) throw `${m.name} has no issue tracker account in team.yaml`;
 	const item = mirror.find((t) => t.key === key);
 	if (!item) throw `not found: ${key}`;
 	item.assignee = m.name;
@@ -798,7 +806,7 @@ export function workTransition(mirror: Mirror, key: string, to: string, click: b
 	if (!item) throw `not found: ${key}`;
 	const category = STATUSES[to.toLowerCase()];
 	if (!category)
-		throw `the tracker refused the change: no transition to \`${to}\` (To Do, In Progress, In Review, Done)`;
+		throw `the issue tracker refused the change: no transition to \`${to}\` (To Do, In Progress, In Review, Done)`;
 	item.status = Object.keys(STATUSES)
 		.map((s) => s.replace(/\b\w/g, (c) => c.toUpperCase()))
 		.find((s) => s.toLowerCase() === to.toLowerCase()) as string;
@@ -1214,6 +1222,42 @@ export function timeList(
 	return { member: handle, month, rows: reconcile(entries, []), canSend };
 }
 
+/**
+ * Fill from my work: a row for the run of a ticket and one for a commit of the day. The rows that
+ * the day has already are left out, so a second Fill adds none (`work/fill.rs`).
+ */
+export function timeFill(
+	w: MockWork,
+	mirror: Mirror,
+	member: string | null,
+	day: string,
+	click: boolean,
+): { entries: TimeEntry_Serialize[] } {
+	if (!click) throw "this change needs the click of a person";
+	const handle = memberOf(w, member);
+	if (handle !== memberOf(w, null)) throw "Fill from my work fills only your own sheet";
+	if (parseDay(day) === null) throw `\`${day}\` is not a date`;
+	const ticket = mirror[0];
+	const rows: [string | undefined, string, number][] = [
+		...(ticket ? [[ticket.key, ticket.title, 40] as [string, string, number]] : []),
+		[undefined, "Fix login", 15],
+	];
+	const have = w.time[handle] ?? [];
+	const entries: TimeEntry_Serialize[] = rows
+		.filter(
+			([key, note]) => !have.some((e) => e.day === day && e.ticket === key && e.note === note),
+		)
+		.map(([key, note, minutes]) => ({
+			id: `t${++w.counter}`,
+			day,
+			minutes,
+			note,
+			...(key ? { ticket: key } : {}),
+		}));
+	w.time[handle] = [...have, ...entries].sort(byDay);
+	return { entries };
+}
+
 export function timeAdd(
 	w: MockWork,
 	mirror: Mirror,
@@ -1324,13 +1368,13 @@ export function timeSend(
 		(e) => e.id === id && e.day.startsWith(day.slice(0, 7)),
 	);
 	if (!entry) throw `no entry \`${id}\` in docs/time/${handle}/${day.slice(0, 7)}.yaml`;
-	if (!canSend) throw "this tracker does not support TimeTracking";
+	if (!canSend) throw "this issue tracker does not support TimeTracking";
 	if (entry.worklog && entry.unsynced) {
 		delete entry.unsynced;
 		return { entry: { ...entry }, alreadyThere: false, error: null };
 	}
 	if (entry.worklog)
-		throw "the tracker refused the change: the entry has a receipt: it is in the tracker";
+		throw "the issue tracker refused the change: the entry has a receipt: it is in the issue tracker";
 	if (!entry.ticket) throw "setting: the entry names no ticket";
 	const logs = w.logs[entry.ticket] ?? [];
 	w.logs[entry.ticket] = logs;
@@ -1348,7 +1392,7 @@ export function timeSend(
 	logs.push(log);
 	if (w.loseNextAnswer) {
 		w.loseNextAnswer = false;
-		throw "the answer was lost, the change may be in the tracker: connection reset";
+		throw "the answer was lost, the change may be in the issue tracker: connection reset";
 	}
 	entry.worklog = log.id;
 	delete entry.unsynced;
@@ -1414,7 +1458,7 @@ function write(w: MockWork, rows: DiffRow_Serialize[]): ApplyRow_Serialize[] {
 		};
 		if (d.action === "unchanged") return base;
 		if (w.failRows.includes(d.row.reference))
-			return { ...base, error: "the tracker refused the change: 400 summary: bad" };
+			return { ...base, error: "the issue tracker refused the change: 400 summary: bad" };
 		const key = d.key ?? `ACME-${100 + ++w.counter}`;
 		w.written[d.row.reference] = { key, row: d.row };
 		return { ...base, key };

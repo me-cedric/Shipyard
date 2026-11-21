@@ -1,10 +1,11 @@
 import type { ComponentType } from "react";
 import type { Messages } from "@/lib/i18n";
-import type { Level, TeamRole } from "@/lib/ipc";
+import type { Level } from "@/lib/ipc";
 import type { Area } from "@/lib/rights";
 import {
 	AcademicCapIcon,
 	ArrowsRightLeftIcon,
+	BellIcon,
 	BookOpenIcon,
 	CalendarDaysIcon,
 	ChartBarIcon,
@@ -19,6 +20,7 @@ import {
 	CurrencyIcon,
 	DocumentTextIcon,
 	FolderOpenIcon,
+	InboxIcon,
 	LinkIcon,
 	LockClosedIcon,
 	PresentationChartIcon,
@@ -35,7 +37,7 @@ import {
 
 /** Spaces in default order, each with its tabs (master plan section 4). */
 export const SPACES = {
-	home: ["today", "projects"],
+	home: ["today", "projects", "news", "activity"],
 	design: ["diagrams", "architecture", "decisions", "api", "data", "flows", "screens"],
 	specs: ["changes", "capabilities", "questions", "test-plans", "constitution"],
 	work: ["backlog", "board", "plan", "estimates", "team", "time"],
@@ -46,26 +48,56 @@ export const SPACES = {
 } as const;
 
 export type SpaceId = keyof typeof SPACES;
-export type TabId = (typeof SPACES)[SpaceId][number];
-/** Every valid tab path, such as `/design/diagrams`. */
-export type TabPath = {
-	[S in SpaceId]: `/${S}/${(typeof SPACES)[S][number]}`;
-}[SpaceId];
 
 export const SPACE_IDS = Object.keys(SPACES) as SpaceId[];
 
-// shortcut: one cast. A template over two unions makes invalid pairs, so the callers pass a valid pair.
-export const tabPath = (space: SpaceId, tab: TabId) => `/${space}/${tab}` as TabPath;
+/** A space of before adr:0023, or a place with sections of its own: Flow, Plan, Crew, Library and Setup. */
+export type SectionSpace = SpaceId | "flow" | "plan" | "crew" | "library" | "setup";
 
-export const tabLabel = (t: Messages, space: SpaceId, tab: string): string =>
-	(t.tabs[space] as Record<string, string>)[tab] ?? "";
+const OWN_VIEWS = (t: Messages) => ({
+	flow: t.flow.views,
+	plan: t.planPlace.views,
+	crew: t.crewPlace.views,
+	library: t.library.views,
+});
+
+export const tabLabel = (t: Messages, space: SectionSpace, tab: string): string =>
+	(
+		(space in OWN_VIEWS(t) ? OWN_VIEWS(t)[space as "flow"] : t.tabs[space as SpaceId]) as Record<
+			string,
+			string
+		>
+	)[tab] ?? "";
 
 type TabIcon = ComponentType<{ size?: number }>;
 
 /** The icon of each tab: the one its page header shows (REQ-021). */
 const TAB_ICON: Record<string, TabIcon> = {
+	"flow/flow": ViewColumnsIcon,
+	"flow/list": QueueListIcon,
+	"flow/done": CheckIcon,
+	"flow/health": ShieldCheckIcon,
+	"plan/timeline": CalendarDaysIcon,
+	"plan/people": UsersIcon,
+	"plan/estimates": CurrencyIcon,
+	"plan/time": ClockIcon,
+	"crew/crew": UsersIcon,
+	"crew/recipes": ArrowsRightLeftIcon,
+	"crew/sessions": CommandLineIcon,
+	"crew/spend": ChartBarIcon,
+	"crew/rights": LockClosedIcon,
+	"library/home": BookOpenIcon,
+	"library/reports": DocumentTextIcon,
+	"code/now": CodeBracketIcon,
+	"code/terminal": CommandLineIcon,
+	"setup/start": CheckIcon,
+	"setup/project": Cog6ToothIcon,
+	"setup/computer": ComputerDesktopIcon,
+	"setup/me": UserCircleIcon,
 	"home/today": ClockIcon,
 	"home/projects": FolderOpenIcon,
+	"home/news": BellIcon,
+	"home/activity": InboxIcon,
 	"design/diagrams": ShareIcon,
 	"design/architecture": CpuChipIcon,
 	"design/decisions": DocumentTextIcon,
@@ -110,30 +142,13 @@ const TAB_ICON: Record<string, TabIcon> = {
 	"settings/health": ShieldCheckIcon,
 };
 
-export const tabIcon = (space: SpaceId, tab: string) => TAB_ICON[`${space}/${tab}`];
-
-/** The first tab of each role of `team-rights` (REQ-013). */
-export const FIRST_TAB: Record<TeamRole, TabPath> = {
-	po: "/work/backlog",
-	pm: "/work/board",
-	architect: "/design/decisions",
-	techlead: "/factory/runs",
-	ba: "/specs/changes",
-	developer: "/factory/runs",
-	qa: "/specs/test-plans",
-	designer: "/design/screens",
-	viewer: "/home/today",
-};
-
-/** The path a person opens first: the first tab of the role, Home / Today without a role. */
-export const firstPath = (role: TeamRole | null): TabPath =>
-	role ? FIRST_TAB[role] : "/home/today";
-
-const spaceOf = (path: string) => path.split("/")[1] as SpaceId;
+export const tabIcon = (space: SectionSpace, tab: string) => TAB_ICON[`${space}/${tab}`];
 
 /** The level of the person in an area (`useRights().level`). */
-export type LevelOf = (area: Area) => Level;
-const open: LevelOf = () => "write";
+export type LevelOf = ((area: Area) => Level) & {
+	/** The places that the roles of the person do not see (`spec:shell-setup-rights#REQ-011`). */
+	hidden?: readonly string[];
+};
 
 /** The area of each space (`team-rights`). Home has none: it always shows. */
 const SPACE_AREA: Partial<Record<SpaceId, Area>> = {
@@ -152,25 +167,6 @@ export const hiddenTab = (level: LevelOf, space: SpaceId, tab: string) => {
 	return !!area && level(area) === "none" && !(space === "settings" && tab === "me");
 };
 
-/** The tabs of a space that the person sees, the first tab of the role first. */
-export const visibleTabs = <S extends SpaceId>(space: S, role: TeamRole | null, level = open) =>
-	[...SPACES[space]]
-		.filter((tab) => !hiddenTab(level, space, tab))
-		.sort(
-			(a, b) =>
-				Number(firstPath(role) === `/${space}/${b}`) - Number(firstPath(role) === `/${space}/${a}`),
-		) as (typeof SPACES)[S][number][];
-
-/** Terminal and Manual keep their address, palette entry and menu entry, but no tab (REQ-014). */
-const OFF_BAR = new Set(["code/terminal", "knowledge/manual"]);
-
-/** The tabs that the tab bar draws. */
-export const barTabs = (space: SpaceId, role: TeamRole | null, level = open) =>
-	visibleTabs(space, role, level).filter((tab) => !OFF_BAR.has(`${space}/${tab}`));
-
-/** Home first, the space of the first tab next, the rest in default order, Settings last. A space with no visible tab is hidden. */
-export function orderedSpaces(role: TeamRole | null, level = open): SpaceId[] {
-	return [...new Set<SpaceId>(["home", spaceOf(firstPath(role)), ...SPACE_IDS])]
-		.filter((space) => visibleTabs(space, role, level).length > 0)
-		.sort((a, b) => Number(a === "settings") - Number(b === "settings"));
-}
+/** Manual keeps its address, palette entry and menu entry, but no tab (REQ-014). Terminal is a section of Code (`spec:app-redesign#REQ-022`). */
+const OFF_BAR = new Set(["knowledge/manual"]);
+export const isOffBar = (space: SectionSpace, tab: string) => OFF_BAR.has(`${space}/${tab}`);

@@ -39,6 +39,10 @@ pub struct Branch {
     pub upstream: Option<String>,
     pub ahead: u32,
     pub behind: u32,
+    /// The commits of a local branch that the default branch (`main`) has not, and the commits of
+    /// `main` that it has not. `None` for `main` itself, for a remote branch and with no `main`.
+    pub base_ahead: Option<u32>,
+    pub base_behind: Option<u32>,
     /// Full id of the tip.
     pub tip: String,
 }
@@ -47,6 +51,7 @@ impl Repo {
     /// Local branches first, then remote ones. `origin/HEAD` is left out.
     pub fn branches(&self) -> Result<Vec<Branch>> {
         let mut out = Vec::new();
+        let base = self.base_branch();
         for (ty, kind) in [
             (BranchType::Local, BranchKind::Local),
             (BranchType::Remote, BranchKind::Remote),
@@ -64,6 +69,14 @@ impl Repo {
                     Some(r) => self.repo.graph_ahead_behind(tip, r)?,
                     None => (0, 0),
                 };
+                let on_base = match &base {
+                    Some((base_name, base_tip))
+                        if kind == BranchKind::Local && name != *base_name =>
+                    {
+                        Some(self.repo.graph_ahead_behind(tip, *base_tip)?)
+                    }
+                    _ => None,
+                };
                 out.push(Branch {
                     name,
                     kind,
@@ -71,11 +84,33 @@ impl Repo {
                     upstream: up.and_then(|u| u.name().ok().flatten().map(str::to_string)),
                     ahead: ahead as u32,
                     behind: behind as u32,
+                    base_ahead: on_base.map(|(a, _)| a as u32),
+                    base_behind: on_base.map(|(_, b)| b as u32),
                     tip: tip.to_string(),
                 });
             }
         }
         Ok(out)
+    }
+
+    /// The default branch and its tip: the local branch of the default branch of `origin`, else a
+    /// local `main` or `master`. `None` when the repository has none.
+    fn base_branch(&self) -> Option<(String, git2::Oid)> {
+        let named = self
+            .default_branch("origin")
+            .and_then(|b| b.strip_prefix("origin/").map(str::to_string));
+        named
+            .into_iter()
+            .chain(["main".to_string(), "master".to_string()])
+            .find_map(|n| {
+                let tip = self
+                    .repo
+                    .find_branch(&n, BranchType::Local)
+                    .ok()?
+                    .get()
+                    .target()?;
+                Some((n, tip))
+            })
     }
 
     /// Merge a local or a remote branch (`origin/feat`) into the working branch. It refuses while

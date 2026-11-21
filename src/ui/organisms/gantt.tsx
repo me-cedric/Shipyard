@@ -110,9 +110,11 @@ function BarButton({
 	return (
 		<>
 			<Tooltip label={bar.name} shortcut="← →">
+				{/* A bar is a mark on the time scale: `min-h-0` keeps it at 20 px in its 28 px row (exempt in e2e/a11y.spec.ts). */}
 				<button
 					type="button"
 					data-nav=""
+					data-gantt-bar=""
 					aria-label={name}
 					aria-current={selected ? "true" : undefined}
 					onPointerDown={down}
@@ -133,7 +135,7 @@ function BarButton({
 					}}
 					style={{ left: left + dx, width }}
 					className={cn(
-						"absolute top-1 flex h-5 touch-none items-center overflow-hidden rounded-full border px-2 text-left text-11 font-medium whitespace-nowrap shadow-1 transition-shadow duration-(--duration-fast) hover:shadow-2",
+						"absolute top-1 flex h-5 min-h-0 touch-none items-center overflow-hidden rounded-full border px-2 text-left text-11 font-medium whitespace-nowrap shadow-1 transition-shadow duration-(--duration-fast) hover:shadow-2",
 						tone,
 						bar.fixed && "border-l-4",
 						selected && "shadow-glow outline-2 outline-offset-1 outline-n-12",
@@ -238,7 +240,7 @@ export function Gantt({
 					{band ? <LoadStrip band={band} x={x} dayWidth={dayWidth} /> : null}
 					<span
 						aria-hidden="true"
-						className="absolute bottom-0.5 z-10 -translate-x-1/2 rounded-full bg-accent-gradient px-1.5 font-mono text-11 text-accent-fg shadow-glow"
+						className="absolute bottom-0.5 z-10 -translate-x-1/2 rounded-full bg-primary px-1.5 font-mono text-11 text-primary-fg"
 						style={{ left: x(today) + dayWidth / 2 }}
 					>
 						{today.slice(8)}
@@ -287,7 +289,7 @@ export function Gantt({
 								aria-label={
 									milestoneLabel?.(e.id, ends.get(e.id) ?? "") ?? `${e.id} ${ends.get(e.id)}`
 								}
-								className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] bg-accent-gradient shadow-glow"
+								className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] bg-primary"
 								style={{ left: x(ends.get(e.id) ?? today) + dayWidth }}
 							/>
 						) : null}
@@ -334,7 +336,7 @@ export function Gantt({
 			<div
 				role="img"
 				aria-label={`${todayLabel} ${today}`}
-				className="pointer-events-none absolute top-0 bottom-0 z-10 w-0.5 -translate-x-1/2 bg-accent shadow-glow"
+				className="pointer-events-none absolute top-0 bottom-0 z-10 w-0.5 -translate-x-1/2 bg-accent"
 				style={{ left: x(today) + dayWidth / 2 }}
 			/>
 		</VirtualList>

@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { classify, errorMessage } from "@/lib/i18n/errors";
@@ -13,7 +14,7 @@ import {
 import { copyText, useMenus } from "@/lib/menus";
 import { useBacklinks } from "@/lib/refs";
 import { RightButton } from "@/lib/rights";
-import { useFormIntent, useShell } from "@/lib/shell";
+import { askForm, useFormIntent, useShell } from "@/lib/shell";
 import { clock, syncKeys, useSyncState } from "@/lib/sync";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -25,7 +26,6 @@ import { StatusDot } from "@/ui/atoms/status-dot";
 import {
 	ArrowPathIcon,
 	ArrowsRightLeftIcon,
-	ChevronRightIcon,
 	CodeBracketIcon,
 	Cog6ToothIcon,
 	CpuChipIcon,
@@ -48,15 +48,17 @@ import { SectionNav } from "@/ui/molecules/section-nav";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { SyncStatus } from "@/ui/molecules/sync-status";
 import { SETTINGS_PAGE } from "@/ui/templates/settings";
+import { Column, Columns, SetupCard } from "../parts";
 import { CertsGroup } from "./certs-group";
 import { ADD_TYPES, type AddType, ConnectionForm, GROUPS } from "./connection-form";
+import { Fold } from "./fold";
 import { GitlabTools } from "./gitlab-tools";
 import { connectionKeys, message, useMcpServers, useProviders } from "./keys";
-import { McpAddForm, McpGroup } from "./mcp-group";
-import { McpOutsideGroup } from "./mcp-outside-group";
+import { McpAddForm, McpGroup, McpMore } from "./mcp-group";
+import { OutsideCard } from "./mcp-outside-group";
 import { ProviderForm, ProvidersGroup } from "./providers-group";
 import { Repair } from "./repair";
-import { RunnersGroup } from "./runners-group";
+import { RunnersGroup, RunnersMore } from "./runners-group";
 
 const STATE_SHAPE: Record<ConnectionState, Status> = {
 	untested: "idle",
@@ -346,11 +348,20 @@ function Row({
 }
 
 /** The form of a tracker or a forge, or of a type that has its own form. Runners need none. */
-function AddForm({ initial, onDone }: { initial: AddType; onDone: () => void }) {
+function AddForm({
+	initial,
+	types,
+	onDone,
+}: {
+	initial: AddType;
+	/** The types that the scope holds. */
+	types: readonly AddType[];
+	onDone: () => void;
+}) {
 	const { t } = useI18n();
 	const [type, setType] = useState<AddType>(initial);
 	if (type === "tracker" || type === "forge")
-		return <ConnectionForm initialGroup={type} onType={setType} onDone={onDone} />;
+		return <ConnectionForm initialGroup={type} types={types} onType={setType} onDone={onDone} />;
 	return (
 		<div>
 			<SettingsRow label={t.connections.field.type}>
@@ -358,7 +369,7 @@ function AddForm({ initial, onDone }: { initial: AddType; onDone: () => void }) 
 					label={t.connections.field.type}
 					value={type}
 					onValueChange={(v) => setType(v as AddType)}
-					items={ADD_TYPES.map((v) => ({ value: v, label: t.connections.type[v] }))}
+					items={types.map((v) => ({ value: v, label: t.connections.type[v] }))}
 				/>
 			</SettingsRow>
 			{type === "mcp" ? <McpAddForm onDone={onDone} /> : <ProviderForm onDone={onDone} />}
@@ -371,9 +382,19 @@ const GROUP_ICON: Record<ConnectionGroup, React.ReactNode> = {
 	forge: <CodeBracketIcon size={14} />,
 };
 
-/** Settings / Connections: one list grouped by kind, and one primary action: add a connection. */
-export function Connections() {
+const OTHER_TYPES = ADD_TYPES.filter((v) => v !== "tracker" && v !== "forge");
+
+/**
+ * One list grouped by kind, and one primary action: add a connection. A scope of Setup shows its
+ * part (`spec:app-redesign#REQ-024`): the issue trackers and the code hosts under This project, the
+ * AI tools, the providers, the MCP servers and the certificates under This computer.
+ */
+function Scoped({ scope }: { scope: "project" | "computer" }) {
 	const { t } = useI18n();
+	const router = useRouter();
+	const ofProject = scope !== "computer";
+	const ofComputer = scope !== "project";
+	const types = scope === "project" ? GROUPS : OTHER_TYPES;
 	const list = useQuery({
 		queryKey: connectionKeys.list,
 		queryFn: () => unwrap(commands.connectionsList()),
@@ -381,17 +402,35 @@ export function Connections() {
 	const [adding, setAdding] = useState(false);
 	const [editing, setEditing] = useState(false);
 	// A link from Code / Pull requests opens the form on the code host.
-	const [first, setFirst] = useState<AddType>("tracker");
-	useFormIntent("connection", () => setAdding(true));
-	useFormIntent("connection:forge", () => {
-		setFirst("forge");
-		setAdding(true);
-	});
-	const conns = list.data;
-	const mcpCount = (useMcpServers().data ?? []).filter((m) => m.enabled).length;
-	const providerCount = (useProviders().data ?? []).length;
+	const start: AddType = scope === "computer" ? "provider" : "tracker";
+	const [first, setFirst] = useState<AddType>(start);
+	// The form of an issue tracker or a code host is under This project: a link of before that
+	// lands on This computer goes there with its question.
+	const intent = (form: string, open: () => void) => () => {
+		if (ofProject) return open();
+		askForm(form);
+		router.history.replace("/setup/project?page=connections");
+	};
+	useFormIntent(
+		"connection",
+		intent("connection", () => setAdding(true)),
+	);
+	useFormIntent(
+		"connection:forge",
+		intent("connection:forge", () => {
+			setFirst("forge");
+			setAdding(true);
+		}),
+	);
+	const conns = ofProject ? list.data : [];
+	const mcps = useMcpServers().data;
+	const providers = useProviders().data;
+	const mcpCount = ofComputer ? (mcps ?? []).filter((m) => m.enabled).length : 0;
+	const providerCount = ofComputer ? (providers ?? []).length : 0;
 	if (conns === undefined && !list.error)
-		return <PageHeader icon={<LinkIcon size={16} />} title={t.tabs.settings.connections} />;
+		return scope === "computer" ? null : (
+			<PageHeader icon={<LinkIcon size={16} />} title={t.tabs.settings.connections} />
+		);
 	const formOpen = adding || editing;
 	const add = {
 		label: t.connections.add,
@@ -399,7 +438,9 @@ export function Connections() {
 		onClick: () => setAdding(true),
 	};
 	// The runners are not added by a person: they do not count.
-	const empty = (conns ?? []).length + mcpCount + providerCount === 0 && !adding;
+	// This computer always shows its AI tools: it is never empty.
+	const empty =
+		scope !== "computer" && (conns ?? []).length + mcpCount + providerCount === 0 && !adding;
 	// Sections that a person can see: the nav lists only these.
 	const sections = [
 		{
@@ -429,27 +470,33 @@ export function Connections() {
 		},
 		{ id: "connections-certs", label: t.settings.certs.title, icon: <LockClosedIcon size={14} /> },
 	];
+	const addButton = empty ? undefined : (
+		<Button
+			variant={formOpen ? "secondary" : "primary"}
+			className="min-h-control"
+			disabled={adding}
+			onClick={add.onClick}
+		>
+			{add.icon}
+			{add.label}
+		</Button>
+	);
 	return (
 		<div className="flex flex-col">
-			<PageHeader
-				icon={<LinkIcon size={16} />}
-				title={t.tabs.settings.connections}
-				count={(conns ?? []).length + mcpCount + providerCount}
-				action={
-					empty ? undefined : (
-						<Button
-							variant={formOpen ? "secondary" : "primary"}
-							disabled={adding}
-							onClick={add.onClick}
-						>
-							{add.icon}
-							{add.label}
-						</Button>
-					)
-				}
-			/>
-			<SectionNav label={t.ui.sections} items={sections} />
+			{/* This computer draws the header and the section list of its scope. */}
+			{scope === "computer" ? null : (
+				<>
+					<PageHeader
+						icon={<LinkIcon size={16} />}
+						title={t.tabs.settings.connections}
+						count={(conns ?? []).length + mcpCount + providerCount}
+						action={addButton}
+					/>
+					<SectionNav label={t.ui.sections} items={sections} />
+				</>
+			)}
 			<div className={SETTINGS_PAGE}>
+				{scope === "computer" && addButton ? <div>{addButton}</div> : null}
 				{list.error ? (
 					<p role="alert" className="text-ui text-danger-text">
 						{message(list.error)}
@@ -460,14 +507,14 @@ export function Connections() {
 						<EmptyState title={t.empty.connections} action={add} />
 					</div>
 				) : null}
-				<RunnersGroup />
 				{adding ? (
 					<div className="rounded-lg border bg-surface-1 shadow-1">
 						<AddForm
 							initial={first}
+							types={types}
 							onDone={() => {
 								setAdding(false);
-								setFirst("tracker");
+								setFirst(start);
 							}}
 						/>
 					</div>
@@ -502,22 +549,53 @@ export function Connections() {
 						</section>
 					);
 				})}
-				<ProvidersGroup formOpen={formOpen} onForm={setEditing} />
-				<details className="group flex flex-col gap-5">
-					<summary className="flex h-row w-fit cursor-pointer items-center gap-1.5 px-1 text-12 font-medium text-n-11 select-none hover:text-n-12">
-						<ChevronRightIcon
-							size={12}
-							className="transition-transform duration-(--duration-fast) group-open:rotate-90"
-						/>
-						{t.connections.advanced}
-					</summary>
-					<div className="flex flex-col gap-5 pt-3">
-						<McpGroup formOpen={formOpen} onForm={setEditing} />
-						<McpOutsideGroup />
-						<CertsGroup />
-					</div>
-				</details>
 			</div>
 		</div>
 	);
+}
+
+/**
+ * This computer: the AI tools and the model providers, then the MCP servers, the outside agents
+ * and the security. One form is open at a time.
+ */
+function Computer() {
+	const { t } = useI18n();
+	const router = useRouter();
+	const [editing, setEditing] = useState(false);
+	// The form of an issue tracker or a code host is under This project: a link of before that
+	// lands on This computer goes there with its question.
+	const toProject = (form: string) => () => {
+		askForm(form);
+		router.history.replace("/setup/project?page=connections");
+	};
+	useFormIntent("connection", toProject("connection"));
+	useFormIntent("connection:forge", toProject("connection:forge"));
+	return (
+		<>
+			<Columns>
+				<Column>
+					<RunnersGroup />
+					<ProvidersGroup formOpen={editing} onForm={setEditing} />
+				</Column>
+				<Column>
+					<McpGroup formOpen={editing} onForm={setEditing} />
+					<OutsideCard />
+					<CertsGroup />
+				</Column>
+			</Columns>
+			<div className="-mt-6 px-4 pb-10">
+				<SetupCard title={t.ui.more}>
+					<Fold label={t.connections.advanced}>
+						<RunnersMore />
+						<McpMore />
+					</Fold>
+				</SetupCard>
+			</div>
+		</>
+	);
+}
+
+/** The connections of a scope of Setup (`spec:app-redesign#REQ-024`). */
+export function Connections({ scope }: { scope: "project" | "computer" }) {
+	return scope === "computer" ? <Computer /> : <Scoped scope={scope} />;
 }

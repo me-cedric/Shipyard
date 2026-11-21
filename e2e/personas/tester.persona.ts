@@ -10,55 +10,60 @@ test("tester", async ({ page }) => {
 		"Land on the test plans",
 		"the page that opens first: Specs, Test plans",
 		async () => {
-			await w.landsOn("Specs", "Test plans");
+			await w.landsOn("Library", "Test plans");
 		},
 	);
 
 	await w.step("Open the test plans", "the Test plans tab, the coverage figures", async () => {
-		await w.click(
-			page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Test plans" }),
-		);
-		await w.see(page.getByRole("progressbar").first(), "no coverage figure");
-		await w.see(page.getByText(/ \/ \d+$/).first(), "no requirement count");
+		await w.go("Library", "Test plans");
+		// The coverage figures are on the page "What is tested".
+		await w.click(page.getByRole("link", { name: "What is tested" }));
+		await w.see(page.getByRole("heading", { name: /^Passing \d+$/ }), "no coverage figure");
+		await w.see(page.getByRole("heading", { name: /^Not covered \d+$/ }), "no requirement count");
 	});
 
 	await w.step(
 		"Find a requirement without a scenario",
 		"the Broken marker or the Generate button",
 		async () => {
-			// Requirements that no plan cites sit in the last row, closed by default.
-			await w.click(page.getByRole("button", { name: /Not in a plan/ }));
+			// Requirements that no plan cites sit in the card "Not covered".
 			await w.see(
-				page.getByRole("button", { name: "Generate scenarios for export" }),
-				"no way to cover a requirement",
+				page.getByRole("region", { name: "Not covered" }).getByRole("button").first(),
+				"no visible mark on a requirement without a test",
 			);
 			await w.see(
-				page.getByText("No scenario").first(),
-				"no visible mark on a requirement without a test",
+				page.getByRole("button", { name: "Write the missing tests" }),
+				"no way to cover a requirement",
 			);
 		},
 	);
 
-	await w.step("Generate the scenarios", "Generate scenarios for export", async () => {
-		await w.click(page.getByRole("button", { name: "Generate scenarios for export" }));
+	await w.step("Generate the scenarios", "Write the missing tests", async () => {
+		await w.click(page.getByRole("button", { name: "Write the missing tests" }));
+		// A plan opens as cards to read: the switch Text shows its text.
+		await w.click(page.getByRole("group", { name: "Mode" }).getByRole("button", { name: "Text" }));
 		await w.see(page.getByText("Feature: export"), "the generated scenario does not open");
 		if (await page.getByText("the requirement holds").first().isVisible()) {
 			w.confusing(
 				"the generated scenario is filler text (Given the context, When the user acts); the tester must rewrite it",
 			);
 		}
-		await w.click(page.getByRole("main").getByRole("button", { name: "Back" }));
+		await w.click(page.getByRole("main").getByRole("link", { name: "Library", exact: true }));
 	});
 
 	await w.step("Write a new test plan", "New test plan, a name, Create", async () => {
-		await w.click(page.getByRole("button", { name: "New test plan" }));
+		// New test plan is in the page menu.
+		await w.go("Library", "Test plans");
+		await w.click(page.getByRole("main").getByRole("button", { name: "More", exact: true }));
+		await w.click(page.getByRole("menuitem", { name: "New test plan" }));
 		await w.fill(page.getByRole("dialog").getByRole("textbox"), "checkout");
 		await w.click(page.getByRole("dialog").getByRole("button", { name: "Create" }));
 		await w.until(() => page.getByRole("dialog").count(), 0, "the dialog stays open");
 	});
 
-	await w.step("Run the project checks", "Code, Quality, Run Tests", async () => {
-		await w.go("Code", "Quality");
+	await w.step("Run the project checks", "Flow, Health, Run Tests", async () => {
+		await w.go("Flow", "Health");
+		await w.click(page.getByRole("button", { name: "Open Tests" }));
 		await w.click(page.getByRole("button", { name: "Run Tests" }));
 		await w.click(page.getByRole("button", { name: "Run secrets" }));
 		await w.see(page.getByText("Findings").first(), "no findings list");
@@ -66,12 +71,26 @@ test("tester", async ({ page }) => {
 
 	await w.step(
 		"Check the checks of a pull request",
-		"Pull requests, a row with CI failing",
+		"Code, Now, a row with CI failing",
 		async () => {
-			await w.go("Code", "Pull requests");
-			await w.click(page.getByRole("link", { name: /#43 Audit the keychain use/ }));
-			await w.see(page.getByRole("tab", { name: /Checks/ }), "no Checks tab on the pull request");
-			await w.see(page.getByText("CI failing").first(), "the failing check is not named");
+			await w.go("Code", "Now");
+			await w.click(page.getByRole("link", { name: /^Audit the keychain use/ }));
+			const checks = page
+				.getByRole("navigation", { name: "Sections" })
+				.getByRole("button", { name: "Checks", exact: true });
+			await w.see(checks, "no Checks section on the pull request");
+			await w.click(checks);
+			await w.see(
+				page.getByRole("region", { name: /^\d+ of \d+ checks fail$/ }),
+				"the failing checks are not counted",
+			);
+			await w.see(
+				page
+					.getByRole("listitem")
+					.filter({ has: page.getByRole("img", { name: "Failing" }) })
+					.getByText("Fail", { exact: true }),
+				"the failing check is not named",
+			);
 		},
 	);
 
@@ -83,8 +102,11 @@ test("tester", async ({ page }) => {
 		"List the open risks",
 		"Specs, Questions, the Risk kind and the Open status",
 		async () => {
-			await w.go("Specs", "Questions");
-			await w.see(page.getByText("Claim stamps need a tracker comment write"), "no open risk");
+			await w.go("Library", "Questions");
+			await w.see(
+				page.getByText("Claim stamps need an issue tracker comment write"),
+				"no open risk",
+			);
 		},
 	);
 
@@ -92,8 +114,11 @@ test("tester", async ({ page }) => {
 		"See what needs me",
 		"Home, Needs you",
 		async () => {
-			await w.go("Home", "Today");
-			await w.see(page.getByRole("heading", { level: 1, name: "Today" }), "no inbox");
+			await w.go("Today", "Needs you");
+			await w.see(
+				page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+				"no inbox",
+			);
 		},
 		true,
 	);

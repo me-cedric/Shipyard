@@ -1,4 +1,6 @@
 import { mockIPC } from "@tauri-apps/api/mocks";
+import { seedNotices } from "@/lib/notifications/seed";
+import { writeView } from "@/lib/shell/view-state";
 import type {
 	Access,
 	AuditLine_Serialize,
@@ -39,6 +41,7 @@ import {
 	providerEdit,
 	providerTest,
 	seedAgents,
+	seedAgentsDemo,
 } from "./mock-agents";
 import * as ai from "./mock-assistant";
 import * as bs from "./mock-bootstrap";
@@ -75,10 +78,13 @@ import {
 	codeUnstage,
 	codeWatchIntervalSet,
 	conflictToFactory,
+	DEMO_REVIEW_FINDING,
 	filesAction,
 	type MockCode,
 	seedCode,
+	seedDemoCode,
 } from "./mock-code";
+import * as ch from "./mock-code-host";
 import * as cp from "./mock-code-prs";
 import * as cs from "./mock-compass-setup";
 import * as cr from "./mock-creator";
@@ -86,9 +92,11 @@ import * as dv from "./mock-delivery";
 import * as deliveryActions from "./mock-delivery-actions";
 import * as design from "./mock-design";
 import * as dr from "./mock-doctor";
+import * as ea from "./mock-estimate-agent";
 import * as ex from "./mock-extensions";
 import * as xt from "./mock-extras";
 import * as fx from "./mock-factory";
+import { features } from "./mock-features";
 import * as fl from "./mock-feedback-log";
 import * as kw from "./mock-knowledge";
 import * as lg from "./mock-languages";
@@ -104,6 +112,7 @@ import * as rv from "./mock-review";
 import { SUGGESTION, scopesOf, tokenPage } from "./mock-setup";
 import * as specs from "./mock-specs";
 import {
+	allowRecipePr,
 	automationGet,
 	automationSave,
 	importConfirm,
@@ -118,7 +127,11 @@ import {
 	unlink as syncUnlink,
 } from "./mock-sync";
 import * as th from "./mock-themes";
+import * as tb from "./mock-tile-build";
 import * as work from "./mock-work";
+
+/** The files that the demo project has not pushed yet. */
+const DEMO_UNPUSHED = ["docs/openspec/changes/add-auth/spec.md"];
 
 type Bindings = typeof commands;
 // A command with a Result returns its data in the mock. The generated wrapper adds the Result.
@@ -174,8 +187,12 @@ type State = {
 	nextFolder?: string;
 	/** The path of the next file dialog (a workbook). */
 	nextFile?: string;
+	/** The system that `app_info` reports. A test sets "macos" to turn the PDF choice on. */
+	platform?: string;
 	cursor: number;
 	confirm: boolean;
+	/** The questions that the app asked with `confirmDialog`, oldest first. */
+	asked: string[];
 	connections: Connection_Serialize[];
 	/** The pages that the app opened in the browser: the token pages. */
 	openedPages: string[];
@@ -189,6 +206,7 @@ type State = {
 	/** The demo pull requests, reports and fake terminal of Code. Seeded on first use. */
 	prs?: cp.MockPrs;
 	agentPr?: ap.MockAgentPr;
+	estimateAgent?: ea.MockEstimateAgent;
 	agents: MockAgents;
 	/** The mirror of the fake tracker, the automation file and the ticks. */
 	sync: MockSync;
@@ -260,7 +278,7 @@ const DEFAULT_PATHS = {
 
 const fresh = (): State => ({
 	prefs: {
-		theme: "system",
+		theme: "light",
 		density: "default",
 		contrast: "default",
 		role: "none",
@@ -281,6 +299,8 @@ const fresh = (): State => ({
 		defaultAgent: "",
 		defaultModel: "",
 		autoUpdateCheck: true,
+		releaseChannel: "stable",
+		sound: true,
 		promptLang: "",
 		diagramFormat: "",
 		accent: null,
@@ -309,6 +329,7 @@ const fresh = (): State => ({
 	fixed: [],
 	cursor: 0,
 	confirm: true,
+	asked: [],
 	connections: [],
 	openedPages: [],
 	logins: [],
@@ -368,7 +389,8 @@ export function pickMock(): string | null {
 
 /** The file picker of the mock: the path that a test names, or a workbook. Each name is used once. */
 export function pickFileMock(): string | null {
-	const f = state.nextFile ?? "/mock/costing.xlsx";
+	// The demo workbook has one row that Shipyard refuses.
+	const f = state.nextFile ?? (demo ? "/mock/costing-bad.xlsx" : "/mock/costing.xlsx");
 	state.nextFile = undefined;
 	return f;
 }
@@ -380,7 +402,10 @@ export function saveMock(fallback: string): string | null {
 	return f || null;
 }
 
-export const confirmMock = () => state.confirm;
+export const confirmMock = (message?: string) => {
+	if (message !== undefined) state.asked.push(message);
+	return state.confirm;
+};
 
 // The refs of the app come from the repository files. The mock reads its seeded files.
 const entities = () => [
@@ -442,12 +467,29 @@ function review(): rv.MockReview {
 
 function code(): MockCode {
 	if (!active()) throw "no active project";
-	state.code ??= seedCode();
+	state.code ??= active()?.path === DEMO_FOLDER ? seedDemoCode() : seedCode();
 	return state.code;
 }
 
 function agentPr(): ap.MockAgentPr {
-	state.agentPr ??= ap.seedAgentPr();
+	if (!state.agentPr) {
+		state.agentPr = ap.seedAgentPr();
+		// The demo shows one waiting review comment on an open pull request.
+		const open =
+			active()?.path === DEMO_FOLDER ? prs().pulls.find((x) => x.number === 144) : undefined;
+		if (open)
+			state.agentPr.reviews[`${open.number}-${open.headSha}`] = {
+				number: open.number,
+				title: open.title,
+				headSha: open.headSha,
+				summary: "One line needs a second look.",
+				verdict: "comment",
+				findings: [{ ...DEMO_REVIEW_FINDING }],
+				dropped: 0,
+				posted: false,
+				auto: false,
+			};
+	}
 	state.agentPr.stopped = fx.killSwitchGet(state.factory);
 	return state.agentPr;
 }
@@ -461,11 +503,16 @@ const localPath = (path: string) => {
 		(e) => e.path === path,
 	);
 	const project = active()?.path;
-	const inside = !path.startsWith("/") || (project !== undefined && path.startsWith(`${project}/`));
+	const inside =
+		!path.startsWith("/") ||
+		(project !== undefined && path.startsWith(`${project}/`)) ||
+		path.startsWith(`${xt.DATA_PATH}/`);
 	if (!path || path.startsWith("-") || path.split("/").includes("..") || !(wrote || inside))
 		throw `path not allowed: ${path}`;
 	return null;
 };
+
+const estimateAgent = () => (state.estimateAgent ??= ea.seedEstimateAgent());
 
 const readOnly = () => active()?.overrides.readOnly === true;
 
@@ -546,7 +593,12 @@ function knowledgeEnv(): kw.Env {
 		specs: Object.entries(state.specs.files)
 			.map(([p, f]) => [/\/specs\/([^/]+)\/spec\.md$/.exec(p)?.[1], f.text] as const)
 			.filter((x): x is readonly [string, string] => !!x[0])
-			.map(([cap, text]) => [`spec:${cap}`, text]),
+			.map(([cap, text]) => [`spec:${cap}`, text] as [string, string])
+			.concat(
+				state.knowledge?.files[kw.GLOSSARY]
+					? [[`doc:${kw.GLOSSARY}`, state.knowledge.files[kw.GLOSSARY]?.text ?? ""]]
+					: [],
+			),
 		tiles: {
 			work: mirror.map((t) => t.status),
 			runs: fx.runsList(state.factory, project).map((r) => r.state),
@@ -631,7 +683,7 @@ function seedDemo(p: ProjectEntry_Serialize) {
 	const id = "demo-tracker";
 	state.connections.push({
 		id,
-		name: "Demo tracker",
+		name: "Demo issue tracker",
 		group: "tracker",
 		kind: "linear",
 		url: "",
@@ -642,6 +694,12 @@ function seedDemo(p: ProjectEntry_Serialize) {
 		capabilities: FLAGS.linear,
 	});
 	state.secrets[id] = "demo";
+	// The menu bar panel shows the sync chip once a tick ran.
+	state.sync.lastOk[id] = Math.floor(Date.now() / 1000);
+	// In the demo build the recipe of a feature has a budget, so that "Fix all with an agent" can start.
+	const feature = state.factory.workflows.feature;
+	if (demo && feature && !feature.includes("budget_usd"))
+		state.factory.workflows.feature = feature.replace("limits:\n", "limits:\n  budget_usd: 3\n");
 	state.files[p.id] = {
 		name: p.name,
 		key: p.key,
@@ -652,6 +710,49 @@ function seedDemo(p: ProjectEntry_Serialize) {
 	};
 	importPlan(state.sync);
 	importConfirm(state.sync);
+	ai.seedDemoThread(state.assistant, p.id);
+	// A join request and two changes of rights, for the team page.
+	const at = 1_794_000_000;
+	state.audit = [
+		{
+			time: at,
+			member: "ada",
+			found: "email",
+			right: "project.settings",
+			what: "rights_roles_save",
+			target: "",
+			result: "allowed",
+		},
+		{
+			time: at + 86_400,
+			member: "ada",
+			found: "email",
+			right: "work.edit",
+			what: "work_transition",
+			target: "ACME-2",
+			result: "allowed",
+		},
+		{
+			time: at + 172_800,
+			member: null,
+			found: "unknown",
+			right: "project.settings",
+			what: "work_team_join",
+			target: "shipyard/join-zed",
+			result: "requested",
+		},
+	];
+	// The Pinned and Opened last cards of Library show only with data.
+	writeView(p.id, "library/pins", ["constitution"]);
+	writeView(p.id, "library/recent", ["capabilities", "architecture"]);
+	seedAgentsDemo(state.agents);
+	specs.seedDemoSpecs(state.specs);
+	// Two colour tokens, so that Design of a feature shows its token rows.
+	if (state.design)
+		state.design.files["src/tokens.css"] = {
+			text: ":root { --accent: #2557e6; --text: #12141a; }",
+			stamp: "1",
+		};
 }
 
 const outcome = (
@@ -775,7 +876,7 @@ const slug = (name: string, kind: string) => {
 /** The checks of `connections_add` and `connections_edit`: the same rules as the Rust adapters. */
 function checkDraft(d: ConnectionDraft_Deserialize) {
 	if (!d.name.trim()) throw "the name needs 1 to 60 characters";
-	if (d.group === "forge" && !FORGE_KINDS.includes(d.kind)) throw "this product is not a forge";
+	if (d.group === "forge" && !FORGE_KINDS.includes(d.kind)) throw "this product is not a code host";
 	if (d.kind !== "linear" || d.group === "forge") {
 		if (!/^https:\/\/[^/\s@]+/.test(d.url.trim()) && !d.url.trim().startsWith("http://localhost"))
 			throw "bad address: use an https address";
@@ -871,13 +972,38 @@ const RIGHTS: Right[] = [
 	"runs.approve",
 	"project.settings",
 	"costs.view",
+	"plan.edit",
 ];
 
 type Area = Exclude<keyof Access, "merge" | "approve">;
-type MockPerson = Omit<RightsPerson_Serialize, "access" | "roles"> &
-	Partial<Pick<RightsPerson_Serialize, "access" | "roles">>;
+type MockPerson = Omit<RightsPerson_Serialize, "access" | "roles" | "hidden"> &
+	Partial<Pick<RightsPerson_Serialize, "access" | "roles" | "hidden">>;
 
-const AREAS: Area[] = ["work", "specs", "design", "knowledge", "code", "runs", "settings", "costs"];
+const AREAS: Area[] = [
+	"work",
+	"specs",
+	"design",
+	"knowledge",
+	"code",
+	"runs",
+	"settings",
+	"costs",
+	"plan",
+];
+/** The places that a role can hide (`HIDEABLE` of `crates/shipyard-core/src/rights.rs`). */
+const HIDEABLE = ["flow", "plan", "crew", "library", "code"];
+/** The places that each role hides until the team says otherwise (`Role::default_hidden`). */
+const DEFAULT_HIDDEN: Record<TeamRole, string[]> = {
+	po: ["code"],
+	pm: ["code"],
+	architect: ["plan"],
+	techlead: [],
+	ba: ["crew", "code"],
+	developer: [],
+	qa: ["plan", "crew"],
+	designer: ["plan", "crew", "code"],
+	viewer: ["crew", "code"],
+};
 const RANK: Record<Level, number> = { none: 0, read: 1, write: 2 };
 /** The area of each right, and the level that it needs (`Right::area`, `Right::need`). */
 const RIGHT_AREA: Record<Right, Area> = {
@@ -891,6 +1017,7 @@ const RIGHT_AREA: Record<Right, Area> = {
 	"runs.approve": "runs",
 	"project.settings": "settings",
 	"costs.view": "costs",
+	"plan.edit": "plan",
 };
 const needOf = (r: Right): Level => (r === "costs.view" ? "read" : "write");
 
@@ -898,6 +1025,8 @@ const access = (l: string, merge = false, approve = false): Access => {
 	const level = (c: string): Level => (c === "W" ? "write" : c === "R" ? "read" : "none");
 	return {
 		...(Object.fromEntries(AREAS.map((a, i) => [a, level(l[i] ?? "N")])) as Record<Area, Level>),
+		// The default Plan level of a role is its Work level.
+		plan: level(l[0] ?? "N"),
 		merge,
 		approve,
 	};
@@ -933,7 +1062,7 @@ const ROLE_ACCESS: [TeamRole, Access][] = [
 	["developer", access("WRWWWWRN", false, true)],
 	["qa", access("WWRWWWRN")],
 	["designer", access("WRWWRRRN")],
-	["viewer", access("RRRRRRRN")],
+	["viewer", access("RRRRNRRN")],
 ];
 
 /** The table of the team: the defaults, then the `roles:` block. An unknown cell has no effect. */
@@ -950,15 +1079,24 @@ function roleTable(): [TeamRole, Access][] {
 	});
 }
 
+/** The places that a role does not see: the `hide` cell of its block (empty: none), else the defaults. */
+function roleHidden(role: TeamRole): string[] {
+	const cell = state.work.team.roles?.[role]?.hide;
+	const named =
+		typeof cell === "string" ? cell.split(",").map((x) => x.trim()) : DEFAULT_HIDDEN[role];
+	return HIDEABLE.filter((p) => named.includes(p));
+}
+
 /** A person set by a test with rights only: each area `read`, `write` where a right needs it. */
 function withAccess(p: MockPerson): RightsPerson_Serialize {
-	if (p.access) return { roles: p.role ? [p.role] : [], ...p, access: p.access };
+	if (p.access)
+		return { roles: p.role ? [p.role] : [], ...p, access: p.access, hidden: p.hidden ?? [] };
 	const a = access("RRRRRRRN");
 	for (const r of p.rights) if (needOf(r) === "write") a[RIGHT_AREA[r]] = "write";
 	if (p.rights.includes("costs.view")) a.costs = "read";
 	a.merge = p.rights.includes("code.merge");
 	a.approve = p.rights.includes("runs.approve");
-	return { roles: p.role ? [p.role] : [], ...p, access: a };
+	return { roles: p.role ? [p.role] : [], ...p, access: a, hidden: p.hidden ?? [] };
 }
 
 const SOLO: RightsPerson_Serialize = {
@@ -967,6 +1105,7 @@ const SOLO: RightsPerson_Serialize = {
 	role: null,
 	roles: [],
 	admin: true,
+	hidden: [],
 	readOnly: false,
 	access: ADMIN,
 	rights: RIGHTS,
@@ -977,7 +1116,7 @@ function teamPerson(): RightsPerson_Serialize {
 	const members = state.work.team.members;
 	if (!members.some((m) => m.admin)) return SOLO;
 	const table = roleTable();
-	const levels = (r: TeamRole) => table.find(([x]) => x === r)?.[1] ?? access("RRRRRRRN");
+	const levels = (r: TeamRole) => table.find(([x]) => x === r)?.[1] ?? access("RRRRNRRN");
 	const me = state.email
 		? members.find((m) => m.emails?.includes(state.email as string))
 		: undefined;
@@ -989,6 +1128,7 @@ function teamPerson(): RightsPerson_Serialize {
 			role: "viewer",
 			roles: ["viewer"],
 			admin: false,
+			hidden: [],
 			readOnly: false,
 			access: a,
 			rights: rightsOf(a),
@@ -1029,15 +1169,36 @@ function teamPerson(): RightsPerson_Serialize {
 		role: roles[0] ?? "viewer",
 		roles,
 		admin: me.admin === true,
+		// A person sees a place when one of the roles sees it. An admin sees each place.
+		hidden: me.admin ? [] : HIDEABLE.filter((p) => roles.every((r) => roleHidden(r).includes(p))),
 		readOnly: false,
 		access: a,
 		rights: rightsOf(a),
 	};
 }
 
+/** The places that the personal role of this machine hides: `personal_hidden` of `rights.rs`. An unknown role hides none. */
+function personalHidden(role: string | null | undefined): string[] {
+	const r = (role ?? "").trim().toLowerCase();
+	const team = r === "lead" ? "po" : r === "junior" ? "developer" : r;
+	return ROLE_ACCESS.some(([x]) => x === team) ? roleHidden(team as TeamRole) : [];
+}
+
+/** A human step that names a role: only a person with that role approves it (`runs-recipes` REQ-008). */
+function approverOnly(run: string) {
+	const role = fx.approverOf(state.factory, run);
+	if (!role) return;
+	const me = state.person ? withAccess(state.person) : teamPerson();
+	if (me.found === "solo" || me.roles.some((r) => r === role)) return;
+	throw `only the role ${role} approves this step`;
+}
+
+/** The person of `rightsGet`, for the handlers that check a right. */
+const mePerson = () => (handlers.rightsGet() as { person: RightsPerson_Serialize }).person;
+
 // A missing key fails `tsc`: each generated command needs a handler.
 const handlers: Handlers = {
-	appInfo: () => ({ name: "Shipyard", version: "0.1.0", os: "browser" }),
+	appInfo: () => ({ name: "Shipyard", version: "0.1.0", os: state.platform ?? "browser" }),
 	prefsGet: () => state.prefs,
 	prefsSet: (patch) => {
 		const { clearAccent, ...rest } = patch;
@@ -1076,6 +1237,28 @@ const handlers: Handlers = {
 		const known = state.projects.some((p) => p.path === path);
 		const opened = activate(path, name, deriveKey(name));
 		if (path === DEMO_FOLDER && !known && opened.project) seedDemo(opened.project);
+		// The demo question takes a free answer, so the card of Today shows "Another answer" (picture 001).
+		if (demo && path === DEMO_FOLDER && !known)
+			for (const x of state.factory.questions) if (x.q.id === "Q-101") x.q.free_text = true;
+		// The demo person is Ada of the seeded team, so the account row shows a name and two initials (picture 001).
+		if (demo && path === DEMO_FOLDER && !known) state.person = { ...SOLO, member: "ada" };
+		// The demo holds two earlier projects: the Projects page shows "Opened before".
+		if (demo && path === DEMO_FOLDER && !known)
+			for (const [id, before] of [
+				["website", "Website"],
+				["mobile", "Mobile app"],
+			] as const)
+				state.projects.push({
+					...(opened.project as ProjectEntry_Serialize),
+					id,
+					name: before,
+					key: id.toUpperCase(),
+					path: `/mock/${id}`,
+					active: false,
+					lastUsed: 1_790_000_000,
+					lastView: null,
+					overrides: { ...NO_OVERRIDES },
+				});
 		return opened;
 	},
 	projectsCreate: (path, name, key) => {
@@ -1141,6 +1324,18 @@ const handlers: Handlers = {
 	projectsClose: () => {
 		for (const x of state.projects) x.active = false;
 		return null;
+	},
+	projectsCloseState: () => fx.projectRuns(state.factory, active()?.id ?? null),
+	projectsCloseStop: () => {
+		// A person who may not stop runs keeps the project open, as `close_stopping` does.
+		const me = mePerson();
+		if (
+			fx.projectRuns(state.factory, active()?.id ?? null).length &&
+			!me.rights.includes("runs.start")
+		)
+			throw `missing right runs.start (${me.admin ? "admin" : (me.role ?? "admin")})`;
+		fx.projectRunsStop(state.factory, active()?.id ?? null);
+		return handlers.projectsClose();
 	},
 	projectsRemove: (id) => {
 		if (!state.projects.some((x) => x.id === id)) throw `unknown project: ${id}`;
@@ -1215,7 +1410,13 @@ const handlers: Handlers = {
 	rightsGet: () => {
 		const p = active();
 		if (!p) throw "no active project";
-		const person = state.person ? withAccess(state.person) : teamPerson();
+		const found = state.person ? withAccess(state.person) : teamPerson();
+		// The personal role of this machine only hides more. A team admin sees each place; a solo person sees the places of the role they picked.
+		const extra = found.admin && found.found !== "solo" ? [] : personalHidden(state.prefs.role);
+		const person = {
+			...found,
+			hidden: HIDEABLE.filter((x) => found.hidden.includes(x) || extra.includes(x)),
+		};
 		// The read-only profile leaves `read` at most, as the backend does.
 		const readOnly = person.readOnly || p.overrides.readOnly === true;
 		const a = readOnly ? zip(person.access, access("RRRRRRRR"), false) : person.access;
@@ -1229,7 +1430,12 @@ const handlers: Handlers = {
 			branch: null,
 			fetched: null,
 			warnings: [],
-			roles: roleTable().map(([role, a]) => ({ role, access: a, rights: rightsOf(a) })),
+			roles: roleTable().map(([role, a]) => ({
+				role,
+				access: a,
+				rights: rightsOf(a),
+				hidden: roleHidden(role),
+			})),
 		};
 	},
 	rightsRolesSave: (table, members) => {
@@ -1259,6 +1465,13 @@ const handlers: Handlers = {
 			const cells: Record<string, string | boolean> = {};
 			for (const k of AREAS) if (a[k] !== base[k]) cells[k] = a[k];
 			for (const k of ["merge", "approve"] as const) if (a[k] !== base[k]) cells[k] = a[k];
+			// `hidden` replaces the places of the role; no list keeps them (`roles_save`).
+			const given = [...table].reverse().find((r) => r.role === role)?.hidden;
+			const hide = given == null ? roleHidden(role) : given;
+			if (hide.some((p) => !HIDEABLE.includes(p)))
+				throw `a role hides only: ${HIDEABLE.join(", ")}`;
+			const list = HIDEABLE.filter((p) => hide.includes(p));
+			if (list.join(",") !== DEFAULT_HIDDEN[role].join(",")) cells.hide = list.join(",");
 			if (Object.keys(cells).length) roles[role] = cells;
 		}
 		state.work.team = { members: next, ...(Object.keys(roles).length ? { roles } : {}) };
@@ -1296,6 +1509,30 @@ const handlers: Handlers = {
 				return c?.tracker === id || c?.forge === id;
 			})
 			.map((p) => ({ id: p.id, name: p.name, key: p.key })),
+	accountSignOutList: () => state.connections.filter((c) => c.secret),
+	accountSignOut: (click) => {
+		if (!click) throw "this change needs the click of a person";
+		if (active()?.overrides.readOnly === true) throw "the profile of this project is read only";
+		// The AI tools and OpenRouter are no connection: their sign-in stays.
+		const gone = state.connections.filter((c) => c.secret);
+		for (const c of gone) {
+			c.secret = false;
+			c.state = "untested";
+			c.scopes = [];
+			delete state.secrets[c.id];
+		}
+		return gone.map((c) => c.name);
+	},
+	connectionsSignOut: (id, click) => {
+		if (!click) throw "this change needs the click of a person";
+		if (active()?.overrides.readOnly === true) throw "the profile of this project is read only";
+		const c = conn(id);
+		c.secret = false;
+		c.state = "untested";
+		c.scopes = [];
+		delete state.secrets[c.id];
+		return null;
+	},
 	connectionsRemove: (id) => {
 		const c = conn(id);
 		state.connections = state.connections.filter((x) => x !== c);
@@ -1322,7 +1559,7 @@ const handlers: Handlers = {
 	connectionsSuggest: () => (active() ? SUGGESTION : null),
 	connectionsScopes: (id) => {
 		const c = conn(id);
-		if (c.group !== "tracker") throw `${id} is not a tracker`;
+		if (c.group !== "tracker") throw `${id} is not an issue tracker`;
 		if (!state.secrets[id]) throw "no secret saved";
 		return scopesOf(c.kind);
 	},
@@ -1357,7 +1594,7 @@ const handlers: Handlers = {
 		return c;
 	},
 	connectionsCreateRepo: (id, slug, click) => {
-		if (conn(id).group !== "forge") throw `${id} is not a forge`;
+		if (conn(id).group !== "forge") throw `${id} is not a code host`;
 		if (!click) throw "this change needs the click of a person";
 		if (slug.split("/").length < 2 || slug.split("/").some((p) => !p || p === "." || p === ".."))
 			throw `setting: a repository name has the form owner/name`;
@@ -1372,7 +1609,7 @@ const handlers: Handlers = {
 		};
 	},
 	connectionsRepos: (id) => {
-		if (conn(id).group !== "forge") throw `${id} is not a forge`;
+		if (conn(id).group !== "forge") throw `${id} is not a code host`;
 		return {
 			items: [
 				{
@@ -1486,6 +1723,10 @@ const handlers: Handlers = {
 	mcpRecommended: () => mt.mcpRecommended(state.agents),
 	mcpRecommendedEnable: (click) => mt.mcpRecommendedEnable(state.agents, click),
 	machineSessions: () => state.machine.sessions,
+	machineSessionTake: (pid, click) => mc.machineTake(state.machine, pid, click),
+	machineSessionOutput: (runner, session) => mc.machineOutput(state.machine, runner, session),
+	machineLoad: () => mc.machineLoad(state.machine),
+	budgetStatus: () => mc.budgetStatus(state.machine, state.factory.budgets.warn_at ?? undefined),
 	machineSessionStop: (pid, click) => {
 		if (!click) throw "this change needs the click of a person";
 		return mc.machineStop(state.machine, pid);
@@ -1515,6 +1756,7 @@ const handlers: Handlers = {
 	doctorBootstrapApply: (answers, click) =>
 		bs.bootstrapApply(state.bootstrap, answers, state.doctor.tools, click),
 	feedbackOpen: (kind, title, details, click) => fl.feedbackOpen(kind, title, details, click),
+	feedbackAttach: (path, click) => xt.feedbackAttach(state.extras, path, click),
 	debugLog: () => state.log.lines,
 	assistantAttach: (id, name, bytes) => ai.attach(state.assistant, assistantEnv(), id, name, bytes),
 	shellMenu: (labels) => {
@@ -1564,14 +1806,16 @@ const handlers: Handlers = {
 			throw "no settings pane for this permission";
 		return null;
 	},
-	// A release address with `newer` in it has a newer version; one with `broken` fails.
+	// A release address with `newer` in it has a newer version; one with `broken` fails. One with
+	// `prerelease` holds a pre-release that only the Preview channel considers.
 	updateCheck: () => {
 		const url = state.prefs.releaseUrl;
 		if (url.includes("broken")) throw "the release answer holds no version";
-		const newer = url.includes("newer");
+		const pre = url.includes("prerelease") && state.prefs.releaseChannel === "preview";
+		const newer = pre || url.includes("newer");
 		return {
 			current: "0.1.0",
-			latest: newer ? "0.2.0" : "0.1.0",
+			latest: pre ? "0.3.0-beta.1" : newer ? "0.2.0" : "0.1.0",
 			newer,
 			url: "https://example.com/releases/latest",
 			// The sections after the last version that ran, up to the running one.
@@ -1592,6 +1836,9 @@ const handlers: Handlers = {
 	syncAutomationSave: (a) => {
 		if (!active()) throw "no active project";
 		automationSave(state.sync, a as Parameters<typeof automationSave>[1]);
+		// The budgets are the factory's: the form saves them with the rest.
+		const { budgets } = a;
+		if (budgets) state.factory.budgets = fx.budgetsOf(budgets);
 		return null;
 	},
 	syncItems: (filter) =>
@@ -1709,6 +1956,22 @@ const handlers: Handlers = {
 		needTracker(() => work.ticketDueSet(state.sync.mirror, key, day, click));
 		return null;
 	},
+	workReleases: () => needTracker(() => ch.releases(state.sync.mirror)),
+	workIssueTypes: () => needTracker(() => ch.ISSUE_TYPES),
+	workTicketReleaseSet: (key, release, click) => {
+		needTracker(() => ch.ticketReleaseSet(state.sync.mirror, key, release, click));
+		return null;
+	},
+	workTeamJoinRequests: () => ch.joinRequests(need(state.work)),
+	workTeamJoinAccept: (number, role, click) =>
+		ch.joinAccept(
+			need(state.work),
+			number,
+			role,
+			click,
+			(state.person ? withAccess(state.person) : teamPerson()).rights.includes("code.merge"),
+		),
+	workTeamJoinRefuse: (number, click) => ch.joinRefuse(need(state.work), number, click),
 	workTicketEditCaps: () =>
 		needTracker(() => ({
 			title: true,
@@ -1721,6 +1984,7 @@ const handlers: Handlers = {
 			issueType: true,
 			dueDate: true,
 			estimate: true,
+			release: true,
 		})),
 	workSealState: () => work.sealState(need(state.work)),
 	workUnlock: (passphrase) => work.sealUnlock(need(state.work), passphrase),
@@ -1763,6 +2027,12 @@ const handlers: Handlers = {
 	},
 	timeList: (member, month) =>
 		work.timeList(need(state.work), member, month, syncSources().length > 0),
+	timeFillDay: (member, day, click) => {
+		const me = mePerson();
+		if (!me.rights.includes("work.edit"))
+			throw `missing right work.edit (${me.admin ? "admin" : (me.role ?? "admin")})`;
+		return work.timeFill(need(state.work), state.sync.mirror, member, day, click);
+	},
 	timeAdd: (member, day, minutes, note, ticket, offset, reduce) =>
 		work.timeAdd(
 			need(state.work),
@@ -1873,7 +2143,17 @@ const handlers: Handlers = {
 	codeRemoteUrl: () => (need(code()).branch ? "https://example.com/acme/project.git" : null),
 	codeWatchInterval: () => code().watchMinutes,
 	codeWatchIntervalSet: (minutes) => codeWatchIntervalSet(code(), minutes),
-	codeFileRead: (path, rev) => codeFileRead(code(), path, rev),
+	codeFileRead: (path, rev) =>
+		// The delivery note of the demo has its text, for the Copy button of the impact report.
+		seedNotes().some((n) => n.path === path)
+			? {
+					path,
+					size: 41,
+					binary: false,
+					truncated: false,
+					text: "Sync now keeps the local edits. No action.",
+				}
+			: codeFileRead(code(), path, rev),
 	codeFileList: () => codeFileList(code()),
 	filesCreateFile: (path, click) => fileWrite("file", path, click),
 	filesCreateFolder: (path, click) => fileWrite("folder", path, click),
@@ -1891,12 +2171,21 @@ const handlers: Handlers = {
 	codeMyChecks: () => cp.myChecks(prs()),
 	codePullLabels: () => cp.pullLabels(),
 	codePullOpen: (input, click) => cp.pullOpen(prs(), code(), input, click),
+	codePullRerun: (number, click) => cp.pullRerun(prs(), number, click),
+	codePullReviewers: () => cp.pullReviewers(),
+	codeImpactPlanSave: (path, lines, click) => ch.impactPlanSave(prs(), path, lines, click),
 	prReviewStart: (number, click) => ap.reviewStart(agentPr(), prs(), number, click, readOnly()),
 	prReviewGet: (number, headSha) => ap.reviewGet(agentPr(), number, headSha),
 	prReviewPost: (post, click) => ap.reviewPost(agentPr(), prs(), post, click, readOnly()),
 	prReviewStop: (number) => ap.reviewStop(agentPr(), number),
 	prReviewWaiting: () => ap.reviewWaiting(agentPr(), prs()),
 	prWriteText: (base, click) => ap.prWrite(click, readOnly(), base),
+	estimateAgentStart: (slug, taskIds, click) =>
+		ea.estimateStart(estimateAgent(), need(state.work), slug, taskIds, click, {
+			readOnly: readOnly(),
+			stopped: fx.killSwitchGet(state.factory),
+		}),
+	estimateAgentStop: (slug) => ea.estimateStop(estimateAgent(), slug),
 	codePullComment: (number, body, click) => cp.pullComment(prs(), number, body, click),
 	codePullReply: (reference, threadId, body, click) =>
 		cp.pullReply(prs(), reference, threadId, body, click),
@@ -1934,6 +2223,8 @@ const handlers: Handlers = {
 	designAdrDecide: (path, decision, comment, stamp) =>
 		design.adrDecide(need(state.design), path, decision, comment, stamp, state.work.today),
 	designFlowsSave: (path, rows, stamp) => design.flowsSave(need(state.design), path, rows, stamp),
+	designFlowsCheck: (path) => design.flowsCheck(need(state.design), path),
+	designFlowsChecked: (path) => design.flowsChecked(need(state.design), path),
 	designTry: (request, click) => design.designTry(need(state.design), request, click),
 	designOpen: (target) => {
 		design.designOpen(need(state.design), target);
@@ -1943,6 +2234,8 @@ const handlers: Handlers = {
 	designBytes: (path) => design.designBytes(need(state.design), path),
 	specsChanges: () => specs.changes(need(state.specs)),
 	specsChangeCreate: (id) => specs.changeCreate(need(state.specs), id, state.work.today),
+	specsChangeInputAdd: (id, name, bytes) =>
+		specs.changeInputAdd(need(state.specs), id, name, bytes),
 	specsChangeFromTicket: (key, click) => {
 		if (readOnly()) throw "the profile of this project is read only";
 		return specs.changeFromTicket(
@@ -1956,7 +2249,7 @@ const handlers: Handlers = {
 	specsChangeDelegate: (key, workflow, click) => {
 		if (!click) throw "this change needs the click of a person";
 		if (readOnly()) throw "the profile of this project is read only";
-		if (!/^[a-z0-9][a-z0-9_.-]*$/.test(workflow)) throw `\`${workflow}\` is not a workflow id`;
+		if (!/^[a-z0-9][a-z0-9_.-]*$/.test(workflow)) throw `\`${workflow}\` is not a recipe id`;
 		if (!state.sync.mirror.some((t) => t.key === key))
 			throw `${key} is not in the mirror: sync first`;
 		return `wf:${workflow}`;
@@ -2134,7 +2427,23 @@ const handlers: Handlers = {
 	dashboardSaveOne: (slug, dashboard, stamp) =>
 		kw.dashboardSave(need(state.knowledge), slug, dashboard, stamp),
 	dashboardTile: (kind) => kw.dashboardTile(knowledgeEnv(), kind),
+	dashboardTileBuild: (slug, text, budgetUsd) =>
+		tb.tileBuild(
+			agentPr(),
+			kw.dashboardGet(need(state.knowledge), slug).readOnly,
+			slug,
+			text,
+			budgetUsd,
+		),
 	learnGet: () => kw.learnGet(knowledgeEnv()),
+	glossaryAddWord: (term, meaning, click) =>
+		kw.glossaryAdd(
+			need(state.knowledge),
+			kw.learnGet(knowledgeEnv()).glossary,
+			term,
+			meaning,
+			click,
+		),
 	learningGet: () => lrn.learningGet(need(state.learning)),
 	learningFeedsRead: () => lrn.feedsRead(need(state.learning)),
 	learningFeedAdd: (url, click) => lrn.feedAdd(need(state.learning), url, click),
@@ -2181,16 +2490,34 @@ const handlers: Handlers = {
 		rp.exportWorkDone(reports(), reportEnv(), base, head, from, to, path, click),
 	exportChangeRequestFiles: (title, base, head, _approvers, click) =>
 		rp.exportChangeRequest(reports(), reportEnv(), title, base, head, click),
+	exportChangeRequestPdfFiles: (title, base, head, _approvers, click) =>
+		rp.exportChangeRequestPdf(reports(), reportEnv(), title, base, head, click),
+	reportsWrittenGet: () => rp.writtenGet(reports()),
+	reportsWrittenAdd: (report, click) =>
+		rp.writtenAdd(reports(), "Ada Lovelace", new Date().toISOString().slice(0, 10), report, click),
+	docDownload: (path, dest, click) =>
+		kw.docDownload(need(state.knowledge), review().docx, path, dest, click),
 	terminalApps: () => rp.terminalApps(state.reports),
 	terminalLaunch: (folder, click) =>
 		rp.terminalLaunch(state.reports, reportEnv(), state.prefs.terminalApp, folder, click),
 	tiersGet: () => fx.tiersGet(state.factory),
 	tiersSet: (row) => fx.tiersSet(state.factory, row),
 	runsList: () => fx.runsList(state.factory, active()?.id ?? null),
+	featuresList: async () =>
+		active()
+			? features(
+					await handlers.syncItems({}),
+					await handlers.specsChanges(),
+					await handlers.runsList(),
+					await handlers.pullsList(),
+					(c) => state.specs.files[`${c.path}/proposal.md`]?.text ?? "",
+				)
+			: [],
 	runGetOne: (run) => fx.runGetOne(state.factory, active()?.id ?? null, run),
 	runLogPage: (run, after, limit) => fx.runLogPage(state.factory, run, after, limit),
 	sessionsList: () => [
-		...ap.reviewSessions(agentPr()),
+		...tb.sessions(ap.reviewSessions(agentPr())),
+		...ea.estimateSessions(estimateAgent()),
 		...fx.sessionsList(state.factory, active()?.id ?? null),
 	],
 	usageGet: () => fx.usageGet(state.factory, active()?.id ?? null),
@@ -2206,12 +2533,53 @@ const handlers: Handlers = {
 	runResume: (run, addUsd, addTokens, note) =>
 		fx.runResume(state.factory, run, addUsd, addTokens, note),
 	runUnblock: (run, note) => fx.runUnblock(state.factory, run, note),
+	recipeAllowPrWrite: (recipe, click) => {
+		if (!click) throw "this change needs the click of a person";
+		if (!active()) throw "no active project";
+		if (!fx.workflowsList(need(state.factory)).some((w) => w.id === recipe))
+			throw `no recipe \`${recipe}\` in this project`;
+		allowRecipePr(state.sync, recipe);
+		return null;
+	},
+	runPause: (run) => fx.runPause(state.factory, run),
+	runAttach: (run, name, bytes) => fx.runAttach(state.factory, run, name, bytes),
+	runTakeOver: (run) => {
+		// The person of this machine: the member that signed in, else the account name.
+		const w = state.work;
+		const who = w.team.members.find((m) => m.handle === w.me)?.name ?? w.account?.name ?? "Ada";
+		const dir = fx.runTakeOver(state.factory, run, who);
+		const key = state.factory.runs.find((r) => r.id === run)?.key;
+		// A ticket that cannot be assigned does not undo the take over.
+		if (key && w.me) {
+			try {
+				work.workAssign(w, state.sync.mirror, key, w.me, true);
+			} catch {}
+		}
+		return dir;
+	},
 	runCloseDone: (run) => fx.runCloseDone(state.factory, run),
-	runPlanApprove: (run) => fx.runPlanApprove(state.factory, run),
-	runPlanReject: (run, note) => fx.runPlanReject(state.factory, run, note),
+	runPlanApprove: (run) => {
+		approverOnly(run);
+		return fx.runPlanApprove(state.factory, run);
+	},
+	runPlanReject: (run, note) => {
+		approverOnly(run);
+		return fx.runPlanReject(state.factory, run, note);
+	},
 	killSwitchGet: () => fx.killSwitchGet(state.factory),
 	runLogDegraded: () => fx.runLogDegraded(),
-	killSwitchSet: (on) => fx.killSwitchSet(state.factory, on),
+	killSwitchSet: (on) => {
+		// "Stop all agents" stops a running estimate, as `factory::set_kill_switch` does.
+		if (on) for (const stop of Object.values(estimateAgent().running)) stop();
+		return fx.killSwitchSet(state.factory, on);
+	},
+	agentsStopAll: (click) => {
+		if (!click) throw "this change needs the click of a person";
+		const me = state.person ? withAccess(state.person) : teamPerson();
+		if (!me.rights.includes("runs.start")) throw "this needs the right runs.start";
+		for (const stop of Object.values(estimateAgent().running)) stop();
+		return fx.agentsStopAll(state.factory, click);
+	},
 	workflowsList: () => fx.workflowsList(need(state.factory)),
 	workflowGet: (id) => fx.workflowGet(need(state.factory), id),
 	workflowCheck: (id, text) => fx.workflowCheck(need(state.factory), id, text),
@@ -2228,6 +2596,12 @@ const handlers: Handlers = {
 	rolesList: () => fx.rolesList(need(state.factory)),
 	roleGet: (id) => fx.roleGet(need(state.factory), id),
 	roleWrite: (id, text) => fx.roleWrite(need(state.factory), id, text),
+	roleModelSet: (id, tier) => {
+		const me = mePerson();
+		if (!me.rights.includes("project.settings"))
+			throw `missing right project.settings (${me.admin ? "admin" : (me.role ?? "admin")})`;
+		return fx.roleModelSet(need(state.factory), id, tier);
+	},
 	questionsList: () => fx.questionsList(state.factory, active()?.id ?? null),
 	questionAnswer: (run, id, choice) => fx.questionAnswer(state.factory, run, id, choice),
 	messagesList: () => fx.messagesList(state.factory, active()?.id ?? null),
@@ -2235,6 +2609,26 @@ const handlers: Handlers = {
 	approvalsList: () => fx.approvalsList(state.factory, active()?.id ?? null),
 	approvalApprove: (id) => fx.approvalApprove(state.factory, id),
 	approvalReject: (id) => fx.approvalReject(state.factory, id),
+	approvalsAllowRecipe: (ids) => {
+		if (!active()) throw "no active project";
+		const me = state.person ? withAccess(state.person) : teamPerson();
+		if (state.sync.file === "invalid") throw "the automation file is not valid: fix it first";
+		// A refusal leaves the file as it was.
+		const recipes = { ...state.sync.automation.recipe_writes };
+		const save = () => {
+			state.sync.automation.recipe_writes = recipes;
+			state.sync.file = "valid";
+		};
+		try {
+			fx.approvalsAllowRecipe(state.factory, active()?.id ?? null, ids, me.rights, recipes);
+		} catch (e) {
+			// The file is saved before the named writes go out (`allow_recipe`).
+			if (String(e).startsWith("the permission is saved")) save();
+			throw e;
+		}
+		save();
+		return null;
+	},
 	pullsStatusGet: () => {
 		const p = active();
 		const forge = p ? state.files[p.id]?.connections?.forge : undefined;
@@ -2262,6 +2656,8 @@ const handlers: Handlers = {
 	assistantWorktreeDiscard: (id, force) =>
 		ai.worktreeDiscard(state.assistant, assistantEnv(), id, force),
 	assistantDiff: (id) => ai.diff(state.assistant, assistantEnv(), id),
+	assistantFileKeep: (id, path) => ai.fileKeep(state.assistant, assistantEnv(), id, path),
+	assistantFileUndo: (id, path) => ai.fileUndo(state.assistant, assistantEnv(), id, path),
 	assistantSaveDraft: (id, draft, context) =>
 		ai.saveDraft(state.assistant, assistantEnv(), id, draft, context),
 	assistantSettingsSet: (id, settings) => {
@@ -2275,7 +2671,9 @@ const handlers: Handlers = {
 		ai.send(state.assistant, assistantEnv(), id, text, quotes, context),
 	assistantStop: () => null,
 	assistantLive: (thread) => xt.live(state.extras, thread),
-	appDataFolder: xt.dataFolder,
+	appDataFolder: () => xt.dataFolder(state.extras),
+	appPortableSet: (on, click) => xt.portableSet(state.extras, on, click),
+	appDataFolderMove: (to, click) => xt.dataFolderMove(state.extras, to, click),
 	pictureGet: (which) => xt.pictureGet(state.extras, which),
 	pictureSet: (which, path, click) => {
 		if (which === "logo") need(true);
@@ -2359,6 +2757,7 @@ const handlers: Handlers = {
 	ticketsConfigGet: () => need(state.delivery.tickets),
 	ticketsConfigSave: (c) => {
 		need(null);
+		ch.checkKinds(state.delivery.tickets, c);
 		dv.ticketsConfigSave(state.delivery, c);
 		return null;
 	},
@@ -2385,7 +2784,11 @@ const handlers: Handlers = {
 	},
 	codeChainGate: (push) =>
 		rv
-			.withAcks(review(), chainGate(push ? [] : codeStatus(code()).staged.map((f) => f.path)))
+			// Demo case: a push of the demo project leaves one spec without its test plan (screen 74).
+			.withAcks(
+				review(),
+				chainGate(push ? DEMO_UNPUSHED : codeStatus(code()).staged.map((f) => f.path)),
+			)
 			.filter((w) => !w.ack),
 	codeDocsUpdateStart: (_doc, _range, click) => {
 		if (!click) throw "this change needs the click of a person";
@@ -2400,7 +2803,21 @@ const handlers: Handlers = {
 	codeChainAckWithdraw: (from, to, click) => rv.chainAckWithdraw(review(), from, to, click),
 	codeCoverage: () => rv.coverage(),
 	docSearch: (query) => rv.docSearch(need(state.knowledge).files, query),
-	docDocxList: () => rv.docxList(review()),
+	pageHistory: (path) => kw.pageHistory(need(state.knowledge), path),
+	pageVersion: (path, sha) => kw.pageVersion(need(state.knowledge), path, sha),
+	pageRestore: (path, sha, click) =>
+		kw.pageRestore(
+			need(state.knowledge),
+			path.startsWith("docs/openspec/") ? need(state.specs).files : need(state.knowledge).files,
+			path,
+			sha,
+			click,
+		),
+	docDocxList: () =>
+		[...rv.docxList(review()), ...kw.docOthers(need(state.knowledge))].sort((a, b) =>
+			a.path.localeCompare(b.path),
+		),
+	docAddFile: (source, click) => kw.docAddFile(need(state.knowledge), review().docx, source, click),
 	docDocxRead: (path) => rv.docxRead(review(), path),
 	specsRequirements: () => specs.requirementRows(need(state.specs)),
 	specsTestplanGenerate: (capability, click) =>
@@ -2448,6 +2865,50 @@ export function onMockTerminalOutput(listener: (id: string, data: string) => voi
 /** `demo`: the first folder that the picker returns is the demo project (`DEMO_FOLDER`). */
 export function installMockIpc(options: { demo?: boolean } = {}) {
 	demo = options.demo === true;
+	// The menu bar panel has no first run: the demo build opens the demo project for it.
+	if (demo && window.location.pathname === "/tray") handlers.projectsOpen(DEMO_FOLDER, false);
+	// Today / News of the demo build starts with four notices, three of today and one of the day before.
+	if (demo) {
+		const at = Date.now();
+		seedNotices([
+			{
+				id: "demo:finished",
+				kind: "info",
+				title: "Reviewer finished",
+				body: "Add the health dot",
+				target: { route: "/flow/flow" },
+				time: at,
+				read: false,
+			},
+			{
+				id: "demo:review",
+				kind: "needs-you",
+				title: "Grace asks for your review",
+				body: "Rework the settings page",
+				target: { route: "/code/now" },
+				time: at - 60_000,
+				read: false,
+			},
+			{
+				id: "demo:budget",
+				kind: "info",
+				title: "Builder is at 80 % of its limit",
+				body: "Add the health dot",
+				target: { route: "/crew/spend" },
+				time: at - 120_000,
+				read: false,
+			},
+			{
+				id: "demo:sync",
+				kind: "error",
+				title: "The sync with the issue tracker failed one time",
+				target: { route: "/setup/project" },
+				time: at - 24 * 3600 * 1000,
+				read: true,
+			},
+		]);
+	}
+	if (demo) ex.seedWaitingPlugin();
 	mockIPC((cmd, args) => {
 		const handler = (handlers as Record<string, ((...a: unknown[]) => unknown) | undefined>)[
 			camel(cmd)

@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { openSync } from "@/features/shell/test-open";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { seedCode } from "@/lib/ipc/mock-code";
@@ -15,24 +16,38 @@ describe("Code / History", () => {
 		await open();
 		mountApp("/code/history");
 		const row = await screen.findByRole("button", { name: /fix\(auth\): refuse an empty token/ });
-		expect(row).toHaveTextContent("main");
-		expect(row).toHaveTextContent("origin/main");
+		expect(row).toHaveTextContent("Ada Lovelace");
 		expect(screen.getAllByRole("button", { name: /Ada Lovelace/ })).toHaveLength(3);
 		// One dot for each commit, on the lane of its line of history.
 		expect(main().querySelectorAll("[data-lane]")).toHaveLength(3);
 		await user.click(await screen.findByRole("button", { name: /chore: first commit/ }));
 		expect(await screen.findByRole("heading", { name: "chore: first commit" })).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "Files (2)" })).toBeInTheDocument();
-		// The first file, in the order of the commit, shows its diff.
+		expect(screen.getByRole("heading", { name: "2 files" })).toBeInTheDocument();
+		// The diff of a file shows when its row opens.
+		expect(screen.queryByRole("region", { name: "Diff of docs/guide.md" })).toBeNull();
+		await user.click(
+			within(screen.getByRole("region", { name: "Files" })).getByRole("button", {
+				name: /docs\/guide\.md/,
+			}),
+		);
 		expect(await screen.findByRole("region", { name: "Diff of docs/guide.md" })).toHaveTextContent(
 			"g",
 		);
 		await user.click(
 			within(screen.getByRole("region", { name: "Files" })).getByRole("button", {
-				name: "src/app.ts",
+				name: /src\/app\.ts/,
 			}),
 		);
 		expect(await screen.findByRole("region", { name: "Diff of src/app.ts" })).toBeInTheDocument();
+	});
+
+	it("shows the labels of a commit behind More", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/code/history");
+		await screen.findByRole("button", { name: /fix\(auth\): refuse an empty token/ });
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		expect(await screen.findByText("origin/main")).toBeInTheDocument();
 	});
 
 	it("loads older commits and stops when the log is whole", async () => {
@@ -52,32 +67,49 @@ describe("Code / History", () => {
 		}
 		mockState().code = code;
 		mountApp("/code/history");
-		await screen.findByRole("button", { name: /chore: n26/ });
-		expect(screen.queryByRole("button", { name: /chore: n27/ })).toBeNull();
-		await user.click(screen.getByRole("button", { name: "Older" }));
-		await screen.findByRole("button", { name: /chore: n36/ });
-		await waitFor(() => expect(screen.queryByRole("button", { name: "Older" })).toBeNull());
+		await screen.findByRole("button", { name: /chore: n1(?!\d)/ });
+		expect(screen.queryByRole("button", { name: /chore: n2(?!\d)/ })).toBeNull();
+		// Five more each time, then the next page of the log when the loaded rows are used up.
+		const older = () => screen.getByRole("button", { name: "Older commits" });
+		await user.click(older());
+		await screen.findByRole("button", { name: /chore: n6(?!\d)/ });
+		expect(screen.queryByRole("button", { name: /chore: n7(?!\d)/ })).toBeNull();
+		for (let i = 0; i < 5; i++) await user.click(older());
+		await screen.findByRole("button", { name: /chore: n31(?!\d)/ });
+		await user.click(older());
+		await screen.findByRole("button", { name: /chore: n36(?!\d)/ });
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Older commits" })).toBeNull());
 	});
 });
 
 describe("Code / Branches", () => {
-	it("shows the working branch in the header selector and lists the local and remote branches", async () => {
+	it("shows the working branch in the selector of the sync mark and lists the local and remote branches", async () => {
 		await open();
 		mountApp("/code/branches");
-		expect(await selector()).toHaveTextContent("main");
-		expect(await screen.findByRole("heading", { name: "Local (2)" })).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "Remote (1)" })).toBeInTheDocument();
+		const card = await openSync(userEvent.setup());
+		expect(card.getByRole("combobox", { name: "Working branch" })).toHaveTextContent("main");
+		expect(await screen.findByRole("group", { name: "main" })).toBeInTheDocument();
+		expect(screen.getByRole("group", { name: "feat/auth/login" })).toBeInTheDocument();
+		const user = userEvent.setup();
+		await user.click(screen.getByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Remote branches" }));
+		const remotes = await screen.findByRole("region", { name: "Remote branches" });
+		expect(within(remotes).getAllByRole("group")).toHaveLength(1);
 	});
 
 	it("has one primary action and refuses a name that is not type/area/kebab", async () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/code/branches");
-		const create = await screen.findByRole("button", { name: "Branch" });
-		const primary = within(main())
-			.getAllByRole("button")
-			.filter((b) => b.className.includes("bg-accent"));
-		expect(primary).toEqual([create]);
+		const sync = await screen.findByRole("button", { name: /^Sync/ });
+		const primary = () =>
+			within(main())
+				.getAllByRole("button")
+				.filter((b) => b.className.includes("bg-primary"));
+		expect(primary()).toEqual([sync]);
+		await user.click(screen.getByRole("button", { name: "New branch" }));
+		const create = await screen.findByRole("button", { name: "Create the branch" });
+		expect(primary()).toContain(create);
 		// An empty area and subject give `feat//`: the same rule refuses it and shows the types.
 		await user.click(create);
 		expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -90,14 +122,20 @@ describe("Code / Branches", () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/code/branches");
+		await user.click(await screen.findByRole("button", { name: "New branch" }));
 		await user.click(await screen.findByRole("combobox", { name: "Type" }));
 		await user.click(await screen.findByRole("option", { name: "fix" }));
 		await user.type(screen.getByRole("textbox", { name: "Area" }), "auth");
 		await user.type(screen.getByRole("textbox", { name: "Subject" }), "login-timeout");
-		await user.click(screen.getByRole("button", { name: "Branch" }));
+		await user.click(screen.getByRole("button", { name: "Create the branch" }));
 		await waitFor(() => expect(mockState().code?.branch).toBe("fix/auth/login-timeout"));
-		expect(await screen.findByRole("heading", { name: "Local (3)" })).toBeInTheDocument();
-		expect(await selector()).toHaveTextContent("fix/auth/login-timeout");
+		expect(
+			await screen.findByRole("group", { name: "fix/auth/login-timeout" }),
+		).toBeInTheDocument();
+		const card = await openSync(user);
+		expect(card.getByRole("combobox", { name: "Working branch" })).toHaveTextContent(
+			"fix/auth/login-timeout",
+		);
 	});
 
 	it("switches and refuses a switch that would overwrite a change, naming the file", async () => {
@@ -127,11 +165,11 @@ describe("Code / Branches", () => {
 		await waitFor(() => expect(mockState().code?.branches["feat/auth/login"]).toBeUndefined());
 	});
 
-	it("switches from the header selector", async () => {
+	it("switches from the selector of Code / Now", async () => {
 		const user = userEvent.setup();
 		await open();
 		await unwrap(commands.codeDiscard(["src/app.ts"], false));
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		await user.click(await selector());
 		await user.click(await screen.findByRole("option", { name: "feat/auth/login" }));
 		await waitFor(() => expect(mockState().code?.branch).toBe("feat/auth/login"));
@@ -143,6 +181,11 @@ describe("Code / Branches", () => {
 		await unwrap(commands.codeStatus());
 		const code = mockState().code;
 		if (!code) throw new Error("no code state");
+		// A merged branch shows no Merge button: this one has a commit of its own that main lacks.
+		const side = code.branches["feat/auth/login"];
+		side?.log.unshift("s".repeat(40));
+		side?.touches.push("src/app.ts");
+		code.branches.main?.touches.push("src/app.ts");
 		mountApp("/code/branches");
 		const row = await screen.findByRole("group", { name: "feat/auth/login" });
 		// The seed working copy has changes: the merge names the file and stops.
@@ -150,14 +193,11 @@ describe("Code / Branches", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent("uncommitted changes");
 		await unwrap(commands.codeUnstage(["src"]));
 		await unwrap(commands.codeDiscard(["src", "docs"], false));
-		await user.click(within(row).getByRole("button", { name: "Merge feat/auth/login" }));
+		// The remote branch of main holds nothing new: the merge reports it.
+		await user.click(screen.getByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Remote branches" }));
+		await user.click(await screen.findByRole("button", { name: "Merge origin/main" }));
 		expect(await screen.findByText("Already up to date")).toBeInTheDocument();
-
-		// Both branches changed one file.
-		const side = code.branches["feat/auth/login"];
-		side?.log.unshift("s".repeat(40));
-		side?.touches.push("src/app.ts");
-		code.branches.main?.touches.push("src/app.ts");
 		await user.click(within(row).getByRole("button", { name: "Merge feat/auth/login" }));
 		expect(await screen.findByText("Merge in progress, 1 files in conflict")).toBeInTheDocument();
 		const file = await screen.findByRole("region", { name: "src/app.ts" });
@@ -179,22 +219,31 @@ describe("Code / Branches", () => {
 		await unwrap(commands.codeUnstage(["src"]));
 		await unwrap(commands.codeDiscard(["src", "docs"], false));
 		mountApp("/code/branches");
-		const row = await screen.findByRole("group", { name: "feat/auth/login" });
-		await user.click(within(row).getByRole("button", { name: "Rebase onto feat/auth/login" }));
+		await screen.findByRole("group", { name: "feat/auth/login" });
+		const rebaseOnto = async () => {
+			await user.click(screen.getByRole("button", { name: "More" }));
+			await user.click(
+				await screen.findByRole("menuitem", { name: "Rebase onto feat/auth/login" }),
+			);
+		};
+		await rebaseOnto();
 		expect(await screen.findByText("Already up to date")).toBeInTheDocument();
 
 		const side = code.branches["feat/auth/login"];
 		side?.log.unshift("s".repeat(40));
 		side?.touches.push("src/app.ts");
 		code.branches.main?.touches.push("src/app.ts");
-		await user.click(within(row).getByRole("button", { name: "Rebase onto feat/auth/login" }));
+		await rebaseOnto();
 		expect(await screen.findByText("Rebase in progress, 1 files in conflict")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Continue rebase" })).toBeDisabled();
-		expect(screen.queryByRole("button", { name: "Rebase onto feat/auth/login" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "More" }));
+		expect(screen.queryByRole("menuitem", { name: "Rebase onto feat/auth/login" })).toBeNull();
+		await user.keyboard("{Escape}");
 		await user.click(screen.getByRole("button", { name: "Abort rebase" }));
 		await waitFor(() => expect(mockState().code?.rebasing).toBe(false));
 
-		await user.click(await screen.findByRole("button", { name: "Force publish" }));
+		await user.click(screen.getByRole("button", { name: "More" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Force publish" }));
 		await user.click(screen.getByRole("button", { name: "Replace the remote branch" }));
 		await waitFor(() => expect(code.remoteBranches).toContain("origin/main"));
 	}, 20_000);

@@ -1,8 +1,16 @@
 import { commands, unwrap } from "@/lib/ipc";
 import { mountApp } from "@/test/mount";
 
-/** One tab of the whole app on the mock project: the Extensions commands need an active project. */
-export async function mountTab(tab: "agents-rules" | "extensions") {
+const PAGE = {
+	"agents-rules": "/setup/computer?page=rules",
+	extensions: "/setup/project?page=extensions",
+	plugins: "/setup/project?page=plugins",
+};
+
+/** One page of Setup on the mock project: the Extensions commands need an active project. */
+export async function mountTab(tab: keyof typeof PAGE) {
+	// A plugin folder that waits for review is remembered: a test starts with none.
+	localStorage.removeItem("shipyard.plugin-waiting");
 	await unwrap(commands.projectsOpen("/mock/alpha", false));
-	return mountApp(`/settings/${tab}`);
+	return mountApp(PAGE[tab]);
 }

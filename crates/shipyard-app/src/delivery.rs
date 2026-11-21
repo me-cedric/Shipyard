@@ -804,6 +804,8 @@ pub struct ApprovalView {
     /// The ticket of the run, `""` when the run is gone.
     pub key: String,
     pub title: String,
+    /// The workflow of the run: the recipe that "Do not ask again" names (`app-redesign` REQ-013).
+    pub workflow: String,
     /// `transition`, `labels`, `comment`, `push`, `open_pr` or `resolve_threads`.
     pub kind: String,
     /// One line that names the write.
@@ -892,6 +894,7 @@ pub fn approvals(s: &AppState) -> Res<Vec<ApprovalView>> {
                 run: ap.run,
                 key: run.key.clone(),
                 title: run.title.clone(),
+                workflow: run.workflow.clone(),
                 kind: kind.into(),
                 summary,
                 detail,
@@ -918,6 +921,80 @@ pub fn approve(s: &AppState, id: u32) -> Res<Option<String>> {
     let out = s.factory.factory.approve(u64::from(id));
     s.factory.publish();
     out
+}
+
+/// "Approve these effects and do not ask again for this recipe" (`app-redesign` REQ-013,
+/// constitution 5.4). The ids are waiting approvals of one run of the active project. The
+/// workflow and the kinds come from these approvals, never from the caller: only the kind of each
+/// named effect is allowed, for the workflow of that run only. A push with force with lease is
+/// refused: no durable permission covers it. Each check passes before the file changes. Then the
+/// file is written and each named id is approved. Any other write that waits keeps its question:
+/// the permission covers only a later write.
+pub fn allow_recipe(s: &AppState, ids: &[u32]) -> Res<()> {
+    use crate::rights::{Right, require};
+    const WHAT: &str = "approvals_allow_recipe";
+    require(s, Right::ProjectSettings, WHAT, "")?;
+    require(s, Right::RunsApprove, WHAT, "")?;
+    let a = active(s)?.ok_or("no active project")?;
+    let f = &s.factory.factory;
+    if shipyard_engine::ports::Dispatch::kill_switch(f.as_ref()) {
+        return Err("the kill switch is on: no write goes out".into());
+    }
+    let waiting = f.approvals();
+    let picked = ids
+        .iter()
+        .map(|id| {
+            waiting
+                .iter()
+                .find(|w| w.id == u64::from(*id))
+                .ok_or_else(|| format!("no approval {id} waits"))
+        })
+        .collect::<Res<Vec<_>>>()?;
+    let run_id = &picked.first().ok_or("name at least one approval")?.run;
+    if picked.iter().any(|p| &p.run != run_id) {
+        return Err("the approvals belong to more than one run: allow one recipe at a time".into());
+    }
+    let run = f
+        .runs()
+        .into_iter()
+        .find(|r| &r.id == run_id && r.project == a.entry.id)
+        .ok_or("the run is not in the active project")?;
+    let root = Path::new(&a.entry.path);
+    let file = crate::commands::sync::automation_lock();
+    let mut automation =
+        match shipyard_store::automation_file::read_automation(root).map_err(err)? {
+            shipyard_store::automation_file::AutomationRead::Missing => Default::default(),
+            shipyard_store::automation_file::AutomationRead::Valid(x) => x,
+            shipyard_store::automation_file::AutomationRead::Invalid(_) => {
+                return Err("the automation file is not valid: fix it first".into());
+            }
+        };
+    let mut on = std::collections::BTreeSet::new();
+    for p in &picked {
+        require(s, p.write.right(), WHAT, "")?;
+        on.insert(
+            p.write
+                .kind()
+                .ok_or("a push with force with lease always waits: approve it alone")?,
+        );
+    }
+    automation
+        .recipe_writes
+        .entry(run.workflow.clone())
+        .or_default()
+        .extend(on.iter().copied());
+    shipyard_store::automation_file::write_automation(root, &automation).map_err(err)?;
+    drop(file);
+    let grant = f.allow_recipe(run_id, automation, &on);
+    crate::commands::sync::refresh(s);
+    s.sync.changed();
+    grant.map_err(|e| format!("the permission is saved, but: {e}"))?;
+    let left: Vec<u64> = f.approvals().iter().map(|w| w.id).collect();
+    for id in ids.iter().filter(|id| left.contains(&u64::from(**id))) {
+        approve(s, *id).map_err(|e| format!("the permission is saved, but approval {id}: {e}"))?;
+    }
+    s.factory.publish();
+    Ok(())
 }
 
 /// A person rejects the write: it is dropped and the run blocks.
@@ -949,6 +1026,8 @@ pub struct PrRowView {
     pub head_sha: String,
     pub url: String,
     pub updated: String,
+    /// The login or name of the author on the code host (REQ-008 of `code-host-tickets`).
+    pub author: String,
     pub lane: Lane,
     /// The runs that opened this pull request.
     pub runs: Vec<String>,
@@ -987,6 +1066,7 @@ fn view(row: PrRow, runs: Vec<String>) -> PrRowView {
         head_sha: row.head_sha,
         url: row.url,
         updated: row.updated,
+        author: row.author,
         lane,
         runs,
     }
@@ -1073,6 +1153,12 @@ pub async fn approvals_list(app: AppHandle) -> Api<Vec<ApprovalView>> {
 #[specta::specta]
 pub async fn approval_approve(app: AppHandle, id: u32) -> Api<Option<String>> {
     blocking(app, move |s| approve(s, id)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn approvals_allow_recipe(app: AppHandle, ids: Vec<u32>) -> Api<()> {
+    blocking(app, move |s| allow_recipe(s, &ids)).await
 }
 
 #[tauri::command]

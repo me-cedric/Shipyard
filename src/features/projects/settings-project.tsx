@@ -1,7 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Column, Columns, SetupCard, SetupRow } from "@/features/settings/parts";
 import { AutoCommit } from "@/features/settings/project/auto-commit";
 import { AutoReview } from "@/features/settings/project/auto-review";
+import { ButtonLink, Fold } from "@/features/settings/project/fold";
+import { AgentsAlone } from "@/features/sync/automation";
 import { HolidayCountry } from "@/features/work/holiday-country";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -16,37 +19,25 @@ import {
 } from "@/lib/ipc";
 import { PATH_DEFAULTS, projectKeys, useProjectActions } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/ui/atoms/badge";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import {
-	ArrowDownTrayIcon,
-	Cog6ToothIcon,
-	FolderOpenIcon,
-	InformationCircleIcon,
-	LanguageIcon,
-	LinkIcon,
-	PencilIcon,
-	QueueListIcon,
-	Squares2X2Icon,
-	SunIcon,
-	SwatchIcon,
-	UserCircleIcon,
-	UsersIcon,
-} from "@/ui/icons";
+import { FolderOpenIcon } from "@/ui/icons";
+import { ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { PageHeader } from "@/ui/molecules/page-header";
-import { Panel } from "@/ui/molecules/panel";
-import { SectionNav } from "@/ui/molecules/section-nav";
-import { SETTINGS_PAGE, Settings } from "@/ui/templates/settings";
 import { PersonasEditor } from "./personas";
-import { ProjectDetails } from "./project-details";
+
+/** The personas editor, for the page Logs and feedback (writer D mounts it). */
+export { PersonasEditor as PersonasCard } from "./personas";
+
+import { ProjectDetails, ProjectFolder } from "./project-details";
 import { ProjectImport } from "./project-import";
 import { ProjectOverrides } from "./project-overrides";
 import { RepoTools } from "./repo-tools";
 import { ScopePicker } from "./scope-picker";
-import { TicketsConfigEditor } from "./tickets-config";
 
 const NONE = "none";
 const ACCENTS: Accent[] = ["blue", "violet", "green", "orange", "rose"];
@@ -179,240 +170,309 @@ function Form({
 		),
 	});
 
-	// The personal rows sit in the Project panel (Details).
-	const own = (
-		<>
-			<AutoCommit />
-			<AutoReview />
-			<HolidayCountry row />
-		</>
+	const figma = useQuery({
+		queryKey: ["figma", "token"],
+		queryFn: () => unwrap(commands.figmaTokenState()),
+	}).data;
+	const budget = useQuery({
+		queryKey: ["workflow", "feature"],
+		queryFn: () => unwrap(commands.workflowGet("feature")),
+	}).data;
+	const p = t.doctor.project;
+	const limit = /budget_usd:\s*([\d.]+)/.exec(budget?.text ?? "")?.[1];
+	const languageName = (code: string) =>
+		t.creator.lang[code as keyof typeof t.creator.lang] ?? code;
+	const picked = (["docs", "pulls"] as const)
+		.map((k) => draft.languages[k])
+		.filter((v, i, all) => v && all.indexOf(v) === i)
+		.map(languageName);
+	const pathInput = (kind: string) => {
+		const label = (t.projects.path as Record<string, string>)[kind] ?? kind;
+		return (
+			<Input
+				key={kind}
+				label={label}
+				value={draft.paths[kind] ?? ""}
+				onChange={(e) => setDraft({ ...draft, paths: { ...draft.paths, [kind]: e.target.value } })}
+			/>
+		);
+	};
+	const overrideRows = [
+		override(
+			"theme",
+			t.prefs.theme,
+			null,
+			(["light", "dark", "oled", "system", "system-oled"] as Theme[]).map((v) => ({
+				value: v,
+				label: t.theme[v],
+			})),
+		),
+		override(
+			"density",
+			t.prefs.density,
+			null,
+			(["default", "compact"] as Density[]).map((v) => ({
+				value: v,
+				label: v === "compact" ? t.prefs.compact : t.projects.noOverride,
+			})),
+		),
+		override(
+			"contrast",
+			t.prefs.contrast,
+			null,
+			(["default", "high"] as Contrast[]).map((v) => ({
+				value: v,
+				label: v === "high" ? t.prefs.contrast : t.projects.noOverride,
+			})),
+		),
+		override(
+			"accent",
+			t.projects.accent,
+			null,
+			ACCENTS.map((v) => ({ value: v, label: t.projects.accents[v] })),
+		),
+	].map((o) => (
+		<span key={o.id} className="flex flex-wrap items-center justify-between gap-3">
+			<span className="font-semibold">{o.label}</span>
+			{o.control}
+		</span>
+	));
+	const connection = (group: "tracker" | "forge") => {
+		const id = draft.connections[group];
+		return (
+			<ConnectionCard
+				key={group}
+				id={group === "tracker" ? "issue-tracker" : "code-host"}
+				title={p[group === "tracker" ? "tracker" : "host"]}
+				connected={!!id}
+				attention={!id}
+				action={
+					<ButtonLink
+						// With an account, the choice sits behind More on this page; with none, add one first.
+						href={
+							(connections ?? []).some((c) => c.group === group)
+								? `/setup/project#${group === "tracker" ? "more-issue-tracker" : "more-code-host"}`
+								: "/setup/project?page=connections"
+						}
+						primary={!id}
+						className="w-full"
+					>
+						{id ? p.change : p.connect}
+					</ButtonLink>
+				}
+			/>
+		);
+	};
+	// The choice of connection: behind More, not in the connection cards.
+	const connectionPick = (group: "tracker" | "forge") => (
+		<Fold
+			id={group === "tracker" ? "more-issue-tracker" : "more-code-host"}
+			label={p[group === "tracker" ? "tracker" : "host"]}
+			value={
+				connectionItems(group).find((i) => i.value === (draft.connections[group] || NONE))?.label
+			}
+		>
+			<Select
+				label={t.connections.type[group]}
+				value={draft.connections[group] || NONE}
+				onValueChange={(v) =>
+					setDraft({
+						...draft,
+						connections: { ...draft.connections, [group]: v === NONE ? "" : v },
+					})
+				}
+				items={connectionItems(group)}
+			/>
+		</Fold>
 	);
 	return (
-		<div className={SETTINGS_PAGE}>
-			<Settings
-				sections={[
-					...(file
-						? [
-								{
-									id: "paths",
-									title: t.projects.paths,
-									icon: <FolderOpenIcon size={14} />,
-									rows: [
-										{
-											id: "name",
-											icon: <PencilIcon size={14} />,
-											label: t.extras.project.name,
-											control: (
-												<Input
-													label={t.extras.project.name}
-													value={draft.name}
-													onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-													className="w-64"
-												/>
-											),
-										},
-										...Object.keys(draft.paths).map((kind) => ({
-											id: kind,
-											icon: <FolderOpenIcon size={14} />,
-											label: (t.projects.path as Record<string, string>)[kind] ?? kind,
-											control: (
-												<Input
-													label={(t.projects.path as Record<string, string>)[kind] ?? kind}
-													value={draft.paths[kind] ?? ""}
-													onChange={(e) =>
-														setDraft({
-															...draft,
-															paths: { ...draft.paths, [kind]: e.target.value },
-														})
-													}
-													className="w-64"
-												/>
-											),
-										})),
-									],
-								},
-								{
-									id: "connections",
-									title: t.projects.connections,
-									icon: <LinkIcon size={14} />,
-									rows: [
-										...(["tracker", "forge"] as const).map((group) => ({
-											id: group === "tracker" ? "issue-tracker" : "code-host",
-											icon: <LinkIcon size={14} />,
-											label: t.connections.type[group],
-											control: (
-												<Select
-													label={t.connections.type[group]}
-													value={draft.connections[group] || NONE}
-													onValueChange={(v) =>
-														setDraft({
-															...draft,
-															connections: { ...draft.connections, [group]: v === NONE ? "" : v },
-														})
-													}
-													items={connectionItems(group)}
-												/>
-											),
-										})),
-										{
-											id: "tracker-scope",
-											icon: <LinkIcon size={14} />,
-											label: t.projects.trackerScope,
-											control: (
-												<ScopePicker
-													tracker={draft.connections.tracker}
-													value={draft.scope}
-													onChange={(scope) => setDraft({ ...draft, scope })}
-												/>
-											),
-										},
-									],
-								},
-								{
-									id: "languages",
-									title: t.creator.languages,
-									icon: <LanguageIcon size={14} />,
-									rows: (["docs", "pulls"] as const).map((k) => ({
-										id: `${k}-language`,
-										icon: <LanguageIcon size={14} />,
-										label: t.creator[`${k}Lang`],
-										control: (
-											<Select
-												label={t.creator[`${k}Lang`]}
-												value={draft.languages[k] || NONE}
-												onValueChange={(v) =>
-													setDraft({
-														...draft,
-														languages: { ...draft.languages, [k]: v === NONE ? "" : v },
-													})
-												}
-												items={languageItems(draft.languages[k])}
-											/>
-										),
-									})),
-								},
-								{
-									id: "workflow",
-									title: t.projects.workflow,
-									icon: <Cog6ToothIcon size={14} />,
-									rows: [
-										{
-											id: "workflow",
-											icon: <Cog6ToothIcon size={14} />,
-											label: t.projects.workflow,
-											control: (
-												<Input
-													label={t.projects.workflow}
-													value={draft.workflow}
-													onChange={(e) => setDraft({ ...draft, workflow: e.target.value })}
-													className="w-64"
-												/>
-											),
-										},
-									],
-								},
-							]
-						: []),
-					{
-						id: "overrides",
-						title: t.projects.overrides,
-						icon: <SwatchIcon size={14} />,
-						rows: [
-							override(
-								"theme",
-								t.prefs.theme,
-								<SunIcon size={14} />,
-								(["light", "dark", "oled", "system", "system-oled"] as Theme[]).map((v) => ({
-									value: v,
-									label: t.theme[v],
-								})),
-							),
-							override(
-								"density",
-								t.prefs.density,
-								<Cog6ToothIcon size={14} />,
-								(["default", "compact"] as Density[]).map((v) => ({
-									value: v,
-									label: v === "compact" ? t.prefs.compact : t.projects.noOverride,
-								})),
-							),
-							override(
-								"contrast",
-								t.prefs.contrast,
-								<Cog6ToothIcon size={14} />,
-								(["default", "high"] as Contrast[]).map((v) => ({
-									value: v,
-									label: v === "high" ? t.prefs.contrast : t.projects.noOverride,
-								})),
-							),
-							override(
-								"accent",
-								t.projects.accent,
-								<SwatchIcon size={14} />,
-								ACCENTS.map((v) => ({ value: v, label: t.projects.accents[v] })),
-							),
-						],
-					},
-				]}
-			/>
+		<div className="flex flex-col">
 			{file ? (
-				<>
-					<ProjectDetails>{own}</ProjectDetails>
-					<RepoTools />
-					<TicketsConfigEditor />
-					<PersonasEditor />
-				</>
-			) : null}
-			<ProjectOverrides />
-			{file ? null : (
-				<Panel id="section-details" title={t.projects.details.title} flush>
-					{own}
-				</Panel>
-			)}
-			<ProjectImport />
-			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
-			{dirty ? (
-				<div>
-					<RightButton right="project.settings" variant="primary" onClick={save}>
-						{t.projects.save}
-					</RightButton>
+				<div id="connections" className="flex flex-wrap items-start gap-4 px-4 pb-4">
+					{connection("tracker")}
+					{connection("forge")}
+					<ConnectionCard
+						title={p.figma}
+						connected={figma === true}
+						action={
+							<ButtonLink href="/library/screens" className="w-full">
+								{figma ? p.change : p.connect}
+							</ButtonLink>
+						}
+					/>
 				</div>
 			) : null}
+			<Columns>
+				<Column>
+					{file ? (
+						<SetupCard id="project" title={p.card}>
+							<Fold label={t.extras.project.name} value={draft.name || "-"}>
+								<Input
+									label={t.extras.project.name}
+									value={draft.name}
+									onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+								/>
+							</Fold>
+							<ProjectFolder />
+							<Fold id="paths" label={p.specs} value={draft.paths.specs ?? ""} mono>
+								{Object.keys(draft.paths)
+									.filter((k) => k !== "designs")
+									.map(pathInput)}
+							</Fold>
+							<Fold label={p.screens} value={draft.paths.designs ?? ""} mono>
+								{pathInput("designs")}
+							</Fold>
+							<Fold
+								id="languages"
+								label={p.languagesOf}
+								value={picked.join(", ") || t.projects.noConnection}
+							>
+								{(["docs", "pulls"] as const).map((k) => (
+									<Select
+										key={k}
+										label={t.creator[`${k}Lang`]}
+										value={draft.languages[k] || NONE}
+										onValueChange={(v) =>
+											setDraft({
+												...draft,
+												languages: { ...draft.languages, [k]: v === NONE ? "" : v },
+											})
+										}
+										items={languageItems(draft.languages[k])}
+									/>
+								))}
+							</Fold>
+							<Fold id="workflow" label={p.recipe} value={draft.workflow || "-"}>
+								<Input
+									label={t.projects.workflow}
+									value={draft.workflow}
+									onChange={(e) => setDraft({ ...draft, workflow: e.target.value })}
+								/>
+							</Fold>
+						</SetupCard>
+					) : null}
+					{file ? (
+						<SetupCard id="tickets" title={p.tickets}>
+							<SetupRow label={p.ticketsSetup} href="/setup/project?page=tickets" />
+							<SetupRow label={p.fields}>
+								<ButtonLink href="/setup/project?page=tickets#fields">{p.choose}</ButtonLink>
+							</SetupRow>
+							<SetupRow label={p.stages}>
+								<ButtonLink href="/setup/project?page=tickets#stages">{p.map}</ButtonLink>
+							</SetupRow>
+						</SetupCard>
+					) : null}
+					<SetupCard title={t.ui.more}>
+						{file ? (
+							<>
+								<Fold id="more-personas" label={p.personas} value={p.edit}>
+									<PersonasEditor />
+								</Fold>
+								<Fold id="more-profiles" label={p.profiles} value={p.edit}>
+									<ProjectOverrides />
+								</Fold>
+							</>
+						) : null}
+						<Fold id="overrides" label={p.overridesFor} value={p.edit}>
+							{overrideRows}
+						</Fold>
+						<Fold id="more-import" label={p.import} value={p.importAct}>
+							<ProjectImport />
+						</Fold>
+						{file ? (
+							<>
+								{connectionPick("tracker")}
+								{connectionPick("forge")}
+								<Fold id="tracker-scope" label={t.projects.trackerScope} value={draft.scope || "-"}>
+									<ScopePicker
+										tracker={draft.connections.tracker}
+										value={draft.scope}
+										onChange={(scope) => setDraft({ ...draft, scope })}
+									/>
+								</Fold>
+								<Fold id="more-repo" label={t.extras.git.title} value={p.edit}>
+									<RepoTools />
+								</Fold>
+								<ProjectDetails>
+									<HolidayCountry row />
+								</ProjectDetails>
+							</>
+						) : (
+							<Fold id="more-holidays" label={t.costing.plan.country} value={p.edit}>
+								<HolidayCountry row />
+							</Fold>
+						)}
+					</SetupCard>
+					{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
+					{dirty ? (
+						<div>
+							<RightButton right="project.settings" variant="primary" onClick={save}>
+								{t.projects.save}
+							</RightButton>
+						</div>
+					) : null}
+				</Column>
+				<Column>
+					<AgentsAlone />
+					<SetupCard id="automation" title={p.automation}>
+						<AutoCommit />
+						<AutoReview />
+						<SetupRow label={p.limit}>
+							<ButtonLink href="/crew/spend">
+								{limit ? `$${Number(limit).toFixed(2)}` : p.set}
+							</ButtonLink>
+						</SetupRow>
+					</SetupCard>
+					<SetupCard>
+						<SetupRow label={p.health} href="/setup/project?page=health" />
+					</SetupCard>
+				</Column>
+			</Columns>
 		</div>
 	);
 }
 
-/** The sections of the page, in page order. A project without a file has no file sections. */
-function sectionItems(t: ReturnType<typeof useI18n>["t"], hasFile: boolean) {
-	const item = (id: string, label: string, icon: React.ReactNode) => ({
-		id: `section-${id}`,
-		label,
-		icon,
-	});
-	return [
-		...(hasFile
-			? [
-					item("paths", t.projects.paths, <FolderOpenIcon size={14} />),
-					item("connections", t.projects.connections, <LinkIcon size={14} />),
-					item("languages", t.creator.languages, <LanguageIcon size={14} />),
-					item("workflow", t.projects.workflow, <Cog6ToothIcon size={14} />),
-				]
-			: []),
-		item("overrides", t.projects.overrides, <SwatchIcon size={14} />),
-		...(hasFile
-			? [
-					item("details", t.projects.details.title, <InformationCircleIcon size={14} />),
-					item("tickets", t.projects.ticketsConfig.title, <QueueListIcon size={14} />),
-					item("personas", t.projects.personas.title, <UsersIcon size={14} />),
-				]
-			: []),
-		item("screens", t.workspace.profile.screens, <Squares2X2Icon size={14} />),
-		item("profiles", t.workspace.profile.profiles, <UserCircleIcon size={14} />),
-		item("import", t.projects.projectImport.title, <ArrowDownTrayIcon size={14} />),
-	];
+/** One of the connection cards of the top row: the name, the state and one action. A card that must be made has the attention outline. */
+function ConnectionCard({
+	id,
+	title,
+	connected,
+	attention,
+	action,
+	children,
+}: {
+	id?: string;
+	title: string;
+	connected: boolean;
+	attention?: boolean;
+	action: React.ReactNode;
+	children?: React.ReactNode;
+}) {
+	const { t } = useI18n();
+	const p = t.doctor.project;
+	return (
+		<section
+			id={id}
+			aria-label={title}
+			className={cn(
+				"flex min-w-0 flex-[0_1_280px] flex-col items-start gap-3 rounded-lg bg-surface-2 p-6 shadow-2",
+				attention && ATTENTION_FRAME,
+			)}
+		>
+			<h2 className="text-20 font-semibold text-n-12">{title}</h2>
+			<Badge variant={connected ? "success" : attention ? "you" : "neutral"} dot={connected}>
+				{connected ? p.connected : p.notConnected}
+			</Badge>
+			{children}
+			<div className="w-full">{action}</div>
+		</section>
+	);
 }
 
-/** Settings / Project: paths and workflow go to `.shipyard/project.yaml`, overrides to the registry. */
+/**
+ * The project page of Setup / This project: paths and recipe go to `.shipyard/project.yaml`,
+ * overrides to the registry. The scope draws the header and the section list.
+ */
 export function ProjectSettings() {
 	const { t } = useI18n();
 	const { openFolder } = useProjectActions();
@@ -421,13 +481,10 @@ export function ProjectSettings() {
 		queryFn: () => unwrap(commands.projectSettings()),
 	});
 	const data = settings.data;
-	if (data === undefined)
-		return <PageHeader icon={<Cog6ToothIcon size={16} />} title={t.tabs.settings.project} />;
+	if (data === undefined) return null;
 	return (
 		// A block as tall as its content, so the section list stays in view while the page scrolls.
 		<div className="flex flex-col">
-			<PageHeader icon={<Cog6ToothIcon size={16} />} title={t.tabs.settings.project} />
-			{data ? <SectionNav label={t.ui.sections} items={sectionItems(t, !!data.file)} /> : null}
 			{data ? (
 				// A saved file resets the draft.
 				<Form key={JSON.stringify(data.file)} file={data.file} overrides={data.overrides} />

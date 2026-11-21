@@ -14,7 +14,10 @@ fn a_ticketless_run_makes_no_tracker_write_and_targets_its_base_branch() {
     // Every switch off: a tracker write would wait in the approvals.
     let fx = Fx::new(Writes::default(), &[]);
     let run = fx.start("docs:models", &["wf:docs-update", "base:topic"]);
-    assert!(fx.f.approvals().is_empty(), "no tracker write waits: {run}");
+    assert!(
+        fx.f.approvals().is_empty(),
+        "no issue tracker write waits: {run}"
+    );
     fx.git.set_changes(&FILES, &FILES);
     fx.done(&run, "update");
     let pending = fx.f.approvals();

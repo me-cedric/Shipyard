@@ -218,6 +218,33 @@ fn set_budget_writes_clears_and_refuses() {
 }
 
 #[test]
+fn a_feature_limit_sits_by_ticket_key_and_the_choices_round_trip() {
+    // `runs-recipes` REQ-005 and REQ-006.
+    let dir = tempfile::tempdir().unwrap();
+    set_budget(dir.path(), "feature", "SHIP-1", Some(3.0)).unwrap();
+    let text = std::fs::read_to_string(dir.path().join(".shipyard/automation.yaml")).unwrap();
+    assert!(
+        text.contains("feature:") && text.contains("SHIP-1: 3"),
+        "{text}"
+    );
+    assert!(set_budget(dir.path(), "feature", "", Some(3.0)).is_err());
+    assert!(set_budget(dir.path(), "feature", "SHIP-2", Some(0.0)).is_err());
+    let AutomationRead::Valid(mut a) = read_automation(dir.path()).unwrap() else {
+        panic!("expected a valid file");
+    };
+    assert_eq!(a.budgets.for_feature("SHIP-1"), Some(3.0));
+    a.budgets.warn_at = Some(70);
+    a.budgets.at_limit.day = shipyard_core::pickup::Then::GoOn;
+    a.concurrency.per_stage.build = Some(2);
+    write_automation(dir.path(), &a).unwrap();
+    let AutomationRead::Valid(b) = read_automation(dir.path()).unwrap() else {
+        panic!("expected a valid file");
+    };
+    assert_eq!(b, a);
+    set_budget(dir.path(), "feature", "SHIP-1", None).unwrap();
+}
+
+#[test]
 fn a_questions_block_is_read_checked_and_stays_out_at_the_defaults() {
     // `questions-loop` REQ-019: one reminder after 24 h, an escalation after 72 h.
     let a = parse_automation("interval: 60\n").unwrap();
@@ -243,4 +270,23 @@ fn a_questions_block_is_read_checked_and_stays_out_at_the_defaults() {
     ] {
         assert!(parse_automation(bad).is_err(), "{bad}");
     }
+}
+
+#[test]
+fn recipe_switches_are_read_checked_and_stay_out_when_empty() {
+    // `app-redesign` REQ-013: "Do not ask again for this recipe" lives in the file.
+    use shipyard_core::pickup::WriteKind;
+    let a = parse_automation("recipe_writes:\n  feature:\n  - open_pr\n  - transition\n").unwrap();
+    let w: Vec<_> = a.recipe_writes["feature"].iter().copied().collect();
+    assert_eq!(w, [WriteKind::Transition, WriteKind::OpenPr]);
+    assert_eq!(
+        parse_automation(&render_automation(&a).unwrap()).unwrap(),
+        a
+    );
+    let text = render_automation(&Automation::default()).unwrap();
+    assert!(!text.contains("recipe_writes"), "{text}");
+    assert!(parse_automation("recipe_writes:\n  feature:\n  - deploy\n").is_err());
+    // A recipe names kinds, not the switches of the project.
+    assert!(parse_automation("recipe_writes:\n  feature:\n    pull_request: true\n").is_err());
+    assert!(parse_automation("recipe_writes:\n  ' ':\n  - push\n").is_err());
 }

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CodeEditor } from "../molecules/code-editor";
-import { SideToggles, useSides } from "../molecules/pane-toggle";
+import { SideSwitch, useSides } from "../molecules/pane-toggle";
 import { markdown } from "../molecules/syntax";
 import { EditorFrame, type SaveState } from "./editor-frame";
 import { MarkdownView } from "./markdown-view";
@@ -9,8 +9,9 @@ import { MarkdownView } from "./markdown-view";
 type Labels = Parameters<typeof EditorFrame>[0]["labels"] & { text: string; preview: string };
 
 /**
- * The one Markdown editor of Handbook and Documents: the text on the left, the preview on the
- * right. A ref in the text shows as a RefChip in the preview (knowledge REQ-011).
+ * The one Markdown editor of Handbook and Documents. It opens on the page to read; one switch
+ * shows the text, or the text on the left and the page on the right (spec:app-redesign#REQ-021).
+ * A ref in the text shows as a RefChip in the preview (knowledge REQ-011).
  */
 export function MarkdownEditor({
 	title,
@@ -27,6 +28,7 @@ export function MarkdownEditor({
 	labels,
 	saveLabel,
 	reason,
+	edit,
 }: {
 	title: string;
 	refId: string;
@@ -43,15 +45,18 @@ export function MarkdownEditor({
 	saveLabel: string;
 	/** Why the save is off: a missing right. */
 	reason?: string;
+	/** The person asked to edit: the text shows. */
+	edit?: boolean;
 }) {
-	const { sides, toggle } = useSides(`markdown:${refId}`);
+	// A save that waits for a choice, or an error, needs the text too.
+	const { sides, choose } = useSides(`markdown:${refId}`, edit || save === "conflict" || !!error);
 	return (
 		<EditorFrame
 			title={title}
 			refId={refId}
 			actions={
 				<>
-					<SideToggles sides={sides} toggle={toggle} />
+					<SideSwitch sides={sides} choose={choose} read textOnly={edit} />
 					{actions}
 				</>
 			}

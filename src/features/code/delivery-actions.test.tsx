@@ -6,6 +6,14 @@ import { mountApp } from "@/test/mount";
 import { renderApp } from "@/ui/test-utils";
 import { OpenInEditor } from "./open-in-editor";
 
+// The write box, the agent review and the assistant actions are in Chat.
+const toChat = async (user: ReturnType<typeof userEvent.setup>) =>
+	user.click(
+		within(await screen.findByRole("navigation", { name: "Sections" })).getByRole("button", {
+			name: "Chat",
+		}),
+	);
+
 const demo = () => unwrap(commands.projectsOpen("/mock/demo", false));
 
 describe("Code: origin and publish", () => {
@@ -28,16 +36,14 @@ describe("Code: origin and publish", () => {
 			"acme/app",
 		);
 		await user.click(screen.getByRole("button", { name: "Publish to the code host" }));
-		expect(await screen.findByText("https://github.com/acme/app.git")).toBeInTheDocument();
+		expect(await screen.findByDisplayValue("https://github.com/acme/app.git")).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "Open acme/app" })).toBeInTheDocument();
 		expect(mockState().deliveryActions.origin?.connection).toBe("github");
 		// A project with an origin changes it. An address with a password is refused.
-		await user.click(screen.getByRole("button", { name: "Change remote" }));
-		await user.type(
-			screen.getByRole("textbox", { name: "Remote address" }),
-			"https://me:tok@github.com/acme/other.git",
-		);
-		await user.click(screen.getByRole("button", { name: "Save remote" }));
+		const address = screen.getByRole("textbox", { name: "Code host address" });
+		await user.clear(address);
+		await user.type(address, "https://me:tok@github.com/acme/other.git");
+		await user.click(screen.getByRole("button", { name: "Save" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("Use an https address");
 		expect(mockState().deliveryActions.origin?.url).toBe("https://github.com/acme/app.git");
 	}, 20_000);
@@ -55,8 +61,9 @@ describe("Code: close, send back and archive", () => {
 	it("closes an open pull request with a reason", async () => {
 		const user = userEvent.setup();
 		await demo();
-		mountApp("/code/pull-requests");
+		mountApp("/code/now");
 		await user.click(await screen.findByRole("link", { name: /refuse an empty token/ }));
+		await toChat(user);
 		await user.type(await screen.findByRole("textbox", { name: "Comment" }), "Wrong approach");
 		await user.click(screen.getByRole("button", { name: "Close pull request" }));
 		await user.click(await screen.findByRole("button", { name: "Close #142?" }));
@@ -69,8 +76,9 @@ describe("Code: close, send back and archive", () => {
 	it("sends a pull request of an agent run back with a text", async () => {
 		const user = userEvent.setup();
 		await demo();
-		mountApp("/code/pull-requests");
+		mountApp("/code/now");
 		await user.click(await screen.findByRole("link", { name: /show the pull requests/ }));
+		await toChat(user);
 		const back = await screen.findByRole("button", { name: "Send back to the agent" });
 		await user.click(back);
 		expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -90,8 +98,16 @@ describe("Code: close, send back and archive", () => {
 	it("archives a spec change in the pull request", async () => {
 		const user = userEvent.setup();
 		await demo();
-		mountApp("/code/pull-requests");
+		mountApp("/code/now");
 		await user.click(await screen.findByRole("link", { name: /health route/ }));
+		// The archive is on the page of the changed files.
+		await user.click(await screen.findByRole("link", { name: /commits?, all files/ }));
+		await screen.findByText(/^0 of \d+ seen$/);
+		await user.click(screen.getByRole("button", { name: "More" }));
+		await user.click(
+			await screen.findByRole("menuitemcheckbox", { name: "Archive in this pull request" }),
+		);
+		await user.keyboard("{Escape}");
 		await user.click(await screen.findByRole("button", { name: "Archive in this pull request" }));
 		expect(await screen.findByText(/^Archived in /)).toBeInTheDocument();
 	}, 20_000);

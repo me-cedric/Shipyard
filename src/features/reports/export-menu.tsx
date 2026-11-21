@@ -1,10 +1,14 @@
 import { Menu } from "@base-ui/react/menu";
-import { type ReactNode, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, saveAs, unwrap } from "@/lib/ipc";
+import { commands, type Right, saveAs, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
-import { ArrowUpTrayIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+
+/** The file of a text report: Word, Markdown or PDF. The extension of the path picks it. */
+export type TextOut = "docx" | "md" | "pdf";
 
 export type ExportItem = {
 	id: string;
@@ -15,8 +19,14 @@ export type ExportItem = {
 		ext: "xlsx" | "docx" | "svg" | "png";
 		job: (path: string) => Promise<unknown>;
 	};
-	/** A form in a dialog. `done` shows a note. */
-	form?: (done: (note: string) => void, close: () => void) => ReactNode;
+	/** The report asks first: its form is the page `/library/reports/<id>`. */
+	form?: boolean;
+	/** One click with the default values, with no save dialog: the paths of the files it wrote. */
+	quick?: (out: TextOut) => Promise<string[]>;
+	/** A job that is not a report of the log "Written for you". */
+	quiet?: boolean;
+	/** The right that the button of the Reports page needs. The backend refuses a write anyway. */
+	right?: Right;
 };
 
 /** "Show in folder" and "Open" for a file that an export wrote. A refusal goes to `onError`. */
@@ -34,10 +44,10 @@ export function SavedActions({
 	};
 	return (
 		<>
-			<Button variant="ghost" onClick={() => place((p) => unwrap(commands.revealPath(p)))}>
+			<Button onClick={() => place((p) => unwrap(commands.revealPath(p)))}>
 				{t.ui.item.reveal}
 			</Button>
-			<Button variant="ghost" onClick={() => place((p) => unwrap(commands.openDefault(p)))}>
+			<Button onClick={() => place((p) => unwrap(commands.openDefault(p)))}>
 				{t.context.open}
 			</Button>
 		</>
@@ -45,40 +55,82 @@ export function SavedActions({
 }
 
 /**
- * One Export menu. A choice opens the save dialog, or a form when the export needs input. Each write
- * needs this click. A failure shows with its sentence and its action (`ErrorNotice`).
+ * The run of one export: the save dialog, or the page of its form when the export needs input.
+ * Each write needs one click. `status` shows the written file with its two buttons, and a failure
+ * with its sentence and its action (`ErrorNotice`).
  */
-export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?: boolean }) {
+export function useExportRun() {
 	const { t } = useI18n();
 	const [note, setNote] = useState<string | null>(null);
-	// The path of the last export, for "Show in folder" and "Open". A form note has none.
+	// The path of the last export, for "Show in folder" and "Open".
 	const [saved, setSaved] = useState<string | null>(null);
 	const [failure, setFailure] = useState<unknown>(null);
-	const [form, setForm] = useState<ExportItem | null>(null);
-	const pick = async (x: ExportItem) => {
+	const navigate = useNavigate();
+	const qc = useQueryClient();
+	// The log of the written reports: the Reports page shows the person and the day.
+	const log = (x: ExportItem) => {
+		if (x.quiet) return;
+		unwrap(commands.reportsWrittenAdd(x.id, true))
+			.then(() => qc.invalidateQueries({ queryKey: ["reports", "written"] }))
+			.catch(() => {});
+	};
+	/** `ext` is the file of a text report, when the person picked another one than the own one. */
+	const pick = async (x: ExportItem, ext?: TextOut) => {
 		setNote(null);
 		setSaved(null);
 		setFailure(null);
-		if (x.form) return setForm(x);
-		if (!x.save) return;
+		if (!x.save)
+			return x.form
+				? void navigate({ to: "/library/reports/$form", params: { form: x.id } })
+				: undefined;
 		try {
-			const path = await saveAs(x.save.name, x.save.ext);
+			const path = await saveAs(x.save.name, ext ?? x.save.ext);
 			if (!path) return;
 			await x.save.job(path);
 			setNote(format(t.reports.exported, { path }));
 			setSaved(path);
+			log(x);
 		} catch (e) {
 			setFailure(e);
 		}
 	};
-	// A failure of these two buttons shows like a failed export.
+	/** A one-click export with default values: it shows the files that it wrote. */
+	const quick = async (x: ExportItem, out: TextOut) => {
+		setNote(null);
+		setSaved(null);
+		setFailure(null);
+		try {
+			const paths = (await x.quick?.(out)) ?? [];
+			setNote(format(t.reports.exported, { path: paths.join(", ") }));
+			setSaved(paths[0] ?? null);
+			log(x);
+		} catch (e) {
+			setFailure(e);
+		}
+	};
+	// A failure of the two buttons of a saved file shows like a failed export.
+	const status = (
+		<>
+			{note ? (
+				<span role="status" className="max-w-80 truncate font-mono text-12 text-n-11">
+					{note}
+				</span>
+			) : null}
+			{saved ? <SavedActions path={saved} onError={setFailure} /> : null}
+			<ErrorNotice error={failure} />
+		</>
+	);
+	return { pick, quick, status };
+}
+
+/** One Export menu. A choice starts the export (`useExportRun`). */
+export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?: boolean }) {
+	const { t } = useI18n();
+	const { pick, status } = useExportRun();
 	return (
 		<span className="inline-flex flex-wrap items-center gap-2">
 			<Menu.Root>
-				<Menu.Trigger render={<Button disabled={disabled} />}>
-					<ArrowUpTrayIcon size={14} />
-					{t.reports.export}
-				</Menu.Trigger>
+				<Menu.Trigger render={<Button disabled={disabled} />}>{t.reports.export}</Menu.Trigger>
 				<Menu.Portal>
 					<Menu.Positioner align="end" sideOffset={4} className="z-50">
 						<Menu.Popup className="min-w-40 origin-(--transform-origin) rounded-lg border border-n-6 bg-surface-3 p-1 text-ui shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
@@ -95,14 +147,7 @@ export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?
 					</Menu.Positioner>
 				</Menu.Portal>
 			</Menu.Root>
-			{note ? (
-				<span role="status" className="max-w-80 truncate font-mono text-12 text-n-11">
-					{note}
-				</span>
-			) : null}
-			{saved ? <SavedActions path={saved} onError={setFailure} /> : null}
-			<ErrorNotice error={failure} />
-			{form?.form?.(setNote, () => setForm(null))}
+			{status}
 		</span>
 	);
 }

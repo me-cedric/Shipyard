@@ -104,6 +104,8 @@ const OBJECTIVES: [(&str, &[&str]); 7] = [
             "skill:design-taste-skills",
             "skill:ui-conformance",
             "upstream:taste",
+            "upstream:interface-polish",
+            "upstream:vercel-web",
             "upstream:playwright-cli",
             "mcp:playwright",
         ],

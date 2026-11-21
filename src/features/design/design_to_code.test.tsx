@@ -12,13 +12,14 @@ describe("design to code (REQ-020): the next step of a design item", () => {
 		await mountDesign(<Decisions />);
 		await user.click(
 			within(await screen.findByRole("list", { name: "Decisions" })).getByRole("button", {
-				name: /0004/,
+				name: /Polling sync/,
 			}),
 		);
 		const panel = within(await screen.findByRole("complementary", { name: "Inspector" }));
 		const before = plans().length;
 		// One way only: the inspector has no second create action.
 		expect(panel.queryByRole("button", { name: "Create work item" })).toBeNull();
+		await user.click(await panel.findByRole("button", { name: "More" }));
 		await user.click(await panel.findByRole("button", { name: "Write plan" }));
 		await waitFor(() => expect(plans()).toHaveLength(before + 1));
 		expect(plans().some((p) => p.includes("polling-sync"))).toBe(true);
@@ -35,6 +36,7 @@ describe("design to code (REQ-020): the next step of a design item", () => {
 			}),
 		);
 		const panel = within(await screen.findByRole("complementary", { name: "Inspector" }));
+		await user.click(await panel.findByRole("button", { name: "More" }));
 		expect(await panel.findByRole("button", { name: "Write plan" })).toBeInTheDocument();
 	});
 });

@@ -3,9 +3,9 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, type McpServer, type ToolFilter, unwrap } from "@/lib/ipc";
 import { Checkbox } from "@/ui/atoms/checkbox";
-import { Select } from "@/ui/atoms/select";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { SettingsRow } from "@/ui/molecules/settings-row";
+import { ValueSelect } from "../me/value-select";
+import { SetupRow } from "../parts";
 import { mcpKeys } from "./keys";
 
 /**
@@ -59,8 +59,8 @@ export function McpAllow({
 	const shown = [...new Set([...names, ...chosen])];
 	return (
 		<>
-			<SettingsRow label={o.allowList}>
-				<Select
+			<SetupRow label={o.allowList}>
+				<ValueSelect
 					label={`${o.allowList}: ${s.label}`}
 					value={f.kind === "all" ? "all" : f.kind === "readOnly" ? "read" : "custom"}
 					onValueChange={(v) => void pick(v)}
@@ -70,9 +70,9 @@ export function McpAllow({
 						{ value: "custom", label: o.allowCustom },
 					]}
 				/>
-			</SettingsRow>
+			</SetupRow>
 			{f.kind === "only" ? (
-				<SettingsRow label={o.tools}>
+				<SetupRow label={o.tools}>
 					<span className="flex max-w-lg flex-wrap gap-x-3">
 						{shown.map((tool) => (
 							<Checkbox
@@ -88,9 +88,9 @@ export function McpAllow({
 							/>
 						))}
 					</span>
-				</SettingsRow>
+				</SetupRow>
 			) : null}
-			<ErrorNotice error={error ?? listed.error} className="px-3 pb-2" />
+			<ErrorNotice error={error ?? listed.error} className="px-6 pb-2" />
 		</>
 	);
 }

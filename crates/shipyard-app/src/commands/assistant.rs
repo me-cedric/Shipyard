@@ -5,11 +5,14 @@ use shipyard_core::assistant::{Context, Quote, ThreadSettings, ThreadSummary};
 use shipyard_core::work::DiffRow;
 use shipyard_git::code::FileDiff;
 use shipyard_store::assistant_defaults::AssistantDefaults;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 use super::{Api, blocking};
 use crate::assistant as a;
-use a::{FactorySend, RunnerOptions, ThreadView, TurnResult};
+use a::{FactorySend, LiveTurn, RunnerOptions, ThreadView, TurnResult};
+
+/// The thread list changed outside a call of the UI: the short name of a thread came.
+pub const THREADS_EVENT: &str = "assistant-threads";
 
 #[tauri::command]
 #[specta::specta]
@@ -50,6 +53,28 @@ pub async fn assistant_worktree_discard(
     force: bool,
 ) -> Api<ThreadView> {
     blocking(app, move |s| a::worktree_discard(s, &thread, force)).await
+}
+
+/// Keep the change of one file, or of all with no path. Returns the files that are left to review.
+#[tauri::command]
+#[specta::specta]
+pub async fn assistant_file_keep(
+    app: AppHandle,
+    thread: String,
+    path: Option<String>,
+) -> Api<Vec<FileDiff>> {
+    blocking(app, move |s| a::worktree_keep(s, &thread, path.as_deref())).await
+}
+
+/// Revert one file of the thread. Returns the files that are left to review.
+#[tauri::command]
+#[specta::specta]
+pub async fn assistant_file_undo(
+    app: AppHandle,
+    thread: String,
+    path: String,
+) -> Api<Vec<FileDiff>> {
+    blocking(app, move |s| a::worktree_undo_file(s, &thread, &path)).await
 }
 
 #[tauri::command]
@@ -103,7 +128,21 @@ pub async fn assistant_send(
     quotes: Vec<Quote>,
     context: Context,
 ) -> Api<TurnResult> {
-    blocking(app, move |s| a::send(s, &thread, text, quotes, context)).await
+    let id = thread.clone();
+    let done = blocking(app.clone(), move |s| {
+        a::send(s, &thread, text, quotes, context)
+    })
+    .await?;
+    // After the first answer the AI tool gives the thread a short name, in the background.
+    if a::needs_name(&done.thread.thread) {
+        tauri::async_runtime::spawn(async move {
+            let named = blocking(app.clone(), move |s| a::auto_name(s, &id, None)).await;
+            if let Ok(Some(_)) = named {
+                let _ = app.emit(THREADS_EVENT, ());
+            }
+        });
+    }
+    Ok(done)
 }
 
 /// Stops the running turn of a thread. The turn ends with the reply that came so far.
@@ -114,11 +153,11 @@ pub async fn assistant_stop(thread: String) -> Api<()> {
     Ok(())
 }
 
-/// The tool calls of the running turn of a thread so far. Empty when no turn runs.
+/// The tool calls and the tokens of the running turn of a thread so far. Empty when no turn runs.
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_live(thread: String) -> Api<Vec<shipyard_core::assistant::TraceStep>> {
-    Ok(a::live(&thread))
+pub async fn assistant_live(thread: String) -> Api<LiveTurn> {
+    Ok(a::live_turn(&thread))
 }
 
 /// Grants the tool that the last message waits for and resumes the session.

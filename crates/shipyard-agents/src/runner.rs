@@ -13,7 +13,7 @@
 //! - A line that is not JSON is dropped. A field that moved is skipped: a missing field costs a
 //!   detail of an event, never the run (the parsers read by name).
 //! - The caller owns the limits. [`Run::recv_timeout`] returns [`Recv::Idle`] when the stall
-//!   timeout passes, [`Event::Turn`] counts turns, [`Run::elapsed`] gives the wall clock, and
+//!   timeout passes, [`Event::Turn`] counts turns (no turn limit), [`Run::elapsed`] gives the wall clock, and
 //!   [`CancelHandle`] is the kill switch. Nothing here stops a run by itself.
 //!
 //! It covers the arguments, the stream parsing, the process group kill and the per-CLI MCP
@@ -71,6 +71,8 @@ fn is_sign_in_error(text: &str) -> bool {
         "unauthenticated",
         "authentication failed",
         "authentication required",
+        "failed to authenticate",
+        "auth login",
         "invalid api key",
         "invalid x-api-key",
     ]
@@ -211,7 +213,7 @@ pub enum Event {
     Session {
         id: String,
     },
-    /// The agent began a turn (one model call). Count these for the max turns limit.
+    /// The agent began a turn (one model call). No limit applies to the count.
     Turn,
     Text {
         text: String,

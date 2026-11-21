@@ -6,29 +6,41 @@ import {
 	lazyRouteComponent,
 	Navigate,
 	Outlet,
+	type ParsedLocation,
 	type RouterHistory,
 	redirect,
 	useNavigate,
 	useRouterState,
 } from "@tanstack/react-router";
 import { motion } from "motion/react";
+import { type ReactNode, useContext, useLayoutEffect } from "react";
+import { SECTIONS, type Section } from "@/features/flow/sections";
+import { setupAddress } from "@/features/settings/setup-address";
 import {
 	AppShell,
 	firstPath,
+	firstSection,
+	hiddenSection,
 	hiddenTab,
+	OLD_SLUGS,
+	PLACES,
+	type PlaceId,
+	type PlacePath,
+	placePath,
+	SectionBar,
+	type SectionSpace,
 	SPACES,
 	type SpaceId,
-	TabsBar,
+	sectionPath,
+	sectionView,
 	tabIcon,
 	tabLabel,
-	tabPath,
-	visibleTabs,
 } from "@/features/shell";
 import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { useRights } from "@/lib/rights";
 import { EmptyState } from "@/ui/molecules/empty-state";
-import { PageHeader } from "@/ui/molecules/page-header";
+import { PageHeader, PageSwitchContext } from "@/ui/molecules/page-header";
 import { SPRING, useReducedMotionPref } from "@/ui/motion";
 import { NotFound } from "./not-found";
 import { refActions } from "./ref-actions";
@@ -46,15 +58,12 @@ const indexRoute = createRoute({
 	component: function RoleHome() {
 		const { teamRole } = usePrefs();
 		const { level } = useRights();
-		const [, space, tab] = firstPath(teamRole).split("/") as [string, SpaceId, string];
-		return (
-			<Navigate to={hiddenTab(level, space, tab) ? "/home/today" : firstPath(teamRole)} replace />
-		);
+		return <Navigate to={firstPath(teamRole, level)} replace />;
 	},
 });
 
 /** A tab of an area at `none`: a direct route shows this, not the view. */
-function NoAccess({ space, tab }: { space: SpaceId; tab: string }) {
+function NoAccess({ space, tab }: { space: SectionSpace; tab: string }) {
 	const { t } = useI18n();
 	const navigate = useNavigate();
 	const Icon = tabIcon(space, tab);
@@ -65,49 +74,88 @@ function NoAccess({ space, tab }: { space: SpaceId; tab: string }) {
 				title={t.rights.noAccess}
 				action={{
 					label: t.tabs.home.today,
-					onClick: () => void navigate({ to: "/home/today" }),
+					onClick: () => void navigate({ to: "/today/today" }),
 				}}
 			/>
 		</>
 	);
 }
 
-function SpaceLayout({ space }: { space: SpaceId }) {
+/** Claims the switch of the place and draws none: no row above the page, and none in a page header. */
+function NoSwitch({ children }: { children: ReactNode }) {
+	const claim = useContext(PageSwitchContext)?.claim;
+	useLayoutEffect(() => claim?.(), [claim]);
+	return <PageSwitchContext.Provider value={null}>{children}</PageSwitchContext.Provider>;
+}
+
+function PlaceLayout({ place }: { place: PlaceId }) {
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	const still = useReducedMotionPref();
 	const { level } = useRights();
-	// The space index has no tab: it redirects to the first visible tab.
-	const tab = path.split("/")[2];
-	const hidden = !!tab && hiddenTab(level, space, tab);
+	// The place index has no section: it redirects to the first visible section.
+	// A run has its own address under Flow, with the view Flow selected (ux-declutter REQ-027).
+	const part = path.split("/")[2];
+	// A pull request has its address under Code, with Now selected (`spec:app-redesign#REQ-022`).
+	// The files to commit are a page of Code too (`/code/changes`).
+	const slug =
+		place === "flow" && (part === "runs" || part === "feature")
+			? "flow"
+			: place === "code" && (part === "pull-requests" || part === "changes")
+				? "now"
+				: part;
+	// New feature makes a ticket or a spec change: it shows with the List.
+	const gate = place === "flow" && part === "new" ? "list" : slug;
+	// Impacts left the switch of Flow: its page keeps the gate of the code area.
+	const view: [SectionSpace, string] | undefined =
+		place === "flow" && slug === "impacts"
+			? ["code", "impacts"]
+			: gate
+				? sectionView(place, gate)
+				: undefined;
+	// A detail page shows no switch of the place (`spec:app-redesign#REQ-001`): a feature with its
+	// sub-pages, New feature, the impacts and the pull request pages.
+	const detail =
+		(place === "flow" && ["runs", "feature", "new", "impacts"].includes(part ?? "")) ||
+		// The list of pull requests keeps the Code switch in its title row (screen 53).
+		(place === "code" && part === "pull-requests" && path.split("/").length > 3);
 	return (
 		<div className="flex h-full flex-col">
-			<TabsBar space={space} />
-			{/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable) */}
-			<div tabIndex={0} className="flex min-h-0 flex-1 flex-col overflow-auto">
-				{/* A new tab rises into place. Only the position moves, so the text never hides. */}
-				<motion.div
-					key={path}
-					initial={still ? false : { y: 8 }}
-					animate={{ y: 0 }}
-					transition={SPRING.gentle}
-					className="flex min-h-0 flex-1 flex-col"
-				>
-					{hidden && tab ? <NoAccess space={space} tab={tab} /> : <Outlet />}
-				</motion.div>
-			</div>
+			<SectionBar place={place} slug={slug}>
+				{/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable) */}
+				<div tabIndex={0} className="flex min-h-0 flex-1 flex-col overflow-auto">
+					{/* A new section rises into place. Only the position moves, so the text never hides. */}
+					<motion.div
+						key={path}
+						initial={still ? false : { y: 8 }}
+						animate={{ y: 0 }}
+						transition={SPRING.gentle}
+						className="flex min-h-0 flex-1 flex-col"
+					>
+						{/* The manual is help: it shows for every role. */}
+						{view && view.join("/") !== "knowledge/manual" && hiddenSection(level, ...view) ? (
+							<NoAccess space={view[0]} tab={view[1]} />
+						) : detail ? (
+							<NoSwitch>
+								<Outlet />
+							</NoSwitch>
+						) : (
+							<Outlet />
+						)}
+					</motion.div>
+				</div>
+			</SectionBar>
 		</div>
 	);
 }
 
-/** The space opens on its first tab: the tab of the role, else the first tab. */
-function FirstTab({ space }: { space: SpaceId }) {
+/** The place opens on its first section: the first page of the role, else the first visible one. */
+function FirstSection({ place }: { place: PlaceId }) {
 	const { teamRole } = usePrefs();
 	const { level } = useRights();
 	const path = useRouterState({ select: (s) => s.location.pathname });
-	const first = visibleTabs(space, teamRole, level)[0] ?? SPACES[space][0];
-	// The layout keeps this view while the next location loads: only the space index redirects.
-	return path.replace(/\/$/, "") === `/${space}` ? (
-		<Navigate to={tabPath(space, first)} replace />
+	// The layout keeps this view while the next location loads: only the place index redirects.
+	return path.replace(/\/$/, "") === `/${place}` ? (
+		<Navigate to={sectionPath(place, firstSection(place, teamRole, level))} replace />
 	) : null;
 }
 
@@ -120,77 +168,441 @@ const runsSearch = (
 	...(s.view === "history" ? { view: "history" as const } : {}),
 });
 
+/** The bar of Flow: the search and the filter of the runs of before, with no view (History is its own view). */
+const flowSearch = (s: Record<string, unknown>): { q?: string; filter?: "needs" | "mine" } => {
+	const { view: _, ...rest } = runsSearch(s);
+	return rest;
+};
+
+const crewSearch = (s: Record<string, unknown>): { view?: "live"; member?: string } => ({
+	...(s.view === "live" ? { view: "live" as const } : {}),
+	// The open person: a handle, or an empty text for a new member.
+	...(s.member != null ? { member: String(s.member) } : {}),
+});
+
+/** Optional text keys of the address, such as the recipe of Recipes or the sheet of Plan. A sub-page of a section is the key `page`. */
+const textSearch =
+	<K extends string>(...keys: K[]) =>
+	(s: Record<string, unknown>): { [P in K]?: string } =>
+		Object.fromEntries(
+			keys.filter((k) => s[k] != null && s[k] !== "").map((k) => [k, String(s[k])]),
+		) as { [P in K]?: string };
+
+const kindSearch = (s: Record<string, unknown>): { kind?: "idea" } =>
+	s.kind === "idea" ? { kind: "idea" } : {};
+
 const pullsSearch = (s: Record<string, unknown>): { q?: string; filter?: "needs" } => ({
 	...(s.q != null && s.q !== "" ? { q: String(s.q) } : {}),
 	...(s.filter === "needs" ? { filter: "needs" as const } : {}),
 });
 
-/** A space route, its index redirect to the first tab, and one child route for each tab. */
-function spaceRoute<S extends SpaceId>(space: S) {
+const sectionSearch = (s: Record<string, unknown>): { section?: Section } =>
+	SECTIONS.includes(s.section as Section) ? { section: s.section as Section } : {};
+
+const runSearch = (
+	s: Record<string, unknown>,
+): { unit?: string; tab?: "changes" | "workflow"; section?: Section } => ({
+	...sectionSearch(s),
+	...(typeof s.unit === "string" && s.unit ? { unit: s.unit } : {}),
+	// Activity is the default tab: it has no value in the address.
+	...(s.tab === "changes" || s.tab === "workflow" ? { tab: s.tab } : {}),
+});
+
+const featureSearch = (
+	s: Record<string, unknown>,
+): { section?: Section; unit?: string; ticket?: true } => ({
+	...sectionSearch(s),
+	// The ticket page (picture 026), also for a ticket that has a spec change or a pull request.
+	...(s.ticket === true || s.ticket === "true" ? { ticket: true as const } : {}),
+	...(typeof s.unit === "string" && s.unit ? { unit: s.unit } : {}),
+});
+
+/** An address of before adr:0023 opens the new place of its page, with its search and its hash (adr:0023 point 9). */
+const toPlace = ({ location }: { location: ParsedLocation }) => {
+	// A Settings tab of before wave 6 opens its scope of Setup, on the page that holds its anchor.
+	const tab = /^\/(?:settings|setup)\/([\w-]+)\/?$/.exec(location.pathname)?.[1];
+	const scope = tab && !("page" in location.search) ? setupAddress(tab, location.hash) : undefined;
+	if (scope) {
+		const [address = "", anchor] = scope.split("#");
+		const [path, page] = address.split("?");
+		const search = [page, location.searchStr.slice(1)].filter(Boolean).join("&");
+		const href = `${path}${search ? `?${search}` : ""}${anchor ? `#${anchor}` : ""}`;
+		const here = `${location.pathname}${location.searchStr}${location.hash ? `#${location.hash}` : ""}`;
+		if (href !== here) throw redirect({ href, replace: true });
+		return;
+	}
+	let to = placePath(location.pathname);
+	if (!to || to === location.pathname) return;
+	let search = location.searchStr;
+	// The run history of before is the view Done: its `view` choice leaves the address.
+	if (to === "/flow/flow" && (location.search as { view?: unknown }).view === "history") {
+		to = "/flow/done";
+		search = search.replace(/([?&])view=[^&]*&?/, "$1").replace(/[?&]$/, "");
+	}
+	// The agents map of before is the live view of Crew.
+	if (location.pathname.replace(/\/$/, "").endsWith("/agents-map"))
+		search = search ? `${search}&view=live` : "?view=live";
+	const hash = location.hash ? `#${location.hash}` : "";
+	throw redirect({ href: `${to}${search}${hash}`, replace: true });
+};
+
+/**
+ * The views of Flow, each a page of the flow feature. The old tab views are its parts. The home of
+ * Library and Reports are pages of their own too.
+ */
+const FLOW_VIEW = {
+	"library/home": () =>
+		lazyRouteComponent(() => import("@/features/library/library-home"), "LibraryHome"),
+	"library/reports": () =>
+		lazyRouteComponent(() => import("@/features/reports/reports-page"), "Reports"),
+	"flow/flow": () => lazyRouteComponent(() => import("@/features/flow/flow-page"), "FlowBoard"),
+	"flow/list": () => lazyRouteComponent(() => import("@/features/flow/flow-page"), "FlowList"),
+	"flow/done": () => lazyRouteComponent(() => import("@/features/flow/flow-page"), "FlowDone"),
+	"flow/health": () => lazyRouteComponent(() => import("@/features/code/quality"), "Quality"),
+} as const;
+
+type TabOf<V> = V extends `${string}/${infer T}` ? T : never;
+
+/** A place route, its index redirect to the first section, and one child route for each section. */
+function placeRoute<P extends PlaceId>(place: P) {
 	const route = createRoute({
 		getParentRoute: () => rootRoute,
-		path: space,
-		component: () => <SpaceLayout space={space} />,
+		path: place,
+		component: () => <PlaceLayout place={place} />,
 	});
 	const index = createRoute({
 		getParentRoute: () => route,
 		path: "/",
-		component: () => <FirstTab space={space} />,
+		component: () => <FirstSection place={place} />,
 	});
-	const names: readonly (typeof SPACES)[S][number][] = SPACES[space];
-	const tabs = names.map((tab) =>
-		createRoute({
+	const views: readonly (typeof PLACES)[P][number][] = PLACES[place];
+	const sections = views.map((view) => {
+		const [space, tab] = view.split("/") as [SectionSpace, TabOf<typeof view>];
+		return createRoute({
 			getParentRoute: () => route,
 			path: tab,
 			loader: () => preloadTab(space, tab),
-			component: () => <TabView space={space} tab={tab} />,
-			// The bar of Factory / Runs (ux-declutter REQ-034): search, filter and view, kept in the address.
-			...(space === "factory" && tab === "runs" ? { validateSearch: runsSearch } : {}),
-			// The bar of Code / Pull requests (ux-declutter REQ-042): search and filter, kept in the address.
-			...(space === "code" && tab === "pull-requests" ? { validateSearch: pullsSearch } : {}),
-		}),
-	);
-	// A run has its own address, under the Factory tab bar with Runs selected (ux-declutter REQ-027).
+			// News and Activity of Today are pages of the home feature: no old tab view holds them.
+			component:
+				view in FLOW_VIEW
+					? FLOW_VIEW[view as keyof typeof FLOW_VIEW]()
+					: view === "home/news"
+						? lazyRouteComponent(() => import("@/features/home/news"), "News")
+						: view === "home/activity"
+							? lazyRouteComponent(() => import("@/features/home/activity"), "ActivityView")
+							: () => <TabView space={space} tab={tab} />,
+			// The bar of Flow (ux-declutter REQ-034): search and filter, kept in the address.
+			...(view === "flow/flow" || view === "flow/list" || view === "flow/done"
+				? { validateSearch: flowSearch }
+				: {}),
+			// Crew shows the cards or the live work rows (`spec:app-redesign#REQ-017`).
+			...(view === "crew/crew" ? { validateSearch: crewSearch } : {}),
+			// The open recipe of Recipes, and the sheet that the sections of Plan share.
+			...(view === "crew/recipes" ? { validateSearch: textSearch("recipe", "step", "page") } : {}),
+			...(view === "crew/sessions" ? { validateSearch: textSearch("session", "page") } : {}),
+			...(view === "crew/spend" ? { validateSearch: textSearch("page", "run") } : {}),
+			...(view === "crew/rights" ? { validateSearch: textSearch("page", "role") } : {}),
+			...(view === "plan/timeline" || view === "plan/people" || view === "plan/estimates"
+				? { validateSearch: textSearch("sheet", "page", "task", "tab") }
+				: {}),
+			...(view === "plan/time" ? { validateSearch: textSearch("page", "week", "member") } : {}),
+			// The search and the filter of the pull requests (ux-declutter REQ-042) moved to their page:
+			// an old address of Code / Now with one of them opens Pull requests with the same search.
+			...(view === "code/now"
+				? {
+						validateSearch: pullsSearch,
+						beforeLoad: ({
+							search,
+							location,
+						}: {
+							search: { q?: string; filter?: string };
+							location: ParsedLocation;
+						}) => {
+							if (search.q === undefined && search.filter === undefined) return;
+							const hash = location.hash ? `#${location.hash}` : "";
+							throw redirect({
+								href: `/code/pull-requests${location.searchStr}${hash}`,
+								replace: true,
+							});
+						},
+					}
+				: {}),
+			// An anchor of This project or of Me that moved to a sub-page opens that page.
+			...(view === "setup/project" || view === "setup/me" ? { beforeLoad: toPlace } : {}),
+		});
+	});
+	// A run has its own address, with Runs selected (ux-declutter REQ-027).
 	const run =
-		space === "factory"
+		place === "flow"
 			? [
 					createRoute({
 						getParentRoute: () => route,
 						path: "runs/$runId",
+						validateSearch: runSearch,
+						component: lazyRouteComponent(
+							() => import("@/features/flow/feature/feature-page"),
+							"RunAddress",
+						),
+					}),
+					// One feature, found by the ref of one of its parts (`spec:app-redesign#REQ-012`).
+					createRoute({
+						getParentRoute: () => route,
+						path: "feature/$featureId",
+						validateSearch: featureSearch,
+						component: lazyRouteComponent(
+							() => import("@/features/flow/feature/feature-page"),
+							"FeaturePage",
+						),
+					}),
+					// The changed files of the pull request of a feature (`spec:app-redesign#REQ-012`).
+					createRoute({
+						getParentRoute: () => route,
+						path: "feature/$featureId/files",
+						component: lazyRouteComponent(
+							() => import("@/features/code/pull-files-page"),
+							"PullFilesPage",
+						),
+					}),
+					// The files of the change of a feature, with the file and the view that open first.
+					createRoute({
+						getParentRoute: () => route,
+						path: "feature/$featureId/spec",
 						validateSearch: (
 							s: Record<string, unknown>,
-						): { unit?: string; tab?: "changes" | "workflow" } => ({
-							...(typeof s.unit === "string" && s.unit ? { unit: s.unit } : {}),
-							// Activity is the default tab: it has no value in the address.
-							...(s.tab === "changes" || s.tab === "workflow" ? { tab: s.tab } : {}),
+						): { file?: string; view?: "text" | "form" } => ({
+							...(typeof s.file === "string" && s.file ? { file: s.file } : {}),
+							...(s.view === "text" || s.view === "form" ? { view: s.view } : {}),
 						}),
 						component: lazyRouteComponent(
-							() => import("@/features/factory/runs/run-page"),
-							"RunPage",
+							() => import("@/features/flow/feature/change-files"),
+							"ChangeFilesPage",
+						),
+					}),
+					// The tabs of Flow before wave 3 redirect to their view.
+					...(["backlog", "board", "runs", "changes", "quality"] as const).map((tab) =>
+						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),
+					),
+					// Impacts is off the section switch: it opens from the Checks of a feature (`spec:app-redesign#REQ-023`).
+					createRoute({
+						getParentRoute: () => route,
+						path: "impacts",
+						loader: () => preloadTab("code", "impacts"),
+						component: () => <TabView space="code" tab="impacts" />,
+					}),
+					// The impact report of the working branch, and the two impact pages of a feature.
+					createRoute({
+						getParentRoute: () => route,
+						path: "impacts/report",
+						component: lazyRouteComponent(
+							() => import("@/features/code/impact-report"),
+							"ImpactsReport",
+						),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "feature/$featureId/impacts",
+						component: lazyRouteComponent(
+							() => import("@/features/code/impacts"),
+							"FeatureImpacts",
+						),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "feature/$featureId/impact-report",
+						component: lazyRouteComponent(
+							() => import("@/features/code/impact-report"),
+							"FeatureImpactReport",
+						),
+					}),
+					// New feature (`spec:app-redesign#REQ-003`).
+					createRoute({
+						getParentRoute: () => route,
+						path: "new",
+						validateSearch: kindSearch,
+						component: lazyRouteComponent(
+							() => import("@/features/flow/new-feature"),
+							"NewFeature",
 						),
 					}),
 				]
 			: [];
-	// A pull request has its own address, under the Code tab bar with Pull requests selected (ux-declutter REQ-041).
-	const pull =
-		space === "code"
+	// A pull request has its own address, with Pull requests selected (ux-declutter REQ-041).
+	// Code / Quality and Impacts of before adr:0023 share the prefix of the Code place.
+	const code =
+		place === "code"
 			? [
 					createRoute({
 						getParentRoute: () => route,
 						path: "pull-requests/$pullId",
 						validateSearch: (
 							s: Record<string, unknown>,
-						): { tab?: "commits" | "checks" | "files" } => ({
-							// Overview is the default tab: it has no value in the address.
+						): { tab?: "commits" | "checks" | "files"; section?: Section } => ({
+							...sectionSearch(s),
+							// A pull request opens on Changes: its tabs of before name a section.
 							...(s.tab === "commits" || s.tab === "checks" || s.tab === "files"
 								? { tab: s.tab }
 								: {}),
 						}),
-						component: lazyRouteComponent(() => import("@/features/code/pull-page"), "PullPage"),
+						component: lazyRouteComponent(
+							() => import("@/features/flow/feature/feature-page"),
+							"PullAddress",
+						),
+					}),
+					// The files to commit: a page of Code with a back link (look pass 2).
+					createRoute({
+						getParentRoute: () => route,
+						path: "changes",
+						component: lazyRouteComponent(
+							() => import("@/features/code/local-changes"),
+							"LocalChanges",
+						),
+					}),
+					// Pull requests (screen 53) and New pull request (screen 74): pages of their own. The search stays in the address.
+					createRoute({
+						getParentRoute: () => route,
+						path: "pull-requests",
+						validateSearch: pullsSearch,
+						component: lazyRouteComponent(
+							() => import("@/features/code/pulls-page"),
+							"PullRequestsPage",
+						),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "pull-requests/new",
+						component: lazyRouteComponent(() => import("@/features/code/open-pull"), "NewPullPage"),
+					}),
+					// Quality and Impacts moved to Flow (`spec:app-redesign#REQ-022`, `spec:app-redesign#REQ-023`).
+					...(["quality", "impacts"] as const).map((tab) =>
+						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),
+					),
+				]
+			: [];
+	// The tabs of Plan and Crew before wave 4 redirect to their section.
+	const old =
+		place === "plan" || place === "crew"
+			? Object.keys(OLD_SLUGS[place] ?? {})
+					.filter((tab) => !views.some((v) => v === `${place}/${tab}`))
+					.map((tab) =>
+						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),
+					)
+			: [];
+	// The addresses of before wave 6 under Today and Setup redirect: Projects, and the six Settings tabs.
+	const moved = (
+		place === "today"
+			? (["projects", "role-views"] as const)
+			: place === "setup"
+				? (["connections", "agents-rules", "extensions", "health"] as const)
+				: []
+	).map((tab) => createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }));
+	// The panels of a role is a page of Today and the role views a page of Setup, both off the section switch (pictures 092 and 066).
+	const today =
+		place === "today"
+			? [
+					createRoute({
+						getParentRoute: () => route,
+						path: "panels",
+						validateSearch: textSearch("role"),
+						component: lazyRouteComponent(
+							() => import("@/features/home/role-panels"),
+							"RolePanelsPage",
+						),
+					}),
+				]
+			: place === "setup"
+				? [
+						createRoute({
+							getParentRoute: () => route,
+							path: "role-views",
+							component: lazyRouteComponent(
+								() => import("@/features/home/role-views"),
+								"RoleViews",
+							),
+						}),
+					]
+				: [];
+	// The sub-pages of Library: each has its own address and a back link to its page.
+	const library =
+		place === "library"
+			? [
+					createRoute({
+						getParentRoute: () => route,
+						path: "dashboards/$slug/edit",
+						component: lazyRouteComponent(
+							() => import("@/features/knowledge/dashboards"),
+							"DashboardEdit",
+						),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "reports/$form",
+						component: lazyRouteComponent(() => import("@/features/reports/forms"), "ReportForm"),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "flows/matrix",
+						component: lazyRouteComponent(
+							() => import("@/features/design/flows"),
+							"FlowMatrixPage",
+						),
+					}),
+					createRoute({
+						getParentRoute: () => route,
+						path: "test-plans/coverage",
+						component: lazyRouteComponent(() => import("@/features/specs/coverage"), "Coverage"),
 					}),
 				]
 			: [];
-	return route.addChildren([index, ...tabs, ...run, ...pull]);
+	return route.addChildren([
+		index,
+		...sections,
+		...run,
+		...code,
+		...old,
+		...moved,
+		...today,
+		...library,
+	]);
+}
+
+/** A bare old space opens the first page of the role when the space held it, else the place of its first tab that the role sees: `/factory` shows Flow. */
+function OldSpaceHome({ space }: { space: SpaceId }) {
+	const { teamRole } = usePrefs();
+	const { level } = useRights();
+	const tabs = SPACES[space].filter((tab) => !hiddenTab(level, space, tab));
+	const pages = (tabs.length ? tabs : SPACES[space]).map((tab) => placePath(`/${space}/${tab}`));
+	const first = firstPath(teamRole, level);
+	// shortcut: one cast. `placePath` of a tab of a space is always a section path.
+	return <Navigate to={(pages.includes(first) ? first : pages[0]) as PlacePath} replace />;
+}
+
+/** A space of before adr:0023 stays registered, so a stored or typed address works: it redirects to its place. */
+function oldSpaceRoute<S extends Exclude<SpaceId, "code">>(space: S) {
+	const route = createRoute({ getParentRoute: () => rootRoute, path: space, beforeLoad: toPlace });
+	const index = createRoute({
+		getParentRoute: () => route,
+		path: "/",
+		component: () => <OldSpaceHome space={space} />,
+	});
+	const names: readonly (typeof SPACES)[S][number][] = SPACES[space];
+	const tabs = names.map((tab) =>
+		createRoute({
+			getParentRoute: () => route,
+			path: tab,
+			...(space === "factory" && tab === "runs" ? { validateSearch: runsSearch } : {}),
+		}),
+	);
+	const run =
+		space === "factory"
+			? [
+					createRoute({
+						getParentRoute: () => route,
+						path: "runs/$runId",
+						validateSearch: runSearch,
+					}),
+				]
+			: [];
+	return route.addChildren([index, ...tabs, ...run]);
 }
 
 // The gallery exists in the dev build only. The release build drops the import.
@@ -202,38 +614,69 @@ const galleryRoute = import.meta.env.DEV
 		})
 	: null;
 
-/** Settings / Team moved to Work / Team: a stored last view must not show Not found. */
-const teamRoute = createRoute({
+/** Settings / Team moved to Crew / Team, and Home / Inbox and My work became Today: a stored last view must not show Not found. */
+const movedRoutes = (["settings/team", "home/inbox", "home/my-work"] as const).map((path) =>
+	createRoute({ getParentRoute: () => rootRoute, path, beforeLoad: toPlace }),
+);
+
+/** The Projects page: no place holds it, the project name of the top bar opens it (picture 060). */
+const projectsRoute = createRoute({
 	getParentRoute: () => rootRoute,
-	path: "settings/team",
-	beforeLoad: () => {
-		throw redirect({ to: "/work/team", replace: true });
-	},
+	path: "projects",
+	loader: () => preloadTab("home", "projects"),
+	component: () => (
+		// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable)
+		<div tabIndex={0} className="flex h-full min-h-0 flex-col overflow-auto">
+			<TabView space="home" tab="projects" />
+		</div>
+	),
 });
 
-/** Home / Inbox, My work and Activity became Today: an old link or a stored last view opens it. */
-const oldHomeRoutes = ["inbox", "my-work", "activity"].map((tab) =>
-	createRoute({
-		getParentRoute: () => rootRoute,
-		path: `home/${tab}`,
-		beforeLoad: () => {
-			throw redirect({ to: "/home/today", replace: true });
-		},
-	}),
+/** New project (pictures 061 and 098): a bare page with its own address. `all` shows each step on one page. */
+const NewProject = lazyRouteComponent(
+	() => import("@/features/projects/new-project/new-project-page"),
+	"NewProject",
 );
+const newProjectRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "projects/new",
+	validateSearch: (s: Record<string, unknown>): { all?: true } =>
+		s.all === true || s.all === "true" ? { all: true } : {},
+	component: () => (
+		// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable)
+		<div tabIndex={0} className="flex h-full min-h-0 flex-col overflow-auto">
+			<NewProject />
+		</div>
+	),
+});
+
+/** The Ask page, the full assistant: no place holds it, the Ask bar and the side panel open it (picture 070). */
+const askRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "ask",
+	component: lazyRouteComponent(() => import("@/features/assistant/page"), "AssistantPage"),
+});
 
 const routeTree = rootRoute.addChildren([
 	indexRoute,
-	spaceRoute("home"),
-	spaceRoute("design"),
-	spaceRoute("specs"),
-	spaceRoute("work"),
-	spaceRoute("factory"),
-	spaceRoute("code"),
-	spaceRoute("knowledge"),
-	spaceRoute("settings"),
-	teamRoute,
-	...oldHomeRoutes,
+	projectsRoute,
+	askRoute,
+	newProjectRoute,
+	placeRoute("today"),
+	placeRoute("flow"),
+	placeRoute("plan"),
+	placeRoute("crew"),
+	placeRoute("library"),
+	placeRoute("code"),
+	placeRoute("setup"),
+	oldSpaceRoute("home"),
+	oldSpaceRoute("design"),
+	oldSpaceRoute("specs"),
+	oldSpaceRoute("work"),
+	oldSpaceRoute("factory"),
+	oldSpaceRoute("knowledge"),
+	oldSpaceRoute("settings"),
+	...movedRoutes,
 	...(galleryRoute ? [galleryRoute] : []),
 ]);
 

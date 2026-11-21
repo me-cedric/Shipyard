@@ -1,11 +1,19 @@
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useId, useMemo, useState } from "react";
-import { type Lang, useI18n } from "@/lib/i18n";
+import { hiddenSection, PLACES, type PlaceId, sectionView } from "@/features/shell/places";
+import { type SectionSpace, tabLabel } from "@/features/shell/spaces";
+import { format, type Lang, useI18n } from "@/lib/i18n";
+import { useRights } from "@/lib/rights";
+import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/ui/atoms/badge";
+import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
-import { BookOpenIcon, MagnifyingGlassIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
+import { PageHeader } from "@/ui/molecules/page-header";
 import { SplitPane } from "@/ui/molecules/split-pane";
+import { Tile } from "@/ui/molecules/tile";
 import { blocks, MarkdownView } from "@/ui/organisms/markdown-view";
-import { ListDetail } from "@/ui/templates/list-detail";
 import { useManualTarget } from "./manual-target";
 
 // The pages of `docs/guide/` ship inside the app: the manual works without a project and offline.
@@ -21,20 +29,46 @@ const RAW_LANG = import.meta.glob("/docs/guide/*/*.md", {
 	eager: true,
 }) as Record<string, string>;
 
-/** The pages in reading order. The developer guide is not for the people who use the app. */
+/** The pages in reading order: the start, one page for each place, then the rest. The developer guide is not for the people who use the app. */
 const ORDER = [
 	"start",
-	"home",
-	"design",
-	"specs",
-	"work",
-	"team",
-	"factory",
+	"today",
+	"flow",
+	"plan",
+	"crew",
+	"library",
 	"code",
-	"knowledge",
-	"settings",
+	"setup",
+	"projects",
+	"ask",
 	"theming",
 ];
+
+// The picture of each page: a screen of the registry `docs/designs/screens.json`, by its file name.
+const PICTURES = import.meta.glob(
+	"/docs/assets/screenshots/{first-run,home-light,flow-list,plan-people,crew,library,code-history,setup-start,projects,ask-bar,themes}.png",
+	{ query: "?url", import: "default", eager: true },
+) as Record<string, string>;
+const PICTURE: Record<string, string> = {
+	start: "first-run",
+	today: "home-light",
+	flow: "flow-list",
+	plan: "plan-people",
+	crew: "crew",
+	library: "library",
+	code: "code-history",
+	setup: "setup-start",
+	projects: "projects",
+	ask: "ask-bar",
+	theming: "themes",
+};
+const pictureOf = (page: string) => PICTURES[`/docs/assets/screenshots/${PICTURE[page]}.png`];
+
+/** A page off the section switch whose help has a heading of its own: the label of its old tab. */
+const OFF_SWITCH: Record<string, [SectionSpace, string]> = { "flow/impacts": ["code", "impacts"] };
+
+// The first page is named Start in the list and in the card; its file keeps its own heading.
+const START: Record<Lang, string> = { en: "Start", fr: "Démarrer", de: "Start", es: "Inicio" };
 
 export type ManualPage = { id: string; title: string; text: string };
 
@@ -43,7 +77,7 @@ export const manualFor = (lang: Lang): ManualPage[] =>
 	ORDER.flatMap((id) => {
 		const text = RAW_LANG[`/docs/guide/${lang}/${id}.md`] ?? RAW[`/docs/guide/${id}.md`];
 		if (!text) return [];
-		const title = /^#\s+(.+)$/m.exec(text)?.[1] ?? id;
+		const title = id === "start" ? START[lang] : (/^#\s+(.+)$/m.exec(text)?.[1] ?? id);
 		return [{ id, title, text }];
 	});
 
@@ -92,8 +126,8 @@ const headingIndex = (text: string, heading: string) =>
 	blocks(text).findIndex((b) => b.type === "h" && b.text === heading);
 
 /**
- * Knowledge / Manual: the user guide that ships with the app, with a full-text search. The palette
- * action Open the manual for this page opens the section of the tab that the person was on.
+ * The manual: the user guide that ships with the app, with a full-text search. The action
+ * Open the manual for this page opens the page of the place and the section that the person was on.
  */
 export function Manual() {
 	const { t, lang } = useI18n();
@@ -101,28 +135,44 @@ export function Manual() {
 	const pages = useMemo(() => manualFor(lang), [lang]);
 	const anchor = useId();
 	const target = useManualTarget();
+	const navigate = useNavigate();
+	const { ask, setShortcutsOpen } = useShell();
+	const { level } = useRights();
 	const [page, setPage] = useState("start");
 	const [query, setQuery] = useState("");
 	const [scrollTo, setScrollTo] = useState<string | null>(null);
 	const current = pages.find((p) => p.id === page) ?? pages[0];
+	// The card draws the title itself, then the picture; the reader gets the text below the first heading.
+	const all = current?.text.replace(/^#\s+.+\n?/, "") ?? "";
+	// The first paragraph sits above the picture, as in the design; a page that opens on a list or a heading has none.
+	const [first = "", ...others] = all.trimStart().split(/\n\s*\n/);
+	const lead = /^(#|[-*|>`]|\d+\.)/.test(first) ? "" : first;
+	const body = lead ? others.join("\n\n") : all;
 	const hits = useMemo(() => searchManual(query, pages), [query, pages]);
+	const picture = current ? pictureOf(current.id) : undefined;
 
-	// A new ask of the palette opens its page at the section of its tab.
+	// A new ask opens the page of its place at the heading of its section.
 	useEffect(() => {
 		if (!target) return;
 		const known = pages.some((p) => p.id === target.page);
 		setPage(known ? target.page : "start");
-		const tabs = t.tabs as Record<string, Record<string, string>>;
-		setScrollTo(known && target.tab ? (tabs[target.page]?.[target.tab] ?? null) : null);
+		// The heading of a section is its label on the screen.
+		const view =
+			target.tab && target.page in PLACES
+				? (sectionView(target.page as PlaceId, target.tab) ??
+					OFF_SWITCH[`${target.page}/${target.tab}`])
+				: undefined;
+		const heading = view ? tabLabel(t, ...view) : null;
+		setScrollTo(known ? heading : null);
 		setQuery("");
 	}, [target, pages, t]);
 
 	useEffect(() => {
 		if (!scrollTo || !current) return;
-		const i = headingIndex(current.text, scrollTo);
+		const i = headingIndex(body, scrollTo);
 		const el = i >= 0 ? document.getElementById(`${anchor}-${i}`) : null;
 		el?.scrollIntoView?.({ block: "start" });
-	}, [scrollTo, current, anchor]);
+	}, [scrollTo, current, body, anchor]);
 
 	const open = (id: string, heading: string | null) => {
 		setPage(id);
@@ -130,88 +180,118 @@ export function Manual() {
 	};
 
 	return (
-		<ListDetail title={m.title} icon={<BookOpenIcon size={16} />} count={pages.length}>
+		<div className="flex min-h-0 flex-1 flex-col">
+			<PageHeader title={m.title} action={<Badge>F1</Badge>} />
 			<div className="flex min-h-0 flex-1 gap-6 px-4 pb-4">
-				<SplitPane id="knowledge-manual-width" label={t.knowledge.resize.manual} fallback={224}>
-					<aside className="flex shrink-0 flex-col gap-3">
-						<div className="relative">
-							<span
-								aria-hidden="true"
-								className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-n-10"
-							>
-								<MagnifyingGlassIcon size={14} />
-							</span>
-							<Input
-								type="search"
-								className="pl-7"
-								label={m.search}
-								value={query}
-								onChange={(e) => setQuery(e.target.value)}
-							/>
-						</div>
+				<SplitPane id="knowledge-manual-width" label={t.knowledge.resize.manual} fallback={336}>
+					<aside className="flex min-h-0 shrink-0 flex-col gap-2 overflow-auto p-0.5">
+						<Input
+							type="search"
+							className="shrink-0"
+							label={m.search}
+							value={query}
+							onChange={(e) => setQuery(e.target.value)}
+						/>
 						{query.trim() ? (
-							<section aria-label={m.results} className="flex min-h-0 flex-col gap-1 overflow-auto">
-								<h2 className="text-12 font-medium text-n-11" aria-live="polite">
+							<section aria-label={m.results} className="flex flex-col gap-2">
+								<h2 className="text-13 font-semibold text-n-11" aria-live="polite">
 									{m.results} ({hits.length})
 								</h2>
-								<ul className="flex flex-col gap-1">
+								<ul className="flex flex-col gap-2">
 									{hits.map((h) => (
 										<li key={`${h.page}-${h.heading}`}>
 											<button
 												type="button"
 												onClick={() => open(h.page, h.heading)}
-												className="flex w-full flex-col rounded-md px-2 py-1 text-left hover:bg-n-3"
+												className="flex w-full flex-col justify-center rounded-lg bg-surface-2 px-4.5 py-3 text-left shadow-2"
 											>
-												<span className="text-ui text-n-12">
+												<span className="font-semibold text-n-12">
 													{h.title} / {h.heading}
 												</span>
-												<span className="line-clamp-2 text-12 text-n-11">{h.snippet}</span>
+												<span className="line-clamp-2 text-13 text-n-11">{h.snippet}</span>
 											</button>
 										</li>
 									))}
 								</ul>
 							</section>
 						) : (
-							<nav aria-label={m.pages} className="flex flex-col gap-0.5">
+							<nav aria-label={m.pages} className="flex flex-col gap-2">
 								{pages.map((p) => (
-									<button
+									<Tile
 										key={p.id}
-										type="button"
+										label={p.title}
 										aria-current={p.id === page ? "page" : undefined}
 										onClick={() => open(p.id, null)}
+										// A page of a list is the current one, not a pressed switch: the look of `selected` without its state.
 										className={cn(
-											"rounded-md px-2 py-1 text-left text-ui hover:bg-n-3",
-											p.id === page ? "bg-n-3 font-medium text-n-12" : "text-n-11",
+											"min-h-15 shrink-0 justify-center py-0",
+											p.id === page && "bg-accent-tint outline-2 outline-accent",
 										)}
-									>
-										{p.title}
-									</button>
+									/>
 								))}
 							</nav>
 						)}
 					</aside>
 				</SplitPane>
-				{/* The page scrolls with the keyboard too: the region takes the focus. */}
-				<section
-					aria-label={m.title}
-					// biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region needs the focus for the keyboard
-					tabIndex={0}
-					className="min-w-0 flex-1 overflow-auto rounded-md"
-				>
-					<div className="mx-auto max-w-[680px] pb-4">
-						{current ? (
-							<MarkdownView
-								key={current.id}
-								source={current.text}
-								label={current.title}
-								anchor={anchor}
-								refs={false}
-								reading
-							/>
-						) : null}
+				<Card pad className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+					{/* The page scrolls with the keyboard too: the region takes the focus. */}
+					<section
+						aria-label={m.title}
+						// biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region needs the focus for the keyboard
+						tabIndex={0}
+						className="min-h-0 flex-1 overflow-auto rounded-md"
+					>
+						<div className="flex max-w-[640px] flex-col gap-4 pb-1">
+							{current ? (
+								<>
+									<h2 className="text-30 font-semibold text-n-12">{current.title}</h2>
+									{lead ? (
+										<MarkdownView
+											key={`${current.id}-lead`}
+											source={lead}
+											label=""
+											refs={false}
+											reading
+										/>
+									) : null}
+									{picture ? (
+										<img
+											src={picture}
+											alt={format(m.picture, { page: current.title })}
+											loading="lazy"
+											className="w-full rounded-field border border-dashed border-n-7 bg-n-3 p-2"
+										/>
+									) : null}
+									<MarkdownView
+										key={current.id}
+										source={body}
+										label={current.title}
+										anchor={anchor}
+										refs={false}
+										reading
+									/>
+								</>
+							) : null}
+						</div>
+					</section>
+					<div className="flex shrink-0 flex-wrap gap-2.5 border-t border-n-6 pt-4">
+						<Button
+							variant="primary"
+							disabled={!current}
+							onClick={() => current && ask(format(m.askText, { page: current.title }))}
+						>
+							{m.ask}
+						</Button>
+						<Button onClick={() => setShortcutsOpen(true)}>{t.shell.menu.shortcuts}</Button>
+						{/* The handbook is a page of Library: a role that hides it gets no button. */}
+						{hiddenSection(level, "knowledge", "handbook") ? null : (
+							<Button onClick={() => void navigate({ to: "/library/handbook" })}>
+								{m.handbook}
+							</Button>
+						)}
 					</div>
-				</section>
+				</Card>
 			</div>
-		</ListDetail>
+		</div>
 	);
 }

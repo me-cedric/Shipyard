@@ -1,15 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { SetupCard, SetupRow, Toggle } from "@/features/settings/parts";
 import { useI18n } from "@/lib/i18n";
 import { commands, type Persona, unwrap } from "@/lib/ipc";
 import { projectKeys, usePersonas } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
 import { Input } from "@/ui/atoms/input";
-import { Switch } from "@/ui/atoms/switch";
-import { PlusIcon, UsersIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { Panel } from "@/ui/molecules/panel";
-import { SettingsRow } from "@/ui/molecules/settings-row";
 
 const rate = (v: string) => (v.trim() === "" ? 0 : Number(v));
 
@@ -23,6 +20,7 @@ function Editor({ saved }: { saved: Persona[] }) {
 	const qc = useQueryClient();
 	const [rows, setRows] = useState(saved);
 	const [error, setError] = useState<unknown>(null);
+	const [editing, setEditing] = useState<string | null>(null);
 	const set = (i: number, patch: Partial<Persona>) =>
 		setRows(rows.map((r, n) => (n === i ? { ...r, ...patch } : r)));
 	const dirty = JSON.stringify(rows) !== JSON.stringify(saved);
@@ -36,22 +34,39 @@ function Editor({ saved }: { saved: Persona[] }) {
 		}
 	};
 	return (
-		<Panel
-			id="section-personas"
-			title={p.title}
-			icon={<UsersIcon size={14} />}
-			bodyClassName="gap-2 p-3"
-		>
+		<SetupCard id="section-personas" title={p.title}>
 			{rows.map((r, i) => (
-				<SettingsRow key={r.id} label={r.name || r.id}>
-					<Input label={p.name} value={r.name} onChange={(e) => set(i, { name: e.target.value })} />
+				<SetupRow
+					key={r.id}
+					label={
+						editing === r.id ? (
+							<Input
+								label={p.name}
+								value={r.name}
+								autoFocus
+								onChange={(e) => set(i, { name: e.target.value })}
+								onBlur={() => setEditing(null)}
+								onKeyDown={(e) => e.key === "Enter" && setEditing(null)}
+							/>
+						) : (
+							<button
+								type="button"
+								aria-label={`${p.name}: ${r.name || r.id}`}
+								onClick={() => setEditing(r.id)}
+								className="min-h-control min-w-0 truncate text-left font-semibold"
+							>
+								{r.name || r.id}
+							</button>
+						)
+					}
+				>
 					<Input
 						label={p.tjm}
 						type="number"
 						min={0}
 						value={r.tjm ?? 0}
 						onChange={(e) => set(i, { tjm: rate(e.target.value) })}
-						className="w-24"
+						className="w-28"
 					/>
 					<Input
 						label={p.cjm}
@@ -59,16 +74,21 @@ function Editor({ saved }: { saved: Persona[] }) {
 						min={0}
 						value={r.cjm ?? 0}
 						onChange={(e) => set(i, { cjm: rate(e.target.value) })}
-						className="w-24"
+						className="w-28"
 					/>
-					<Switch
+					<Toggle
 						label={p.active}
 						checked={r.active}
 						onCheckedChange={(v) => set(i, { active: v })}
 					/>
-				</SettingsRow>
+				</SetupRow>
 			))}
-			<div className="flex items-center gap-2">
+			<div className="flex items-center justify-end gap-2 border-n-6 border-t px-6 pt-3 pb-1">
+				{dirty ? (
+					<RightButton right="specs.edit" variant="primary" onClick={() => void save()}>
+						{t.projects.save}
+					</RightButton>
+				) : null}
 				<RightButton
 					right="specs.edit"
 					onClick={() =>
@@ -86,17 +106,11 @@ function Editor({ saved }: { saved: Persona[] }) {
 						])
 					}
 				>
-					<PlusIcon size={14} />
 					{p.add}
 				</RightButton>
-				{dirty ? (
-					<RightButton right="specs.edit" variant="primary" onClick={() => void save()}>
-						{t.projects.save}
-					</RightButton>
-				) : null}
 			</div>
-			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
-		</Panel>
+			{error ? <ErrorNotice error={error} className="px-6 text-ui text-danger-text" /> : null}
+		</SetupCard>
 	);
 }
 

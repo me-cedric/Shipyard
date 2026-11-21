@@ -330,6 +330,9 @@ pub struct Tile {
     /// A name that a person gave the tile. Empty for the name of its kind.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub title: String,
+    /// The chart kind of the tile (`shipyard_core::tile::CHARTS`). Empty: the default chart of its kind.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub chart: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -361,6 +364,7 @@ pub fn dashboard_text(d: &Dashboard) -> Result<String> {
         if !TILES.contains(&t.kind.as_str()) {
             return Err(format!("unknown tile: {}", t.kind).into());
         }
+        shipyard_core::tile::check_chart(&t.chart)?;
         if seen.insert(&t.id, ()).is_some() {
             return Err(format!("tile id used twice: {}", t.id).into());
         }

@@ -14,7 +14,7 @@ use shipyard_core::code::{commit_refs, run_in_message};
 use shipyard_forges::{
     CheckState, CiState, CiStatus, CodeApi, Conversation, ForgeError, MergeMethod, NewPull,
     PullComment, PullCommit, PullFile, PullFiles, PullQuery, PullRequest, PullState, PullStatus,
-    ReviewerVerdict, Verdict,
+    Reviewer, ReviewerVerdict, Verdict,
 };
 use shipyard_git::Repo;
 use shipyard_store::code::{
@@ -355,6 +355,9 @@ pub struct OpenPull {
     pub base: Option<String>,
     pub draft: bool,
     pub labels: Vec<String>,
+    /// Reviewers to ask, as `Reviewer::id` of [`pull_reviewers`] (REQ-006).
+    #[serde(default)]
+    pub reviewers: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -367,6 +370,38 @@ pub struct OpenedPull {
     pub missing_labels: Vec<String>,
     /// The forge refused the labels. The pull request exists: this is not a failure of the open.
     pub label_error: Option<String>,
+    /// The forge refused the reviewers. The pull request exists: this is not a failure of the open.
+    pub reviewer_error: Option<String>,
+}
+
+/// The users that a new pull request can ask for a review (REQ-006).
+pub fn pull_reviewers(s: &AppState) -> Res<Vec<Reviewer>> {
+    let (api, slug, _) = forge(s)?;
+    api.reviewer_candidates(&slug).map_err(err)
+}
+
+/// Asks the reviewers of a pull request that exists. A refusal is a message, not a failure.
+fn ask_reviewers(
+    api: &dyn CodeApi,
+    slug: &str,
+    number: u64,
+    reviewers: &[String],
+) -> Option<String> {
+    api.add_reviewers(slug, number, reviewers).err().map(err)
+}
+
+/// Runs the failed checks of a pull request again, and only those (REQ-001). It is a write to the
+/// code host: it needs the click and the right of the other writes.
+pub fn pull_rerun(s: &AppState, number: u32, click: bool) -> Res<u32> {
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "code_pull_rerun",
+        &format!("#{number}"),
+    )?;
+    let (api, slug, _) = forge(s)?;
+    api.rerun_failed(&slug, u64::from(number)).map_err(err)
 }
 
 /// Opens a pull request from the working branch. The branch must be published first.
@@ -414,12 +449,14 @@ pub fn pull_open(s: &AppState, input: OpenPull, click: bool) -> Res<OpenedPull> 
             Err(e) => (Vec::new(), Some(err(e))),
         }
     };
+    let reviewer_error = ask_reviewers(&*api, &slug, made.number, &input.reviewers);
     Ok(OpenedPull {
         reference: format!("pr:{conn}:{}", made.number),
         number: made.number as u32,
         url: made.url,
         missing_labels,
         label_error,
+        reviewer_error,
     })
 }
 
@@ -1163,6 +1200,101 @@ pub fn impact_read(s: &AppState, rel: &str) -> Res<String> {
     std::fs::read_to_string(root(s)?.join(rel)).map_err(err)
 }
 
+/// One line of the action plan of an impact report: a check box and an owner (REQ-009 of
+/// `code-host-tickets`). The file holds it as `- [x] text (owner: name)`. It makes no ticket.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Type)]
+pub struct PlanLine {
+    pub text: String,
+    pub done: bool,
+    /// The name of the owner. Blank: nobody.
+    pub owner: String,
+}
+
+/// A line of the plan as one line of Markdown. A line break or a bracket would break the file.
+fn plan_line(l: &PlanLine, secrets: &[&str]) -> Res<String> {
+    let clean = |v: &str, what: &str, max: usize| -> Res<String> {
+        let v = scrub(v.trim(), secrets);
+        if v.chars().count() > max || v.contains(['\n', '\r']) {
+            return Err(format!("{what} is one line of {max} characters or fewer"));
+        }
+        Ok(v)
+    };
+    let text = clean(&l.text, "an action", 300)?;
+    if text.is_empty() {
+        return Err("an action needs some text".into());
+    }
+    let owner = clean(&l.owner, "an owner", 60)?;
+    if owner.contains(['(', ')']) {
+        return Err("an owner is a name with no bracket".into());
+    }
+    let mark = if l.done { 'x' } else { ' ' };
+    Ok(if owner.is_empty() {
+        format!("- [{mark}] {text}")
+    } else {
+        format!("- [{mark}] {text} (owner: {owner})")
+    })
+}
+
+/// The plan text with its `## Actions` section replaced by `lines`. Another section stays as it is.
+fn with_actions(plan: &str, lines: &[String]) -> String {
+    let mut out = Vec::new();
+    let mut skipping = false;
+    for l in plan.lines() {
+        if l.starts_with("## ") {
+            skipping = l.trim() == "## Actions";
+            if skipping {
+                out.push(l.to_string());
+                out.push(String::new());
+                out.extend(lines.iter().cloned());
+                out.push(String::new());
+            }
+        }
+        if !skipping {
+            out.push(l.to_string());
+        }
+    }
+    if !plan.lines().any(|l| l.trim() == "## Actions") {
+        out.push("## Actions".into());
+        out.push(String::new());
+        out.extend(lines.iter().cloned());
+    }
+    let mut text = out.join("\n");
+    while text.ends_with("\n\n") {
+        text.pop();
+    }
+    text.push('\n');
+    text
+}
+
+/// Saves the action plan of a saved report: each line with its check box and its owner, as
+/// Markdown in the plan file. No ticket is made. The file is a plan that `impact_list` names.
+pub fn impact_plan_save(s: &AppState, rel: &str, lines: &[PlanLine], click: bool) -> Res<()> {
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "code_impact_plan_save",
+        rel,
+    )?;
+    if lines.len() > 100 {
+        return Err("an action plan holds 100 lines at most".into());
+    }
+    let root = root(s)?;
+    if !list_impacts(&root).into_iter().any(|e| e.plan == rel) {
+        return Err(format!("{rel} is not a saved plan in {IMPACTS_DIR}"));
+    }
+    let secrets = secrets(s);
+    let refs: Vec<&str> = secrets.iter().map(String::as_str).collect();
+    let rendered = lines
+        .iter()
+        .map(|l| plan_line(l, &refs))
+        .collect::<Res<Vec<_>>>()?;
+    let path = root.join(rel);
+    let old = std::fs::read_to_string(&path).map_err(err)?;
+    shipyard_store::safe_write::write(&path, &with_actions(&old, &rendered), None).map_err(err)?;
+    Ok(())
+}
+
 /// Runs the two asks and saves the two files (REQ-030 to REQ-033).
 pub fn analyze_with(
     s: &AppState,
@@ -1345,6 +1477,18 @@ pub async fn code_pull_labels(app: AppHandle) -> Api<Vec<String>> {
 #[specta::specta]
 pub async fn code_pull_open(app: AppHandle, input: OpenPull, click: bool) -> Api<OpenedPull> {
     blocking(app, move |s| synced(s, pull_open(s, input, click))).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_pull_reviewers(app: AppHandle) -> Api<Vec<Reviewer>> {
+    blocking(app, pull_reviewers).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_pull_rerun(app: AppHandle, number: u32, click: bool) -> Api<u32> {
+    blocking(app, move |s| synced(s, pull_rerun(s, number, click))).await
 }
 
 #[tauri::command]
@@ -1560,6 +1704,17 @@ pub async fn code_impact_read(app: AppHandle, path: String) -> Api<String> {
 
 #[tauri::command]
 #[specta::specta]
+pub async fn code_impact_plan_save(
+    app: AppHandle,
+    path: String,
+    lines: Vec<PlanLine>,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| impact_plan_save(s, &path, &lines, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn code_impact_analyze(app: AppHandle, base: String, click: bool) -> Api<ImpactEntry> {
     blocking(app, move |s| impact_analyze(s, &base, click)).await
 }
@@ -1718,6 +1873,34 @@ mod tests {
     }
 
     #[test]
+    fn a_refused_reviewer_is_a_message_and_the_pull_request_stays() {
+        use shipyard_forges::{ForgeConfig, ForgeKind, connect_code_api};
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::Secret;
+        let fake = std::sync::Arc::new(FakeHttp::new());
+        fake.post("/pulls/12/requested_reviewers", "grace", 201, "{}")
+            .post("/pulls/12/requested_reviewers", "nobody", 422, "{}");
+        let api = connect_code_api(
+            &ForgeConfig {
+                kind: ForgeKind::GitHub,
+                url: "https://github.com".into(),
+            },
+            Secret::new("tok"),
+            fake.clone(),
+        )
+        .unwrap();
+        assert_eq!(
+            ask_reviewers(&*api, "acme/web", 12, &["grace".into()]),
+            None
+        );
+        assert!(ask_reviewers(&*api, "acme/web", 12, &["nobody".into()]).is_some());
+        // No reviewer: no call.
+        let before = fake.requests().len();
+        assert_eq!(ask_reviewers(&*api, "acme/web", 12, &[]), None);
+        assert_eq!(fake.requests().len(), before);
+    }
+
+    #[test]
     fn a_forge_write_needs_a_click_and_a_forge() {
         let dir = tempfile::tempdir().unwrap();
         let (s, _) = project(dir.path());
@@ -1728,6 +1911,10 @@ mod tests {
             NO_FORGE
         );
         assert_eq!(pull_ready(&s, 1, true).unwrap_err(), NO_FORGE);
+        // Run again is a write of the code host: the click and the forge come first (REQ-001).
+        assert!(pull_rerun(&s, 1, false).unwrap_err().contains("click"));
+        assert_eq!(pull_rerun(&s, 1, true).unwrap_err(), NO_FORGE);
+        assert_eq!(pull_reviewers(&s).unwrap_err(), NO_FORGE);
         assert!(pull_ready(&s, 1, false).unwrap_err().contains("click"));
     }
 
@@ -2043,6 +2230,52 @@ mod tests {
         git(&root, &["add", "-A"]);
         git(&root, &["commit", "-q", "-m", "chore: x"]);
         assert!(analyze_with(&s, &ask, "main").is_err());
+    }
+
+    #[test]
+    fn the_action_plan_is_saved_as_check_boxes_with_owners_and_makes_no_ticket() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, root) = project(dir.path());
+        let plan = "# Impact plan: main\n\n## Axes\n\n- data: low\n\n## Stale refs\n\n## Actions\n\n1. Update the guide.\n\n## Notes\n\nkeep\n";
+        let entry = save_impact(&root, "2026-11-20", "main", plan, "digest").unwrap();
+        let line = |text: &str, done: bool, owner: &str| PlanLine {
+            text: text.into(),
+            done,
+            owner: owner.into(),
+        };
+        let lines = [
+            line("Update the guide.", true, "Grace"),
+            line("Tell the team.", false, ""),
+        ];
+        assert!(impact_plan_save(&s, &entry.plan, &lines, false).is_err());
+        impact_plan_save(&s, &entry.plan, &lines, true).unwrap();
+        let text = std::fs::read_to_string(root.join(&entry.plan)).unwrap();
+        assert!(text.contains(
+            "## Actions\n\n- [x] Update the guide. (owner: Grace)\n- [ ] Tell the team.\n"
+        ));
+        // The other sections stay, and the old numbered line is gone.
+        assert!(text.contains("- data: low") && text.contains("## Notes\n\nkeep\n"));
+        assert!(!text.contains("1. Update"));
+        // A line with a break or a bracket, a blank line, a file out of the folder: refused.
+        for bad in [
+            line("two\nlines", false, ""),
+            line("x", false, "Gr(ace)"),
+            line(" ", false, ""),
+        ] {
+            assert!(impact_plan_save(&s, &entry.plan, &[bad], true).is_err());
+        }
+        assert!(impact_plan_save(&s, "a.txt", &lines, true).is_err());
+        // Saved again, the plan stays one list: the owner changes, no line doubles.
+        impact_plan_save(
+            &s,
+            &entry.plan,
+            &[line("Update the guide.", true, "Ada")],
+            true,
+        )
+        .unwrap();
+        let text = std::fs::read_to_string(root.join(&entry.plan)).unwrap();
+        assert_eq!(text.matches("- [").count(), 1);
+        assert!(text.contains("(owner: Ada)"));
     }
 
     #[test]

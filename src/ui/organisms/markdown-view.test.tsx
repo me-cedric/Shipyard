@@ -53,6 +53,8 @@ describe("MarkdownView: tables, links and mermaid", () => {
 			/>,
 		);
 		const link = screen.getByRole("link", { name: "the docs" });
+		// spec:app-redesign#REQ-026: the hit box of a link in a sentence is 44 px high.
+		expect(link).toHaveClass("py-3");
 		await userEvent.click(link);
 		expect(mockState().openedPages).toEqual(["https://example.com/a?b=1"]);
 		expect(screen.queryByRole("link", { name: "bad" })).toBeNull();

@@ -49,7 +49,7 @@ describe("the error contract", () => {
 		);
 		expect(classify("`codebase-memory-mcp` failed: exited with code 3: no daemon")).toEqual({
 			code: "tool_failed",
-			action: { kind: "open", target: "/settings/health#tools" },
+			action: { kind: "open", target: "/setup/computer?page=health#tools" },
 		});
 		for (const text of ["ac gave no result", "the runner gave no text", "step s1 is not running"])
 			expect(classify(text).code, text).toBe("unknown");
@@ -71,16 +71,16 @@ describe("the error contract", () => {
 		// A proxy that the OS trusts: a plain sentence and the setting that fixes it, not the raw text.
 		expect(classify("network error: invalid peer certificate: UnknownIssuer")).toEqual({
 			code: "cert_untrusted",
-			action: { kind: "setting", target: "/settings/connections#certificates" },
+			action: { kind: "setting", target: "/setup/computer#certificates" },
 		});
 		expect(classify("the terminal app is not installed: Kitty")).toEqual({
 			code: "terminal_gone",
-			action: { kind: "setting", target: "/settings/me#terminal-app" },
+			action: { kind: "setting", target: "/setup/me#terminal-app" },
 		});
 	});
 
 	it("groups the many texts of one kind under one code", () => {
-		for (const text of ["unknown project: zed", "no workflow `x` in this project", "no sheet `a`"])
+		for (const text of ["unknown project: zed", "no recipe `x` in this project", "no sheet `a`"])
 			expect(classify(text), text).toEqual({ code: "not_found", action: null });
 		expect(classify("the project has no remote")).toEqual({
 			code: "no_remote",
@@ -90,9 +90,9 @@ describe("the error contract", () => {
 		expect(classify("a.docx does not exist").code).toBe("path_invalid");
 		expect(classify("the title is empty").code).toBe("input_invalid");
 		expect(classify("the orca command is not installed").action?.target).toBe(
-			"/settings/health#tools",
+			"/setup/computer?page=health#tools",
 		);
-		expect(toFailure("this tracker has no due date").message).toBe(
+		expect(toFailure("this issue tracker has no due date").message).toBe(
 			errorMessages.en.tracker_unsupported,
 		);
 	});

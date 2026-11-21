@@ -4,12 +4,13 @@
 //! Every path from the view goes through `shipyard_store::design::resolve`. A write goes through
 //! `safe_write` (REQ-023). A file that cannot be read stays unchanged (REQ-005).
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use shipyard_core::flows::{self, FlowRow};
+use shipyard_core::flows::{self, FlowCheck, FlowRow};
 use shipyard_core::project::ProjectFile;
 use shipyard_http::{Auth, Method, Request};
 use shipyard_store::design::{self, Artifact, MAX_BYTES, Screen};
@@ -233,6 +234,67 @@ pub fn flows_save(s: &AppState, rel: &str, rows: &[FlowRow], stamp: Option<&str>
     put(s, &full, &text, stamp, !full.exists(), Right::DesignEdit)
 }
 
+/// The result of the last check of a flow table against the code (`spec:library-functions#REQ-011`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FlowsChecked {
+    pub at: String,
+    pub rows: Vec<FlowCheck>,
+}
+
+/// One file for each project in the app data folder: the results by flow table.
+fn checks_file(s: &AppState, project: &str) -> PathBuf {
+    s.dir.join("flow-checks").join(format!("{project}.json"))
+}
+
+fn checks_read(path: &Path) -> BTreeMap<String, FlowsChecked> {
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default()
+}
+
+/// The result of the last check of a flow table, or `None` before the first one.
+pub fn flows_checked(s: &AppState, rel: &str) -> Res<Option<FlowsChecked>> {
+    let p = project(s)?;
+    Ok(checks_read(&checks_file(s, &p.id)).remove(rel))
+}
+
+/// Scan the code for the hosts that it calls and keep a result for each flow of the table. A doc
+/// (`docs/`) is not the code. A file that is not UTF-8 text, or is too big, is skipped. A check
+/// reads files and sends nothing.
+pub fn flows_check(s: &AppState, rel: &str) -> Res<FlowsChecked> {
+    let p = project(s)?;
+    let full = design::resolve(&p.root, &p.file, rel)?;
+    if !is_flow_file(&p.file, rel) {
+        return Err(format!("not a flow file: {rel}"));
+    }
+    let rows = design::read_flows(&read_text(&full, rel)?.text)?;
+    let mut hosts = BTreeSet::new();
+    for file in crate::code::scan_files(&p.root)? {
+        if file.starts_with("docs/") {
+            continue;
+        }
+        let path = p.root.join(&file);
+        if std::fs::metadata(&path).is_ok_and(|m| m.is_file() && m.len() <= MAX_BYTES)
+            && let Ok(text) = std::fs::read_to_string(&path)
+        {
+            hosts.extend(flows::hosts_in(&text));
+        }
+    }
+    let done = FlowsChecked {
+        at: crate::code::now_iso(),
+        rows: flows::check_against_code(&rows, &hosts),
+    };
+    let file = checks_file(s, &p.id);
+    let mut all = checks_read(&file);
+    all.insert(rel.to_string(), done.clone());
+    let _g = s.guard();
+    std::fs::create_dir_all(file.parent().unwrap_or(&s.dir)).map_err(err)?;
+    safe_write::write(&file, &serde_json::to_string(&all).map_err(err)?, None).map_err(err)?;
+    Ok(done)
+}
+
 // ---------------------------------------------------------------- try
 
 const TRY_BODY_MAX: usize = 1024 * 1024;
@@ -433,6 +495,18 @@ pub async fn design_flows_save(
     stamp: Option<String>,
 ) -> Api<Written> {
     blocking(app, move |s| flows_save(s, &path, &rows, stamp.as_deref())).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn design_flows_check(app: AppHandle, path: String) -> Api<FlowsChecked> {
+    blocking(app, move |s| flows_check(s, &path)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn design_flows_checked(app: AppHandle, path: String) -> Api<Option<FlowsChecked>> {
+    blocking(app, move |s| flows_checked(s, &path)).await
 }
 
 #[tauri::command]

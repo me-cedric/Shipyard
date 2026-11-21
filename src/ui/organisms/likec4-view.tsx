@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { ZoomFrame } from "../molecules/zoom-frame";
 import type { EditorError } from "./error-line";
 import { edgePath, type Layout, shortMessage, toLayout } from "./likec4-layout";
@@ -19,7 +20,27 @@ export async function renderLikeC4(source: string): Promise<Layout[]> {
 	return views;
 }
 
-function Drawing({ view }: { view: Layout }) {
+// LikeC4 lays nodes out at about 320 by 180: draw them near 240 by 110 so the labels read large.
+const SX = 0.75;
+const SY = 0.6;
+
+function Drawing({ view: full }: { view: Layout }) {
+	const view: Layout = {
+		...full,
+		width: full.width * SX,
+		height: full.height * SY,
+		nodes: full.nodes.map((n) => ({
+			...n,
+			x: n.x * SX,
+			y: n.y * SY,
+			width: n.width * SX,
+			height: n.height * SY,
+		})),
+		edges: full.edges.map((e) => ({
+			...e,
+			points: e.points.map(([x, y]) => [x * SX, y * SY] as [number, number]),
+		})),
+	};
 	const byId = new Map(view.nodes.map((n) => [n.id, n]));
 	// A holder draws first, so that its children sit above it.
 	const depth = (id: string | null): number => (id ? 1 + depth(byId.get(id)?.parent ?? null) : 0);
@@ -43,53 +64,82 @@ function Drawing({ view }: { view: Layout }) {
 				>
 					<path d="M0 0L8 4L0 8z" fill="currentColor" />
 				</marker>
+				<filter id={`lift-${view.id}`} x="-20%" y="-20%" width="140%" height="150%">
+					<feDropShadow
+						dx="0"
+						dy="6"
+						stdDeviation="7"
+						floodColor="currentColor"
+						floodOpacity="0.12"
+					/>
+				</filter>
 			</defs>
-			{nodes.map((n) => (
-				<g key={n.id}>
-					<rect
-						x={n.x}
-						y={n.y}
-						width={n.width}
-						height={n.height}
-						rx="6"
-						className={
-							n.parent === null && view.nodes.some((c) => c.parent === n.id)
-								? "fill-n-2 stroke-n-7"
-								: "fill-n-3 stroke-n-8"
-						}
-					/>
-					<text
-						x={n.x + n.width / 2}
-						y={n.y + n.height / 2}
-						textAnchor="middle"
-						dominantBaseline="middle"
-						className="fill-n-12 text-12"
-					>
-						{n.title}
-					</text>
-				</g>
-			))}
-			{view.edges.map((e) => (
-				<g key={e.id}>
-					<path
-						d={edgePath(e.points)}
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="1.5"
-						markerEnd={`url(#arrow-${view.id})`}
-					/>
-					{e.label && e.points[Math.floor(e.points.length / 2)] ? (
+			{nodes.map((n) => {
+				const holder = n.parent === null && view.nodes.some((c) => c.parent === n.id);
+				const system = n.kind === "system";
+				return (
+					<g key={n.id}>
+						<rect
+							x={n.x}
+							y={n.y}
+							width={n.width}
+							height={n.height}
+							rx="16"
+							filter={holder || system ? undefined : `url(#lift-${view.id})`}
+							className={cn(
+								holder ? "fill-n-2 stroke-n-7" : system ? "fill-accent" : "fill-surface-2",
+							)}
+						/>
 						<text
-							x={e.points[Math.floor(e.points.length / 2)]?.[0]}
-							y={e.points[Math.floor(e.points.length / 2)]?.[1]}
+							x={n.x + n.width / 2}
+							y={n.y + n.height / 2}
 							textAnchor="middle"
-							className="fill-n-11 stroke-n-1 stroke-[4px] text-11 [paint-order:stroke]"
+							dominantBaseline="middle"
+							style={{ fontSize: 22 }}
+							className={cn("font-semibold", system ? "fill-accent-fg" : "fill-n-12")}
 						>
-							{e.label}
+							{n.title}
 						</text>
-					) : null}
-				</g>
-			))}
+					</g>
+				);
+			})}
+			{view.edges.map((e) => {
+				const mid = e.points[Math.floor(e.points.length / 2)];
+				const w = e.label.length * 9 + 28;
+				return (
+					<g key={e.id}>
+						<path
+							d={edgePath(e.points)}
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="1.5"
+							markerEnd={`url(#arrow-${view.id})`}
+						/>
+						{e.label && mid ? (
+							<g>
+								<rect
+									x={mid[0] - w / 2}
+									y={mid[1] - 12}
+									width={w}
+									height="24"
+									rx="12"
+									className="fill-surface-2"
+								/>
+								<text
+									x={mid[0]}
+									y={mid[1]}
+									textAnchor="middle"
+									dominantBaseline="middle"
+									style={{ fontSize: 16 }}
+									className="fill-n-12 font-medium"
+								>
+									{e.label}
+								</text>
+							</g>
+						) : null}
+					</g>
+				);
+			})}
 		</svg>
 	);
 }
@@ -116,7 +166,7 @@ export function LikeC4View({
 		400,
 	);
 	return (
-		<ZoomFrame label={label} className="min-h-40 rounded-md border border-n-7 bg-n-1">
+		<ZoomFrame label={label} className="min-h-40">
 			<div className="flex flex-col gap-4 p-3">
 				{failure ? (
 					<p role="alert" className="text-ui text-danger-text">
@@ -125,7 +175,6 @@ export function LikeC4View({
 				) : null}
 				{(views ?? []).map((v) => (
 					<figure key={v.id} aria-label={`${label}: ${v.title}`} className="flex flex-col gap-1">
-						<figcaption className="text-12 font-medium text-n-11">{v.title}</figcaption>
 						<Drawing view={v} />
 					</figure>
 				))}

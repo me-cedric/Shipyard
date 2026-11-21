@@ -2,14 +2,12 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockState } from "@/lib/ipc/mock";
 import { withTracker } from "@/test/tracker";
-import { SpecChanges } from "./index";
-import { renderSpecs } from "./test-harness";
+import { renderChange } from "./test-harness";
 
 type User = ReturnType<typeof userEvent.setup>;
 const written = () => Object.keys(mockState().work.written);
 const startSplit = async (user: User) => {
-	await user.click(await screen.findByRole("button", { name: /^add-auth/ }));
-	await user.click(await screen.findByRole("button", { name: "Split into work items" }));
+	await user.click(await screen.findByRole("button", { name: "Next step: split into tickets" }));
 	return within(await screen.findByRole("dialog"));
 };
 
@@ -17,7 +15,7 @@ describe("Specs / Split", () => {
 	it("shows each item with its requirement refs, and the apply covers what the PM kept", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		await renderSpecs(<SpecChanges />);
+		await renderChange("add-auth");
 		const review = await startSplit(user);
 		const story = await review.findByRole("group", { name: "sessions-req-001" });
 		expect(within(story).getByRole("button", { name: /spec:sessions#REQ-001/ })).toBeVisible();
@@ -32,7 +30,7 @@ describe("Specs / Split", () => {
 	it("removes the stories of a removed epic, so the apply has no missing parent", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		await renderSpecs(<SpecChanges />);
+		await renderChange("add-auth");
 		const review = await startSplit(user);
 		await review.findByRole("group", { name: "sessions-req-001" });
 		await user.click(review.getByRole("button", { name: "Remove sessions" }));
@@ -46,7 +44,7 @@ describe("Specs / Split", () => {
 	it("adds an item and edits a title before the preview", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		await renderSpecs(<SpecChanges />);
+		await renderChange("add-auth");
 		const review = await startSplit(user);
 		await review.findByRole("group", { name: "sessions" });
 		await user.type(review.getByRole("textbox", { name: "Requirements" }), "spec:sessions#REQ-001");
@@ -64,7 +62,7 @@ describe("Specs / Split", () => {
 	it("writes after the click, and a second apply creates no duplicate", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		await renderSpecs(<SpecChanges />);
+		await renderChange("add-auth");
 		let review = await startSplit(user);
 		await user.click(await review.findByRole("button", { name: "Preview" }));
 		let apply = within(await screen.findByRole("dialog"));
@@ -73,7 +71,7 @@ describe("Specs / Split", () => {
 		expect(written()).toContain("est:add-auth#sessions");
 		await user.keyboard("{Escape}");
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-		await user.click(screen.getByRole("button", { name: "Split into work items" }));
+		await user.click(screen.getByRole("button", { name: "Next step: split into tickets" }));
 		review = within(await screen.findByRole("dialog"));
 		await user.click(await review.findByRole("button", { name: "Preview" }));
 		apply = within(await screen.findByRole("dialog"));
@@ -85,7 +83,7 @@ describe("Specs / Split", () => {
 	it("blocks the apply when an item cites an unknown requirement", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		await renderSpecs(<SpecChanges />);
+		await renderChange("add-auth");
 		const review = await startSplit(user);
 		await user.type(review.getByRole("textbox", { name: "Requirements" }), "spec:sessions#REQ-999");
 		const add = review.getByRole("form", { name: "Add" });
@@ -101,18 +99,19 @@ describe("Specs / Split", () => {
 describe("Specs / Archive", () => {
 	it("archives a change with no work item and moves its capability to the settled ones", async () => {
 		const user = userEvent.setup();
-		await renderSpecs(<SpecChanges />);
-		await user.click(await screen.findByRole("button", { name: /^add-billing/ }));
+		await renderChange("add-billing");
 		await user.click(await screen.findByRole("button", { name: "Archive" }));
-		expect(await screen.findByRole("button", { name: /^add-auth/ })).toBeVisible();
-		expect(screen.queryByRole("button", { name: /^add-billing/ })).toBeNull();
+		// The change leaves the list, so its detail goes (the list itself is Flow / List).
+		await waitFor(() =>
+			expect(screen.queryByRole("group", { name: "Files of the change" })).toBeNull(),
+		);
 		expect(mockState().specs.files["docs/openspec/specs/invoices/spec.md"]).toBeDefined();
 	});
 
 	it("lists the open items and archives only after the person confirms", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		await renderSpecs(<SpecChanges />);
+		await renderChange("add-auth");
 		let review = await startSplit(user);
 		await user.click(await review.findByRole("button", { name: "Preview" }));
 		await user.click(
@@ -130,6 +129,8 @@ describe("Specs / Archive", () => {
 			expect(mockState().specs.files["docs/openspec/changes/add-auth/proposal.md"]).toBeUndefined(),
 		);
 		review = within(document.body);
-		expect(await screen.findByRole("button", { name: /^add-billing/ })).toBeVisible();
+		await waitFor(() =>
+			expect(screen.queryByRole("group", { name: "Files of the change" })).toBeNull(),
+		);
 	});
 });

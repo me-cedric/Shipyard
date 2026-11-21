@@ -13,7 +13,13 @@ const NONE = "none";
  * Send to factory. The dialog shows the work item first and creates it only on Send. A workflow
  * adds the `wf:` label, and the factory starts the run after pickup (REQ-014, REQ-015).
  */
-export function SendToFactory({ a }: { a: Assistant }) {
+export function SendToFactory({
+	a,
+	variant = "ghost",
+}: {
+	a: Assistant;
+	variant?: "ghost" | "secondary";
+}) {
 	const { t } = useI18n();
 	const [open, setOpen] = useState(false);
 	const [preview, setPreview] = useState<DiffRow | null>(null);
@@ -48,7 +54,7 @@ export function SendToFactory({ a }: { a: Assistant }) {
 	};
 	return (
 		<>
-			<Button variant="ghost" disabled={empty || a.busy} onClick={() => setOpen(true)}>
+			<Button variant={variant} disabled={empty || a.busy} onClick={() => setOpen(true)}>
 				<ArrowUpTrayIcon size={14} />
 				{t.assistant.factory.send}
 			</Button>

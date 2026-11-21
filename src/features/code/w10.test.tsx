@@ -6,13 +6,21 @@ import { mountApp } from "@/test/mount";
 
 const demo = () => unwrap(commands.projectsOpen("/mock/demo", false));
 const draft = (text: RegExp) => screen.findByDisplayValue(text);
+// The write box, the agent review and the assistant actions are in Chat.
+const toChat = async (user: ReturnType<typeof userEvent.setup>) =>
+	user.click(
+		within(await screen.findByRole("navigation", { name: "Sections" })).getByRole("button", {
+			name: "Chat",
+		}),
+	);
 
 describe("Code, W10", () => {
 	it("fills the draft of the assistant with the pull request", async () => {
 		const user = userEvent.setup();
 		await demo();
-		mountApp("/code/pull-requests");
+		mountApp("/code/now");
 		await user.click(await screen.findByRole("link", { name: /health route/ }));
+		await toChat(user);
 		await user.click(await screen.findByRole("button", { name: "Write description" }));
 		expect(await draft(/Write the description of pull request #\d+ .*health route/)).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Review" }));
@@ -25,7 +33,7 @@ describe("Code, W10", () => {
 		const files = mockState().code?.files;
 		if (!files) throw new Error("no code state");
 		files["docs/openspec/x/spec.md"] = { head: null, index: "s\n", work: "s\n" };
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		expect(
 			await screen.findByText("Specs changed, Test plans did not: docs/openspec/x/spec.md"),
 		).toBeInTheDocument();
@@ -38,7 +46,7 @@ describe("Code, W10", () => {
 		const files = mockState().code?.files;
 		if (!files) throw new Error("no code state");
 		files["docs/openspec/x/spec.md"] = { head: null, index: "s\n", work: "s\n" };
-		mountApp("/code/changes");
+		mountApp("/code/now");
 		const text = "Specs changed, Test plans did not: docs/openspec/x/spec.md";
 		await user.click(await screen.findByRole("button", { name: "Acknowledge Test plans" }));
 		const dialog = within(await screen.findByRole("dialog"));
@@ -69,13 +77,13 @@ describe("Code, W10", () => {
 		code.branches.main?.touches.push("src/app.ts");
 		await unwrap(commands.codeBranchMerge("feat/auth/login"));
 		mountApp("/code/changes");
-		await user.click(await screen.findByRole("button", { name: "Hand to agent" }));
+		await user.click(await screen.findByRole("button", { name: "Solve with an agent" }));
 		expect(await draft(/Resolve the merge conflicts in src\/app\.ts/)).toBeVisible();
 	}, 20_000);
 
 	it("lists the delivery notes of docs/delivery/impacts", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/code/impacts");
+		mountApp("/flow/impacts/report");
 		expect(
 			await screen.findByRole("button", { name: "Open Sync impact · 2026-10-20" }),
 		).toBeInTheDocument();

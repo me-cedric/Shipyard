@@ -171,6 +171,11 @@ pub struct WorkItem {
     pub updated: String,
     /// `None` when time tracking is off or the item has no time data.
     pub time: Option<TimeTracking>,
+    /// The release of the issue tracker: the fix version (Jira), the milestone (GitHub and GitLab),
+    /// the iteration (Azure DevOps) or the project (Linear). One release for a ticket. A mirror
+    /// written before this field holds none.
+    #[serde(default)]
+    pub release: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

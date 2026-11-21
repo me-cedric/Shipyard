@@ -11,26 +11,42 @@ describe("Home / Needs you: agent review", () => {
 		await demo();
 		const draft = await unwrap(commands.prReviewStart(141, true));
 		const router = mountApp("/home/today");
-		const group = (await screen.findByRole("heading", { name: "Agent reviews (1)" })).closest(
-			"section",
-		) as HTMLElement;
-		expect(within(group).getByText("#141")).toBeVisible();
-		expect(within(group).getByText(draft.title)).toBeVisible();
-		await user.click(within(group).getByRole("button", { name: "Open the pull request" }));
+		const queue = within(await screen.findByRole("list", { name: "Needs you" }));
+		// The queue shows three things: "N more" shows the rest in place.
+		await user.click(await queue.findByRole("button", { name: /^\d+ more$/ }));
+		await user.click(
+			await queue.findByRole("button", {
+				name: (n) => n.endsWith(`Review the pull request ${draft.title}`),
+			}),
+		);
+		const group = within((await screen.findAllByRole("article"))[0] as HTMLElement);
+		expect(group.getAllByText(draft.title)[0]).toBeVisible();
+		await user.click(group.getByRole("button", { name: "Open the pull request" }));
 		// The pull request page opens at the address of that pull request, with the draft on it.
 		await waitFor(() =>
 			expect(router.state.location.pathname).toBe("/code/pull-requests/github-demo-141"),
 		);
+		// The agent review is in Chat.
+		await user.click(
+			within(await screen.findByRole("navigation", { name: "Sections" })).getByRole("button", {
+				name: "Chat",
+			}),
+		);
 		expect(await screen.findByRole("heading", { name: /Agent review \(2\)/ })).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Post review" }));
 		expect(await screen.findByText("Posted")).toBeVisible();
-		await waitFor(async () => expect(await unwrap(commands.prReviewWaiting())).toEqual([]));
+		// The demo keeps one other draft waiting (the review comment of Code / local changes).
+		await waitFor(async () =>
+			expect((await unwrap(commands.prReviewWaiting())).filter((w) => w.number === 141)).toEqual(
+				[],
+			),
+		);
 	});
 
-	it("shows no group when no draft waits", async () => {
+	it("shows no review when no draft waits", async () => {
 		await demo();
 		mountApp("/home/today");
-		await screen.findByRole("heading", { level: 1, name: "Today" });
-		expect(screen.queryByRole("heading", { name: /^Agent reviews/ })).toBeNull();
+		await screen.findByRole("heading", { level: 1, name: /Today|need you/ });
+		expect(screen.queryByRole("button", { name: "Open the pull request" })).toBeNull();
 	});
 });

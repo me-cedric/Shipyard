@@ -18,14 +18,23 @@ export type MockCompassSetup = {
 	installed: boolean;
 };
 
-const VERSION = "1.0.2";
+const VERSION = "1.3.0";
 
 const OBJECTIVES: [string, string[]][] = [
 	["recommended", []],
 	["quality", ["skill:review", "skill:ci-triage", "skill:debug", "pack:security", "pack:e2e"]],
 	["specs", ["skill:spec-flow", "skill:task-flow", "skill:grill", "upstream:mattpocock"]],
 	["architecture", ["skill:adr", "skill:architecture-advisor", "skill:impact-analysis"]],
-	["frontend", ["skill:ui-conformance", "upstream:taste", "mcp:playwright"]],
+	[
+		"frontend",
+		[
+			"skill:ui-conformance",
+			"upstream:taste",
+			"upstream:interface-polish",
+			"upstream:vercel-web",
+			"mcp:playwright",
+		],
+	],
 	["mobile", ["skill:native-mobile-skills", "upstream:expo"]],
 	["devops", ["pack:ci-github", "pack:env", "upstream:devops-security", "mcp:kubernetes"]],
 ];
@@ -67,6 +76,12 @@ export function seedCompassSetup(): MockCompassSetup {
 				skills: ["grill-me", "grilling"],
 				edited: [".agents/skills/grill-me/SKILL.md"],
 			}),
+			source("interface-polish", {
+				state: "off",
+				recommended: true,
+				skills: ["make-interfaces-feel-better"],
+			}),
+			source("vercel-web", { state: "off", recommended: true, skills: ["web-design-guidelines"] }),
 			source("devops-security", { state: "off", skills: ["kubernetes-ops", "helm-charts"] }),
 			source("ponytail", { state: "off", onComputer: true }),
 			source("expo", { state: "off", available: false, skills: ["expo-app"] }),
@@ -89,6 +104,8 @@ export function seedCompassSetup(): MockCompassSetup {
 			asset("pack:env", false, false),
 			asset("upstream:taste", true, true, true),
 			asset("upstream:mattpocock", true, true, true),
+			asset("upstream:interface-polish", false, true, true),
+			asset("upstream:vercel-web", false, true, true),
 			asset("upstream:devops-security", false),
 			asset("upstream:expo", false, false),
 			asset("mcp:playwright", true, true, true),

@@ -909,7 +909,7 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
             let port = o
                 .tickets
                 .as_ref()
-                .ok_or("no tracker is wired to this server")?;
+                .ok_or("no issue tracker is wired to this server")?;
             (port.0)(name, args)?
         }
         "adr_list" | "adr_read" | "adr_propose" => adr(root, name, args)?,

@@ -87,7 +87,7 @@ describe("mock creator", () => {
 		expect(again.outcome.status).toBe("folder-not-empty");
 	});
 
-	it("starts the bootstrap run only with a code host, and creates issues after the tracker is set", async () => {
+	it("starts the bootstrap run only with a code host, and creates issues after the issue tracker is set", async () => {
 		await unwrap(commands.creatorCreate(plan(), true));
 		await expect(unwrap(commands.creatorBootstrap(true))).rejects.toMatchObject({
 			details: expect.stringContaining("code host"),

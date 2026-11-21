@@ -27,7 +27,9 @@ pub struct Workflow {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 pub struct WorkflowLimits {
-    /// No limit when absent: a run stops on its budget or its stall timeout.
+    /// Old files may hold it. Read and ignored: a run has no turn limit (`adr:0025`).
+    #[serde(default, skip_serializing)]
+    #[specta(skip)]
     pub max_turns: Option<u32>,
     /// No run budget when absent: the shared budgets still apply.
     pub budget_usd: Option<f64>,
@@ -78,6 +80,11 @@ pub struct Step {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub needs: Vec<String>,
     pub gate: Gate,
+    /// The team role that approves a `gate: human` step, as `team.yaml` names it. Only a person
+    /// with this role approves, and only this role gets the card on Today (`runs-recipes`
+    /// REQ-008). Absent: any person with the right to approve.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approver: Option<String>,
     /// `<step>.<field>`: one child for each item of that output. `<step>` is in `needs`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub for_each: Option<String>,
@@ -151,7 +158,31 @@ pub struct ForEach<'a> {
     pub field: &'a str,
 }
 
+/// What does a step: an agent, a person or a check (`runs-recipes` REQ-009).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum StepKind {
+    Agent,
+    Person,
+    Check,
+}
+
 impl Step {
+    /// A step that waits for a person is `Person`. A review step, and a step that the engine
+    /// does itself, is `Check`. Any other step is `Agent`.
+    pub fn kind(&self) -> StepKind {
+        if self.gate == Gate::Human {
+            StepKind::Person
+        } else if self.action.is_some()
+            || self.max_rounds.is_some()
+            || self.role.as_deref() == Some("reviewer")
+        {
+            StepKind::Check
+        } else {
+            StepKind::Agent
+        }
+    }
+
     pub fn max_parallel(&self) -> u32 {
         self.max_parallel.unwrap_or(DEFAULT_PARALLEL)
     }
@@ -262,6 +293,11 @@ impl Workflow {
             {
                 out.push(I::BadForEach { step: step() });
             }
+            if let Some(r) = &s.approver
+                && (s.gate != Gate::Human || crate::rights::Role::parse(r).is_none())
+            {
+                out.push(bad(format!("steps.{}.approver", s.id)));
+            }
             if s.max_parallel == Some(0) {
                 out.push(bad(format!("steps.{}.max_parallel", s.id)));
             }
@@ -276,9 +312,6 @@ impl Workflow {
             out.push(I::Cycle { steps });
         }
         let l = &self.limits;
-        if l.max_turns == Some(0) {
-            out.push(bad("limits.max_turns".into()));
-        }
         if l.budget_usd.is_some_and(|b| !(b.is_finite() && b > 0.0)) {
             out.push(bad("limits.budget_usd".into()));
         }

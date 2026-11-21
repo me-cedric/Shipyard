@@ -3,7 +3,9 @@ export * from "./bindings";
 export {
 	confirmDialog,
 	errorDialog,
+	pickAnyFile,
 	pickCertificate,
+	pickFile,
 	pickFolder,
 	pickImage,
 	pickPlugin,

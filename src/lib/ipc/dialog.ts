@@ -9,6 +9,14 @@ export async function pickFolder(): Promise<string | null> {
 	return typeof path === "string" ? path : null;
 }
 
+/** The native picker for any file. Returns null when the person cancels. */
+export async function pickFile(): Promise<string | null> {
+	if (!isTauri()) return pickFileMock();
+	const { open } = await import("@tauri-apps/plugin-dialog");
+	const path = await open({ multiple: false });
+	return typeof path === "string" ? path : null;
+}
+
 const EXCEL = [{ name: "Excel", extensions: ["xlsx"] }];
 
 /** The native picker for a workbook to read. Returns null when the person cancels. */
@@ -67,6 +75,14 @@ export async function saveAs(name: string, ext: string): Promise<string | null> 
 	return path;
 }
 
+/** The native picker for any file. Returns null when the person cancels. */
+export async function pickAnyFile(): Promise<string | null> {
+	if (!isTauri()) return pickFileMock() || null;
+	const { open } = await import("@tauri-apps/plugin-dialog");
+	const path = await open({ multiple: false });
+	return typeof path === "string" ? path : null;
+}
+
 const IMAGE = [{ name: "Image", extensions: ["png", "jpg", "jpeg"] }];
 
 /** The native picker for a PNG or JPEG picture. Returns null when the person cancels. */
@@ -78,7 +94,7 @@ export async function pickImage(): Promise<string | null> {
 }
 
 export async function confirmDialog(message: string): Promise<boolean> {
-	if (!isTauri()) return confirmMock();
+	if (!isTauri()) return confirmMock(message);
 	const { ask } = await import("@tauri-apps/plugin-dialog");
 	return ask(message, { kind: "info" });
 }

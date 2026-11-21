@@ -16,7 +16,7 @@ use crate::work::{FROZEN, need_click};
 
 /// The project root and the full path of `rel`, which must stay under the root and outside `.git`.
 /// The parent folder is resolved, so a symlink that leaves the project is refused.
-fn resolve(s: &AppState, rel: &str) -> Res<(PathBuf, PathBuf)> {
+pub(crate) fn resolve(s: &AppState, rel: &str) -> Res<(PathBuf, PathBuf)> {
     let root = s.registry()?.active().cloned().ok_or("no active project")?;
     let root = Path::new(&root.path).canonicalize().map_err(err)?;
     let path = Path::new(rel.trim());

@@ -14,7 +14,7 @@ use shipyard_secrets::Secret;
 use std::sync::{Arc, Mutex};
 
 const FIELDS: &str =
-    "summary,description,labels,issuetype,parent,timetracking,status,assignee,updated";
+    "summary,description,labels,issuetype,parent,timetracking,status,assignee,updated,fixVersions";
 pub(crate) const API: &str = "/rest/api/2";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -117,6 +117,7 @@ impl Jira {
                 shipyard_http::num(v, "/fields/timetracking/originalEstimateSeconds"),
                 shipyard_http::num(v, "/fields/timetracking/timeSpentSeconds"),
             ),
+            release: Some(text(v, "/fields/fixVersions/0/name")).filter(|r| !r.is_empty()),
         }
     }
 }

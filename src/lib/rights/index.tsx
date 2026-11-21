@@ -30,7 +30,10 @@ export function useRights() {
 	const view = useRightsView().data;
 	const person = view?.person;
 	const can = (right: Right) => !person || person.rights.includes(right);
-	const level = (area: Area): Level => person?.access[area] ?? "write";
+	// The places that a role hides ride on the function, so each `hiddenSection` call finds them.
+	const level = Object.assign((area: Area): Level => person?.access[area] ?? "write", {
+		hidden: person?.hidden ?? [],
+	});
 	const role = person?.role ?? null;
 	const gate = (right: Right): { disabled?: true; reason?: string } =>
 		can(right)

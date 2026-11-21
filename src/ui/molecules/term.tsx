@@ -51,7 +51,7 @@ export function Term({ id, children }: { id: TermId; children: ReactNode }) {
 					e.preventDefault();
 					link.current.focus();
 				}}
-				className="cursor-help rounded-sm underline decoration-dotted underline-offset-4"
+				className="-my-3 cursor-help rounded-sm underline decoration-dotted underline-offset-4"
 			>
 				{children}
 			</Popover.Trigger>
@@ -75,11 +75,11 @@ export function Term({ id, children }: { id: TermId; children: ReactNode }) {
 								e.preventDefault();
 								trigger.current?.focus();
 							}}
-							href="/knowledge/manual"
+							href="/library/manual"
 							className="self-start rounded-sm text-accent-text hover:underline"
 							onClick={(e) => {
 								e.preventDefault();
-								open("/knowledge/manual");
+								open("/library/manual");
 							}}
 						>
 							{t.glossary.manual}

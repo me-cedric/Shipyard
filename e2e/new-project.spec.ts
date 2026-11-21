@@ -13,17 +13,26 @@ test("creates a local project from the first run", async ({ page }) => {
 	await page.goto("/");
 	await page.getByRole("button", { name: "Continue" }).click();
 	await page.getByRole("button", { name: "Create a project" }).click();
-	const dialog = page.getByRole("dialog", { name: "New project" });
-	await dialog.getByRole("textbox", { name: "Name" }).fill("Acme Web");
-	await dialog.getByRole("button", { name: "Create", exact: true }).click();
-	await dialog.getByRole("button", { name: "Open", exact: true }).click();
+	// New project is a page with its own address. The project is created at the last step only.
+	await expect(page).toHaveURL(/\/projects\/new$/);
+	await page.getByRole("textbox", { name: "Name" }).fill("Acme Web");
+	await expect(page.getByRole("button", { name: "Create the project" })).toHaveCount(0);
+	for (const question of ["What do you build?", "Which tools do you use?", "Who is in the team?"]) {
+		await page.getByRole("button", { name: "Continue" }).click();
+		await expect(page.getByRole("heading", { level: 1, name: question })).toBeVisible();
+	}
+	await page.getByRole("button", { name: "Continue" }).click();
+	await page.getByRole("button", { name: "Create the project" }).click();
+	await page.getByRole("button", { name: "Open", exact: true }).click();
 	await expect(page.getByRole("button", { name: /^Project/ })).toHaveText(/Acme Web/);
-	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+	).toBeVisible();
 });
 
 test("creates a project with a new repository and starter issues", async ({ page }) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
-	await page.goto("/settings/connections");
+	await page.goto("/setup/project?page=connections");
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme tracker");
 	await page.getByRole("combobox", { name: "Product" }).click();
@@ -41,27 +50,29 @@ test("creates a project with a new repository and starter issues", async ({ page
 	await page.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByRole("heading", { name: "Code hosts (1)" })).toBeVisible();
 
-	await goTo(page, "/home/projects");
+	await goTo(page, "/projects");
 	await page.getByRole("button", { name: "New project" }).click();
-	const dialog = page.getByRole("dialog", { name: "New project" });
+	const dialog = page.getByRole("main");
 	await dialog.getByRole("textbox", { name: "Name" }).fill("Acme Web");
 	const steps = dialog.getByRole("navigation", { name: "Steps" });
-	await steps.getByRole("button", { name: "Remote" }).click();
-	await dialog.getByRole("button", { name: "New repository" }).click();
+	await steps.getByRole("button", { name: "Tools" }).click();
+	await dialog.getByRole("radio", { name: "New repository" }).check({ force: true });
 	await expect(dialog.getByRole("textbox", { name: "Owner and name" })).toHaveValue(
 		"owner/acme-web",
 	);
 	await dialog.getByRole("combobox", { name: "Issue tracker" }).click();
 	await page.getByRole("option", { name: "Acme tracker" }).click();
-	await steps.getByRole("button", { name: "Start" }).click();
-	await expect(dialog.getByRole("radio", { name: "Run" })).toBeEnabled();
-	await dialog.getByRole("radio", { name: "Issues" }).check({ force: true });
+	await steps.getByRole("button", { name: "Ready" }).click();
+	await expect(dialog.getByRole("radio", { name: "Start an agent" })).toBeEnabled();
+	await dialog.getByRole("radio", { name: "Create the tickets" }).check({ force: true });
+	// The files open on demand.
+	await dialog.getByRole("button", { name: "Read them" }).click();
 	await expect(dialog.getByRole("button", { name: "docs/brief.md" })).toBeVisible();
-	await expect(steps.getByRole("button", { name: "Start" })).toHaveAttribute(
+	await expect(steps.getByRole("button", { name: "Ready" })).toHaveAttribute(
 		"aria-current",
 		"step",
 	);
-	await expect(dialog.getByRole("radio", { name: "Issues" })).toBeChecked();
+	await expect(dialog.getByRole("radio", { name: "Create the tickets" })).toBeChecked();
 	await dialog.getByRole("button", { name: ".shipyard/project.yaml" }).click();
 	await expect(dialog.getByRole("textbox", { name: /Text of/ })).toHaveValue(/connections:/);
 	if (process.env.SCREENSHOTS) {
@@ -71,7 +82,7 @@ test("creates a project with a new repository and starter issues", async ({ page
 		await page.screenshot({ path: "docs/assets/screenshots/new-project.png" });
 	}
 
-	await dialog.getByRole("button", { name: "Create", exact: true }).click();
+	await dialog.getByRole("button", { name: "Create the project" }).click();
 	await expect(dialog.getByRole("textbox", { name: "Issue 1" })).toBeVisible();
 	await dialog.getByRole("button", { name: "Create issues" }).click();
 	await expect(dialog.getByText("4 issues created")).toBeVisible();

@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex};
 pub(crate) const API: &str = "7.1";
 /// The comments API of 7.1 is a preview: the call fails without the suffix.
 pub(crate) const COMMENTS_API: &str = "7.1-preview.4";
-const FIELDS: &str = "System.Id,System.Title,System.Description,System.WorkItemType,System.State,System.AssignedTo,System.Tags,System.Parent,System.ChangedDate,System.TeamProject,Microsoft.VSTS.Scheduling.OriginalEstimate,Microsoft.VSTS.Scheduling.CompletedWork";
+const FIELDS: &str = "System.Id,System.Title,System.Description,System.WorkItemType,System.State,System.AssignedTo,System.Tags,System.Parent,System.ChangedDate,System.TeamProject,Microsoft.VSTS.Scheduling.OriginalEstimate,Microsoft.VSTS.Scheduling.CompletedWork,System.IterationPath";
 
 pub struct Azure {
     pub(crate) http: Arc<dyn Http>,
@@ -135,7 +135,16 @@ fn item(v: &Value) -> WorkItem {
             estimate_minutes: estimate,
             spent_minutes: spent,
         }),
+        release: release(&f("System.IterationPath")),
     }
+}
+
+/// The iteration of a work item is its release. The root iteration (the project name, no
+/// backslash) is no release.
+fn release(path: &str) -> Option<String> {
+    path.split_once('\\')
+        .map(|(_, rest)| rest.rsplit('\\').next().unwrap_or(rest).to_string())
+        .filter(|r| !r.is_empty())
 }
 
 /// A WIQL string literal.

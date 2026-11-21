@@ -132,6 +132,9 @@ pub enum RunEvent {
     Block,
     Retry,
     BudgetStop,
+    /// A person pauses a working run (`runs-recipes` REQ-001). The engine sends it at the end of
+    /// a turn.
+    Pause,
     /// Runs of older logs only: the engine sends no new run to `Failed` (`q:Q-166`).
     Fail,
     Cancel,
@@ -243,6 +246,7 @@ impl Run {
             (s, E::Block) if s.is_active() => side(S::Blocked),
             (s, E::Retry) if s.is_active() => side(S::RetryQueued),
             (s, E::BudgetStop) if s.is_active() => side(S::Paused),
+            (s, E::Pause) if s.clocks_run() => side(S::Paused),
             (s, E::Fail) if s.is_active() => to(S::Failed),
             _ => Err(()),
         };
@@ -287,8 +291,11 @@ pub enum Cause {
     Guard,
     NoAnswer,
     Budget,
+    /// Only in old run logs: no run stops at a turn count now (`adr:0025`).
     MaxTurns,
     PullRequestClosed,
+    /// A person paused the run (`runs-recipes` REQ-001).
+    Person,
 }
 
 impl Cause {
@@ -314,6 +321,7 @@ impl Cause {
             Self::Budget => "budget spent",
             Self::MaxTurns => "max turns",
             Self::PullRequestClosed => "pull request closed",
+            Self::Person => "paused by a person",
         }
     }
 
@@ -428,9 +436,14 @@ pub enum BudgetLevel {
 }
 
 pub fn budget_level(spent: f64, budget: f64) -> BudgetLevel {
+    budget_level_at(spent, budget, BUDGET_ALERT)
+}
+
+/// `budget_level` with the share of the alert that the project set (`warn_at`, 0 to 1).
+pub fn budget_level_at(spent: f64, budget: f64, warn: f64) -> BudgetLevel {
     if spent >= budget {
         BudgetLevel::Spent
-    } else if spent >= budget * BUDGET_ALERT {
+    } else if spent >= budget * warn {
         BudgetLevel::Alert
     } else {
         BudgetLevel::Under

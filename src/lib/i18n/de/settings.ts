@@ -1,6 +1,29 @@
 import type { settingsEn } from "../settings";
 
 export const settingsDe: typeof settingsEn = {
+	scope: { project: "Dieses Projekt", computer: "Dieser Computer", me: "Ich" },
+	pages: {
+		projectHealth: "Zustand dieses Projekts",
+		computerHealth: "Zustand dieses Computers",
+		logs: "Protokolle und Feedback",
+		look: "Aussehen und Layout",
+	},
+	pills: {
+		details: "Details",
+		alone: "Was Agenten allein tun dürfen",
+		automation: "Automatisierung",
+		extensions: "Erweiterungen",
+		connections: "KI-Tools und Verbindungen",
+		models: "Modelle und Regeln",
+		health: "Zustand",
+	},
+	parts: {
+		less: "Weniger: {name}",
+		more: "Mehr: {name}",
+		ready: "Bereit",
+		fix: "Zu beheben",
+		off: "Aus",
+	},
 	tiers: {
 		name: "Modellstufen",
 		top: "Oberste",
@@ -59,7 +82,7 @@ export const settingsDe: typeof settingsEn = {
 		tickets: "Tickets",
 		adrs: "ADRs",
 		qa: "Qualitätsprüfungen",
-		workflows: "Workflows",
+		workflows: "Rezepte",
 		save: "Anwenden",
 		agents: "Agenten-Tools",
 		agentsNone: "Kein Agenten-Tool gefunden",
@@ -72,7 +95,7 @@ export const settingsDe: typeof settingsEn = {
 		write: "Datei schreiben",
 		cancel: "Abbrechen",
 		wired: "Geschrieben nach {path}",
-		allowList: "Erlaubnisliste",
+		allowList: "Erlaubte Werkzeuge",
 		allowAll: "Alle Werkzeuge",
 		allowRead: "Nur Lesen",
 		allowCustom: "Eigene",
@@ -93,7 +116,6 @@ export const settingsDe: typeof settingsEn = {
 		add: "PEM-Bündel hinzufügen",
 		remove: "Zertifikate entfernen",
 		count: "{count} Zertifikate hinzugefügt",
-		none: "Keine hinzugefügt",
 	},
 	tools: {
 		title: "Toolchain",
@@ -103,7 +125,7 @@ export const settingsDe: typeof settingsEn = {
 		group: { base: "Basis", forge: "Code-Plattformen", agent: "Agenten", scanner: "Scanner" },
 	},
 	ledger: {
-		title: "Funde im Zeitverlauf",
+		title: "Befunde im Zeitverlauf",
 		added: "+{count} neu",
 		resolved: "-{count} behoben",
 	},

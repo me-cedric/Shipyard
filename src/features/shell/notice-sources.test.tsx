@@ -83,7 +83,7 @@ describe("More notification sources (shell REQ-008)", () => {
 		const report = await unwrap(commands.codeScanRun("secrets", true));
 		const view = await unwrap(commands.codeQuality());
 		const [n] = scanNotices(view, en);
-		expect(n).toMatchObject({ kind: "error", target: { route: "/code/quality" } });
+		expect(n).toMatchObject({ kind: "error", target: { route: "/flow/health" } });
 		expect(n?.id).toBe(`scan-failed:scanner:secrets:${report.at}`);
 		markClicked(report);
 		expect(scanNotices(view, en).filter((x) => x.id === n?.id)).toEqual([]);

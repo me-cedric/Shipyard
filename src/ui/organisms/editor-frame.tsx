@@ -68,7 +68,11 @@ export function EditorFrame({
 	useDraftCount(save !== "clean");
 	return (
 		<section aria-label={title} className="flex min-h-0 flex-1 flex-col gap-2">
-			<LeaveGuard dirty={save !== "clean"} />
+			<LeaveGuard
+				dirty={save !== "clean"}
+				file={title}
+				onSave={blocked || save === "conflict" ? undefined : onSave}
+			/>
 			<header className="flex items-center gap-2">
 				<h2 className="truncate text-14 font-medium">{heading ?? title}</h2>
 				{heading ? <span className="truncate font-mono text-12 text-n-11">{title}</span> : null}
@@ -96,8 +100,12 @@ export function EditorFrame({
 					className="flex items-center gap-2 rounded-md bg-warning-subtle px-3 py-1 text-ui text-warning-text"
 				>
 					<span className="flex-1">{labels.conflict}</span>
-					<Button onClick={onReload}>{labels.reload}</Button>
-					<Button onClick={onKeepMine}>{labels.keepMine}</Button>
+					<Button className="min-h-control" onClick={onKeepMine}>
+						{labels.keepMine}
+					</Button>
+					<Button variant="primary" className="min-h-control" onClick={onReload}>
+						{labels.reload}
+					</Button>
 				</div>
 			) : null}
 			<div className="flex min-h-0 flex-1 flex-col">{children}</div>

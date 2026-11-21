@@ -1,5 +1,3 @@
-export { AgentsMap } from "./agents-map/agents-map";
-export { Runs } from "./runs/runs";
-export { Sessions } from "./sessions/sessions";
-export { Usage } from "./usage/usage";
-export { Workflows } from "./workflows/workflows";
+export { Recipes as Workflows } from "@/features/crew/recipes";
+export { CrewSessions as Sessions } from "@/features/crew/sessions";
+export { Spend as Usage } from "@/features/crew/spend";

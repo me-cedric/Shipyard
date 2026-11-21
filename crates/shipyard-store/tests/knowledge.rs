@@ -129,6 +129,7 @@ fn a_dashboard_round_trips_and_checks_its_tiles() {
         w: 2,
         h: 3,
         title: String::new(),
+        chart: String::new(),
     };
     let d = Dashboard {
         title: "Team".into(),
@@ -137,6 +138,14 @@ fn a_dashboard_round_trips_and_checks_its_tiles() {
     };
     let back = parse_dashboard(&dashboard_text(&d).unwrap()).unwrap();
     assert_eq!(back.value, d);
+    // A chart is kept in the file, and a chart outside the catalogue is refused.
+    let mut lined = d.clone();
+    lined.tiles[1].chart = "line".into();
+    let text = dashboard_text(&lined).unwrap();
+    assert!(text.contains("chart: line") && !text.contains("chart: \"\""));
+    assert_eq!(parse_dashboard(&text).unwrap().value, lined);
+    lined.tiles[1].chart = "pie".into();
+    assert!(dashboard_text(&lined).is_err());
     assert!(
         dashboard_text(&Dashboard {
             tiles: vec![tile("a", "nope")],

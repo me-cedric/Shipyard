@@ -58,6 +58,22 @@ pub fn marks(nodes: &[Stamp], edges: &[(String, String)]) -> BTreeMap<String, Ma
     out
 }
 
+/// The code files whose spec changed after the last change of the code (`spec:library-functions#REQ-012`).
+/// `code` holds each path with the time of its last change, `specs` the text of each spec with the time
+/// of its last change. A spec is the spec of a file when its text names the path. An unknown time (`0`)
+/// marks nothing. shortcut: a path inside a longer path also matches; upgrade with a real citation.
+pub fn stale_code(code: &[(String, i64)], specs: &[(String, i64)]) -> Vec<String> {
+    code.iter()
+        .filter(|(path, at)| {
+            *at > 0
+                && specs
+                    .iter()
+                    .any(|(text, changed)| *changed > *at && text.contains(path.as_str()))
+        })
+        .map(|(path, _)| path.clone())
+        .collect()
+}
+
 /// The learning path: models first, then the ADRs in number order, then the capability specs.
 /// A requirement ref (`spec:x#REQ-001`) and any other kind stay out. Each step appears once.
 pub fn path_order(refs: &[String]) -> Vec<String> {
@@ -117,4 +133,24 @@ pub fn glossary(specs: &[(String, String)]) -> Vec<Term> {
     }
     out.sort_by_key(|t| t.term.to_lowercase());
     out
+}
+
+#[cfg(test)]
+mod stale_code_tests {
+    use super::*;
+
+    #[test]
+    fn code_is_stale_when_a_spec_that_names_it_changed_after_it() {
+        let code = [
+            ("src/a.ts".to_string(), 100),
+            ("src/b.ts".to_string(), 300),
+            ("src/c.ts".to_string(), 100),
+            ("src/d.ts".to_string(), 0),
+        ];
+        let specs = [
+            ("Files: `src/a.ts`, `src/b.ts`, `src/d.ts`".to_string(), 200),
+            ("Files: `src/c.ts`".to_string(), 100),
+        ];
+        assert_eq!(stale_code(&code, &specs), ["src/a.ts"]);
+    }
 }

@@ -3,24 +3,27 @@ import { expect, type Page, test } from "@playwright/test";
 const FIRST = "One loop, from idea to merged code";
 const PERMISSIONS = "Allow what Shipyard needs";
 const LAST = "Run your first ticket";
+/** With no project the first run shows without the shell. A Setup page has the shell and the Ask bar. */
+const START = "/setup/computer";
 
 /** A dialog that is open. A dialog that closes stays in the page until its exit animation ends, and the command palette that opened the tour can still be closing when the tour closes. */
 const openDialogs = (page: Page) => page.locator('[role="dialog"][data-open]');
 
 async function replay(page: Page) {
 	await page.keyboard.press("ControlOrMeta+k");
-	await page.getByRole("dialog").getByRole("combobox").fill("Replay the tour");
+	await page.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("Replay the tour");
+	await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
 	await expect(page.getByRole("dialog", { name: FIRST })).toBeVisible();
 }
 
-test("replays the tour, skips it with Close and ends it on Done", async ({ page }) => {
-	await page.goto("/");
+test("replays the tour, skips it with Skip the tour and ends it on Done", async ({ page }) => {
+	await page.goto(START);
 	await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
 	await replay(page);
 	await page.getByRole("button", { name: "Next" }).click();
 	await expect(page.getByRole("dialog", { name: "Open a project" })).toBeVisible();
-	await page.getByRole("button", { name: "Close" }).click();
+	await page.getByRole("button", { name: "Skip the tour" }).click();
 	await expect(openDialogs(page)).toHaveCount(0);
 
 	await replay(page);
@@ -30,10 +33,10 @@ test("replays the tour, skips it with Close and ends it on Done", async ({ page 
 	await expect(openDialogs(page)).toHaveCount(0);
 });
 
-test("asks for a permission from the tour and shows the list in Settings / Me", async ({
+test("asks for a permission from the tour and shows the list in Setup / This computer", async ({
 	page,
 }) => {
-	await page.goto("/");
+	await page.goto(START);
 	await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
 	await replay(page);
 	for (let i = 0; i < 4; i++) await page.keyboard.press("ArrowRight");
@@ -45,15 +48,17 @@ test("asks for a permission from the tour and shows the list in Settings / Me", 
 	await page.keyboard.press("Escape");
 	await expect(openDialogs(page)).toHaveCount(0);
 
-	await page.goto("/settings/me");
+	await page.goto("/setup/computer?page=logs");
 	const files = page.getByRole("group", { name: "Documents, Desktop and Downloads" });
 	await expect(files.getByRole("button", { name: "Allow" })).toBeVisible();
+	// Replay the tour is a row "Tour" of the More card: open the row, then press its button.
+	await page.locator("summary", { hasText: /^Tour$/ }).click();
 	await page.getByRole("button", { name: "Replay the tour" }).click();
 	await expect(page.getByRole("dialog", { name: FIRST })).toBeVisible();
 });
 
-test("offers the settings on the steps and lists them in Settings / Me", async ({ page }) => {
-	await page.goto("/");
+test("offers the settings on the steps and lists them in Setup / Start", async ({ page }) => {
+	await page.goto(START);
 	await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
 	await replay(page);
 	await page.keyboard.press("ArrowRight");
@@ -65,10 +70,21 @@ test("offers the settings on the steps and lists them in Settings / Me", async (
 		.getByRole("group", { name: "Issue tracker" })
 		.getByRole("button", { name: "Connect" })
 		.click();
-	await expect(page).toHaveURL(/\/settings\/connections/);
+	// The connection lives under This project only (`spec:app-redesign#REQ-024`).
+	await expect(page).toHaveURL(/\/setup\/project\?page=connections/);
 	await expect(openDialogs(page)).toHaveCount(0);
 
-	await page.goto("/settings/me");
-	const ai = page.getByRole("group", { name: "AI tool", exact: true });
-	await expect(ai.getByText("To do")).toBeVisible();
+	await page.goto("/setup/start");
+	const steps = page.getByRole("list", { name: "Get started" });
+	await expect(steps.getByRole("button")).toHaveCount(11);
+	const aiStep = steps.getByRole("button", { name: /AI tool/ });
+	await aiStep.click();
+	await expect(page.getByRole("heading", { name: "Which AI tool does the work?" })).toBeVisible();
+	// A step to do has no status text any more: a done step reads "Done", this one does not.
+	await expect(aiStep).toHaveAttribute("aria-current", "step");
+	await expect(aiStep).not.toContainText("Done");
+	await expect(page.getByRole("link", { name: /^This project.+/ })).toHaveAttribute(
+		"href",
+		"/setup/project",
+	);
 });

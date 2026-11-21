@@ -79,6 +79,37 @@ describe("DataTable row names", () => {
 	});
 });
 
+describe("DataTable row that opens (app-redesign REQ-026)", () => {
+	it("is 44 px high: the row is the control", () => {
+		renderApp(
+			<div style={{ height: 300, display: "flex" }}>
+				<DataTable
+					columns={columns}
+					data={data}
+					rowId={(r) => r.id}
+					label="Things"
+					onOpen={() => {}}
+				/>
+			</div>,
+		);
+		expect(screen.getByRole("row", { name: /one/ }).style.height).toBe("44px");
+	});
+
+	it("is 44 px high or more in flow mode", () => {
+		renderApp(
+			<DataTable
+				flow
+				columns={columns}
+				data={data}
+				rowId={(r) => r.id}
+				label="Things"
+				onOpen={() => {}}
+			/>,
+		);
+		expect(screen.getByRole("row", { name: /one/ })).toHaveClass("min-h-control");
+	});
+});
+
 describe("DataTable flow mode", () => {
 	it("keeps the rows in normal flow with an automatic height", () => {
 		renderApp(<DataTable flow columns={columns} data={data} rowId={(r) => r.id} label="Things" />);

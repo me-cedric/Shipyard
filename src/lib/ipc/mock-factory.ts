@@ -9,6 +9,7 @@ import type {
 	AgentRole_Serialize,
 	ApprovalView,
 	AskedQuestion_Serialize,
+	Budgets,
 	Effort,
 	FileDiff,
 	FindingView_Serialize,
@@ -35,6 +36,7 @@ import type {
 	Step_Serialize,
 	StepState,
 	StepView_Serialize,
+	Thens_Serialize,
 	UnitView_Serialize,
 	UsageView_Serialize,
 	Workflow_Deserialize,
@@ -47,7 +49,9 @@ import type {
 	WorkflowSource,
 	WorkItemView_Serialize,
 	Workspace,
+	WriteKind,
 } from "./bindings";
+import { stopOf } from "./mock-features";
 import { FAKE_TICKETS } from "./mock-sync";
 
 const WF_DIR = ".shipyard/workflows";
@@ -131,6 +135,7 @@ steps:
     mode: plan
     needs: [grill]
     gate: human
+    approver: techlead
     tools: [read_ticket, read_ref, ask_question, post_progress, report]
   - id: build
     role: worker
@@ -361,7 +366,7 @@ function parseWorkflow(
 	});
 	type Field = { v: string; line: number };
 	const raws: Record<string, Field>[] = [];
-	const limits: WorkflowLimits_Serialize = { max_turns: null, budget_usd: null, stall_s: 300 };
+	const limits: WorkflowLimits_Serialize = { budget_usd: null, stall_s: 300 };
 	let fileId: Field | null = null;
 	let inLimits = false;
 	for (const [i, l] of text.split("\n").entries()) {
@@ -374,7 +379,8 @@ function parseWorkflow(
 		else if (/^limits:/.test(l)) inLimits = true;
 		else if (/^steps:/.test(l)) inLimits = false;
 		else if (step?.[1]) raws.push({ id: at(step[1]) });
-		else if (k && inLimits) Object.assign(limits, { [k]: Number(v) });
+		// `max_turns` is an old key: read and ignored (`adr:0025`).
+		else if (k && inLimits) k !== "max_turns" && Object.assign(limits, { [k]: Number(v) });
 		else if (k) {
 			const raw = raws.at(-1);
 			if (raw) raw[k] = at(v ?? "");
@@ -383,7 +389,7 @@ function parseWorkflow(
 	if (!fileId) return refuse(null, "the file has no `id`");
 	if (fileId.v !== id)
 		return refuse(fileId.line, `id \`${fileId.v}\` differs from the file name \`${id}\``);
-	if (raws.length === 0) return refuse(null, "the workflow has no step");
+	if (raws.length === 0) return refuse(null, "the recipe has no step");
 	for (const raw of raws) {
 		const role = raw.role;
 		if (role && !roles.includes(role.v))
@@ -411,7 +417,7 @@ function parseWorkflow(
 			needs: list(s("needs") ?? ""),
 			tools: list(s("tools") ?? ""),
 		};
-		for (const k of ["role", "model", "effort", "skill", "for_each", "action"])
+		for (const k of ["role", "model", "effort", "skill", "for_each", "action", "approver"])
 			if (s(k)) Object.assign(step, { [k]: s(k) });
 		for (const k of ["max_parallel", "max_rounds", "timeout"])
 			if (s(k)) Object.assign(step, { [k]: Number(s(k)) });
@@ -506,7 +512,14 @@ export type MockFactory = {
 	approvals: ApprovalView[];
 	tiers: RunnerTiers_Serialize[];
 	/** Money budgets in USD. A day key is `YYYY-MM-DD` or `*`, a member key is a name or `*`. */
-	budgets: { day: Record<string, number>; member: Record<string, number> };
+	budgets: {
+		day: Record<string, number>;
+		member: Record<string, number>;
+		/** By ticket key (`runs-recipes` REQ-005). */
+		feature?: Record<string, number>;
+		warn_at?: number;
+		at_limit?: Thens_Serialize;
+	};
 	kill: boolean;
 	/** The text of each workflow file. */
 	workflows: Record<string, string>;
@@ -569,6 +582,41 @@ const prRow = (f: MockFactory, p: Pull): PrRowView => ({
 	runs: f.runs.filter((r) => r.pr === p.number).map((r) => r.id),
 });
 
+/**
+ * The cause of the stop: a budget that the run reached while it is paused, else the `cause` of a
+ * note after the last change of state (the escalation record).
+ */
+function causeOf(r: Rec): string | null {
+	if (r.state === "Paused" && r.budgetUsd !== null && r.costUsd >= r.budgetUsd) return "budget";
+	const since = r.log.slice(r.log.map((e) => e.kind).lastIndexOf("state") + 1);
+	const notes = since.filter((e) => e.kind === "note").map((e) => JSON.parse(e.payload));
+	return notes.findLast((n) => typeof n.cause === "string")?.cause ?? null;
+}
+
+/**
+ * The stop action, as the run view of Rust. The day budget pauses a run with the note
+ * `{stop: "budget", budget: "day:…"}`: the run waits for the next day, so it has no action. A
+ * resume cannot go on while the day is spent.
+ */
+function stopOfRun(r: Rec, pr: string | null) {
+	const stop = stopOf(r.state, causeOf(r), pr);
+	const last = r.log
+		.filter((e) => e.kind === "note")
+		.map((e) => JSON.parse(e.payload))
+		.findLast((n) => "stop" in n);
+	const day = last?.stop === "budget" && String(last.budget).startsWith("day:");
+	return stop === "resume" && day ? null : stop;
+}
+
+/** The role that approves the plan that waits: the human step of the recipe that names one. */
+export function approverOf(f: MockFactory, run: string): string | null {
+	const r = f.runs.find((x) => x.id === run);
+	if (r?.state !== "PlanReview") return null;
+	const text = f.workflows[r.workflow] ?? WORKFLOWS[r.workflow] ?? "";
+	const wf = parseWorkflow(r.workflow, text, DEFAULT_ROLES).workflow;
+	return wf?.steps.find((s) => s.gate === "human")?.approver ?? null;
+}
+
 function view(f: MockFactory, r: Rec): RunView_Serialize {
 	const { log: _log, pr: prNumber, ...rest } = r;
 	const pr = f.pulls.find((p) => p.number === prNumber);
@@ -580,6 +628,8 @@ function view(f: MockFactory, r: Rec): RunView_Serialize {
 		openQuestions: f.questions.filter((x) => x.run === r.id && x.q.state === "open").length,
 		approvals: f.approvals.filter((a) => a.run === r.id).length,
 		reason: null,
+		stop: stopOfRun(r, pr?.state ?? null),
+		...(approverOf(f, r.id) ? { approver: approverOf(f, r.id) as string } : {}),
 	};
 }
 
@@ -736,7 +786,7 @@ const unit = (id: string, state: StepState): UnitView_Serialize => ({
 	id,
 	state,
 	runner: state === "pending" ? "" : "claude",
-	session: state === "pending" ? null : `sess-${id}`,
+	session: state === "pending" ? null : `sess-${id.replaceAll("/", "-")}`,
 	dir: state === "pending" ? "" : `/work/${id}`,
 	started: T0 / 1000,
 	last: T0 / 1000 + 60,
@@ -787,6 +837,7 @@ export function seedFactory(): MockFactory {
 			headSha: (0x3a7c91e + number * 0x1f3b).toString(16).padStart(7, "0"),
 			url: `https://github.com/acme/app/pull/${number}`,
 			updated: `2026-10-${String(20 + (number % 9)).padStart(2, "0")}T14:30:00Z`,
+			author: "Ada Lovelace",
 			...o,
 		});
 	const ask = (r: Rec, q: Partial<AskedQuestion_Serialize> & { id: string; question: string }) =>
@@ -810,6 +861,7 @@ export function seedFactory(): MockFactory {
 			run: r.id,
 			key: r.key,
 			title: r.title,
+			workflow: r.workflow,
 			kind,
 			summary,
 			detail,
@@ -829,7 +881,7 @@ export function seedFactory(): MockFactory {
 	pull(40, "Ship 0.1.0", { state: "merged", updated: "2026-10-26T15:02:00Z" });
 	pull(42, "Rename the Work tab");
 	pull(43, "Audit the keychain use", { ci: "failing" });
-	pull(44, "Rework the settings page", { review: "changes_requested" });
+	pull(44, "Rework the settings page", { review: "changes_requested", ci: "failing" });
 	pull(45, "Add the health dot", { review: "changes_requested" });
 	// Two pull requests that no run owns: a draft, and a closed one.
 	pull(46, "Update the CI cache key", { draft: true });
@@ -886,6 +938,7 @@ export function seedFactory(): MockFactory {
 	kept(blocked);
 	message(blocked, "fix", "Blocked: the French catalog is locked by another branch.", false);
 	const plan = run(10, "ACME-4", "feature", "PlanReview", {
+		budgetUsd: 3,
 		costUsd: 0.95,
 		tokens: 58_100,
 		turns: 9,
@@ -929,6 +982,7 @@ export function seedFactory(): MockFactory {
 	);
 	// Working.
 	const building = run(12, "ACME-2", "feature", "Working", {
+		budgetUsd: 3,
 		costUsd: 1.84,
 		tokens: 126_400,
 		turns: 17,
@@ -977,7 +1031,22 @@ export function seedFactory(): MockFactory {
 	// Queued.
 	run(14, "ACME-3", "bug", "Queued", { steps: steps("bug", 0, "pending") });
 
+	// Last, so that the inbox keeps its order: an agent decision about a screen: it shows on Design, not on Brief.
+	ask(review, {
+		id: "Q-103",
+		question: "The code has no Settings screen yet",
+		options: ["Not needed", "Build it"],
+		recommended: 2,
+		spec: "screen:settings",
+	});
 	for (const [i, r] of f.runs.entries()) seedLog(f, r, T0 + i * 1_200_000);
+	// The chat of the running session of ACME-2: the agent writes, the person answers, the agent goes on.
+	const chat: [kind: string, payload: object][] = [
+		["runner", { type: "text", text: "I wrote the test first, then the change." }],
+		["answer", { text: "Add a JSON example to the description first." }],
+		["runner", { type: "text", text: "The description now has a JSON example." }],
+	];
+	for (const [kind, payload] of chat) push(f, building, "t2", kind, payload);
 	// One demo budget, so Usage shows a member with a budget and rows with none (Q-023).
 	f.budgets.member["Ada Lovelace"] = 10;
 	return f;
@@ -1092,6 +1161,57 @@ const refuse = (event: string, r: Rec) => {
 	throw `refused ${event} in ${r.state}`;
 };
 
+/** The states where an agent works: a person can pause them (`runs-recipes` REQ-001). */
+const WORKS: RunState[] = ["Planning", "Working", "SelfReview"];
+
+/** The mock agent ends its turn at once: the run is `Paused` with the cause Person. */
+export function runPause(f: MockFactory, run: string): null {
+	const r = find(f, run);
+	if (!WORKS.includes(r.state)) refuse("Pause", r);
+	push(f, r, null, "note", { stop: "paused by a person", cause: "person" });
+	move(f, r, "Paused", r.state);
+	return null;
+}
+
+/**
+ * Take a run over (`runs-recipes` REQ-002): `Cancelled` with the reason, the branch and the folder
+ * stay. The caller assigns the ticket. Returns the folder that the editor opens.
+ */
+export function runTakeOver(f: MockFactory, run: string, who: string): string {
+	const r = find(f, run);
+	if (FINAL.includes(r.state)) throw "the run ended";
+	cancel(f, r, `Taken over by ${who}`);
+	return `/worktrees/${r.id}`;
+}
+
+/** The limits of `assistant_attach`: 200 KiB of text, 2 MiB of image. */
+const MAX_TEXT = 200 * 1024;
+const MAX_IMAGE = 2 * 1024 * 1024;
+
+/** A file for the chat of a run: kept as context for the next turn. */
+export function runAttach(
+	f: MockFactory,
+	run: string,
+	name: string,
+	bytes: number[],
+): { name: string; kind: string; quote: string; bytes: number } {
+	const r = find(f, run);
+	if (FINAL.includes(r.state)) throw "the run ended";
+	const base = name.split(/[\\/]/).pop()?.trim() ?? "";
+	if (!base || base.startsWith(".")) throw "the file name is not valid";
+	const ext = base.split(".").pop()?.toLowerCase() ?? "";
+	const image = ["png", "jpg", "jpeg", "gif", "webp"].includes(ext);
+	if (image ? bytes.length > MAX_IMAGE : bytes.length > MAX_TEXT)
+		throw `${base} is larger than ${(image ? MAX_IMAGE : MAX_TEXT) / 1024} KiB`;
+	push(f, r, null, "note", { context: `the file \`${base}\`` });
+	return {
+		name: base,
+		kind: image ? "image" : "text",
+		quote: image ? `Image file for this request: /context/${base}` : String.fromCharCode(...bytes),
+		bytes: bytes.length,
+	};
+}
+
 export function runUnblock(f: MockFactory, run: string, note: string | null): null {
 	const r = find(f, run);
 	if (r.state !== "Blocked") refuse("Unblock", r);
@@ -1107,9 +1227,26 @@ const lastBlock = (r: Rec): string | undefined =>
 		.map((e) => (e.kind === "note" ? JSON.parse(e.payload).blocked : undefined))
 		.findLast((b) => typeof b === "string");
 
-/** Close a run blocked with nothing to deliver as `Done`. */
+/**
+ * Close a run blocked with nothing to deliver as `Done`. A run whose pull request merged or closed
+ * on the code host takes that event, as `close_outside`: a merge ends in `Done`, a close cancels.
+ */
 export function runCloseDone(f: MockFactory, run: string): null {
 	const r = find(f, run);
+	const pr = f.pulls.find((p) => p.number === r.pr)?.state;
+	if (pr === "merged" || pr === "closed") {
+		if (FINAL.includes(r.state) || r.state === "Merged")
+			throw `the run is ${r.state}: it closes by itself`;
+		push(f, r, null, "pr", { number: r.pr, event: pr === "merged" ? "Merged" : "Closed" });
+		if (pr === "closed") cancel(f, r, "pull request closed");
+		else {
+			for (const x of f.questions)
+				if (x.run === r.id && x.q.state === "open") x.q.state = "withdrawn";
+			move(f, r, "Merged");
+			move(f, r, "Done");
+		}
+		return null;
+	}
 	if (r.state !== "Blocked" || !lastBlock(r)?.startsWith("nothing to deliver"))
 		throw "only a run blocked with nothing to deliver closes as done";
 	push(f, r, null, "note", {
@@ -1175,6 +1312,15 @@ export function killSwitchSet(f: MockFactory, on: boolean): boolean {
 		for (const r of f.runs)
 			if (r.state !== "Merged" && !FINAL.includes(r.state)) cancel(f, r, "kill switch");
 	return on;
+}
+
+/** "Stop all agents": cancels every run that is not final. The switch keeps its value. */
+export function agentsStopAll(f: MockFactory, click: boolean): null {
+	if (!click) throw "this change needs the click of a person";
+	const was = f.kill;
+	killSwitchSet(f, true);
+	f.kill = was;
+	return null;
 }
 
 export function questionsList(f: MockFactory, project: string | null): QuestionView_Serialize[] {
@@ -1253,7 +1399,7 @@ export function approvalsList(f: MockFactory, project: string | null): ApprovalV
 	const runs = runsOf(f, project);
 	return f.approvals.flatMap((a) => {
 		const r = runs.find((x) => x.id === a.run);
-		return r ? [{ ...a, key: r.key, title: r.title }] : [];
+		return r ? [{ ...a, key: r.key, title: r.title, workflow: r.workflow }] : [];
 	});
 }
 
@@ -1277,6 +1423,50 @@ export function approvalApprove(f: MockFactory, id: number): string | null {
 	}
 	f.approvals = f.approvals.filter((x) => x.id !== id);
 	return a.kind === "comment" ? `comment-${id}` : a.kind === "open_pr" ? "48" : null;
+}
+
+/**
+ * "Approve these effects and do not ask again for this recipe", with the rules of
+ * `approvals_allow_recipe`: waiting ids of one run, no push with force with lease, and the rights.
+ * `recipes` is `recipe_writes` of the automation file. Only the kinds of the named effects are
+ * allowed, for the workflow of the run only. Then the named ids go out. Each other write that
+ * waits keeps its question: the permission covers only a later write.
+ */
+export function approvalsAllowRecipe(
+	f: MockFactory,
+	project: string | null,
+	ids: number[],
+	rights: string[],
+	recipes: Record<string, WriteKind[]>,
+): null {
+	for (const r of ["project.settings", "runs.approve"])
+		if (!rights.includes(r)) throw `missing right ${r}`;
+	if (f.kill) throw "the kill switch is on: no write goes out";
+	const picked = ids.map((id) => waiting(f, id));
+	const [first] = picked;
+	if (!first) throw "name at least one approval";
+	if (picked.some((a) => a.run !== first.run))
+		throw "the approvals belong to more than one run: allow one recipe at a time";
+	const run = runsOf(f, project).find((r) => r.id === first.run);
+	if (!run) throw "the run is not in the active project";
+	for (const a of picked) {
+		if (!rights.includes(a.right)) throw `missing right ${a.right}`;
+		if (a.force) throw "a push with force with lease always waits: approve it alone";
+	}
+	const on = [...new Set(picked.map((a) => a.kind as WriteKind))];
+	const kinds = [...new Set([...(recipes[run.workflow] ?? []), ...on])];
+	recipes[run.workflow] = kinds;
+	push(f, run, null, "write", { state: "recipe_allowed", workflow: run.workflow, kinds: on });
+	// Only the named ids go, each with the checks of a click: any other write that waits keeps
+	// its question (`release_allowed`).
+	for (const id of ids.filter((id) => f.approvals.some((a) => a.id === id))) {
+		try {
+			approvalApprove(f, id);
+		} catch (e) {
+			throw `the permission is saved, but approval ${id}: ${e}`;
+		}
+	}
+	return null;
 }
 
 /** The write is dropped and the run blocks. */
@@ -1317,7 +1507,7 @@ export const workflowsList = (f: MockFactory): WorkflowItem_Serialize[] =>
 
 export function workflowGet(f: MockFactory, id: string): WorkflowFile_Serialize {
 	const text = f.workflows[fileId(id)];
-	if (text === undefined) throw `no workflow \`${id}\``;
+	if (text === undefined) throw `no recipe \`${id}\``;
 	return { id, text, ...checkWorkflow(f, id, text) };
 }
 
@@ -1365,6 +1555,7 @@ export function workflowRender(
 			["mode", st.mode === "plan" ? "plan" : undefined],
 			["needs", st.needs?.length ? flow(st.needs) : undefined],
 			["gate", st.gate === "human" ? "human" : undefined],
+			["approver", st.approver ? sc(st.approver) : undefined],
 			["workspace", st.workspace && st.workspace !== "shared" ? st.workspace : undefined],
 			["for_each", st.for_each ? sc(st.for_each) : undefined],
 			["max_parallel", st.max_parallel ? sc(st.max_parallel) : undefined],
@@ -1380,7 +1571,6 @@ export function workflowRender(
 	}
 	const l = wf.limits;
 	out.push("limits:");
-	if (l.max_turns != null) out.push(`  max_turns: ${l.max_turns}`);
 	if (l.budget_usd != null) out.push(`  budget_usd: ${l.budget_usd}`);
 	out.push(`  stall_s: ${l.stall_s}`);
 	return workflowCheck(f, id, `${out.join("\n")}\n`);
@@ -1413,21 +1603,21 @@ const withId = (text: string, id: string) => text.replace(/^id:.*$/m, `id: ${id}
 export function workflowCreate(f: MockFactory, id: string, from: WorkflowSource): null {
 	if (f.workflows[fileId(id)] !== undefined) throw `\`${id}\` already exists`;
 	const text = (from.kind === "preset" ? WORKFLOWS : f.workflows)[from.id];
-	if (text === undefined) throw `no workflow \`${from.id}\``;
+	if (text === undefined) throw `no recipe \`${from.id}\``;
 	f.workflows[id] = withId(text, id);
 	return null;
 }
 
 /** The default workflow and a workflow of a live run stay. */
 const keep = (f: MockFactory, id: string) => {
-	if (id === "feature") throw `\`${id}\` is the default workflow`;
+	if (id === "feature") throw `\`${id}\` is the default recipe`;
 	if (f.runs.some((r) => r.workflow === id && !FINAL.includes(r.state)))
 		throw `a run uses \`${id}\``;
 };
 
 export function workflowRename(f: MockFactory, id: string, to: string): null {
 	const text = f.workflows[fileId(id)];
-	if (text === undefined) throw `no workflow \`${id}\``;
+	if (text === undefined) throw `no recipe \`${id}\``;
 	keep(f, id);
 	if (f.workflows[fileId(to)] !== undefined) throw `\`${to}\` already exists`;
 	f.workflows[to] = withId(text, to);
@@ -1436,7 +1626,7 @@ export function workflowRename(f: MockFactory, id: string, to: string): null {
 }
 
 export function workflowDelete(f: MockFactory, id: string): null {
-	if (f.workflows[fileId(id)] === undefined) throw `no workflow \`${id}\``;
+	if (f.workflows[fileId(id)] === undefined) throw `no recipe \`${id}\``;
 	keep(f, id);
 	delete f.workflows[id];
 	return null;
@@ -1485,6 +1675,49 @@ export function roleWrite(f: MockFactory, id: string, text: string): null {
 	const { issue } = parseRole(id, text);
 	if (issue) throw refusal(issue);
 	f.roles[id] = text;
+	return null;
+}
+
+const TIERS = ["top", "mid", "small"];
+
+/** `text` with `model: <tier>` in its frontmatter, as `with_tier` of `role_model.rs`. */
+export function withTier(text: string, tier: string): string {
+	const line = `model: ${tier}`;
+	if (!text.startsWith("---\n")) return `---\n${line}\n---\n${text}`;
+	const out = ["---\n"];
+	let set = false;
+	let closed = false;
+	for (const l of text.slice(4).split(/(?<=\n)/)) {
+		if (!closed && l.trimEnd() === "---") {
+			if (!set) out.push(`${line}\n`);
+			closed = true;
+		} else if (!closed && l.startsWith("model:")) {
+			out.push(`${line}\n`);
+			set = true;
+			continue;
+		}
+		out.push(l);
+	}
+	return out.join("");
+}
+
+/** Set the tier of a role. A bundled role with no project file gets one. */
+export function roleModelSet(f: MockFactory, id: string, tier: string): null {
+	if (!TIERS.includes(tier)) throw `a tier is one of: ${TIERS.join(", ")}`;
+	const file = roleFile(f, fileId(id));
+	f.roles[id] = withTier(file.text, tier);
+	return null;
+}
+
+/** The runs of the project that have not ended: the question of a project close lists them. */
+export const projectRuns = (f: MockFactory, project: string | null) =>
+	runsOf(f, project)
+		.filter((r) => !FINAL.includes(r.state))
+		.map((r) => ({ run: r.id, key: r.key }));
+
+/** Stop each run of the project, as `close_stopping` does before it closes the project. */
+export function projectRunsStop(f: MockFactory, project: string | null): null {
+	for (const r of projectRuns(f, project)) runCancel(f, r.run);
 	return null;
 }
 
@@ -1561,6 +1794,11 @@ export function usageTreeGet(f: MockFactory, project: string | null, run: string
 			tokens: requests.reduce((a, x) => a + x.inputTokens + x.outputTokens, 0),
 			usd: cents(requests.reduce((a, x) => a + x.usd, 0)),
 			requests,
+			// The runner records the tool calls of each step in the run log.
+			tools: [
+				{ name: "read_ticket", target: r.key },
+				{ name: "read_ref", target: `spec:${r.key.toLowerCase()}#REQ-1` },
+			],
 		};
 	});
 	return {
@@ -1623,15 +1861,32 @@ export function usageGet(f: MockFactory, project: string | null): UsageView_Seri
 
 /** Set a budget, or clear it (`usd` is `null`). The rules are those of the automation codec. */
 export function budgetSet(f: MockFactory, scope: string, key: string, usd: number | null): null {
-	if (scope !== "day" && scope !== "member") throw `unknown budget scope \`${scope}\``;
+	if (scope !== "day" && scope !== "member" && scope !== "feature")
+		throw `unknown budget scope \`${scope}\``;
 	if (usd !== null && !(Number.isFinite(usd) && usd > 0))
 		throw `invalid automation file: budgets.${scope}.${key} = ${usd}`;
 	if (scope === "day" ? key !== "*" && !isDay(key) : key === "")
 		throw `invalid automation file: budgets.${scope}.${key} = ${usd}`;
-	const map = f.budgets[scope];
+	const map = f.budgets[scope] ?? {};
+	f.budgets[scope] = map;
 	if (usd === null) delete map[key];
 	else map[key] = usd;
 	return null;
+}
+
+/** The budgets that a save of the automation form holds: a cleared amount (`null`) leaves out its key. */
+export function budgetsOf(b: Budgets): MockFactory["budgets"] {
+	const num = (m?: { [key in string]: number | null }) =>
+		Object.fromEntries(Object.entries(m ?? {}).flatMap(([k, v]) => (v == null ? [] : [[k, v]])));
+	return {
+		day: num(b.day),
+		member: num(b.member),
+		feature: num(b.feature),
+		...(b.warn_at == null ? {} : { warn_at: b.warn_at }),
+		...(b.at_limit
+			? { at_limit: { feature: "stop_ask", day: "stop_ask", member: "stop_ask", ...b.at_limit } }
+			: {}),
+	};
 }
 
 /** The diff of a run folder against its base. A queued run has no folder yet. */

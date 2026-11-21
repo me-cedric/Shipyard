@@ -10,6 +10,7 @@ import type {
 	Forward,
 	Image,
 	Inspect_Serialize,
+	LiveTurn,
 	Picture,
 	TraceStep,
 } from "./bindings";
@@ -25,8 +26,14 @@ export type MockExtras = {
 	behind: Record<string, number>;
 	/** The tool calls of the running turn, by thread. */
 	live: Record<string, TraceStep[]>;
+	/** The tokens of the running turn of a thread so far. */
+	liveTokens?: Record<string, number>;
 	/** The mail addresses that the app opened. */
 	mails: string[];
+	/** The copies that Attach a file made in the data folder. */
+	attached: string[];
+	/** The folder that the next start uses after a Change, and the portable marker. */
+	data: { moved: string | null; marker: boolean };
 };
 
 export const seedExtras = (): MockExtras => ({
@@ -35,6 +42,8 @@ export const seedExtras = (): MockExtras => ({
 	behind: {},
 	live: {},
 	mails: [],
+	attached: [],
+	data: { moved: null, marker: false },
 });
 
 const click = (ok: boolean) => {
@@ -57,10 +66,49 @@ export function pictureSet(m: MockExtras, which: Picture, path: string | null, o
 	return null;
 }
 
-export const dataFolder = (): DataFolder => ({
-	path: "/Users/ada/Library/Application Support/dev.shipyard.app",
+export const DATA_PATH = "/Users/ada/Library/Application Support/dev.shipyard.app";
+
+export const dataFolder = (m: MockExtras): DataFolder => ({
+	path: DATA_PATH,
 	portable: false,
+	marker: m.data.marker,
 });
+
+/** Attach a file copies it into the data folder, with a plain name, and gives the copy to show. */
+export function feedbackAttach(m: MockExtras, path: string, ok: boolean): string {
+	click(ok);
+	if (!path.startsWith("/")) throw "the file needs a full path";
+	const base = (path.split("/").pop() ?? "")
+		.replace(/[^\p{L}\p{N}._ -]/gu, "_")
+		.replace(/^\.+|\.+$/g, "")
+		.trim();
+	if (!base) throw "the file has no name";
+	let to = `${DATA_PATH}/feedback/${base}`;
+	for (let n = 1; m.attached.includes(to); n++) to = `${DATA_PATH}/feedback/${n}-${base}`;
+	m.attached.push(to);
+	return to;
+}
+
+/** The Portable switch writes or removes the marker. It needs the click of a person. */
+export function portableSet(m: MockExtras, on: boolean, ok: boolean): DataFolder {
+	click(ok);
+	m.data.marker = on;
+	return dataFolder(m);
+}
+
+/** Change moves the data: a full path, not the data folder, and the app restarts. */
+export function dataFolderMove(m: MockExtras, to: string, ok: boolean): null {
+	click(ok);
+	if (!to.startsWith("/")) throw "the new folder needs a full path";
+	if (to === DATA_PATH || to.startsWith(`${DATA_PATH}/`))
+		throw "the new folder is the data folder, or is inside it";
+	if (m.data.marker) throw "turn off the portable mode first";
+	m.data.moved = to;
+	return null;
+}
+
+/** The folder that the next start uses, for a test. */
+export const dataFolderAfterRestart = (m: MockExtras) => m.data.moved ?? DATA_PATH;
 
 export function feedbackMail(m: MockExtras, title: string, details: string, ok: boolean) {
 	if (!ok) throw "this action needs the click of a person";
@@ -160,4 +208,7 @@ export function linkedInspect(
 	};
 }
 
-export const live = (m: MockExtras, thread: string): TraceStep[] => m.live[thread] ?? [];
+export const live = (m: MockExtras, thread: string): LiveTurn => ({
+	steps: m.live[thread] ?? [],
+	usedTokens: m.liveTokens?.[thread] ?? 0,
+});

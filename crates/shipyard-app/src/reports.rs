@@ -362,7 +362,10 @@ pub struct ChangeRequestOut {
     /// `CR-003`.
     pub id: String,
     pub markdown: String,
+    /// Empty when the report is a PDF.
     pub docx: String,
+    /// The PDF of a report that was written as PDF.
+    pub pdf: Option<String>,
 }
 
 /// Writes `CR-<id>.md` and `CR-<id>.docx` in `docs/delivery/change-requests`. The id is one above
@@ -378,6 +381,46 @@ pub fn export_change_request(
     approvers: &[String],
     click: bool,
 ) -> Res<ChangeRequestOut> {
+    let built = build_change_request(s, title, base, head, approvers, click)?;
+    let docx = docx_bytes(&built.meta, &built.blocks).map_err(err)?;
+    let (p, id) = (project(s)?, built.id.clone());
+    let (rel_md, rel_docx) = (
+        format!("{CHANGE_REQUESTS}/{id}.md"),
+        format!("{CHANGE_REQUESTS}/{id}.docx"),
+    );
+    let _g = s.guard();
+    // Two files that were built in memory, then written: a failed build leaves no half result.
+    if p.root.join(&rel_md).exists() || p.root.join(&rel_docx).exists() {
+        return Err(format!("{id} already exists"));
+    }
+    write_atomic(&p.root.join(&rel_md), built.md.as_bytes()).map_err(err)?;
+    write_atomic(&p.root.join(&rel_docx), &docx).map_err(err)?;
+    Ok(ChangeRequestOut {
+        id,
+        markdown: rel_md,
+        docx: rel_docx,
+        pdf: None,
+    })
+}
+
+/// A change request that is built and not yet written.
+pub(crate) struct BuiltChangeRequest {
+    id: String,
+    md: String,
+    pub(crate) meta: shipyard_store::export::Meta,
+    pub(crate) blocks: Vec<shipyard_store::export::Block>,
+}
+
+/// The content of a change request: its number, the Markdown, and the cover and blocks for Word or
+/// PDF. Nothing is written.
+pub(crate) fn build_change_request(
+    s: &AppState,
+    title: &str,
+    base: &str,
+    head: &str,
+    approvers: &[String],
+    click: bool,
+) -> Res<BuiltChangeRequest> {
     crate::work::need_click(
         s,
         click,
@@ -465,7 +508,7 @@ pub fn export_change_request(
             .collect(),
     };
     let md = change_request_md(&cr);
-    let words = shipyard_store::export::Meta {
+    let meta = shipyard_store::export::Meta {
         title: format!("{} - {}", cr.id, cr.title),
         project: cr.project.clone(),
         generated_on: cr.date.clone(),
@@ -474,23 +517,118 @@ pub fn export_change_request(
         generated: "Generated".into(),
         contents: "Contents".into(),
     };
-    let docx = docx_bytes(&words, &markdown_blocks(&md, 1)).map_err(err)?;
-    let (rel_md, rel_docx) = (
-        format!("{CHANGE_REQUESTS}/{}.md", cr.id),
-        format!("{CHANGE_REQUESTS}/{}.docx", cr.id),
+    let blocks = markdown_blocks(&md, 1);
+    Ok(BuiltChangeRequest {
+        id: cr.id,
+        md,
+        meta,
+        blocks,
+    })
+}
+
+/// Writes the Markdown and the PDF of a built change request. The Markdown holds the number, so
+/// the next report gets the next one.
+pub(crate) fn write_change_request_pdf(
+    s: &AppState,
+    built: &BuiltChangeRequest,
+    pdf: &[u8],
+) -> Res<ChangeRequestOut> {
+    let p = project(s)?;
+    let (rel_md, rel_pdf) = (
+        format!("{CHANGE_REQUESTS}/{}.md", built.id),
+        format!("{CHANGE_REQUESTS}/{}.pdf", built.id),
     );
     let _g = s.guard();
-    // Two files that were built in memory, then written: a failed build leaves no half result.
-    if p.root.join(&rel_md).exists() || p.root.join(&rel_docx).exists() {
-        return Err(format!("{} already exists", cr.id));
+    if p.root.join(&rel_md).exists() || p.root.join(&rel_pdf).exists() {
+        return Err(format!("{} already exists", built.id));
     }
-    write_atomic(&p.root.join(&rel_md), md.as_bytes()).map_err(err)?;
-    write_atomic(&p.root.join(&rel_docx), &docx).map_err(err)?;
+    write_atomic(&p.root.join(&rel_md), built.md.as_bytes()).map_err(err)?;
+    write_atomic(&p.root.join(&rel_pdf), pdf).map_err(err)?;
     Ok(ChangeRequestOut {
-        id: cr.id,
+        id: built.id.clone(),
         markdown: rel_md,
-        docx: rel_docx,
+        docx: String::new(),
+        pdf: Some(rel_pdf),
     })
+}
+
+// ---------------------------------------------------------------- written reports
+
+/// One report that a person wrote: its id (`dossier`), the person and the day.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, serde::Deserialize, Type)]
+pub struct WrittenReport {
+    pub report: String,
+    pub who: String,
+    /// `YYYY-MM-DD`.
+    pub date: String,
+}
+
+/// The log is personal to this machine: `<data>/reports/<project>/written.json`, never in the
+/// repository (`spec:library-functions#REQ-007`).
+fn written_file(s: &AppState) -> Res<std::path::PathBuf> {
+    let e = s.registry()?.active().cloned().ok_or("no active project")?;
+    let plain = !e.id.is_empty()
+        && !e.id.starts_with(['-', '.'])
+        && e.id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'));
+    if !plain {
+        return Err(format!("not a plain project id: {}", e.id));
+    }
+    Ok(s.dir.join("reports").join(e.id).join("written.json"))
+}
+
+/// The last writing of each report. A missing or unreadable log is an empty one.
+pub fn written_list(s: &AppState) -> Res<Vec<WrittenReport>> {
+    Ok(std::fs::read(written_file(s)?)
+        .ok()
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or_default())
+}
+
+/// The name of the person at this machine: the member of the team file, or the git identity.
+fn who_am_i(s: &AppState) -> String {
+    let Ok(p) = project(s) else {
+        return String::new();
+    };
+    let member = crate::rights::current(s)
+        .ok()
+        .and_then(|v| v.person.member)
+        .and_then(|handle| {
+            crate::rights::team(s, &p.id)?
+                .members
+                .into_iter()
+                .find(|m| m.handle == handle)
+                .map(|m| m.name)
+        });
+    member
+        .or_else(|| Repo::open(&p.root).ok().and_then(|r| r.user_name()))
+        .unwrap_or_default()
+}
+
+/// Notes that the person wrote a report today. One line for each report: the last one stays.
+pub fn written_add(s: &AppState, report: &str, click: bool) -> Res<()> {
+    if !click {
+        return Err("this change needs the click of a person".into());
+    }
+    let plain = !report.is_empty()
+        && report.len() <= 64
+        && report
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
+    if !plain {
+        return Err(format!("not a report id: {report}"));
+    }
+    let _g = s.guard();
+    let mut list = written_list(s)?;
+    list.retain(|w| w.report != report);
+    list.push(WrittenReport {
+        report: report.into(),
+        who: who_am_i(s),
+        date: crate::work::today(s),
+    });
+    let json = serde_json::to_vec_pretty(&list).map_err(err)?;
+    write_atomic(&written_file(s)?, &json).map_err(err)
 }
 
 // ---------------------------------------------------------------- commands
@@ -604,6 +742,42 @@ pub async fn export_change_request_files(
         export_change_request(s, &title, &base, &head, &approvers, click)
     })
     .await
+}
+
+/// Writes the change request as Markdown and PDF in the delivery folder (macOS first).
+#[tauri::command]
+#[specta::specta]
+pub async fn export_change_request_pdf_files(
+    app: AppHandle,
+    title: String,
+    base: String,
+    head: String,
+    approvers: Vec<String>,
+    click: bool,
+) -> Api<ChangeRequestOut> {
+    let built = blocking(app.clone(), move |s| {
+        build_change_request(s, &title, &base, &head, &approvers, click)
+    })
+    .await?;
+    let html = shipyard_store::export::html_page(&built.meta, &built.blocks);
+    let pdf = crate::decks::print_html(&app, html, crate::decks::Paper::A4)
+        .await
+        .map_err(crate::errors::AppError::from)?;
+    blocking(app, move |s| write_change_request_pdf(s, &built, &pdf)).await
+}
+
+/// The reports that a person wrote, the last one of each.
+#[tauri::command]
+#[specta::specta]
+pub async fn reports_written_get(app: AppHandle) -> Api<Vec<WrittenReport>> {
+    blocking(app, written_list).await
+}
+
+/// Notes that the person wrote a report: the Written for you rows show the person and the day.
+#[tauri::command]
+#[specta::specta]
+pub async fn reports_written_add(app: AppHandle, report: String, click: bool) -> Api<()> {
+    blocking(app, move |s| written_add(s, &report, click)).await
 }
 
 #[cfg(test)]

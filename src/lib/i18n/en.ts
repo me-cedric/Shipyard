@@ -1,23 +1,29 @@
 import { assistantEn } from "./assistant";
 import { forgeEn } from "./code";
+import { codeHostEn } from "./code-host";
 import { costingEn } from "./costing";
 import { creatorEn } from "./creator";
+import { crewEn } from "./crew";
 import { designEn } from "./design";
 import { doctorEn } from "./doctor";
 import { editingEn } from "./editing";
 import { extensionsEn } from "./extensions";
 import { extrasEn } from "./extras";
 import { factoryEn } from "./factory";
+import { flowEn } from "./flow";
 import { glossaryEn } from "./glossary";
 import { homeEn } from "./home";
 import { knowledgeEn } from "./knowledge";
+import { libraryEn } from "./library";
 import { onboardingEn } from "./onboarding";
 import { panelsEn } from "./panels";
 import { personalEn } from "./personal";
+import { planEn } from "./plan";
 import { reportsEn } from "./reports";
 import { reviewEn } from "./review";
 import { rightsEn } from "./rights";
 import { settingsEn } from "./settings";
+import { shellFnEn } from "./shell-fn";
 import { specsEn } from "./specs";
 import { uiEn } from "./ui";
 import { workspaceEn } from "./workspace";
@@ -38,7 +44,7 @@ export const en = {
 		dark: "Dark",
 		oled: "OLED",
 		system: "System",
-		"system-oled": "System, OLED when dark",
+		"system-oled": "System with OLED",
 	},
 	prefs: {
 		theme: "Theme",
@@ -47,10 +53,10 @@ export const en = {
 		contrast: "High contrast",
 		role: "Role",
 		releaseUrl: "Release address",
-		autoUpdate: "Check for updates automatically",
-		promptLang: "Language of assistant prompts",
+		autoUpdate: "Auto-update",
+		promptLang: "Prompt language",
 		promptFollow: "Same as the interface",
-		diagramFormat: "Format of new boards",
+		diagramFormat: "Diagram format",
 		compact: "Compact",
 		languageFiles: "Language files",
 		importLanguage: "Import language",
@@ -66,11 +72,31 @@ export const en = {
 		title: "Command palette",
 		placeholder: "Search",
 		empty: "No result",
-		actions: "Actions",
-		projects: "Recent projects",
-		refs: "Refs",
 		ask: "Ask the assistant",
 		askPrompt: "Use these items as context:\n{items}\n\nMy question: ",
+		goTo: "Go to",
+		do: "Do",
+		openAssistant: "Open the full assistant",
+		startOnTicket: "Start an agent on a ticket",
+		syncNow: "Sync now",
+		markBlocked: "Blocked",
+		markStopped: "Stopped",
+		markNeeds: "Needs you",
+		noAnswer: "Nothing found",
+		reply: "Reply",
+		send: "Send",
+		esc: "esc",
+		/** The heading of an answer: `One` for one feature, the other with `{count}`. */
+		headBlocked: "{count} features are blocked.",
+		headBlockedOne: "1 feature is blocked.",
+		headStopped: "{count} features stopped.",
+		headStoppedOne: "1 feature stopped.",
+		headNeeds: "{count} features need you.",
+		headNeedsOne: "1 feature needs you.",
+		/** Words of a question, comma separated: the answer part matches them in the text. */
+		wordsBlocked: "block,stuck",
+		wordsStopped: "stop,fail",
+		wordsNeeds: "need,waiting,attention",
 	},
 	inspector: {
 		title: "Inspector",
@@ -80,11 +106,18 @@ export const en = {
 		notCommitted: "Not committed yet",
 		open: "Open",
 		edit: "Edit",
+		explain: "Explain with an agent",
+		linked: "Linked to",
+		copyRef: "Copy the ref",
+		state: {
+			resolved: "This item is in the project.",
+			unresolved: "The project has no item with this name yet.",
+			broken: "This link points to an item that is gone.",
+		},
 	},
 	nav: {
 		sidebar: "Sidebar",
 		main: "Main",
-		status: "Status",
 		expand: "Expand",
 		collapse: "Collapse",
 		tabs: "Tabs",
@@ -99,11 +132,10 @@ export const en = {
 		pulls: "No pull requests",
 		codeHost: "No code host",
 		connections: "No connections",
-		items: "No items",
 		needsYou: "Nothing needs you",
 		questions: "No questions",
 		changes: "No changes",
-		capabilities: "No capabilities",
+		capabilities: "No specs",
 		file: "No file selected",
 		commit: "No commit selected",
 		compass: "No rules",
@@ -119,7 +151,7 @@ export const en = {
 		sessions: "No sessions",
 		runs: "No runs",
 		run: "No run",
-		graph: "No graph",
+		graph: "No map",
 		dashboards: "No dashboards",
 		testPlans: "No test plans",
 	},
@@ -136,28 +168,28 @@ export const en = {
 		design: "Design",
 		specs: "Specs",
 		work: "Work",
-		factory: "Factory",
+		factory: "Flow",
 		code: "Code",
 		knowledge: "Knowledge",
 		settings: "Settings",
 	},
 	tabs: {
-		home: { today: "Today", projects: "Projects" },
+		home: { today: "Needs you", news: "News", activity: "Activity", projects: "Projects" },
 		design: {
 			diagrams: "Diagrams",
 			architecture: "Architecture",
 			decisions: "Decisions",
 			api: "API",
 			data: "Data",
-			flows: "Flows",
+			flows: "Network flows",
 			screens: "Screens",
 		},
 		specs: {
 			changes: "Proposals",
-			capabilities: "Capabilities",
+			capabilities: "Specs",
 			questions: "Questions",
 			"test-plans": "Test plans",
-			constitution: "Constitution",
+			constitution: "Project rules",
 		},
 		work: {
 			backlog: "Backlog",
@@ -169,12 +201,13 @@ export const en = {
 		},
 		factory: {
 			runs: "Runs",
-			workflows: "Workflows",
+			workflows: "Recipes",
 			"agents-map": "Agents map",
 			sessions: "Sessions",
 			usage: "Usage",
 		},
 		code: {
+			now: "Now",
 			changes: "Local changes",
 			history: "History",
 			branches: "Branches",
@@ -184,7 +217,7 @@ export const en = {
 			terminal: "Terminal",
 		},
 		knowledge: {
-			graph: "Graph",
+			graph: "Map",
 			handbook: "Handbook",
 			manual: "Manual",
 			documents: "Documents",
@@ -200,16 +233,7 @@ export const en = {
 			me: "Me",
 			health: "Health",
 		},
-	},
-	noun: {
-		home: "Project",
-		design: "Diagram",
-		specs: "Change",
-		work: "Item",
-		factory: "Run",
-		code: "Branch",
-		knowledge: "Document",
-		settings: "Connection",
+		setup: { start: "Start", project: "This project", computer: "This computer", me: "Me" },
 	},
 	role: {
 		none: "Other",
@@ -229,7 +253,7 @@ export const en = {
 	forge: forgeEn,
 	knowledge: knowledgeEn,
 	costing: costingEn,
-	notFound: { title: "Not found", home: "Home" },
+	notFound: { title: "Not found", home: "Today" },
 	routeError: {
 		message: "This page did not load. Check the network, then try again.",
 		retry: "Retry",
@@ -241,17 +265,54 @@ export const en = {
 		health: "Health",
 		version: "Version {version}",
 		lines: "Changes: {added} lines added, {removed} removed",
-		whatsNew: { title: "What's new in {version}", none: "No notes for this version." },
+		whatsNew: {
+			title: "What's new in {version}",
+			none: "No notes for this version.",
+			added: "New",
+			fixed: "Fixed",
+			all: "All versions",
+		},
 		toggleSidebar: "Toggle sidebar",
 		toggleInspector: "Toggle inspector",
 		openRef: "Open {ref}",
 		themeTo: "Theme: {name}",
 		langTo: "Language: {name}",
 		activity: "Activity",
-		needsNone: "Nothing needs you",
 		runsNone: "No active run",
 		account: "Account",
 		changedFiles: "Changed files",
+		change: "Change",
+		// The short labels of the account menu.
+		menu: {
+			manual: "Manual",
+			shortcuts: "Shortcuts",
+			whatsNew: "What is new",
+			tour: "Show the tour again",
+			update: "Check for an update",
+		},
+	},
+	refGroup: {
+		project: "Projects",
+		member: "Members",
+		diagram: "Diagrams",
+		model: "Architecture",
+		adr: "Decisions",
+		api: "API",
+		data: "Data",
+		flow: "Network flows",
+		screen: "Screens",
+		change: "Changes",
+		spec: "Specs",
+		test: "Test plans",
+		q: "Questions",
+		wi: "Work items",
+		est: "Estimates",
+		wf: "Recipes",
+		run: "Runs",
+		pr: "Pull requests",
+		commit: "Commits",
+		doc: "Documents",
+		conn: "Connections",
 	},
 	refKind: {
 		project: "Project",
@@ -269,7 +330,7 @@ export const en = {
 		q: "Question",
 		wi: "Work item",
 		est: "Estimate",
-		wf: "Workflow",
+		wf: "Recipe",
 		run: "Run",
 		pr: "Pull request",
 		commit: "Commit",
@@ -278,6 +339,8 @@ export const en = {
 	},
 	projects: {
 		switcher: "Project",
+		job: "What is your job?",
+		start: "How do you start?",
 		open: "Open a local folder",
 		clone: "Clone a repository",
 		create: "Create a project",
@@ -324,7 +387,7 @@ export const en = {
 		},
 		trackerScope: "Issue tracker scope",
 		paths: "Paths",
-		workflow: "Default workflow",
+		workflow: "Default recipe",
 		save: "Save",
 		overrides: "Overrides",
 		accent: "Accent",
@@ -352,7 +415,7 @@ export const en = {
 			tjm: "Daily sale rate",
 			cjm: "Daily cost",
 			active: "Active",
-			add: "Add persona",
+			add: "Add a persona",
 			newName: "New persona",
 		},
 		ticketsConfig: {
@@ -392,7 +455,7 @@ export const en = {
 			"team-level-unknown": "Unknown role, area or level in the roles block: {detail}",
 			"team-no-admin": "No admin in the team file: every person has every right",
 		},
-		fix: { write: "Write", open: "Open", apply: "Apply", recheck: "Recheck" },
+		fix: { write: "Fix", open: "Fix", apply: "Fix", recheck: "Recheck" },
 		confirm: "Confirm",
 	},
 	connections: {
@@ -572,13 +635,11 @@ export const en = {
 	},
 	sync: {
 		state: { idle: "Idle", running: "Running", failed: "Failed" },
-		failures: "{count} failed in a row",
 		backlog: {
 			import: "Import",
 			openTickets: "{count} open tickets",
 			confirm: "Confirm",
 			cancel: "Cancel",
-			adopt: "Adopt",
 			key: "Ticket key",
 			status: "Status",
 			allStatuses: "All statuses",
@@ -602,15 +663,27 @@ export const en = {
 			priority: "Priority",
 			map: "Status mapping",
 			mapStatus: "Status",
+			mixed: "Mixed",
 			mapLabels: "Labels",
 			writes: "Write switches",
 			write: {
-				push: "Push",
-				pullRequest: "Pull request",
-				trackerTransition: "Ticket transition",
-				trackerComment: "Ticket comment",
+				push: "Push the branch",
+				pullRequest: "Open the pull request",
+				trackerTransition: "Move the ticket",
+				trackerComment: "Comment in the issue tracker",
 			},
 			save: "Save",
+			recipes: "Allowed for a recipe",
+			kind: {
+				transition: "Move the ticket",
+				labels: "Ticket labels",
+				comment: "Ticket comment",
+				push: "Push",
+				open_pr: "Open a pull request",
+				resolve_threads: "Close the review threads",
+			},
+			remove: "Remove",
+			removeKind: "Remove {kind} for {recipe}",
 			error: {
 				interval: "Interval: at least {min} s",
 				number: "{name}: a whole number",
@@ -645,7 +718,6 @@ export const en = {
 		priority: { 0: "Urgent", 1: "High priority", 2: "Medium priority", 3: "Low priority" },
 		daysShort: "{days} d",
 		milestone: "Milestone {name}: {day}",
-		capacity: "Capacity {days} of 5 days",
 		heatmap: "Hours per day",
 		heatmapSize: "Heatmap width",
 		hoursShort: "{hours} h",
@@ -676,6 +748,10 @@ export const en = {
 			description: "Description",
 			saveDescription: "Save description",
 			removeLabel: "Remove {label}",
+			set: "Set",
+			addALabel: "Add a label",
+			give: "Give it to agents",
+			pickup: "Agents may pick it up",
 			priority: "Priority",
 			priorities: {
 				highest: "Highest",
@@ -861,6 +937,7 @@ export const en = {
 			"pr-checks": "Pull request checks",
 			"scan-failed": "Failed scan",
 			"review-draft": "Review draft",
+			budget: "Budget",
 		},
 		runDone: "{key}: run done",
 		runFailed: "{key}: run failed",
@@ -898,6 +975,10 @@ export const en = {
 	assistant: assistantEn,
 	design: designEn,
 	factory: factoryEn,
+	flow: flowEn,
+	crewPlace: crewEn,
+	planPlace: planEn,
+	library: libraryEn,
 	glossary: glossaryEn,
 	settings: settingsEn,
 	specs: specsEn,
@@ -911,8 +992,10 @@ export const en = {
 	editing: editingEn,
 	review: reviewEn,
 	rights: rightsEn,
+	shellFn: shellFnEn,
 	extras: extrasEn,
 	onboarding: onboardingEn,
+	codeHost: codeHostEn,
 };
 
 export type Messages = typeof en;

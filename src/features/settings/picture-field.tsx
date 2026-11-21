@@ -4,6 +4,7 @@ import { dataUri } from "@/lib/data-uri";
 import { useI18n } from "@/lib/i18n";
 import { commands, type Picture, pickImage, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { TrashIcon } from "@/ui/icons";
@@ -23,7 +24,16 @@ export function usePicture(which: Picture) {
 }
 
 /** A picture of the person or of the project: shown, chosen from a file, or removed. */
-export function PictureField({ which, label }: { which: Picture; label: string }) {
+export function PictureField({
+	which,
+	label,
+	person,
+}: {
+	which: Picture;
+	label: string;
+	/** The name of a person: with it the field shows the initials while no picture is set, and the button reads "Change". */
+	person?: string;
+}) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const src = usePicture(which).data;
@@ -41,6 +51,8 @@ export function PictureField({ which, label }: { which: Picture; label: string }
 		<span className="flex items-center gap-2">
 			{src ? (
 				<img src={src} alt={label} className="size-8 rounded-full border object-cover" />
+			) : person ? (
+				<Avatar name={person} />
 			) : null}
 			<Button
 				onClick={() =>
@@ -49,7 +61,7 @@ export function PictureField({ which, label }: { which: Picture; label: string }
 					})
 				}
 			>
-				{t.extras.picture.choose}
+				{person ? t.extras.picture.change : t.extras.picture.choose}
 			</Button>
 			{src ? (
 				<IconButton label={t.extras.picture.remove} onClick={() => void set(null)}>

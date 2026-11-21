@@ -1,17 +1,14 @@
-import { useMemo, useState } from "react";
+import { Menu } from "@base-ui/react/menu";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import { Badge } from "../atoms/badge";
 import { Button } from "../atoms/button";
+import { Chip } from "../atoms/chip";
 import { IconButton } from "../atoms/icon-button";
 import { Input } from "../atoms/input";
 import { Select } from "../atoms/select";
-import {
-	CheckIcon,
-	MagnifyingGlassIcon,
-	PencilIcon,
-	PlusIcon,
-	TrashIcon,
-	XMarkIcon,
-} from "../icons";
+import { CheckIcon, XMarkIcon } from "../icons";
+import { MenuList } from "../molecules/menu-button";
 import {
 	ALL,
 	distinct,
@@ -29,7 +26,8 @@ const NO_BRICK = "-";
 export type FlowError = { id: string; field: FlowField; message: string };
 
 /** Allow and deny as tinted chips. Another action stays neutral. */
-const TINT: Record<string, "success" | "danger"> = { allow: "success", deny: "danger" };
+const TINT: Record<string, "success" | "you"> = { allow: "success", deny: "you" };
+const CELL = "px-3 py-1 align-middle";
 
 /** The columns in order. The extra ones show when `labels` names them. */
 const ORDER: FlowField[] = [
@@ -55,9 +53,11 @@ const EMPTY: FlowDraft = {
 };
 
 /**
- * The flow matrix: source, destination, VLAN or VNET, protocol, port, action.
- * The filters combine. A callback that returns `false` keeps the editor open: pass the field error
- * in `error`. The caller owns the rows and the checks.
+ * The flow matrix: from, to, network zone, protocol, port, allowed. A row names its bricks, with
+ * the addresses under them. The chips, the two pickers and the search combine. Edit and Remove of a
+ * row are in its menu; the editor of a row holds every field. `startAdd` opens the editor of a new
+ * row. A callback that returns `false` keeps the editor open: pass the field error in `error`. The
+ * caller owns the rows and the checks.
  */
 export function FlowMatrix({
 	rows,
@@ -68,7 +68,28 @@ export function FlowMatrix({
 	onRemove,
 	labels,
 	bricks,
+	startAdd,
+	addSignal,
+	chipLabels,
+	missing,
+	current,
 }: {
+	/**
+	 * The flows that no code calls: a chip on each of their rows and a chip that keeps only them.
+	 * The page checks the code; the matrix only shows the result.
+	 */
+	missing?: { label: string; ids: ReadonlySet<string> };
+	/** The row that the page points at: the matrix clears its filters, scrolls to it and marks it. */
+	current?: { id: string; at: number };
+	/**
+	 * The page owns the "Add" control (its menu): each new number opens the editor of a new row, and
+	 * the matrix draws no add button.
+	 */
+	addSignal?: number;
+	/** The names of the filter chips by action value, when they differ from the names in a row. */
+	chipLabels?: Record<string, string>;
+	/** The editor of a new row is open at the start. */
+	startAdd?: boolean;
 	rows: FlowRow[];
 	/** The names of the bricks. With them, the two brick columns pick one in place of typing. */
 	bricks?: string[];
@@ -94,13 +115,34 @@ export function FlowMatrix({
 		| "cancel",
 		string
 	> &
-		Partial<Record<"name" | "sourceName" | "destinationName" | "subnet", string>>;
+		Partial<
+			Record<
+				| "name"
+				| "sourceName"
+				| "destinationName"
+				| "subnet"
+				// The column heads, when they differ from the field names.
+				| "from"
+				| "to"
+				| "zone"
+				| "allowed"
+				// The name of the group of chips, and of a row menu with `{name}`.
+				| "show"
+				| "rowMenu",
+				string
+			>
+		>;
 }) {
 	const TEXT = ORDER.filter((f) => !EXTRA.has(f) || labels[f] !== undefined);
 	const [filter, setFilter] = useState<FlowFilter>(NO_FILTER);
-	const [editing, setEditing] = useState<string | null>(null);
+	const [editing, setEditing] = useState<string | null>(startAdd ? "" : null);
 	const [draft, setDraft] = useState<FlowDraft>(EMPTY);
-	const shown = useMemo(() => filterFlows(rows, filter), [rows, filter]);
+	const [onlyMissing, setOnlyMissing] = useState(false);
+	const shown = useMemo(
+		() =>
+			filterFlows(rows, filter).filter((r) => !onlyMissing || (missing?.ids.has(r.id) ?? false)),
+		[rows, filter, onlyMissing, missing],
+	);
 	const actionName = (v: string) => actions.find((a) => a.value === v)?.label ?? v;
 	const all = { value: ALL, label: labels.all };
 	const pick = (field: "network" | "protocol") => [
@@ -112,147 +154,238 @@ export function FlowMatrix({
 		setDraft(from);
 		setEditing(id);
 	};
+	useEffect(() => {
+		if (!current) return;
+		setFilter(NO_FILTER);
+		setOnlyMissing(false);
+		// The row shows after the filters clear.
+		requestAnimationFrame(() =>
+			document.getElementById(`flow-${current.id}`)?.scrollIntoView?.({ block: "center" }),
+		);
+	}, [current]);
+	useEffect(() => {
+		if (addSignal) {
+			setDraft(EMPTY);
+			setEditing("");
+		}
+	}, [addSignal]);
 	const save = () => {
 		const keep = editing === "" ? onAdd(draft) : onEdit(editing ?? "", draft);
 		if (keep !== false) setEditing(null);
 	};
 
+	const cols = labels.name !== undefined && rows.some((r) => r.name) ? 8 : 7;
 	const editor = (id: string) => (
-		<tr key={`edit-${id}`} className="bg-n-2 align-top">
-			{TEXT.map((f) => (
-				<td key={f} className="p-1">
-					{bricks?.length && BRICK_FIELDS.includes(f) ? (
-						<Select
-							label={labels[f] ?? f}
-							items={[
-								{ value: NO_BRICK, label: "—" },
-								...[...new Set([draft[f] ?? "", ...bricks])]
-									.filter(Boolean)
-									.map((b) => ({ value: b, label: b })),
-							]}
-							value={draft[f] || NO_BRICK}
-							onValueChange={(v) => setDraft({ ...draft, [f]: v === NO_BRICK ? "" : v })}
-						/>
-					) : (
-						<Input
-							label={labels[f] ?? f}
-							value={draft[f] ?? ""}
-							aria-invalid={error?.id === id && error.field === f ? true : undefined}
-							onChange={(e) => setDraft({ ...draft, [f]: e.target.value })}
-						/>
+		<tr key={`edit-${id}`} className="bg-n-2">
+			<td colSpan={cols} className="p-3">
+				<div className="flex flex-wrap items-end gap-2.5">
+					{TEXT.map((f) =>
+						bricks?.length && BRICK_FIELDS.includes(f) ? (
+							<Select
+								key={f}
+								label={labels[f] ?? f}
+								items={[
+									{ value: NO_BRICK, label: "—" },
+									...[...new Set([draft[f] ?? "", ...bricks])]
+										.filter(Boolean)
+										.map((b) => ({ value: b, label: b })),
+								]}
+								value={draft[f] || NO_BRICK}
+								onValueChange={(v) => setDraft({ ...draft, [f]: v === NO_BRICK ? "" : v })}
+							/>
+						) : (
+							<div key={f} className="w-40">
+								<Input
+									label={labels[f] ?? f}
+									placeholder={labels[f] ?? f}
+									value={draft[f] ?? ""}
+									aria-invalid={error?.id === id && error.field === f ? true : undefined}
+									onChange={(e) => setDraft({ ...draft, [f]: e.target.value })}
+								/>
+							</div>
+						),
 					)}
-				</td>
-			))}
-			<td className="p-1">
-				<Select
-					label={labels.action}
-					items={actions}
-					value={draft.action}
-					onValueChange={(v) => setDraft({ ...draft, action: v })}
-				/>
-			</td>
-			<td className="p-1">
-				<div className="flex">
+					<Select
+						label={labels.action}
+						items={actions}
+						value={draft.action}
+						onValueChange={(v) => setDraft({ ...draft, action: v })}
+					/>
 					<IconButton label={labels.save} onClick={save}>
-						<CheckIcon size={14} />
+						<CheckIcon size={16} />
 					</IconButton>
 					<IconButton label={labels.cancel} onClick={() => setEditing(null)}>
-						<XMarkIcon size={14} />
+						<XMarkIcon size={16} />
 					</IconButton>
 				</div>
 			</td>
 		</tr>
 	);
+	/** A brick or a host by its name, with the address under it. */
+	const end = (name: string | undefined, address: string, tag?: ReactNode) => (
+		<td className={CELL}>
+			{name ? <span className="block font-semibold">{name}</span> : null}
+			<span className={cn("block", name ? "font-mono text-13 text-n-11" : "font-semibold")}>
+				{address}
+			</span>
+			{tag}
+		</td>
+	);
+	const heads = [
+		labels.from ?? labels.source,
+		labels.to ?? labels.destination,
+		labels.zone ?? labels.network,
+		labels.protocol,
+		labels.port,
+		labels.allowed ?? labels.action,
+		...(cols === 8 ? [labels.name ?? ""] : []),
+	];
 
 	return (
-		<div className="flex flex-col gap-2">
-			<search className="flex items-center gap-2">
+		<div className="flex flex-col gap-6">
+			<search className="flex flex-wrap items-end gap-2">
+				<fieldset aria-label={labels.show ?? labels.action} className="contents">
+					{[all, ...actions].map((a) => (
+						<Chip
+							key={a.value}
+							selected={filter.action === a.value}
+							className={filter.action === a.value ? undefined : "bg-surface-2"}
+							onClick={() => setFilter({ ...filter, action: a.value })}
+						>
+							{chipLabels?.[a.value] ?? a.label}
+						</Chip>
+					))}
+					{missing ? (
+						<Chip
+							selected={onlyMissing}
+							className={onlyMissing ? undefined : "bg-surface-2"}
+							onClick={() => setOnlyMissing(!onlyMissing)}
+						>
+							{missing.label}
+						</Chip>
+					) : null}
+				</fieldset>
+				<div className="w-70 max-w-full">
+					<Input
+						label={labels.search}
+						placeholder={labels.search}
+						type="search"
+						value={filter.query}
+						onChange={(e) => setFilter({ ...filter, query: e.target.value })}
+					/>
+				</div>
 				<Select
+					caption
 					label={labels.network}
 					items={pick("network")}
 					value={filter.network}
 					onValueChange={(network) => setFilter({ ...filter, network })}
 				/>
 				<Select
+					caption
 					label={labels.protocol}
 					items={pick("protocol")}
 					value={filter.protocol}
 					onValueChange={(protocol) => setFilter({ ...filter, protocol })}
 				/>
-				<Select
-					label={labels.action}
-					items={[all, ...actions]}
-					value={filter.action}
-					onValueChange={(action) => setFilter({ ...filter, action })}
-				/>
-				<div className="relative w-44">
-					<span
-						aria-hidden="true"
-						className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-n-10"
-					>
-						<MagnifyingGlassIcon size={14} />
-					</span>
-					<Input
-						label={labels.search}
-						value={filter.query}
-						onChange={(e) => setFilter({ ...filter, query: e.target.value })}
-						className="pl-7"
-					/>
-				</div>
-				<Button className="ml-auto" onClick={() => start("", EMPTY)}>
-					<PlusIcon size={14} />
-					{labels.add}
-				</Button>
+				{addSignal === undefined ? (
+					<Button variant="primary" className="ml-auto" onClick={() => start("", EMPTY)}>
+						{labels.add}
+					</Button>
+				) : null}
 			</search>
-			<table className="w-full border-collapse text-ui">
-				<thead>
-					<tr className="text-left text-12 text-n-11">
-						{[...TEXT, "action" as const].map((f) => (
-							<th key={f} scope="col" className="px-2 py-1 font-medium">
-								{labels[f]}
-							</th>
-						))}
-						<td />
-					</tr>
-				</thead>
-				<tbody>
-					{editing === "" ? editor("") : null}
-					{shown.map((r) =>
-						editing === r.id ? (
-							editor(r.id)
-						) : (
-							<tr key={r.id} className="border-t border-n-6 hover:bg-n-2">
-								{TEXT.map((f) => (
-									<td key={f} className="px-2 py-1 font-mono text-12">
-										{r[f] ?? ""}
+			<div className="overflow-x-auto rounded-lg bg-surface-2 px-6 py-2 shadow-2">
+				<table className="w-full min-w-[760px] border-collapse text-left">
+					<thead>
+						<tr>
+							{heads.map((h) => (
+								<th key={h} scope="col" className="h-11 px-3 text-13 font-normal text-n-11">
+									{h}
+								</th>
+							))}
+							<td />
+						</tr>
+					</thead>
+					<tbody>
+						{editing === "" ? editor("") : null}
+						{shown.map((r) =>
+							editing === r.id ? (
+								editor(r.id)
+							) : (
+								<tr
+									key={r.id}
+									id={`flow-${r.id}`}
+									aria-current={current?.id === r.id ? "true" : undefined}
+									className={current?.id === r.id ? "bg-n-3" : undefined}
+								>
+									{end(r.sourceName, r.source)}
+									{end(
+										r.destinationName,
+										r.destination,
+										missing?.ids.has(r.id) ? (
+											<Badge variant="neutral" className="mt-1 self-start">
+												{missing.label}
+											</Badge>
+										) : null,
+									)}
+									<td className={CELL}>
+										{r.network}
+										{r.subnet ? (
+											<span className="block font-mono text-13 text-n-11">{r.subnet}</span>
+										) : null}
 									</td>
-								))}
-								<td className="px-2 py-1">
-									<Badge variant={TINT[r.action] ?? "neutral"}>{actionName(r.action)}</Badge>
-								</td>
-								<td className="px-2 py-1">
-									<div className="flex justify-end">
-										<IconButton
-											label={`${labels.edit} ${r.source} ${r.destination}`}
-											onClick={() => start(r.id, r)}
-										>
-											<PencilIcon size={14} />
-										</IconButton>
-										<IconButton
-											label={`${labels.remove} ${r.source} ${r.destination}`}
-											onClick={() => onRemove(r.id)}
-										>
-											<TrashIcon size={14} />
-										</IconButton>
-									</div>
-								</td>
-							</tr>
-						),
-					)}
-				</tbody>
-			</table>
+									<td className={CELL}>{r.protocol}</td>
+									<td className={cn(CELL, "font-mono")}>{r.port}</td>
+									<td className={CELL}>
+										<Badge variant={TINT[r.action] ?? "neutral"}>{actionName(r.action)}</Badge>
+									</td>
+									{cols === 8 ? <td className={CELL}>{r.name}</td> : null}
+									<td className="py-1 text-right">
+										<Menu.Root>
+											<Menu.Trigger
+												render={
+													<Button
+														variant="ghost"
+														className="-my-3 px-0"
+														aria-label={(labels.rowMenu ?? "{name}").replace(
+															"{name}",
+															`${r.sourceName || r.source} ${r.destinationName || r.destination}`,
+														)}
+													/>
+												}
+											>
+												<svg
+													aria-hidden="true"
+													viewBox="0 0 16 16"
+													className="size-4"
+													fill="currentColor"
+												>
+													<circle cx="3" cy="8" r="1.25" />
+													<circle cx="8" cy="8" r="1.25" />
+													<circle cx="13" cy="8" r="1.25" />
+												</svg>
+											</Menu.Trigger>
+											<MenuList
+												items={[
+													{ id: "edit", label: labels.edit, onSelect: () => start(r.id, r) },
+													{
+														id: "remove",
+														label: labels.remove,
+														danger: true,
+														onSelect: () => onRemove(r.id),
+													},
+												]}
+											/>
+										</Menu.Root>
+									</td>
+								</tr>
+							),
+						)}
+					</tbody>
+				</table>
+			</div>
 			{error && editing === error.id ? (
-				<p role="alert" className="text-ui text-danger-text">
+				<p role="alert" className="text-danger-text">
 					{labels[error.field]}: {error.message}
 				</p>
 			) : null}

@@ -40,7 +40,7 @@ pub(crate) enum Work {
     Gate {
         git: Arc<dyn Git>,
         gates: Vec<String>,
-        step: Step,
+        step: Box<Step>,
         findings: Vec<Finding>,
         dropped: Vec<Value>,
         criteria: Value,

@@ -30,29 +30,8 @@ vi.mock("@xterm/addon-fit", () => ({
 }));
 
 const alpha = () => unwrap(commands.projectsOpen("/mock/alpha", false));
+// The files and the terminal left the top row: the sync mark shows when the project is loaded.
 const bar = async () => within((await screen.findAllByRole("banner"))[0] as HTMLElement);
-
-describe("Active sessions", () => {
-	it("counts the live sessions, lists each one and stops one with a click", async () => {
-		const user = userEvent.setup();
-		await alpha();
-		mountApp("/home/today");
-		await user.click(
-			await (await bar()).findByRole("button", { name: /^Activity: .*Active sessions \(2\)$/ }),
-		);
-		const list = await screen.findByRole("list", { name: "Active sessions" });
-		const rows = within(list).getAllByRole("listitem");
-		expect(rows).toHaveLength(2);
-		expect(rows[0]).toHaveTextContent("alpha");
-		expect(rows[0]).toHaveTextContent("claude-opus-4");
-		expect(rows[0]).toHaveTextContent("$18.40");
-		await user.click(within(list).getByRole("button", { name: "Stop Codex beta" }));
-		await waitFor(() =>
-			expect(mockState().machine.sessions.some((s) => s.pid === 4188)).toBe(false),
-		);
-		expect((await bar()).getByRole("button", { name: /Needs you/ })).toBeInTheDocument();
-	});
-});
 
 describe("File drawer", () => {
 	it("builds the tree with folders first and finds a file by its letters", () => {
@@ -73,7 +52,7 @@ describe("File drawer", () => {
 		const user = userEvent.setup();
 		await alpha();
 		mountApp("/home/today");
-		await (await bar()).findByRole("button", { name: "Files" });
+		await (await bar()).findByRole("button", { name: /^Sync state: / });
 		await user.keyboard("{Control>}p{/Control}");
 		const drawer = await screen.findByRole("complementary", { name: "Files" });
 		const search = within(drawer).getByRole("searchbox", { name: "Search files" });
@@ -95,7 +74,7 @@ describe("Terminal drawer", () => {
 		const user = userEvent.setup();
 		await alpha();
 		mountApp("/work/board");
-		await (await bar()).findByRole("button", { name: "Terminal" });
+		await (await bar()).findByRole("button", { name: /^Sync state: / });
 		await user.keyboard("{Control>}`{/Control}");
 		const drawer = await screen.findByRole("region", { name: "Terminals" });
 		const tabs = within(drawer).getByRole("tablist", { name: "Terminals" });
@@ -115,7 +94,7 @@ describe("Terminal drawer", () => {
 		const user = userEvent.setup();
 		await alpha();
 		mountApp("/work/board");
-		await (await bar()).findByRole("button", { name: "Terminal" });
+		await (await bar()).findByRole("button", { name: /^Sync state: / });
 		await user.keyboard("{Control>}`{/Control}");
 		const drawer = await screen.findByRole("region", { name: "Terminals" });
 		const size = () => within(drawer).getByRole("separator", { name: "Terminal size" });
@@ -140,7 +119,7 @@ describe("Terminal drawer", () => {
 		const user = userEvent.setup();
 		await alpha();
 		mountApp("/work/board");
-		await (await bar()).findByRole("button", { name: "Terminal" });
+		await (await bar()).findByRole("button", { name: /^Sync state: / });
 		await user.keyboard("{Control>}`{/Control}");
 		const drawer = await screen.findByRole("region", { name: "Terminals" });
 		const tabs = within(drawer).getByRole("tablist", { name: "Terminals" });

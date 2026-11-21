@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { itemRef, noteOpened } from "@/features/library/recent";
 import { clearViewState, readView, useViewProject, viewProjectNow, writeView } from "./view-state";
 
 // The choice of each view for the session, by project and scope. A remount of the view reads it
@@ -26,6 +27,9 @@ export function useTabSelection(
 		(id: string | null) => {
 			memory.set(k, id);
 			writeView(project, `tab:${scope}`, id);
+			// The doors of Library list the items that a person opened.
+			const ref = id && itemRef(scope, id);
+			if (ref) noteOpened(ref);
 			redraw((n) => n + 1);
 		},
 		[k, project, scope],

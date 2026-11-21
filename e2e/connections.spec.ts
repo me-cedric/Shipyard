@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const TOKEN = "tok-e2e-secret-7"; // gitleaks:allow
 
 test("adds a tracker with a secret, tests it and removes it", async ({ page }) => {
-	await page.goto("/settings/connections");
+	await page.goto("/setup/project?page=connections");
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme");
 	await page.getByRole("combobox", { name: "Product" }).click();
@@ -33,7 +33,7 @@ test("adds a tracker with a secret, tests it and removes it", async ({ page }) =
 });
 
 test("names a missing secret and the missing scope of a forge", async ({ page }) => {
-	await page.goto("/settings/connections");
+	await page.goto("/setup/project?page=connections");
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Code");
 	await page.getByRole("combobox", { name: "Type" }).click();
@@ -67,7 +67,7 @@ test("names a missing secret and the missing scope of a forge", async ({ page })
 });
 
 test("adds a connection with the keyboard", async ({ page }) => {
-	await page.goto("/settings/connections");
+	await page.goto("/setup/project?page=connections");
 	await page.getByRole("button", { name: "Connection" }).focus();
 	await page.keyboard.press("Enter");
 	await page.getByRole("textbox", { name: "Name" }).focus();
@@ -84,44 +84,47 @@ test("adds a connection with the keyboard", async ({ page }) => {
 });
 
 test("adds an MCP server with a secret, starts it and stops it", async ({ page }) => {
-	await page.goto("/settings/connections");
-	await page.getByRole("button", { name: "Connection" }).click();
-	await page.getByRole("combobox", { name: "Type" }).click();
-	await page.getByRole("option", { name: "MCP server" }).click();
-	await page.getByRole("combobox", { name: "Server" }).click();
+	await page.goto("/setup/computer");
+	const servers = page.getByRole("region", { name: "MCP servers" });
+	await servers.getByRole("button", { name: "Add a server" }).click();
+	await servers.getByRole("combobox", { name: "Server" }).click();
 	await page.getByRole("option", { name: "Figma" }).click();
 	await page.getByLabel("Figma API token").and(page.locator("input")).fill(TOKEN);
 	await page.getByRole("button", { name: "Save" }).click();
 
-	// MCP servers wait in Advanced.
-	await page.getByText("Advanced", { exact: true }).click();
-	const row = page.getByRole("group", { name: "Figma" });
-	await expect(page.getByRole("heading", { name: "MCP servers (1)" })).toBeVisible();
-	await expect(row.getByRole("img", { name: "Stopped" })).toBeVisible();
+	// Each server is a row that opens: its actions are under it.
+	const row = servers.getByRole("group", { name: "Figma" });
+	await expect(row).toBeVisible();
+	await expect(row).toContainText("Stopped");
 	expect(await page.content()).not.toContain(TOKEN);
+	await row.locator("summary").click();
 
 	await row.getByRole("button", { name: "Start" }).click();
-	await expect(row.getByRole("img", { name: "Running" })).toBeVisible();
+	await expect(row).toContainText("Running");
 	await expect(row.getByRole("alert")).toHaveCount(0);
 	await row.getByRole("button", { name: "Stop" }).click();
-	await expect(row.getByRole("img", { name: "Stopped" })).toBeVisible();
+	await expect(row).toContainText("Stopped");
 
 	// The runners show with no action of the person.
-	await expect(
-		page.getByRole("group", { name: "Claude Code" }).getByRole("img", { name: "Detected" }),
-	).toBeVisible();
+	await expect(page.getByRole("group", { name: "Claude Code" })).toContainText("Ready");
 });
 
 test("turns on the server for outside agents and imports a server of another tool", async ({
 	page,
 }) => {
-	await page.goto("/settings/connections");
-	await page.getByText("Advanced", { exact: true }).click();
-	const box = page.getByRole("heading", { name: "Outside agents" }).locator("..");
-	await box.getByRole("switch", { name: "Server on" }).click();
-	await box.getByRole("switch", { name: "Read files" }).click();
-	await box.getByRole("button", { name: "Apply" }).click();
-	await expect(box.getByRole("img", { name: "Running" })).toBeVisible();
-	await box.getByRole("button", { name: "Import git" }).click();
-	await expect(box.getByRole("status")).toHaveText("Imported git");
+	await page.goto("/setup/computer?page=share");
+	const region = (name: string) => page.getByRole("region", { name });
+	// The switch is behind More, in the row "What they may use".
+	await region("More").locator("summary", { hasText: "What they may use" }).click();
+	await region("More").getByRole("switch", { name: "Server on" }).click();
+	await region("What they may use").getByRole("button", { name: "Read files" }).click();
+	await region("What they may use").getByRole("button", { name: "Apply" }).click();
+	await expect(region("More").getByText("Running")).toBeVisible();
+	// The card of the import has a heading, not a region name.
+	await expect(
+		page.getByRole("heading", { name: "Bring servers from another tool" }),
+	).toBeVisible();
+	await page.getByRole("button", { name: "Import Claude Code" }).click();
+	// The result shows in the card of the permissions.
+	await expect(region("What they may use").getByRole("status")).toHaveText("Imported git");
 });

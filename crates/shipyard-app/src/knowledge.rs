@@ -12,11 +12,12 @@ use std::process::Command;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use shipyard_core::knowledge::{Stamp, Term, glossary, marks, path_order};
+use shipyard_core::knowledge::{Stamp, Term, glossary, marks, path_order, stale_code};
 use shipyard_mcp::proxy::{Proxy, SEP};
 use shipyard_store::design::{self, resolve_in};
 use shipyard_store::export::{
-    self, Content, Item, Meta, Section, SheetOut, annex_item, assemble, docx_bytes, image_item,
+    self, Block, Content, Item, Meta, Section, SheetOut, annex_item, assemble, docx_bytes,
+    image_item,
 };
 use shipyard_store::knowledge::{
     self as kn, Dashboard, DeckTheme, GraphEdge, GraphNode, Loaded, PageEntry,
@@ -220,6 +221,8 @@ pub struct CodeGraph {
     pub state: CodeState,
     pub nodes: Vec<GraphNode>,
     pub edges: Vec<CodeEdge>,
+    /// The files whose spec changed after their last change. Only the overview fills it.
+    pub stale: Vec<String>,
 }
 
 /// The name of the graph of a folder in codebase-memory: its real path (a link such as `/tmp` or
@@ -305,6 +308,7 @@ fn empty(state: CodeState) -> CodeGraph {
         state,
         nodes: vec![],
         edges: vec![],
+        stale: vec![],
     }
 }
 
@@ -358,11 +362,43 @@ pub fn code_graph(src: &dyn CodeSource, root: &Path) -> CodeGraph {
     } else {
         CodeState::Ready
     };
+    let stale = stale_files(root, &nodes);
     CodeGraph {
         state,
         nodes,
         edges,
+        stale,
     }
+}
+
+/// The specs are the Markdown files of `docs/openspec/` that git knows. A file with no time
+/// (unreadable) is skipped.
+fn stale_files(root: &Path, nodes: &[GraphNode]) -> Vec<String> {
+    let Ok(files) = crate::code::scan_files(root) else {
+        return vec![];
+    };
+    let specs: Vec<&str> = files
+        .iter()
+        .map(String::as_str)
+        .filter(|f| f.starts_with("docs/openspec/") && f.ends_with(".md"))
+        .collect();
+    let paths: Vec<&str> = nodes
+        .iter()
+        .filter_map(|n| n.location.as_deref())
+        .chain(specs.iter().copied())
+        .collect();
+    let times = changed_times(root, &paths);
+    let at = |p: &str| times.get(p).copied().unwrap_or(0);
+    let texts: Vec<(String, i64)> = specs
+        .iter()
+        .filter_map(|f| Some((std::fs::read_to_string(root.join(f)).ok()?, at(f))))
+        .collect();
+    let code: Vec<(String, i64)> = nodes
+        .iter()
+        .filter_map(|n| n.location.as_deref())
+        .map(|p| (p.to_string(), at(p)))
+        .collect();
+    stale_code(&code, &texts)
 }
 
 /// The calls of one file, symbol by symbol: its symbols, and each symbol that calls them or that
@@ -427,6 +463,7 @@ pub fn code_focus(src: &dyn CodeSource, root: &Path, file: &str) -> Res<CodeGrap
         state,
         nodes,
         edges,
+        stale: vec![],
     })
 }
 
@@ -782,17 +819,106 @@ pub fn learn(s: &AppState) -> Res<Learn> {
             Some((n.target.clone(), text))
         })
         .collect();
+    // The words that a person added sit beside the specs: a spec defines a term first.
+    let mut sources = specs;
+    if let Ok(text) = std::fs::read_to_string(p.root.join(GLOSSARY)) {
+        sources.push((format!("doc:{GLOSSARY}"), text));
+    }
     Ok(Learn {
         path,
-        glossary: glossary(&specs),
+        glossary: glossary(&sources),
     })
+}
+
+/// The glossary file of the project: the words that a person added in Learn.
+const GLOSSARY: &str = "docs/glossary.md";
+
+/// Adds a word and its meaning to `docs/glossary.md` as the line `- word: meaning` under
+/// `### Glossary`. A word that a spec or the file already defines is refused.
+pub fn glossary_add(s: &AppState, term: &str, meaning: &str, click: bool) -> Res<()> {
+    crate::work::need_click(
+        s,
+        click,
+        crate::rights::Right::KnowledgeEdit,
+        "glossary_add",
+        term,
+    )?;
+    let (term, meaning) = (term.trim(), meaning.trim());
+    let plain = |t: &str| !t.is_empty() && t.len() <= 500 && !t.contains(['\n', '\r']);
+    if !plain(term) || !plain(meaning) || term.contains(':') || term.len() > 80 {
+        return Err("a word has a name with no colon and a meaning, each on one line".into());
+    }
+    if learn(s)?
+        .glossary
+        .iter()
+        .any(|g| g.term.to_lowercase() == term.to_lowercase())
+    {
+        return Err(format!("{term} is already in the glossary"));
+    }
+    let p = project(s)?;
+    let full = p.root.join(GLOSSARY);
+    let line = format!("- {term}: {meaning}\n");
+    match read_text(&full, GLOSSARY) {
+        Ok(old) => {
+            // The reader stops at the next heading: the line goes at the end of the `### Glossary`
+            // section. A file with no such heading gets it last.
+            let mut lines: Vec<&str> = old.text.lines().collect();
+            let text = match lines.iter().position(|l| l.trim_end() == "### Glossary") {
+                Some(i) => {
+                    let end = lines[i + 1..]
+                        .iter()
+                        .position(|l| l.starts_with('#'))
+                        .map_or(lines.len(), |n| i + 1 + n);
+                    let at = (i + 1..end)
+                        .rev()
+                        .find(|&n| !lines[n].trim().is_empty())
+                        .map_or(i + 1, |n| n + 1);
+                    lines.insert(at, line.trim_end());
+                    lines.join("\n") + "\n"
+                }
+                None => format!("{}\n### Glossary\n\n{line}", with_final_newline(&old.text)),
+            };
+            let w = put(
+                s,
+                &full,
+                &text,
+                Some(&old.stamp),
+                false,
+                crate::rights::Right::KnowledgeEdit,
+            )?;
+            if w.conflict {
+                return Err("the glossary changed on disk: try again".into());
+            }
+        }
+        Err(_) if !full.exists() => {
+            let text = format!("# Glossary\n\n### Glossary\n\n{line}");
+            put(
+                s,
+                &full,
+                &text,
+                None,
+                true,
+                crate::rights::Right::KnowledgeEdit,
+            )?;
+        }
+        Err(e) => return Err(e),
+    }
+    Ok(())
+}
+
+fn with_final_newline(text: &str) -> String {
+    if text.ends_with('\n') {
+        text.to_string()
+    } else {
+        format!("{text}\n")
+    }
 }
 
 // ---------------------------------------------------------------- exports
 
 /// The words of a document, in the language of the person. `sections` holds one title for each
 /// section: five for the dossier, four for the functional documentation.
-#[derive(Debug, Clone, Deserialize, Type)]
+#[derive(Debug, Clone, Default, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ExportText {
     pub title: String,
@@ -802,6 +928,12 @@ pub struct ExportText {
     /// The title of the contents list.
     pub contents: String,
     pub sections: Vec<String>,
+    /// The client of the report: it goes on the cover with the project (`spec:library-functions#REQ-007`).
+    #[serde(default)]
+    pub client: Option<String>,
+    /// The day of the cover, `YYYY-MM-DD`. Another text gives today.
+    #[serde(default)]
+    pub date: Option<String>,
 }
 
 /// One architecture view that the view rendered at the click.
@@ -887,10 +1019,15 @@ fn view_item(v: &ViewImage) -> Item {
 }
 
 pub(crate) fn meta(s: &AppState, p: &crate::design::Proj, t: &ExportText) -> Meta {
+    let client = t.client.as_deref().map(str::trim).filter(|c| !c.is_empty());
+    let day = t
+        .date
+        .as_deref()
+        .filter(|d| shipyard_core::work::parse_day(d).is_some());
     Meta {
         title: t.title.clone(),
-        project: p.file.name.clone(),
-        generated_on: crate::work::today(s),
+        project: client.map_or_else(|| p.file.name.clone(), |c| format!("{c} - {}", p.file.name)),
+        generated_on: day.map_or_else(|| crate::work::today(s), String::from),
         empty: t.empty.clone(),
         gap: t.gap.clone(),
         generated: t.generated.clone(),
@@ -921,15 +1058,22 @@ fn named(sections: &[String], n: usize) -> Res<Vec<&str>> {
 /// The architecture dossier: the views, the decisions, the data models, the flows and the API
 /// contracts (REQ-013). Each source is read now. A source that fails is a gap.
 pub fn export_dossier(s: &AppState, t: &ExportText, views: &[ViewImage], path: &str) -> Res<()> {
+    let (m, blocks) = dossier_doc(s, t, views)?;
+    write_doc(s, path, &m, &blocks)
+}
+
+/// The cover and the blocks of the dossier, for any output.
+pub(crate) fn dossier_doc(
+    s: &AppState,
+    t: &ExportText,
+    views: &[ViewImage],
+) -> Res<(Meta, Vec<Block>)> {
     let titles = named(&t.sections, 5)?;
     let p = project(s)?;
     let sections = dossier_sections(&p, &titles, views.iter().map(view_item).collect());
-    write_export(
-        s,
-        path,
-        "docx",
-        &docx_bytes(&meta(s, &p, t), &assemble(&meta(s, &p, t), &sections)).map_err(err)?,
-    )
+    let m = meta(s, &p, t);
+    let blocks = assemble(&m, &sections);
+    Ok((m, blocks))
 }
 
 /// The five sections of the dossier. `views` are the rendered architecture views.
@@ -1081,16 +1225,23 @@ pub fn export_dossier_complete(
     path: &str,
     click: bool,
 ) -> Res<()> {
-    let titles = named(&t.sections, 7)?;
     crate::reports::need_export_click(s, path, click)?;
+    let (m, blocks) = dossier_complete_doc(s, t, views)?;
+    write_doc(s, path, &m, &blocks)
+}
+
+/// The cover and the blocks of the complete dossier, for any output.
+pub(crate) fn dossier_complete_doc(
+    s: &AppState,
+    t: &ExportText,
+    views: &[ViewImage],
+) -> Res<(Meta, Vec<Block>)> {
+    let titles = named(&t.sections, 7)?;
     let p = project(s)?;
     let sections = dossier_complete_sections(s, &p, &titles, views)?;
-    write_export(
-        s,
-        path,
-        "docx",
-        &docx_bytes(&meta(s, &p, t), &assemble(&meta(s, &p, t), &sections)).map_err(err)?,
-    )
+    let m = meta(s, &p, t);
+    let blocks = assemble(&m, &sections);
+    Ok((m, blocks))
 }
 
 fn dossier_complete_sections(
@@ -1133,6 +1284,12 @@ fn dossier_complete_sections(
 /// The functional documentation: the specs, the design document, the screens and the estimate
 /// annex (REQ-014). The annex holds tasks and days and no day rate.
 pub fn export_functional(s: &AppState, t: &ExportText, path: &str) -> Res<()> {
+    let (m, blocks) = functional_doc(s, t)?;
+    write_doc(s, path, &m, &blocks)
+}
+
+/// The cover and the blocks of the functional documentation, for any output.
+pub(crate) fn functional_doc(s: &AppState, t: &ExportText) -> Res<(Meta, Vec<Block>)> {
     let titles = named(&t.sections, 4)?;
     let p = project(s)?;
     let (nodes, _) = with_index(s, |i| i.graph())?;
@@ -1189,12 +1346,9 @@ pub fn export_functional(s: &AppState, t: &ExportText, path: &str) -> Res<()> {
             items: annex,
         },
     ];
-    write_export(
-        s,
-        path,
-        "docx",
-        &docx_bytes(&meta(s, &p, t), &assemble(&meta(s, &p, t), &sections)).map_err(err)?,
-    )
+    let m = meta(s, &p, t);
+    let blocks = assemble(&m, &sections);
+    Ok((m, blocks))
 }
 
 #[derive(Debug, Clone, Deserialize, Type)]
@@ -1227,19 +1381,70 @@ pub fn export_sheet(s: &AppState, t: &ExportText, sheets: Vec<SheetIn>, path: &s
 /// An absolute path with the right extension, in a folder that exists. The write is atomic.
 /// The path joins the exports (the person may reveal it) only after the write worked.
 pub(crate) fn write_export(s: &AppState, path: &str, ext: &str, bytes: &[u8]) -> Res<()> {
+    let p = check_export_path(path, &[ext])?;
+    write_atomic(&p, bytes).map_err(err)?;
+    s.exports().insert(path.into());
+    Ok(())
+}
+
+/// An absolute path with one of the extensions, in a folder that exists.
+fn check_export_path(path: &str, exts: &[&str]) -> Res<std::path::PathBuf> {
     let p = std::path::PathBuf::from(path);
     if !p.is_absolute() || p.is_dir() {
         return Err("the path is not an absolute file path".into());
     }
-    if !p.extension().is_some_and(|e| e.eq_ignore_ascii_case(ext)) {
-        return Err(format!("the file is not a .{ext} file"));
+    if !p
+        .extension()
+        .is_some_and(|e| exts.iter().any(|x| e.eq_ignore_ascii_case(x)))
+    {
+        return Err(format!("the file is not a .{} file", exts.join(" or .")));
     }
     if !p.parent().is_some_and(Path::is_dir) {
         return Err("the folder of the path does not exist".into());
     }
-    write_atomic(&p, bytes).map_err(err)?;
-    s.exports().insert(path.into());
-    Ok(())
+    Ok(p)
+}
+
+/// A text report in the form of the extension of `path`: `.docx` or `.md`. A `.pdf` needs the
+/// print window of the app: the command goes through `pdf_report`.
+pub(crate) fn write_doc(s: &AppState, path: &str, m: &Meta, blocks: &[Block]) -> Res<()> {
+    let ext = check_export_path(path, &["docx", "md"])?
+        .extension()
+        .map(|e| e.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    if ext == "md" {
+        write_export(s, path, "md", export::markdown_text(blocks).as_bytes())
+    } else {
+        write_export(s, path, "docx", &docx_bytes(m, blocks).map_err(err)?)
+    }
+}
+
+/// The path ends in `.pdf`, in any case.
+pub(crate) fn is_pdf(path: &str) -> bool {
+    Path::new(path)
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("pdf"))
+}
+
+/// A text report as a PDF on macOS: `build` reads the sources, the page prints in the hidden
+/// window (`decks::print_html`), and the bytes go to `path`. A path or a click that is wrong
+/// fails before the print.
+pub(crate) async fn pdf_report(
+    app: AppHandle,
+    path: String,
+    build: impl FnOnce(&AppState) -> Res<(Meta, Vec<Block>)> + Send + 'static,
+) -> Api<()> {
+    let to = path.clone();
+    let html = blocking(app.clone(), move |s| {
+        check_export_path(&to, &["pdf"])?;
+        let (m, blocks) = build(s)?;
+        Ok(export::html_page(&m, &blocks))
+    })
+    .await?;
+    let bytes = crate::decks::print_html(&app, html, crate::decks::Paper::A4)
+        .await
+        .map_err(crate::errors::AppError::from)?;
+    blocking(app, move |s| write_export(s, &path, "pdf", &bytes)).await
 }
 
 // ---------------------------------------------------------------- commands
@@ -1379,6 +1584,18 @@ pub async fn learn_get(app: AppHandle) -> Api<Learn> {
     blocking(app, learn).await
 }
 
+/// Adds a word to the glossary file, after the click of a person.
+#[tauri::command]
+#[specta::specta]
+pub async fn glossary_add_word(
+    app: AppHandle,
+    term: String,
+    meaning: String,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| glossary_add(s, &term, &meaning, click)).await
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn export_dossier_file(
@@ -1387,6 +1604,9 @@ pub async fn export_dossier_file(
     views: Vec<ViewImage>,
     path: String,
 ) -> Api<()> {
+    if is_pdf(&path) {
+        return pdf_report(app, path, move |s| dossier_doc(s, &text, &views)).await;
+    }
     blocking(app, move |s| export_dossier(s, &text, &views, &path)).await
 }
 
@@ -1401,6 +1621,13 @@ pub async fn export_dossier_complete_file(
     path: String,
     click: bool,
 ) -> Api<()> {
+    if is_pdf(&path) {
+        return pdf_report(app, path.clone(), move |s| {
+            crate::reports::need_export_click(s, &path, click)?;
+            dossier_complete_doc(s, &text, &views)
+        })
+        .await;
+    }
     blocking(app, move |s| {
         export_dossier_complete(s, &text, &views, &path, click)
     })
@@ -1410,6 +1637,9 @@ pub async fn export_dossier_complete_file(
 #[tauri::command]
 #[specta::specta]
 pub async fn export_functional_file(app: AppHandle, text: ExportText, path: String) -> Api<()> {
+    if is_pdf(&path) {
+        return pdf_report(app, path, move |s| functional_doc(s, &text)).await;
+    }
     blocking(app, move |s| export_functional(s, &text, &path)).await
 }
 
@@ -1538,6 +1768,63 @@ mod tests {
     }
 
     #[test]
+    fn a_word_goes_into_the_glossary_file_and_the_glossary_reads_it() {
+        let (repo, _d, s) = setup();
+        assert!(glossary_add(&s, "Recipe", "the steps of an agent", false).is_err());
+        glossary_add(&s, "Recipe", "the steps of an agent", true).unwrap();
+        glossary_add(&s, "Wave", "a group of tasks", true).unwrap();
+        let file = std::fs::read_to_string(repo.path().join("docs/glossary.md")).unwrap();
+        assert!(file.contains("- Recipe: the steps of an agent\n- Wave: a group of tasks\n"));
+        // A file that a person wrote with no heading keeps its text and gets the heading.
+        std::fs::write(repo.path().join("docs/glossary.md"), "# Words\n").unwrap();
+        glossary_add(&s, "Slot", "a place for a run", true).unwrap();
+        let file = std::fs::read_to_string(repo.path().join("docs/glossary.md")).unwrap();
+        assert_eq!(
+            file,
+            "# Words\n\n### Glossary\n\n- Slot: a place for a run\n"
+        );
+        // A heading after the section: the word goes inside the section and shows once.
+        std::fs::write(
+            repo.path().join("docs/glossary.md"),
+            "### Glossary\n\n- Slot: a place\n\n## Notes\n\ntext\n",
+        )
+        .unwrap();
+        glossary_add(&s, "Lane", "a road", true).unwrap();
+        let file = std::fs::read_to_string(repo.path().join("docs/glossary.md")).unwrap();
+        assert_eq!(
+            file,
+            "### Glossary\n\n- Slot: a place\n- Lane: a road\n\n## Notes\n\ntext\n"
+        );
+        assert!(learn(&s).unwrap().glossary.iter().any(|g| g.term == "Lane"));
+        assert!(glossary_add(&s, "Lane", "again", true).is_err());
+        std::fs::remove_file(repo.path().join("docs/glossary.md")).unwrap();
+        glossary_add(&s, "Recipe", "the steps of an agent", true).unwrap();
+        glossary_add(&s, "Wave", "a group of tasks", true).unwrap();
+        let l = learn(&s).unwrap();
+        let recipe = l.glossary.iter().find(|t| t.term == "Recipe").unwrap();
+        assert_eq!(recipe.meaning, "the steps of an agent");
+        assert_eq!(recipe.spec, "doc:docs/glossary.md");
+        // The terms of the specs stay, and the file never replaces one of them.
+        assert_eq!(
+            l.glossary.iter().find(|t| t.term == "run").unwrap().spec,
+            "spec:work"
+        );
+        for (term, meaning) in [
+            ("RUN", "again"),
+            ("recipe", "again"),
+            ("", "x"),
+            ("a: b", "x"),
+            ("word", ""),
+            ("word", "two\nlines"),
+        ] {
+            assert!(
+                glossary_add(&s, term, meaning, true).is_err(),
+                "{term} {meaning}"
+            );
+        }
+    }
+
+    #[test]
     fn a_page_saves_after_a_changed_file_warning_and_only_below_the_handbook_folders() {
         let (repo, _d, s) = setup();
         let w = doc_write(&s, "docs/handbook/start.md", "# Start\n", None, true).unwrap();
@@ -1585,6 +1872,25 @@ mod tests {
         assert!(dashboard_get(&s, "future").unwrap().loaded.read_only);
         assert!(dashboard_save(&s, "future", &dash("Mine"), None).is_err());
         assert!(dashboard_save(&s, "../x", &dash("x"), None).is_err());
+        // The chart of a tile is kept in the file; a chart outside the catalogue is refused.
+        let mut lined = dash("Lined");
+        lined.tiles.push(kn::Tile {
+            id: "runs".into(),
+            kind: "runs".into(),
+            x: 0,
+            y: 0,
+            w: 4,
+            h: 3,
+            title: String::new(),
+            chart: "line".into(),
+        });
+        dashboard_save(&s, "lined", &lined, None).unwrap();
+        assert_eq!(
+            dashboard_get(&s, "lined").unwrap().loaded.value.tiles[0].chart,
+            "line"
+        );
+        lined.tiles[0].chart = "pie".into();
+        assert!(dashboard_save(&s, "lined", &lined, None).is_err());
         let log = Command::new("git")
             .arg("-C")
             .arg(repo.path())
@@ -1685,6 +1991,7 @@ mod tests {
             generated: "Generated".into(),
             contents: "Contents".into(),
             sections: titles.map(String::from).to_vec(),
+            ..Default::default()
         };
         let go = |click| export_dossier_complete(&s, &t, &[], file.to_str().unwrap(), click);
         assert!(go(false).unwrap_err().contains("click"));
@@ -1711,6 +2018,7 @@ mod tests {
             generated: "Generated".into(),
             contents: "Contents".into(),
             sections: ["A", "B", "C", "D", "E"].map(String::from).to_vec(),
+            ..Default::default()
         };
         let file = out.path().join("dossier.docx");
         export_dossier(&s, &t, &[], file.to_str().unwrap()).unwrap();
@@ -1731,6 +2039,46 @@ mod tests {
         let doc = out.path().join("functional.docx");
         export_functional(&s, &four, doc.to_str().unwrap()).unwrap();
         assert!(doc.exists());
+        // The complete dossier says its client and its day on the cover.
+        let seven = ExportText {
+            title: "Handover".into(),
+            sections: ["A", "B", "C", "D", "E", "F", "G"]
+                .map(String::from)
+                .to_vec(),
+            client: Some(" Acme ".into()),
+            date: Some("2026-11-18".into()),
+            ..t.clone()
+        };
+        let full = out.path().join("full.md");
+        export_dossier_complete(&s, &seven, &[], full.to_str().unwrap(), true).unwrap();
+        let text = std::fs::read_to_string(&full).unwrap();
+        assert!(text.starts_with("# Handover\n\n*Acme - "), "{text}");
+        assert!(text.contains("*Generated: 2026-11-18*"));
+        // A date that is not a day gives today.
+        let bad = ExportText {
+            date: Some("18/11/2026".into()),
+            ..seven.clone()
+        };
+        export_dossier_complete(&s, &bad, &[], full.to_str().unwrap(), true).unwrap();
+        let today = crate::work::today(&s);
+        assert!(
+            std::fs::read_to_string(&full)
+                .unwrap()
+                .contains(&format!("*Generated: {today}*"))
+        );
+        // The same report as Markdown: the cover title, then a heading for each section.
+        let md = out.path().join("dossier.md");
+        export_dossier(&s, &t, &[], md.to_str().unwrap()).unwrap();
+        let text = std::fs::read_to_string(&md).unwrap();
+        assert!(text.starts_with("# Dossier\n"), "{text}");
+        assert!(text.contains("\n# A\n") && text.contains("\n# E\n"));
+        let fmd = out.path().join("functional.md");
+        export_functional(&s, &four, fmd.to_str().unwrap()).unwrap();
+        assert!(std::fs::read_to_string(&fmd).unwrap().contains("\n# D\n"));
+        assert!(
+            !out.path().join("x.pdf").exists(),
+            "a PDF goes through the print window"
+        );
         let book = out.path().join("deliverable.xlsx");
         let sheet = SheetIn {
             name: "Scan".into(),
@@ -1770,6 +2118,54 @@ mod tests {
             .set_tool_filter(&id, ToolFilter::All)
             .unwrap();
         code_index_run(&proxy, dir.path()).unwrap();
+    }
+
+    /// A code source with a fixed overview of two files.
+    struct TwoFiles;
+    impl CodeSource for TwoFiles {
+        fn call(&self, _tool: &str, _args: Value) -> Result<Value, String> {
+            Ok(json!({ "rows": [["src/a.ts", "src/b.ts", "2"]] }))
+        }
+    }
+
+    // spec:library-functions#REQ-012
+    #[test]
+    fn a_part_of_the_code_is_stale_when_its_spec_changed_after_the_last_change_of_the_code() {
+        let dir = tempfile::tempdir().unwrap();
+        let git = |args: &[&str], date: &str| {
+            let ok = Command::new("git")
+                .arg("-C")
+                .arg(dir.path())
+                .args(["-c", "user.name=t", "-c", "user.email=t@t.test"])
+                .args(args)
+                .env("GIT_AUTHOR_DATE", date)
+                .env("GIT_COMMITTER_DATE", date)
+                .status()
+                .unwrap()
+                .success();
+            assert!(ok, "{args:?}");
+        };
+        let put = |rel: &str, text: &str| {
+            let p = dir.path().join(rel);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, text).unwrap();
+        };
+        git(&["init", "-q"], "2026-11-01T10:00:00Z");
+        put("src/a.ts", "a\n");
+        put("src/b.ts", "b\n");
+        git(&["add", "-A"], "2026-11-10T10:00:00Z");
+        git(&["commit", "-qm", "code"], "2026-11-10T10:00:00Z");
+        put("docs/openspec/specs/x/spec.md", "Files: `src/a.ts`\n");
+        git(&["add", "-A"], "2026-11-18T10:00:00Z");
+        git(&["commit", "-qm", "spec"], "2026-11-18T10:00:00Z");
+        let g = code_graph(&TwoFiles, dir.path());
+        assert_eq!(g.state, CodeState::Ready);
+        assert_eq!(g.stale, ["src/a.ts"]);
+        // The code changes after the spec: nothing is stale.
+        put("src/a.ts", "a2\n");
+        git(&["add", "-A"], "2026-11-19T10:00:00Z");
+        git(&["commit", "-qm", "code again"], "2026-11-19T10:00:00Z");
+        assert!(code_graph(&TwoFiles, dir.path()).stale.is_empty());
     }
 
     #[test]

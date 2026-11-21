@@ -288,6 +288,7 @@ pub fn docs_update_start(s: &AppState, doc: &str, range: DocsRange, click: bool)
         url: String::new(),
         updated: crate::code::now_iso(),
         time: None,
+        release: None,
     };
     let run = crate::factory::start_ticket(s, &a, shipyard_core::pickup::Ticket::new(item))?;
     // The engine told the workspace the base before any step (`Workspaces::set_base`). Here the

@@ -4,147 +4,173 @@
     {
       "id": "SCR-001",
       "slug": "home",
-      "title": "Home, Today: one Get started checklist while an item is to do, Needs you, My items with their count in the heading, My agents with the spend of today in the heading, no stat tiles",
+      "title": "Today, Needs you: the count in the title, one card with who asks, the feature, one large line and the answer (with Another answer for a free answer, and Later), a short queue with \"N more\", Working now, one small setup card, one slim time reminder and the link Panels for my role; the Ask bar in the top row of the page A dashboard that you pin shows as one card with its tiles under the cards.",
       "artifacts": [
         "spec:shell",
         "spec:home-today",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/home.png"
     },
     {
       "id": "SCR-002",
       "slug": "home-light",
-      "title": "Home, Today, light theme",
+      "title": "Today, light theme",
       "artifacts": [
         "spec:shell",
         "spec:home-today",
         "spec:design-system",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/home-light.png"
     },
     {
       "id": "SCR-003",
       "slug": "design",
-      "title": "Design: the diagram or picture fits the zoom frame at the first paint; a sideways gesture or a drag pans it, a pinch zooms it, Fit brings it back",
+      "title": "Library / Architecture: the model chips with New model, the switch Picture, Both, Text with Edit in the header, and the picture beside the text in Both; the diagram fits the zoom frame at the first paint, with four zoom buttons",
       "artifacts": [
         "spec:design",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/design.png"
     },
     {
       "id": "SCR-004",
       "slug": "specs",
-      "title": "Specs",
+      "title": "Library / Questions: the title gives the count of open questions; each open item is an attention card with its Answer field, the closed items sit in one Closed card with Add the answer to the spec, one row of kind chips and Mine; the old filters are in More",
       "artifacts": [
         "spec:specs",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/specs.png"
     },
     {
       "id": "SCR-005",
       "slug": "work",
-      "title": "Work",
+      "title": "Plan / Timeline: the title gives the end date of the release; the sheet, the zoom Day, Week and Month, Dates and days off, Export and Send to the issue tracker; one card names the people with too much work and offers proposals with Apply and Rebalance; the Gantt chart of the sheet; the old Work / Plan address opens it",
       "artifacts": [
         "spec:work",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/work.png"
     },
     {
       "id": "SCR-006",
       "slug": "factory",
-      "title": "Factory / Runs: no tiles, one bar with search, the filter All, Needs you and Mine, and Board and History; five lanes that fit with a count each; a card with its one action and a menu with Stop",
+      "title": "Flow: each feature once in five stages (Idea, Spec, Build, Review, Ready), the views Flow, List, Done and Health, the filter All, Needs me and Mine, New, and More with Find a feature, Start from a ticket and Agents on; a card shows the title, who works on it and its state, and its menu has the other actions",
       "artifacts": [
         "spec:factory",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/factory.png"
     },
     {
       "id": "SCR-007",
       "slug": "agents-map",
-      "title": "Factory / Agents map: a node shows the ticket key and title, the step name or the file name; the ref is the tooltip and Copy ref is in the node menu; a run node opens the run page",
+      "title": "Crew, Live: one row for each agent at work with the agent, the feature and its state, and the files and specs that it reads and changes; the filter At work, Ended, Files and Specs; the ref is the tooltip and Copy ref is in the menu of the agent; it replaces the Agents map, and the old address opens it (design picture 030, /crew/crew?view=live)",
       "artifacts": [
         "spec:factory",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/agents.png"
     },
     {
       "id": "SCR-008",
       "slug": "code",
-      "title": "Code / Pull requests: a full-width list with a search, the filter All and Needs review, and the groups Open, Merged and Closed; each row shows the number, the title, the draft, checks and review state, and no author",
+      "title": "Code / Now: two cards, the files to commit with one commit message, Write it for me and Commit, and the open pull requests with one state and Merge; Merged and closed opens the full list; a row to the health of the product; Working branch, Terminal, Files and Open pull request",
       "artifacts": [
         "spec:code",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/pulls.png"
     },
     {
       "id": "SCR-009",
       "slug": "knowledge",
-      "title": "Knowledge: tabs with icons; the manual opens from the account menu, F1 or the palette, not from a tab",
+      "title": "Library / Learn: the title Learn this project, one path card with a numbered step and Start on the next one, the N of M bar, the glossary, the learning paths, the feeds, and the team progress in the right column The Experts card, Add a word and a second pill on a step are on the page.",
       "artifacts": [
         "spec:knowledge",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign",
+        "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/knowledge.png"
     },
     {
       "id": "SCR-010",
       "slug": "top-bar",
-      "title": "Top bar: sidebar toggle, Back and Forward, Sync with ahead and behind, Activity, search, Files and Terminal buttons, Ask split button, notifications, account menu",
+      "title": "Top row of the page: the rail toggle, Back and Forward, the Ask bar, and the sync mark at the right end; the shell has no top bar and no status bar",
       "artifacts": [
         "spec:shell",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/home.png"
     },
     {
       "id": "SCR-011",
       "slug": "projects",
-      "title": "Projects: Clone and Open",
+      "title": "Projects: the page behind the project switch of the rail, with the open project as a card (what needs you, the agents at work, Open and Close), Opened before with a card for each earlier project (Open, Remove from the list, Details), Import projects, Open a folder, Clone from the code host and New project",
       "artifacts": [
-        "spec:projects"
-      ]
+        "spec:projects",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/projects.png"
     },
     {
       "id": "SCR-012",
       "slug": "menu-bar-panel",
-      "title": "Menu bar panel: spend, runs with Stop, Needs you, agents switch, sync, project, Open Shipyard",
+      "title": "Menu bar panel: the project and the sync mark in the heading, the things that need the person as on Today, Working now with two runs and All n, Agents with the spend and the agents switch, Sync and Open Shipyard in a pinned footer",
       "artifacts": [
         "spec:shell",
-        "spec:ux-declutter"
-      ]
+        "spec:ux-declutter",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/menu-bar-panel.png"
     },
     {
       "id": "SCR-013",
       "slug": "knowledge-slides",
-      "title": "Knowledge / Slides: HTML deck in a sandboxed frame, Present, Export PDF; Markdown deck read only with Convert",
+      "title": "Library / Slides: the deck cards on the left, the open deck on the right with a pager, a thumbnail strip, Present, Export PDF and Convert; the Library back link A Markdown deck has Edit, Export PDF and Speaker notes.",
       "artifacts": [
         "spec:knowledge",
-        "adr:0016"
-      ]
+        "adr:0016",
+        "spec:app-redesign",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/knowledge-slides.png"
     },
     {
       "id": "SCR-014",
       "slug": "assistant-composer",
-      "title": "Assistant: message box, then one bar with attach, the model and effort menu, the permission, the context ring and Send",
+      "title": "Ask, the full assistant as a page at /ask: the threads on the left, the thread with the message box in the middle, the tools on the right (This screen, The assistant may, the Codex trust card with What this writes, Panel); the changed files in the answer with a preview and Undo; Small bar goes back to the side panel; Keep beside Undo on each changed file, and Keep all",
       "artifacts": [
-        "spec:assistant"
-      ]
+        "spec:assistant",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/assistant-composer.png"
     },
     {
       "id": "SCR-015",
       "slug": "settings-connections",
-      "title": "Settings / Connections: each MCP server has an allow list picker (All tools, Read only, Custom with one checkbox for each tool)",
+      "title": "Setup / This project, Connections: the issue trackers and the code hosts of the project, behind a door with a back link; the MCP servers with their allow list picker are in This computer",
       "artifacts": [
         "spec:extensions",
-        "spec:visual-cues"
+        "spec:visual-cues",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/settings-connections.png"
     },
@@ -154,34 +180,38 @@
       "title": "Onboarding tour: six steps with a title, one sentence and a picture; opens once after the first project; Close, Back, Next, Done and Open the manual",
       "artifacts": [
         "spec:onboarding",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/tour.png"
     },
     {
       "id": "SCR-017",
       "slug": "settings-permissions",
-      "title": "Settings / Me, Permissions: each OS permission with its state and one action; the Get started checklist; the section list",
+      "title": "Setup / This computer, Permissions: each OS permission with its state and one action, Allow all, and Replay the tour; the Get started steps are in Setup / Start; at launch, and each time a permission is missing, the card \"Shipyard needs N permissions\" lists the missing ones of Notifications and Files of your projects, each with Allow, with Later and Allow all (no keychain probe)",
       "artifacts": [
         "spec:onboarding",
-        "spec:ux-declutter"
-      ]
+        "spec:ux-declutter",
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/settings-permissions.png"
     },
     {
       "id": "SCR-018",
       "slug": "settings-project",
-      "title": "Settings / Project: a section list that stays in view, with an icon per section, above panels with an icon in each heading",
+      "title": "Setup / This project: the doors Connections, Tickets, Extensions and Health of this project, above the project form, the automation and the import; Health of this project has Check again and Fix all with an agent",
       "artifacts": [
         "spec:projects",
         "spec:visual-cues",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/settings-project.png"
     },
     {
       "id": "SCR-019",
       "slug": "settings-me-themes",
-      "title": "Settings / Me: the Theme select (Light, Dark, OLED, System, System with OLED, imported themes), Theme files with Import and Export, a row for each imported theme with Remove, and the preview dialog",
+      "title": "Setup / Me, Look and layout: the Theme select (Light, Dark, OLED, System, System with OLED, imported themes), Theme files with Import and Export, a row for each imported theme with Remove, and the preview dialog",
       "artifacts": [
         "spec:themes",
         "adr:0018"
@@ -191,57 +221,65 @@
     {
       "id": "SCR-020",
       "slug": "factory-workflows",
-      "title": "Factory / Workflows: the list shows each name with its step names; Duplicate, Rename and Delete are in the More actions menu; the id shows in the editor header",
+      "title": "Crew / Recipes: each recipe and each agent role as a card; a recipe opens as a page with its steps, and a step opens as its own page; the files of the roles are in the More menu; the old Factory / Workflows address opens it (design picture 027, /crew/recipes?recipe=feature). A step that waits for a person shows its role.",
       "artifacts": [
         "spec:factory",
         "spec:workflow-editor",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/workflows.png"
     },
     {
       "id": "SCR-024",
       "slug": "settings-me-languages",
-      "title": "Settings / Me: the Language select (English, French, German, Spanish, imported languages), Language files with Import language and Export English, the Mark untranslated text switch when a language file is current, a row for each imported language with Remove, and the import dialog",
+      "title": "Setup / Me: the Language select (English, French, German, Spanish, imported languages), Language files with Import language and Export English, the Mark untranslated text switch when a language file is current, a row for each imported language with Remove, and the import dialog",
       "artifacts": [
         "spec:languages",
         "adr:0021"
-      ]
+      ],
+      "file": "docs/assets/screenshots/settings-me-languages.png"
     },
     {
       "id": "SCR-021",
       "slug": "new-project",
-      "title": "New project: the five steps of the creator, the preview of the files and the start choice",
+      "title": "New project, a page at /projects/new: one question for each of five steps (Name, Kind of product, Tools, Team, Ready), Back, All steps and Continue; the project is made at the end with Create the project",
       "artifacts": [
         "spec:project-creator",
-        "spec:projects"
+        "spec:projects",
+        "spec:app-redesign",
+        "adr:0023"
       ],
       "file": "docs/assets/screenshots/new-project.png"
     },
     {
       "id": "SCR-025",
       "slug": "work-team",
-      "title": "Work / Team: the members and the rights of each role and member, by area",
+      "title": "Crew / Rights: the rights of each role by area, who Shipyard found and the team file on its own page; the members are on Crew, and the old Work / Team address opens Crew (design picture 029, /crew/rights); each role has a Plan level (No, See, Change) and the places it sees, and Code and merge is one row",
       "artifacts": [
         "spec:team-rights",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/team.png"
     },
     {
       "id": "SCR-026",
       "slug": "factory-run",
-      "title": "Factory / Runs: a run page with a summary, the one action of the state, what needs you, and the tabs Activity, Changes and Workflow",
+      "title": "Flow / Feature, Story: the page of one feature, with the stage line, the one action of the state, one question for its approvals (Each step, Do not ask again), and the sections Story, Brief, Design, Changes, Checks and Chat; the Story shows the events in plain sentences, and What happened, the requests and the live terminal open on demand; the old run address opens it. Pause sits between Talk and Stop on the Agent card.",
       "artifacts": [
         "spec:factory",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/run.png"
     },
     {
       "id": "SCR-031",
       "slug": "runs-history",
-      "title": "Factory / Runs, History: each ended run and each older run of a ticket, newest end first, with search; a row opens the run",
+      "title": "Flow / Done: each ended feature and run, newest end first, with Find a finished feature, the end state and the columns in More; a row opens the feature page",
       "artifacts": [
         "spec:factory",
         "spec:ux-declutter"
@@ -251,78 +289,1168 @@
     {
       "id": "SCR-032",
       "slug": "factory-usage",
-      "title": "Factory / Usage: the success rate, the Budgets panel with Edit, and the runs with their key and title",
+      "title": "Crew / Spend: the spend of the six features with the most spend, the budgets and the alerts, and Stop all agents; How agents do and Budgets are sub-pages, and the tables of usage are in the More menu; the old Factory / Usage address opens it (design picture 013, /crew/spend). Warn at has Edit.",
       "artifacts": [
         "spec:factory",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign",
+        "spec:runs-recipes"
       ],
       "file": "docs/assets/screenshots/usage.png"
     },
     {
       "id": "SCR-027",
       "slug": "activity-panel",
-      "title": "Activity panel: the Activity button with the needs-you count; Needs you with a link to Home / Today, Runs with Stop, Sessions with Stop",
+      "title": "Today / Activity: the live runs with Stop and the sessions with Stop, as a view of Today",
       "artifacts": [
         "spec:shell",
-        "spec:ux-declutter"
-      ]
+        "spec:ux-declutter",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/activity-panel.png"
     },
     {
       "id": "SCR-028",
       "slug": "account-menu",
-      "title": "Account menu: Settings / Me, Theme (Light, Dark, System), Manual, Shortcuts, What's new, Replay the tour",
+      "title": "Account menu, beside the rail from the account row with the name: the name and the role with Change (Setup / Me), Theme (Light, Dark, System), Language, Manual, Shortcuts, What is new, Show the tour again, Check for an update, About Shipyard with the version, and Health with the count of its findings; the last row is a red Sign out",
       "artifacts": [
         "spec:shell",
-        "spec:ux-declutter"
-      ]
+        "spec:ux-declutter",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/account-menu.png"
     },
     {
       "id": "SCR-029",
       "slug": "no-project",
-      "title": "No project: one page for every space with Open a folder, Clone a repository and New project",
+      "title": "No project is open: a bare page without the rail and the top row, with one card that holds New project and Open a project (a menu with the recent projects, Projects, Open a folder and Clone a repository)",
       "artifacts": [
         "spec:shell",
-        "spec:ux-declutter"
-      ]
+        "spec:ux-declutter",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/no-project.png"
     },
     {
       "id": "SCR-030",
       "slug": "first-run",
-      "title": "First run: the role step with Continue, then the open-a-project step",
+      "title": "First run, at a first launch only: a bare page without the rail and the top row, with the step bar, the role question as tiles (with \"I only look\") and Continue, then the start step (open a folder, clone, new project, the recent projects), then the clone step",
       "artifacts": [
         "spec:shell",
-        "spec:ux-declutter"
-      ]
+        "spec:ux-declutter",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/first-run.png"
     },
     {
       "id": "SCR-033",
       "slug": "pull-request",
-      "title": "Code / Pull request, Overview: the header with the state, the branches and the line counts, the four tabs, the merge box with Checks, Comments and Approvals and a Merge split button, the description, the conversation with threads, and the sidebar with reviewers, links and Cited by",
+      "title": "Flow / Feature, Changes: the pull request of a feature with the header, the merge box (Checks, Comments, Approvals, Merge), the description, the conversation and the sidebar; the old pull request address opens it",
       "artifacts": [
         "spec:code",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/pull.png"
     },
     {
       "id": "SCR-034",
       "slug": "pull-request-files",
-      "title": "Code / Pull request, Files changed: the file tree with a filter, Expand all, the viewed count, collapsed file rows with their counts, a thread and a pending comment under a line, and the pending review bar with Submit review and Discard",
+      "title": "Flow / Feature, Changes, comments: a thread and a pending comment under a line of the changed files page, and the pending review bar with Submit review and Discard",
       "artifacts": [
         "spec:code",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/pull-files.png"
     },
     {
       "id": "SCR-035",
       "slug": "submit-review",
-      "title": "Code / Pull request, Submit review: the verdicts Comment, Approve and Request changes, the review text with Preview, and the list of pending comments",
+      "title": "Flow / Feature, Changes, Submit review: the verdicts Comment, Approve and Request changes, the review text with Preview, and the list of pending comments",
       "artifacts": [
         "spec:code",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/pull-review.png"
+    },
+    {
+      "id": "SCR-036",
+      "slug": "place-menu",
+      "title": "Shell: the rail with the project switch at its top, the places Today, Flow, Plan, Crew, Library and Code with their counts, Setup and the account row at its foot; no top bar and no status bar; the page starts with the top row, and the section switch sits in the title row",
+      "artifacts": [
+        "spec:shell",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/home-light.png"
+    },
+    {
+      "id": "SCR-037",
+      "slug": "today-news",
+      "title": "Today / News: the notifications by day with who, the title, the feature and one action for each kind, Older news, Mark all as read and Clear; Tell me when with five switches and More in Setup; the only list of notifications",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/today-news.png"
+    },
+    {
+      "id": "SCR-038",
+      "slug": "ask-bar",
+      "title": "Ask bar, open: one centred column over the page, with the answer that names each blocked feature with its action, Reply, Go to with places and search results, Do with the actions and the prompts of the page (Start an agent on a ticket, Sync now), Open the full assistant",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/ask-bar.png"
+    },
+    {
+      "id": "SCR-039",
+      "slug": "flow-list",
+      "title": "Flow / List: the features as rows with the same filter, the pills Owner, Label and Agent, Bring a ticket by its key, and More with Import, New change and the status filter; the old Backlog and Changes addresses open it",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/flow-list.png"
+    },
+    {
+      "id": "SCR-040",
+      "slug": "flow-new",
+      "title": "New feature: a page with the Flow back link, what to build, the kind, three ways (an agent writes the spec, I write the spec, build now), and Or start from a ticket with Start an agent. Add a document takes a Markdown, PDF or Word file, and Limit sits beside the recipe.",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:runs-recipes"
+      ],
+      "file": "docs/assets/screenshots/new-feature.png"
+    },
+    {
+      "id": "SCR-041",
+      "slug": "crew",
+      "title": "Crew: the people as cards with their current work, role, days a week, skills and Over by or Has room; the agent roles as cards with their work; the spend on open work; the recipes; the Agents on switch; a person card opens the member page; Live and Add a person are in the More menu (design picture 004, /crew/crew)",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/crew.png"
+    },
+    {
+      "id": "SCR-042",
+      "slug": "plan-people",
+      "title": "Plan / People: each person with the load against the capacity of each week, the tasks with their dates, and the proposals for a person with too much work; the send to the issue tracker has its own page (design picture 031, /plan/people)",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/plan-people.png"
+    },
+    {
+      "id": "SCR-043",
+      "slug": "plan-estimates",
+      "title": "Plan / Estimates: the estimate sheets with the views Backlog, Summary, Spread, Portfolio and Costing; one estimate has its own page; Ask an agent to estimate proposes Best, Likely and Worst with the assumptions for the selected tasks, with Accept, Discard and Stop; a sealed sheet turns the action off (design picture 014, /plan/estimates)",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/plan-estimates.png"
+    },
+    {
+      "id": "SCR-044",
+      "slug": "library",
+      "title": "Library: four doors (What it must do, How it is built, Why it is so, Learn and share) with one chip for each page, the waiting items first, the chip What is tested, the cards Pinned and Opened last with Pin and Unpin Opened last keeps specs, decisions, diagrams and documents with a kind chip and Pin.",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library.png"
+    },
+    {
+      "id": "SCR-045",
+      "slug": "library-reports",
+      "title": "Library / Reports: one tile for each report with Export, Fill the form or a link to the page that holds it, the Format choice (All, Word, Excel, Picture), Written for you with Open and Write it, and the link Dashboards The format switch offers PDF, Word, Excel and Markdown; each written report shows a date and a person.",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/reports.png"
+    },
+    {
+      "id": "SCR-046",
+      "slug": "dashboard-tile-build",
+      "title": "Library / Dashboards / Edit, Build a tile for me: what the tile must show, the budget, Build and Stop, then the Proposed tile with Accept and Discard",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/tile-build.png"
+    },
+    {
+      "id": "SCR-061",
+      "slug": "setup-start",
+      "title": "Setup / Start: the steps with a divider, one question of 30 px, product tiles for the issue tracker and the code host, Skip and Connect, and three scope cards: This project, This computer, Me",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-start.png"
+    },
+    {
+      "id": "SCR-062",
+      "slug": "setup-computer",
+      "title": "Setup / This computer: the cards AI tools, Model providers, MCP servers, Outside agents and Security, and Repair next to the section switch",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-computer.png"
+    },
+    {
+      "id": "SCR-063",
+      "slug": "setup-me",
+      "title": "Setup / Me: the theme tiles, the person with the role, the language, the look, the notifications in four groups, the updates and the tools; Look and layout opens its own page; Sign out beside the name, the notification \"A budget reaches Warn at\", Sound, and the Release channel (Stable, Preview)",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-me.png"
+    },
+    {
+      "id": "SCR-064",
+      "slug": "code-terminal",
+      "title": "Code / Terminal: a Files card with Find a file, the changed files and the file actions, and a dark terminal card with tabs, Clear, Close the tab and a command bar with Run and Ask an agent to run it",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/code-terminal.png"
+    },
+    {
+      "id": "SCR-065",
+      "slug": "flow-health",
+      "title": "Flow / Health: the title counts the gates to fix, the gates and the scanners show for every role, Run all and Set up are off without the right, and the info of each gate says what it looks for",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/flow-health.png"
+    },
+    {
+      "id": "SCR-066",
+      "slug": "feature-impacts",
+      "title": "Flow / Feature, Checks: the row Impacts on other code opens the impacts page of the feature, with a back link to Checks",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/feature-impacts.png"
+    },
+    {
+      "id": "SCR-067",
+      "slug": "plan-time",
+      "title": "Plan / Time: the time sheet of the person by week, with a duration, a note and a ticket, each field saved when you leave it, and the send of a worklog to the issue tracker; the old Work / Time address opens it (design picture 032, /plan/time); Fill from my work makes rows from my runs and my commits of the day, and there is no Save button",
+      "artifacts": [
+        "spec:work",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/plan-time.png"
+    },
+    {
+      "id": "SCR-068",
+      "slug": "crew-sessions",
+      "title": "Crew / Sessions: the agent sessions of each kind (run, review, estimate, tile build) with state and tokens, the session shown with Open and its own Stop, and Previous on its own page; the old Factory / Sessions address opens it (design picture 028, /crew/sessions); Take control stops the session and resumes it in the Shipyard terminal, and the pane shows the live output when the tool writes a history file",
+      "artifacts": [
+        "spec:factory",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/crew-sessions.png"
+    },
+    {
+      "id": "SCR-069",
+      "slug": "library-diagrams",
+      "title": "Library / Diagrams: a grid or a list of the diagrams with the format pill and Draw it for me, the open diagram with Open, Edit and Change the format, the card Used by, and one New button for each format",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-diagrams.png"
+    },
+    {
+      "id": "SCR-070",
+      "slug": "library-decisions",
+      "title": "Library / Decisions: the proposed decisions first with Waits for you; the open decision with its parts, Edit, Used by, and a Reason field with Refuse and Accept; New decision",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-decisions.png"
+    },
+    {
+      "id": "SCR-071",
+      "slug": "library-api",
+      "title": "Library / API: the endpoints of the contract files, one endpoint with its parameters, and Try it with a server, a method, a path, Send and the answer The endpoint card links to the change that cites the contract.",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-api.png"
+    },
+    {
+      "id": "SCR-072",
+      "slug": "library-data",
+      "title": "Library / Data: the tables with Find a table, the picture of the tables with the Key and Link pills, the switch Picture, Both, Text",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-data.png"
+    },
+    {
+      "id": "SCR-073",
+      "slug": "library-network-flows",
+      "title": "Library / Network flows: the list From, To and Why, Bricks and hosts with Open the full matrix, the card Linked, the switch Flows and Bricks, Edit as text and Add a flow",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-network-flows.png"
+    },
+    {
+      "id": "SCR-074",
+      "slug": "library-screens",
+      "title": "Library / Screens: the screen cards with Built and Not built, the switch Screens and Tokens, the Figma banner, the cards Colours and Type sizes, and Design to code",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-screens.png"
+    },
+    {
+      "id": "SCR-075",
+      "slug": "library-specs",
+      "title": "Library / Specs: the list of specs on the left, the open spec on the right with its requirements and their state, the cards Changes in progress, Linked and Check the specs, and the switch Read, Text, Files with Edit",
+      "artifacts": [
+        "spec:specs",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-specs.png"
+    },
+    {
+      "id": "SCR-076",
+      "slug": "library-test-plans",
+      "title": "Library / Test plans: the open plan with one card for each scenario, a result pill and Edit, the cards Requirements and Other test plans, and Write the scenarios for me",
+      "artifacts": [
+        "spec:specs",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-test-plans.png"
+    },
+    {
+      "id": "SCR-077",
+      "slug": "library-project-rules",
+      "title": "Library / Project rules: one numbered card for each rule with Edit and Add a rule, and the cards Who can change the rules and Who follows the rules",
+      "artifacts": [
+        "spec:specs",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-project-rules.png"
+    },
+    {
+      "id": "SCR-078",
+      "slug": "library-map",
+      "title": "Library / Map: the groups of the knowledge map as rounded cards with their items, the detail column, and the switch Knowledge and Code; Table, Graph, Orphans and Stale are in More",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-map.png"
+    },
+    {
+      "id": "SCR-079",
+      "slug": "library-handbook",
+      "title": "Library / Handbook: the page tree with Find a page, the open page, Pages that link here, Ask an agent to update it, and the manual card with F1",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-handbook.png"
+    },
+    {
+      "id": "SCR-080",
+      "slug": "library-manual",
+      "title": "Library / Manual: the guide of Shipyard by place, with a large page title and its picture, Ask about this page, Shortcuts and Handbook of the project under the page; F1 opens the help of the current page for every role",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-manual.png"
+    },
+    {
+      "id": "SCR-081",
+      "slug": "library-documents",
+      "title": "Library / Documents: the list with the format pill, Read or Text with Edit, the File card with Show in folder and Export, and Turn into slides and Turn into a spec; Rename, Delete and Search in the text are in More Add a file copies any file into the documents folder and keeps a Word file as Word.",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-documents.png"
+    },
+    {
+      "id": "SCR-082",
+      "slug": "library-dashboards",
+      "title": "Library / Dashboards: the switch of the dashboards, read-only tiles, Edit, Export the report and Build a dashboard for me; New dashboard is in More; More numbers links to Crew, Flow and Plan A picker of releases sits beside Edit and filters the tiles of the issue tracker.",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-dashboards.png"
+    },
+    {
+      "id": "SCR-083",
+      "slug": "code-history",
+      "title": "Code / History: the commits of the working branch in one card with Older commits, a detail side with the feature, the files and the first diff, a branch button, the switch Commits and Tags, and a search; the labels, the short id and Export are behind More",
+      "artifacts": [
+        "spec:code",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/code-history.png"
+    },
+    {
+      "id": "SCR-084",
+      "slug": "code-branches",
+      "title": "Code / Branches: one card for each branch with its Ahead and Behind bars and its actions, New branch, Push, Fetch and Sync, the code host address card; Rebase, Force publish and Remote branches are in More",
+      "artifacts": [
+        "spec:code",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/code-branches.png"
+    },
+    {
+      "id": "SCR-085",
+      "slug": "feature-brief",
+      "title": "Flow / Feature, Brief: what the feature must do as requirement cards with their tests, the ticket and the spec change, Check with the problems found, and the files of the change",
+      "artifacts": [
+        "spec:specs",
+        "spec:work",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/feature-brief.png"
+    },
+    {
+      "id": "SCR-086",
+      "slug": "feature-design",
+      "title": "Flow / Feature, Design: the screens and the design files that the feature links, with Link a screen",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/feature-design.png"
+    },
+    {
+      "id": "SCR-087",
+      "slug": "feature-checks",
+      "title": "Flow / Feature, Checks: the checks of the code host and of the project with Fix with an agent, the test plan, the docs that the change makes stale and the row Impacts on other code; Run again beside Fix with an agent",
+      "artifacts": [
+        "spec:code",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/feature-checks.png"
+    },
+    {
+      "id": "SCR-088",
+      "slug": "feature-chat",
+      "title": "Flow / Feature, Chat: the talk with the agent of the feature, the pull request conversation and the ticket comments; the live terminal and the requests are under For developers. The message field has a + button that attaches a file as context for the next turn.",
+      "artifacts": [
+        "spec:factory",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:runs-recipes"
+      ],
+      "file": "docs/assets/screenshots/feature-chat.png"
+    },
+    {
+      "id": "SCR-089",
+      "slug": "setup-tickets",
+      "title": "Setup / This project, Tickets: the kinds of ticket, what holds what, the unit of size with the hours in a day, the statuses of the mirror, and a More card; Add after the kinds of ticket",
+      "artifacts": [
+        "spec:projects",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-tickets.png"
+    },
+    {
+      "id": "SCR-090",
+      "slug": "setup-extensions",
+      "title": "Setup / This project, Extensions: Add a plugin, Installed plugins, Skills, Child projects, the rules setup for a new project and a row to Plugins and rule packs",
+      "artifacts": [
+        "spec:extensions",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-extensions.png"
+    },
+    {
+      "id": "SCR-091",
+      "slug": "setup-project-health",
+      "title": "Setup / This project, Health of this project: one sentence for the title, Check again and Fix all with an agent, one card for each group of findings, and the Also card",
+      "artifacts": [
+        "spec:projects",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-project-health.png"
+    },
+    {
+      "id": "SCR-092",
+      "slug": "setup-agents-rules",
+      "title": "Setup / This computer, Models and rules: the sign-in of the AI tools, the three model tiers and the prompt language, the agent roles and the working rules of the agents; each agent role shows its description and a model tier that a person changes",
+      "artifacts": [
+        "spec:extensions",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-agents-rules.png"
+    },
+    {
+      "id": "SCR-093",
+      "slug": "setup-outside-agents",
+      "title": "Setup / This computer, Share Shipyard with other tools: the AI tools that can use Shipyard, what they may use, the address of Shipyard with Copy, and Import of servers from another tool",
+      "artifacts": [
+        "spec:connections",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-outside-agents.png"
+    },
+    {
+      "id": "SCR-094",
+      "slug": "setup-computer-health",
+      "title": "Setup / This computer, Health of this computer: the number of problems as the title, a banner for a missing program with Fix it, the five areas, the version and the Toolchain behind Details",
+      "artifacts": [
+        "spec:projects",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-computer-health.png"
+    },
+    {
+      "id": "SCR-095",
+      "slug": "setup-logs",
+      "title": "Setup / This computer, Logs and feedback: the console with a level switch, the findings over time, the personas for prices, what the system allows and the feedback form; Attach a file shows the file in the file manager and sends nothing",
+      "artifacts": [
+        "spec:shell",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-logs.png"
+    },
+    {
+      "id": "SCR-096",
+      "slug": "close-guard",
+      "title": "Close guard: the question before the app closes while agents work, with Stop them and close and Keep them working; it also names the unsaved drafts; closing a project while agents work asks with Cancel, Stop them and close, and Keep them working",
+      "artifacts": [
+        "spec:shell",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/close-guard.png"
+    },
+    {
+      "id": "SCR-097",
+      "slug": "sync-card",
+      "title": "Card of the sync mark: the state of the repository, the changed files and the lines added and removed as links to Code / Now, the working branch, Sync with the ahead and behind counts, Fetch only, Push and Commit, the watch notice, and the sync failure with its retry action",
+      "artifacts": [
+        "spec:shell",
+        "spec:code",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/sync-card.png"
+    },
+    {
+      "id": "SCR-100",
+      "slug": "home-dark",
+      "title": "Today, Dark theme: the same page as Today, Needs you, in the Dark theme",
+      "artifacts": [
+        "spec:shell",
+        "spec:home-today",
+        "spec:design-system",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/home-dark.png"
+    },
+    {
+      "id": "SCR-101",
+      "slug": "link-card",
+      "title": "Card that explains a link: the name and kind of the item, whether it is in the project, what it is linked to, Open and Explain with an agent side by side, More for the other actions, and Copy the ref",
+      "artifacts": [
+        "spec:refs",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/link-card.png"
+    },
+    {
+      "id": "SCR-102",
+      "slug": "home-product-owner",
+      "title": "Today for a product owner: the cards of the plan above Working now, beside the card of the first thing that needs the person",
+      "artifacts": [
+        "spec:home-today",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/home-product-owner.png"
+    },
+    {
+      "id": "SCR-103",
+      "slug": "role-views",
+      "title": "Setup / Role views: one card for each role with the page it starts on and the places it sees, a struck-through place for a place the role does not see, the tag My view on the card of the person, I only look for the viewer, and Rights of each role; a role can hide the places it does not see",
+      "artifacts": [
+        "spec:team-rights",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/role-views.png"
+    },
+    {
+      "id": "SCR-104",
+      "slug": "home-panels",
+      "title": "Today, for a role: one chip for each role, the panels of the chosen role as small cards with Open, the time reminder, My work, Since you were away, the panels of the other roles, and All role views",
+      "artifacts": [
+        "spec:home-today",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/home-panels.png"
+    },
+    {
+      "id": "SCR-105",
+      "slug": "new-project-all-steps",
+      "title": "New project, All steps: the five parts on one page (Project, Brief, Team, Where the code lives, Start), each member with Remove (off on the first row, with its reason), and Create the project",
+      "artifacts": [
+        "spec:project-creator",
+        "spec:projects",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/new-project-all-steps.png"
+    },
+    {
+      "id": "SCR-140",
+      "slug": "crew-member",
+      "title": "Crew / one person: the name, the handle, the role with its rights, the days a week, the skills and the day rate; Save and Remove from the team (design picture 101, /crew/crew?member=ada)",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/crew-member.png"
+    },
+    {
+      "id": "SCR-141",
+      "slug": "crew-recipe-step",
+      "title": "Crew / Recipes / one step: the page of a step with who runs it, how it works and its limits, and a back link to the recipe (design picture 080, /crew/recipes?recipe=feature&step=build). The page of a step shows Kind, Runs beside other steps, Child steps run side by side, Mode and May write with Asks first and Alone.",
+      "artifacts": [
+        "spec:app-redesign",
+        "spec:runs-recipes"
+      ],
+      "file": "docs/assets/screenshots/crew-recipe-step.png"
+    },
+    {
+      "id": "SCR-142",
+      "slug": "crew-rights-team",
+      "title": "Crew / Rights / the team file: who Shipyard found, Ask to join, the move of the roles of this computer and the rights of each person (design picture 084, /crew/rights?page=team); a card for each join request with As role, Refuse and Accept",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/crew-rights-team.png"
+    },
+    {
+      "id": "SCR-143",
+      "slug": "crew-spend-how",
+      "title": "Crew / Spend / How agents do: the success rate, the requests of one run as a tree or a flame, and the use of this computer (design picture 078, /crew/spend?page=how); Processor and Memory bars of the agent processes only, and each step of a run lists its tool calls",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/crew-spend-how.png"
+    },
+    {
+      "id": "SCR-144",
+      "slug": "crew-spend-budgets",
+      "title": "Crew / Spend / Budgets: one row for each kind of limit with its value and Edit; Add a limit (design picture 083, /crew/spend?page=budgets). Warn at has Edit, and each limit of a feature, a day and a person has a Then choice.",
+      "artifacts": [
+        "spec:app-redesign",
+        "spec:runs-recipes"
+      ],
+      "file": "docs/assets/screenshots/crew-spend-budgets.png"
+    },
+    {
+      "id": "SCR-145",
+      "slug": "plan-timeline",
+      "title": "Plan / Timeline: the title gives the day that the release ends; the Gantt chart of the sheet; one card names the people with too much work with Apply and Rebalance (design picture 005, /plan/timeline)",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/plan-timeline.png"
+    },
+    {
+      "id": "SCR-146",
+      "slug": "plan-dates",
+      "title": "Plan / Timeline / Dates and days off: the working days and the public holidays, with a back link to Timeline (design picture 099, /plan/timeline?page=dates); the card Calendar of the plan with Release, Estimate sheet and Go to Today",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/plan-dates.png"
+    },
+    {
+      "id": "SCR-147",
+      "slug": "plan-send",
+      "title": "Plan / People / Send to the issue tracker: the preview with New, Changed and Stays the same, and Create (design picture 093, /plan/people?page=send)",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/plan-send.png"
+    },
+    {
+      "id": "SCR-148",
+      "slug": "plan-estimate-sheets",
+      "title": "Plan / Estimates / Summary: the estimate sheets side by side with their totals (design picture 069, /plan/estimates?tab=summary)",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/plan-estimate-sheets.png"
+    },
+    {
+      "id": "SCR-149",
+      "slug": "plan-costing",
+      "title": "Plan / Estimates / Costing: the price, the cost and the margin from the day rates, and the seal of the sheet (design picture 072, /plan/estimates?tab=costing)",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/plan-costing.png"
+    },
+    {
+      "id": "SCR-150",
+      "slug": "plan-estimate-one",
+      "title": "Plan / Estimates / one estimate: the page of one task with its Best, Likely and Worst values and Save (design picture 085, /plan/estimates?task=<id>)",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/plan-estimate-one.png"
+    },
+    {
+      "id": "SCR-151",
+      "slug": "plan-estimate-import",
+      "title": "Plan / Estimates / Import from Excel: the file, the columns that the app read and the cards of the result (design picture 094, /plan/estimates?page=import)",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/plan-estimate-import.png"
+    },
+    {
+      "id": "SCR-152",
+      "slug": "crew-sessions-ended",
+      "title": "Crew / Sessions, ended: the sessions that ended, newest first, with a way back to Sessions",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/crew-sessions-ended.png"
+    },
+    {
+      "id": "SCR-153",
+      "slug": "crew-rights-levels",
+      "title": "Crew / Rights, the levels of each person: the table of the rights that result from the roles of each member",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/crew-rights-levels.png"
+    },
+    {
+      "id": "SCR-154",
+      "slug": "crew-spend-usage",
+      "title": "Crew / Spend, usage: the tiles, the spend by day and the usage by run, by day and by member, with Show prices",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/crew-spend-usage.png"
+    },
+    {
+      "id": "SCR-155",
+      "slug": "plan-time-entries",
+      "title": "Plan / Time, entries: each time entry of the month with Send, Edit and Delete, and the counts",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/plan-time-entries.png"
+    },
+    {
+      "id": "SCR-156",
+      "slug": "plan-time-team",
+      "title": "Plan / Time, the time of the team: the hours of each person in the week",
+      "artifacts": [
+        "spec:app-redesign"
+      ],
+      "file": "docs/assets/screenshots/plan-time-team.png"
+    },
+    {
+      "id": "SCR-160",
+      "slug": "library-code-map",
+      "title": "Library / Map of the code (Map with the source Code): the folders as cards, the files and symbols of the chosen folder, the symbol card with Explain and Open in the editor, What it calls, Specs and decisions that use it, and Index again A file whose spec changed after its last change shows the chip Stale.",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-code-map.png"
+    },
+    {
+      "id": "SCR-161",
+      "slug": "library-flow-matrix",
+      "title": "Library / Network flows / Flow matrix: a full page with the back link Network flows, filter chips, Find a host, and one row for each flow with Allow or Deny and a row menu with Edit and Remove Check against the code scans the code for the hosts that it calls: a row says Not in the code, and a card names a flow that is denied while the code uses it, with Show it and Ask for the change.",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-flow-matrix.png"
+    },
+    {
+      "id": "SCR-162",
+      "slug": "library-dashboard-edit",
+      "title": "Library / Dashboards / Edit: a full page with the back link Dashboards, Rename and Done, the card Add a tile with one chip for each kind and Build a tile for me, and the tiles with a handle, Settings and Remove Pin to Today shows the dashboard as one card on Today; each tile has a chart kind.",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-dashboard-edit.png"
+    },
+    {
+      "id": "SCR-163",
+      "slug": "library-test-coverage",
+      "title": "Library / Test plans / What is tested: a full page with the back link Test plans, filter chips, cards by state with counts and rows, the check of the scenarios, and Run the tests",
+      "artifacts": [
+        "spec:specs",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-test-coverage.png"
+    },
+    {
+      "id": "SCR-164",
+      "slug": "library-report-change-request",
+      "title": "Library / Reports / Change request: a full page with the back link Reports, the fields From version, To version and People who approve, Write the report, the card Written with Show in folder and Open, and the cards of the other reports",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-report-change-request.png"
+    },
+    {
+      "id": "SCR-165",
+      "slug": "library-report-work-done",
+      "title": "Library / Reports / Work done: a full page with the back link Reports, the fields of the form, Write the report, and the card Written with Show in folder and Open",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/library-report-work-done.png"
+    },
+    {
+      "id": "SCR-180",
+      "slug": "code-changes",
+      "title": "Code / local changes: the page of the files to commit with one flat list, a conflict banner, one commit message with an optional description, the put-aside sets, and a diff side with the review comment",
+      "artifacts": [
+        "spec:code",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/code-changes.png"
+    },
+    {
+      "id": "SCR-181",
+      "slug": "setup-project",
+      "title": "Setup / This project: the cards Issue tracker, Code host and Figma, the Project card, the Tickets card, a More card, what agents may do alone, Automation and the health row",
+      "artifacts": [
+        "spec:projects",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/settings-project.png"
+    },
+    {
+      "id": "SCR-182",
+      "slug": "setup-automation",
+      "title": "Setup / This project, Automation: the main switch, the pickup rows, the steppers, the steps of the status mapping, what agents may write and the limits of spend. How many at once also has Plan, Build and Review.",
+      "artifacts": [
+        "spec:sync",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:runs-recipes"
+      ],
+      "file": "docs/assets/screenshots/setup-automation.png"
+    },
+    {
+      "id": "SCR-183",
+      "slug": "setup-look",
+      "title": "Setup / Me, Look and layout: the colours, the layout side, motion and focus, the text and the fonts, and the things of this computer; Change beside the data folder, and a Portable mode switch",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-look.png"
+    },
+    {
+      "id": "SCR-184",
+      "slug": "setup-plugins",
+      "title": "Setup / This project, Plugins and rule packs: the check before a plugin applies, the rule packs, Make a plugin from this project and Send to the child projects",
+      "artifacts": [
+        "spec:extensions",
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/setup-plugins.png"
+    },
+    {
+      "id": "SCR-120",
+      "slug": "feature-ticket",
+      "title": "Flow / Feature, ticket page: the ticket of the feature with an editable title and text, its facts, the comments, the sync mark with the issue tracker and Open in the issue tracker; Back returns to the feature; the rows Recipe and Release. The blocked card has Take it over beside Unblock.",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:runs-recipes"
+      ],
+      "file": "docs/assets/screenshots/feature-ticket.png"
+    },
+    {
+      "id": "SCR-121",
+      "slug": "feature-plan",
+      "title": "Flow / Feature, plan review: the plan of the agent with its steps, what the plan changes, Agent may do alone and Asks first, What to change, Send back and Approve the plan",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/feature-plan.png"
+    },
+    {
+      "id": "SCR-122",
+      "slug": "feature-stop",
+      "title": "Flow / Feature, stop card: the state in plain words, the cause in one sentence and one action (Reply, Unblock, Add budget, Resume, Try again or Close as done); What happened is in More. A blocked run also has Take it over, and a run that a person paused has Resume.",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:runs-recipes"
+      ],
+      "file": "docs/assets/screenshots/feature-stop.png"
+    },
+    {
+      "id": "SCR-123",
+      "slug": "feature-impact-page",
+      "title": "Flow / Feature, Impacts: what the change touches, the files changed and the code that depends on them, the docs that go stale with Fix the stale docs with an agent, and Full impact report",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/feature-impact-page.png"
+    },
+    {
+      "id": "SCR-124",
+      "slug": "feature-impact-report",
+      "title": "Flow / Feature, Impact report: the size of the change by Code, Specs, Docs, Tests and People, the action plan, the digest, Past reports, Write the report again and Copy the brief; a check box and an owner on each line of the action plan, and Add a line",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/feature-impact-report.png"
+    },
+    {
+      "id": "SCR-125",
+      "slug": "feature-files",
+      "title": "Flow / Feature, Changed files: the page of the files of the pull request with the file tree and its filter, the Seen count, the diff of each file and a link back to Changes",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/feature-files.png"
+    },
+    {
+      "id": "SCR-126",
+      "slug": "feature-change-files",
+      "title": "Flow / Feature, Files of the change: the files of the spec change of the feature, with the form or the text of each file and a link back to the Brief",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/feature-change-files.png"
+    },
+    {
+      "id": "SCR-127",
+      "slug": "pull-requests",
+      "title": "Code / Pull requests: a page with the Code back link, a search, the filter All and Needs my review, New pull request, the open ones first and the merged and closed ones behind one button; the selected pull request shows its review; the avatar of the author on each row",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/pull-requests.png"
+    },
+    {
+      "id": "SCR-128",
+      "slug": "pull-new",
+      "title": "Code / New pull request: a page with the Pull requests back link, the title, the description with Write it for me, Into (the base branch), Draft, Labels and Open the pull request; a note before the push names the files not committed and the stale docs; Reviewers, Merge with, and after the open Close the pull request and Mark as ready",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/pull-new.png"
+    },
+    {
+      "id": "SCR-185",
+      "slug": "permissions-moment",
+      "title": "The card \"Shipyard needs N permissions\", over the app once a project is open, while a permission of Notifications or Files of your projects is missing: each with Allow, with Later and Allow all (no keychain probe)",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/permissions-moment.png"
+    },
+    {
+      "id": "SCR-186",
+      "slug": "library-page-history",
+      "title": "Library / Handbook / History: the dialog Earlier versions of a page with one row for each version, Read and Restore, and the text of the version that was read",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-page-history.png"
+    },
+    {
+      "id": "SCR-187",
+      "slug": "library-page-restore",
+      "title": "Library / Handbook / History after Restore: the row asks Replace the page and Cancel before the page changes",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-page-restore.png"
+    },
+    {
+      "id": "SCR-188",
+      "slug": "library-add-word",
+      "title": "Library / Learn / Add a word: the glossary card with the fields Word and Meaning, Add and Cancel, and the card Experts below it",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-add-word.png"
+    },
+    {
+      "id": "SCR-189",
+      "slug": "library-experts",
+      "title": "Library / Learn: the card Experts with one row for each expert and the topic, below the glossary with Add a word",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-experts.png"
+    },
+    {
+      "id": "SCR-190",
+      "slug": "today-pinned-dashboard",
+      "title": "Today with a pinned dashboard: one card Delivery with its three tiles, below the questions",
+      "artifacts": [
+        "spec:home-today",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/today-pinned-dashboard.png"
+    },
+    {
+      "id": "SCR-191",
+      "slug": "library-earlier-versions",
+      "title": "Library / Project rules, below the first screen: the card Earlier versions after Who follows the rules",
+      "artifacts": [
+        "spec:specs",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-earlier-versions.png"
+    },
+    {
+      "id": "SCR-192",
+      "slug": "library-flows-not-in-code",
+      "title": "Library / Network flows / Flow matrix after Check against the code: the alert 1 flow is denied and the code uses it with Show it and Ask for the change, the filter Not in the code and the chip Not in the code on a flow",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-flows-not-in-code.png"
+    },
+    {
+      "id": "SCR-193",
+      "slug": "leave-page",
+      "title": "Leave this page: a page change with a draft that is not saved asks with the file, Stay, Leave and Save and leave",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/leave-page.png"
+    },
+    {
+      "id": "SCR-194",
+      "slug": "file-changed-on-disk",
+      "title": "File changed on disk: a file that changed outside the editor, with a draft open, shows the alert The file changed on disk with Keep mine and Reload",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/file-changed-on-disk.png"
     }
   ]
 }

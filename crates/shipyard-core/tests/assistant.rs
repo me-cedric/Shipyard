@@ -124,6 +124,7 @@ fn a_thread_round_trips_in_camel_case() {
         id: "th-1".into(),
         project: "ship".into(),
         title: "t".into(),
+        named: true,
         settings: ThreadSettings::new("claude"),
         context: Context::default(),
         draft: String::new(),

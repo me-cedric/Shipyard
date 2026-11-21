@@ -4,7 +4,16 @@ import { en } from "@/lib/i18n/en";
 import type { PlanView_Serialize, SheetItem_Serialize } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountKnowledge } from "./harness";
-import { appendSlide, costingSlide, nextSlide, planningSlide } from "./work-slides";
+import {
+	appendMarkdown,
+	appendSlide,
+	costingMarkdown,
+	costingSlide,
+	nextSlide,
+	planningMarkdown,
+	planningSlide,
+	splitNote,
+} from "./work-slides";
 
 vi.mock("reveal.js", () => ({
 	default: class {
@@ -73,12 +82,13 @@ describe("Knowledge / Slides: planning and costing slides", () => {
 		expect(() => appendSlide("<p>x</p>", "<section/>")).toThrow();
 	});
 
-	it("adds a costing slide to an HTML deck from the menu", async () => {
+	it("adds a costing slide to an HTML deck from its button", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("slides");
-		await user.click(await screen.findByRole("button", { name: "Roadmap" }));
-		await user.click(await screen.findByRole("button", { name: "Add a slide" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Costing slide" }));
+		await user.click(await screen.findByRole("button", { name: /^Roadmap/ }));
+		// The two slides from the data are buttons under the stage.
+		expect(await screen.findByRole("button", { name: "Planning slide" })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Costing slide" }));
 		await waitFor(() =>
 			expect(mockState().knowledge.files["docs/slides/roadmap.html"]?.text).toContain(
 				"<h2>Costing</h2>",
@@ -87,5 +97,37 @@ describe("Knowledge / Slides: planning and costing slides", () => {
 		expect(mockState().knowledge.files["docs/slides/roadmap.html"]?.text).toContain(
 			'<section class="slide" aria-label="3">',
 		);
+	});
+});
+
+// spec:library-functions#REQ-004
+describe("Knowledge / Slides: speaker notes and Markdown slides", () => {
+	it("splits a slide at its Note: block", () => {
+		expect(splitNote("## Plan\n\n1. A\n\nNote: say this\nand that")).toEqual({
+			body: "## Plan\n\n1. A",
+			note: "say this\nand that",
+		});
+		expect(splitNote("## Plan\n\n- Notebook: x")).toEqual({
+			body: "## Plan\n\n- Notebook: x",
+			note: "",
+		});
+		// A Note: line inside a code fence is code.
+		expect(splitNote("```\nNote: code\n```").note).toBe("");
+	});
+
+	it("writes a costing and a planning table in Markdown and appends it after a rule", () => {
+		const sheets: SheetItem_Serialize[] = [
+			{ slug: "a", name: "Lot | A", state: "ready", error: null, totals: totals(10, 5000) },
+		];
+		const md = costingMarkdown(sheets, w, "en");
+		expect(md).toBe(
+			"## Costing\n\n| Sheet | Days | Price |\n| --- | --- | --- |\n| Lot \\| A | 10 | 5,000 |\n| Total | 10 | 5,000 |",
+		);
+		const bar = { start: "2026-11-02", end: "2026-11-06", days: 5 };
+		const plan = { gantt: { bars: [bar] } } as unknown as PlanView_Serialize;
+		expect(planningMarkdown([{ name: "Lot A", plan }], w, "en")).toContain(
+			"| Lot A | 2026-11-02 | 2026-11-06 | 5 |",
+		);
+		expect(appendMarkdown("# A\n\ntext\n", md)).toBe(`# A\n\ntext\n\n---\n\n${md}\n`);
 	});
 });

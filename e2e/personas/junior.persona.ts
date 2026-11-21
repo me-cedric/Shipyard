@@ -10,42 +10,50 @@ test("junior", async ({ page }) => {
 		"Land on the learning path",
 		"the page that opens first: Home, Today, then Knowledge, Learn",
 		async () => {
-			await w.landsOn("Home", "Today");
-			await w.go("Knowledge", "Learn");
-			await w.see(page.getByText("0/10"), "no progress on the path");
+			await w.landsOn("Today", "Needs you");
+			await w.go("Library", "Learn");
+			await w.see(page.getByText(/^0 (of |\/)11$/), "no progress on the path");
 		},
 	);
 
 	await w.step("Open the first step of the path", "the step title, then the ref chip", async () => {
 		await w.click(page.getByText("Use Tauri"));
-		if (!(await page.getByRole("button", { name: "Explain", exact: true }).first().isVisible())) {
+		if (
+			!(await page
+				.getByRole("button", { name: "Explain with an agent", exact: true })
+				.first()
+				.isVisible())
+		) {
 			w.confusing(
 				"the step title looks like a link and does nothing: only the small ref chip opens the item",
 			);
 			await w.click(page.getByRole("button", { name: /adr:0001/ }));
 		}
 		await w.see(
-			page.getByRole("button", { name: "Explain", exact: true }).first(),
+			page.getByRole("button", { name: "Explain with an agent", exact: true }).first(),
 			"no Explain action on the item",
 		);
 	});
 
 	await w.step("Ask for an explanation", "Explain in the inspector", async () => {
-		await w.click(page.getByRole("button", { name: "Explain", exact: true }).first());
+		await w.click(page.getByRole("button", { name: "Explain with an agent", exact: true }).first());
 		await w.see(page.getByText("is part of the project graph"), "the assistant gives no answer");
 	});
 
 	await w.step("Look up a word", "the Glossary card, a word and its spec", async () => {
-		await w.go("Knowledge", "Learn");
+		await w.go("Library", "Learn");
 		await w.see(
 			page.getByText("the act of a person who proves who they are"),
 			"no definition for login",
 		);
-		await w.click(page.getByRole("button", { name: /spec:auth/ }).first());
+		// The word opens its spec.
+		await w.click(
+			page.getByRole("list", { name: "Glossary" }).getByRole("button", { name: "login" }),
+		);
 	});
 
 	await w.step("Read the handbook", "Handbook, a page, Read", async () => {
-		await w.go("Knowledge", "Handbook");
+		await w.go("Library", "Handbook");
 		await w.click(page.getByRole("button", { name: "Getting started" }));
 		await w.see(
 			page.getByText("first, then the architecture overview"),
@@ -65,8 +73,8 @@ test("junior", async ({ page }) => {
 	);
 
 	await w.step("Read the manual", "Manual, the page of the manual", async () => {
-		await w.click(page.getByRole("banner").getByRole("button", { name: "Account" }));
-		await w.click(page.getByRole("menuitem", { name: "Open the manual for this page" }));
+		await w.click(page.getByRole("button", { name: /^Account/ }));
+		await w.click(page.getByRole("menuitem", { name: "Manual" }));
 		await w.see(
 			page.getByRole("heading", { name: "Manual", exact: true }).first(),
 			"no manual page",
@@ -75,11 +83,13 @@ test("junior", async ({ page }) => {
 
 	await w.step(
 		"Ask the assistant a question",
-		"the Ask button in the top bar, Message, Send",
+		"the Ask bar in the top row, Open the full assistant, Message, Send",
 		async () => {
 			const message = page.getByRole("textbox", { name: "Message" });
-			if (!(await message.isVisible()))
-				await w.click(page.getByRole("button", { name: "Ask", exact: true }).first());
+			if (!(await message.isVisible())) {
+				await w.click(page.getByRole("combobox", { name: "Ask or tell Shipyard" }));
+				await w.click(page.getByRole("button", { name: "Open the full assistant" }));
+			}
 			await w.fill(message, "What is the polling sync?");
 			await w.click(page.getByRole("button", { name: "Send", exact: true }).last());
 			await w.see(
@@ -87,7 +97,8 @@ test("junior", async ({ page }) => {
 				"the question does not appear",
 			);
 			const tabs = page.getByRole("navigation", { name: "Tabs" });
-			if (await tabs.evaluate((n) => n.scrollWidth > n.clientWidth)) {
+			// A page of Library has no tab bar.
+			if ((await tabs.count()) && (await tabs.evaluate((n) => n.scrollWidth > n.clientWidth))) {
 				w.confusing("with the assistant and the inspector open, the tab bar is cut off at 1440 px");
 			}
 		},
@@ -95,14 +106,21 @@ test("junior", async ({ page }) => {
 
 	await w.step(
 		"Follow the Get started list",
-		"Home, the Connect action of the Code host item",
+		"Home, Continue, the full list, the Connect action of the Code host step",
 		async () => {
-			await w.go("Home", "Today");
+			await w.go("Today", "Needs you");
+			// Today shows one setup card: Continue opens the full list.
 			await w.click(
-				page.getByRole("group", { name: "Code host" }).getByRole("button", { name: "Connect" }),
+				page.getByRole("region", { name: "Get started" }).getByRole("link", { name: "Continue" }),
 			);
+			await w.click(
+				page
+					.getByRole("list", { name: "Get started" })
+					.getByRole("button", { name: "Code host", exact: true }),
+			);
+			await w.click(page.getByRole("button", { name: "Connect" }));
 			await w.until(
-				() => page.url().includes("/settings/"),
+				() => page.url().includes("/setup/"),
 				true,
 				"the step does not open the setting",
 			);
@@ -113,7 +131,10 @@ test("junior", async ({ page }) => {
 		"See the whole project",
 		"Knowledge, Graph",
 		async () => {
-			await w.go("Knowledge", "Graph");
+			await w.go("Library", "Map");
+			// The graph is in the page menu.
+			await w.click(page.getByRole("main").getByRole("button", { name: "More", exact: true }));
+			await w.click(page.getByRole("menuitem", { name: "Graph" }));
 			await w.see(page.getByRole("button", { name: "Table view" }), "no table view of the graph");
 		},
 		true,

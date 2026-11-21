@@ -6,13 +6,15 @@ import { cn } from "@/lib/utils";
 import { Splitter } from "../molecules/splitter";
 import { SPRING, useReducedMotionPref } from "../motion";
 
-/** A context bar on top, a floating sidebar (56 px rail or 220 px open), the main canvas and a status bar. */
+/**
+ * The rail (72 px closed, 216 px open) flat on the page background, then the page area: the top
+ * row and the main view. No bar on top and no bar at the bottom.
+ */
 export function Shell({
 	contextbar,
 	sidebar,
 	main,
 	inspector,
-	statusbar,
 	sidebarOpen = true,
 	assistant,
 	assistantSide = "right",
@@ -21,14 +23,13 @@ export function Shell({
 	bottomDock = "bottom",
 	navSide = "left",
 	drawerSide = "left",
-	narrow = false,
+	bare,
 }: {
-	/** The bar of the project, the branch, the factory pulse and the global actions. */
+	/** The top row of the page area: the rail toggle, Back, Forward, the Ask bar and the sync mark. */
 	contextbar?: ReactNode;
 	sidebar: ReactNode;
 	main: ReactNode;
 	inspector?: ReactNode;
-	statusbar?: ReactNode;
 	sidebarOpen?: boolean;
 	/** A side panel that sits left or right of the main view. */
 	assistant?: ReactNode;
@@ -43,11 +44,11 @@ export function Shell({
 	navSide?: "left" | "right";
 	/** The side of `drawer`. */
 	drawerSide?: "left" | "right";
-	/** A lower context bar. */
-	narrow?: boolean;
+	/** A page that shows alone (the first run, no project is open): no rail, and the page sets its own padding. */
+	bare?: boolean;
 }) {
 	const { t } = useI18n();
-	const panel = usePanelSize("sidebar-width", 220);
+	const panel = usePanelSize("sidebar-width", 216);
 	const [resizing, setResizing] = useState(false);
 	const still = useReducedMotionPref();
 	const nav = (
@@ -55,7 +56,7 @@ export function Shell({
 			aria-label={t.nav.sidebar}
 			data-open={sidebarOpen}
 			initial={false}
-			animate={{ width: sidebarOpen ? panel.size : 56 }}
+			animate={{ width: sidebarOpen ? panel.size : 72 }}
 			// A drag follows the pointer at once.
 			transition={resizing || still ? { duration: 0 } : SPRING.smooth}
 			onPointerDown={(e) => {
@@ -64,10 +65,8 @@ export function Shell({
 			onPointerUp={() => setResizing(false)}
 			onPointerCancel={() => setResizing(false)}
 			onLostPointerCapture={() => setResizing(false)}
-			className={cn(
-				"relative z-10 my-2 max-w-[40vw] shrink-0 overflow-hidden rounded-lg border bg-surface-1 shadow-1",
-				navSide === "right" ? "mr-2" : "ml-2",
-			)}
+			// Above the dim of the link card (z-30): the rail stays clear.
+			className="relative z-[31] max-w-[40vw] shrink-0 overflow-hidden"
 		>
 			{sidebarOpen ? (
 				<Splitter
@@ -85,21 +84,17 @@ export function Shell({
 		</motion.nav>
 	);
 	return (
-		<div className="flex h-full flex-col bg-surface-0">
-			{contextbar ? (
-				<header
-					className={cn(
-						"flex shrink-0 items-center gap-2 border-b bg-surface-1 px-2",
-						narrow ? "h-9" : "h-11",
-					)}
-				>
-					{contextbar}
-				</header>
-			) : null}
-			<div className="flex min-h-0 flex-1 bg-canvas">
-				{navSide === "left" ? nav : null}
-				{drawerSide === "left" ? drawer : null}
-				{assistantSide === "left" ? assistant : null}
+		<div className="flex h-full bg-canvas">
+			{navSide === "left" && !bare ? nav : null}
+			{drawerSide === "left" ? drawer : null}
+			{assistantSide === "left" ? assistant : null}
+			{/* The open Ask bar draws inside this element and covers it. */}
+			<div data-page-area className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+				{contextbar ? (
+					<header className="flex shrink-0 flex-wrap items-center gap-4 pt-5 pr-8 pl-4.5">
+						{contextbar}
+					</header>
+				) : null}
 				{/* One wrapper in every dock, so a change of dock keeps the shells of `bottom` alive. */}
 				<div
 					className={cn(
@@ -110,7 +105,12 @@ export function Shell({
 					<main
 						aria-label={t.nav.main}
 						tabIndex={-1}
-						className="min-h-0 min-w-0 flex-1 overflow-auto"
+						className={cn(
+							"min-h-0 min-w-0 flex-1 overflow-auto",
+							// shortcut: each page still has its own 16 px side inset (`px-4`), so `main` gives
+							// the remainder of the 18 px and 32 px of the design. Move the inset here when the pages lose theirs.
+							!bare && "pt-6 pr-4 pb-10 pl-0.5",
+						)}
 					>
 						{main}
 					</main>
@@ -126,16 +126,11 @@ export function Shell({
 						</div>
 					) : null}
 				</div>
-				{assistantSide === "right" ? assistant : null}
-				{drawerSide === "right" ? drawer : null}
-				{inspector}
-				{navSide === "right" ? nav : null}
 			</div>
-			{statusbar ? (
-				<footer className="flex h-5 shrink-0 items-center gap-3 border-t bg-surface-1 px-3 text-11 text-n-11">
-					{statusbar}
-				</footer>
-			) : null}
+			{assistantSide === "right" ? assistant : null}
+			{drawerSide === "right" ? drawer : null}
+			{inspector}
+			{navSide === "right" && !bare ? nav : null}
 		</div>
 	);
 }

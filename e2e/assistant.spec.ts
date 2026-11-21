@@ -11,7 +11,9 @@ const input = (page: Page) => panel(page).getByRole("textbox", { name: "Message"
 async function openPanel(page: Page) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
-	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+	).toBeVisible();
 	await page.keyboard.press("Control+j");
 	await expect(input(page)).toBeFocused();
 }
@@ -41,9 +43,10 @@ test("asks in ask mode, keeps the draft in another space and closes with the but
 	await say(page, "What is the plan?");
 	await expect(log(page).getByText("Here is the answer.")).toBeVisible();
 	await input(page).fill("half a thought");
-	await sidebar(page).getByRole("link", { name: "Settings" }).click();
+	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await expect(input(page)).toHaveValue("half a thought");
-	await page.getByRole("banner").getByRole("button", { name: "Ask", exact: true }).click();
+	// The shortcut of the toggle-assistant action closes the panel: the Ask bar has no toggle.
+	await page.keyboard.press("ControlOrMeta+j");
 	await expect(panel(page)).toBeHidden();
 });
 
@@ -58,7 +61,7 @@ test("waits for a permission in agent mode, then shows the changed files and the
 	page,
 }) => {
 	await openPanel(page);
-	await pick(page, "Mode", "Agent");
+	await pick(page, "Mode", "Do");
 	await say(page, "deny this edit");
 	await expect(log(page).getByRole("status")).toContainText("Waiting: Bash(pnpm test)");
 	const changed = panel(page).getByRole("region", { name: "Changed files" });
@@ -73,10 +76,10 @@ test("sends a thread to the factory as a work item with a workflow", async ({ pa
 	await openPanel(page);
 	await say(page, "Plan the export");
 	await expect(log(page).getByText("Here is the answer.")).toBeVisible();
-	await panel(page).getByRole("button", { name: "Send to factory" }).click();
+	await panel(page).getByRole("button", { name: "Send to an agent" }).click();
 	const dialog = page.getByRole("dialog");
 	await expect(dialog.getByText(/^doc:assistant\//)).toBeVisible();
-	await dialog.getByRole("combobox", { name: "Workflow" }).click();
+	await dialog.getByRole("combobox", { name: "Recipe" }).click();
 	await page.getByRole("option", { name: "feature" }).click();
 	await dialog.getByRole("button", { name: "Send", exact: true }).click();
 	await expect(dialog.getByRole("status")).toContainText("Sent SHIP-101 · wf:feature");
@@ -97,7 +100,7 @@ test("adds a ref by typing, refuses an unknown one and explains the ref", async 
 test("shows the trace, the context ring and the reply buttons", async ({ page }) => {
 	await openPanel(page);
 	await say(page, "long options");
-	const summary = log(page).getByText(/^Trace · \d+ tools · \d+ ms$/);
+	const summary = log(page).getByText(/^How I found this · \d+ tools · \d+ ms$/);
 	await expect(summary).toBeVisible();
 	const step = log(page).locator("details").first().getByRole("listitem").first();
 	await expect(step).toBeHidden();
@@ -141,7 +144,7 @@ test("inserts a runner command as typed and adds a ref found with @", async ({ p
 
 test("offers the read only level in agent mode", async ({ page }) => {
 	await openPanel(page);
-	await pick(page, "Mode", "Agent");
+	await pick(page, "Mode", "Do");
 	await panel(page).getByRole("combobox", { name: "Permission", exact: true }).click();
 	await expect(page.getByRole("option", { name: "Read only", exact: true })).toBeVisible();
 });

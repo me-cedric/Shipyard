@@ -44,7 +44,7 @@ export function NotificationCentre({
 		>
 			<Popover.Trigger
 				aria-label={t.notifications.title}
-				className="relative inline-flex size-(--row-h) shrink-0 items-center justify-center rounded-md text-n-11 transition-colors duration-(--duration-fast) hover:bg-n-3 hover:text-n-12"
+				className="relative inline-flex size-(--control-h) shrink-0 items-center justify-center rounded-md text-n-11 transition-colors duration-(--duration-fast) hover:bg-n-3 hover:text-n-12"
 			>
 				<AnimatedIcon icon={BellIcon} ring={unread} />
 				{unread > 0 ? (

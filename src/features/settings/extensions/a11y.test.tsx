@@ -28,7 +28,7 @@ describe("Settings / Agents and rules and Extensions: keyboard", () => {
 
 	it("reviews a plugin and refuses an item with the keyboard only", async () => {
 		const user = userEvent.setup();
-		await mountTab("extensions");
+		await mountTab("plugins");
 		(await screen.findByRole("textbox", { name: "Plugin archive path" })).focus();
 		await user.keyboard("/mock/plugins/team-kit.zip{Tab}{Enter}");
 		const item = await screen.findByRole("checkbox", { name: "Accept AGENTS.md" });
@@ -44,7 +44,9 @@ describe("Settings / Agents and rules and Extensions: labels, focus and motion",
 		"gives every control of %s an accessible name",
 		async (tab) => {
 			await mountTab(tab);
-			await screen.findByRole("heading", { name: /^(Skills|Dev containers) \(/ });
+			await (tab === "extensions"
+				? screen.findByRole("region", { name: "Child projects" })
+				: screen.findByRole("heading", { name: /^Skills \(/ }));
 			const main = within(screen.getByRole("main"));
 			const controls = ["button", "checkbox", "textbox"].flatMap((r) => main.queryAllByRole(r));
 			expect(controls.length).toBeGreaterThan(5);
@@ -71,10 +73,10 @@ describe("Settings / Agents and rules and Extensions: labels, focus and motion",
 		for (const tab of ["agents-rules", "extensions"] as const) {
 			document.body.replaceChildren();
 			await mountTab(tab);
-			await screen.findByRole("heading", { name: /^(Skills|Dev containers) \(/ });
-			const html =
-				screen.getByRole("heading", { name: /^(Skills|Dev containers) \(/ }).closest("section")
-					?.parentElement?.outerHTML ?? "";
+			const anchor = await (tab === "extensions"
+				? screen.findByRole("region", { name: "Child projects" })
+				: screen.findByRole("heading", { name: /^Skills \(/ }).then((h) => h.closest("section")));
+			const html = anchor?.parentElement?.outerHTML ?? "";
 			expect(html).toMatch(/section/);
 			expect(html).not.toMatch(/animate-/);
 			const durations = html.match(/(?<![\w-])duration-[^\s"]+/g) ?? [];
@@ -103,11 +105,15 @@ describe("Settings / Agents and rules and Extensions: language", () => {
 
 	it("shows French in Extensions", async () => {
 		await unwrap(commands.prefsSet({ lang: "fr" }));
-		await mountTab("extensions");
-		expect(await screen.findByRole("heading", { name: "Projets enfants (1)" })).toBeInTheDocument();
-		expect(screen.getByText("4 sur 5")).toBeInTheDocument();
+		const router = await mountTab("extensions");
+		expect(await screen.findByRole("region", { name: "Projets enfants" })).toBeInTheDocument();
+		const card = await screen.findByRole("region", { name: "Projets enfants" });
+		await userEvent.click(await within(card).findByRole("button", { name: "Ouvrir" }));
+		const panel = await screen.findByRole("complementary", { name: "API gateway" });
+		expect(await within(panel).findByText("4 sur 6")).toBeInTheDocument();
+		router.history.push("/setup/project?page=plugins");
 		expect(
-			screen.getByRole("textbox", { name: "Chemin de l'archive du plugin" }),
+			await screen.findByRole("textbox", { name: "Chemin de l'archive du plugin" }),
 		).toBeInTheDocument();
 	});
 });

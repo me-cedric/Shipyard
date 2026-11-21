@@ -18,6 +18,7 @@ fn text() -> ExportText {
         generated: "Generated".into(),
         contents: "Contents".into(),
         sections: vec![],
+        ..Default::default()
     }
 }
 
@@ -370,6 +371,38 @@ fn the_change_request_is_written_twice_and_never_replaces_a_number() {
 }
 
 #[test]
+fn the_change_request_as_pdf_writes_the_markdown_and_the_pdf_and_keeps_the_number() {
+    let f = fx();
+    assert!(build_change_request(&f.s, "T", &f.base, &f.head, &[], false).is_err());
+    let built = build_change_request(&f.s, "Add polling", &f.base, &f.head, &[], true).unwrap();
+    assert!(
+        shipyard_store::export::html_page(&built.meta, &built.blocks)
+            .contains("CR-001 - Add polling")
+    );
+    let out = write_change_request_pdf(&f.s, &built, b"%PDF fake\n%%EOF").unwrap();
+    assert_eq!(out.id, "CR-001");
+    assert_eq!(out.docx, "");
+    assert_eq!(
+        out.pdf.as_deref(),
+        Some("docs/delivery/change-requests/CR-001.pdf")
+    );
+    assert!(f.root.join(&out.markdown).is_file());
+    assert_eq!(
+        std::fs::read(f.root.join(out.pdf.unwrap())).unwrap(),
+        b"%PDF fake\n%%EOF"
+    );
+    assert!(
+        !f.root
+            .join("docs/delivery/change-requests/CR-001.docx")
+            .exists()
+    );
+    // The Markdown holds the number: the next report is CR-002.
+    let next = export_change_request(&f.s, "Again", &f.base, &f.head, &[], true).unwrap();
+    assert_eq!(next.id, "CR-002");
+    assert!(next.pdf.is_none());
+}
+
+#[test]
 fn a_path_joins_the_exports_only_after_the_write_worked() {
     let f = fx();
     let t = text();
@@ -379,4 +412,27 @@ fn a_path_joins_the_exports_only_after_the_write_worked() {
     let good = f.out.join("c.xlsx");
     export_costing(&f.s, &t, good.to_str().unwrap(), true).unwrap();
     assert!(f.s.exports().contains(&good));
+}
+
+#[test]
+fn the_log_of_written_reports_keeps_the_last_person_and_day_of_each_report() {
+    let f = fx();
+    assert!(written_add(&f.s, "dossier", false).is_err(), "a click");
+    assert!(written_add(&f.s, "../x", true).is_err(), "a plain id");
+    assert!(written_list(&f.s).unwrap().is_empty());
+    written_add(&f.s, "dossier", true).unwrap();
+    written_add(&f.s, "functional", true).unwrap();
+    written_add(&f.s, "dossier", true).unwrap();
+    let list = written_list(&f.s).unwrap();
+    assert_eq!(list.len(), 2, "one line for each report");
+    let d = list.iter().find(|w| w.report == "dossier").unwrap();
+    assert_eq!(d.who, "Ada");
+    assert_eq!(d.date, crate::work::today(&f.s));
+    // The log is in the app data of the project, never in the repository.
+    assert!(
+        !std::fs::read_dir(&f.root)
+            .unwrap()
+            .flatten()
+            .any(|e| e.file_name().to_string_lossy().contains("written"))
+    );
 }

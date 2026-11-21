@@ -1,4 +1,5 @@
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { RefDetail } from "@/features/shell/ref-detail";
 import { ShellProvider } from "@/lib/shell";
 import { withTracker } from "@/test/tracker";
@@ -14,7 +15,9 @@ const detail = (refId: string) => (
 describe("the inspector actions of a ref", () => {
 	it("offers the one next step of an item, and none for a ref with no step", async () => {
 		await withTracker();
+		const user = userEvent.setup();
 		const { unmount } = renderApp(detail("change:add-auth"));
+		await user.click(await screen.findByRole("button", { name: "More" }));
 		expect(
 			await screen.findByRole("button", { name: "Split into work items" }),
 		).toBeInTheDocument();
@@ -22,6 +25,7 @@ describe("the inspector actions of a ref", () => {
 		unmount();
 		renderApp(detail("test:auth-login"));
 		await screen.findByText("Login");
+		await user.click(screen.getByRole("button", { name: "More" }));
 		expect(screen.queryByRole("button", { name: /Write plan|Split into work items/ })).toBeNull();
 	});
 });

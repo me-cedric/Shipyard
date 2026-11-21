@@ -243,4 +243,27 @@ describe("atoms (REQ-004, REQ-014)", () => {
 			);
 		}
 	});
+
+	// spec:app-redesign#REQ-026
+	it("gives each control the 44 px height at the source", () => {
+		renderApp(
+			<>
+				<Button>Go</Button>
+				<IconButton label="Close">x</IconButton>
+				<Input label="Name" />
+				<Checkbox label="Done" />
+				<Switch label="Agents" />
+			</>,
+		);
+		expect(screen.getByRole("button", { name: "Go" })).toHaveClass("min-h-control");
+		expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-(--control-h)");
+		expect(screen.getByRole("textbox", { name: "Name" })).toHaveClass("min-h-control");
+		// The mark stays small: its label is the hit box.
+		expect(screen.getByRole("checkbox", { name: "Done" }).closest("label")).toHaveClass(
+			"min-h-control",
+		);
+		expect(screen.getByRole("switch", { name: "Agents" }).closest("label")).toHaveClass(
+			"min-h-control",
+		);
+	});
 });

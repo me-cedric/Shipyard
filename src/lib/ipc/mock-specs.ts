@@ -372,7 +372,7 @@ export function seedSpecs(): MockSpecs {
 					),
 				},
 			},
-			"# add-export\n\n## Why\n\nPeople ask for a file.\n",
+			"# add-export\n\n## Why\n\nPeople ask for a file. See wi:ACME-3.\n",
 		),
 		[`${PDIR}/auth-login.feature`]: feature("Login", [
 			["spec:auth#REQ-001", "A session starts"],
@@ -403,10 +403,16 @@ export function seedSpecs(): MockSpecs {
 			["spec:billing#REQ-002", "A receipt is sent"],
 		]),
 		...Object.fromEntries([
-			question("Q-012", "question", "answered", "ada", "Which tracker first?"),
-			question("Q-020", "risk", "open", "grace", "Claim stamps need a tracker comment write"),
-			question("Q-021", "assumption", "answered", "alan", "One tracker for each project"),
-			question("Q-030", "dependency", "open", "ada", "The forge adapter ships first"),
+			question("Q-012", "question", "answered", "ada", "Which issue tracker first?", "spec:auth"),
+			question(
+				"Q-020",
+				"risk",
+				"open",
+				"grace",
+				"Claim stamps need an issue tracker comment write",
+			),
+			question("Q-021", "assumption", "answered", "alan", "One issue tracker for each project"),
+			question("Q-030", "dependency", "open", "ada", "The code host adapter ships first"),
 			question("Q-033", "decision", "answered", "margaret", "The row ref is a ticket label"),
 			question("Q-034", "issue", "withdrawn", "edsger", "A duplicate of Q-020"),
 			question(
@@ -424,6 +430,70 @@ export function seedSpecs(): MockSpecs {
 	const files: Files = {};
 	for (const [p, t] of Object.entries(texts)) files[p] = { text: t, stamp: "1" };
 	return { files, validated: {}, drafts: {} };
+}
+
+/** The demo case of the Brief: a test plan that passes for the first requirement of `add-auth`. */
+export function seedDemoSpecs(s: MockSpecs) {
+	s.files[`${PDIR}/sessions-renew.feature`] = {
+		text: feature("Renew a session", [["spec:sessions#REQ-001", "A token is refreshed"]]),
+		stamp: "1",
+	};
+	s.files[`${PDIR}/sessions-renew.json`] = {
+		text: JSON.stringify({
+			version: 1,
+			base: "main",
+			runs: [
+				{
+					scenario: "A token is refreshed",
+					verdict: "pass",
+					at: "2026-10-28T10:00:00Z",
+					by: "automated",
+					evidence: "pnpm test",
+				},
+			],
+		}),
+		stamp: "1",
+	};
+	// The demo case of Checks: a change of the ticket ACME-5 with one scenario that passes and one with no run.
+	const dir = `${CH}/rework-settings`;
+	const put = (path: string, text: string) => {
+		s.files[path] = { text, stamp: "1" };
+	};
+	put(`${dir}/.openspec.yaml`, "schema: shipyard-delivery\ncreated: 2026-10-20\n");
+	put(
+		`${dir}/proposal.md`,
+		"# rework-settings\n\n## Why\n\nOptions are hard to find. See wi:ACME-5.\n",
+	);
+	put(
+		`${dir}/specs/settings/spec.md`,
+		spec("settings", "Show the options.", [
+			["REQ-001", "Show every option", true],
+			["REQ-002", "Save an option", true],
+		]),
+	);
+	put(
+		`${PDIR}/settings-page.feature`,
+		feature("Settings page", [
+			["spec:settings#REQ-001", "Every option shows"],
+			["spec:settings#REQ-002", "An option is saved"],
+		]),
+	);
+	put(
+		`${PDIR}/settings-page.json`,
+		JSON.stringify({
+			version: 1,
+			base: "main",
+			runs: [
+				{
+					scenario: "Every option shows",
+					verdict: "pass",
+					at: "2026-10-28T10:00:00Z",
+					by: "automated",
+					evidence: "pnpm test",
+				},
+			],
+		}),
+	);
 }
 
 // ---------------------------------------------------------------- changes
@@ -507,6 +577,25 @@ export function changeCreate(s: MockSpecs, rawTitle: string, today: string): Cha
 		true,
 	);
 	return view(s, id);
+}
+
+const INPUT_KINDS = ["md", "markdown", "pdf", "docx", "doc"];
+const MAX_INPUT = 20 * 1024 * 1024;
+
+/** A document for the spec writer: Markdown, PDF or Word, into `inputs/` of the change. */
+export function changeInputAdd(s: MockSpecs, id: string, name: string, bytes: number[]): string {
+	if (!validChange(id) || id === "archive") throw `invalid change id: ${id}`;
+	const base = name.split(/[\\/]/).pop()?.trim() ?? "";
+	if (!base || base.startsWith(".")) throw "the file name is not valid";
+	const ext = base.split(".").pop()?.toLowerCase() ?? "";
+	if (!INPUT_KINDS.includes(ext))
+		throw `${base} is not a Markdown, PDF or Word file: add one of these three kinds`;
+	if (bytes.length > MAX_INPUT) throw `${base} is larger than ${MAX_INPUT / (1024 * 1024)} MiB`;
+	if (!names(s.files, CH).includes(id)) throw `no change ${id}`;
+	const path = `${CH}/${id}/inputs/${base}`;
+	if (s.files[path]) throw `${base} is already added to ${id}`;
+	putText(s.files, path, String.fromCharCode(...bytes.slice(0, 4096)), null, true);
+	return path;
 }
 
 /** A change from an issue tracker item: the ticket text opens the proposal, the branch is `specs/<id>`. */
@@ -894,6 +983,7 @@ export function splitApply(
 					claimed: false,
 					estimateMinutes: null,
 					spentMinutes: null,
+					release: null,
 				});
 		}
 		return out;
@@ -975,4 +1065,15 @@ export const specsCitations = (s: MockSpecs): [string, string][] => [
 	...fileCitations(s.files, sourceOf),
 	// A work item that covers one requirement.
 	["wi:ACME-1", "spec:auth#REQ-003"],
+	// A screen, a diagram and a decision that cite the demo feature of the export (the Design tab).
+	["screen:home", "change:add-export"],
+	["diagram:context", "change:add-export"],
+	["adr:0004", "change:add-export"],
+	// The demo feature of the export cites the contract of the orders (the link of an endpoint to its feature).
+	["change:add-export", "api:orders"],
+	// The same parts cite the ticket of the settings page, so that its Design shows screens, a diagram and a decision.
+	["screen:home", "wi:ACME-5"],
+	["screen:checkout", "wi:ACME-5"],
+	["diagram:context", "wi:ACME-5"],
+	["adr:0004", "wi:ACME-5"],
 ];

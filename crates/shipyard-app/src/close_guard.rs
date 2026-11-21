@@ -9,7 +9,7 @@ use shipyard_engine::ports::Dispatch;
 use specta::Type;
 use tauri::{AppHandle, Emitter, Manager, Window};
 
-use crate::commands::{Api, AppState, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 
 /// Set once the person answered "close anyway": the second close request goes through.
 static FORCED: AtomicBool = AtomicBool::new(false);
@@ -68,6 +68,56 @@ fn pushes(committed: &Result<Option<String>, String>, ahead: u32, close_push: bo
 #[specta::specta]
 pub async fn close_guard_state(app: AppHandle) -> Api<InFlight> {
     blocking(app, |s| Ok(in_flight(s))).await
+}
+
+/// One run of the open project that works now.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+pub struct ProjectRun {
+    pub run: String,
+    /// The ticket.
+    pub key: String,
+}
+
+/// The runs of the open project that have not ended: what the question of a project close lists
+/// (`shell-setup-rights` REQ-012). The runs of other projects do not count.
+pub fn project_runs(s: &AppState) -> Res<Vec<ProjectRun>> {
+    let Some(a) = crate::commands::sync::active(s)? else {
+        return Ok(Vec::new());
+    };
+    Ok(s.factory
+        .factory
+        .active_runs()
+        .into_iter()
+        .filter(|r| r.project == a.entry.id)
+        .map(|r| ProjectRun {
+            run: r.run_id,
+            key: r.key,
+        })
+        .collect())
+}
+
+/// Stop each run of the open project, then close the project. A run that the person may not stop
+/// (`runs.start`) keeps the project open: a refusal here must never close a project over runs
+/// that go on. Keep them working is the plain `projects_close`.
+pub fn close_stopping(s: &AppState) -> Res<()> {
+    for r in project_runs(s)? {
+        crate::factory::cancel(s, &r.run)?;
+    }
+    crate::commands::projects::close(s)
+}
+
+/// The runs of the open project that work, for the question of a project close.
+#[tauri::command]
+#[specta::specta]
+pub async fn projects_close_state(app: AppHandle) -> Api<Vec<ProjectRun>> {
+    blocking(app, project_runs).await
+}
+
+/// Stop the runs of the open project and close it.
+#[tauri::command]
+#[specta::specta]
+pub async fn projects_close_stop(app: AppHandle) -> Api<()> {
+    blocking(app, close_stopping).await
 }
 
 /// The editors with an unsaved draft now.
@@ -130,6 +180,69 @@ mod tests {
             },
             true
         ));
+    }
+
+    #[test]
+    fn stop_them_cancels_the_runs_of_the_project_and_closes_it() {
+        use crate::factory::tests::fx;
+        use shipyard_core::pickup::Writes;
+        let f = fx(Writes::default());
+        let (a, b) = (f.start("SHIP-1"), f.start("SHIP-2"));
+        let runs: Vec<String> = project_runs(&f.s)
+            .unwrap()
+            .into_iter()
+            .map(|r| r.run)
+            .collect();
+        assert_eq!(runs.len(), 2);
+        assert!(runs.contains(&a) && runs.contains(&b));
+        close_stopping(&f.s).unwrap();
+        assert!(f.s.registry().unwrap().active().is_none());
+        assert!(f.s.factory.factory.active_runs().is_empty());
+    }
+
+    #[test]
+    fn keep_them_working_closes_the_project_and_the_runs_go_on() {
+        use crate::factory::tests::fx;
+        use shipyard_core::pickup::Writes;
+        let f = fx(Writes::default());
+        f.start("SHIP-1");
+        crate::commands::projects::close(&f.s).unwrap();
+        assert!(f.s.registry().unwrap().active().is_none());
+        assert_eq!(f.s.factory.factory.active_runs().len(), 1);
+        // With no project open, the question has no run to list.
+        assert!(project_runs(&f.s).unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_person_who_may_not_stop_runs_cannot_stop_them_and_the_project_stays_open() {
+        use crate::factory::tests::fx;
+        use shipyard_core::pickup::Writes;
+        use shipyard_core::work::{Member, Team};
+        use shipyard_store::work::{TEAM_PATH, write_team};
+        let f = fx(Writes::default());
+        f.start("SHIP-1");
+        // The team names an admin that is not the person: the person is a viewer.
+        let team = Team {
+            members: vec![Member {
+                name: "Root".into(),
+                handle: "root".into(),
+                emails: vec!["root@example.com".into()],
+                role: "techlead".into(),
+                admin: true,
+                ..Member::default()
+            }],
+            ..Team::default()
+        };
+        std::fs::create_dir_all(f.repo.path().join(".shipyard")).unwrap();
+        std::fs::write(
+            f.repo.path().join(TEAM_PATH),
+            write_team(&team, None).unwrap(),
+        )
+        .unwrap();
+        let e = close_stopping(&f.s).unwrap_err();
+        assert!(e.starts_with("missing right runs.start"), "{e}");
+        assert!(f.s.registry().unwrap().active().is_some());
+        assert_eq!(f.s.factory.factory.active_runs().len(), 1);
     }
 
     #[test]

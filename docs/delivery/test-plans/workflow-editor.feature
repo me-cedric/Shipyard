@@ -25,10 +25,10 @@ Feature: workflow-editor
     Then the list offers `grill`, `plan`, `build` and `pr`, and not `review`
 
   @spec:workflow-editor#REQ-004
-  Scenario: Run limits: Turn limit
-    Given the workflow `feature` has no `max_turns`
-    When the person turns on the turn limit and sets 40
-    Then the text holds `max_turns: 40` under `limits`
+  Scenario: Run limits: No turn limit
+    Given the form of the workflow `feature`
+    When the person opens the limits of a step
+    Then the form shows no turn limit
 
   @spec:workflow-editor#REQ-004
   Scenario: Run limits: Budget

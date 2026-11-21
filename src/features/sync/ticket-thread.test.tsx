@@ -122,6 +122,42 @@ describe("the ticket thread", () => {
 		edit.mockRestore();
 	}, 20_000);
 
+	it("opens each field of the ticket page from its value button", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await importAll();
+		const type = vi.spyOn(commands, "workTicketTypeSet");
+		const edit = vi.spyOn(commands, "workTicketEdit");
+		render(
+			<Providers>
+				<TicketLabels itemKey="ACME-1" rows />
+				<TicketFields itemKey="ACME-1" rows />
+			</Providers>,
+		);
+		const kind = await screen.findByRole("group", { name: "Issue type" });
+		// No field is open until its button is clicked.
+		expect(screen.queryByRole("textbox", { name: "Issue type" })).toBeNull();
+		await user.click(within(kind).getByRole("button", { name: "Set" }));
+		await user.type(screen.getByRole("textbox", { name: "Issue type" }), "Bug{Enter}");
+		await waitFor(() => expect(type).toHaveBeenCalledWith("ACME-1", "Bug", true));
+		// The button now shows the value and the field is closed.
+		expect(await within(kind).findByRole("button", { name: "Bug" })).toBeInTheDocument();
+		const days = screen.getByRole("group", { name: "Estimate in days" });
+		await user.click(within(days).getByRole("button", { name: "Set" }));
+		await user.type(screen.getByRole("spinbutton", { name: "Estimate in days" }), "2.5{Enter}");
+		await waitFor(() => expect(edit).toHaveBeenCalledWith("ACME-1", null, null, 2.5, true));
+		// Escape closes a field without a write.
+		await user.click(screen.getByRole("button", { name: "Add a label" }));
+		await user.type(screen.getByRole("textbox", { name: "New label" }), "urgent{Escape}");
+		expect(screen.queryByRole("textbox", { name: "New label" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Add a label" }));
+		await user.type(screen.getByRole("textbox", { name: "New label" }), "urgent");
+		await user.click(screen.getByRole("button", { name: "Add label" }));
+		expect(await screen.findByRole("button", { name: "Remove urgent" })).toBeInTheDocument();
+		type.mockRestore();
+		edit.mockRestore();
+	}, 20_000);
+
 	it("shows no control for a flag that the tracker leaves off", async () => {
 		await withTracker();
 		await importAll();
@@ -138,6 +174,7 @@ describe("the ticket thread", () => {
 				issueType: false,
 				dueDate: false,
 				estimate: false,
+				release: false,
 			},
 		});
 		mount();

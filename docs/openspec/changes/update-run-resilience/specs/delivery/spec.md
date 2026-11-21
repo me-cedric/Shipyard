@@ -128,7 +128,7 @@ The `push` and `pull_request` switches SHALL be off by default (`factory` REQ-02
 
 ### Requirement: REQ-020 Feedback limits
 
-Each move from `PROpen` to `ChangesRequested` SHALL be one feedback round. One round SHALL take all the failed checks and open threads that the tick found. The feedback rounds SHALL count against `feedback_rounds`, and their fix and review rounds against the run caps (`factory` REQ-054). No feedback round SHALL reset a count. A feedback round above the cap SHALL escalate. The budget and the max turns SHALL still apply (`factory` REQ-022, REQ-023).
+Each move from `PROpen` to `ChangesRequested` SHALL be one feedback round. One round SHALL take all the failed checks and open threads that the tick found. The feedback rounds SHALL count against `feedback_rounds`, and their fix and review rounds against the run caps (`factory` REQ-054). No feedback round SHALL reset a count. A feedback round above the cap SHALL escalate. The budget SHALL still apply (`factory` REQ-022). No turn count SHALL stop the loop (`adr:0025`).
 
 #### Scenario: Feedback cap
 - GIVEN a run with `feedback_rounds` 3 and three feedback rounds spent
@@ -140,10 +140,10 @@ Each move from `PROpen` to `ChangesRequested` SHALL be one feedback round. One r
 - WHEN the feedback round starts
 - THEN one builder brief holds the check and the two threads, and the feedback count goes up by one
 
-#### Scenario: Loop stops
-- GIVEN a run at its max turns
+#### Scenario: Loop goes on
+- GIVEN a run whose agent has used 200 turns
 - WHEN a new CI failure arrives
-- THEN the run moves to `Paused` with the cause max turns and the Inbox shows it
+- THEN the feedback round starts and the run does not pause
 
 #### Scenario: Budget stop
 - GIVEN a run in a feedback loop at 100 % of its budget

@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { openFirstFolder } from "./first-run";
+import { openLibrary } from "./places";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
@@ -8,13 +9,17 @@ const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" }
 async function openKnowledge(page: Page, tab: string) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
-	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
-	await sidebar(page).getByRole("link", { name: "Knowledge" }).click();
-	await tabs(page).getByRole("link", { name: tab }).click();
+	await expect(
+		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+	).toBeVisible();
+	await openLibrary(page, tab);
 }
 
 test("filters the graph by kind and explains an entity from the inspector", async ({ page }) => {
-	await openKnowledge(page, "Graph");
+	await openKnowledge(page, "Map");
+	// The Map opens on its cards: the graph, the table and the filters are in the page menu.
+	await page.getByRole("main").getByRole("button", { name: "More", exact: true }).click();
+	await page.getByRole("menuitem", { name: "Graph" }).click();
 	// The clusters come first: a click opens one in place, a second click closes it.
 	const adr = page.getByRole("button", { name: /^ADR adr:0001/ });
 	const cluster = page.locator('button[data-node="cluster/adr"]');
@@ -51,7 +56,10 @@ test("filters the graph by kind and explains an entity from the inspector", asyn
 test("edits a handbook page and saves it", async ({ page }) => {
 	await openKnowledge(page, "Handbook");
 	await page.getByRole("button", { name: "Getting started" }).click();
-	await page.getByRole("tab", { name: "Edit" }).click();
+	await page
+		.getByRole("region", { name: "Getting started" })
+		.getByRole("button", { name: "Edit" })
+		.click();
 	const text = page.getByRole("textbox", { name: "Markdown" });
 	await expect(text).toHaveValue(/^# Getting started/);
 	const save = page.getByRole("button", { name: "Save", exact: true });
@@ -65,7 +73,9 @@ test("edits a handbook page and saves it", async ({ page }) => {
 
 test("exports the architecture dossier to a .docx path", async ({ page }) => {
 	await openKnowledge(page, "Documents");
-	await page.getByRole("button", { name: "Export Architecture dossier" }).click();
+	// The documents that Shipyard writes are in the page menu.
+	await page.getByRole("main").getByRole("button", { name: "More", exact: true }).click();
+	await page.getByRole("menuitem", { name: "Export Architecture dossier" }).click();
 	await expect(page.getByText("Exported: /mock/dossier.docx")).toBeVisible();
 });
 
@@ -92,8 +102,9 @@ test("shows an HTML deck in a sandboxed frame and moves it with the arrow keys",
 test("presents a Markdown deck", async ({ page }) => {
 	await openKnowledge(page, "Slides");
 	await page.getByRole("button", { name: "Kickoff" }).click();
-	await expect(page.getByRole("application", { name: "Slides (5)" })).toBeVisible();
+	await expect(page.getByRole("region", { name: "Slides (5)" })).toBeVisible();
 	await page.getByRole("button", { name: "Present" }).click();
+	await expect(page.getByRole("application", { name: "Present" })).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Kickoff" }).last()).toBeVisible();
 	await page.keyboard.press("ArrowRight");
 	await expect(page.getByRole("heading", { name: "Goals" }).last()).toBeVisible();
@@ -113,9 +124,10 @@ test("pins a dashboard tile to the top of Dashboards, not to Home", async ({ pag
 	await openKnowledge(page, "Dashboards");
 	const tile = page.getByRole("region", { name: "Work items" });
 	await expect(tile).toBeVisible();
-	await tile.getByRole("button", { name: "Pin to Home" }).click();
+	await tile.getByRole("button", { name: "More Work items" }).click();
+	await page.getByRole("menuitem", { name: "Pin to Today" }).click();
 	await expect(page.getByRole("region", { name: "Pinned" })).toBeVisible();
-	await sidebar(page).getByRole("link", { name: "Home" }).click();
-	await expect(tabs(page).getByRole("link", { name: "Today" })).toBeVisible();
+	await sidebar(page).getByRole("link", { name: "Today" }).click();
+	await expect(tabs(page).getByRole("link", { name: "Needs you" })).toBeVisible();
 	await expect(page.getByRole("region", { name: "Pinned" })).toHaveCount(0);
 });

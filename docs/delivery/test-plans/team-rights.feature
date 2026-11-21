@@ -52,6 +52,12 @@ Feature: team-rights
     When Shipyard gives the levels of `ana`
     Then `ana` has `write` in `specs` and in `design`
 
+  @spec:team-rights#REQ-005
+  Scenario: Roles and default rights: Member save keeps the block
+    Given the team file has a `roles:` block
+    When a person saves a member on Crew
+    Then the team file still has the `roles:` block
+
   @spec:team-rights#REQ-006
   Scenario: Personal narrowing: No widening
     Given the member `dee` has the role `pm` in the team file
@@ -101,8 +107,8 @@ Feature: team-rights
   Scenario: First tab of each role: Architect
     Given the member `ana` has the role `architect` and no last view
     When `ana` opens the project
-    Then the main area shows Design / Decisions
-    And Design is the second space of the sidebar
+    Then the main area shows Library / Decisions
+    And the menu shows the places in the same order as for every role
 
   @spec:team-rights#REQ-014
   Scenario: Inbox routing: Approval routing

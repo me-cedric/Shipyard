@@ -38,10 +38,10 @@ First run
 Top bar and duplicates
 
 - REQ-009: One Activity button SHALL replace the live runs, sessions and needs-you controls of the top bar. It SHALL show the needs-you count and a mark while a run or a session is active. Its panel SHALL have three parts: Needs you (link to Home / Today), Runs (stop, link to Factory / Runs), Sessions (stop, link to Factory / Sessions).
-- REQ-010: The avatar SHALL open a menu with Settings / Me, Theme (light, dark, system), Manual, Shortcuts, What's new and Replay the tour. The "?" button and the theme button SHALL leave the top bar. F1 SHALL still open the manual.
+- REQ-010: The account row of the rail SHALL open a menu with Setup / Me, Theme (light, dark, system), Manual, Shortcuts, What's new and Replay the tour. F1 SHALL still open the manual.
 - REQ-011: One Ask split button SHALL replace the assistant button and the Ask menu. The main part SHALL toggle the assistant panel. The chevron SHALL open the Ask items.
-- REQ-012: The Sync button SHALL show the ahead and behind counts. The status bar SHALL show the count of changed files beside Commit. The repository chip SHALL leave the top bar.
-- REQ-013: At a window width of 1100 px or more, the top bar SHALL show 13 controls or fewer.
+- REQ-012: The Sync button SHALL show the ahead and behind counts. The card of the sync mark SHALL show the count of changed files.
+- REQ-013: At a window width of 1100 px or more, the top row of the page SHALL show 13 controls or fewer.
 - REQ-014: Code / Terminal and Knowledge / Manual SHALL leave the tab bars. The address of Code / Terminal SHALL open the terminal drawer. The address of Knowledge / Manual SHALL still show the manual. The palette and the native menu SHALL keep their entries.
 - REQ-015: Home / Today SHALL show no stat tiles. The count of the person's items and the spend of today SHALL show in the headings of their panels.
 - REQ-016: Each action and each view that a person reaches before this change SHALL stay reachable from a visible control and from the palette.
@@ -154,6 +154,7 @@ Pull requests (third pass, 2026-11-12)
 
 - Existing code/docs/specs: `specs/shell`, `specs/home-today`, `specs/design-system`, `changes/add-onboarding-tour`, `changes/add-visual-cues` (tab icons were "later" there), adr:0014 (visual language v2, the three springs).
 - Supersedes or extends: `add-onboarding-tour` REQ-001, REQ-005 and REQ-013.
+- REQ-010, REQ-012 and REQ-013 name the homes of `change:update-app-redesign`: its look pass 1 removed the top bar and the status bar (`spec:shell#REQ-021`).
 
 ## ADDED Requirements
 
@@ -273,12 +274,12 @@ One Activity button SHALL replace the live runs, sessions and needs-you controls
 
 ### Requirement: REQ-010 Avatar menu
 
-The avatar SHALL open a menu with Settings / Me, Theme, Manual, Shortcuts, What's new and Replay the tour. F1 SHALL still open the manual.
+The account row of the rail SHALL open a menu with Setup / Me, Theme, Manual, Shortcuts, What's new and Replay the tour. F1 SHALL still open the manual.
 
 #### Scenario: Theme from the menu
 
 - GIVEN the dark theme
-- WHEN the person picks Light in the avatar menu
+- WHEN the person picks Light in the account menu
 - THEN the app shows the light theme
 
 ### Requirement: REQ-011 Ask split button
@@ -293,22 +294,22 @@ One Ask split button SHALL toggle the assistant panel, and its chevron SHALL ope
 
 ### Requirement: REQ-012 Repository state
 
-The Sync button SHALL show the ahead and behind counts, and the status bar SHALL show the count of changed files beside Commit.
+The Sync button SHALL show the ahead and behind counts, and the card of the sync mark SHALL show the count of changed files.
 
 #### Scenario: Changed files
 
 - GIVEN five changed files and two commits ahead
-- WHEN the shell shows
-- THEN Sync shows 2 ahead and the status bar shows 5 beside Commit
+- WHEN the person opens the sync mark
+- THEN Sync shows 2 ahead and the card shows 5 changed files
 
 ### Requirement: REQ-013 Top bar size
 
-At a window width of 1100 px or more, the top bar SHALL show 13 controls or fewer.
+At a window width of 1100 px or more, the top row of the page SHALL show 13 controls or fewer.
 
 #### Scenario: Count
 
 - GIVEN a window of 1100 px
-- WHEN the top bar shows
+- WHEN the top row of the page shows
 - THEN it holds 13 controls or fewer
 
 ### Requirement: REQ-014 Twin tabs
@@ -615,13 +616,19 @@ The pull request list SHALL be a full-width page with a search, a filter (All, N
 
 ### Requirement: REQ-043 Merge box
 
-The Overview tab SHALL start with a merge box that says whether the pull request can merge and why not. It SHALL have three segments: Checks (passing, failing and pending counts), Comments (unresolved threads) and Approvals (reviewers with their verdicts). It SHALL hold the merge action as a split button whose menu lists the merge methods. Merge SHALL keep its confirmation, its draft rule and its right. The confirmation SHALL name the merge method, also when checks fail or changes are requested, SHALL have Confirm and Cancel, and SHALL stay busy while the merge runs.
+The Overview tab SHALL start with a merge box that says whether the pull request can merge and why not. It SHALL have three segments: Checks (passing, failing and pending counts), Comments (unresolved threads) and Approvals (reviewers with their verdicts). It SHALL hold the merge action as a split button whose menu lists the merge methods. Merge SHALL keep its confirmation, its draft rule and its right.
 
 #### Scenario: Merge box
 
 - GIVEN a pull request with two failing checks and one unresolved thread
 - WHEN the Overview shows
 - THEN the box names two failing checks and one unresolved thread, and Merge asks for a confirmation that names the method, with Confirm and Cancel
+
+#### Scenario: Merge confirmation
+- GIVEN a pull request where checks fail or changes are requested
+- WHEN the person clicks Merge
+- THEN the confirmation names the merge method and has Confirm and Cancel
+- AND it stays busy while the merge runs
 
 ### Requirement: REQ-044 Description and sidebar
 
@@ -635,13 +642,24 @@ The Overview SHALL show the description as Markdown, then the conversation. A na
 
 ### Requirement: REQ-045 Files changed
 
-The Files changed tab SHALL list every file collapsed by default, each with its path, its status and its lines added and removed. It SHALL show a file tree with a filter, an Expand all and a Collapse all action, and a count of the files that the person marked as viewed. Expand all SHALL open at most the first 30 files that match the filter; while more files stay collapsed the action SHALL offer to expand the next 30. A file that the person expands SHALL show its diff. When the code host list was cut short, the tab SHALL say "Showing the first N files".
+The Files changed tab SHALL list every file collapsed by default, each with its path, its status and its lines added and removed. It SHALL show a file tree with a filter, an Expand all and a Collapse all action, and a count of the files that the person marked as viewed. A file that the person expands SHALL show its diff.
 
 #### Scenario: Files changed
 
 - GIVEN a pull request with forty files
 - WHEN the Files changed tab shows
 - THEN all forty rows are collapsed, expanding one shows its diff, and Expand all opens thirty and offers the next ten
+
+#### Scenario: Expand all is capped
+- GIVEN a filter that matches more than 30 files
+- WHEN the person clicks Expand all
+- THEN at most the first 30 files open
+- AND while more files stay collapsed the action offers to expand the next 30
+
+#### Scenario: Cut list
+- GIVEN a code host list that was cut short
+- WHEN the tab shows
+- THEN it says "Showing the first N files"
 
 ### Requirement: REQ-046 Shared file parts
 
@@ -693,13 +711,31 @@ A review thread SHALL show its file and line, its comments, and a Resolved mark.
 
 ### Requirement: REQ-049 Inline comments
 
-A person SHALL add a comment to a line of the new file on the Files changed tab with a button in the line gutter. The button SHALL show on the row that is hovered or current, not on every row; the diff is one tab stop and the arrow keys move the current row. The comment SHALL join a pending review kept on this computer. The page SHALL show the number of pending comments with Submit review and Discard. Submit review SHALL post all of them with one verdict: Comment, Approve or Request changes. A person SHALL also post one comment at once. Comments are on the new side of the diff only. A single comment is posted as a one-comment review. Cancel asks when the box has text. A partial result clears what was sent and keeps the rest.
+A person SHALL add a comment to a line of the new file on the Files changed tab with a button in the line gutter. The comment SHALL join a pending review kept on this computer. The page SHALL show the number of pending comments with Submit review and Discard. Submit review SHALL post all of them with one verdict: Comment, Approve or Request changes. A person SHALL also post one comment at once.
 
 #### Scenario: Inline comments
 
 - GIVEN two pending comments on two lines
 - WHEN the person clicks Submit review and picks Comment
 - THEN the forge receives one review with both comments and the pending list is empty
+
+#### Scenario: Gutter button
+- GIVEN the Files changed tab
+- WHEN a row is hovered or current
+- THEN the gutter button shows on that row only
+- AND the diff is one tab stop and the arrow keys move the current row
+
+#### Scenario: Comment sides and single post
+- GIVEN a diff
+- WHEN a person comments
+- THEN comments are on the new side only
+- AND a single comment is posted as a one-comment review
+- AND Cancel asks when the box has text
+
+#### Scenario: Partial result
+- GIVEN a submit that the forge accepts in part
+- WHEN the result returns
+- THEN the page clears what was sent and keeps the rest
 
 ### Requirement: REQ-050 Pending review is kept
 

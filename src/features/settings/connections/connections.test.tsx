@@ -29,7 +29,7 @@ describe("Settings / Connections", () => {
 	it("offers the actions of a connection in its context menu", async () => {
 		const user = userEvent.setup();
 		await seed({ name: "Acme" });
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		fireEvent.contextMenu(await row("Acme"));
 		const menu = await screen.findByRole("menu");
 		expect(
@@ -45,38 +45,46 @@ describe("Settings / Connections", () => {
 	});
 
 	it("shows an empty title and one primary action when no connection exists", async () => {
-		mountApp("/settings/connections");
+		const router = mountApp("/setup/project?page=connections");
 		const main = await screen.findByRole("main");
 		const add = await within(main).findByRole("button", { name: "Connection" });
-		expect(add.className).toContain("bg-accent");
+		expect(add.className).toContain("bg-primary");
 		expect(within(main).getByText("No connections")).toBeInTheDocument();
-		// The runners are detected, not added: they come first. The MCP servers (with the recommended
-		// set), the outside agents server and the certificates wait in Advanced.
+		// The AI tools and the providers are in the first column, the MCP servers, the outside agents
+		// and the security in the second.
+		router.history.push("/setup/computer");
+		await within(main).findByRole("group", { name: "Certificates" });
 		expect(
 			within(main)
 				.getAllByRole("heading", { level: 2 })
-				.map((h) => h.textContent),
-		).toEqual(["AI tools (5)", "MCP servers (0)", "Outside agents", "Certificates"]);
+				.map((h) => h.textContent)
+				.slice(0, 5),
+		).toEqual(["AI tools", "Model providers", "MCP servers", "Outside agents", "Security"]);
 		expect(within(main).getByText("Advanced").closest("details")).not.toHaveAttribute("open");
+		// The server for outside agents has its own page.
+		router.history.push("/setup/computer?page=share");
+		expect(
+			await within(main).findByRole("region", { name: "Address of Shipyard" }),
+		).toBeInTheDocument();
 	});
 
 	it("groups the connections by kind with a count and one primary action", async () => {
 		await seed({ name: "Acme" });
 		await seed({ name: "Beta", kind: "github", url: "https://github.com" });
 		await seed({ name: "Code", group: "forge", kind: "github", url: "https://github.com" });
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		expect(await screen.findByRole("heading", { name: "Issue trackers (2)" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Code hosts (1)" })).toBeInTheDocument();
 		const primary = within(screen.getByRole("main"))
 			.getAllByRole("button")
-			.filter((b) => b.className.includes("bg-accent"));
+			.filter((b) => b.className.includes("bg-primary"));
 		expect(primary.map((b) => b.textContent)).toEqual(["Connection"]);
 	});
 
 	it("shows the six flags of a tracker, on or off, with a shape each", async () => {
 		await seed({ name: "Acme" });
 		await seed({ name: "Beta", kind: "github", url: "https://github.com" });
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const flags = within(await row("Acme")).getByRole("list", { name: "Flags" });
 		expect(within(flags).getAllByRole("listitem")).toHaveLength(6);
 		const shape = (list: HTMLElement, name: string) =>
@@ -91,7 +99,7 @@ describe("Settings / Connections", () => {
 
 	it("adds a Linear tracker with a secret and never shows the secret again", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(await screen.findByRole("button", { name: "Connection" }));
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme");
 		await user.click(screen.getByRole("combobox", { name: "Product" }));
@@ -116,7 +124,7 @@ describe("Settings / Connections", () => {
 	it("fills the name and the address from the git remote, and a token link opens the product page", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(await screen.findByRole("button", { name: "Connection" }));
 		await waitFor(() =>
 			expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("GitHub"),
@@ -132,7 +140,7 @@ describe("Settings / Connections", () => {
 
 	it("runs the test on Save and keeps the form when the token is refused", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(await screen.findByRole("button", { name: "Connection" }));
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme");
 		await user.click(screen.getByRole("combobox", { name: "Product" }));
@@ -147,7 +155,7 @@ describe("Settings / Connections", () => {
 	it("links the only tracker connection to the open project", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(await screen.findByRole("button", { name: "Connection" }));
 		// Another product drops the name and the address that the remote gave.
 		await user.click(screen.getByRole("combobox", { name: "Product" }));
@@ -163,7 +171,7 @@ describe("Settings / Connections", () => {
 	it("offers the projects of the new tracker and saves the pick as the scope", async () => {
 		const user = userEvent.setup();
 		await open();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(await screen.findByRole("button", { name: "Connection" }));
 		await user.click(screen.getByRole("combobox", { name: "Product" }));
 		await user.click(await screen.findByRole("option", { name: "Linear" }));
@@ -182,7 +190,7 @@ describe("Settings / Connections", () => {
 
 	it("names a bad value and keeps the form", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(await screen.findByRole("button", { name: "Connection" }));
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme");
 		await user.type(
@@ -196,7 +204,7 @@ describe("Settings / Connections", () => {
 	it("edits the name and keeps the saved secret", async () => {
 		const user = userEvent.setup();
 		await seed({ name: "Acme" });
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(within(await row("Acme")).getByRole("button", { name: "Edit" }));
 		const name = screen.getByRole("textbox", { name: "Name" });
 		await user.clear(name);
@@ -210,7 +218,7 @@ describe("Settings / Connections", () => {
 	it("tests a connection and shows the result and the state", async () => {
 		const user = userEvent.setup();
 		await seed({ name: "Acme" });
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const acme = await row("Acme");
 		expect(within(acme).getByRole("img", { name: "Untested" })).toBeInTheDocument();
 		await user.click(within(acme).getByRole("button", { name: "Test" }));
@@ -225,7 +233,7 @@ describe("Settings / Connections", () => {
 		await open();
 		await seed({ name: "Issues", kind: "github", url: "https://github.com" });
 		mockState().sync.failures.issues = "no secret saved";
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const issues = await row("Issues");
 		expect(
 			await within(issues).findByText("This connection has no token yet."),
@@ -247,7 +255,7 @@ describe("Settings / Connections", () => {
 		await seed({ name: "Issues", kind: "github", url: "https://github.com" }, "revoked");
 		mockState().sync.failures.issues = 'HTTP 401: { "message": "Bad credentials" }';
 		mockState().logins = [{ tool: "gh", host: "github.com", user: "ada" }];
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const issues = await row("Issues");
 		expect(await within(issues).findByText("The token was refused.")).toBeInTheDocument();
 		expect(within(issues).queryByText(/Bad credentials/)).toBeNull();
@@ -279,7 +287,7 @@ describe("Settings / Connections", () => {
 			kind: "github",
 			url: "https://noscope.example.com",
 		});
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const code = await row("Code");
 		await user.click(within(code).getByRole("button", { name: "Test" }));
 		expect(await within(code).findByRole("status")).toHaveTextContent(
@@ -291,7 +299,7 @@ describe("Settings / Connections", () => {
 	it("tests with the keyboard", async () => {
 		const user = userEvent.setup();
 		await seed({ name: "Acme" }, "revoked");
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const acme = await row("Acme");
 		const test = within(acme).getByRole("button", { name: "Test" });
 		// The button is on the Tab path.
@@ -315,7 +323,7 @@ describe("Settings / Connections", () => {
 				connections: { tracker: c.id },
 			}),
 		);
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(within(await row("Acme")).getByRole("button", { name: "Remove" }));
 		expect(await screen.findByRole("heading", { name: "Project (1)" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: /project:alpha/ })).toBeInTheDocument();
@@ -336,7 +344,7 @@ describe("Settings / Connections", () => {
 			}),
 		);
 		await unwrap(commands.projectsOpen("/mock/beta", false));
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(within(await row("Acme")).getByRole("button", { name: "Remove" }));
 		expect(await screen.findByRole("button", { name: /project:alpha/ })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Confirm" })).toBeEnabled();
@@ -346,7 +354,7 @@ describe("Settings / Connections", () => {
 		const user = userEvent.setup();
 		await open();
 		await seed({ name: "Linear" });
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const linear = await row("Linear");
 		await user.click(within(linear).getByRole("button", { name: "Remove" }));
 		expect(
@@ -367,7 +375,7 @@ describe("Settings / Connections", () => {
 		const user = userEvent.setup();
 		await seed({ name: "Code", group: "forge", kind: "github", url: "https://github.com" });
 		await seed({ name: "Acme" });
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		expect(within(await row("Acme")).queryByRole("button", { name: "Repositories" })).toBeNull();
 		const code = await row("Code");
 		await user.click(within(code).getByRole("button", { name: "Repositories" }));
@@ -384,7 +392,7 @@ describe("Settings / Connections", () => {
 	it("creates a repository from the name and shows the refusal of a bad name", async () => {
 		const user = userEvent.setup();
 		await seed({ name: "Code", group: "forge", kind: "github", url: "https://github.com" });
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		const code = await row("Code");
 		await user.click(within(code).getByRole("button", { name: "Repositories" }));
 		const field = await within(code).findByRole("textbox", { name: "Repository name" });
@@ -403,19 +411,21 @@ describe("Settings / Connections", () => {
 	it("shows one form at a time", async () => {
 		const user = userEvent.setup();
 		await seed({ name: "Acme" });
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(within(await row("Acme")).getByRole("button", { name: "Edit" }));
-		expect(screen.getByRole("button", { name: "Connection" }).className).not.toContain("bg-accent");
+		expect(screen.getByRole("button", { name: "Connection" }).className).not.toContain(
+			"bg-primary",
+		);
 		const primary = within(screen.getByRole("main"))
 			.getAllByRole("button")
-			.filter((b) => b.className.includes("bg-accent"));
+			.filter((b) => b.className.includes("bg-primary"));
 		expect(primary.map((b) => b.textContent)).toEqual(["Save"]);
 	});
 
 	it("reads French", async () => {
 		mockState().prefs.lang = "fr";
 		await seed({ name: "Acme" });
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		expect(await screen.findByRole("heading", { name: "Outils de suivi (1)" })).toBeInTheDocument();
 		const acme = await row("Acme");
 		expect(within(acme).getByRole("button", { name: "Tester" })).toBeInTheDocument();
@@ -427,7 +437,7 @@ describe("Settings / Connections", () => {
 		const user = userEvent.setup();
 		mockState().logins = [{ tool: "gh", host: "github.com", user: "ana-dev" }];
 		mockState().refusedLogins = ["github.com"];
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(await screen.findByRole("button", { name: "Connection" }));
 		// The add form opens on a tracker: the logins belong to a forge.
 		expect(screen.queryByText("ana-dev on github.com (gh)")).toBeNull();

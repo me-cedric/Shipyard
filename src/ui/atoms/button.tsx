@@ -5,18 +5,19 @@ import { cn } from "@/lib/utils";
 import { LiveDot } from "./live-dot";
 
 export const buttonVariants = cva(
-	"inline-flex h-row shrink-0 items-center justify-center gap-2 rounded-md border px-3 text-ui font-medium whitespace-nowrap transition-[color,background-color,border-color,filter,scale] duration-(--duration-fast) active:scale-[.98] disabled:pointer-events-none disabled:opacity-50",
+	"inline-flex min-h-control min-w-(--control-h) max-w-full shrink-0 items-center justify-center gap-2 rounded-md border px-4.5 font-semibold whitespace-nowrap transition-[color,background-color,border-color,opacity,scale] duration-(--duration-fast) active:scale-[.98] disabled:pointer-events-none",
 	{
 		variants: {
 			variant: {
-				primary:
-					"border-transparent bg-accent bg-accent-gradient text-accent-fg shadow-1 hover:brightness-110",
-				secondary: "border-n-7 bg-surface-2 text-n-12 hover:bg-n-3",
-				ghost: "border-transparent text-n-12 hover:bg-n-3",
-				danger: "border-transparent bg-danger text-n-1 hover:opacity-90",
+				// A disabled primary stays dark, as in the design, but fades enough to read as off.
+				primary: "border-primary bg-primary text-primary-fg hover:opacity-90 disabled:opacity-70",
+				secondary: "border-n-7 bg-surface-1 text-n-12 hover:bg-n-3 disabled:opacity-50",
+				ghost: "border-transparent text-n-12 hover:bg-n-3 disabled:opacity-50",
+				danger: "border-transparent bg-danger text-n-1 hover:opacity-90 disabled:opacity-50",
 			},
+			size: { md: "", lg: "min-h-13 px-6 text-17" },
 		},
-		defaultVariants: { variant: "secondary" },
+		defaultVariants: { variant: "secondary", size: "md" },
 	},
 );
 
@@ -31,6 +32,7 @@ export type ButtonProps = ComponentProps<typeof BaseButton> &
 export function Button({
 	className,
 	variant,
+	size,
 	busy,
 	disabled,
 	reason,
@@ -39,7 +41,7 @@ export function Button({
 }: ButtonProps) {
 	const button = (
 		<BaseButton
-			className={cn(buttonVariants({ variant }), className)}
+			className={cn(buttonVariants({ variant, size }), className)}
 			disabled={disabled || busy}
 			aria-busy={busy || undefined}
 			aria-description={disabled ? reason : undefined}

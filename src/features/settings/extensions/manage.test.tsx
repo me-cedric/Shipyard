@@ -56,7 +56,7 @@ describe("Settings / Agents and rules: own rules and policy packs", () => {
 describe("Settings / Extensions: undeploy, plugins and child projects", () => {
 	it("undeploys a deployed component from the inspector", async () => {
 		const user = userEvent.setup();
-		await mountTab("extensions");
+		await mountTab("plugins");
 		await user.click(await screen.findByRole("button", { name: "scan" }));
 		const panel = await screen.findByRole("complementary", { name: "scan" });
 		await user.click(await within(panel).findByRole("button", { name: "Undeploy" }));
@@ -72,28 +72,42 @@ describe("Settings / Extensions: undeploy, plugins and child projects", () => {
 
 	it("lists an applied plugin, switches it off and removes it", async () => {
 		const user = userEvent.setup();
-		await mountTab("extensions");
+		const router = await mountTab("plugins");
 		await user.type(
 			await screen.findByRole("textbox", { name: "Plugin archive path" }),
 			PLUGIN_PATH,
 		);
 		await user.click(screen.getByRole("button", { name: "Review" }));
 		await user.click(await screen.findByRole("button", { name: "Apply plugin (4)" }));
-		expect(await screen.findByRole("heading", { name: "Installed plugins (1)" })).toBeVisible();
+		router.history.push("/setup/project?page=extensions");
+		expect(await screen.findByRole("region", { name: "Installed plugins" })).toBeVisible();
 		const toggle = await screen.findByRole("switch", { name: "Enable team-kit" });
 		expect(toggle).toBeChecked();
 		await user.click(toggle);
 		await waitFor(() => expect(mockState().extensions.installed[0]?.enabled).toBe(false));
 		await user.click(screen.getByRole("button", { name: "Remove team-kit" }));
-		await waitFor(() => expect(mockState().extensions.installed).toEqual([]));
-		expect(await screen.findByRole("heading", { name: "Installed plugins (0)" })).toBeVisible();
+		await waitFor(() =>
+			expect(mockState().extensions.installed.map((x) => x.name)).toEqual(["docs-kit"]),
+		);
+		await waitFor(() =>
+			expect(screen.queryByRole("switch", { name: "Enable team-kit" })).not.toBeInTheDocument(),
+		);
 	});
 
 	it("removes a child project and keeps the others", async () => {
 		const user = userEvent.setup();
 		await mountTab("extensions");
-		await user.click(await screen.findByRole("button", { name: "Remove API gateway" }));
+		await user.click(
+			await within(await screen.findByRole("region", { name: "Child projects" })).findByRole(
+				"button",
+				{ name: "Open" },
+			),
+		);
+		const panel = await screen.findByRole("complementary", { name: "API gateway" });
+		await user.click(within(panel).getByRole("button", { name: "Remove API gateway" }));
 		await waitFor(() => expect(mockState().extensions.children).toEqual([]));
-		expect(await screen.findByRole("heading", { name: "Child projects (0)" })).toBeVisible();
+		await waitFor(() =>
+			expect(screen.queryByRole("button", { name: "Remove API gateway" })).not.toBeInTheDocument(),
+		);
 	});
 });

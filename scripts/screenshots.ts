@@ -1,6 +1,7 @@
 // Regenerates docs/assets/screenshots/*.png from the browser mock (mock IPC, no Rust).
 // Usage: pnpm build (with VITE_MOCK_DEMO=0), pnpm preview --port 4180, then `node scripts/screenshots.ts [name...]`.
-// Each scene opens a fresh page at 1600x1000, scale 2, reduced motion, dark theme unless the name says light.
+// Each scene opens a fresh page at 1600x1000, scale 2, reduced motion, dark theme unless the scene is light.
+// A scene name is the slug of its entry in docs/designs/screens.json, or the older file name that a doc cites.
 import { chromium, type Page } from "@playwright/test";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:4180";
@@ -9,23 +10,92 @@ const only = process.argv.slice(2);
 
 const tabs = (p: Page) => p.getByRole("navigation", { name: "Tabs" });
 const side = (p: Page) => p.getByRole("navigation", { name: "Sidebar" });
-const open = async (p: Page, space: string, tab?: string) => {
-	await side(p).getByRole("link", { name: space }).click();
-	if (tab) await tabs(p).getByRole("link", { name: tab, exact: true }).click();
+// The place of each section that a scene opens (adr:0023).
+const PLACE: Record<string, string> = {
+	Flow: "Flow",
+	List: "Flow",
+	Done: "Flow",
+	Questions: "Library",
+	Architecture: "Library",
+	Learn: "Library",
+	Timeline: "Plan",
+	People: "Plan",
+	Estimates: "Plan",
+	Crew: "Crew",
+	Recipes: "Crew",
+	Spend: "Crew",
+	Dashboards: "Library",
+	Reports: "Library",
+	Plan: "Plan",
+	Team: "Crew",
+	Workflows: "Crew",
+	"Agents map": "Crew",
+	Usage: "Crew",
+	Now: "Code",
+	Terminal: "Code",
+	Health: "Flow",
+	Start: "Setup",
+	"This project": "Setup",
+	"This computer": "Setup",
+	Me: "Setup",
 };
-const openProject = async (p: Page) => {
+const open = async (p: Page, tab: string) => {
+	await side(p).getByRole("link", { name: PLACE[tab] }).click();
+	// Library has no section switch: a page opens from its chip in a door.
+	const from = PLACE[tab] === "Library" ? p.getByRole("main") : tabs(p);
+	// Opened last can name the same page below the doors: the door comes first.
+	await from.getByRole("link", { name: tab, exact: true }).first().click();
+};
+// Crew / Live: one row for each agent at work (the agents map of before). Live is an item of More.
+const openLive = async (p: Page) => {
+	await open(p, "Crew");
+	await p.getByRole("main").getByRole("button", { name: "More", exact: true }).click();
+	await p.getByRole("menuitem", { name: "Live", exact: true }).click();
+	await p.getByRole("table", { name: "Agents at work" }).waitFor();
+};
+// Crew / Recipes: the recipe feature as a chain of steps.
+const openRecipe = async (p: Page) => {
+	await open(p, "Recipes");
+	await p.getByRole("button", { name: /^feature/i }).click();
+	await p.getByRole("list", { name: "Steps" }).waitFor();
+};
+// Crew / Spend: the main page, with its alert and its limits.
+const openSpend = async (p: Page) => {
+	await open(p, "Spend");
+	await p.getByRole("link", { name: "All budgets" }).waitFor();
+};
+// Plan / Timeline: the chart with its bars.
+const openTimeline = async (p: Page) => {
+	await open(p, "Timeline");
+	await p.getByRole("heading", { level: 1, name: / ends / }).waitFor();
+};
+// The Projects page opens from the project switch at the top of the rail.
+const openProjects = async (p: Page) => {
+	await p.getByRole("button", { name: /^Project/ }).click();
+	await p.getByRole("menuitem", { name: "Projects" }).click();
+	await p.getByRole("heading", { level: 1, name: "Projects" }).waitFor();
+};
+const openProject = async (p: Page, keepCard = false) => {
 	await p.goto("/home/today");
 	await p.getByRole("button", { name: "Continue" }).click();
 	await p.getByRole("button", { name: "Open a local folder" }).click();
-	await p.getByRole("heading", { level: 1, name: "Today" }).waitFor();
+	// The card of the missing permissions comes with the first project: Later hides it, but for its own scene.
+	await p.getByRole("dialog", { name: /^Shipyard needs/ }).waitFor();
+	if (keepCard) return;
+	await p.getByRole("button", { name: "Later" }).click();
+	await p.getByRole("dialog").waitFor({ state: "detached" });
+	await p.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }).waitFor();
 };
 
 // Pull request 142 of the mock has comments, two threads and one file of three lines.
-const openPull = async (p: Page, tab?: string) => {
-	await open(p, "Code", "Pull requests");
+// The page opens on Changes: the merge box, the commits and the files.
+const PULL_FEATURE = "pr:github-demo:142";
+const openPull = async (p: Page) => {
+	await open(p, "Now");
 	await p.getByRole("link", { name: /refuse an empty token/ }).click();
-	if (tab) await p.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
 };
+// The changed files page of the same pull request: a page of its own, with the file tree.
+const openFiles = (p: Page) => go(p, `/flow/feature/${PULL_FEATURE}/files`);
 // Adds a comment to the pending review: opens the file, the "+" of the line, the box.
 const comment = async (p: Page, line: number, text: string) => {
 	const file = p.getByRole("button", { name: /src\/app\.ts/ }).first();
@@ -41,61 +111,203 @@ const comment = async (p: Page, line: number, text: string) => {
 	await p.getByRole("button", { name: "Add review comment" }).click();
 };
 
-type Scene = { name: string; light?: boolean; run: (p: Page) => Promise<void> };
+// A section by its address, with no reload: the mock keeps the project and the theme in memory.
+// The role of the person, set in Setup / Me: Today and Role views follow it.
+const pickRole = async (p: Page, role: string) => {
+	await go(p, "/setup/me");
+	await p.getByRole("combobox", { name: "Role" }).first().click();
+	await p.getByRole("option", { name: role }).click();
+};
+const go = async (p: Page, path: string) => {
+	// A string: the Node type check has no DOM names.
+	await p.evaluate(
+		`history.pushState({}, "", ${JSON.stringify(path)}); dispatchEvent(new PopStateEvent("popstate"))`,
+	);
+	await p.waitForURL(`**${path}`);
+	await p.getByRole("heading", { level: 1 }).first().waitFor();
+};
+// A section of the page of one feature of Flow.
+const openFeature = async (p: Page, feature: RegExp, section: string) => {
+	await open(p, "Flow");
+	await p.getByRole("main").getByRole("button", { name: feature }).first().click();
+	await p
+		.getByRole("navigation", { name: "Sections" })
+		.getByRole("button", { name: section })
+		.click();
+};
+
+// The dialog History of the handbook page Getting started.
+const openHistory = async (p: Page) => {
+	await go(p, "/library/handbook");
+	await p.getByRole("button", { name: "Getting started" }).first().click();
+	await p.getByRole("button", { name: "History", exact: true }).click();
+	await p.getByRole("dialog", { name: "Earlier versions" }).waitFor();
+};
+
+// `fresh` skips the first run: the scene starts with no role and no project, in the light theme.
+type Scene = { name: string; light?: boolean; fresh?: boolean; run: (p: Page) => Promise<void> };
 const scenes: Scene[] = [
 	{ name: "home", run: async () => {} },
 	{ name: "home-light", light: true, run: async () => {} },
-	{ name: "design", run: (p) => open(p, "Design", "Architecture") },
-	{ name: "specs", run: (p) => open(p, "Specs", "Questions") },
-	{ name: "work", run: (p) => open(p, "Work", "Plan") },
+	// Look pass 2 of Today and Ask (SCR-100 to SCR-105).
+	{ name: "home-dark", run: async () => {} },
+	{ name: "home-panels", light: true, run: (p) => go(p, "/today/panels?role=techlead") },
 	{
-		name: "team",
+		name: "home-product-owner",
+		light: true,
 		run: async (p) => {
-			await open(p, "Work", "Team");
-			await p.getByRole("table").first().waitFor();
+			await pickRole(p, "Product owner");
+			await go(p, "/today/today");
 		},
 	},
-	{ name: "factory", run: (p) => open(p, "Factory", "Runs") },
-	{ name: "agents", run: (p) => open(p, "Factory", "Agents map") },
 	{
-		name: "workflows",
+		name: "role-views",
+		light: true,
 		run: async (p) => {
-			await open(p, "Factory", "Workflows");
-			await p.getByRole("button", { name: /^feature/i }).click();
-			await p.getByRole("textbox", { name: "Step id" }).first().waitFor();
+			await pickRole(p, "Developer");
+			await go(p, "/setup/role-views");
 		},
 	},
+	{
+		name: "link-card",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/handbook");
+			await p.getByRole("button", { name: "Getting started" }).first().click();
+			await p
+				.getByRole("article", { name: "Getting started" })
+				.getByRole("button", { name: /^adr:0001/ })
+				.first()
+				.click();
+			await p.getByRole("button", { name: "Copy the ref" }).waitFor();
+		},
+	},
+	{
+		name: "new-project-all-steps",
+		light: true,
+		run: async (p) => {
+			await go(p, "/projects/new");
+			await p.getByRole("button", { name: "All steps" }).click();
+		},
+	},
+	{
+		name: "today-news",
+		light: true,
+		run: async (p) => {
+			await tabs(p).getByRole("link", { name: "News", exact: true }).click();
+			await p.getByRole("button", { name: "Mark all as read" }).waitFor();
+		},
+	},
+	{
+		name: "ask-bar",
+		light: true,
+		run: async (p) => {
+			await p.keyboard.press("ControlOrMeta+k");
+			await p
+				.getByRole("combobox", { name: "Ask or tell Shipyard" })
+				.fill("what blocks the release");
+			await p.getByRole("button", { name: "Open the full assistant" }).waitFor();
+		},
+	},
+	{
+		name: "library",
+		light: true,
+		run: async (p) => {
+			await side(p).getByRole("link", { name: "Library" }).click();
+			await p.getByRole("region", { name: "What it must do" }).waitFor();
+		},
+	},
+	{
+		name: "reports",
+		light: true,
+		run: async (p) => {
+			await open(p, "Reports");
+			await p.getByRole("group", { name: "Format" }).waitFor();
+		},
+	},
+	{
+		name: "tile-build",
+		light: true,
+		run: async (p) => {
+			// The builder is on the edit page of the dashboard.
+			await go(p, "/library/dashboards/team/edit");
+			await p.getByRole("button", { name: "Build a tile for me" }).click();
+			await p
+				.getByRole("textbox", { name: "What the tile must show" })
+				.fill("The open questions for each owner");
+			await p.getByRole("button", { name: "Build", exact: true }).click();
+			await p.getByRole("region", { name: "Proposed tile" }).waitFor();
+		},
+	},
+	{ name: "design", run: (p) => open(p, "Architecture") },
+	{ name: "specs", run: (p) => go(p, "/library/questions") },
+	// The old names stay for the docs that cite them: the plan, and the member page of the team.
+	{ name: "work", run: openTimeline },
+	{ name: "team", run: (p) => go(p, "/crew/rights") },
+	{
+		name: "crew",
+		run: async (p) => {
+			await open(p, "Crew");
+			await p.getByRole("list", { name: "People" }).waitFor();
+		},
+	},
+	{
+		name: "plan-people",
+		run: async (p) => {
+			await open(p, "People");
+			await p.getByRole("heading", { level: 1, name: "People" }).waitFor();
+		},
+	},
+	{
+		name: "plan-estimates",
+		run: async (p) => {
+			await open(p, "Estimates");
+			await p.getByRole("region", { name: "Authentication", exact: true }).waitFor();
+		},
+	},
+	{
+		name: "plan-estimate-one",
+		run: async (p) => {
+			await open(p, "Estimates");
+			await p.getByRole("button", { name: "Export endpoint", exact: true }).click();
+			await p.getByRole("spinbutton", { name: "Likely" }).waitFor();
+		},
+	},
+	{ name: "factory", run: (p) => open(p, "Flow") },
+	{ name: "flow-list", run: (p) => open(p, "List") },
+	{
+		name: "new-feature",
+		run: async (p) => {
+			await go(p, "/flow/new");
+			await p.getByRole("heading", { name: "What do you want to build?" }).waitFor();
+		},
+	},
+	{ name: "agents", run: openLive },
+	{ name: "workflows", run: openRecipe },
 	{
 		name: "runs-history",
 		run: async (p) => {
-			await open(p, "Factory", "Runs");
-			await p.getByRole("button", { name: "History", exact: true }).click();
-			await p.getByRole("table", { name: "History" }).waitFor();
+			await open(p, "Done");
+			await p.getByRole("list", { name: "History" }).waitFor();
 		},
 	},
-	{
-		name: "usage",
-		run: async (p) => {
-			await open(p, "Factory", "Usage");
-			await p.getByRole("region", { name: "Budgets" }).waitFor();
-		},
-	},
+	{ name: "usage", run: openSpend },
 	{
 		name: "run",
 		run: async (p) => {
-			await open(p, "Factory", "Runs");
+			await open(p, "Flow");
 			await p
-				.getByRole("region", { name: "Working" })
-				.getByRole("button", { name: /ACME-2/ })
+				.getByRole("button", { name: /Add export endpoint/ })
+				.first()
 				.click();
-			// The Activity tab is open, with the summary in view.
-			await p.getByRole("region", { name: /^Events/ }).waitFor();
+			// The feature page opens on Story, with the question of the agent.
+			await p.getByRole("region", { name: "Needs you" }).waitFor();
 		},
 	},
 	{
 		name: "pulls",
 		run: async (p) => {
-			await open(p, "Code", "Pull requests");
+			await open(p, "Now");
 			await p.getByRole("link", { name: /refuse an empty token/ }).waitFor();
 		},
 	},
@@ -104,13 +316,12 @@ const scenes: Scene[] = [
 		run: async (p) => {
 			await openPull(p);
 			await p.getByRole("region", { name: "Merge status" }).waitFor();
-			await p.getByText("Thanks for the fix").waitFor();
 		},
 	},
 	{
 		name: "pull-files",
 		run: async (p) => {
-			await openPull(p, "Files changed");
+			await openFiles(p);
 			await comment(p, 3, "Add a guard for the empty case.");
 			await p.getByText("Pending", { exact: true }).first().waitFor();
 		},
@@ -118,29 +329,72 @@ const scenes: Scene[] = [
 	{
 		name: "pull-review",
 		run: async (p) => {
-			await openPull(p, "Files changed");
+			await openFiles(p);
 			await comment(p, 3, "Add a guard for the empty case.");
 			await comment(p, 1, "Name this value.");
 			await p.getByRole("button", { name: "Submit review" }).first().click();
 			await p.getByRole("dialog", { name: "Submit review" }).waitFor();
 		},
 	},
-	{ name: "knowledge", run: (p) => open(p, "Knowledge", "Learn") },
-	{ name: "settings-connections", run: (p) => open(p, "Settings", "Connections") },
-	{ name: "settings-project", run: (p) => open(p, "Settings", "Project") },
+	{ name: "knowledge", run: (p) => go(p, "/library/learn") },
+	{ name: "settings-connections", run: (p) => go(p, "/setup/project?page=connections") },
+	{ name: "settings-project", run: (p) => open(p, "This project") },
+	{ name: "setup-start", run: (p) => open(p, "Start") },
+	{ name: "setup-computer", run: (p) => open(p, "This computer") },
+	{ name: "setup-me", run: (p) => open(p, "Me") },
+	{
+		name: "code-terminal",
+		run: async (p) => {
+			await open(p, "Terminal");
+			await p
+				.getByRole("region", { name: "Terminal", exact: true })
+				.getByText("/project $")
+				.waitFor();
+		},
+	},
+	{ name: "flow-health", run: (p) => open(p, "Health") },
+	{
+		name: "feature-impacts",
+		run: async (p) => {
+			await open(p, "Flow");
+			await p
+				.getByRole("button", { name: /Add export endpoint/ })
+				.first()
+				.click();
+			await p
+				.getByRole("navigation", { name: "Sections" })
+				.getByRole("button", { name: "Checks" })
+				.click();
+			await p.getByRole("button", { name: "Impacts on other code" }).click();
+			await p.getByRole("region", { name: "What this change touches" }).waitFor();
+		},
+	},
+	// The card of the missing permissions: the one scene that keeps it open.
+	{ name: "permissions-moment", light: true, run: (p) => p.getByRole("dialog").waitFor() },
+	{ name: "projects", run: openProjects },
+	// Close the open project while agents work: the question with Cancel, Stop them and close, and Keep them working.
+	{
+		name: "close-guard",
+		run: async (p) => {
+			await openProjects(p);
+			await p.getByRole("button", { name: "Close project" }).click();
+			await p.getByRole("dialog").waitFor();
+		},
+	},
 	{
 		name: "themes",
 		run: async (p) => {
-			await open(p, "Settings", "Me");
-			await p.getByRole("combobox", { name: "Theme" }).click();
-			await p.getByRole("option", { name: "OLED", exact: true }).click();
+			await open(p, "Me");
+			// The theme is a group of tiles (picture 058).
+			await p.getByRole("group", { name: "Theme" }).getByRole("button", { name: /^OLED/ }).click();
 		},
 	},
 	{
 		name: "tour",
 		run: async (p) => {
 			await p.keyboard.press("ControlOrMeta+k");
-			await p.getByRole("dialog").getByRole("combobox").fill("Replay the tour");
+			await p.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("Replay the tour");
+			await p.keyboard.press("ArrowDown");
 			await p.keyboard.press("Enter");
 			await p.getByRole("dialog").waitFor();
 		},
@@ -148,14 +402,310 @@ const scenes: Scene[] = [
 	{
 		name: "new-project",
 		run: async (p) => {
-			await open(p, "Home", "Projects");
+			await openProjects(p);
 			await p.getByRole("button", { name: "New project" }).click();
-			const d = p.getByRole("dialog", { name: "New project" });
-			await d.getByRole("textbox", { name: "Name" }).fill("Acme Web");
-			await d
+			await p.getByRole("textbox", { name: "Name" }).fill("Acme Web");
+			await p
 				.getByRole("navigation", { name: "Steps" })
-				.getByRole("button", { name: "Start" })
+				.getByRole("button", { name: "Kind of product" })
 				.click();
+		},
+	},
+	// One scene for each section that opens by its address.
+	...Object.entries({
+		"plan-time": "/plan/time",
+		"crew-sessions": "/crew/sessions",
+		// Crew and Plan, look pass 2: the sub-pages. The names with no slug in screens.json are
+		// crew-sessions-ended, crew-rights-levels, crew-spend-usage, plan-time-entries and plan-time-team.
+		"plan-timeline": "/plan/timeline",
+		"plan-dates": "/plan/timeline?page=dates",
+		"plan-send": "/plan/people?page=send",
+		"plan-estimate-sheets": "/plan/estimates?tab=summary",
+		"plan-costing": "/plan/estimates?tab=costing",
+		"plan-estimate-import": "/plan/estimates?page=import",
+		"plan-time-entries": "/plan/time?page=entries",
+		"plan-time-team": "/plan/time?page=team",
+		"crew-member": "/crew/crew?member=ada",
+		"crew-recipe-step": "/crew/recipes?recipe=feature&step=build",
+		"crew-sessions-ended": "/crew/sessions?page=ended",
+		"crew-rights-team": "/crew/rights?page=team",
+		"crew-rights-levels": "/crew/rights?page=levels",
+		"crew-spend-budgets": "/crew/spend?page=budgets",
+		"crew-spend-usage": "/crew/spend?page=usage",
+		"activity-panel": "/today/activity",
+		"knowledge-slides": "/library/slides",
+		"library-diagrams": "/library/diagrams",
+		"library-decisions": "/library/decisions",
+		"library-api": "/library/api",
+		"library-data": "/library/data",
+		"library-network-flows": "/library/flows",
+		"library-screens": "/library/screens",
+		"library-specs": "/library/capabilities",
+		"library-test-plans": "/library/test-plans",
+		"library-project-rules": "/library/constitution",
+		"library-map": "/library/graph",
+		"library-handbook": "/library/handbook",
+		"library-manual": "/library/manual",
+		"library-documents": "/library/documents",
+		"library-dashboards": "/library/dashboards",
+		"library-dashboard-edit": "/library/dashboards/team/edit",
+		"library-code-map": "/library/graph?source=code",
+		"library-flow-matrix": "/library/flows/matrix",
+		"library-test-coverage": "/library/test-plans/coverage",
+		"library-report-change-request": "/library/reports/change-request",
+		"library-report-work-done": "/library/reports/work-done",
+		"code-history": "/code/history",
+		"code-branches": "/code/branches",
+	}).map(([name, path]): Scene => ({ name, run: (p) => go(p, path) })),
+	// The mock has two earlier versions of the handbook page Getting started.
+	// History of a handbook page: the versions, then the question after Restore (spec:library-functions#REQ-002).
+	{
+		name: "library-page-history",
+		light: true,
+		run: async (p) => {
+			await openHistory(p);
+			await p
+				.getByRole("button", { name: /^Read / })
+				.first()
+				.click();
+			await p.getByRole("region", { name: "Text of the version" }).waitFor();
+		},
+	},
+	{
+		name: "library-page-restore",
+		light: true,
+		run: async (p) => {
+			await openHistory(p);
+			await p
+				.getByRole("button", { name: /^Restore / })
+				.first()
+				.click();
+			await p.getByRole("button", { name: /^Replace the page with / }).waitFor();
+		},
+	},
+	// Learn: the dialog Add a word, and the card Experts (spec:library-functions#REQ-005).
+	{
+		name: "library-add-word",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/learn");
+			await p.getByRole("button", { name: "Add a word" }).click();
+			await p.getByRole("textbox", { name: "Word" }).fill("Wave");
+			await p
+				.getByRole("textbox", { name: "Meaning" })
+				.fill("A group of changes that ship together");
+		},
+	},
+	{
+		name: "library-experts",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/learn");
+			await p.getByRole("heading", { name: "Experts" }).first().scrollIntoViewIfNeeded();
+		},
+	},
+	// Today with one pinned dashboard card (spec:library-functions#REQ-009).
+	{
+		name: "today-pinned-dashboard",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/dashboards/team-delivery/edit");
+			await p.getByRole("button", { name: "Pin to Today" }).click();
+			await p.getByRole("button", { name: "Unpin from Today" }).waitFor();
+			await go(p, "/today/today");
+			await p.getByRole("region", { name: "Delivery" }).scrollIntoViewIfNeeded();
+		},
+	},
+	// The card Earlier versions of the project rules sits below the first screen.
+	{
+		name: "library-earlier-versions",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/constitution");
+			await p.getByRole("button", { name: "Earlier versions" }).scrollIntoViewIfNeeded();
+		},
+	},
+	// The question before a page change with a draft that is not saved.
+	{
+		name: "leave-page",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/constitution");
+			await p.getByRole("main").getByRole("button", { name: "Text", exact: true }).click();
+			await p.getByRole("main").getByRole("textbox").first().click();
+			await p.keyboard.press("End");
+			await p.keyboard.type(" More.");
+			await side(p).getByRole("link", { name: "Today" }).click();
+			await p.getByRole("dialog", { name: /^Leave this page\?/ }).waitFor();
+		},
+	},
+	// A file that changes outside the editor while a draft is open: the conflict choice shows at the save.
+	{
+		name: "file-changed-on-disk",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/handbook");
+			await p.getByRole("button", { name: "Getting started" }).first().click();
+			await p.getByRole("main").getByRole("button", { name: "Text", exact: true }).click();
+			await p.getByRole("main").getByRole("textbox").first().click();
+			await p.keyboard.press("End");
+			await p.keyboard.type(" More.");
+			// A string: the Node type check has no DOM names. The write comes from outside the editor, with the stamp of the read.
+			await p.evaluate(`(async () => {
+				const call = window.__TAURI_INTERNALS__.invoke;
+				const path = "docs/handbook/getting-started.md";
+				const r = await call("doc_read_one", { path });
+				await call("doc_write_one", { path, text: r.text + "\\nChanged elsewhere.\\n", stamp: r.stamp, create: false });
+			})()`);
+			await p.getByRole("button", { name: "Save", exact: true }).click();
+			await p.getByRole("alert").filter({ hasText: "The file changed on disk" }).waitFor();
+		},
+	},
+	// The chip and the alert after Check against the code (spec:library-functions#REQ-011).
+	{
+		name: "library-flows-not-in-code",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/flows/matrix");
+			await p.getByRole("button", { name: "Check against the code" }).click();
+			await p.getByText("Not in the code").first().waitFor();
+		},
+	},
+	// How agents do, with the tool calls of the Build step open.
+	{
+		name: "crew-spend-how",
+		run: async (p) => {
+			await go(p, "/crew/spend?page=how");
+			await p.locator("summary").filter({ hasText: "Build" }).click();
+		},
+	},
+	// The mock has a spec on add-auth and a conversation on the pull request of the empty token.
+	{ name: "feature-brief", run: (p) => openFeature(p, /add-auth/, "Brief") },
+	// shortcut: no feature of the mock cites a design, so the picture shows the empty state.
+	{ name: "feature-design", run: (p) => openFeature(p, /Add export endpoint/, "Design") },
+	// The pull request with failed checks shows the alert card with Run again beside Fix with an agent.
+	{
+		name: "feature-checks",
+		run: async (p) => {
+			await go(p, `/flow/feature/${PULL_FEATURE}`);
+			await p
+				.getByRole("navigation", { name: "Sections" })
+				.getByRole("button", { name: "Checks" })
+				.click();
+			await p.getByRole("button", { name: "Run again" }).waitFor();
+		},
+	},
+	{ name: "feature-chat", run: (p) => openFeature(p, /refuse an empty token/, "Chat") },
+	{
+		name: "setup-tickets",
+		run: async (p) => {
+			// The statuses map to steps in Setup / Automation: seed that map, so each row shows its step.
+			await p.evaluate(`(async () => {
+				const call = window.__TAURI_INTERNALS__.invoke;
+				const c = await call("connections_add", { draft: { name: "Issue tracker", group: "tracker", kind: "linear", url: "", user: null } });
+				await call("connections_set_secret", { id: c.id, secret: "demo" });
+				const { automation } = await call("sync_automation_get");
+				const status_map = { Queued: { status: "To Do" }, Working: { status: "In Progress" }, PROpen: { status: "In Review" } };
+				await call("sync_automation_save", { automation: { ...automation, status_map } });
+				await call("sync_now");
+			})()`);
+			await go(p, "/setup/project?page=tickets");
+		},
+	},
+	{ name: "setup-extensions", run: (p) => go(p, "/setup/project?page=extensions") },
+	{ name: "setup-automation", run: (p) => go(p, "/setup/project?page=automation") },
+	{ name: "setup-plugins", run: (p) => go(p, "/setup/project?page=plugins") },
+	{ name: "setup-look", run: (p) => go(p, "/setup/me?page=look") },
+	{ name: "code-changes", run: (p) => go(p, "/code/changes") },
+	{
+		name: "sync-card",
+		run: async (p) => {
+			await p.getByRole("button", { name: /: Changed files/ }).click();
+			await p.getByRole("dialog").waitFor();
+		},
+	},
+	// The mock has a blocked run (ACME-9), a failed run (ACME-11) and a plan in review (ACME-4).
+	{
+		name: "feature-ticket",
+		run: async (p) => {
+			await go(p, "/flow/feature/wi:ACME-9?ticket=true");
+			await p.getByRole("heading", { level: 1 }).first().waitFor();
+		},
+	},
+	{ name: "feature-plan", run: (p) => go(p, "/flow/feature/wi:ACME-4") },
+	{ name: "feature-stop", run: (p) => go(p, "/flow/feature/wi:ACME-9") },
+	{ name: "feature-impact-page", run: (p) => go(p, `/flow/feature/${PULL_FEATURE}/impacts`) },
+	{
+		name: "feature-impact-report",
+		run: (p) => go(p, `/flow/feature/${PULL_FEATURE}/impact-report`),
+	},
+	{ name: "feature-files", run: openFiles },
+	{ name: "feature-change-files", run: (p) => go(p, "/flow/feature/change:add-auth/spec") },
+	{ name: "pull-requests", run: (p) => go(p, "/code/pull-requests") },
+	{ name: "pull-new", run: (p) => go(p, "/code/pull-requests/new") },
+	{
+		name: "setup-project-health",
+		run: (p) => go(p, "/setup/project?page=health"),
+	},
+	{ name: "setup-agents-rules", run: (p) => go(p, "/setup/computer?page=models") },
+	{ name: "setup-outside-agents", run: (p) => go(p, "/setup/computer?page=share") },
+	{
+		name: "setup-computer-health",
+		run: (p) => go(p, "/setup/computer?page=health"),
+	},
+	{ name: "setup-logs", run: (p) => go(p, "/setup/computer?page=logs") },
+	{
+		name: "settings-permissions",
+		run: async (p) => {
+			// What the system allows is a card of Logs and feedback (look pass 2).
+			await go(p, "/setup/computer?page=logs");
+			await p.locator("#section-permissions").scrollIntoViewIfNeeded();
+		},
+	},
+	{
+		name: "settings-me-languages",
+		run: async (p) => {
+			await open(p, "Me");
+			// Language is a group of buttons in its own card.
+			await p.getByRole("group", { name: "Language", exact: true }).scrollIntoViewIfNeeded();
+			await p.getByRole("button", { name: "French" }).waitFor();
+		},
+	},
+	{
+		name: "account-menu",
+		run: async (p) => {
+			await p.getByRole("button", { name: /^Account/ }).click();
+			await p.getByRole("menu").waitFor();
+		},
+	},
+	{
+		name: "assistant-composer",
+		run: async (p) => {
+			await p.keyboard.press("ControlOrMeta+k");
+			await p.getByRole("button", { name: "Open the full assistant" }).click();
+			// The full assistant is the Ask page.
+			await p.getByRole("heading", { level: 1, name: "Ask" }).waitFor();
+			await p.getByRole("button", { name: "Send", exact: true }).waitFor();
+		},
+	},
+	// The menu bar panel is this front end at /tray, with no shell.
+	{ name: "menu-bar-panel", run: (p) => p.goto("/tray").then(() => {}) },
+	{
+		name: "first-run",
+		fresh: true,
+		run: async (p) => {
+			await p.goto("/home/today");
+			await p.getByRole("button", { name: "Continue" }).waitFor();
+		},
+	},
+	{
+		name: "no-project",
+		fresh: true,
+		run: async (p) => {
+			await p.goto("/home/today");
+			await p.getByRole("button", { name: "Continue" }).click();
+			await p.goto("/flow/flow");
+			await p.getByRole("heading", { level: 1, name: /project/i }).waitFor();
 		},
 	},
 ];
@@ -168,13 +718,29 @@ for (const s of scenes) {
 		viewport: { width: 1600, height: 1000 },
 		deviceScaleFactor: 2,
 		reducedMotion: "reduce",
-		colorScheme: s.light ? "light" : "dark",
+		colorScheme: s.light || s.fresh ? "light" : "dark",
 	});
 	const page = await ctx.newPage();
-	await openProject(page);
+	if (!s.fresh) await openProject(page, s.name === "permissions-moment");
+	if (!s.light && !s.fresh) {
+		// Light is the default theme: a dark scene picks Dark from the palette.
+		await page.keyboard.press("ControlOrMeta+k");
+		await page.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("Theme: Dark");
+		await page.keyboard.press("ArrowDown");
+		await page.keyboard.press("Enter");
+		await page.locator('html[data-theme="dark"]').waitFor();
+	}
 	await s.run(page);
 	await page.mouse.move(800, 990); // no hover state
 	await page.waitForTimeout(800); // fades and charts settle
+	// A page that failed must not become a picture.
+	if (
+		await page
+			.getByRole("alert")
+			.filter({ hasText: /went wrong|not found/i })
+			.count()
+	)
+		throw new Error(`${s.name}: the page shows an error`);
 	await page.screenshot({ path: `${OUT}/${s.name}.png` });
 	console.log(s.name);
 	await ctx.close();

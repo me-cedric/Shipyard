@@ -43,7 +43,7 @@ Shipyard is pre-release software. Installers are on [GitHub Releases](https://gi
 
 | Area | Current state |
 | --- | --- |
-| Shell | Works. Seven spaces and Settings, command palette, inspector, assistant panel, notification centre, status bar with one Commit action and one Sync action. |
+| Shell | Works. A rail with the project switch, the six places, Setup and the account menu; one top row with the bar Ask or tell Shipyard and the sync mark, whose card holds Sync and Commit; inspector, assistant panel. The shell has no top bar and no status bar. |
 | Projects | Works. Open a folder, clone, or create a project with the New project creator. A project profile hides or locks pages. |
 | Team rights | Works. Roles, levels per area, admin, join request. |
 | Design | Works. Diagrams (Excalidraw, Mermaid, BPMN, draw.io), LikeC4 architecture, decisions, API, data, flows and screens. |
@@ -99,7 +99,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 </p>
 
 <p align="center">
-  <img src="docs/assets/screenshots/code.png" alt="Code: pull requests with checks, a diff and the merge action" width="470">
+  <img src="docs/assets/screenshots/pulls.png" alt="Code, Now: the files to commit and the pull requests" width="470">
   &nbsp;
   <img src="docs/assets/screenshots/knowledge.png" alt="Knowledge: a learning path built from decisions and specs, with a glossary" width="470">
 </p>
@@ -108,7 +108,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 
 - Inbox "Needs you": agent questions with numbered options, approvals that name the exact write, plans to approve, messages. An approval asks only for a real decision.
 - A Setup card (AI tool, issue tracker, code host, permissions, team) and Get started steps for a new project.
-- My work, Activity, key figures and live cost.
+- My items, Activity, key figures and live cost.
 - Key figures and dashboard tiles.
 
 ### Design
@@ -366,7 +366,7 @@ CI runs all checks on macOS and Linux: lint, typecheck, unit, build, end-to-end,
 - **Waves.** The build follows the waves in [`docs/plan/MASTER-PLAN.md`](docs/plan/MASTER-PLAN.md). One session works on one wave.
 - **Rules.** Read [`docs/openspec/constitution.md`](docs/openspec/constitution.md) and [`AGENTS.md`](AGENTS.md) before a change. Agents and people follow the same rules.
 - **Generated files.** Never edit the IPC bindings or the mocks that a tool generates.
-- **Interface.** No taglines, no helper text, no secondary labels. Change the layout instead. English and French ship together.
+- **Interface.** No taglines, no helper text, no secondary labels. Change the layout instead. English, French, German and Spanish ship together.
 - **Changelog.** Each user-visible change adds one entry to [`CHANGELOG.md`](CHANGELOG.md) and [`CHANGELOG.fr.md`](CHANGELOG.fr.md), with the same number of bullets.
 
 ## Documentation map
@@ -374,14 +374,16 @@ CI runs all checks on macOS and Linux: lint, typecheck, unit, build, end-to-end,
 | Document | Content |
 | --- | --- |
 | [`docs/guide/start.md`](docs/guide/start.md) | Getting started: the window, a project, your role, words. |
-| [`docs/guide/home.md`](docs/guide/home.md) | Home. |
-| [`docs/guide/design.md`](docs/guide/design.md) | Design. |
-| [`docs/guide/specs.md`](docs/guide/specs.md) | Specs. |
-| [`docs/guide/work.md`](docs/guide/work.md) | Work. |
-| [`docs/guide/factory.md`](docs/guide/factory.md) | Factory. |
+| [`docs/guide/today.md`](docs/guide/today.md) | Today. |
+| [`docs/guide/flow.md`](docs/guide/flow.md) | Flow. |
+| [`docs/guide/plan.md`](docs/guide/plan.md) | Plan. |
+| [`docs/guide/crew.md`](docs/guide/crew.md) | Crew. |
+| [`docs/guide/library.md`](docs/guide/library.md) | Library. |
 | [`docs/guide/code.md`](docs/guide/code.md) | Code. |
-| [`docs/guide/knowledge.md`](docs/guide/knowledge.md) | Knowledge. |
-| [`docs/guide/settings.md`](docs/guide/settings.md) | Settings. |
+| [`docs/guide/setup.md`](docs/guide/setup.md) | Setup. |
+| [`docs/guide/projects.md`](docs/guide/projects.md) | Projects. |
+| [`docs/guide/ask.md`](docs/guide/ask.md) | The Ask bar and the assistant. |
+| [`docs/guide/theming.md`](docs/guide/theming.md) | Themes. |
 | [`docs/guide/dev.md`](docs/guide/dev.md) | Developer guide. |
 | [`docs/plan/MASTER-PLAN.md`](docs/plan/MASTER-PLAN.md) | Goal, concept model, factory loop, architecture. |
 | [`docs/openspec/constitution.md`](docs/openspec/constitution.md) | The rules for every spec, plan and task. |
@@ -419,4 +421,4 @@ Shipyard builds on these projects:
 - [agent-compass](https://github.com/me-cedric/agent-compass) for the agent contract.
 - [draw.io](https://www.drawio.com) (online embed), [Excalidraw](https://excalidraw.com), [bpmn-js](https://bpmn.io), [Mermaid](https://mermaid.js.org) and [LikeC4](https://likec4.dev) for diagrams.
 - [xyflow](https://xyflow.com) for graphs, [reveal.js](https://revealjs.com) for slides and [xterm.js](https://xtermjs.org) for the terminal.
-- [Inter](https://rsms.me/inter/) for the fallback font.
+- [Geist and Geist Mono](https://vercel.com/font) for the fonts, bundled with the app.

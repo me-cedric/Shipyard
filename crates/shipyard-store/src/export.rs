@@ -470,6 +470,119 @@ fn style(id: &str, name: &str, size: usize, color: &str, before: u32, after: u32
         .line_spacing(LineSpacing::new().before(before).after(after))
 }
 
+/// The blocks of a text report as Markdown: the cover title is the first heading, the contents list
+/// and a page break are left out (a Markdown file has neither), and a picture has no Markdown form.
+pub fn markdown_text(blocks: &[Block]) -> String {
+    let cell = |c: &str| c.replace('|', "\\|");
+    let row = |cells: &[String]| {
+        format!(
+            "| {} |",
+            cells
+                .iter()
+                .map(|c| cell(c))
+                .collect::<Vec<_>>()
+                .join(" | ")
+        )
+    };
+    let mut parts: Vec<String> = Vec::new();
+    for b in blocks {
+        match b {
+            Block::Title(t) => parts.push(format!("# {t}")),
+            Block::Subtitle(t) => parts.push(format!("*{t}*")),
+            Block::Heading(level, t) => {
+                parts.push(format!(
+                    "{} {t}",
+                    "#".repeat(usize::from((*level).clamp(1, 6)))
+                ));
+            }
+            Block::Para(t) => parts.push(t.clone()),
+            Block::Code(t) => parts.push(format!("```\n{t}\n```")),
+            Block::Bullets(items) => parts.push(
+                items
+                    .iter()
+                    .map(|i| format!("- {i}"))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            ),
+            Block::Table { headers, rows } => {
+                let rule = vec!["---".to_string(); headers.len()];
+                let lines: Vec<String> = [row(headers), row(&rule)]
+                    .into_iter()
+                    .chain(rows.iter().map(|r| row(r)))
+                    .collect();
+                parts.push(lines.join("\n"));
+            }
+            Block::Gap(t) => parts.push(format!("> {t}")),
+            Block::Toc(_) | Block::Image { .. } | Block::PageBreak => {}
+        }
+    }
+    format!("{}\n", parts.join("\n\n"))
+}
+
+fn esc(t: &str) -> String {
+    t.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+/// The blocks of a text report as one HTML page for the PDF print: A4, no script, no link, each
+/// text escaped, a picture inline as a `data:` address. A page break starts a new page.
+pub fn html_page(m: &Meta, blocks: &[Block]) -> String {
+    use base64::Engine as _;
+    let mut body = String::new();
+    for b in blocks {
+        match b {
+            Block::Title(t) => body.push_str(&format!("<h1 class=\"title\">{}</h1>", esc(t))),
+            Block::Subtitle(t) => body.push_str(&format!("<p class=\"sub\">{}</p>", esc(t))),
+            Block::Heading(level, t) => {
+                let l = (*level).clamp(1, 6);
+                body.push_str(&format!("<h{l}>{}</h{l}>", esc(t)));
+            }
+            Block::Para(t) => body.push_str(&format!("<p>{}</p>", esc(t))),
+            Block::Code(t) => body.push_str(&format!("<pre>{}</pre>", esc(t))),
+            Block::Bullets(items) => {
+                let li: String = items
+                    .iter()
+                    .map(|i| format!("<li>{}</li>", esc(i)))
+                    .collect();
+                body.push_str(&format!("<ul>{li}</ul>"));
+            }
+            Block::Table { headers, rows } => {
+                let tr = |cells: &[String], tag: &str| {
+                    let c: String = cells
+                        .iter()
+                        .map(|c| format!("<{tag}>{}</{tag}>", esc(c)))
+                        .collect();
+                    format!("<tr>{c}</tr>")
+                };
+                let rows: String = rows.iter().map(|r| tr(r, "td")).collect();
+                body.push_str(&format!("<table>{}{rows}</table>", tr(headers, "th")));
+            }
+            Block::Image { png } => body.push_str(&format!(
+                "<img alt=\"\" src=\"data:image/png;base64,{}\">",
+                base64::engine::general_purpose::STANDARD.encode(png)
+            )),
+            Block::Gap(t) => body.push_str(&format!("<p class=\"gap\">{}</p>", esc(t))),
+            Block::PageBreak => body.push_str("<div style=\"break-after:page\"></div>"),
+            // Word fills the contents list when the file opens: a PDF has no such field.
+            Block::Toc(_) => {}
+        }
+    }
+    format!(
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>{}</title><style>\
+@page{{size:A4;margin:0}}\
+body{{margin:0;font:11pt/1.5 system-ui,sans-serif;color:#1a1a1a}}\
+h1{{font-size:20pt}}h1.title{{font-size:28pt;margin-top:40mm}}h2{{font-size:15pt}}h3,h4,h5,h6{{font-size:12pt}}\
+.sub{{color:#555}}.gap{{color:#9a3412}}\
+pre{{white-space:pre-wrap;background:#f3f4f6;padding:8px;font:9pt ui-monospace,monospace}}\
+table{{border-collapse:collapse;width:100%;font-size:10pt}}th,td{{border:1px solid #ccc;padding:4px 6px;text-align:left}}\
+img{{max-width:100%}}\
+</style></head><body>{body}</body></html>",
+        esc(&m.title)
+    )
+}
+
 /// The `.docx` bytes of the blocks.
 pub fn docx_bytes(m: &Meta, blocks: &[Block]) -> Result<Vec<u8>> {
     let footer = Footer::new().add_paragraph(

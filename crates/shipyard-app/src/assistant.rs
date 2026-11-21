@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 use serde::Serialize;
-use shipyard_agents::assistant::{TurnInput, TurnKind, run_turn_live};
+use shipyard_agents::assistant::{TurnInput, TurnKind, run_turn_metered, run_turn_with};
 use shipyard_agents::assistant_modes;
 use shipyard_agents::assistant_rules;
 use shipyard_agents::runner::CancelHandle;
@@ -42,6 +42,9 @@ static STOPS: Mutex<Vec<(String, CancelHandle)>> = Mutex::new(Vec::new());
 /// The tool calls of the turn of each thread so far, while the turn runs (the live trace).
 static LIVE: Mutex<Vec<(String, Vec<TraceStep>)>> = Mutex::new(Vec::new());
 
+/// The tokens of the running turn of each thread so far, as the runner reports them.
+static LIVE_TOKENS: Mutex<Vec<(String, u32)>> = Mutex::new(Vec::new());
+
 /// The tool calls of the running turn of a thread. Empty when no turn runs.
 pub fn live(thread: &str) -> Vec<TraceStep> {
     LIVE.lock()
@@ -50,6 +53,34 @@ pub fn live(thread: &str) -> Vec<TraceStep> {
         .find(|(id, _)| id == thread)
         .map(|(_, t)| t.clone())
         .unwrap_or_default()
+}
+
+/// The running turn of a thread: its tool calls and the tokens so far. The ring of the composer
+/// reads the tokens while the turn runs (0 when the runner reports none yet).
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveTurn {
+    pub steps: Vec<TraceStep>,
+    pub used_tokens: u32,
+}
+
+pub fn live_turn(thread: &str) -> LiveTurn {
+    let used_tokens = LIVE_TOKENS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .iter()
+        .find(|(id, _)| id == thread)
+        .map_or(0, |(_, n)| *n);
+    LiveTurn {
+        steps: live(thread),
+        used_tokens,
+    }
+}
+
+fn set_live_tokens(thread: &str, used: u32) {
+    let mut all = LIVE_TOKENS.lock().unwrap_or_else(|e| e.into_inner());
+    all.retain(|(id, _)| id != thread);
+    all.push((thread.to_string(), used));
 }
 
 fn set_live(thread: &str, steps: &[TraceStep]) {
@@ -109,6 +140,10 @@ impl Drop for Busy {
             .unwrap_or_else(|e| e.into_inner())
             .retain(|(id, _)| *id != self.0);
         LIVE.lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .retain(|(id, _)| *id != self.0);
+        LIVE_TOKENS
+            .lock()
             .unwrap_or_else(|e| e.into_inner())
             .retain(|(id, _)| *id != self.0);
     }
@@ -218,7 +253,7 @@ pub fn gauge(t: &Thread) -> Gauge {
 pub fn run_label(workflow: &str) -> Res<String> {
     match parse(&format!("wf:{workflow}")) {
         Some(_) => Ok(format!("wf:{workflow}")),
-        None => Err(format!("`{workflow}` is not a workflow id")),
+        None => Err(format!("`{workflow}` is not a recipe id")),
     }
 }
 
@@ -380,6 +415,129 @@ pub fn thread_rename(s: &AppState, thread: &str, title: &str) -> Res<ThreadSumma
         .summary())
 }
 
+/// The thread needs a short name: no person or AI tool named it, and its first answer came.
+pub fn needs_name(t: &Thread) -> bool {
+    !t.named
+        && t.messages.iter().any(|m| {
+            m.role == ChatRole::Assistant
+                && matches!(m.state, MessageState::Done)
+                && !m.text.trim().is_empty()
+        })
+}
+
+/// A short name from the reply of the AI tool: its first line, without quotes, a final period and
+/// a "Title:" lead, 60 characters at most. `None` for an empty reply or one longer than 8 words.
+pub fn clean_name(reply: &str) -> Option<String> {
+    let line = reply.lines().map(str::trim).find(|l| !l.is_empty())?;
+    let line = line
+        .trim_start_matches(|c: char| c == '#' || c.is_whitespace())
+        .trim_start_matches("Title:")
+        .trim()
+        .trim_matches(|c: char| matches!(c, '"' | '\'' | '`' | '*' | '“' | '”'))
+        .trim_end_matches('.')
+        .trim();
+    let words = line.split_whitespace().count();
+    (words > 0 && words <= 8).then(|| line.chars().take(60).collect())
+}
+
+/// Gives a thread a short name of 3 to 6 words from its first exchange, with a read-only turn of
+/// its AI tool on the small model of that tool. It does nothing when the thread has a name, when
+/// the agents are stopped or when the assistant budget is spent. A person who renames the thread
+/// during the call keeps their name. The turn books under the assistant member. `program` runs in
+/// place of the CLI (tests).
+pub fn auto_name(
+    s: &AppState,
+    thread: &str,
+    program: Option<PathBuf>,
+) -> Res<Option<ThreadSummary>> {
+    let (pid, root) = project(s)?;
+    let st = Threads::new(&s.dir);
+    let t = st.get(&pid, thread).map_err(err)?;
+    if !needs_name(&t) || crate::factory::kill_switch(s) {
+        return Ok(None);
+    }
+    if s.factory.factory.assistant_gate(&pid, MEMBER).level == BudgetLevel::Spent {
+        return Ok(None);
+    }
+    let secrets = secrets(s);
+    let ask = t.messages.iter().find(|m| m.role == ChatRole::User);
+    let reply = t
+        .messages
+        .iter()
+        .find(|m| m.role == ChatRole::Assistant && !m.text.trim().is_empty());
+    let (Some(ask), Some(reply)) = (ask, reply) else {
+        return Ok(None);
+    };
+    let excerpt =
+        |text: &str, n: usize| -> String { scrub(text, &secrets).chars().take(n).collect() };
+    let text = format!(
+        "Give this conversation a title of 3 to 6 words, in the language of the request. Reply with the title only, with no quotes and no period.\n\nRequest:\n{}\n\nFirst answer:\n{}",
+        excerpt(&ask.text, 1500),
+        excerpt(&reply.text, 1500),
+    );
+    let mut settings = t.settings.clone();
+    settings.mode = AssistantMode::Ask;
+    settings.effort = None;
+    if let Some(small) = s
+        .agents
+        .tiers()
+        .ok()
+        .and_then(|all| all.into_iter().find(|r| r.runner == settings.runner))
+        .map(|r| r.small)
+        .filter(|m| !m.is_empty())
+    {
+        settings.model = Some(small);
+    }
+    let scratch = s
+        .dir
+        .join("assistant")
+        .join(&pid)
+        .join("scratch")
+        .join(format!("{}-name", t.id));
+    let out = run_turn_with(
+        TurnInput {
+            kind: TurnKind::Send,
+            settings: &settings,
+            context: &Context::default(),
+            quotes: &[],
+            text: &text,
+            rules: "",
+            dir: &root,
+            scratch: &scratch,
+            session: None,
+            granted: &[],
+            secrets: &secrets,
+            program,
+        },
+        &|_| {},
+    );
+    let u = &out.message.usage;
+    if u.input_tokens + u.output_tokens > 0 || u.cost_usd > 0.0 {
+        let _ = s.factory.factory.book_assistant(
+            &pid,
+            MEMBER,
+            u.input_tokens.into(),
+            u.output_tokens.into(),
+            u.cost_usd,
+        );
+    }
+    if !matches!(out.message.state, MessageState::Done) {
+        return Ok(None);
+    }
+    let Some(name) = clean_name(&scrub(&out.message.text, &secrets)) else {
+        return Ok(None);
+    };
+    // Read again: the person may have renamed the thread during the call.
+    let mut t = st.get(&pid, thread).map_err(err)?;
+    if t.named {
+        return Ok(None);
+    }
+    t.title = name;
+    t.named = true;
+    st.save(&t).map_err(err)?;
+    Ok(Some(t.summary()))
+}
+
 /// Delete the thread and its worktree. A worktree with changes stays and the call fails: the
 /// person acts on the result first (`worktree_discard`).
 pub fn thread_delete(s: &AppState, thread: &str) -> Res<()> {
@@ -400,6 +558,38 @@ pub fn worktree_discard(s: &AppState, thread: &str, force: bool) -> Res<ThreadVi
     assistant_modes::discard(&s.dir, &root, &mut t, force).map_err(err)?;
     st.save(&t).map_err(err)?;
     Ok(view(t))
+}
+
+/// Keep the change of one file, or of every file of the review with `None`. The files leave the
+/// review list and stay changed. Returns the list that is left (REQ-002 of `code-host-tickets`).
+pub fn worktree_keep(s: &AppState, thread: &str, path: Option<&str>) -> Res<Vec<FileDiff>> {
+    let (id, _) = project(s)?;
+    let _busy = Busy::take(thread)?;
+    let st = Threads::new(&s.dir);
+    let mut t = st.get(&id, thread).map_err(err)?;
+    let w = t
+        .worktree
+        .as_mut()
+        .ok_or("the thread has no change to keep")?;
+    assistant_modes::keep(w, path).map_err(err)?;
+    st.save(&t).map_err(err)?;
+    thread_diff(s, thread)
+}
+
+/// Revert one file of the thread to the project content. The other files stay. Returns the list
+/// that is left.
+pub fn worktree_undo_file(s: &AppState, thread: &str, path: &str) -> Res<Vec<FileDiff>> {
+    let (id, _) = project(s)?;
+    let _busy = Busy::take(thread)?;
+    let st = Threads::new(&s.dir);
+    let mut t = st.get(&id, thread).map_err(err)?;
+    let w = t
+        .worktree
+        .as_mut()
+        .ok_or("the thread has no change to undo")?;
+    assistant_modes::undo_file(w, path).map_err(err)?;
+    st.save(&t).map_err(err)?;
+    thread_diff(s, thread)
 }
 
 pub fn thread_diff(s: &AppState, thread: &str) -> Res<Vec<FileDiff>> {
@@ -683,7 +873,7 @@ pub fn turn(s: &AppState, thread: &str, start: Start, program: Option<PathBuf>) 
         .join("scratch")
         .join(&t.id);
     let out = match dir {
-        Ok(dir) => run_turn_live(
+        Ok(dir) => run_turn_metered(
             TurnInput {
                 kind: kind.clone(),
                 settings: &settings,
@@ -705,6 +895,7 @@ pub fn turn(s: &AppState, thread: &str, start: Start, program: Option<PathBuf>) 
                     .push((thread.to_string(), h));
             },
             &|steps| set_live(thread, steps),
+            &|u| set_live_tokens(thread, u.input_tokens + u.cached_tokens + u.output_tokens),
         ),
         Err(e) => shipyard_agents::assistant::TurnOutput {
             message: fail_message(&scrub(&e.to_string(), &secrets)),
@@ -838,7 +1029,7 @@ pub fn to_factory(
         Some(id) => {
             let label = run_label(id)?;
             if !crate::factory::workflows(s)?.iter().any(|w| w.id == *id) {
-                return Err(format!("no workflow `{id}` in this project"));
+                return Err(format!("no recipe `{id}` in this project"));
             }
             Some(label)
         }
@@ -881,7 +1072,7 @@ pub fn conflict_to_factory(s: &AppState, workflow: String, click: bool) -> Res<F
         .iter()
         .any(|w| w.id == workflow)
     {
-        return Err(format!("no workflow `{workflow}` in this project"));
+        return Err(format!("no recipe `{workflow}` in this project"));
     }
     let files: Vec<String> = crate::commands::code::conflicts(s)?
         .into_iter()
@@ -972,6 +1163,64 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
             },
             Some(program),
         )
+    }
+
+    #[test]
+    fn a_short_name_comes_from_the_first_line_of_the_reply() {
+        assert_eq!(
+            clean_name("\"Fix failing feature checks.\"\n"),
+            Some("Fix failing feature checks".into())
+        );
+        assert_eq!(
+            clean_name("Title: Plan the release"),
+            Some("Plan the release".into())
+        );
+        assert_eq!(clean_name("  \n"), None);
+        assert_eq!(
+            clean_name("one two three four five six seven eight nine"),
+            None
+        );
+    }
+
+    #[test]
+    fn after_the_first_answer_the_ai_tool_names_the_thread_once_and_a_rename_wins() {
+        let f = fx();
+        let t = thread_create(&f.s, None).unwrap().thread;
+        assert!(!needs_name(&t), "no answer yet");
+        let r = send_text(
+            &f,
+            &t.id,
+            "Fix the failing checks of this feature",
+            reply(&f, "On it."),
+        )
+        .unwrap();
+        assert_eq!(
+            r.thread.thread.title,
+            "Fix the failing checks of this feature"
+        );
+        assert!(needs_name(&r.thread.thread));
+        let named = auto_name(&f.s, &t.id, Some(reply(&f, "Fix failing feature checks"))).unwrap();
+        assert_eq!(
+            named.map(|s| s.title),
+            Some("Fix failing feature checks".into())
+        );
+        let t2 = thread_get(&f.s, &t.id).unwrap().thread;
+        assert!(t2.named && !needs_name(&t2));
+        // Named once: a second call changes nothing.
+        assert_eq!(
+            auto_name(&f.s, &t.id, Some(reply(&f, "Other name"))).unwrap(),
+            None
+        );
+
+        // A thread that a person renamed keeps that name.
+        let u = thread_create(&f.s, None).unwrap().thread;
+        send_text(&f, &u.id, "Hello", reply(&f, "Hi.")).unwrap();
+        thread_rename(&f.s, &u.id, "Mine").unwrap();
+        assert_eq!(
+            auto_name(&f.s, &u.id, Some(reply(&f, "Greeting"))).unwrap(),
+            None
+        );
+        assert_eq!(thread_get(&f.s, &u.id).unwrap().thread.title, "Mine");
     }
 
     #[test]
@@ -1091,6 +1340,14 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
     }
 
     #[test]
+    fn keep_and_undo_of_a_file_need_a_worktree() {
+        let f = fx();
+        let t = thread_create(&f.s, None).unwrap().thread;
+        assert!(worktree_keep(&f.s, &t.id, None).is_err());
+        assert!(worktree_undo_file(&f.s, &t.id, "a.txt").is_err());
+    }
+
+    #[test]
     fn a_grant_needs_a_wait_and_a_retry_needs_a_failure() {
         let f = fx();
         let t = thread_create(&f.s, None).unwrap().thread;
@@ -1151,7 +1408,7 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
         assert!(conflict_to_factory(&f.s, "w".into(), false).is_err());
         assert!(conflict_to_factory(&f.s, "../x".into(), true).is_err());
         let e = conflict_to_factory(&f.s, "nope".into(), true).unwrap_err();
-        assert!(e.contains("no workflow"), "{e}");
+        assert!(e.contains("no recipe"), "{e}");
     }
 
     #[test]

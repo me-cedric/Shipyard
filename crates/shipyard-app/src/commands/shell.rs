@@ -3,13 +3,13 @@
 use std::collections::HashMap;
 
 use shipyard_http::Client;
-use shipyard_store::prefs::Prefs;
-use tauri::AppHandle;
+use shipyard_store::prefs::{Prefs, ReleaseChannel};
+use tauri::{AppHandle, Manager};
 use tauri_plugin_notification::NotificationExt;
 
 use super::{Api, AppState, Res, blocking, err};
 use crate::shell::menu;
-use crate::shell::update::{UpdateInfo, check};
+use crate::shell::update::{UpdateInfo, check_on};
 
 /// Replaces the native menu with one in the language of the person. `labels` is keyed by item id.
 #[tauri::command]
@@ -25,21 +25,22 @@ pub async fn shell_menu(app: AppHandle, labels: HashMap<String, String>) -> Api<
 #[tauri::command]
 #[specta::specta]
 pub async fn notify_os(app: AppHandle, title: String, body: String) -> Api<()> {
-    app.notification()
-        .builder()
-        .title(title)
-        .body(body)
-        .show()
-        .map_err(|e| err(e).into())
+    let sound = Prefs::load(&app.state::<AppState>().dir).sound;
+    let mut note = app.notification().builder().title(title).body(body);
+    if sound {
+        note = note.sound("default");
+    }
+    note.show().map_err(|e| err(e).into())
 }
 
 pub fn update(s: &AppState) -> Res<UpdateInfo> {
     let prefs = Prefs::load(&s.dir);
-    check(
+    check_on(
         &Client,
         &prefs.release_url,
         env!("CARGO_PKG_VERSION"),
         prefs.seen_version.as_deref(),
+        prefs.release_channel == ReleaseChannel::Preview,
     )
 }
 

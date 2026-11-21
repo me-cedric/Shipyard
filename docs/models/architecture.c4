@@ -34,10 +34,10 @@ model {
 
     ui = container 'React UI' {
       technology 'React 19, Vite, TypeScript'
-      description 'The spaces, the shared components and the generated IPC client (src/).'
+      description 'The six places and Setup, which are views on the spaces (adr:0023), the shared components and the generated IPC client (src/).'
 
       home = component 'Home' {
-        description 'Needs you, My work, Activity.'
+        description 'The place Today: Needs you, News, Activity.'
       }
       design = component 'Design' {
         description 'Diagrams, architecture, decisions, API, data, flows, screens.'
@@ -49,19 +49,31 @@ model {
         description 'Backlog, board, plan, estimates, team, time.'
       }
       factory = component 'Factory' {
-        description 'Runs, workflows, sessions, usage.'
+        description 'The run pages and the recipe editor that the places Flow and Crew draw.'
+      }
+      flow = component 'Flow' {
+        description 'The place Flow: the views Flow, List, Done and Health, and the page of one feature.'
+      }
+      plan = component 'Plan' {
+        description 'The place Plan: Timeline, People, Estimates, Time.'
+      }
+      crew = component 'Crew' {
+        description 'The place Crew: people and agents, Recipes, Sessions, Spend, Rights.'
+      }
+      library = component 'Library' {
+        description 'The place Library: four doors to the pages of Design, Specs and Knowledge, and Reports.'
       }
       code = component 'Code' {
-        description 'Changes, history, branches, pull requests, quality, terminal.'
+        description 'The place Code: Now, History, Branches, Terminal.'
       }
       knowledge = component 'Knowledge' {
         description 'Graph, handbook, documents, slides (HTML decks in a sandboxed frame), learn, dashboards.'
       }
       settings = component 'Settings' {
-        description 'Project, connections, agents and rules, extensions, health.'
+        description 'The place Setup: Start, This project, This computer, Me.'
       }
       assistant = component 'Assistant panel' {
-        description 'Chat panel with threads and modes, in every space.'
+        description 'The Ask bar and the chat panel with threads and modes, on every page.'
       }
       uikit = component 'UI kit' {
         description 'Tokens, atoms, molecules, organisms, templates (src/ui).'
@@ -161,6 +173,10 @@ model {
   shipyard.ui.specs -> shipyard.ui.ipc 'uses'
   shipyard.ui.work -> shipyard.ui.ipc 'uses'
   shipyard.ui.factory -> shipyard.ui.ipc 'uses'
+  shipyard.ui.flow -> shipyard.ui.ipc 'uses'
+  shipyard.ui.plan -> shipyard.ui.ipc 'uses'
+  shipyard.ui.crew -> shipyard.ui.ipc 'uses'
+  shipyard.ui.library -> shipyard.ui.ipc 'uses'
   shipyard.ui.code -> shipyard.ui.ipc 'uses'
   shipyard.ui.knowledge -> shipyard.ui.ipc 'uses'
   shipyard.ui.settings -> shipyard.ui.ipc 'uses'
@@ -170,6 +186,10 @@ model {
   shipyard.ui.specs -> shipyard.ui.uikit 'draws with'
   shipyard.ui.work -> shipyard.ui.uikit 'draws with'
   shipyard.ui.factory -> shipyard.ui.uikit 'draws with'
+  shipyard.ui.flow -> shipyard.ui.uikit 'draws with'
+  shipyard.ui.plan -> shipyard.ui.uikit 'draws with'
+  shipyard.ui.crew -> shipyard.ui.uikit 'draws with'
+  shipyard.ui.library -> shipyard.ui.uikit 'draws with'
   shipyard.ui.code -> shipyard.ui.uikit 'draws with'
   shipyard.ui.knowledge -> shipyard.ui.uikit 'draws with'
   shipyard.ui.settings -> shipyard.ui.uikit 'draws with'
@@ -243,7 +263,7 @@ views {
   }
 
   view ui of shipyard.ui {
-    title 'React UI: spaces'
+    title 'React UI: places and spaces'
     include *
   }
 

@@ -8,7 +8,7 @@ import { DeviceCode } from "./connection-form";
 describe("Settings / Connections: browser sign-in", () => {
 	it("signs in with the browser and keeps the token in the keychain", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(await screen.findByRole("button", { name: "Connection" }));
 		await user.click(screen.getByRole("combobox", { name: "Type" }));
 		await user.click(await screen.findByRole("option", { name: "Code host" }));
@@ -56,7 +56,7 @@ describe("Settings / Connections: browser sign-in", () => {
 
 	it("offers no browser sign-in for a product that has none", async () => {
 		const user = userEvent.setup();
-		mountApp("/settings/connections");
+		mountApp("/setup/project?page=connections");
 		await user.click(await screen.findByRole("button", { name: "Connection" }));
 		await user.click(screen.getByRole("combobox", { name: "Product" }));
 		await user.click(await screen.findByRole("option", { name: "Linear" }));

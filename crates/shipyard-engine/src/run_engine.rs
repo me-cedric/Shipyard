@@ -23,7 +23,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use shipyard_core::pickup::{ActiveRun, Automation, SyncEvent};
+use shipyard_core::pickup::{ActiveRun, Automation, LimitStage, SyncEvent, Then, Thens};
 use shipyard_core::rights::{Area, Right};
 use shipyard_core::run::{self, BudgetLevel, Cause, Escalation, Run, RunEvent, RunState};
 use shipyard_core::work::Team;
@@ -208,6 +208,11 @@ pub struct RunInfo {
     pub worktree_kept: Option<String>,
     /// Why the run stopped for a person (REQ-053). `None`: no escalation, or a log from before.
     pub escalation: Option<Escalation>,
+    /// The day budget paused the run, with no escalation: the next day resumes it (REQ-022).
+    pub day_pause: bool,
+    /// The team role that approves the plan of the run, when a human step names one and waits
+    /// (`runs-recipes` REQ-008).
+    pub approver: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -322,6 +327,12 @@ pub(crate) struct Counts {
     pub top_tier: bool,
     /// A pause of the day budget of this key (`day:<date>`): the next day resumes it.
     pub day_pause: Option<String>,
+    /// A person asked for a pause: the run moves to `Paused` at the end of the turn
+    /// (`runs-recipes` REQ-001).
+    pub pause: bool,
+    /// The stage that the run waits to enter, because it is at its limit (`runs-recipes`
+    /// REQ-007). It sets the note of the log once.
+    pub held: Option<LimitStage>,
 }
 
 impl Counts {
@@ -375,9 +386,6 @@ pub(crate) struct RunRec {
     /// Tokens that a person added at a resume, on top of `Config::max_tokens`.
     #[serde(default)]
     pub extra_tokens: u64,
-    /// Turns that a person added at a resume, on top of `limits.max_turns`.
-    #[serde(default)]
-    pub extra_turns: u32,
     pub alerted: bool,
     pub rounds: u32,
     pub questions: Vec<Asked>,
@@ -415,6 +423,14 @@ pub(crate) fn kind_of(s: &Step) -> Kind {
         Kind::Plan
     } else {
         Kind::Build
+    }
+}
+
+/// Go on turns `Spent` into a warning (`adr:0024`).
+pub(crate) fn soften(l: BudgetLevel, then: Then) -> BudgetLevel {
+    match (l, then) {
+        (BudgetLevel::Spent, Then::GoOn) => BudgetLevel::Alert,
+        _ => l,
     }
 }
 
@@ -634,16 +650,48 @@ impl Factory {
         self.lock().cancel_run(run_id, "kill switch")
     }
 
+    /// A person ends the run for a reason that the run log keeps, as "Taken over by Ada"
+    /// (`runs-recipes` REQ-002). The branch and the worktree stay.
+    pub fn cancel_because(&self, run_id: &str, reason: &str) -> Result<(), String> {
+        self.lock().cancel_run(run_id, reason)
+    }
+
+    /// A person adds context for the next turn of the run (`runs-recipes` REQ-003): a note that
+    /// the next brief or the resumed session reads, like the message of `unblock_with`. `source`
+    /// names the file. `text` is data: the note fences it. A run that ended refuses it.
+    pub fn add_context(&self, run_id: &str, source: &str, text: &str) -> Result<(), String> {
+        let mut inner = self.lock();
+        if inner.run(run_id)?.run.state.is_final() {
+            return Err("the run ended".into());
+        }
+        let note = format!(
+            "The person added {source} as context:\n{}",
+            fence(source, text)
+        );
+        for s in inner.rec(run_id).steps.values_mut() {
+            if matches!(
+                s.state,
+                StepState::Running | StepState::Failed | StepState::Pending
+            ) {
+                s.notes.push(note.clone());
+            }
+        }
+        inner.log(run_id, None, kind::NOTE, json!({"context": source}));
+        Ok(())
+    }
+
     /// The global kill switch: on cancels every active run and stops pickup (REQ-024).
     pub fn set_kill_switch(&self, on: bool) {
         let mut inner = self.lock();
         inner.kill = on;
         if on {
-            for id in inner.live_ids() {
-                // A merged run is not cancelled: it goes to `Done` (the refusal is the answer).
-                let _ = inner.cancel_run(&id, "global kill switch");
-            }
+            inner.cancel_live("global kill switch");
         }
+    }
+
+    /// Cancel every live run with this reason. The kill switch keeps its value.
+    pub fn cancel_all(&self, reason: &str) {
+        self.lock().cancel_live(reason);
     }
 
     /// The app quits: stop every agent process and end its session. No run changes state, so the
@@ -712,16 +760,6 @@ impl Factory {
         inner.take_limits(run_id);
         inner.rec(run_id).extra_usd += add_usd;
         inner.rec(run_id).extra_tokens += add_tokens;
-        // A run paused at its max turns gets one more set of turns.
-        let rec = inner.rec(run_id);
-        if rec
-            .wf
-            .limits
-            .max_turns
-            .is_some_and(|max| rec.turns >= max + rec.extra_turns)
-        {
-            rec.extra_turns = rec.turns;
-        }
         let budget_left = inner.budget_level(run_id) != BudgetLevel::Spent;
         let note = note.map(str::trim).filter(|n| !n.is_empty());
         // A refused resume adds no note.
@@ -744,6 +782,28 @@ impl Factory {
             inner.log(run_id, None, kind::NOTE, json!({"note": n, "by": "person"}));
         }
         Ok(inner.rec(run_id).run.state)
+    }
+
+    /// A person pauses a working run (`runs-recipes` REQ-001). The agent ends its turn, then the
+    /// run moves to `Paused` with the cause Person and keeps its slot. With no agent in a turn
+    /// the run pauses at once. A run in another state refuses it.
+    pub fn pause(&self, run_id: &str) -> Result<(), String> {
+        let mut inner = self.lock();
+        let rec = inner.run(run_id)?;
+        if !rec.run.state.clocks_run() {
+            return Err(format!("refused Pause in {}", rec.run.state.as_str()));
+        }
+        let live = rec
+            .steps
+            .values()
+            .flat_map(|s| &s.units)
+            .any(|u| u.agent.is_some());
+        inner.rec(run_id).c.pause = true;
+        inner.log(run_id, None, kind::NOTE, json!({"pause": "requested"}));
+        if !live {
+            inner.pause_now(run_id);
+        }
+        Ok(())
     }
 
     /// A person clears the cause of `Blocked` (`q:Q-025` option 1, the click).
@@ -776,6 +836,29 @@ impl Factory {
         inner.checked(run_id, RunEvent::Finished)?;
         inner.rec(run_id).d.stuck = None;
         inner.remove_worktrees(run_id);
+        Ok(())
+    }
+
+    /// A person closes a run whose pull request merged or closed on the code host before the
+    /// engine read the event (`app-redesign` REQ-014). The run takes that event now, as from the
+    /// sync: a merge closes the run as `Done`, a close with no merge cancels it (REQ-026).
+    pub fn close_outside(&self, run_id: &str, merged: bool) -> Result<(), String> {
+        let mut inner = self.lock();
+        let rec = inner.run(run_id)?;
+        let state = rec.run.state;
+        let number = rec.pr.ok_or("the run has no pull request")?;
+        if state.is_final() || state == RunState::Merged {
+            return Err(format!(
+                "the run is {}: it closes by itself",
+                state.as_str()
+            ));
+        }
+        let event = if merged {
+            shipyard_core::pickup::PrEventKind::Merged
+        } else {
+            shipyard_core::pickup::PrEventKind::Closed
+        };
+        inner.pr_event(run_id, number, event);
         Ok(())
     }
 
@@ -855,7 +938,6 @@ impl Inner {
         {
             let limits = &mut self.rec(run_id).wf.limits;
             limits.budget_usd = now.budget_usd;
-            limits.max_turns = now.max_turns;
             limits.review_rounds = now.review_rounds;
             limits.feedback_rounds = now.feedback_rounds;
             limits.fix_rounds = now.fix_rounds;
@@ -880,6 +962,13 @@ impl Inner {
 
     pub(crate) fn project_of(&self, run_id: &str) -> Option<&Project> {
         self.projects.get(&self.runs.get(run_id)?.project)
+    }
+
+    fn cancel_live(&mut self, reason: &str) {
+        for id in self.live_ids() {
+            // A merged run is not cancelled: it goes to `Done` (the refusal is the answer).
+            let _ = self.cancel_run(&id, reason);
+        }
     }
 
     fn live_ids(&self) -> Vec<String> {
@@ -949,6 +1038,13 @@ impl Inner {
             findings: r.d.findings.clone(),
             worktree_kept: r.d.kept.clone(),
             escalation: r.escalation.clone(),
+            day_pause: r.c.day_pause.is_some(),
+            approver: r
+                .steps
+                .iter()
+                .find(|(_, s)| s.state == StepState::Gate)
+                .and_then(|(id, _)| r.wf.step(id))
+                .and_then(|s| s.approver.clone()),
         }
     }
 
@@ -997,6 +1093,10 @@ impl Inner {
             }
         };
         rec.run = to;
+        // A request to pause ends with the turn, and with any move out of the clock states.
+        if !to.state.clocks_run() {
+            rec.c.pause = false;
+        }
         let stopped = if to.state.clocks_run() {
             Vec::new()
         } else {
@@ -1181,7 +1281,6 @@ impl Inner {
 
     fn on_agent_event(&mut self, run_id: &str, sid: &str, i: usize, e: AgentEvent, now: u64) {
         let rec = self.rec(run_id);
-        let max_turns = rec.wf.limits.max_turns;
         let u = &mut rec.steps.get_mut(sid).expect("step").units[i];
         if u.state != StepState::Running {
             return;
@@ -1192,10 +1291,9 @@ impl Inner {
             AgentEvent::Text { text } => u.text = text,
             AgentEvent::Turn => {
                 rec.turns += 1;
-                if let Some(max_turns) = max_turns.filter(|m| rec.turns > m + rec.extra_turns) {
-                    // A pause, not a failure: a person can give the run more turns (REQ-023).
-                    let why = format!("max turns ({max_turns})");
-                    self.escalate(run_id, Cause::MaxTurns, &[why]);
+                // The turn ended: a request of a person to pause lands here, with no work lost.
+                if self.runs[run_id].c.pause && self.clocks(run_id) {
+                    self.pause_now(run_id);
                 }
             }
             AgentEvent::Usage {
@@ -1229,26 +1327,39 @@ impl Inner {
         }
     }
 
-    /// The level of the budgets of the run itself, and of the shared ones by key.
+    /// The choices `Then` and the share of the alert that the project set (`runs-recipes`
+    /// REQ-006). A project that is not open has the defaults.
+    pub(crate) fn budget_rules(&self, run_id: &str) -> (Thens, f64) {
+        self.project_of(run_id)
+            .map_or((Thens::default(), run::BUDGET_ALERT), |p| {
+                (p.automation.budgets.at_limit, p.automation.budgets.warn())
+            })
+    }
+
+    /// The level of the budgets of the run itself, and of the shared ones by key. A budget that a
+    /// person set to Go on never reaches `Spent`: it stays a warning (`adr:0024`).
     fn budget_levels(&self, run_id: &str) -> (BudgetLevel, Vec<(String, BudgetLevel)>) {
         let rec = &self.runs[run_id];
-        let money = rec.wf.limits.budget_usd.map_or(BudgetLevel::Under, |b| {
-            run::budget_level(rec.cost, b + rec.extra_usd)
-        });
+        let (thens, warn) = self.budget_rules(run_id);
+        let level = |spent: f64, budget: f64| run::budget_level_at(spent, budget, warn);
+        let money = rec
+            .wf
+            .limits
+            .budget_usd
+            .map_or(BudgetLevel::Under, |b| level(rec.cost, b + rec.extra_usd));
         let tokens = self.cfg.max_tokens.map_or(BudgetLevel::Under, |m| {
-            run::budget_level(rec.tokens as f64, (m + rec.extra_tokens) as f64)
+            level(rec.tokens as f64, (m + rec.extra_tokens) as f64)
         });
         let steps = rec.wf.steps.iter().filter_map(|s| {
             let spent: f64 = rec.steps[&s.id].units.iter().map(|u| u.cost).sum();
-            s.budget
-                .map(|b| run::budget_level(spent, b + rec.extra_usd))
+            s.budget.map(|b| level(spent, b + rec.extra_usd))
         });
         let own = [money, tokens]
             .into_iter()
             .chain(steps)
             .max_by_key(|l| rank(*l))
             .unwrap_or(BudgetLevel::Under);
-        (own, self.spend_levels(run_id))
+        (soften(own, thens.feature), self.spend_levels(run_id))
     }
 
     pub(crate) fn budget_level(&self, run_id: &str) -> BudgetLevel {
@@ -1278,8 +1389,10 @@ impl Inner {
                 keys.push(key.clone());
             }
         }
+        let (_, warn) = self.budget_rules(run_id);
+        let share = format!("{} %", (warn * 100.0).round());
         for key in keys {
-            let payload = json!({"budget": "80 %", "key": key, "cost_usd": cost, "tokens": tokens});
+            let payload = json!({"budget": share, "key": key, "cost_usd": cost, "tokens": tokens});
             self.log(run_id, None, ALERT, payload);
         }
         if stop {
@@ -1423,7 +1536,10 @@ impl Inner {
                 .map(|(k, s)| (k.clone(), s.state))
                 .collect();
             if let Some(sid) = workflow::runnable(&rec.wf, &states).into_iter().next() {
-                self.start_step(run_id, &sid);
+                // A stage at its limit keeps the run where it is: it starts the step later.
+                if !self.start_step(run_id, &sid) {
+                    return;
+                }
                 continue;
             }
             let mut next = None;
@@ -1469,11 +1585,48 @@ impl Inner {
         }
     }
 
-    fn start_step(&mut self, run_id: &str, sid: &str) {
+    /// The run wants into a stage that is at its limit (`runs-recipes` REQ-007). It enters a stage
+    /// when the state of the step needs one that the run does not hold. The count is the active
+    /// runs of the project in that stage, a paused run included by its return state.
+    fn stage_held(&mut self, run_id: &str, k: Kind) -> bool {
+        let target = match k {
+            Kind::Plan => return false,
+            Kind::Build | Kind::Review => LimitStage::Build,
+            Kind::Action => LimitStage::Review,
+        };
+        let rec = &self.runs[run_id];
+        if LimitStage::of_run(rec.run) == Some(target) {
+            return false;
+        }
+        let Some(p) = self.project_of(run_id) else {
+            return false;
+        };
+        let others = self
+            .runs
+            .values()
+            .filter(|r| r.project == rec.project && r.id != run_id && !r.run.state.is_final())
+            .map(|r| r.run);
+        let full = p.automation.concurrency.per_stage.full(target, others);
+        let rec = self.rec(run_id);
+        if !full {
+            rec.c.held = None;
+        } else if rec.c.held != Some(target) {
+            rec.c.held = Some(target);
+            let note = json!({"queued": format!("{target:?} limit").to_lowercase()});
+            self.log(run_id, None, kind::NOTE, note);
+        }
+        full
+    }
+
+    /// `false`: the stage of the step is at its limit and the step did not start.
+    fn start_step(&mut self, run_id: &str, sid: &str) -> bool {
         let step = self.runs[run_id].wf.step(sid).cloned().expect("step");
+        if self.stage_held(run_id, kind_of(&step)) {
+            return false;
+        }
         self.phase(run_id, kind_of(&step));
         if !self.clocks(run_id) {
-            return;
+            return true;
         }
         if step.action.is_some() {
             let s = self.rec(run_id).steps.get_mut(sid).expect("step");
@@ -1482,7 +1635,7 @@ impl Inner {
             s.units = vec![u];
             s.state = StepState::Running;
             self.advance_pr(run_id);
-            return;
+            return true;
         }
         let in_run = self.runs[run_id].steps[sid].in_run;
         let units = match step.source().filter(|_| !in_run) {
@@ -1503,7 +1656,7 @@ impl Inner {
                         self.rec(run_id).steps.get_mut(sid).expect("step").state =
                             StepState::Failed;
                         self.escalate(run_id, Cause::Attempts, &[why]);
-                        return;
+                        return true;
                     }
                 }
             }
@@ -1518,6 +1671,7 @@ impl Inner {
             s.output = json!({"children": []});
         }
         s.units = units;
+        true
     }
 
     /// Start the agent of one unit. `false` when the run stopped.
@@ -1679,10 +1833,31 @@ impl Inner {
         Ok(())
     }
 
+    /// The run moves to `Paused` for a person: the record names the cause, no stop report goes to
+    /// the issue tracker (the person did it). The agents keep their sessions.
+    fn pause_now(&mut self, run_id: &str) {
+        let record = self.record(run_id, Cause::Person, &[]);
+        let note =
+            json!({"stop": Cause::Person.text(), "cause": Cause::Person, "escalation": record});
+        self.log(run_id, None, kind::NOTE, note);
+        self.transition(run_id, RunEvent::Pause);
+    }
+
     /// The one way to stop a run for a person (REQ-053): the agents stop, the run keeps one
     /// record and posts one stop report. `Blocked`, or `Paused` for a budget or max turns. The
     /// questions loop calls it too. `false` when the table refuses the move.
     pub(crate) fn escalate(&mut self, run_id: &str, cause: Cause, lines: &[String]) -> bool {
+        self.escalate_with(run_id, cause, lines, true)
+    }
+
+    /// `escalate`. `report` false keeps the stop report off the issue tracker: the app asks alone.
+    pub(crate) fn escalate_with(
+        &mut self,
+        run_id: &str,
+        cause: Cause,
+        lines: &[String],
+        report: bool,
+    ) -> bool {
         let Some(rec) = self.runs.get(run_id) else {
             return false;
         };
@@ -1703,7 +1878,9 @@ impl Inner {
         let note = json!({what: why, "cause": cause, "escalation": record});
         self.log(run_id, None, kind::NOTE, note);
         self.transition(run_id, event);
-        self.stop_report(run_id, &record);
+        if report {
+            self.stop_report(run_id, &record);
+        }
         true
     }
 
@@ -1738,6 +1915,7 @@ impl Inner {
         let action = match cause {
             Cause::Budget => "Raise the budget, then resume the run.",
             Cause::MaxTurns => "Resume the run: it gets one more set of turns.",
+            Cause::Person => "Resume the run when you are ready: it starts a new turn.",
             Cause::NothingToDeliver => {
                 "Reply on the ticket or use Unblock with a message, or close the run as done."
             }
@@ -1923,7 +2101,7 @@ impl Inner {
         let wf = p
             .files
             .workflow(wf_id)
-            .ok_or_else(|| format!("no workflow `{wf_id}`"))?;
+            .ok_or_else(|| format!("no recipe `{wf_id}`"))?;
         let ms = self.clock.now().as_millis() as u64;
         self.seq += 1;
         let id = ulid(ms, self.seq);
@@ -1951,7 +2129,6 @@ impl Inner {
             tokens: 0,
             extra_usd: 0.0,
             extra_tokens: 0,
-            extra_turns: 0,
             alerted: false,
             rounds: 0,
             questions: Vec::new(),

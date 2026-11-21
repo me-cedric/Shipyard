@@ -112,13 +112,13 @@ Feature: code
   Scenario: Publish and sync: Dirty sync
     Given a working copy with uncommitted changes and a newer remote head
     When a person runs the sync action
-    Then the fetch runs, the working copy stays as it is and the status bar names the reason
+    Then the fetch runs, the working copy stays as it is and the card of the sync mark names the reason
 
   @spec:code#REQ-014
   Scenario: Publish and sync: Rebase conflict
     Given a clean working copy with a local commit that conflicts with a newer remote commit
     When a person runs the sync action
-    Then the working branch stays as it was and the status bar names the conflicted files
+    Then the working branch stays as it was and the card of the sync mark names the conflicted files
 
   @spec:code#REQ-015
   Scenario: Remote watch: Default interval
@@ -251,6 +251,12 @@ Feature: code
     Given a declared check `test`
     When a person confirms the run
     Then the result shows its state, duration and output tail
+
+  @spec:code#REQ-026
+  Scenario: QA checks: A role with no right on code
+    Given a tester with no right on code
+    When the tester opens Flow / Health
+    Then the checks show with their state and Run is off
 
   @spec:code#REQ-027
   Scenario: Security scanners: Leaked secret

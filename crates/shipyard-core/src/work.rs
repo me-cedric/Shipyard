@@ -117,6 +117,9 @@ pub struct Member {
     /// Days per week.
     pub capacity: f64,
     pub skills: Vec<String>,
+    /// What this person can teach: the topics of the Experts card of Learn.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub topics: Vec<String>,
     /// `None` when the file has none, or when the seal is on and this machine has no passphrase.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub day_rate: Option<f64>,

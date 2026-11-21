@@ -2,6 +2,7 @@ import { useI18n } from "@/lib/i18n";
 import { useRights } from "@/lib/rights";
 import { useCalendar, useWorkActions } from "@/lib/work";
 import { Select } from "@/ui/atoms/select";
+import { Row } from "@/ui/molecules/row";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { useGuard } from "./guard";
 
@@ -20,7 +21,7 @@ export function useCountryItems() {
 }
 
 /** The country of the public holidays of the plan. The plan computes them each year. */
-export function HolidayCountry({ row }: { row?: boolean }) {
+export function HolidayCountry({ row, label }: { row?: boolean; label?: string }) {
 	const { t } = useI18n();
 	const cal = useCalendar().data;
 	const act = useWorkActions();
@@ -31,6 +32,7 @@ export function HolidayCountry({ row }: { row?: boolean }) {
 	const select = (
 		<Select
 			caption={!row}
+			className="min-h-control"
 			label={t.costing.plan.country}
 			{...gate("work.edit")}
 			value={cal.country || NONE}
@@ -42,7 +44,16 @@ export function HolidayCountry({ row }: { row?: boolean }) {
 	);
 	return (
 		<>
-			{row ? <SettingsRow label={t.costing.plan.country}>{select}</SettingsRow> : select}
+			{row && label ? (
+				<Row>
+					<span className="min-w-32 flex-1 font-medium">{label}</span>
+					{select}
+				</Row>
+			) : row ? (
+				<SettingsRow label={t.costing.plan.country}>{select}</SettingsRow>
+			) : (
+				select
+			)}
 			{error ? (
 				<p role="alert" className="text-ui text-danger-text">
 					{error}

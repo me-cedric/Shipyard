@@ -394,16 +394,16 @@ Feature: factory
     Then the run returns to its stored state with no click and posts no stop report
 
   @spec:factory#REQ-023
-  Scenario: Stall timeout and max turns: Stall
+  Scenario: Stall timeout and turns: Stall
     Given a step with `stall_s` 300
     When no event arrives for 300 s
     Then the step stops, its failed attempts go up by one, and the run moves to `RetryQueued`
 
   @spec:factory#REQ-023
-  Scenario: Stall timeout and max turns: Max turns
-    Given a run with `max_turns` 40
-    When the agent reaches turn 40
-    Then the run moves to `Paused` with the cause max turns and posts one stop report, and a resume gives it 40 more turns
+  Scenario: Stall timeout and turns: Many turns
+    Given a run whose agent has used 200 turns
+    When the agent starts turn 201
+    Then the run stays in its state and no turn count stops it
 
   @spec:factory#REQ-024
   Scenario: Kill switches: Run switch
@@ -435,6 +435,36 @@ Feature: factory
     When the run sends it
     Then the push waits as an approval in Home / Inbox
 
+  @spec:factory#REQ-025
+  Scenario: Write switches: Recipe permission
+    Given an approval question with the effects `transition` and `open_pr` and `push` off
+    When the person ticks "Do not ask again for this recipe" and approves
+    Then `recipe_writes` of `.shipyard/automation.yaml` holds exactly these two kinds for that recipe
+
+  @spec:factory#REQ-025
+  Scenario: Write switches: Permission applies to later writes
+    Given a recipe with a permission for `open_pr`
+    When a run of another recipe asks to open a pull request
+    Then the write waits as an approval in Home / Inbox
+
+  @spec:factory#REQ-025
+  Scenario: Write switches: Force with lease has no permission
+    Given a question that holds a push that rewrites history
+    When the person ticks "Do not ask again for this recipe"
+    Then the push is not stored in `recipe_writes` and waits next time
+
+  @spec:factory#REQ-025
+  Scenario: Write switches: A waiting write keeps its question
+    Given a write that waits and a person who then stores the permission for its kind
+    When the person opens Home / Inbox
+    Then the waiting write still shows its question
+
+  @spec:factory#REQ-025
+  Scenario: Write switches: Remove goes with Save
+    Given a recipe with a permission in Settings / Project
+    When the person clicks Remove and then Save
+    Then the kind leaves `recipe_writes` and the next write of that kind waits
+
   @spec:factory#REQ-026
   Scenario: Approvals: Approve
     Given a run that wants to push and `push` off
@@ -455,30 +485,34 @@ Feature: factory
 
   @spec:factory#REQ-027
   Scenario: Runs view: Needs you lane
-    Given a run in `WaitingForAnswer`
-    When the person opens Runs
-    Then the run shows in the lane Needs you
+    Given a feature whose run is in `WaitingForAnswer`
+    When the person opens Flow
+    Then the feature shows once, in its stage, with the mark needs you
 
   @spec:factory#REQ-027
   Scenario: Runs view: Empty lane
-    Given no run in Queued
-    When the person opens Runs
-    Then the lane shows the empty pattern, an icon and the word None, with no ghost rows
+    Given a filter that hides every card of a stage
+    When the person opens Flow
+    Then the stage shows as an empty column with the count 0
 
   @spec:factory#REQ-027
   Scenario: Runs view: Ended run
-    Given a run in `Done`
-    When the person opens Runs
-    Then the board has no lane Done
-    And the run shows in History
+    Given a feature whose run is in `Done`
+    When the person opens the view Done
+    Then the feature shows in the list
 
   @spec:factory#REQ-027
   Scenario: Runs view: Failed run
     Given the latest run of a ticket is in `Failed`
-    When the person opens Runs
-    Then the run shows in the lane Needs you with the action Start again
-    And the action starts a new run and opens its page
-    And the run shows in History
+    When the person opens Flow
+    Then the feature shows in Build with the mark stopped, and its menu starts the run again
+    And the run shows in Done
+
+  @spec:factory#REQ-027
+  Scenario: Runs view: One card for one feature
+    Given a feature with a ticket, a spec change and a run in `Working`
+    When the person opens Flow
+    Then the feature shows once, in Build
 
   @spec:factory#REQ-028
   Scenario: Run view: Live step
@@ -508,25 +542,31 @@ Feature: factory
   Scenario: Agents map: Live node
     Given a running agent
     When it reads a file
-    Then a link from the agent to the file shows
+    Then the row of the agent names the file
 
   @spec:factory#REQ-030
   Scenario: Agents map: Open entity
-    Given a ticket node
-    When the person clicks it
-    Then the inspector shows the ticket
+    Given a row that names a file or a spec
+    When the person clicks that ref
+    Then the inspector shows the entity
 
   @spec:factory#REQ-030
   Scenario: Agents map: Open run
-    Given an agent node of a run
-    When the person clicks it
-    Then the run page opens on the Workflow tab at that step
+    Given the row of an agent of a run
+    When the person clicks the agent
+    Then the feature page opens at the unit of that agent
 
   @spec:factory#REQ-030
   Scenario: Agents map: Plain label
-    Given a run node
-    When the map shows
-    Then the node shows the ticket key and title and no `run:` ref
+    Given the row of an agent of a run
+    When the live view shows
+    Then the row shows the ticket key and title and no `run:` ref
+
+  @spec:factory#REQ-030
+  Scenario: Agents map: Old address
+    Given the address of the agents map of before this change
+    When the person opens it
+    Then the live view of Crew opens
 
   @spec:factory#REQ-031
   Scenario: Sessions view: Session row
@@ -587,9 +627,9 @@ Feature: factory
 
   @spec:factory#REQ-035
   Scenario: Workflow limits: Limits apply
-    Given a workflow with `limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }`
+    Given a workflow with `limits: { budget_usd: 5, stall_s: 300 }`
     When a run of that workflow starts
-    Then the run pauses at turn 40, pauses at 5 USD and stalls after 300 s with no event
+    Then the run pauses at 5 USD and stalls after 300 s with no event
 
   @spec:factory#REQ-035
   Scenario: Workflow limits: No run budget
@@ -684,21 +724,32 @@ Feature: factory
   @spec:factory#REQ-038
   Scenario: Run lanes: Ready to merge
     Given a run in `PROpen` with passing CI, no change request and no draft
-    When the person opens Runs
-    Then the run shows in the lane Ready to merge
+    When the person opens Flow
+    Then the feature shows in Review and its card says Ready to merge
 
   @spec:factory#REQ-038
   Scenario: Run lanes: Draft
     Given a run in `PROpen` with passing CI and a draft pull request
-    When the person opens Runs
-    Then the run shows in the lane In review
+    When the person opens Flow
+    Then the feature shows in Review
 
   @spec:factory#REQ-038
   Scenario: Run lanes: Cancelled run
-    Given a run in `Cancelled`
-    When the person opens Runs
-    Then the run shows in no lane
-    And the run shows in History
+    Given a run that a person stopped
+    When the person opens the view Done
+    Then the run shows in the list
+
+  @spec:factory#REQ-038
+  Scenario: Run lanes: A blocked run
+    Given a feature whose run is in `Blocked` and returns to `Working`
+    When the person opens Flow
+    Then the feature shows in Build with the mark blocked
+
+  @spec:factory#REQ-038
+  Scenario: Run lanes: A failed run
+    Given a feature whose run is in `Failed`
+    When the person opens Flow
+    Then the feature shows in Build with the mark stopped
 
   @spec:factory#REQ-039
   Scenario: Restart: Resume a step

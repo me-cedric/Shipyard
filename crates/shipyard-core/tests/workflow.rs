@@ -152,10 +152,7 @@ fn limits_must_be_positive() {
             other => panic!("{other:?}"),
         })
         .collect();
-    assert_eq!(
-        fields,
-        ["limits.max_turns", "limits.budget_usd", "limits.stall_s"]
-    );
+    assert_eq!(fields, ["limits.budget_usd", "limits.stall_s"]);
     assert!(serde_norway::from_str::<Workflow>("id: t\nsteps: []\n").is_err());
 }
 
@@ -262,6 +259,7 @@ fn schema_matches_the_model() {
         workspace: Workspace::Worktree,
         needs: vec!["a".into()],
         gate: Gate::Human,
+        approver: Some("techlead".into()),
         for_each: Some("a.items".into()),
         max_parallel: Some(2),
         retry: 1,
@@ -277,13 +275,15 @@ fn schema_matches_the_model() {
     assert_eq!(defs["step"]["additionalProperties"], false);
     assert_eq!(schema["additionalProperties"], false);
     let mut full_limits = parse(FEATURE).limits;
-    full_limits.max_turns = Some(40);
     full_limits.budget_usd = Some(5.0);
     full_limits.review_rounds = Some(4);
     full_limits.feedback_rounds = Some(3);
     full_limits.fix_rounds = Some(8);
     let limits = serde_json::to_value(full_limits).unwrap();
-    assert_eq!(keys(&defs["limits"]["properties"]), keys(&limits));
+    // `max_turns` is an old key: the schema accepts it, the struct never writes it (`adr:0025`).
+    let mut schema_limits = keys(&defs["limits"]["properties"]);
+    schema_limits.remove("max_turns");
+    assert_eq!(schema_limits, keys(&limits));
     for (field, values) in [
         ("effort", vec!["low", "medium", "high", "xhigh", "max"]),
         ("mode", vec!["plan", "auto"]),
@@ -332,4 +332,49 @@ fn caps_default_and_reject_zero() {
             field: "limits.review_rounds".into()
         }]
     );
+}
+
+// `runs-recipes` REQ-008 and REQ-009.
+
+#[test]
+fn only_a_human_step_has_a_role_that_is_a_team_role() {
+    let wf = with_steps(
+        "  - { id: plan, role: planner, gate: human, approver: techlead }\n\
+         \x20 - { id: a, role: worker, approver: techlead }\n\
+         \x20 - { id: b, role: worker, gate: human, approver: wizard }\n",
+    );
+    assert_eq!(
+        wf.check(&roles()),
+        [
+            WorkflowIssue::BadValue {
+                field: "steps.a.approver".into()
+            },
+            WorkflowIssue::BadValue {
+                field: "steps.b.approver".into()
+            },
+        ]
+    );
+    assert_eq!(
+        wf.step("plan").unwrap().approver.as_deref(),
+        Some("techlead")
+    );
+}
+
+#[test]
+fn the_role_of_a_step_is_optional_and_stays_out_of_the_file_when_absent() {
+    let wf = parse(FEATURE);
+    assert!(wf.steps.iter().all(|s| s.approver.is_none()));
+    assert!(!serde_norway::to_string(&wf).unwrap().contains("approver"));
+}
+
+#[test]
+fn the_kind_of_a_step_comes_from_the_step() {
+    let wf = parse(FEATURE);
+    let kind = |id: &str| wf.step(id).unwrap().kind();
+    assert_eq!(kind("grill"), StepKind::Agent);
+    assert_eq!(kind("build"), StepKind::Agent);
+    // A gate that waits for a person makes the step a person step.
+    assert_eq!(kind("plan"), StepKind::Person);
+    assert_eq!(kind("review"), StepKind::Check);
+    assert_eq!(kind("pr"), StepKind::Check);
 }

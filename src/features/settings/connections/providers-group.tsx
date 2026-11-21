@@ -4,28 +4,18 @@ import { format, useI18n } from "@/lib/i18n";
 import { commands, type Provider, type TestOutcome, unwrap } from "@/lib/ipc";
 import { useMenus } from "@/lib/menus";
 import { Button } from "@/ui/atoms/button";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
-import { type Status, StatusDot } from "@/ui/atoms/status-dot";
-import {
-	ArrowPathIcon,
-	CheckIcon,
-	Cog6ToothIcon,
-	CpuChipIcon,
-	SparklesIcon,
-	XMarkIcon,
-} from "@/ui/icons";
-import { ConnectionRow } from "@/ui/molecules/connection-row";
+import { LinkButton } from "@/ui/atoms/link-button";
+import { StatusDot } from "@/ui/atoms/status-dot";
+import { CheckIcon } from "@/ui/icons";
+import { ContextMenu } from "@/ui/molecules/context-menu";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Row } from "@/ui/molecules/row";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { SettingsRow } from "@/ui/molecules/settings-row";
+import { SetupCard, StatePill } from "../parts";
+import { LINE } from "./fold";
 import { providerKeys, useProviders } from "./keys";
-
-const STATE_SHAPE: Record<Provider["state"], Status> = {
-	untested: "idle",
-	passed: "success",
-	failed: "danger",
-};
 
 /** Add form, or edit form of one provider. The key field is write-only. */
 export function ProviderForm({ provider, onDone }: { provider?: Provider; onDone: () => void }) {
@@ -62,7 +52,7 @@ export function ProviderForm({ provider, onDone }: { provider?: Provider; onDone
 	};
 
 	return (
-		<form onSubmit={save} className="flex flex-col border-b">
+		<form onSubmit={save} className="flex flex-col">
 			<SettingsRow label={f.name}>
 				<Input
 					label={f.name}
@@ -96,8 +86,8 @@ export function ProviderForm({ provider, onDone }: { provider?: Provider; onDone
 					className="w-64"
 				/>
 			</SettingsRow>
-			{error ? <ErrorNotice error={error} className="px-3 pt-2 text-ui text-danger-text" /> : null}
-			<div className="flex gap-2 px-3 py-2">
+			{error ? <ErrorNotice error={error} className="px-6 pt-2 text-ui text-danger-text" /> : null}
+			<div className="flex gap-2 px-6 py-2">
 				<Button
 					type="submit"
 					variant="primary"
@@ -132,8 +122,10 @@ function Models({ provider: p }: { provider: Provider }) {
 		}
 	};
 	return (
-		<section aria-label={t.connections.provider.models} className="px-3 pb-2">
-			{models.error || error ? <ErrorNotice error={error ?? models.error} /> : null}
+		<section aria-label={t.connections.provider.models} className="pb-2">
+			{models.error || error ? (
+				<ErrorNotice error={error ?? models.error} className="px-6" />
+			) : null}
 			{(models.data ?? []).map((m) => (
 				<SettingsRow key={m} icon={m === p.model ? <CheckIcon size={14} /> : undefined} label={m}>
 					<Button
@@ -150,8 +142,9 @@ function Models({ provider: p }: { provider: Provider }) {
 	);
 }
 
-type Panel = "edit" | "models" | "remove" | null;
+type Panel = "models" | "remove" | null;
 
+/** One provider: its name and Edit. Edit opens the form with Test, Models and Remove. */
 function ProviderRow({
 	provider: p,
 	formOpen,
@@ -163,16 +156,21 @@ function ProviderRow({
 }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
+	const [open, setOpen] = useState(false);
 	const [panel, setPanel] = useState<Panel>(null);
 	const [result, setResult] = useState<TestOutcome | null>(null);
 	const [testing, setTesting] = useState(false);
 	const [error, setError] = useState<unknown>(null);
 	const menu = useMenus();
 
+	const edit = (next: boolean) => {
+		setOpen(next);
+		if (!next) setPanel(null);
+		onForm(next);
+	};
 	const show = (next: Panel) => {
-		const to = panel === next ? null : next;
-		setPanel(to);
-		onForm(to === "edit");
+		if (!open) edit(true);
+		setPanel(panel === next ? null : next);
 	};
 	const test = async () => {
 		setTesting(true);
@@ -190,6 +188,7 @@ function ProviderRow({
 		try {
 			setError(null);
 			await unwrap(commands.providersRemove(p.id));
+			onForm(false);
 			await qc.invalidateQueries({ queryKey: providerKeys.list });
 		} catch (e) {
 			setError(e);
@@ -204,72 +203,92 @@ function ProviderRow({
 		: null;
 
 	return (
-		<ConnectionRow
-			menu={menu("connection", {
+		<ContextMenu
+			items={menu("connection", {
 				test: () => void test(),
-				edit: () => show("edit"),
+				edit: () => edit(true),
 				remove: () => show("remove"),
 			})}
-			status={STATE_SHAPE[p.state]}
-			statusLabel={t.connections.state[p.state]}
-			name={p.name}
-			product={p.model}
-			actions={
-				<>
-					<IconButton label={t.connections.test} disabled={testing} onClick={test}>
-						<ArrowPathIcon size={14} />
-					</IconButton>
-					<IconButton label={t.connections.provider.models} onClick={() => show("models")}>
-						<CpuChipIcon size={14} />
-					</IconButton>
-					<IconButton
-						label={t.connections.edit}
-						disabled={formOpen && panel !== "edit"}
-						onClick={() => show("edit")}
-					>
-						<Cog6ToothIcon size={14} />
-					</IconButton>
-					<IconButton label={t.connections.remove} onClick={() => show("remove")}>
-						<XMarkIcon size={14} />
-					</IconButton>
-				</>
-			}
 		>
-			{result && text ? (
-				<p role="status" className="flex items-center gap-2 px-3 pb-2 text-ui">
-					<StatusDot
-						status={result.kind === "passed" ? "success" : "danger"}
-						label={t.connections.state[result.kind === "passed" ? "passed" : "failed"]}
-					/>
-					{text}
-				</p>
-			) : null}
-			{error ? <ErrorNotice error={error} className="px-3 pb-2 text-ui text-danger-text" /> : null}
-			{panel === "edit" ? (
-				<ProviderForm
-					provider={p}
-					onDone={() => {
-						setPanel(null);
-						setResult(null);
-						onForm(false);
-					}}
-				/>
-			) : null}
-			{panel === "models" ? <Models provider={p} /> : null}
-			{panel === "remove" ? (
-				<div className="flex gap-2 px-3 pb-2">
-					<Button variant="danger" onClick={() => void remove()}>
-						{t.connections.confirm}
+			{/* biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box */}
+			<div role="group" aria-label={p.name} className="border-t border-n-6">
+				<Row>
+					<span title={p.model} className="min-w-0 flex-1 font-semibold">
+						{p.name}
+					</span>
+					{p.state === "untested" || p.state === "passed" ? (
+						<span className="sr-only">{t.connections.state[p.state]}</span>
+					) : (
+						<StatePill state="fix">{t.connections.state[p.state]}</StatePill>
+					)}
+					<Button
+						variant="secondary"
+						aria-expanded={open}
+						disabled={formOpen && !open}
+						onClick={() => edit(!open)}
+					>
+						{t.connections.edit}
 					</Button>
-					<Button variant="ghost" onClick={() => show("remove")}>
-						{t.connections.cancel}
-					</Button>
-				</div>
-			) : null}
-		</ConnectionRow>
+				</Row>
+				{result && text ? (
+					<p role="status" className="flex items-center gap-2 px-6 pb-2 text-ui">
+						<StatusDot
+							status={result.kind === "passed" ? "success" : "danger"}
+							label={t.connections.state[result.kind === "passed" ? "passed" : "failed"]}
+						/>
+						{text}
+					</p>
+				) : null}
+				{error ? (
+					<ErrorNotice error={error} className="px-6 pb-2 text-ui text-danger-text" />
+				) : null}
+				{open ? (
+					<>
+						<div className="flex flex-wrap gap-2 px-6 pb-2">
+							<Button variant="secondary" disabled={testing} onClick={() => void test()}>
+								{t.connections.test}
+							</Button>
+							<Button
+								variant="secondary"
+								aria-expanded={panel === "models"}
+								onClick={() => show("models")}
+							>
+								{t.connections.provider.models}
+							</Button>
+							<Button
+								variant="secondary"
+								aria-expanded={panel === "remove"}
+								onClick={() => show("remove")}
+							>
+								{t.connections.remove}
+							</Button>
+						</div>
+						{panel === "models" ? <Models provider={p} /> : null}
+						{panel === "remove" ? (
+							<div className="flex gap-2 px-6 pb-2">
+								<Button variant="danger" onClick={() => void remove()}>
+									{t.connections.confirm}
+								</Button>
+								<Button variant="ghost" onClick={() => setPanel(null)}>
+									{t.connections.cancel}
+								</Button>
+							</div>
+						) : null}
+						<ProviderForm
+							provider={p}
+							onDone={() => {
+								setResult(null);
+								edit(false);
+							}}
+						/>
+					</>
+				) : null}
+			</div>
+		</ContextMenu>
 	);
 }
 
+/** The model providers of this computer, and the form of a new one. */
 export function ProvidersGroup({
 	formOpen,
 	onForm,
@@ -279,21 +298,30 @@ export function ProvidersGroup({
 }) {
 	const { t } = useI18n();
 	const rows = useProviders().data ?? [];
-	if (rows.length === 0) return null;
+	const [adding, setAdding] = useState(false);
+	const add = (next: boolean) => {
+		setAdding(next);
+		onForm(next);
+	};
 	return (
-		<section aria-labelledby="connections-provider" className="flex flex-col gap-2">
-			<h2
-				id="connections-provider"
-				className="flex items-center gap-2 px-1 text-12 font-medium text-n-11"
-			>
-				<span aria-hidden="true" className="flex">
-					<SparklesIcon size={14} />
-				</span>
-				{format(t.count, { name: t.connections.group.provider, count: rows.length })}
-			</h2>
-			{rows.map((p) => (
-				<ProviderRow key={p.id} provider={p} formOpen={formOpen} onForm={onForm} />
-			))}
-		</section>
+		<SetupCard id="connections-provider" title={t.connections.group.provider}>
+			{/* The context menu wraps each row: the first row has no line above it. */}
+			<div className="[&>span:first-child>[role=group]]:border-t-0">
+				{rows.map((p) => (
+					<ProviderRow key={p.id} provider={p} formOpen={formOpen} onForm={onForm} />
+				))}
+			</div>
+			{adding ? (
+				<div className={LINE}>
+					<ProviderForm onDone={() => add(false)} />
+				</div>
+			) : (
+				<Row className={LINE}>
+					<LinkButton disabled={formOpen} onClick={() => add(true)}>
+						{t.personal.setup.addProvider}
+					</LinkButton>
+				</Row>
+			)}
+		</SetupCard>
 	);
 }
