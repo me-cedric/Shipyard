@@ -80,6 +80,8 @@ export function Threads({ a, full }: { a: Assistant; full?: boolean }) {
 												: name
 										}
 										selected={th.id === id}
+										// A thread is a row of the list, not a big choice tile: the design keeps it one line high.
+										className="justify-center px-4 py-2.5 text-ui"
 										aria-current={th.id === id ? "true" : undefined}
 										onClick={() => void a.select(th.id)}
 									/>
