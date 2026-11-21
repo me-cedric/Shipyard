@@ -137,4 +137,4 @@ Changer, à côté du dossier des données, déplace les données vers le dossie
 
 ## Ajouter un type de ticket
 
-Setup / Tickets a Ajouter après les types. Tapez le type, choisissez le type qui le contient, puis cliquez sur Ajouter. Le type doit exister dans l'outil de suivi, sinon Ajouter le refuse. La hiérarchie montre alors le type sous son parent.
+Configuration / Tickets a Ajouter après les types. Tapez le type, choisissez le type qui le contient, puis cliquez sur Ajouter. Le type doit exister dans l'outil de suivi, sinon Ajouter le refuse. La hiérarchie montre alors le type sous son parent.

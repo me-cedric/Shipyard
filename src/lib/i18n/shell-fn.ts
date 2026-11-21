@@ -77,7 +77,7 @@ export const shellFnFr: typeof shellFnEn = {
 	signOut: {
 		label: "Se déconnecter",
 		confirm: "Retirer la connexion de {names} ?",
-		none: "Aucun hébergeur de code ni suivi de tickets n'est connecté",
+		none: "Aucun hébergeur de code ni outil de suivi n'est connecté",
 		done: "Déconnecté de {names}",
 	},
 	sessions: {

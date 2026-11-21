@@ -137,4 +137,4 @@ Cambiar, junto a la carpeta de datos, mueve los datos a la carpeta que elijas, t
 
 ## Añadir un tipo de ticket
 
-Setup / Tickets tiene Añadir tras los tipos. Escriba el tipo, elija el tipo que lo contiene y pulse Añadir. El tipo debe existir en el gestor de tickets, o Añadir lo rechaza. La jerarquía muestra entonces el tipo bajo su padre.
+Configuración / Tickets tiene Añadir tras los tipos. Escribe el tipo, elige el tipo que lo contiene y pulsa Añadir. El tipo debe existir en el gestor de tickets, o Añadir lo rechaza. La jerarquía muestra entonces el tipo bajo su padre.

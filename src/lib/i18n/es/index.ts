@@ -345,7 +345,7 @@ export const es: Messages = {
 	projects: {
 		switcher: "Proyecto",
 		job: "¿Cuál es tu trabajo?",
-		start: "¿Cómo empieza?",
+		start: "¿Cómo empiezas?",
 		open: "Abrir una carpeta local",
 		clone: "Clonar un repositorio",
 		create: "Crear un proyecto",

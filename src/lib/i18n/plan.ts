@@ -77,7 +77,7 @@ export const planEn = {
 export const planFr: typeof planEn = {
 	views: { timeline: "Calendrier", people: "Personnes", estimates: "Estimations", time: "Temps" },
 	ends: "{name} se termine le {day}",
-	calendar: "Dates et jours non travaillés",
+	calendar: "Dates et jours d'absence",
 	send: "Envoyer à l'outil de suivi",
 	tooMuch: "{count} personnes ont trop de travail",
 	tooMuchOne: "{name} a trop de travail",
@@ -121,7 +121,7 @@ export const planFr: typeof planEn = {
 		proposes: "Le planificateur propose",
 		applyAll: "Tout appliquer",
 		applyBoth: "Appliquer les deux",
-		daysOff: "Jours non travaillés et jours fériés",
+		daysOff: "Jours d'absence et jours fériés",
 		hoursEach: "Heures de chaque personne",
 		loadOf: "{period} : {load}",
 	},

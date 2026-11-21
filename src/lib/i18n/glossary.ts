@@ -29,7 +29,7 @@ export const glossaryEn = {
 };
 
 export const glossaryFr: typeof glossaryEn = {
-	manual: "Manuel",
+	manual: "Mode d'emploi",
 	terms: {
 		"issue-tracker": "L’outil où votre équipe garde ses tickets, comme Linear ou Jira.",
 		"code-host": "Le site qui garde votre code en ligne, comme GitHub ou GitLab.",

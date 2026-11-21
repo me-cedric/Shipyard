@@ -13,7 +13,7 @@ Shipyard aide une équipe à livrer un projet logiciel : les fonctionnalités, l
 - La rangée du haut de chaque page contient le bouton de la barre latérale, Précédent et Suivant, la barre Demander ou dire à Shipyard et la marque de synchronisation. La fenêtre n'a pas de barre du haut ni de barre d'état.
   - La marque de synchronisation montre l'état du dépôt. Cliquez dessus pour voir les fichiers modifiés, la branche, la synchronisation et le commit. Voir la page Code, Synchroniser.
   - Demander ou dire à Shipyard est la seule barre pour une question, un lieu et une action. Voir la page La barre Demander.
-  - Le menu du compte contient votre nom et votre rôle avec Modifier (Configuration / Moi), Thème (Clair, Sombre, Système), Langue, Manuel, Raccourcis, Nouveautés, Revoir la visite, Rechercher une mise à jour, À propos de Shipyard avec la version, et Santé. Raccourcis et Nouveautés s'ouvrent en boîtes de dialogue.
+  - Le menu du compte contient votre nom et votre rôle avec Modifier (Configuration / Moi), Thème (Clair, Sombre, Système), Langue, Mode d'emploi, Raccourcis, Nouveautés, Revoir la visite, Rechercher une mise à jour, À propos de Shipyard avec la version, et Santé. Raccourcis et Nouveautés s'ouvrent en boîtes de dialogue.
 - Sous 1100 px, les boutons Fichiers et Terminal sont dans le menu Plus.
 
 La fenêtre s'ouvre à la taille où vous l'avez fermée. Pour garder les données de l'application à côté de l'application (sur une clé USB, par exemple), placez un fichier vide nommé `portable` à côté de l'application.

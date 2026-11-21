@@ -19,7 +19,7 @@ Ein Rezept ist die Liste der Schritte, denen ein Agent bei einem Feature folgt. 
 Ein Rezept öffnet sich in einem Formular. Nutzen Sie Formular und Text, um zwischen dem Formular und dem YAML-Text zu wechseln. Beide bearbeiten dieselbe Datei.
 
 - Die Seite eines Schritts zeigt auch Art (Agent, Person oder Prüfung, vom Schritt), Läuft neben anderen Schritten (an, wenn der Schritt auf keinen Schritt wartet), Unterschritte laufen nebeneinander und Modus. Ein Schritt, der auf eine Person wartet, hat Wer genehmigt: Nur eine Person mit dieser Rolle genehmigt ihn, und nur diese Rolle erhält seine Karte in Heute. Unter Personen ist Darf schreiben Fragt zuerst oder Allein: Allein ist die Freigabe „Für dieses Rezept nicht mehr fragen“.
-- Schritte: Jeder Schritt ist eine Karte mit den Gruppen Wer, Personen, Ablauf und Limits. Legen Sie die Rolle oder die Aktion, die Modellstufe, den Aufwand, den Modus, die Voraussetzungen, die Werkzeuge und den Prüfschritt jedes Schritts fest. Mehr zeigt die anderen Felder: Arbeitsbereich, für jedes, parallele Kinder, Wiederholungen, Zeitlimit, Budget, Skill, frischer Kontext und Prüfrunden. Fügen Sie einen Schritt hinzu, entfernen Sie ihn und schieben Sie ihn nach oben oder unten.
+- Schritte: Jeder Schritt ist eine Karte mit den Gruppen Wer, Personen, Funktionsweise und Limits. Legen Sie die Rolle oder die Aktion, die Modellstufe, den Aufwand, den Modus, die Voraussetzungen, die Werkzeuge und den Prüfschritt jedes Schritts fest. Mehr zeigt die anderen Felder: Arbeitsbereich, für jedes, parallele Kinder, Wiederholungen, Zeitlimit, Budget, Skill, frischer Kontext und Prüfrunden. Fügen Sie einen Schritt hinzu, entfernen Sie ihn und schieben Sie ihn nach oben oder unten.
 - Limits: das Stillstands-Zeitlimit in Sekunden. Schalten Sie Budget ein, um jeden Lauf bei einem Betrag in USD zu stoppen, und Rundenlimit, um jeden Lauf nach einer Zahl von Runden zu pausieren. Beide sind standardmäßig aus.
 - Das Formular prüft das Rezept bei jeder Änderung. Speichern bleibt aus, solange es ein Problem zeigt.
 - Neu legt ein Rezept aus einer Vorlage an: feature, bug, spike, docs-update, review-only, spec-split oder bootstrap. Das Menü Weitere Aktionen des offenen Rezepts hat Duplizieren, Umbenennen und Löschen. Umbenennen und Löschen lehnen das Standardrezept des Projekts und ein Rezept ab, das ein Lauf nutzt. Löschen bittet um Bestätigung.
@@ -58,13 +58,13 @@ Ein Recht schaltet ein Bedienelement aus. Das Bedienelement bleibt sichtbar, und
 
 - `work.edit`: Tickets, die Liste, das Board, der Plan, Schätzungen, Zeit.
 - `specs.edit`: Spezifikationsänderungen, Spezifikationen, Fragen, Testpläne, Projektregeln.
-- `design.edit`: Diagramme, Entscheidungen, API, Daten, Netzwerkabläufe, Bildschirme.
+- `design.edit`: Diagramme, Entscheidungen, API, Daten, Netzwerkflüsse, Bildschirme.
 - `knowledge.edit`: Handbuch, Dokumente, Folien, Dashboards.
 - `code.write`: Commit, Push, Branch, einen Pull Request öffnen.
 - `code.merge`: einen Pull Request zusammenführen.
 - `runs.start`: einen Lauf starten, stoppen und fortsetzen.
 - `runs.approve`: freigeben, was ein Agent schreiben will, und seinen Plan.
-- `plan.edit`: Schätzungen, der Plankalender und das Schreiben eines Plans in den Issue-Tracker. Ihre eigenen Zeiteinträge bleiben persönlich und brauchen es nicht.
+- `plan.edit`: Schätzungen, der Plankalender und das Schreiben eines Plans in das Ticketsystem. Ihre eigenen Zeiteinträge bleiben persönlich und brauchen es nicht.
 - `project.settings`: Einrichtung / Dieses Projekt, Automatisierung, Rezepte, Verbindungen, die Teamdatei.
 - `costs.view`: Geldbeträge.
 

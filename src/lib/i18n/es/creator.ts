@@ -70,8 +70,8 @@ export const creatorEs: typeof creatorEn = {
 	},
 	ask: {
 		name: "¿Cómo se llama el proyecto?",
-		kind: "¿Qué construye?",
-		tools: "¿Qué herramientas usa?",
+		kind: "¿Qué construyes?",
+		tools: "¿Qué herramientas usas?",
 		team: "¿Quién está en el equipo?",
 	},
 	somethingElse: "Otra cosa",

@@ -165,8 +165,8 @@ Nouvelle pull request est aussi une page. Écrivez le titre et la description (�
 
 ## Code host et tickets
 
-- Dans la section Contrôles d'une pull request, Relancer demande au code host de relancer les contrôles en échec, et seulement ceux-là. Il faut le même droit que pour une autre écriture sur le code host.
-- Sur Nouvelle pull request, Relecteurs liste les utilisateurs du code host, et l'ouverture demande au code host de les ajouter. Fusionner avec règle la méthode par défaut du bouton Fusionner des pull requests suivantes : il ne fusionne jamais seul. Après l'ouverture, la page garde Fermer la pull request, et Marquer comme prête pour un brouillon.
+- Dans la section Contrôles d'une pull request, Relancer demande à l'hébergeur de code de relancer les contrôles en échec, et seulement ceux-là. Il faut le même droit que pour une autre écriture sur l'hébergeur de code.
+- Sur Nouvelle pull request, Relecteurs liste les utilisateurs de l'hébergeur de code, et l'ouverture demande à l'hébergeur de code de les ajouter. Fusionner avec règle la méthode par défaut du bouton Fusionner des pull requests suivantes : il ne fusionne jamais seul. Après l'ouverture, la page garde Fermer la pull request, et Marquer comme prête pour un brouillon.
 - Chaque ligne de pull request montre l'avatar de son auteur.
 - Dans le rapport d'impact, chaque ligne du plan d'action a une case à cocher et un responsable. Les deux vont dans le fichier du rapport, comme une case Markdown et un nom. Une ligne ne crée aucun ticket. Ajouter une ligne termine la liste.
 - Un ticket a une ligne Recette (l'étiquette `wf:<id>` qui choisit la recette) et une ligne Version. Une version est la version de l'outil de suivi : la version corrigée de Jira, le jalon de GitHub et de GitLab, l'itération d'Azure DevOps et le projet de Linear. Un ticket a une seule version.

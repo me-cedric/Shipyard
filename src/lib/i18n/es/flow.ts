@@ -113,7 +113,7 @@ export const flowEs: typeof flowEn = {
 		show: "Mostrar",
 	},
 	new: {
-		heading: "¿Qué quiere construir?",
+		heading: "¿Qué quieres construir?",
 		title: "Título",
 		kind: "Tipo",
 		kinds: { feature: "Funcionalidad", bug: "Error", idea: "Idea para más tarde" },

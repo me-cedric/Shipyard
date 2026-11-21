@@ -18,7 +18,7 @@ export const reportsEs: typeof reportsEn = {
 	write: "Escribir el informe",
 	written: "Escrito",
 	writeIt: "Escribirlo",
-	forYou: "Escrito para usted",
+	forYou: "Escrito para ti",
 	names: {
 		costing: "Costes",
 		sheet: "Libro de estimación",

@@ -150,7 +150,7 @@ export const designDe: typeof designEn = {
 		action: "Aktion",
 		all: "Alle",
 		search: "Suchen",
-		add: "Ablauf",
+		add: "Fluss",
 		edit: "Bearbeiten",
 		remove: "Entfernen",
 		save: "Speichern",

@@ -6,7 +6,7 @@ Plan contient le calendrier, la charge des personnes, les estimations et le temp
 
 Calendrier dessine le calendrier d'un lot en diagramme de Gantt, à partir d'une feuille d'estimation, de l'équipe et du calendrier. Le titre donne le jour où la version se termine.
 
-- Dates et jours non travaillés fixe les jours travaillés et les jours fériés.
+- Dates et jours d'absence fixe les jours travaillés et les jours fériés.
 - Exportez le diagramme en image.
 
 Quand une personne a trop de travail, une carte nomme le problème et liste des propositions : une tâche va à une personne du même rôle qui a de la place, ou elle commence plus tard. Appliquer fait une proposition. Rééquilibrer fait chacune d'elles.
@@ -39,7 +39,7 @@ Remplir depuis mon travail ajoute une ligne pour chaque run de vos tickets et ch
 
 Une sous-page a sa propre adresse et un lien de retour. Estimations garde aussi sa feuille dans l'adresse.
 
-- Calendrier : `/plan/timeline`. Dates et jours non travaillés est à `?page=dates`.
+- Calendrier : `/plan/timeline`. Dates et jours d'absence est à `?page=dates`.
 - Personnes : `/plan/people`. Envoyer à l'outil de suivi est à `?page=send`.
 - Temps : `/plan/time`.
 - Estimations : `/plan/estimates`. Les vues sont `?tab=summary` (feuilles) et `?tab=costing`. Une estimation s'ouvre à `?task=<id>` et l'import depuis Excel à `?page=import`. La recherche, les filtres, les colonnes et les actions de la feuille sont dans le menu Plus.

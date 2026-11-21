@@ -270,7 +270,7 @@ export const designFr: typeof designEn = {
 		flowsText: "Texte de la table de flux",
 		findHost: "Trouver un hôte",
 		rowMenu: "Actions de {name}",
-		connections: "Connexions dans Réglages",
+		connections: "Connexions dans Configuration",
 		colours: "Couleurs",
 		typeSizes: "Tailles de texte",
 		allTokens: "Tous les jetons",

@@ -134,7 +134,7 @@ export const onboardingFr: typeof onboardingEn = {
 	back: "Retour",
 	skip: "Passer la visite",
 	done: "Terminé",
-	manual: "Ouvrir le manuel",
+	manual: "Ouvrir le mode d'emploi",
 	steps: {
 		loop: {
 			title: "Une boucle, de l'idée au code fusionné",

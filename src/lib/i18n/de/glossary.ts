@@ -1,7 +1,7 @@
 import type { glossaryEn } from "../glossary";
 
 export const glossaryDe: typeof glossaryEn = {
-	manual: "Handbuch",
+	manual: "Anleitung",
 	terms: {
 		"issue-tracker":
 			"Das Werkzeug, in dem Ihr Team seine Tickets führt, zum Beispiel Linear oder Jira.",

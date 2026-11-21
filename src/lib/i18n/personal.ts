@@ -177,7 +177,7 @@ export const personalFr: typeof personalEn = {
 	},
 	setup: {
 		repair: "Réparer",
-		rulesText: "Modifier comme texte",
+		rulesText: "Modifier en texte",
 		share: "Partager Shipyard avec d'autres outils",
 		tier: {
 			top: "Fort",
@@ -190,7 +190,7 @@ export const personalFr: typeof personalEn = {
 		otherTools: "Autres outils d'IA",
 		roles: "Rôles des agents",
 		rules: "Règles de travail des agents",
-		editText: "Modifier comme texte",
+		editText: "Modifier en texte",
 		projectRules: "Règles du projet",
 		allows: "Ce que le système autorise",
 		console: "Console",

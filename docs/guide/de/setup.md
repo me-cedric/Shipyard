@@ -121,7 +121,7 @@ Benachrichtigungen: Jede Quelle hat ihren eigenen Schalter, standardmäßig an. 
 
 Budget-Hinweis: Eine Benachrichtigung erscheint, wenn ein Budget seine Warnschwelle erreicht. Der Schalter Ton schaltet den Ton eines Systemhinweises ein oder aus. Der Release-Kanal ist Stabil oder Vorschau: Vorschau beachtet auch die Vorabversionen derselben Release-Adresse.
 
-Abmelden steht neben Ihrem Namen und am Ende des Kontomenüs. Nach Ihrer Bestätigung entfernt es die Anmeldung beim Code-Host und beim Issue-Tracker von diesem Computer. Die Anmeldung eines KI-Tools oder von OpenRouter bleibt.
+Abmelden steht neben Ihrem Namen und am Ende des Kontomenüs. Nach Ihrer Bestätigung entfernt es die Anmeldung bei der Code-Plattform und beim Ticketsystem von diesem Computer. Die Anmeldung eines KI-Tools oder von OpenRouter bleibt.
 
 Beim ersten Start und jedes Mal, wenn eine Berechtigung fehlt, listet eine Karte „Shipyard braucht N Berechtigungen“ die fehlenden Berechtigungen mit Erlauben, Später und Alle erlauben.
 
@@ -137,4 +137,4 @@ Aussehen und Layout enthält die Schriften, die Seite der Leiste und der Schubla
 
 ## Eine Art von Ticket hinzufügen
 
-Setup / Tickets hat Hinzufügen nach den Arten. Tippen Sie die Art, wählen Sie die Art, die sie enthält, und klicken Sie auf Hinzufügen. Die Art muss als Typ im Ticketsystem existieren, sonst lehnt Hinzufügen sie ab. Die Hierarchie zeigt die Art dann unter ihrem Eltern-Element.
+Einrichtung / Tickets hat Hinzufügen nach den Arten. Tippen Sie die Art, wählen Sie die Art, die sie enthält, und klicken Sie auf Hinzufügen. Die Art muss als Typ im Ticketsystem existieren, sonst lehnt Hinzufügen sie ab. Die Hierarchie zeigt die Art dann unter ihrem Eltern-Element.

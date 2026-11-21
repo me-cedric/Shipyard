@@ -8,7 +8,7 @@ export const uiDe: typeof uiEn = {
 		label: "Phasen",
 		idea: "Idee",
 		spec: "Spezifikation",
-		build: "Umsetzung",
+		build: "Bau",
 		review: "Prüfung",
 		ready: "Bereit",
 		done: "erledigt",

@@ -85,7 +85,7 @@ export const designEs: typeof designEn = {
 		flowsText: "Texto de la tabla de flujos",
 		findHost: "Buscar un host",
 		rowMenu: "Acciones de {name}",
-		connections: "Conexiones en Ajustes",
+		connections: "Conexiones en Configuración",
 		colours: "Colores",
 		typeSizes: "Tamaños de texto",
 		allTokens: "Todos los tokens",

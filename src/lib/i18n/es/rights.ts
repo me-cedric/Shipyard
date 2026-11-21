@@ -19,8 +19,8 @@ export const rightsEs: typeof rightsEn = {
 	},
 	found: { solo: "Solo", account: "Cuenta", email: "Correo", unknown: "Desconocido" },
 	team: {
-		you: "Usted es {name} ({how})",
-		unknown: "Usted no está en el archivo del equipo",
+		you: "Eres {name} ({how})",
+		unknown: "No estás en el archivo del equipo",
 		differs: "El archivo del equipo difiere de {branch}",
 		invalid: "No se puede leer el archivo del equipo",
 		emails: "Correos",
@@ -109,7 +109,7 @@ export const rightsEs: typeof rightsEn = {
 		open: "Abrir",
 		noTime: "Hoy no hay tiempo registrado",
 		allNews: "Todas las novedades",
-		you: "Usted",
+		you: "Tú",
 	},
 	everyone: "Todos",
 };

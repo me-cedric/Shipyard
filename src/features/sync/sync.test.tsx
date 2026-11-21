@@ -254,7 +254,7 @@ describe("Settings / Project, group Automation", () => {
 		mountApp("/setup/project?page=automation");
 		expect(await screen.findByRole("spinbutton", { name: "Intervalle (s)" })).toBeInTheDocument();
 		expect(
-			screen.getByRole("switch", { name: "Commenter dans l'outil de tickets" }),
+			screen.getByRole("switch", { name: "Commenter dans l'outil de suivi" }),
 		).toBeInTheDocument();
 		expect(screen.getByRole("textbox", { name: "Terminé, Statut" })).toBeInTheDocument();
 	});

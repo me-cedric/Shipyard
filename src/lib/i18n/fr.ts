@@ -284,7 +284,7 @@ export const fr: Messages = {
 		changedFiles: "Fichiers modifiés",
 		change: "Modifier",
 		menu: {
-			manual: "Manuel",
+			manual: "Mode d'emploi",
 			shortcuts: "Raccourcis",
 			whatsNew: "Nouveautés",
 			tour: "Revoir la visite",
@@ -675,7 +675,7 @@ export const fr: Messages = {
 				push: "Pousser la branche",
 				pullRequest: "Ouvrir la pull request",
 				trackerTransition: "Déplacer le ticket",
-				trackerComment: "Commenter dans l'outil de tickets",
+				trackerComment: "Commenter dans l'outil de suivi",
 			},
 			save: "Enregistrer",
 			recipes: "Autorisé pour une recette",

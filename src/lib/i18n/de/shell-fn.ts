@@ -4,7 +4,7 @@ export const shellFnDe: typeof shellFnEn = {
 	signOut: {
 		label: "Abmelden",
 		confirm: "Die Anmeldung von {names} entfernen?",
-		none: "Kein Code-Host und kein Issue-Tracker ist angemeldet",
+		none: "Keine Code-Plattform und kein Ticketsystem ist angemeldet",
 		done: "Abgemeldet von {names}",
 	},
 	sessions: {

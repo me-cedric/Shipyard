@@ -187,7 +187,7 @@ export const de: Messages = {
 			decisions: "Entscheidungen",
 			api: "API",
 			data: "Daten",
-			flows: "Netzwerkabläufe",
+			flows: "Netzwerkflüsse",
 			screens: "Bildschirme",
 		},
 		specs: {
@@ -290,7 +290,7 @@ export const de: Messages = {
 		changedFiles: "Geänderte Dateien",
 		change: "Ändern",
 		menu: {
-			manual: "Handbuch",
+			manual: "Anleitung",
 			shortcuts: "Tastenkürzel",
 			whatsNew: "Neuigkeiten",
 			tour: "Tour wiederholen",
@@ -383,7 +383,7 @@ export const de: Messages = {
 			models: "Modelle",
 			api: "API",
 			data: "Datenmodelle",
-			flows: "Abläufe",
+			flows: "Flüsse",
 			designs: "Entwürfe",
 			"test-plans": "Testpläne",
 			handbook: "Handbuch",

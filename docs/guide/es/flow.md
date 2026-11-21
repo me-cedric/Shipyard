@@ -165,8 +165,8 @@ Nuevo pull request también es una página. Escribe el título y la descripción
 
 ## Code host y tickets
 
-- En la sección Comprobaciones de una pull request, Volver a ejecutar pide al code host que repita las comprobaciones fallidas, y solo esas. Necesita el mismo derecho que otra escritura en el code host.
-- En Nueva pull request, Revisores lista los usuarios del code host, y al abrir se pide al code host que los añada. Fusionar con fija el método por defecto del botón Fusionar de las pull requests siguientes: nunca fusiona por sí solo. Tras abrir, la página conserva Cerrar la pull request, y Marcar como lista para un borrador.
+- En la sección Comprobaciones de una pull request, Volver a ejecutar pide a la plataforma de código que repita las comprobaciones fallidas, y solo esas. Necesita el mismo derecho que otra escritura en la plataforma de código.
+- En Nueva pull request, Revisores lista los usuarios de la plataforma de código, y al abrir se pide a la plataforma de código que los añada. Fusionar con fija el método por defecto del botón Fusionar de las pull requests siguientes: nunca fusiona por sí solo. Tras abrir, la página conserva Cerrar la pull request, y Marcar como lista para un borrador.
 - Cada fila de pull request muestra el avatar de su autor.
 - En el informe de impacto, cada línea del plan de acción tiene una casilla y un responsable. Ambos van al archivo del informe como una casilla Markdown y un nombre. Una línea no crea ningún ticket. Añadir una línea termina la lista.
 - Un ticket tiene una fila Receta (la etiqueta `wf:<id>` que elige la receta) y una fila Versión. Una versión es la versión del gestor de tickets: la versión de corrección de Jira, el hito de GitHub y GitLab, la iteración de Azure DevOps y el proyecto de Linear. Un ticket tiene una sola versión.

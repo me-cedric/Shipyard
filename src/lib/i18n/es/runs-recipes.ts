@@ -8,7 +8,7 @@ export const runsRecipesEs: typeof runsRecipesEn = {
 	documentKinds: "{name}: añade un archivo Markdown, PDF o Word.",
 	tooLarge: "{name} es más grande que {size}.",
 	limit: "Límite",
-	limitAmount: "Límite de la función, en dólares",
+	limitAmount: "Límite de la funcionalidad, en dólares",
 	limitError: "El límite es una cantidad de más de cero dólares.",
 	stageAtOnce: "{name}, a la vez",
 	warnAtPercent: "Avisar al, en porcentaje",

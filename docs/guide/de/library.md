@@ -89,9 +89,9 @@ Die Karte eines Endpunkts verweist auf die Änderung, die den Vertrag zitiert.
 
 Daten zeigt die Datenmodelle: die Tabellen und die Links zwischen ihnen. Tabelle finden filtert die Liste. Das Bild markiert Schlüssel und Verknüpfungen, und der Umschalter Bild, Beide, Text zeigt den Text `.dbml`.
 
-### Netzwerkabläufe
+### Netzwerkflüsse
 
-Netzwerkabläufe listet die Netzwerkabläufe als Tabelle: von wo, nach wo, der Port und das Protokoll. Fügen Sie eine Zeile hinzu, ändern oder entfernen Sie sie, dann speichern Sie. Jede Zeile hat Von, Nach und Warum. Der Umschalter Abläufe und Bausteine und die Karte Bausteine und Hosts zeigen die anderen Ansichten. Ganze Matrix öffnen öffnet `/library/flows/matrix`: eine Seite mit dem Link Netzwerkabläufe zurück, Filter-Chips, Host finden und einer Zeile je Ablauf (Erlauben oder Verweigern), mit Bearbeiten und Entfernen im Zeilenmenü. Fluss hinzufügen steht im Menü Mehr der Matrix, und Als Text bearbeiten öffnet die Datei.
+Netzwerkflüsse listet die Netzwerkflüsse als Tabelle: von wo, nach wo, der Port und das Protokoll. Fügen Sie eine Zeile hinzu, ändern oder entfernen Sie sie, dann speichern Sie. Jede Zeile hat Von, Nach und Warum. Der Umschalter Abläufe und Bausteine und die Karte Bausteine und Hosts zeigen die anderen Ansichten. Ganze Matrix öffnen öffnet `/library/flows/matrix`: eine Seite mit dem Link Netzwerkflüsse zurück, Filter-Chips, Host finden und einer Zeile je Ablauf (Erlauben oder Verweigern), mit Bearbeiten und Entfernen im Zeilenmenü. Fluss hinzufügen steht im Menü Mehr der Matrix, und Als Text bearbeiten öffnet die Datei.
 
 Mit dem Code abgleichen sucht im Code die Hosts, die er aufruft. Eine Zeile sagt Nicht im Code, wenn kein Code ihren Host aufruft, und eine Karte nennt jeden verweigerten Fluss, den der Code nutzt, mit Anzeigen und Änderung anfragen.
 
@@ -176,7 +176,7 @@ Berichte listet jede Datei, die Shipyard für eine Person erstellen kann, die Sh
 - Formular ausfüllen: Änderungsantrag und Geleistete Arbeit öffnen eine Formularseite (unten), dann schreiben sie die Datei.
 - Plan öffnen oder Schätzungen öffnen: Der Bericht braucht eine Wahl, die Sie auf dieser Seite treffen. Der Link öffnet die Seite; exportieren Sie von dort.
 
-Ein Bericht zeigt sich nur, wenn Ihre Rolle die Seite sieht, die seinen Export enthält. Der Bericht Netzwerkabläufe zeigt sich, wenn das Projekt eine Ablaufdatei hat. Wenn kein Bericht übrig ist, hat Berichte keinen Chip. Das Menü Exportieren jeder Seite funktioniert weiterhin.
+Ein Bericht zeigt sich nur, wenn Ihre Rolle die Seite sieht, die seinen Export enthält. Der Bericht Netzwerkflüsse zeigt sich, wenn das Projekt eine Ablaufdatei hat. Wenn kein Bericht übrig ist, hat Berichte keinen Chip. Das Menü Exportieren jeder Seite funktioniert weiterhin.
 
 Eine Formularseite hat die Adresse `/library/reports/change-request` oder `/library/reports/work-done` und den Link Berichte zurück. Füllen Sie die Felder aus (ein Änderungsantrag fragt Von Version, Bis Version und Personen, die freigeben: Hinzufügen zeigt das Team mit einem Kontrollkästchen je Person), dann klicken Sie auf Bericht schreiben. Ein leeres Pflichtfeld gibt eine Fehlerzeile und schreibt nichts. Nach dem Schreiben zeigt die Karte Geschrieben jede Datei mit ihrem Pfad, Im Ordner zeigen und Öffnen. Die Karten rechts listen die anderen Berichte mit Formular, die Berichte ohne Formular (Alle Berichte) und die Teile des vollständigen Dossiers.
 

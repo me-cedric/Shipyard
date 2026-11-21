@@ -154,7 +154,7 @@ export const workspaceFr: typeof workspaceEn = {
 		fullScreen: "Plein écran",
 		back: "Précédent",
 		forward: "Suivant",
-		help: "Manuel de cette page",
+		help: "Mode d'emploi de cette page",
 		more: "Plus",
 		skip: "Aller au contenu",
 		textLarger: "Texte plus grand",

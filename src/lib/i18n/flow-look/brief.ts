@@ -63,7 +63,7 @@ export const briefFr: typeof briefEn = {
 	noPicture: "Pas encore d'image",
 	noScreen: "Aucun écran lié",
 	linkScreen: "Lier un écran",
-	designToCode: "De la maquette au code",
+	designToCode: "Du design au code",
 	tickets: "Tickets",
 	splitMore: "Découper en plus de tickets",
 	linked: "Liens",

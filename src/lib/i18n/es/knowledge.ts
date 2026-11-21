@@ -239,7 +239,7 @@ export const knowledgeEs: typeof knowledgeEn = {
 		proposed: "Mosaico propuesto",
 		accept: "Aceptar",
 		discard: "Descartar",
-		buildSpent: "El presupuesto se agotó. Añada presupuesto y cree de nuevo.",
+		buildSpent: "El presupuesto se agotó. Añade presupuesto y crea de nuevo.",
 		settings: "Ajustes del mosaico",
 		name: "Nombre",
 		width: "Ancho",

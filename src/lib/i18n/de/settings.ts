@@ -125,7 +125,7 @@ export const settingsDe: typeof settingsEn = {
 		group: { base: "Basis", forge: "Code-Plattformen", agent: "Agenten", scanner: "Scanner" },
 	},
 	ledger: {
-		title: "Funde im Zeitverlauf",
+		title: "Befunde im Zeitverlauf",
 		added: "+{count} neu",
 		resolved: "-{count} behoben",
 	},

@@ -6,16 +6,16 @@ export const createEn = {
 };
 
 export const createFr: typeof createEn = {
-	back: "Flow",
+	back: "Flux",
 	avatars: { agent: "Planificateur", mine: "Vous", build: "Constructeur" },
 };
 
 export const createDe: typeof createEn = {
-	back: "Flow",
-	avatars: { agent: "Planer", mine: "Du", build: "Bauer" },
+	back: "Ablauf",
+	avatars: { agent: "Planer", mine: "Sie", build: "Bauer" },
 };
 
 export const createEs: typeof createEn = {
-	back: "Flow",
+	back: "Flujo",
 	avatars: { agent: "Planificador", mine: "Tú", build: "Constructor" },
 };

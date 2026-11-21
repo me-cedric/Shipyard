@@ -85,7 +85,7 @@ export const costingDe: typeof costingEn = {
 		newAssumption: "Neue Annahme",
 		add: "Hinzufügen",
 		removeAssumption: "Entfernen: {text}",
-		bothEnds: "Bestenfalls und Schlimmstenfalls setzen, oder keines von beiden",
+		bothEnds: "Bestfall und Schlimmstfall setzen, oder keines von beiden",
 		many: "Viele Aufgaben auf einmal",
 		manySelected: "{count} Aufgaben ausgewählt",
 		thisSheet: "Diese Tabelle",

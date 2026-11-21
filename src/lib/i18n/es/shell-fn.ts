@@ -4,7 +4,7 @@ export const shellFnEs: typeof shellFnEn = {
 	signOut: {
 		label: "Cerrar sesión",
 		confirm: "¿Quitar el acceso de {names}?",
-		none: "Ningún alojamiento de código ni gestor de incidencias tiene sesión",
+		none: "Ninguna plataforma de código ni gestor de tickets tiene sesión",
 		done: "Sesión cerrada en {names}",
 	},
 	sessions: {

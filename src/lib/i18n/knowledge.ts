@@ -312,7 +312,7 @@ export const knowledgeFr: typeof knowledgeEn = {
 		title: "Manuel",
 		newPage: "Nouvelle page",
 		find: "Trouver une page",
-		manual: "Manuel de Shipyard",
+		manual: "Mode d'emploi de Shipyard",
 		name: "Nom de la page",
 		mode: "Mode",
 		read: "Lire",

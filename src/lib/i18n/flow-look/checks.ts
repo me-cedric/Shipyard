@@ -97,8 +97,8 @@ export const checksDe: typeof checksEn = {
 	none: "Noch keine Prüfung gelaufen",
 	fix: "Mit einem Agenten beheben",
 	fixAsk:
-		"Behebe die fehlgeschlagenen Prüfungen dieser Funktion: {failing}. Lies die Ausgabe, finde die Ursache und schlage eine Lösung vor.",
-	host: "Prüfungen des Code-Hosts",
+		"Behebe die fehlgeschlagenen Prüfungen dieses Features: {failing}. Lies die Ausgabe, finde die Ursache und schlage eine Lösung vor.",
+	host: "Prüfungen der Code-Plattform",
 	project: "Prüfungen des Projekts",
 	pass: "Bestanden",
 	failed: "Fehler",
@@ -124,7 +124,7 @@ export const checksDe: typeof checksEn = {
 	busy: "Der Agent liest eine Nachricht, wenn er anhält",
 	working: "{agent} arbeitet",
 	builder: "Builder",
-	you: "Du",
+	you: "Sie",
 };
 
 export const checksEs: typeof checksEn = {
@@ -140,7 +140,7 @@ export const checksEs: typeof checksEn = {
 	fix: "Corregir con un agente",
 	fixAsk:
 		"Corrige las comprobaciones fallidas de esta funcionalidad: {failing}. Lee la salida, encuentra la causa y propón una corrección.",
-	host: "Comprobaciones del alojamiento de código",
+	host: "Comprobaciones de la plataforma de código",
 	project: "Comprobaciones del proyecto",
 	pass: "Correcto",
 	failed: "Fallo",

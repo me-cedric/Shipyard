@@ -305,7 +305,7 @@ describe("Plan / Timeline and People", () => {
 		await withTracker();
 		const router = mountApp("/plan/timeline");
 		expect(
-			await screen.findByRole("link", { name: "Dates et jours non travaillés" }),
+			await screen.findByRole("link", { name: "Dates et jours d'absence" }),
 		).toBeInTheDocument();
 		expect(screen.getByRole("img", { name: /^Aujourd'hui 2 nov/ })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Rééquilibrer" })).toBeInTheDocument();

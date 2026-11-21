@@ -59,7 +59,7 @@ export const personalDe: typeof personalEn = {
 		projectRules: "Projektregeln",
 		allows: "Was das System erlaubt",
 		console: "Konsole",
-		noHost: "Verbinden Sie zuerst einen Code-Host",
+		noHost: "Verbinden Sie zuerst eine Code-Plattform",
 		outsideUse: "Agenten, die den MCP-Server von Shipyard nutzen",
 		addProvider: "Anbieter hinzufügen",
 		addServer: "Server hinzufügen",

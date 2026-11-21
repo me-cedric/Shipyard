@@ -57,7 +57,7 @@ export const doctorEs: typeof doctorEn = {
 			"¿Iniciar un agente para corregir {count} hallazgos? Presupuesto de la ejecución: {budget}",
 		confirmOne:
 			"¿Iniciar un agente para corregir 1 hallazgo? Presupuesto de la ejecución: {budget}",
-		noBudget: "Defina primero un presupuesto en la receta {recipe}",
+		noBudget: "Define primero un presupuesto en la receta {recipe}",
 		open: "Abrir la funcionalidad",
 		stop: "Detener",
 		confirmStop: "¿Detener el agente?",
@@ -91,7 +91,7 @@ export const doctorEs: typeof doctorEn = {
 		step: {
 			waits: "Espera",
 			plan: "Plan",
-			build: "Construir",
+			build: "Construcción",
 			review: "Revisión",
 			person: "Necesita a una persona",
 			blocked: "Bloqueado",
@@ -101,7 +101,7 @@ export const doctorEs: typeof doctorEn = {
 	},
 	project: {
 		alone: "Lo que los agentes hacen solos",
-		asks: "Pregunta antes",
+		asks: "Pregunta primero",
 		aloneOn: "Solo",
 		autoReview: "Revisión automática",
 		reviewMode: "Modo de revisión",
@@ -119,7 +119,7 @@ export const doctorEs: typeof doctorEn = {
 		languagesOf: "Idiomas del proyecto",
 		recipe: "Receta por defecto",
 		automation: "Automatización",
-		limit: "Límite por función",
+		limit: "Límite por funcionalidad",
 		set: "Definir",
 		tickets: "Tickets",
 		ticketsSetup: "Ajuste de tickets",

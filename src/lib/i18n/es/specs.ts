@@ -162,7 +162,7 @@ export const specsEs: typeof specsEn = {
 		foldLong: "Añadir la respuesta a la especificación",
 		editItem: "Editar: {name}",
 		answerTo: "Responder: {name}",
-		answerRequired: "Escriba primero una respuesta.",
+		answerRequired: "Escribe primero una respuesta.",
 		whatTested: "Qué está probado",
 		addScenario: "Añadir un escenario",
 		writeForMe: "Escribir los escenarios por mí",

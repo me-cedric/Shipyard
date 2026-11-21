@@ -16,7 +16,7 @@
 | `src/lib/ipc/` | Generierte Bindings und die Mock-Schicht. |
 | `src/lib/i18n/` | Die Kataloge für Englisch, Französisch, Deutsch und Spanisch. Jeder hat den Typ von `en.ts`. |
 | `e2e/` | Playwright-Tests auf dem Vite-Release-Build, mit dem Mock-IPC. |
-| `docs/guide/` | Seiten für Nutzer, eine pro Ort, und dieses Handbuch. `docs/guide/fr/`, `de/` und `es/` haben die französischen, deutschen und spanischen Seiten, mit denselben Dateinamen und denselben Überschriften. |
+| `docs/guide/` | Seiten für Nutzer, eine pro Ort, und diese Anleitung. `docs/guide/fr/`, `de/` und `es/` haben die französischen, deutschen und spanischen Seiten, mit denselben Dateinamen und denselben Überschriften. |
 
 ## Ausführen
 
