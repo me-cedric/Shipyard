@@ -5,6 +5,7 @@ import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import {
 	commands,
 	type FileDiff,
+	isTauri,
 	type PanelSide,
 	type Quote,
 	type RunnerOptions,
@@ -159,7 +160,7 @@ export function useAssistant({
 
 	// The short name of a thread comes after its first answer, in the background.
 	useEffect(() => {
-		if (!open || !project) return;
+		if (!open || !project || !isTauri()) return;
 		const off = listen("assistant-threads", () => {
 			unwrap(commands.assistantThreads())
 				.then(setThreads)
