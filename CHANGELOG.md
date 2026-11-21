@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.2.0]
+- The top row has Assistant and Terminal buttons, so the assistant panel and the terminal open from any page.
 - Code / Branches counts each branch against main, so a branch with no copy on the code host shows its commits; the branch button of Code lines up with the other header controls, and the threads of Ask are one line high.
 - A blocked run whose AI tool is signed out says so on its card and offers Sign in beside Unblock; the expired login of Claude Code now counts as signed out.
 - Each team role hides by default the places that the design hides, for example Code for a Product owner; a personal role that Shipyard does not know hides none, and the rights do not change.

@@ -65,7 +65,18 @@ function Frame() {
 	const project = useActiveProject().data;
 	const { commit: runCommit } = useCodeActions();
 	const { gate } = useRights();
-	const { list: all, sync, commit, palette, fetch, push, back, forward } = useActions();
+	const {
+		list: all,
+		sync,
+		commit,
+		palette,
+		fetch,
+		push,
+		back,
+		forward,
+		assistant,
+		terminal,
+	} = useActions();
 	// The count of pages that show without the shell: the first run and "No project is open".
 	const [claims, setBare] = useState(0);
 	const claimBare = useCallback(() => {
@@ -148,6 +159,8 @@ function Frame() {
 							back={back}
 							forward={forward}
 							toggleSidebar={toggle}
+							assistant={assistant}
+							terminal={terminal}
 						/>
 					)
 				}

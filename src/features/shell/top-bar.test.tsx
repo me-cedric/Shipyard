@@ -9,7 +9,7 @@ const top = async () => within((await screen.findAllByRole("banner"))[0] as HTML
 const alpha = () => unwrap(commands.projectsOpen("/mock/alpha", false));
 
 describe("top row (ux-declutter REQ-009 to REQ-013)", () => {
-	it("holds the rail toggle, Back, Forward, the Ask bar and the sync mark, and no other control", async () => {
+	it("holds the rail toggle, Back, Forward, the Ask bar, the sync mark, Assistant and Terminal", async () => {
 		await alpha();
 		mountApp("/home/today");
 		const bar = await top();
@@ -18,13 +18,12 @@ describe("top row (ux-declutter REQ-009 to REQ-013)", () => {
 			.getAllByRole("button")
 			.concat(bar.queryAllByRole("link"), bar.queryAllByRole("combobox"));
 		expect(controls.length).toBeLessThanOrEqual(13);
-		for (const name of ["Hide sidebar", "Back", "Forward"])
+		for (const name of ["Hide sidebar", "Back", "Forward", "Assistant", "Terminal"])
 			expect(bar.getByRole("button", { name })).toHaveClass("size-(--control-h)");
-		// The project is in the rail. The branch, Sync, the files and the terminal left the row.
+		// The project is in the rail. The branch, Sync and the files left the row.
 		for (const gone of [
 			/^Theme: /,
 			"Open the manual for this page",
-			"Assistant",
 			"Search",
 			"Ask",
 			/^Activity/,
@@ -33,7 +32,6 @@ describe("top row (ux-declutter REQ-009 to REQ-013)", () => {
 			/^Account/,
 			"Sync",
 			"Files",
-			"Terminal",
 		])
 			expect(bar.queryByRole("button", { name: gone })).toBeNull();
 		expect(bar.queryByRole("combobox", { name: "Working branch" })).toBeNull();

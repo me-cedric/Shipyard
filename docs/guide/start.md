@@ -10,7 +10,7 @@ Shipyard helps a team deliver a software project: the features, the plan, the pe
 - The sidebar also holds the project name at its top and your account at its foot.
   - The project name opens a menu with your projects and the Projects page.
   - Your account opens the account menu, beside the rail. The account row shows your name and your initials.
-- The top row of each page holds the sidebar button, Back and Forward, the bar Ask or tell Shipyard and the sync mark. The window has no top bar and no status bar.
+- The top row of each page holds the sidebar button, Back and Forward, the bar Ask or tell Shipyard, the sync mark, and the Assistant and Terminal buttons, which open the assistant panel and the terminal from any page. The window has no top bar and no status bar.
   - The sync mark shows the state of the repository. Click it to see the changed files, the branch, Sync and Commit. See the page Code, Sync.
   - Ask or tell Shipyard is the one bar for a question, a place and an action. See the page The Ask bar.
   - The account menu holds your name and role with Change (Setup / Me), Theme (Light, Dark, System), Language, Manual, Shortcuts, What is new, Show the tour again, Check for an update, About Shipyard with the version, and Health. Shortcuts and What is new open as dialogs.

@@ -54,7 +54,7 @@ describe("navigation (W15 M8)", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/library/manual"));
 	});
 
-	it("toggles the sidebar from the top row, which holds no terminal button", async () => {
+	it("toggles the sidebar, the assistant and the terminal from the top row", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
@@ -63,8 +63,13 @@ describe("navigation (W15 M8)", () => {
 		await waitFor(() => expect(mockState().prefs.sidebarOpen).toBe(false));
 		expect(bar.getByRole("button", { name: "Show sidebar" })).toBeVisible();
 		expect(screen.queryByRole("button", { name: /^(Collapse|Expand)$/ })).toBeNull();
-		// The terminal is an action of the Ask bar and of Code / Now.
-		expect(bar.queryByRole("button", { name: /terminal/i })).toBeNull();
+		// The assistant and the terminal open from any page.
+		const assistant = bar.getByRole("button", { name: "Assistant" });
+		await user.click(assistant);
+		await waitFor(() => expect(assistant).toHaveAttribute("aria-pressed", "true"));
+		const terminal = bar.getByRole("button", { name: "Terminal" });
+		await user.click(terminal);
+		await waitFor(() => expect(terminal).toHaveAttribute("aria-pressed", "true"));
 	});
 
 	it("fetches or pushes from the card of the sync mark", async () => {

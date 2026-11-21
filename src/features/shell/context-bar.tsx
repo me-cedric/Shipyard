@@ -1,14 +1,21 @@
 import { SyncMark } from "@/features/code/sync-mark";
 import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
+import { useShell } from "@/lib/shell";
 import { IconButton } from "@/ui/atoms/icon-button";
-import { ChevronLeftIcon, ChevronRightIcon, SidebarIcon } from "@/ui/icons";
+import {
+	ChatBubbleIcon,
+	ChevronLeftIcon,
+	ChevronRightIcon,
+	CommandLineIcon,
+	SidebarIcon,
+} from "@/ui/icons";
 import type { Action } from "./actions";
 import { PaletteHost } from "./palette-host";
 
 /**
- * The top row of every page: the rail toggle, Back and Forward, the Ask bar, then the sync mark at
- * the right end. The project is in the rail, and the files and the terminal are actions of the Ask bar.
+ * The top row of every page: the rail toggle, Back and Forward, the Ask bar, the sync mark, then
+ * the assistant and the terminal, so that both open from any page. The project is in the rail.
  */
 export function ContextBar({
 	sync,
@@ -20,6 +27,8 @@ export function ContextBar({
 	back,
 	forward,
 	toggleSidebar,
+	assistant,
+	terminal,
 }: {
 	sync: Action;
 	fetch: Action;
@@ -31,9 +40,12 @@ export function ContextBar({
 	back: Action;
 	forward: Action;
 	toggleSidebar: Action;
+	assistant: Action;
+	terminal: Action;
 }) {
 	const { t } = useI18n();
 	const { sidebarOpen } = usePrefs();
+	const { assistantOpen, terminalOpen } = useShell();
 	return (
 		<>
 			<div className="flex shrink-0 gap-2">
@@ -64,6 +76,27 @@ export function ContextBar({
 			</div>
 			<PaletteHost actions={actions} shortcut={palette.shortcut} />
 			<SyncMark sync={sync} fetch={fetch} push={push} commit={commit} />
+			<div className="flex shrink-0 gap-2">
+				<IconButton
+					variant="outline"
+					label={assistant.label}
+					shortcut={assistant.shortcut}
+					aria-pressed={assistantOpen}
+					onClick={assistant.run}
+				>
+					<ChatBubbleIcon size={16} />
+				</IconButton>
+				<IconButton
+					variant="outline"
+					label={terminal.label}
+					shortcut={terminal.shortcut}
+					disabled={terminal.disabled}
+					aria-pressed={terminalOpen}
+					onClick={terminal.run}
+				>
+					<CommandLineIcon size={16} />
+				</IconButton>
+			</div>
 		</>
 	);
 }

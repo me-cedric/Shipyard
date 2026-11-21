@@ -70,7 +70,13 @@ Feature: shell
     Given a project is open
     When the shell renders
     Then the shell shows no top bar and no status bar
-    And the page area starts with the rail toggle, Back, Forward, the Ask bar and the sync mark
+    And the page area starts with the rail toggle, Back, Forward, the Ask bar, the sync mark, and the Assistant and Terminal buttons
+
+  @spec:shell#REQ-021
+  Scenario: Top row and sync mark: Assistant and terminal from any page
+    Given a project is open
+    When the person clicks Assistant or Terminal in the top row
+    Then the assistant panel or the terminal opens on the same page
 
   @spec:shell#REQ-021
   Scenario: Top row and sync mark: Sync from the sync mark
