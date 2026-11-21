@@ -1,21 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
-import { invoke } from "@tauri-apps/api/core";
-import { useActiveProject } from "@/lib/projects";
+import { useWorkItems } from "@/lib/sync";
+import { useReleases as useWorkReleases } from "@/lib/work";
 
 export type Release = { name: string; keys: string[] };
 
 /**
- * The releases of the issue tracker with the keys of their tickets (`spec:library-functions#REQ-010`).
- * seam: `releases_list` exists in the mock only. When `spec:code-host-tickets#REQ-004` is merged,
- * read `workReleases` and the release of each ticket instead. Without the command the list is empty
- * and the picker stays hidden.
+ * The releases of the issue tracker with the keys of their tickets (`spec:library-functions#REQ-010`):
+ * `work_releases` and the release of each ticket (`spec:code-host-tickets#REQ-004`). With no release
+ * the picker stays hidden.
  */
 export function useReleases(): Release[] {
-	const active = useActiveProject().data;
-	const q = useQuery({
-		queryKey: ["knowledge", "releases"],
-		queryFn: () => invoke<Release[]>("releases_list").catch(() => [] as Release[]),
-		enabled: !!active,
-	});
-	return q.data ?? [];
+	const names = useWorkReleases().data ?? [];
+	const items = useWorkItems({}).data ?? [];
+	return names.map((name) => ({
+		name,
+		keys: items.filter((i) => i.release === name).map((i) => i.key),
+	}));
 }

@@ -1177,7 +1177,7 @@ function approverOnly(run: string) {
 const mePerson = () => (handlers.rightsGet() as { person: RightsPerson_Serialize }).person;
 
 // A missing key fails `tsc`: each generated command needs a handler.
-const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesList> } = {
+const handlers: Handlers = {
 	appInfo: () => ({ name: "Shipyard", version: "0.1.0", os: state.platform ?? "browser" }),
 	prefsGet: () => state.prefs,
 	prefsSet: (patch) => {
@@ -2391,7 +2391,6 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 	dashboardSaveOne: (slug, dashboard, stamp) =>
 		kw.dashboardSave(need(state.knowledge), slug, dashboard, stamp),
 	dashboardTile: (kind) => kw.dashboardTile(knowledgeEnv(), kind),
-	releasesList: () => kw.releasesList(),
 	dashboardTileBuild: (slug, text, budgetUsd) =>
 		tb.tileBuild(
 			agentPr(),

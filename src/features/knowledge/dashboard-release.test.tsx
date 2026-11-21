@@ -7,7 +7,7 @@ import { importAll, withTracker } from "@/test/tracker";
 
 const f = en.library.fn.dashboards;
 
-// spec:library-functions#REQ-010 (the release list is a mock command until code-host-tickets lands)
+// spec:library-functions#REQ-010, spec:code-host-tickets#REQ-004
 describe("Release picker of Dashboards", () => {
 	it("shows the data of the chosen release in the tiles", async () => {
 		const user = userEvent.setup();
@@ -33,7 +33,8 @@ describe("Release picker of Dashboards", () => {
 		await user.click(await screen.findByRole("combobox", { name: f.release }));
 		expect(await screen.findByRole("option", { name: f.allReleases })).toBeVisible();
 		await user.click(await screen.findByRole("option", { name: "MVP 1" }));
-		await waitFor(async () => expect(await total()).toBe(4));
+		// The fake issue tracker puts MVP 1 on 3 of its 10 tickets (`mock-code-host.ts`).
+		await waitFor(async () => expect(await total()).toBe(3));
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 });
