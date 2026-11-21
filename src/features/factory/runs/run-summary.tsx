@@ -91,9 +91,16 @@ export function useScrollClear(head: RefObject<HTMLElement | null>) {
 	}, [head]);
 }
 
-/** The title of the open run takes the focus: an action removed its own control. */
-export function focusRunTitle() {
+/**
+ * The title of the open run takes the focus: an action removed its own control. The refresh after
+ * the action can mount the page again: while the focus is on the body, focus the new title (up to 1 s).
+ */
+export function focusRunTitle(tries = 10) {
 	document.querySelector<HTMLElement>("[data-run-title]")?.focus();
+	if (tries > 0)
+		setTimeout(() => {
+			if (document.activeElement === document.body) focusRunTitle(tries - 1);
+		}, 100);
 }
 
 /**
