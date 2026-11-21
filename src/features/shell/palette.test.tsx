@@ -380,6 +380,8 @@ describe("project actions of the palette", () => {
 	it("lists Switch project and runs Close project", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		// No agent works: the close asks nothing.
+		for (const r of mockState().factory.runs) r.state = "Done";
 		mountApp("/home");
 		await openPalette(user);
 		const dialog = within(await screen.findByRole("listbox"));

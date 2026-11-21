@@ -6,7 +6,12 @@ import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 
-const open = (path = "/mock/alpha") => unwrap(commands.projectsOpen(path, false));
+const open = async (path = "/mock/alpha") => {
+	const opened = await unwrap(commands.projectsOpen(path, false));
+	// No agent works: a close asks nothing (`shell-setup-rights` REQ-012 has its own tests).
+	for (const r of mockState().factory.runs) r.state = "Done";
+	return opened;
+};
 /** The first run starts with the role. Continue shows the three starts. */
 const next = async (user: ReturnType<typeof userEvent.setup>, name = "Continue") =>
 	user.click(await screen.findByRole("button", { name }));

@@ -12,6 +12,7 @@ import {
 	unwrap,
 } from "@/lib/ipc";
 import { forgetView } from "@/lib/shell/view-state";
+import { askProjectClose } from "./close-ask";
 
 export type ProjectEntry = ProjectEntry_Serialize;
 export type ProjectOutcome = ProjectOutcome_Serialize;
@@ -173,9 +174,15 @@ export function useProjectActions() {
 		[opened],
 	);
 
-	/** No project is active: the app shows the first run, with the recent projects. */
+	/**
+	 * No project is active: the app shows the first run, with the recent projects. While agents work
+	 * it asks first: Cancel, Stop them and close, or Keep them working (`shell-setup-rights` REQ-012).
+	 */
 	const close = useCallback(async () => {
-		await unwrap(commands.projectsClose());
+		const runs = await unwrap(commands.projectsCloseState());
+		const answer = runs.length ? await askProjectClose(runs.length) : "keep";
+		if (answer === "cancel") return;
+		await unwrap(answer === "stop" ? commands.projectsCloseStop() : commands.projectsClose());
 		router.history.push("/");
 		qc.invalidateQueries();
 	}, [qc, router]);

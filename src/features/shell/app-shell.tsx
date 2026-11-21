@@ -29,6 +29,7 @@ import { ContextBar } from "./context-bar";
 import { useDropFolder } from "./drop-folder";
 import { useCloseGuardEvent, useNativeMenu, useShellEvents } from "./events";
 import { RouteAnnouncer, SkipLink } from "./page-chrome";
+import { ProjectCloseAsk } from "./project-close";
 import { RefDetail } from "./ref-detail";
 import { ShortcutHelp } from "./shortcut-help";
 import { Sidebar } from "./sidebar";
@@ -203,6 +204,7 @@ function Frame() {
 			<SelectionActions onAsk={ask} />
 			<AskOnItem />
 			<CloseGuard />
+			<ProjectCloseAsk />
 			<WhatsNew />
 			<Tour />
 			<CommitDialog

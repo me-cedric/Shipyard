@@ -14,6 +14,7 @@ export function Dialog({
 	full,
 	card,
 	initialFocus,
+	closeLabel,
 	children,
 }: {
 	open: boolean;
@@ -28,6 +29,8 @@ export function Dialog({
 	card?: boolean;
 	/** The element that takes focus when the dialog opens. The default is the first tabbable one. */
 	initialFocus?: RefObject<HTMLElement | null>;
+	/** The text of the close button, when Close is not the right word. */
+	closeLabel?: string;
 	children: ReactNode;
 }) {
 	const { t } = useI18n();
@@ -59,7 +62,7 @@ export function Dialog({
 						{full ? <div className="min-h-0 flex-1">{children}</div> : children}
 						<div className="flex flex-wrap justify-end gap-2.5">
 							<BaseDialog.Close render={<Button variant="secondary" />}>
-								{t.common.close}
+								{closeLabel ?? t.common.close}
 							</BaseDialog.Close>
 							{actions}
 						</div>

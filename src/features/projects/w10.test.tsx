@@ -87,6 +87,8 @@ describe("Projects", () => {
 		const user = userEvent.setup();
 		await open("/mock/alpha");
 		await open("/mock/beta");
+		// No agent works: a close asks nothing.
+		for (const r of mockState().factory.runs) r.state = "Done";
 		mountApp("/projects");
 		await user.click(await screen.findByRole("button", { name: "Remove from the list: alpha" }));
 		await waitFor(() => expect(mockState().projects.map((p) => p.name)).toEqual(["beta"]));
