@@ -32,6 +32,10 @@ pub fn app_folder(exe: &Path) -> Option<PathBuf> {
 /// Change (`shell-setup-rights` REQ-008). The marker of the portable mode wins over it.
 const POINTER: &str = "data-folder";
 
+/// The move that waits for the next start: it holds the new data folder. The copy runs at the
+/// start, before a store opens, because a live SQLite store and the sync loop keep writing.
+const PENDING: &str = "data-folder-move";
+
 /// The folder that the pointer names, when it is a folder.
 fn pointed(system: &Path) -> Option<PathBuf> {
     let text = std::fs::read_to_string(system.join(POINTER)).ok()?;
@@ -71,7 +75,14 @@ fn check_target(from: &Path, to: &Path) -> Res<()> {
     if !to.is_absolute() {
         return Err("the new folder needs a full path".into());
     }
-    let real = |p: &Path| p.canonicalize().unwrap_or_else(|_| p.to_path_buf());
+    // A folder that does not exist yet: the nearest folder that exists, plus the rest.
+    fn real(p: &Path) -> PathBuf {
+        p.canonicalize()
+            .unwrap_or_else(|_| match (p.parent(), p.file_name()) {
+                (Some(up), Some(name)) => real(up).join(name),
+                _ => p.to_path_buf(),
+            })
+    }
     let (a, b) = (real(from), real(to));
     if b.starts_with(&a) || a.starts_with(&b) {
         return Err("the new folder is the data folder, or is inside it".into());
@@ -84,7 +95,7 @@ fn check_target(from: &Path, to: &Path) -> Res<()> {
     }
 }
 
-/// Move the data to `to`: the data is copied, the pointer names the new folder, and the old
+/// Ask to move the data to `to`: the move runs at the next start ([`apply_pending`]). The old
 /// folder stays as it was (a copy that a person can drop, never a delete). `Err` while the
 /// portable marker is on: it wins over the pointer.
 ///
@@ -97,9 +108,30 @@ pub fn move_data(from: &Path, to: &Path, system: &Path, exe: Option<&Path>) -> R
         return Err("turn off the portable mode first".into());
     }
     check_target(from, to)?;
-    copy_tree(from, to)?;
     std::fs::create_dir_all(system).map_err(err)?;
-    std::fs::write(system.join(POINTER), to.display().to_string()).map_err(err)
+    std::fs::write(system.join(PENDING), to.display().to_string()).map_err(err)
+}
+
+/// The data folder at the start, after a waiting move: copy the data to the new folder and point
+/// to it. Call it before a store opens. A failed copy keeps the move for the next start and the
+/// old folder in use; the portable marker cancels the move.
+pub fn start_dir(exe: Option<&Path>, system: PathBuf) -> PathBuf {
+    let from = data_dir(exe, system.clone());
+    let Ok(text) = std::fs::read_to_string(system.join(PENDING)) else {
+        return from;
+    };
+    let to = PathBuf::from(text.trim());
+    let portable = exe
+        .and_then(app_folder)
+        .is_some_and(|f| f.join(MARKER).is_file());
+    let moved = !portable
+        && to.is_absolute()
+        && copy_tree(&from, &to).is_ok()
+        && std::fs::write(system.join(POINTER), to.display().to_string()).is_ok();
+    if moved || portable || !to.is_absolute() {
+        let _ = std::fs::remove_file(system.join(PENDING));
+    }
+    data_dir(exe, system)
 }
 
 /// Turn the portable mode on or off: the marker next to the app. Turning it on first copies the
@@ -273,12 +305,16 @@ mod tests {
     }
 
     #[test]
-    fn change_copies_the_data_and_the_pointer_gives_the_new_folder_at_the_next_start() {
+    fn change_waits_and_the_next_start_copies_the_data_and_points_to_the_new_folder() {
         let tmp = tempfile::tempdir().unwrap();
         let (system, to) = (tmp.path().join("system"), tmp.path().join("new"));
         tree(&system);
         let exe = tmp.path().join("app/shipyard");
         move_data(&system, &to, &system, Some(&exe)).unwrap();
+        assert!(!to.exists(), "nothing is copied while the app runs");
+        assert_eq!(data_dir(Some(&exe), system.clone()), system);
+        assert_eq!(start_dir(Some(&exe), system.clone()), to);
+        assert!(!system.join(PENDING).exists());
         assert_eq!(
             std::fs::read_to_string(to.join("audit/p.jsonl")).unwrap(),
             "x"
@@ -307,7 +343,7 @@ mod tests {
         assert!(move_data(&system, &inside, &system, None).is_err());
         assert!(move_data(&system, Path::new("relative"), &system, None).is_err());
         assert!(
-            !system.join(POINTER).exists(),
+            !system.join(POINTER).exists() && !system.join(PENDING).exists(),
             "a refused change writes nothing"
         );
         let exe = tmp.path().join("app/shipyard");

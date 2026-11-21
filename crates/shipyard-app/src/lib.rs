@@ -651,7 +651,7 @@ pub fn run() {
         })
         .setup(|app| {
             let exe = std::env::current_exe().ok();
-            let dir = window::data_dir(exe.as_deref(), app.path().app_data_dir()?);
+            let dir = window::start_dir(exe.as_deref(), app.path().app_data_dir()?);
             std::fs::create_dir_all(&dir)?;
             window::restore(app.handle(), &dir);
             app.manage(AppState::new(dir.clone()));
