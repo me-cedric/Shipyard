@@ -63,7 +63,7 @@ test("opens an architecture model on its picture, and a switch shows the text", 
 	await expect(page.getByRole("heading", { name: "system" })).toBeVisible();
 });
 
-test("lists the reports on one page, filters them by format and exports one", async ({ page }) => {
+test("lists the reports on one page, picks the output format and exports one", async ({ page }) => {
 	await openProject(page);
 	await openLibrary(page, "Reports");
 	await expect(page).toHaveURL(/\/library\/reports$/);
@@ -74,11 +74,11 @@ test("lists the reports on one page, filters them by format and exports one", as
 	await expect(page.getByRole("link", { name: "Fill the form Change request" })).toBeVisible();
 	await expect(page.getByRole("link", { name: "Open Estimates" })).toBeVisible();
 
-	// The format choice is a filter: the dossier is a Word file.
+	// The format choice is the output of the text reports (spec:library-functions#REQ-006): no card leaves.
 	const format = page.getByRole("group", { name: "Format" });
 	await format.getByRole("button", { name: "Excel" }).click();
 	await expect(card("Work done")).toBeVisible();
-	await expect(card("Complete dossier")).toHaveCount(0);
+	await expect(card("Complete dossier")).toBeVisible();
 	await format.getByRole("button", { name: "Word" }).click();
 	await page.getByRole("button", { name: "Export Complete dossier" }).click();
 	await expect(page.getByText("Exported: /mock/dossier.docx").first()).toBeVisible();

@@ -18,7 +18,12 @@ export const reportsEn = {
 	written: "Written",
 	writeIt: "Write it",
 	forYou: "Written for you",
-	names: { sheet: "Estimate workbook", raid: "Questions and risks", gantt: "Timeline picture" },
+	names: {
+		costing: "Costing",
+		sheet: "Estimate workbook",
+		raid: "Questions and risks",
+		gantt: "Timeline picture",
+	},
 	fillShort: "Fill",
 	askFirst: "Other reports that ask first",
 	noForm: "Reports with no form",
@@ -87,6 +92,7 @@ export const reportsFr: typeof reportsEn = {
 	writeIt: "L'écrire",
 	forYou: "Écrit pour vous",
 	names: {
+		costing: "Chiffrage",
 		sheet: "Classeur d'estimation",
 		raid: "Questions et risques",
 		gantt: "Image du calendrier",

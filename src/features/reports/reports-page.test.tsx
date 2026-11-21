@@ -32,7 +32,7 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 			"Complete dossier",
 			"Change request",
 			"Work done",
-			"Estimates",
+			"Costing",
 			"Network flows",
 			"Questions and risks",
 			"Security findings",
@@ -173,7 +173,7 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 		);
 		for (const name of [
 			"Work done",
-			"Estimates",
+			"Costing",
 			"Questions and risks",
 			"Security findings",
 			"Schedule",
@@ -189,7 +189,7 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 	it("hides the reports of Documents and of Design with their areas", async () => {
 		await hide("knowledge", "design");
 		await mountView(<Reports />);
-		expect(await screen.findByRole("heading", { level: 2, name: "Estimates" })).toBeVisible();
+		expect(await screen.findByRole("heading", { level: 2, name: "Costing" })).toBeVisible();
 		// The rights load after the first paint.
 		await waitFor(() =>
 			expect(screen.queryByRole("heading", { level: 2, name: "Complete dossier" })).toBeNull(),
@@ -205,7 +205,7 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 		const files = mockState().design.files;
 		for (const path of Object.keys(files)) if (path.startsWith("docs/flows/")) delete files[path];
 		await mountView(<Reports />);
-		expect(await screen.findByRole("heading", { level: 2, name: "Estimates" })).toBeVisible();
+		expect(await screen.findByRole("heading", { level: 2, name: "Costing" })).toBeVisible();
 		expect(screen.queryByRole("heading", { level: 2, name: "Network flows" })).toBeNull();
 	});
 });

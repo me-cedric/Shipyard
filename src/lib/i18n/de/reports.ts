@@ -19,7 +19,12 @@ export const reportsDe: typeof reportsEn = {
 	written: "Geschrieben",
 	writeIt: "Schreiben",
 	forYou: "Für Sie geschrieben",
-	names: { sheet: "Schätzungsmappe", raid: "Fragen und Risiken", gantt: "Bild des Zeitplans" },
+	names: {
+		costing: "Kalkulation",
+		sheet: "Schätzungsmappe",
+		raid: "Fragen und Risiken",
+		gantt: "Bild des Zeitplans",
+	},
 	fillShort: "Ausfüllen",
 	askFirst: "Andere Berichte mit Formular",
 	noForm: "Berichte ohne Formular",

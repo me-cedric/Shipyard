@@ -20,6 +20,7 @@ export const reportsEs: typeof reportsEn = {
 	writeIt: "Escribirlo",
 	forYou: "Escrito para usted",
 	names: {
+		costing: "Costes",
 		sheet: "Libro de estimación",
 		raid: "Preguntas y riesgos",
 		gantt: "Imagen del calendario",

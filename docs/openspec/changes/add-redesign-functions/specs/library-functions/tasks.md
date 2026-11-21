@@ -45,10 +45,10 @@ Plan: [plan.md](plan.md)
 - [x] T027 Shared files: add the commands to the map of `src/lib/ipc/mock.ts` and to `crates/shipyard-app/src/lib.rs`, run `pnpm ipc:gen`, add the strings in English, French, German and Spanish to `src/lib/i18n/`.
 - [x] T028 Docs: `docs/flows/network-flows.json` is NOT changed (no new call); `docs/designs/screens.json` and the pictures for Slides, Learn, Reports, Dashboards and the flow matrix; the scenarios in `docs/delivery/test-plans/library-functions.feature`; the pictures in `docs/assets/screenshots/` and `docs/designs/screens.json` for each changed screen; one bullet each in `CHANGELOG.md` and `CHANGELOG.fr.md`; the page of the guide in four languages.
 - [x] T029 Run the commands of the Validation block of `plan.md`.
-- [ ] T030 Compare the build with the spec and fix stale artifacts.
+- [x] T030 Compare the build with the spec and fix stale artifacts.
 
 ## Completion Check
 
-- [ ] All acceptance criteria are met.
-- [ ] Required validation passed or failures are marked pre-existing.
-- [ ] Specs, docs, and code agree.
+- [x] All acceptance criteria are met.
+- [x] Required validation passed or failures are marked pre-existing.
+- [x] Specs, docs, and code agree.

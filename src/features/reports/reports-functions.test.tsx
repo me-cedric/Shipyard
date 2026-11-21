@@ -86,6 +86,12 @@ describe("PDF and Markdown output of reports", () => {
 
 // spec:library-functions#REQ-007
 describe("Reports page cards and the dossier form", () => {
+	it("has a Costing card that exports the costing", async () => {
+		await mountView(<Reports />);
+		expect(await screen.findByRole("heading", { level: 2, name: "Costing" })).toBeVisible();
+		expect(screen.getByRole("button", { name: "Export Costing" })).toBeVisible();
+	});
+
 	it("shows the person and the day on each row of Written for you", async () => {
 		await mountView(<Reports />);
 		const forYou = within(await screen.findByRole("region", { name: "Written for you" }));
