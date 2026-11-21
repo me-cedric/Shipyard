@@ -116,6 +116,7 @@ pub fn move_data(from: &Path, to: &Path, system: &Path, exe: Option<&Path>) -> R
 /// to it. Call it before a store opens. A failed copy keeps the move for the next start and the
 /// old folder in use; the portable marker cancels the move.
 pub fn start_dir(exe: Option<&Path>, system: PathBuf) -> PathBuf {
+    portable_copy(exe, &system);
     let from = data_dir(exe, system.clone());
     let Ok(text) = std::fs::read_to_string(system.join(PENDING)) else {
         return from;
@@ -134,22 +135,40 @@ pub fn start_dir(exe: Option<&Path>, system: PathBuf) -> PathBuf {
     data_dir(exe, system)
 }
 
-/// Turn the portable mode on or off: the marker next to the app. Turning it on first copies the
-/// data to the folder next to the app when that folder does not exist, so the next start finds it.
-pub fn set_portable(exe: &Path, data: &Path, on: bool) -> Res<()> {
-    let folder = app_folder(exe).ok_or("no folder holds the app")?;
-    let marker = folder.join(MARKER);
-    if !on {
-        return match std::fs::remove_file(&marker) {
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(err(e)),
-            _ => Ok(()),
-        };
-    }
+/// The portable mode is on and the folder next to the app does not exist yet: copy the data
+/// there at this start, before a store opens. A failed copy removes the marker and the half copy,
+/// so the old folder stays in use.
+fn portable_copy(exe: Option<&Path>, system: &Path) {
+    let Some(folder) = exe
+        .and_then(app_folder)
+        .filter(|f| f.join(MARKER).is_file())
+    else {
+        return;
+    };
     let portable = folder.join(PORTABLE_DIR);
-    if !portable.exists() && data != portable {
-        copy_tree(data, &portable)?;
+    let from = pointed(system).unwrap_or_else(|| system.to_path_buf());
+    if portable.exists() || !from.is_dir() {
+        return;
     }
-    std::fs::write(&marker, "").map_err(err)
+    if copy_tree(&from, &portable).is_err() {
+        let _ = std::fs::remove_dir_all(&portable);
+        let _ = std::fs::remove_file(folder.join(MARKER));
+    }
+}
+
+/// Turn the portable mode on or off: the marker next to the app. The data moves at the next
+/// start ([`start_dir`]), not while the stores are open.
+pub fn set_portable(exe: &Path, on: bool) -> Res<()> {
+    let marker = app_folder(exe)
+        .ok_or("no folder holds the app")?
+        .join(MARKER);
+    if on {
+        return std::fs::write(&marker, "").map_err(err);
+    }
+    match std::fs::remove_file(&marker) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(err(e)),
+        _ => Ok(()),
+    }
 }
 
 /// A screen as `(x, y, width, height)` in logical points.
@@ -240,7 +259,7 @@ pub async fn app_portable_set(app: AppHandle, on: bool, click: bool) -> Api<Data
     blocking(app, move |s| {
         crate::rights::need_click_local(s, click)?;
         let exe = std::env::current_exe().map_err(err)?;
-        set_portable(&exe, &s.dir, on)?;
+        set_portable(&exe, on)?;
         Ok(state(&s.dir))
     })
     .await
@@ -359,22 +378,27 @@ mod tests {
     }
 
     #[test]
-    fn the_portable_switch_copies_the_data_and_writes_or_removes_the_marker() {
+    fn the_portable_switch_writes_the_marker_and_the_next_start_copies_the_data() {
         let tmp = tempfile::tempdir().unwrap();
         let data = tmp.path().join("system");
         tree(&data);
         let app = tmp.path().join("app");
         std::fs::create_dir_all(&app).unwrap();
         let exe = app.join("shipyard");
-        set_portable(&exe, &data, true).unwrap();
+        set_portable(&exe, true).unwrap();
         assert!(app.join(MARKER).is_file());
+        assert!(
+            !app.join(PORTABLE_DIR).exists(),
+            "nothing is copied while the app runs"
+        );
+        assert_eq!(start_dir(Some(&exe), data.clone()), app.join(PORTABLE_DIR));
         assert!(app.join(PORTABLE_DIR).join("prefs.json").is_file());
-        assert_eq!(data_dir(Some(&exe), data.clone()), app.join(PORTABLE_DIR));
-        set_portable(&exe, &data, false).unwrap();
+        assert!(data.join("prefs.json").is_file(), "the old folder stays");
+        set_portable(&exe, false).unwrap();
         assert!(!app.join(MARKER).exists());
         // A second off is no error.
-        set_portable(&exe, &data, false).unwrap();
-        assert_eq!(data_dir(Some(&exe), data.clone()), data);
+        set_portable(&exe, false).unwrap();
+        assert_eq!(start_dir(Some(&exe), data.clone()), data);
     }
 
     #[test]
