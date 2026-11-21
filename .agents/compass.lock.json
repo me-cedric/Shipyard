@@ -1,7 +1,7 @@
 {
   "lockVersion": 2,
-  "version": "1.2.0",
-  "tag": "v1.2.0",
+  "version": "1.3.0",
+  "tag": "v1.3.0",
   "skills": [
     "adr",
     "api-contract-sync",
@@ -23,6 +23,7 @@
     "imagegen-frontend-mobile",
     "imagegen-frontend-web",
     "impact-analysis",
+    "make-interfaces-feel-better",
     "minimalist-skill",
     "plugin-author",
     "pr-flow",
@@ -39,7 +40,9 @@
     "taste-skill",
     "taste-skill-v1",
     "ui-conformance",
+    "untangle-codebase",
     "vuln-triage",
+    "web-design-guidelines",
     "working-style-skills"
   ],
   "files": {
@@ -97,7 +100,7 @@
     },
     ".agents/skills/design-taste-skills/SKILL.md": {
       "owner": "compass",
-      "sha": "286b26469938864b"
+      "sha": "24ec5de3546d07df"
     },
     ".agents/skills/e2e/SKILL.md": {
       "owner": "compass",
@@ -166,6 +169,38 @@
     ".agents/skills/impact-analysis/SKILL.md": {
       "owner": "compass",
       "sha": "16f411339118bbcc"
+    },
+    ".agents/skills/make-interfaces-feel-better/LICENSE": {
+      "owner": "compass",
+      "sha": "ed1dfe988fc40511"
+    },
+    ".agents/skills/make-interfaces-feel-better/SKILL.md": {
+      "owner": "compass",
+      "sha": "c1d508fa7bef8e47"
+    },
+    ".agents/skills/make-interfaces-feel-better/agents/openai.yaml": {
+      "owner": "compass",
+      "sha": "3f5ae62f7339814f"
+    },
+    ".agents/skills/make-interfaces-feel-better/animations.md": {
+      "owner": "compass",
+      "sha": "248ad6d995b4a800"
+    },
+    ".agents/skills/make-interfaces-feel-better/icons.md": {
+      "owner": "compass",
+      "sha": "746601dcf81a322c"
+    },
+    ".agents/skills/make-interfaces-feel-better/performance.md": {
+      "owner": "compass",
+      "sha": "f1e8b9f22de1081d"
+    },
+    ".agents/skills/make-interfaces-feel-better/surfaces.md": {
+      "owner": "compass",
+      "sha": "36d7845774eb331d"
+    },
+    ".agents/skills/make-interfaces-feel-better/typography.md": {
+      "owner": "compass",
+      "sha": "518cae9f0d48d480"
     },
     ".agents/skills/minimalist-skill/LICENSE": {
       "owner": "compass",
@@ -407,6 +442,18 @@
       "owner": "compass",
       "sha": "62d0721297665b5f"
     },
+    ".agents/skills/untangle-codebase/SKILL.md": {
+      "owner": "compass",
+      "sha": "38854c7aa1a72616"
+    },
+    ".agents/skills/untangle-codebase/references/LICENSE-caldoai-skills": {
+      "owner": "compass",
+      "sha": "cbe11503c54a6eee"
+    },
+    ".agents/skills/untangle-codebase/references/decision-log.md": {
+      "owner": "compass",
+      "sha": "f159fe4b0f24431d"
+    },
     ".agents/skills/vuln-triage/SKILL.md": {
       "owner": "compass",
       "sha": "b92092cb1e19d4a1"
@@ -414,6 +461,18 @@
     ".agents/skills/vuln-triage/scripts/sarif-merge.mjs": {
       "owner": "compass",
       "sha": "9b74cba0d629865a"
+    },
+    ".agents/skills/web-design-guidelines/LICENSE": {
+      "owner": "compass",
+      "sha": "b4fd5bff7b62c474"
+    },
+    ".agents/skills/web-design-guidelines/SKILL.md": {
+      "owner": "compass",
+      "sha": "360b1240acfffa95"
+    },
+    ".agents/skills/web-design-guidelines/references/command.md": {
+      "owner": "compass",
+      "sha": "d246b026f4f29b58"
     },
     ".agents/skills/working-style-skills/SKILL.md": {
       "owner": "compass",
@@ -489,7 +548,7 @@
     },
     ".claude/skills/design-taste-skills/SKILL.md": {
       "owner": "compass",
-      "sha": "286b26469938864b"
+      "sha": "24ec5de3546d07df"
     },
     ".claude/skills/e2e/SKILL.md": {
       "owner": "compass",
@@ -558,6 +617,38 @@
     ".claude/skills/impact-analysis/SKILL.md": {
       "owner": "compass",
       "sha": "16f411339118bbcc"
+    },
+    ".claude/skills/make-interfaces-feel-better/LICENSE": {
+      "owner": "compass",
+      "sha": "ed1dfe988fc40511"
+    },
+    ".claude/skills/make-interfaces-feel-better/SKILL.md": {
+      "owner": "compass",
+      "sha": "c1d508fa7bef8e47"
+    },
+    ".claude/skills/make-interfaces-feel-better/agents/openai.yaml": {
+      "owner": "compass",
+      "sha": "3f5ae62f7339814f"
+    },
+    ".claude/skills/make-interfaces-feel-better/animations.md": {
+      "owner": "compass",
+      "sha": "248ad6d995b4a800"
+    },
+    ".claude/skills/make-interfaces-feel-better/icons.md": {
+      "owner": "compass",
+      "sha": "746601dcf81a322c"
+    },
+    ".claude/skills/make-interfaces-feel-better/performance.md": {
+      "owner": "compass",
+      "sha": "f1e8b9f22de1081d"
+    },
+    ".claude/skills/make-interfaces-feel-better/surfaces.md": {
+      "owner": "compass",
+      "sha": "36d7845774eb331d"
+    },
+    ".claude/skills/make-interfaces-feel-better/typography.md": {
+      "owner": "compass",
+      "sha": "518cae9f0d48d480"
     },
     ".claude/skills/minimalist-skill/LICENSE": {
       "owner": "compass",
@@ -795,6 +886,18 @@
       "owner": "compass",
       "sha": "62d0721297665b5f"
     },
+    ".claude/skills/untangle-codebase/SKILL.md": {
+      "owner": "compass",
+      "sha": "38854c7aa1a72616"
+    },
+    ".claude/skills/untangle-codebase/references/LICENSE-caldoai-skills": {
+      "owner": "compass",
+      "sha": "cbe11503c54a6eee"
+    },
+    ".claude/skills/untangle-codebase/references/decision-log.md": {
+      "owner": "compass",
+      "sha": "f159fe4b0f24431d"
+    },
     ".claude/skills/vuln-triage/SKILL.md": {
       "owner": "compass",
       "sha": "b92092cb1e19d4a1"
@@ -802,6 +905,18 @@
     ".claude/skills/vuln-triage/scripts/sarif-merge.mjs": {
       "owner": "compass",
       "sha": "9b74cba0d629865a"
+    },
+    ".claude/skills/web-design-guidelines/LICENSE": {
+      "owner": "compass",
+      "sha": "b4fd5bff7b62c474"
+    },
+    ".claude/skills/web-design-guidelines/SKILL.md": {
+      "owner": "compass",
+      "sha": "360b1240acfffa95"
+    },
+    ".claude/skills/web-design-guidelines/references/command.md": {
+      "owner": "compass",
+      "sha": "d246b026f4f29b58"
     },
     ".claude/skills/working-style-skills/SKILL.md": {
       "owner": "compass",

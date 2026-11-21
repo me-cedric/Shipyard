@@ -34,7 +34,7 @@ describe("mock extensions", () => {
 		});
 		const done = await unwrap(commands.compassApply(["contract:contract"]));
 		expect(done.report.kept).toContain("AGENTS.md");
-		expect(done.version).toBe("1.0.2");
+		expect(done.version).toBe("1.3.0");
 		const again = await unwrap(commands.compassApply(["skill:ui-conformance"]));
 		expect(again.report.written).toEqual([".agents/skills/ui-conformance/SKILL.md"]);
 	});

@@ -25,7 +25,7 @@ import type {
 } from "./bindings";
 import { type MockCompassSetup, seedCompassSetup } from "./mock-compass-setup";
 
-const VERSION = "1.0.2";
+const VERSION = "1.3.0";
 const OLD = "1.0.1";
 export const PLUGIN_PATH = "/mock/plugins/team-kit.zip";
 /** A plugin folder that passes, and one whose manifest has a fault on line 4. */

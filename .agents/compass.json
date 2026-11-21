@@ -21,7 +21,9 @@
   ],
   "upstream": [
     "taste",
-    "mattpocock"
+    "mattpocock",
+    "interface-polish",
+    "vercel-web"
   ],
   "schema": "shipyard-delivery"
 }
