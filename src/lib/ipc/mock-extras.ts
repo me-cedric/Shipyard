@@ -75,7 +75,10 @@ export const dataFolder = (m: MockExtras): DataFolder => ({
 export function feedbackAttach(m: MockExtras, path: string, ok: boolean): string {
 	click(ok);
 	if (!path.startsWith("/")) throw "the file needs a full path";
-	const base = (path.split("/").pop() ?? "").replace(/[^\p{L}\p{N}._ -]/gu, "_").replace(/^\.+|\.+$/g, "").trim();
+	const base = (path.split("/").pop() ?? "")
+		.replace(/[^\p{L}\p{N}._ -]/gu, "_")
+		.replace(/^\.+|\.+$/g, "")
+		.trim();
 	if (!base) throw "the file has no name";
 	let to = `${DATA_PATH}/feedback/${base}`;
 	for (let n = 1; m.attached.includes(to); n++) to = `${DATA_PATH}/feedback/${n}-${base}`;

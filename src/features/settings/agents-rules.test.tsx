@@ -253,7 +253,9 @@ describe("Settings / Agents and rules: a model for each agent role", () => {
 		// The description of the bundled role stays in the file.
 		expect(mockState().factory.roles.scout).toContain("description:");
 		await waitFor(() =>
-			expect(screen.getByRole("combobox", { name: "Model of Scout" })).toHaveTextContent("Standard"),
+			expect(screen.getByRole("combobox", { name: "Model of Scout" })).toHaveTextContent(
+				"Standard",
+			),
 		);
 	});
 

@@ -41,7 +41,7 @@ describe("mock ipc", () => {
 		expect([solo.person.found, solo.person.admin, solo.person.rights.length]).toEqual([
 			"solo",
 			true,
-			10,
+			11,
 		]);
 		expect(solo.roles.find((r) => r.role === "developer")?.rights).not.toContain("code.merge");
 		mockState().person = {

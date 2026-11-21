@@ -127,7 +127,7 @@ describe("Crew / Spend / How agents do", () => {
 		// The run of the address is the one that shows.
 		const router = mountApp(`/crew/spend?page=how&run=${run.run}`);
 		await screen.findByRole("heading", { name: "Requests of one run" });
-		const shown = tree.steps.reduce((n, s) => n + s.requests.length, 0);
+		const shown = tree.steps.reduce((n, s) => n + s.requests.length + s.tools.length, 0);
 		await waitFor(() => expect(document.querySelectorAll("details li")).toHaveLength(shown));
 		await user.click(screen.getByRole("button", { name: "Flame" }));
 		const graph = await screen.findByRole("region", { name: "Spend flame graph" });

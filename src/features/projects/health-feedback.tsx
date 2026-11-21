@@ -63,7 +63,9 @@ export function HealthFeedback() {
 								setAttached(false);
 								const path = await pickFile();
 								if (!path) return;
-								await unwrap(commands.revealPath(await unwrap(commands.feedbackAttach(path, true))));
+								await unwrap(
+									commands.revealPath(await unwrap(commands.feedbackAttach(path, true))),
+								);
 								setAttached(true);
 							})
 						}

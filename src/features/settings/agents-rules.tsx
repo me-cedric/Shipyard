@@ -406,7 +406,9 @@ function RolesCard() {
 	const items = (model: string | null) => [
 		...TIERS.map((v) => ({ value: v as string, label: f[v] })),
 		// A role that names a model and not a tier keeps its text.
-		...(model && !(TIERS as readonly string[]).includes(model) ? [{ value: model, label: model }] : []),
+		...(model && !(TIERS as readonly string[]).includes(model)
+			? [{ value: model, label: model }]
+			: []),
 	];
 	const set = (id: string, tier: string) =>
 		run(async () => {

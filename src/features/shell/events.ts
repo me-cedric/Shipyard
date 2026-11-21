@@ -21,8 +21,8 @@ import { useProjectActions } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { TICK_EVENT, useSyncTick } from "@/lib/sync";
 import { useUpdateCheck } from "@/lib/updates";
-import { useBudgetNotice } from "./budget-notice";
 import type { Action } from "./actions";
+import { useBudgetNotice } from "./budget-notice";
 
 /** The palette actions that the native menu runs (REQ-012). The Go menu shows the seven places once (adr:0023). */
 export const MENU_ACTIONS = [
