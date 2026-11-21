@@ -144,3 +144,29 @@ describe("Attach a file in the agent chat (REQ-003)", () => {
 		expect(attach).not.toHaveBeenCalled();
 	});
 });
+
+describe("A blocked run whose AI tool is signed out", () => {
+	it("names the sign-in as the cause and offers Sign in beside Unblock", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const run = (await unwrap(commands.runsList())).find((r) => r.key === "ACME-9");
+		if (!run) throw new Error("the demo has a blocked run");
+		const claude = mockState().agents.runners.find((r) => r.id === "claude");
+		if (!claude) throw new Error("the demo has Claude Code");
+		claude.auth = "signedOut";
+		const signIn = vi.spyOn(commands, "runnerSignIn");
+		mountApp(`/factory/runs/${run.id}`);
+		const needs = within(await screen.findByRole("region", { name: "Needs you" }));
+		const card = within(await needs.findByRole("article"));
+		expect(await card.findByRole("heading", { name: "Claude Code is signed out." })).toBeVisible();
+		const order = card.getAllByRole("button").map((b) => b.textContent);
+		expect(order.indexOf("Sign in")).toBeGreaterThanOrEqual(0);
+		expect(order.indexOf("Sign in")).toBeLessThan(order.indexOf("Unblock"));
+		await user.click(card.getByRole("button", { name: "Sign in" }));
+		await waitFor(() => expect(signIn).toHaveBeenCalledWith("claude", false, true));
+		// Signed in again: the card names the cause of the stop again.
+		await waitFor(() =>
+			expect(card.queryByRole("heading", { name: "Claude Code is signed out." })).toBeNull(),
+		);
+	});
+});

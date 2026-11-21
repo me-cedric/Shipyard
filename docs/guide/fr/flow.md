@@ -129,6 +129,7 @@ Ensuite l'exécution s'arrête, et la fonctionnalité vous attend. La page dit l
 | Ajouter du budget | L'exécution a dépensé son budget ou ses tours. Augmentez le budget, puis l'exécution continue. |
 | Reprendre | L'exécution est en pause. |
 | Reprendre la main | L'exécution est bloquée. Elle se termine comme annulée avec la raison « Repris par » et votre nom, la branche et le worktree restent, le ticket est à vous et le worktree s'ouvre dans votre éditeur. |
+| Se connecter | L'exécution est bloquée et son outil d'IA est déconnecté : la carte le dit. Se connecter lance la connexion de l'outil dans le terminal ; cliquez ensuite sur Débloquer. |
 | Réessayer | L'exécution a échoué ou a été annulée. Une nouvelle exécution commence. |
 | Clore comme terminée | L'exécution n'a changé aucun fichier et le travail est déjà là. |
 

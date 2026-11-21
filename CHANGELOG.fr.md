@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Une exécution bloquée dont l'outil d'IA est déconnecté le dit sur sa carte et propose Se connecter à côté de Débloquer ; la connexion expirée de Claude Code compte maintenant comme déconnectée.
 - Chaque rôle de l'équipe masque par défaut les lieux que le design masque, par exemple Code pour un Product owner ; un rôle personnel inconnu de Shipyard n'en masque aucun, et les droits ne changent pas.
 - Équipe / Sessions montre les premières sessions avec Tout voir, et Équipe / En direct place le choix Cartes et En direct avant les sections.
 - Quitter une page avec un fichier non enregistré nomme le fichier et propose Rester, Quitter et Enregistrer et quitter.

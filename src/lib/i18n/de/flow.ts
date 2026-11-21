@@ -107,6 +107,8 @@ export const flowDe: typeof flowEn = {
 		whatHappened: "Was passiert ist",
 		stopIt: "Stoppen",
 		keepOpen: "Offen lassen",
+		signedOut: "{tool} ist abgemeldet.",
+		signIn: "Anmelden",
 		budgetLess: "Weniger Budget",
 		budgetMore: "Mehr Budget",
 		budgetAdd: "Zusätzliches Budget (USD)",

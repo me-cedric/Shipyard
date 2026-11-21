@@ -71,6 +71,8 @@ fn is_sign_in_error(text: &str) -> bool {
         "unauthenticated",
         "authentication failed",
         "authentication required",
+        "failed to authenticate",
+        "auth login",
         "invalid api key",
         "invalid x-api-key",
     ]

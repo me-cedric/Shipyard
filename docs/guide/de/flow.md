@@ -129,6 +129,7 @@ Dann stoppt der Lauf, und das Feature wartet auf Sie. Die Seite sagt den Zustand
 | Budget hinzufügen | Der Lauf hat sein Budget oder seine Runden verbraucht. Erhöhen Sie das Budget, dann läuft er weiter. |
 | Fortsetzen | Der Lauf ist pausiert. |
 | Übernehmen | Der Lauf ist blockiert. Er endet als abgebrochen mit dem Grund „Übernommen von“ und Ihrem Namen, der Branch und der Worktree bleiben, das Ticket gehört Ihnen und der Worktree öffnet sich in Ihrem Editor. |
+| Anmelden | Der Lauf ist blockiert und sein KI-Werkzeug ist abgemeldet: Die Karte sagt es. Anmelden startet die Anmeldung des Werkzeugs im Terminal; klicken Sie danach auf Entblocken. |
 | Erneut versuchen | Der Lauf ist fehlgeschlagen oder wurde abgebrochen. Ein neuer Lauf startet. |
 | Als erledigt schließen | Der Lauf hat keine Datei geändert und die Arbeit ist schon da. |
 

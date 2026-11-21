@@ -1,11 +1,19 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 import { escalationOf, stopReason } from "@/features/factory/runs/run-live";
 import { webUrl } from "@/features/factory/runs/run-summary";
+import { runnerKeys } from "@/features/settings/connections/keys";
 import { useGuard } from "@/features/work/guard";
 import { useRunActions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
-import type { QuestionChoice, RunLogEvent_Serialize, RunView } from "@/lib/ipc";
+import {
+	commands,
+	type QuestionChoice,
+	type RunLogEvent_Serialize,
+	type RunView,
+	unwrap,
+} from "@/lib/ipc";
 import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useWorkActions, useWorkContext } from "@/lib/work";
@@ -23,6 +31,17 @@ import { DEFAULT_BUDGET, doStop, type StopAction } from "../stop-action";
 import { AgentAsk } from "./agent-ask";
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
+
+/** The AI tool of the newest attempt: the `runner` of its start event (the only runner event that names it). */
+function runnerOf(events: RunLogEvent_Serialize[]): string | undefined {
+	for (const e of events.toReversed()) {
+		if (e.kind !== "runner") continue;
+		try {
+			const p = JSON.parse(e.payload) as { runner?: unknown };
+			if (typeof p.runner === "string") return p.runner;
+		} catch {}
+	}
+}
 
 type Happened = {
 	open: boolean;
@@ -98,7 +117,7 @@ export function StopCard({
 	const x = t.flow.look.page;
 	const act = useRunActions();
 	const { gate } = useRights();
-	const { openRef } = useShell();
+	const { openRef, runInTerminal } = useShell();
 	const { error, run: guard } = useGuard();
 	const [note, setNote] = useState("");
 	const [added, setAdded] = useState(DEFAULT_BUDGET);
@@ -115,7 +134,17 @@ export function StopCard({
 	const view: StopAction = kept ? "unblock" : action;
 	const esc = escalationOf(events);
 	const budget = run.budgetUsd ?? null;
-	const reason = stopReason(f.why, run, events);
+	// A blocked run whose AI tool is signed out: the sign-in is the cause, not the retries.
+	const tool = view === "unblock" ? runnerOf(events) : undefined;
+	const runners = useQuery({
+		queryKey: runnerKeys.list,
+		queryFn: () => unwrap(commands.runnersList()),
+		enabled: !!tool,
+	});
+	const signedOut = runners.data?.find((r) => r.id === tool && r.auth === "signedOut");
+	const reason = signedOut
+		? format(s.signedOut, { tool: signedOut.label })
+		: stopReason(f.why, run, events);
 	const amount =
 		view === "addBudget" && budget !== null
 			? format(x.spent, { spent: usd(run.costUsd ?? 0), budget: usd(budget) })
@@ -238,6 +267,17 @@ export function StopCard({
 						>
 							{s.stopIt}
 						</ConfirmButton>
+					) : null}
+					{signedOut ? (
+						<Button
+							onClick={() =>
+								void guard(async () => {
+									runInTerminal(await unwrap(commands.runnerSignIn(signedOut.id, false, true)));
+								}).then(() => runners.refetch())
+							}
+						>
+							{s.signIn}
+						</Button>
 					) : null}
 					{view === "unblock" ? (
 						<RightButton right="runs.start" onClick={() => void guard(() => act.takeOver(run.id))}>
