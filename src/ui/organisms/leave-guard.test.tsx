@@ -12,12 +12,12 @@ import { I18nProvider } from "@/lib/i18n";
 import { PrefsProvider } from "@/lib/prefs";
 import { LeaveGuard } from "./leave-guard";
 
-function mount(dirty: boolean) {
+function mount(dirty: boolean, extra: { file?: string; onSave?: () => unknown } = {}) {
 	const root = createRootRoute();
 	const home = createRoute({
 		getParentRoute: () => root,
 		path: "/",
-		component: () => <LeaveGuard dirty={dirty} />,
+		component: () => <LeaveGuard dirty={dirty} {...extra} />,
 	});
 	const other = createRoute({ getParentRoute: () => root, path: "/b", component: () => <p>b</p> });
 	const router = createRouter({
@@ -46,6 +46,37 @@ describe("LeaveGuard", () => {
 		await userEvent.click(screen.getByRole("button", { name: "Leave" }));
 		await act(async () => {});
 		expect(router.state.location.pathname).toBe("/b");
+	});
+
+	it("names the file, stays on Stay, and saves before it leaves", async () => {
+		const onSave = vi.fn();
+		const router = mount(true, { file: "docs/guide.md", onSave });
+		await act(async () => {});
+		await act(async () => router.history.push("/b"));
+		expect(
+			await screen.findByRole("dialog", { name: "Leave this page? 1 file is not saved" }),
+		).toBeVisible();
+		await userEvent.click(screen.getByRole("button", { name: "Stay" }));
+		await act(async () => {});
+		expect(router.state.location.pathname).toBe("/");
+		expect(onSave).not.toHaveBeenCalled();
+		await act(async () => router.history.push("/b"));
+		await userEvent.click(await screen.findByRole("button", { name: "Save and leave" }));
+		await act(async () => {});
+		expect(onSave).toHaveBeenCalledOnce();
+		expect(router.state.location.pathname).toBe("/b");
+	});
+
+	it("stays when the save fails and shows why", async () => {
+		const router = mount(true, {
+			file: "docs/guide.md",
+			onSave: () => Promise.reject("the disk is full"),
+		});
+		await act(async () => {});
+		await act(async () => router.history.push("/b"));
+		await userEvent.click(await screen.findByRole("button", { name: "Save and leave" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("the disk is full");
+		expect(router.state.location.pathname).toBe("/");
 	});
 
 	it("lets a clean page go", async () => {

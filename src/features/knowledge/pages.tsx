@@ -129,7 +129,11 @@ export function PageCard({
 			: [];
 	return (
 		<section aria-label={title} className="flex min-w-0 flex-col gap-4.5">
-			<LeaveGuard dirty={file.dirty || file.conflict} />
+			<LeaveGuard
+				dirty={file.dirty || file.conflict}
+				file={path}
+				onSave={canSave ? save : undefined}
+			/>
 			<CardHeader
 				title={title}
 				more={[

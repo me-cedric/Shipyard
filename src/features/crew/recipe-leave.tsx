@@ -26,6 +26,7 @@ export function RecipeLeave({ dirty }: { dirty: boolean }) {
 				if (!open) block.reset?.();
 			}}
 			title={l.title}
+			closeLabel={l.stay}
 			actions={
 				<Button variant="primary" className="min-h-control" onClick={() => block.proceed?.()}>
 					{l.leave}

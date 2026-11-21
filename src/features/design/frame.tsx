@@ -81,7 +81,11 @@ export function FileFrame({
 		) : null,
 		alerts: (
 			<>
-				<LeaveGuard dirty={state !== "clean"} />
+				<LeaveGuard
+					dirty={state !== "clean"}
+					file={path}
+					onSave={saves && state === "dirty" ? save : undefined}
+				/>
 				{state === "conflict" ? (
 					<div
 						role="alert"

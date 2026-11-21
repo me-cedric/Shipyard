@@ -72,6 +72,9 @@ export const uiDe: typeof uiEn = {
 		title: "Diese Seite verlassen?",
 		body: "Ihre Änderungen sind nicht gespeichert.",
 		leave: "Verlassen",
+		titleOne: "Diese Seite verlassen? 1 Datei ist nicht gespeichert",
+		stay: "Bleiben",
+		save: "Speichern und verlassen",
 	},
 	resize: {
 		sidebar: "Breite der Seitenleiste",

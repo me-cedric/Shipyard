@@ -72,6 +72,9 @@ export const uiEs: typeof uiEn = {
 		title: "¿Salir de esta página?",
 		body: "Tus cambios no están guardados.",
 		leave: "Salir",
+		titleOne: "¿Salir de esta página? 1 archivo no está guardado",
+		stay: "Quedarse",
+		save: "Guardar y salir",
 	},
 	resize: {
 		sidebar: "Ancho de la barra lateral",

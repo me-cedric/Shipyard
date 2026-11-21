@@ -1431,6 +1431,16 @@
         "spec:library-functions"
       ],
       "file": "docs/assets/screenshots/library-flows-not-in-code.png"
+    },
+    {
+      "id": "SCR-193",
+      "slug": "leave-page",
+      "title": "Leave this page: a page change with a draft that is not saved asks with the file, Stay, Leave and Save and leave",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/leave-page.png"
     }
   ]
 }

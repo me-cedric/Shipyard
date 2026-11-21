@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Quitter une page avec un fichier non enregistré nomme le fichier et propose Rester, Quitter et Enregistrer et quitter.
 - Library garde plus : Ouverts en dernier contient les specs, les décisions, les schémas et les documents avec une pastille de genre et Épingler ; Règles du projet a Versions précédentes et une page du Manuel a Historique et une ligne d'auteur, chacun avec Lire et Restaurer (une restauration écrit l'ancien texte et ne commit rien) ; Documents a Ajouter un fichier, qui garde un fichier Word comme Word.
 - Une présentation Markdown a Modifier, Exporter en PDF et Notes de l'intervenant (un bloc `Note:` après une diapositive) ; Learn a une carte Experts, Ajouter un mot (écrit dans `docs/glossary.md`) et une deuxième pastille sur une étape ; Reports propose PDF (macOS d'abord), Word, Excel et Markdown, avec une carte Estimations, Pages qui pointent vers un rapport, une date et une personne sur chaque rapport écrit, et un formulaire qui demande le titre, le client et la date avant d'écrire le Dossier complet.
 - Une tuile de tableau de bord a un graphique (Nombre, Barres, Courbe, Liste, Étapes du flux, Dépense ou Santé), Modifier a Épingler à Aujourd'hui pour que Aujourd'hui montre le tableau de bord en une carte, et Dashboards a un sélecteur de versions qui filtre les tuiles du gestionnaire de tickets.

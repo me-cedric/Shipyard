@@ -525,6 +525,20 @@ const scenes: Scene[] = [
 			await p.getByRole("button", { name: "Earlier versions" }).scrollIntoViewIfNeeded();
 		},
 	},
+	// The question before a page change with a draft that is not saved.
+	{
+		name: "leave-page",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/constitution");
+			await p.getByRole("main").getByRole("button", { name: "Text", exact: true }).click();
+			await p.getByRole("main").getByRole("textbox").first().click();
+			await p.keyboard.press("End");
+			await p.keyboard.type(" More.");
+			await side(p).getByRole("link", { name: "Today" }).click();
+			await p.getByRole("dialog", { name: /^Leave this page\?/ }).waitFor();
+		},
+	},
 	// The chip and the alert after Check against the code (spec:library-functions#REQ-011).
 	{
 		name: "library-flows-not-in-code",

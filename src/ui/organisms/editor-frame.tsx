@@ -68,7 +68,11 @@ export function EditorFrame({
 	useDraftCount(save !== "clean");
 	return (
 		<section aria-label={title} className="flex min-h-0 flex-1 flex-col gap-2">
-			<LeaveGuard dirty={save !== "clean"} />
+			<LeaveGuard
+				dirty={save !== "clean"}
+				file={title}
+				onSave={blocked || save === "conflict" ? undefined : onSave}
+			/>
 			<header className="flex items-center gap-2">
 				<h2 className="truncate text-14 font-medium">{heading ?? title}</h2>
 				{heading ? <span className="truncate font-mono text-12 text-n-11">{title}</span> : null}
