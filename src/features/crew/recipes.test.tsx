@@ -93,12 +93,10 @@ describe("Workflows: the form", () => {
 		expect(screen.getByRole("textbox", { name: "spike" })).toBeInTheDocument();
 	});
 
-	it("the turn limit writes max_turns when on", async () => {
+	it("the form has no turn limit", async () => {
 		const user = await open("spike");
 		await openStep(user, "Grill");
-		await user.click(await screen.findByRole("switch", { name: "Most turns" }));
-		const editor = await openText(user, "spike");
-		await waitFor(() => expect(editor.value).toContain("max_turns: 40"));
+		expect(screen.queryByRole("switch", { name: "Most turns" })).not.toBeInTheDocument();
 	});
 
 	it("the budget is off with no budget_usd and writes it when on", async () => {

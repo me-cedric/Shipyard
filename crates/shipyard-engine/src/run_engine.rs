@@ -386,9 +386,6 @@ pub(crate) struct RunRec {
     /// Tokens that a person added at a resume, on top of `Config::max_tokens`.
     #[serde(default)]
     pub extra_tokens: u64,
-    /// Turns that a person added at a resume, on top of `limits.max_turns`.
-    #[serde(default)]
-    pub extra_turns: u32,
     pub alerted: bool,
     pub rounds: u32,
     pub questions: Vec<Asked>,
@@ -763,16 +760,6 @@ impl Factory {
         inner.take_limits(run_id);
         inner.rec(run_id).extra_usd += add_usd;
         inner.rec(run_id).extra_tokens += add_tokens;
-        // A run paused at its max turns gets one more set of turns.
-        let rec = inner.rec(run_id);
-        if rec
-            .wf
-            .limits
-            .max_turns
-            .is_some_and(|max| rec.turns >= max + rec.extra_turns)
-        {
-            rec.extra_turns = rec.turns;
-        }
         let budget_left = inner.budget_level(run_id) != BudgetLevel::Spent;
         let note = note.map(str::trim).filter(|n| !n.is_empty());
         // A refused resume adds no note.
@@ -951,7 +938,6 @@ impl Inner {
         {
             let limits = &mut self.rec(run_id).wf.limits;
             limits.budget_usd = now.budget_usd;
-            limits.max_turns = now.max_turns;
             limits.review_rounds = now.review_rounds;
             limits.feedback_rounds = now.feedback_rounds;
             limits.fix_rounds = now.fix_rounds;
@@ -1295,7 +1281,6 @@ impl Inner {
 
     fn on_agent_event(&mut self, run_id: &str, sid: &str, i: usize, e: AgentEvent, now: u64) {
         let rec = self.rec(run_id);
-        let max_turns = rec.wf.limits.max_turns;
         let u = &mut rec.steps.get_mut(sid).expect("step").units[i];
         if u.state != StepState::Running {
             return;
@@ -1306,11 +1291,6 @@ impl Inner {
             AgentEvent::Text { text } => u.text = text,
             AgentEvent::Turn => {
                 rec.turns += 1;
-                if let Some(max_turns) = max_turns.filter(|m| rec.turns > m + rec.extra_turns) {
-                    // A pause, not a failure: a person can give the run more turns (REQ-023).
-                    let why = format!("max turns ({max_turns})");
-                    self.escalate(run_id, Cause::MaxTurns, &[why]);
-                }
                 // The turn ended: a request of a person to pause lands here, with no work lost.
                 if self.runs[run_id].c.pause && self.clocks(run_id) {
                     self.pause_now(run_id);
@@ -2149,7 +2129,6 @@ impl Inner {
             tokens: 0,
             extra_usd: 0.0,
             extra_tokens: 0,
-            extra_turns: 0,
             alerted: false,
             rounds: 0,
             questions: Vec::new(),

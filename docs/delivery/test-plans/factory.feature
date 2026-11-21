@@ -394,16 +394,16 @@ Feature: factory
     Then the run returns to its stored state with no click and posts no stop report
 
   @spec:factory#REQ-023
-  Scenario: Stall timeout and max turns: Stall
+  Scenario: Stall timeout and turns: Stall
     Given a step with `stall_s` 300
     When no event arrives for 300 s
     Then the step stops, its failed attempts go up by one, and the run moves to `RetryQueued`
 
   @spec:factory#REQ-023
-  Scenario: Stall timeout and max turns: Max turns
-    Given a run with `max_turns` 40
-    When the agent reaches turn 40
-    Then the run moves to `Paused` with the cause max turns and posts one stop report, and a resume gives it 40 more turns
+  Scenario: Stall timeout and turns: Many turns
+    Given a run whose agent has used 200 turns
+    When the agent starts turn 201
+    Then the run stays in its state and no turn count stops it
 
   @spec:factory#REQ-024
   Scenario: Kill switches: Run switch
@@ -627,9 +627,9 @@ Feature: factory
 
   @spec:factory#REQ-035
   Scenario: Workflow limits: Limits apply
-    Given a workflow with `limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }`
+    Given a workflow with `limits: { budget_usd: 5, stall_s: 300 }`
     When a run of that workflow starts
-    Then the run pauses at turn 40, pauses at 5 USD and stalls after 300 s with no event
+    Then the run pauses at 5 USD and stalls after 300 s with no event
 
   @spec:factory#REQ-035
   Scenario: Workflow limits: No run budget

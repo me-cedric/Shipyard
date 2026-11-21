@@ -24,7 +24,7 @@ stateDiagram-v2
   Active --> WaitingForAnswer: Ask
   Active --> Blocked: Block, an escalation (cause, last lines, stop report)
   Active --> RetryQueued: Retry
-  Active --> Paused: BudgetStop or max turns
+  Active --> Paused: BudgetStop
   Planning --> Paused: Pause, a person, at the end of the turn
   Working --> Paused: Pause, a person, at the end of the turn
   SelfReview --> Paused: Pause, a person, at the end of the turn

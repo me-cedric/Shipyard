@@ -126,7 +126,7 @@ Después la ejecución se detiene, y la funcionalidad te espera. La página dice
 |---|---|
 | Responder | El agente hizo una pregunta. |
 | Desbloquear | La ejecución está bloqueada. Escribe un mensaje: la ejecución recibe una ronda más y lo lee. |
-| Añadir presupuesto | La ejecución gastó su presupuesto o sus turnos. Sube el presupuesto, y la ejecución sigue. |
+| Añadir presupuesto | La ejecución gastó su presupuesto. Sube el presupuesto, y la ejecución sigue. |
 | Reanudar | La ejecución está en pausa. |
 | Tomar el control | La ejecución está bloqueada. Termina como cancelada con el motivo «Tomada por» y tu nombre, la rama y el worktree se quedan, el ticket es tuyo y el worktree se abre en tu editor. |
 | Iniciar sesión | La ejecución está bloqueada y su herramienta de IA tiene la sesión cerrada: la tarjeta lo dice. Iniciar sesión abre el inicio de sesión de la herramienta en el terminal; luego pulsa Desbloquear. |

@@ -156,7 +156,7 @@ fn go_on_turns_the_budget_into_a_warning_that_shows_once() {
 }
 
 #[test]
-fn go_on_keeps_the_stall_timeout_and_the_max_turns() {
+fn go_on_keeps_the_stall_timeout_and_no_turn_limit_applies() {
     let fx = Fx::build(
         writes(true),
         &[
@@ -174,11 +174,11 @@ fn go_on_keeps_the_stall_timeout_and_the_max_turns() {
     // The run budget only warns: 5 dollars on a budget of 1 do not stop the run.
     fx.event("work", usage(5.0));
     assert_eq!(fx.state(&run), RunState::Working);
-    // The max turns stay.
-    for _ in 0..3 {
+    // No turn limit: the old `max_turns: 2` is ignored.
+    for _ in 0..50 {
         fx.event("work", AgentEvent::Turn);
     }
-    assert_eq!(fx.state(&run), RunState::Paused);
+    assert_eq!(fx.state(&run), RunState::Working);
 }
 
 #[test]

@@ -366,7 +366,7 @@ function parseWorkflow(
 	});
 	type Field = { v: string; line: number };
 	const raws: Record<string, Field>[] = [];
-	const limits: WorkflowLimits_Serialize = { max_turns: null, budget_usd: null, stall_s: 300 };
+	const limits: WorkflowLimits_Serialize = { budget_usd: null, stall_s: 300 };
 	let fileId: Field | null = null;
 	let inLimits = false;
 	for (const [i, l] of text.split("\n").entries()) {
@@ -379,7 +379,8 @@ function parseWorkflow(
 		else if (/^limits:/.test(l)) inLimits = true;
 		else if (/^steps:/.test(l)) inLimits = false;
 		else if (step?.[1]) raws.push({ id: at(step[1]) });
-		else if (k && inLimits) Object.assign(limits, { [k]: Number(v) });
+		// `max_turns` is an old key: read and ignored (`adr:0025`).
+		else if (k && inLimits) k !== "max_turns" && Object.assign(limits, { [k]: Number(v) });
 		else if (k) {
 			const raw = raws.at(-1);
 			if (raw) raw[k] = at(v ?? "");
@@ -1570,7 +1571,6 @@ export function workflowRender(
 	}
 	const l = wf.limits;
 	out.push("limits:");
-	if (l.max_turns != null) out.push(`  max_turns: ${l.max_turns}`);
 	if (l.budget_usd != null) out.push(`  budget_usd: ${l.budget_usd}`);
 	out.push(`  stall_s: ${l.stall_s}`);
 	return workflowCheck(f, id, `${out.join("\n")}\n`);

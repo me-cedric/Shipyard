@@ -350,9 +350,6 @@ fn step_value(s: &Step) -> Result<Value> {
 /// left out, so a form edit stays small and the file stays as a person would write it.
 pub fn workflow_text(wf: &Workflow, header: &str) -> Result<String> {
     let mut limits = Mapping::new();
-    if let Some(t) = wf.limits.max_turns {
-        limits.insert("max_turns".into(), t.into());
-    }
     if let Some(b) = wf.limits.budget_usd {
         limits.insert("budget_usd".into(), num(b));
     }

@@ -2,7 +2,7 @@
 
 ## Why
 
-The owner looked for the options of a run in Shipyard (2026-11-05): the turn limit, the model, the effort and the budget. These options live in the workflow files, and Factory / Workflows edits them as YAML text only. A person who does not know YAML cannot change them. An agent cannot change a workflow either: the `.shipyard` folder is closed to the tools of an outside agent.
+The owner looked for the options of a run in Shipyard (2026-11-05): the model, the effort and the budget. These options live in the workflow files, and Factory / Workflows edits them as YAML text only. A person who does not know YAML cannot change them. An agent cannot change a workflow either: the `.shipyard` folder is closed to the tools of an outside agent.
 
 ## What Changes
 

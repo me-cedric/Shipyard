@@ -46,7 +46,7 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - REQ-017: When the pull request exists, the run SHALL move to `PROpen`. The system SHALL record `pr:<forge>:<number>` on the run. The pull request SHALL link back to the run and to each ticket.
 - REQ-018: When `sync` hands a CI failure to delivery (`add-sync` REQ-012), a `PROpen` run SHALL move to `ChangesRequested`. It SHALL then move to `Working` in the same worktree (`add-factory` REQ-002). The run SHALL get the name and the URL of each failed check, and the tail of its log when the forge gives it.
 - REQ-019: A review that asks for changes SHALL move a `PROpen` run to `ChangesRequested`. A new review comment SHALL do the same. The run SHALL then move to `Working` in the same worktree and SHALL get each thread. After the fix and the push, the system SHALL reply on each thread with the fixing commit. Then it SHALL resolve the thread. These replies are one `pull_request` write for all threads of the round: one approval when the switch is off. The run does not wait for it.
-- REQ-020: A loop between `PROpen`, `ChangesRequested` and `Working` SHALL count against the budget and the max turns of the run. The run SHALL stop at those limits (`add-factory` REQ-022, REQ-023). Each feedback round gets its own count of review fix rounds (REQ-004).
+- REQ-020: A loop between `PROpen`, `ChangesRequested` and `Working` SHALL count against the budget of the run. The run SHALL stop at that limit (`add-factory` REQ-022). No turn count stops the loop (`adr:0025`). Each feedback round gets its own count of review fix rounds (REQ-004).
 - REQ-021: For each `PROpen` run, the system SHALL give the CI state (passing, failing or pending). It SHALL also say whether a change request is open and whether the pull request is a draft. Factory / Runs SHALL use all three to place the run (`add-factory` REQ-038). A draft SHALL sit in In review, whatever its CI state.
 - REQ-022: When `sync` hands a merge event to delivery, the run SHALL move to `Merged` and then to `Done`. Delivery SHALL handle the event before `sync` stops runs for a terminal ticket (`add-sync` REQ-003, REQ-004). The run SHALL reach `Done` in the same step, also when a write of REQ-023 or REQ-024 waits for a click: that write goes out after the click.
 - REQ-023: After the merge, the system SHALL move each ticket of the run to the terminal status of the mapping. The move SHALL follow the `tracker_transition` switch. Without the switch it SHALL be an approval in Home / Inbox. The system MUST NOT move a ticket that the forge already closed.
@@ -363,12 +363,12 @@ A review that asks for changes SHALL move a `PROpen` run to `ChangesRequested`. 
 
 ### Requirement: REQ-020 Feedback limits
 
-A loop between `PROpen`, `ChangesRequested` and `Working` SHALL count against the budget and the max turns of the run. The run SHALL stop at those limits (`add-factory` REQ-022, REQ-023). Each feedback round gets its own count of review fix rounds (REQ-004).
+A loop between `PROpen`, `ChangesRequested` and `Working` SHALL count against the budget of the run. The run SHALL stop at that limit (`add-factory` REQ-022). No turn count stops the loop (`adr:0025`). Each feedback round gets its own count of review fix rounds (REQ-004).
 
-#### Scenario: Loop stops
-- GIVEN a run at its max turns
+#### Scenario: Loop goes on
+- GIVEN a run whose agent has used 200 turns
 - WHEN a new CI failure arrives
-- THEN the run moves to `Failed` and the Inbox shows it
+- THEN the feedback round starts and the run does not pause
 
 #### Scenario: Budget stop
 - GIVEN a run in a feedback loop at 100 % of its budget

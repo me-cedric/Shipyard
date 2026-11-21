@@ -27,7 +27,9 @@ pub struct Workflow {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 pub struct WorkflowLimits {
-    /// No limit when absent: a run stops on its budget or its stall timeout.
+    /// Old files may hold it. Read and ignored: a run has no turn limit (`adr:0025`).
+    #[serde(default, skip_serializing)]
+    #[specta(skip)]
     pub max_turns: Option<u32>,
     /// No run budget when absent: the shared budgets still apply.
     pub budget_usd: Option<f64>,
@@ -310,9 +312,6 @@ impl Workflow {
             out.push(I::Cycle { steps });
         }
         let l = &self.limits;
-        if l.max_turns == Some(0) {
-            out.push(bad("limits.max_turns".into()));
-        }
         if l.budget_usd.is_some_and(|b| !(b.is_finite() && b > 0.0)) {
             out.push(bad("limits.budget_usd".into()));
         }

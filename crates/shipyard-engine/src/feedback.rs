@@ -5,7 +5,7 @@
 //! `PROpen`, `ChangesRequested`, `Working`, in the same run folder. The failed checks (names, URLs,
 //! log tails) and the open threads go to the builder steps as notes. The review and the pull
 //! request step run again, and the push goes to the same pull request. Each round counts against
-//! `feedback_rounds` and `fix_rounds` of the whole run, and against the budget and the max turns:
+//! `feedback_rounds` and `fix_rounds` of the whole run, and against the budget:
 //! a spent cap escalates, and the feedback of the round stays for the unblock or the resume
 //! (`delivery` REQ-020). A merge applies in any state that is not final. A pull request that
 //! closes without a merge cancels the run with one stop report, and leaves the worktree and the
@@ -193,16 +193,6 @@ impl Inner {
         }
         // The feedback stays in the record: the unblock or the resume takes it.
         let lines = rec.d.feedback.clone();
-        if rec
-            .wf
-            .limits
-            .max_turns
-            .is_some_and(|m| rec.turns >= m + rec.extra_turns)
-        {
-            let why = format!("max turns ({}): no room for a feedback round", rec.turns);
-            self.escalate(run_id, Cause::MaxTurns, &[why]);
-            return;
-        }
         if self.budget_level(run_id) == BudgetLevel::Spent {
             self.check_budget(run_id);
             return;

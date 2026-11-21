@@ -19,7 +19,6 @@ import { MenuButton } from "@/ui/molecules/menu-button";
 const EFFORTS: Effort[] = ["low", "medium", "high", "xhigh", "max"];
 /** The value of a Select item that stands for no value. */
 const NONE = "-";
-const TURNS = 40;
 /** USD when a person turns the budget on. */
 const BUDGET = 5;
 
@@ -568,12 +567,6 @@ export function StepCards({
 					label={w.stall}
 					value={limits.stall_s}
 					onChange={(v) => setLimits({ stall_s: v ?? 0 })}
-				/>
-				<OptionalNumber
-					label={w.turnLimit}
-					value={limits.max_turns}
-					initial={TURNS}
-					onChange={(max_turns) => setLimits({ max_turns })}
 				/>
 				{agent ? (
 					<Fr label={w.mode}>

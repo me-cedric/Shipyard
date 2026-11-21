@@ -34,7 +34,7 @@ Build the 9 requirements of the spec on the commands and stores of today. Each r
 - REQ-007 (F17): `crates/shipyard-core/src/pickup.rs`, `crates/shipyard-engine/src/run_engine.rs`, `src/features/sync/automation.tsx`, `src/features/sync/automation-draft.ts`, `src/lib/ipc/mock-sync.ts`.
 - REQ-008 (F18): `crates/shipyard-core/src/workflow.rs`, `src/features/crew/recipes.tsx`, `src/features/crew/recipe-file.tsx`, `src/lib/ipc/mock-factory.ts`.
 - REQ-009 (F19): `src/features/crew/recipe-file.tsx`, `crates/shipyard-core/src/workflow.rs`, `src/lib/ipc/mock-factory.ts`.
-- Decision for REQ-006: Go on makes the budget a warning only (`q:Q-174`). The default stays Stop and ask. The kill switch, the stall timeout and the max turns stay. The constitution (section 5, rule 5) says each run has a budget. A budget with Go on still exists and still warns. An ADR may be needed: see the checklist.
+- Decision for REQ-006: Go on makes the budget a warning only (`q:Q-174`). The default stays Stop and ask. The kill switch and the stall timeout stay. The max turns went later (`adr:0025`). The constitution (section 5, rule 5) says each run has a budget. A budget with Go on still exists and still warns. An ADR may be needed: see the checklist.
 - Decision for REQ-001: Pause is cooperative. The engine sets a flag, and the run moves to `Paused` at the end of the turn.
 
 ## Validation

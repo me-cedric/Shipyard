@@ -25,7 +25,7 @@ Chosen option: "A", because the owner chose it (`q:Q-174`).
 
 1. Stop and ask stays the default of each budget.
 2. Go on is a choice of a person for one budget. With Go on, the run warns at the budget and goes on.
-3. Stop all agents, the stall timeout and the max turns stay for every run.
+3. Stop all agents, the stall timeout and the max turns stay for every run. Since 2026-11-21 the max turns no longer stay (`adr:0025`).
 4. The constitution rule stays as written: the run still has a budget, a stall timeout and a kill switch.
 ## Consequences
 - Good: a person can let important work finish without a new approval.

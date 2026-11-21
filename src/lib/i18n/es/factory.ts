@@ -192,7 +192,6 @@ export const factoryEs: typeof factoryEn = {
 		addStep: "Añadir un paso",
 		limits: "Límites",
 		stall: "Parar si se atasca tras",
-		turnLimit: "Turnos como máximo",
 		turns: "Turnos",
 		who: "Quién",
 		people: "Personas",

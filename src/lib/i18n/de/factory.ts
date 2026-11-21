@@ -197,7 +197,6 @@ export const factoryDe: typeof factoryEn = {
 		addStep: "Schritt hinzufügen",
 		limits: "Limits",
 		stall: "Stoppen, wenn blockiert nach",
-		turnLimit: "Höchstzahl Runden",
 		turns: "Runden",
 		who: "Wer",
 		people: "Personen",

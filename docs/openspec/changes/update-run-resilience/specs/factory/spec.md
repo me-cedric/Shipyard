@@ -30,7 +30,7 @@ An audit of the engine (2026-11-06) found that many causes move a run to `Blocke
 - REQ-007: Spent retries escalate. A failed guard uses the backoff and is no retry.
 - REQ-013: A second child conflict starts a fixer round.
 - REQ-022: A day budget pause resumes the next day. A run or member budget pause escalates.
-- REQ-023: A pause at max turns escalates. A stall is a failed attempt.
+- REQ-023: A stall is a failed attempt. No turn count stops a run (`adr:0025`).
 - REQ-026: A rejected tracker write is skipped. A rejected push or pull request escalates.
 - REQ-035: The `limits` block holds the caps `review_rounds`, `feedback_rounds` and `fix_rounds`.
 - REQ-036: Review rounds count for the whole run, default 4. The last round uses the top model tier.
@@ -222,19 +222,19 @@ The system SHALL enforce a budget in tokens and money per run, per day and per m
 - WHEN the first tick of the next day runs
 - THEN the run returns to its stored state with no click and posts no stop report
 
-### Requirement: REQ-023 Stall timeout and max turns
+### Requirement: REQ-023 Stall timeout and turns
 
-The system SHALL stop a step that sends no event for the stall timeout, and SHALL count that step as a failed attempt (REQ-052). When the workflow sets `max_turns`, the system SHALL stop a run at its max turns, move it to `Paused` and escalate (REQ-053). A resume SHALL give the run one more set of max turns.
+The system SHALL stop a step that sends no event for the stall timeout, and SHALL count that step as a failed attempt (REQ-052). The system SHALL NOT stop, pause or fail a run for a number of turns, and SHALL NOT pass a turn limit to an AI tool (`adr:0025`).
 
 #### Scenario: Stall
 - GIVEN a step with `stall_s` 300
 - WHEN no event arrives for 300 s
 - THEN the step stops, its failed attempts go up by one, and the run moves to `RetryQueued`
 
-#### Scenario: Max turns
-- GIVEN a run with `max_turns` 40
-- WHEN the agent reaches turn 40
-- THEN the run moves to `Paused` with the cause max turns and posts one stop report, and a resume gives it 40 more turns
+#### Scenario: Many turns
+- GIVEN a run whose agent has used 200 turns
+- WHEN the agent starts turn 201
+- THEN the run stays in its state and no turn count stops it
 
 ### Requirement: REQ-026 Approvals
 
@@ -257,12 +257,12 @@ A write without its switch SHALL become an approval in Home / Inbox that names t
 
 ### Requirement: REQ-035 Workflow limits
 
-A workflow SHALL hold a `limits` block with `stall_s`, an optional `budget_usd`, an optional `max_turns` and the optional caps `review_rounds` (default 4), `feedback_rounds` (default 3) and `fix_rounds` (default 8, assumption `q:Q-167`). With no `budget_usd`, the run SHALL have no budget of its own. With no `max_turns`, the turns SHALL have no limit. The system SHALL reject a limit that is not a positive number. A resume and an unblock SHALL read the current limits.
+A workflow SHALL hold a `limits` block with `stall_s`, an optional `budget_usd` and the optional caps `review_rounds` (default 4), `feedback_rounds` (default 3) and `fix_rounds` (default 8, assumption `q:Q-167`). With no `budget_usd`, the run SHALL have no budget of its own. A file that still holds `max_turns` SHALL load, and the system SHALL ignore the key (`adr:0025`). The system SHALL reject a limit that is not a positive number. A resume and an unblock SHALL read the current limits.
 
 #### Scenario: Limits apply
-- GIVEN a workflow with `limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }`
+- GIVEN a workflow with `limits: { budget_usd: 5, stall_s: 300 }`
 - WHEN a run of that workflow starts
-- THEN the run pauses at turn 40, pauses at 5 USD and stalls after 300 s with no event
+- THEN the run pauses at 5 USD and stalls after 300 s with no event
 
 #### Scenario: No run budget
 - GIVEN a workflow with `limits: { stall_s: 300 }`
@@ -336,7 +336,7 @@ The system SHALL count the failed attempts of each step for the whole run. A new
 
 ### Requirement: REQ-053 Escalation
 
-When a person must act, the run SHALL escalate. It SHALL stop its agents, keep its worktree, enter `Blocked` (or stay in `Paused` for a budget or max turns) and spend nothing more. The run SHALL keep one escalation record: the cause, the last findings or error lines (10 at most), what the run tried, and the action. The run SHALL post its stop report (REQ-058) and show one notice in the lane Needs you and the Inbox. The ticket SHALL get the labels of the state mapping.
+When a person must act, the run SHALL escalate. It SHALL stop its agents, keep its worktree, enter `Blocked` (or stay in `Paused` for a budget) and spend nothing more. The run SHALL keep one escalation record: the cause, the last findings or error lines (10 at most), what the run tried, and the action. The run SHALL post its stop report (REQ-058) and show one notice in the lane Needs you and the Inbox. The ticket SHALL get the labels of the state mapping.
 
 #### Scenario: Escalate
 - GIVEN a run in `Working` with two agents that run

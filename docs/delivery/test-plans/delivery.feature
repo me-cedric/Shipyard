@@ -224,10 +224,10 @@ Feature: delivery
     Then one builder brief holds the check and the two threads, and the feedback count goes up by one
 
   @spec:delivery#REQ-020
-  Scenario: Feedback limits: Loop stops
-    Given a run at its max turns
+  Scenario: Feedback limits: Loop goes on
+    Given a run whose agent has used 200 turns
     When a new CI failure arrives
-    Then the run moves to `Paused` with the cause max turns and the Inbox shows it
+    Then the feedback round starts and the run does not pause
 
   @spec:delivery#REQ-020
   Scenario: Feedback limits: Budget stop

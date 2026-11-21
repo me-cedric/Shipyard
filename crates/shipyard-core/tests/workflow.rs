@@ -152,10 +152,7 @@ fn limits_must_be_positive() {
             other => panic!("{other:?}"),
         })
         .collect();
-    assert_eq!(
-        fields,
-        ["limits.max_turns", "limits.budget_usd", "limits.stall_s"]
-    );
+    assert_eq!(fields, ["limits.budget_usd", "limits.stall_s"]);
     assert!(serde_norway::from_str::<Workflow>("id: t\nsteps: []\n").is_err());
 }
 
@@ -278,13 +275,15 @@ fn schema_matches_the_model() {
     assert_eq!(defs["step"]["additionalProperties"], false);
     assert_eq!(schema["additionalProperties"], false);
     let mut full_limits = parse(FEATURE).limits;
-    full_limits.max_turns = Some(40);
     full_limits.budget_usd = Some(5.0);
     full_limits.review_rounds = Some(4);
     full_limits.feedback_rounds = Some(3);
     full_limits.fix_rounds = Some(8);
     let limits = serde_json::to_value(full_limits).unwrap();
-    assert_eq!(keys(&defs["limits"]["properties"]), keys(&limits));
+    // `max_turns` is an old key: the schema accepts it, the struct never writes it (`adr:0025`).
+    let mut schema_limits = keys(&defs["limits"]["properties"]);
+    schema_limits.remove("max_turns");
+    assert_eq!(schema_limits, keys(&limits));
     for (field, values) in [
         ("effort", vec!["low", "medium", "high", "xhigh", "max"]),
         ("mode", vec!["plan", "auto"]),

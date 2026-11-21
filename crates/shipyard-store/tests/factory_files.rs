@@ -235,7 +235,7 @@ fn an_invalid_save_keeps_the_last_valid_version_and_names_the_line() {
     );
     let l = load(dir.path(), &l).unwrap();
     assert_eq!(l.issues, []);
-    assert_eq!(l.workflows["feature"].limits.max_turns, Some(50));
+    // The old key loads and is ignored (`adr:0025`).
 }
 
 #[test]
@@ -402,11 +402,11 @@ fn a_step_with_every_field_round_trips() {
         action: Some(Action::OpenPr),
         ..step("p")
     };
-    let mut wf = Workflow {
+    let wf = Workflow {
         id: "x".into(),
         steps: vec![a, r, p],
         limits: shipyard_core::workflow::WorkflowLimits {
-            max_turns: Some(40),
+            max_turns: None,
             budget_usd: Some(5.0),
             stall_s: 300,
             review_rounds: None,
@@ -417,17 +417,14 @@ fn a_step_with_every_field_round_trips() {
     let text = workflow_text(&wf, "").unwrap();
     assert!(text.contains("budget_usd: 5\n"), "{text}");
     assert_eq!(parse("x", &text), wf);
-    wf.limits.max_turns = None;
-    let text = workflow_text(&wf, "").unwrap();
     assert!(!text.contains("max_turns"));
-    assert_eq!(parse("x", &text), wf);
 }
 
 #[test]
 fn every_limit_round_trips_through_the_writer() {
     // Each field by name: a new field of `limits` does not build here until the test sets it.
     let limits = shipyard_core::workflow::WorkflowLimits {
-        max_turns: Some(40),
+        max_turns: None,
         budget_usd: Some(5.5),
         stall_s: 120,
         review_rounds: Some(6),

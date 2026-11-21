@@ -126,7 +126,7 @@ Then the run stops, and the feature needs you. The page says the state in plain 
 |---|---|
 | Reply | The agent asked a question. |
 | Unblock | The run is blocked. Type a message: the run gets one more round and reads it. |
-| Add budget | The run spent its budget or its turns. Raise the budget, then the run goes on. |
+| Add budget | The run spent its budget. Raise the budget, then the run goes on. |
 | Resume | The run is paused. |
 | Take it over | The run is blocked. The run ends as cancelled with the reason "Taken over by" and your name, the branch and the worktree stay, the ticket is yours and the worktree opens in your editor. |
 | Sign in | The run is blocked and its AI tool is signed out: the card says so. Sign in runs the login of the tool in the terminal; then click Unblock. |

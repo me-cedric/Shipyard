@@ -291,6 +291,7 @@ pub enum Cause {
     Guard,
     NoAnswer,
     Budget,
+    /// Only in old run logs: no run stops at a turn count now (`adr:0025`).
     MaxTurns,
     PullRequestClosed,
     /// A person paused the run (`runs-recipes` REQ-001).

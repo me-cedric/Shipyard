@@ -20,7 +20,7 @@ A recipe opens in a form. Use Form and Text to switch between the form and the Y
 
 - Steps: each step is a card with the groups Who, People, How it works and Limits. Set the role or the action, the model tier, the effort, the mode, the needs, the tools and the gate of each step. More shows the other fields: workspace, for each, parallel children, retries, time limit, budget, skill, fresh context and review rounds. Add, remove and move a step up or down.
 - A step page also shows Kind (agent, person or check, from the step), Runs beside other steps (on when the step has no step to wait for), Child steps run side by side and Mode. A step that waits for a person has Who approves: only a person with that role approves it, and only that role gets its card on Today. In People, May write is Asks first or Alone: Alone is the approval "Do not ask again for this recipe".
-- Limits: the stall timeout in seconds. Turn on Budget to stop each run at an amount in USD, and Turn limit to pause each run after a number of turns. Both are off by default.
+- Limits: the stall timeout in seconds. Turn on Budget to stop each run at an amount in USD. It is off by default. A run has no limit on its number of turns.
 - The form checks the recipe at each change. Save stays off while it shows an issue.
 - New makes a recipe from a preset: feature, bug, spike, docs-update, review-only, spec-split or bootstrap. The More actions menu of the open recipe has Duplicate, Rename and Delete. Rename and Delete refuse the default recipe of the project and a recipe that a run uses. Delete asks you to confirm.
 - A save from the form keeps the comment lines at the top of the file. Use Text to keep other comments.

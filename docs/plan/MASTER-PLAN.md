@@ -198,7 +198,7 @@ limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }
 - Automation writes are off by default: push, pull request, tracker transition, tracker comment. A project admin turns each one on in Settings. That switch is the durable "yes" that agent-compass asks for.
 - Without the switch, each write waits in Home / Inbox for one click.
 - Budgets per run, per day, per member: tokens and money. Alert at 80 %. Hard stop moves the run to `Paused`.
-- Limits: stall timeout, max turns, kill switch per run and global.
+- Limits: stall timeout, kill switch per run and global. A run has no turn limit (`adr:0025`).
 - Secrets live in the OS keychain. They never go in arguments, files in the repo, or logs.
 - Never a worklog write without the person's action (kept from compass).
 - Rights: each write command and each write tool of the MCP server checks one of ten rights (`work.edit`, `specs.edit`, `design.edit`, `knowledge.edit`, `code.write`, `code.merge`, `runs.start`, `runs.approve`, `project.settings`, `costs.view`) in the backend, before it writes. The rights come from the role and the admin flag of the member in `.shipyard/team.yaml`, read from the default branch. A run acts for the member who started it. Each gated write and each refusal adds a line to the audit log (see 6).

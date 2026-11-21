@@ -11,7 +11,7 @@ The design of the redesign shows 46 controls that the app does not have (`change
 - Code host, tickets and releases: Run again, Keep beside Undo, recipe of a ticket, releases of the issue tracker, kinds of ticket, reviewers and merge method, close and ready, authors, action plan, join requests, calendar.
 - Library: items in Opened last, earlier versions, added files, notes of slides, Learn, PDF and Markdown reports, report cards, chart kinds, Pin to Today, release picker, flow check, stale code, endpoint link.
 - Shell, Setup, sessions and rights: Sign out, Take control, Processor and Memory, Plan right, Fill from my work, model of a role, budget notice and release channel, data folder, feedback file, permissions card, hidden places, close guard.
-- Go on of a budget makes the budget a warning only (`q:Q-174`). Pause and Ask me stay. Stop all agents, the stall timeout and the max turns stay.
+- Go on of a budget makes the budget a warning only (`q:Q-174`). Pause and Ask me stay. Stop all agents and the stall timeout stay. The max turns went later (`adr:0025`).
 - A release is the version of the issue tracker (`q:Q-176`). Sign out removes the tokens of the code host and the issue tracker (`q:Q-175`).
 
 ## Impact

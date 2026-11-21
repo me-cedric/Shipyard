@@ -22,7 +22,7 @@ The design of the redesign shows nine controls of runs and recipes that the app 
 - REQ-003: The chat with the agent SHALL have a "+" button. The button SHALL copy the chosen file into the run folder as context for the next turn, with the limits of `assistant_attach`. The chat SHALL refuse a file over the limits and SHALL say why.
 - REQ-004: New feature SHALL have Add a document. It SHALL accept Markdown, PDF and Word files, SHALL copy the file into `docs/openspec/changes/<id>/inputs/` as input for the spec writer, and SHALL refuse another kind.
 - REQ-005: New feature SHALL show "Limit" beside the recipe. The limit SHALL cover all runs of the feature, SHALL sit in `.shipyard/automation.yaml` by ticket key, and SHALL act as a budget with the choice of REQ-006 when the spend of the feature reaches it.
-- REQ-006: Spend SHALL let a person edit Warn at, one percent for each project, default 80 %. Budgets SHALL have a row Then for each budget with the choices Stop and ask (default), Pause, Ask me and Go on. Go on SHALL turn the budget into a warning only, and SHALL NOT remove Stop all agents, the stall timeout or the max turns.
+- REQ-006: Spend SHALL let a person edit Warn at, one percent for each project, default 80 %. Budgets SHALL have a row Then for each budget with the choices Stop and ask (default), Pause, Ask me and Go on. Go on SHALL turn the budget into a warning only, and SHALL NOT remove Stop all agents or the stall timeout. A run has no turn limit (`adr:0025`).
 - REQ-007: Automation SHALL show stage limits for the fixed stages Plan, Build and Review beside the limits by status. The engine SHALL count the active runs of each stage and SHALL keep a run queued while its stage is at its limit. Planning and PlanReview SHALL be Plan, Working and SelfReview SHALL be Build, and PROpen and ChangesRequested SHALL be Review.
 - REQ-008: A human step of a recipe SHALL have an optional role. Only a person with that role SHALL approve the step. Only that role SHALL get the card on Today.
 - REQ-009: The page of a step SHALL show the rows Kind, Runs beside other steps, Child steps run side by side and Mode, and in People the row May write with Asks first and Alone. Kind SHALL come from the step: agent, person or check. Alone SHALL be the approval "Do not ask again for this recipe".
@@ -161,7 +161,7 @@ Screen: SCR-040
 
 ### Requirement: REQ-006 Warn at and Then of budgets
 
-Spend SHALL let a person edit Warn at, one percent for each project, default 80 %. Budgets SHALL have a row Then for each budget with the choices Stop and ask (default), Pause, Ask me and Go on. Go on SHALL turn the budget into a warning only, and SHALL NOT remove Stop all agents, the stall timeout or the max turns.
+Spend SHALL let a person edit Warn at, one percent for each project, default 80 %. Budgets SHALL have a row Then for each budget with the choices Stop and ask (default), Pause, Ask me and Go on. Go on SHALL turn the budget into a warning only, and SHALL NOT remove Stop all agents or the stall timeout. A run has no turn limit (`adr:0025`).
 
 Design control: F16. Decision: `adr:0024`.
 

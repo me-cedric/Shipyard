@@ -9,7 +9,7 @@ Change: `change:add-workflow-editor`
 
 ### Goal
 
-A person changes the options of the runs (the model, the effort, the turn limit, the budget and each step) in a form, with no YAML. An agent proposes a workflow change, and a person applies it.
+A person changes the options of the runs (the model, the effort, the budget and each step) in a form, with no YAML. An agent proposes a workflow change, and a person applies it.
 
 ### Why
 
@@ -18,7 +18,7 @@ The options of a run live in the workflow files. Factory / Workflows edits them 
 ### Users And Scenarios
 
 - PM: makes a workflow for the bugs of the team from the preset `bug`, and turns on a budget of 2 USD.
-- Developer: sets the effort of the review step to high and adds a turn limit of 40.
+- Developer: sets the effort of the review step to high and sets a budget.
 - Junior: picks the tools of a step from a list, and the form says at once when a step needs a step that does not exist.
 - Architect: asks a Claude Code in a terminal to add a security review step. The agent proposes the change, and the architect reads the diff and applies it.
 
@@ -27,7 +27,7 @@ The options of a run live in the workflow files. Factory / Workflows edits them 
 - REQ-001: Factory / Workflows SHALL open a valid workflow in a form, with the text view as the other choice. Both views SHALL edit the same text. An invalid text SHALL open in the text view.
 - REQ-002: The form SHALL edit each field of a step: id, role or action, model, effort, mode, skill, needs, gate, workspace, for_each, max_parallel, retry, timeout, budget, tools, fresh_context and max_rounds. It SHALL add, remove and move a step up or down.
 - REQ-003: The form SHALL offer a list for the role (the default roles and the files of `.shipyard/roles`), the model tier, the effort, the skill, the tools and the needs (the ids of the other steps).
-- REQ-004: The form SHALL edit the limits of the run: `stall_s`, and the optional `budget_usd` and `max_turns`. The budget and the turn limit SHALL be off until the person turns them on.
+- REQ-004: The form SHALL edit the limits of the run: `stall_s` and the optional `budget_usd`. The budget SHALL be off until the person turns it on. The form SHALL NOT show a turn limit, and a file that still holds `max_turns` SHALL load (`adr:0025`).
 - REQ-005: The form SHALL check the workflow at each change with the workflow check of the Factory (`factory` REQ-012, REQ-035), show the first issue, and keep Save off while an issue remains.
 - REQ-006: A save from the form SHALL write the file through the shared YAML writer. It SHALL keep the comment lines at the top of the file and leave out a field that has its default value. A form save with no change SHALL keep each field of the workflow.
 - REQ-007: A person SHALL create a workflow from a preset (the bundled workflows `feature`, `bug`, `spike`, `docs-update`, `review-only`, `spec-split`, `bootstrap`) or as a copy of a workflow, with a new id.
@@ -45,7 +45,7 @@ The options of a run live in the workflow files. Factory / Workflows edits them 
 
 - [ ] Each of the six presets opens in the form, and a save with no change gives the same workflow.
 - [ ] A step added in the form with a need on a missing step shows the issue and keeps Save off.
-- [ ] The budget and the turn limit are off for a new workflow and write `budget_usd` and `max_turns` only when they are on.
+- [ ] The budget is off for a new workflow and writes `budget_usd` only when it is on.
 - [ ] A new workflow from the preset `bug` shows in the list with the new id.
 - [ ] Delete of the default workflow is refused with a reason.
 - [ ] An outside agent with the group `workflows` on proposes a text, and the file changes only after Apply.
@@ -92,14 +92,14 @@ Screen: SCR-020
 
 ### Requirement: REQ-004 Run limits
 
-The form SHALL edit the limits of the run: `stall_s`, and the optional `budget_usd` and `max_turns`. The budget and the turn limit SHALL be off until the person turns them on.
+The form SHALL edit the limits of the run: `stall_s` and the optional `budget_usd`. The budget SHALL be off until the person turns it on. The form SHALL NOT show a turn limit, and a file that still holds `max_turns` SHALL load (`adr:0025`).
 
 Screen: SCR-020
 
-#### Scenario: Turn limit
-- GIVEN the workflow `feature` has no `max_turns`
-- WHEN the person turns on the turn limit and sets 40
-- THEN the text holds `max_turns: 40` under `limits`
+#### Scenario: No turn limit
+- GIVEN the form of the workflow `feature`
+- WHEN the person opens the limits of a step
+- THEN the form shows no turn limit
 
 #### Scenario: Budget
 - GIVEN the workflow `bug` has no `budget_usd`
