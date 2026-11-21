@@ -136,6 +136,14 @@ const openFeature = async (p: Page, feature: RegExp, section: string) => {
 		.click();
 };
 
+// The dialog History of the handbook page Getting started.
+const openHistory = async (p: Page) => {
+	await go(p, "/library/handbook");
+	await p.getByRole("button", { name: "Getting started" }).first().click();
+	await p.getByRole("button", { name: "History", exact: true }).click();
+	await p.getByRole("dialog", { name: "Earlier versions" }).waitFor();
+};
+
 // `fresh` skips the first run: the scene starts with no role and no project, in the light theme.
 type Scene = { name: string; light?: boolean; fresh?: boolean; run: (p: Page) => Promise<void> };
 const scenes: Scene[] = [
@@ -449,6 +457,84 @@ const scenes: Scene[] = [
 		"code-history": "/code/history",
 		"code-branches": "/code/branches",
 	}).map(([name, path]): Scene => ({ name, run: (p) => go(p, path) })),
+	// The mock has two earlier versions of the handbook page Getting started.
+	// History of a handbook page: the versions, then the question after Restore (spec:library-functions#REQ-002).
+	{
+		name: "library-page-history",
+		light: true,
+		run: async (p) => {
+			await openHistory(p);
+			await p
+				.getByRole("button", { name: /^Read / })
+				.first()
+				.click();
+			await p.getByRole("region", { name: "Text of the version" }).waitFor();
+		},
+	},
+	{
+		name: "library-page-restore",
+		light: true,
+		run: async (p) => {
+			await openHistory(p);
+			await p
+				.getByRole("button", { name: /^Restore / })
+				.first()
+				.click();
+			await p.getByRole("button", { name: /^Replace the page with / }).waitFor();
+		},
+	},
+	// Learn: the dialog Add a word, and the card Experts (spec:library-functions#REQ-005).
+	{
+		name: "library-add-word",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/learn");
+			await p.getByRole("button", { name: "Add a word" }).click();
+			await p.getByRole("textbox", { name: "Word" }).fill("Wave");
+			await p
+				.getByRole("textbox", { name: "Meaning" })
+				.fill("A group of changes that ship together");
+		},
+	},
+	{
+		name: "library-experts",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/learn");
+			await p.getByRole("heading", { name: "Experts" }).first().scrollIntoViewIfNeeded();
+		},
+	},
+	// Today with one pinned dashboard card (spec:library-functions#REQ-009).
+	{
+		name: "today-pinned-dashboard",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/dashboards/team-delivery/edit");
+			await p.getByRole("button", { name: "Pin to Today" }).click();
+			await p.getByRole("button", { name: "Unpin from Today" }).waitFor();
+			await go(p, "/today/today");
+			await p.getByRole("region", { name: "Delivery" }).scrollIntoViewIfNeeded();
+		},
+	},
+	// The card Earlier versions of the project rules sits below the first screen.
+	{
+		name: "library-earlier-versions",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/constitution");
+			await p.getByRole("button", { name: "Earlier versions" }).scrollIntoViewIfNeeded();
+		},
+	},
+	// The chip and the alert after Check against the code (spec:library-functions#REQ-011).
+	{
+		name: "library-flows-not-in-code",
+		light: true,
+		run: async (p) => {
+			await go(p, "/library/flows/matrix");
+			await p.getByRole("button", { name: "Check against the code" }).click();
+			await p.getByText("Not in the code").first().waitFor();
+		},
+	},
 	// How agents do, with the tool calls of the Build step open.
 	{
 		name: "crew-spend-how",

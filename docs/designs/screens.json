@@ -1347,6 +1347,90 @@
         "adr:0023"
       ],
       "file": "docs/assets/screenshots/permissions-moment.png"
+    },
+    {
+      "id": "SCR-186",
+      "slug": "library-page-history",
+      "title": "Library / Handbook / History: the dialog Earlier versions of a page with one row for each version, Read and Restore, and the text of the version that was read",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-page-history.png"
+    },
+    {
+      "id": "SCR-187",
+      "slug": "library-page-restore",
+      "title": "Library / Handbook / History after Restore: the row asks Replace the page and Cancel before the page changes",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-page-restore.png"
+    },
+    {
+      "id": "SCR-188",
+      "slug": "library-add-word",
+      "title": "Library / Learn / Add a word: the glossary card with the fields Word and Meaning, Add and Cancel, and the card Experts below it",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-add-word.png"
+    },
+    {
+      "id": "SCR-189",
+      "slug": "library-experts",
+      "title": "Library / Learn: the card Experts with one row for each expert and the topic, below the glossary with Add a word",
+      "artifacts": [
+        "spec:knowledge",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-experts.png"
+    },
+    {
+      "id": "SCR-190",
+      "slug": "today-pinned-dashboard",
+      "title": "Today with a pinned dashboard: one card Delivery with its three tiles, below the questions",
+      "artifacts": [
+        "spec:home-today",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/today-pinned-dashboard.png"
+    },
+    {
+      "id": "SCR-191",
+      "slug": "library-earlier-versions",
+      "title": "Library / Project rules, below the first screen: the card Earlier versions after Who follows the rules",
+      "artifacts": [
+        "spec:specs",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-earlier-versions.png"
+    },
+    {
+      "id": "SCR-192",
+      "slug": "library-flows-not-in-code",
+      "title": "Library / Network flows / Flow matrix after Check against the code: the alert 1 flow is denied and the code uses it with Show it and Ask for the change, the filter Not in the code and the chip Not in the code on a flow",
+      "artifacts": [
+        "spec:design",
+        "spec:app-redesign",
+        "adr:0023",
+        "spec:library-functions"
+      ],
+      "file": "docs/assets/screenshots/library-flows-not-in-code.png"
     }
   ]
 }

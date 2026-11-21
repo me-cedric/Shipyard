@@ -81,6 +81,9 @@ Design control: F27
 
 Screen: SCR-077
 Screen: SCR-079
+Screen: SCR-186
+Screen: SCR-187
+Screen: SCR-191
 
 #### Scenario: Restore
 
@@ -135,6 +138,8 @@ Learn SHALL have an Experts card, Add a word and a second pill on a step (Readin
 Design control: F30
 
 Screen: SCR-009
+Screen: SCR-188
+Screen: SCR-189
 
 #### Scenario: Add a word
 
@@ -220,6 +225,7 @@ Design control: F35
 
 Screen: SCR-162
 Screen: SCR-104
+Screen: SCR-190
 
 #### Scenario: Pin
 
@@ -248,6 +254,7 @@ The flow matrix SHALL have Check against the code. It SHALL scan the code for th
 Design control: F37
 
 Screen: SCR-161
+Screen: SCR-192
 
 #### Scenario: Denied and used
 
