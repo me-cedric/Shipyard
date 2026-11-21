@@ -28,7 +28,7 @@ export function IconButton({
 				aria-label={label}
 				aria-description={props.disabled ? reason : undefined}
 				className={cn(
-					"inline-flex size-(--control-h) shrink-0 items-center justify-center rounded-md border transition-colors duration-(--duration-fast) hover:bg-n-3 hover:text-n-12 disabled:pointer-events-none disabled:opacity-50",
+					"inline-flex size-(--control-h) shrink-0 items-center justify-center rounded-md border transition-[color,background-color,scale] duration-(--duration-fast) active:scale-[.96] hover:bg-n-3 hover:text-n-12 disabled:pointer-events-none disabled:opacity-50",
 					variant === "outline"
 						? "border-n-7 bg-surface-1 text-n-12"
 						: "border-transparent text-n-11",

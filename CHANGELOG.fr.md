@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Les menus, les listes et les dialogues s'ouvrent sans rebond, un bouton icône réagit quand vous appuyez dessus, une info-bulle qui en suit une autre s'affiche tout de suite, les titres se coupent en lignes de longueur presque égale, et le texte sélectionné prend la teinte d'accent du thème.
 - La rangée du haut a les boutons Assistant et Terminal, donc le panneau de l'assistant et le terminal s'ouvrent depuis n'importe quelle page.
 - Code / Branches compte chaque branche par rapport à main, donc une branche sans copie sur l'hébergeur de code montre ses commits ; le bouton de branche de Code s'aligne avec les autres contrôles de l'en-tête, et les fils d'Ask tiennent sur une ligne.
 - Une exécution bloquée dont l'outil d'IA est déconnecté le dit sur sa carte et propose Se connecter à côté de Débloquer ; la connexion expirée de Claude Code compte maintenant comme déconnectée.

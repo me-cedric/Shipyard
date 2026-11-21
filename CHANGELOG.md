@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.2.0]
+- Menus, lists and dialogs open with no bounce, an icon button reacts when you press it, a tooltip that follows another shows at once, titles break into lines of near equal length, and selected text takes the accent tint of the theme.
 - The top row has Assistant and Terminal buttons, so the assistant panel and the terminal open from any page.
 - Code / Branches counts each branch against main, so a branch with no copy on the code host shows its commits; the branch button of Code lines up with the other header controls, and the threads of Ask are one line high.
 - A blocked run whose AI tool is signed out says so on its card and offers Sign in beside Unblock; the expired login of Claude Code now counts as signed out.
