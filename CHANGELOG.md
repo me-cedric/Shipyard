@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.2.0]
+- Quitting Shipyard stops each agent process with every command that it started, also a command that runs in a group of its own, and stops the pull request reviews, the estimates and the Ask turns; Stop all agents also stops those commands now.
 - Card rows sit 8 px inside their card with round corners, so a hover fill stays inside the round corner, and the Advanced card of Setup / This computer shows one row for each AI tool version and one row of MCP buttons.
 - The Device sign-in row of a signed-in code host shows Signed in with the account, and offers Sign out (after a confirmation) and Use another account instead of Sign in.
 - A new Ask thread shows the first line of the message at once, then a short name that the AI tool writes after its first answer, and the context ring follows a turn while it runs.

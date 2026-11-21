@@ -101,6 +101,14 @@ pub fn stop(thread: &str) {
     }
 }
 
+/// Stops every running turn: the app quits.
+pub fn stop_all() {
+    let stops = STOPS.lock().unwrap_or_else(|e| e.into_inner());
+    for (_, h) in stops.iter() {
+        h.cancel();
+    }
+}
+
 /// The member key of the turns. Not `""`: that key is the unassigned runs and their `*` budget.
 const MEMBER: &str = "assistant";
 
@@ -509,8 +517,19 @@ pub fn auto_name(
             secrets: &secrets,
             program,
         },
-        &|_| {},
+        // The quit stops the naming turn too (`stop_all`). The key is not a thread id: Stop of
+        // the thread leaves it alone.
+        &|h| {
+            STOPS
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .push((format!("name:{thread}"), h));
+        },
     );
+    STOPS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .retain(|(id, _)| *id != format!("name:{thread}"));
     let u = &out.message.usage;
     if u.input_tokens + u.output_tokens > 0 || u.cost_usd > 0.0 {
         let _ = s.factory.factory.book_assistant(

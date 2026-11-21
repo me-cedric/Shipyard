@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Quitter Shipyard arrête chaque processus d'agent avec chaque commande qu'il a lancée, même une commande qui tourne dans son propre groupe, et arrête les revues de pull request, les estimations et les tours d'Ask ; Arrêter tous les agents arrête aussi ces commandes maintenant.
 - Les lignes des cartes sont à 8 px du bord avec des coins arrondis, donc le survol reste dans le coin arrondi, et la carte Avancé de Configuration / Cet ordinateur montre une ligne par version d'outil d'IA et une ligne de boutons MCP.
 - La ligne Connexion de l'appareil d'un hébergeur de code connecté affiche Connecté avec le compte, et propose Se déconnecter (après une confirmation) et Utiliser un autre compte à la place de Se connecter.
 - Un nouveau fil d'Ask montre tout de suite la première ligne du message, puis un nom court que l'outil d'IA écrit après sa première réponse, et l'anneau de contexte suit un tour pendant qu'il s'exécute.

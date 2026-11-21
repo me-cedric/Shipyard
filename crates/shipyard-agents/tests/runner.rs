@@ -995,6 +995,32 @@ sleep 300"#,
 }
 
 #[test]
+fn cancel_kills_a_descendant_that_left_the_process_group() {
+    // A coding CLI runs each tool command in a process group of its own (Claude Code does).
+    let f = fixture(
+        r#"perl -e 'setpgrp(0, 0); sleep 300' &
+echo $! > "$REC/child"
+echo '{"type":"system","subtype":"init","session_id":"s"}'
+sleep 300"#,
+    );
+    let run = start(&*runner("claude").unwrap(), f.spec.clone()).unwrap();
+    assert_eq!(next(&run), Some(Event::Session { id: "s".into() }));
+    let child = wait_for(&f.rec.join("child"));
+    assert!(pid_alive(&child));
+
+    run.cancel_handle().cancel();
+    drain(&run);
+
+    for _ in 0..200 {
+        if !pid_alive(&child) {
+            return;
+        }
+        std::thread::sleep(Duration::from_millis(25));
+    }
+    panic!("the descendant {child} in its own group survived the cancel");
+}
+
+#[test]
 fn a_silent_run_shows_idle_and_the_caller_can_stop_it() {
     let f = fixture("sleep 300");
     let run = start(&*runner("claude").unwrap(), f.spec.clone()).unwrap();

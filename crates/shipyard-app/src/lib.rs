@@ -723,6 +723,10 @@ pub fn run() {
                 let state = app.state::<AppState>();
                 // The agent processes stop, the runs keep their state: the next start resumes them.
                 state.factory.factory.shutdown();
+                // The pull request reviews, the estimates and the assistant turns stop too.
+                pr_agent::stop_all();
+                estimate_agent::stop_all();
+                assistant::stop_all();
                 // A gate command and its children stop too (`delivery::kill_gates`).
                 delivery::kill_gates();
                 terminal::close_all();

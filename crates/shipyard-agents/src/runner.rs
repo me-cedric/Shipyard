@@ -683,13 +683,20 @@ fn spawn(
     })
 }
 
-/// SIGKILL to the process group `pid` leads (Unix), or the process tree (Windows).
+/// SIGKILL to the process group `pid` leads and to each descendant of `pid` (Unix), or the
+/// process tree (Windows). A coding CLI can run a tool command in a group of its own (Claude Code
+/// does): the group kill alone leaves that command running.
 pub fn kill_group(pid: u32) {
     #[cfg(unix)]
     {
-        // SAFETY: `killpg` only sends a signal; it touches no memory. A group id that no longer
-        // exists gives ESRCH, which is the answer we want.
+        // Read the tree first: a killed parent gives its children to init.
+        let tree = descendants(pid);
+        // SAFETY: `killpg` and `kill` only send a signal; they touch no memory. An id that no
+        // longer exists gives ESRCH, which is the answer we want.
         unsafe { libc::killpg(pid as i32, libc::SIGKILL) };
+        for d in tree {
+            unsafe { libc::kill(d as i32, libc::SIGKILL) };
+        }
     }
     #[cfg(windows)]
     {
@@ -699,6 +706,36 @@ pub fn kill_group(pid: u32) {
             .stderr(Stdio::null());
         let _ = quiet(&mut cmd).status();
     }
+}
+
+/// Every process under `root`, from the process list. An empty list when `ps` fails.
+#[cfg(unix)]
+fn descendants(root: u32) -> Vec<u32> {
+    let Ok(out) = Command::new("ps")
+        .args(["-A", "-o", "pid=", "-o", "ppid="])
+        .stderr(Stdio::null())
+        .output()
+    else {
+        return Vec::new();
+    };
+    let pairs: Vec<(u32, u32)> = String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter_map(|l| {
+            let mut it = l.split_whitespace().map(str::parse::<u32>);
+            Some((it.next()?.ok()?, it.next()?.ok()?))
+        })
+        .collect();
+    let mut found = Vec::new();
+    let mut next = vec![root];
+    while let Some(p) = next.pop() {
+        for &(pid, ppid) in &pairs {
+            if ppid == p && pid != root && !found.contains(&pid) {
+                found.push(pid);
+                next.push(pid);
+            }
+        }
+    }
+    found
 }
 
 fn check_spec(spec: &RunSpec) -> Result<(), AgentError> {
