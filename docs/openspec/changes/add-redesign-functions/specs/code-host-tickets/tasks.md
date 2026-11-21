@@ -40,12 +40,12 @@ Plan: [plan.md](plan.md)
 - [x] T021 Build REQ-010 (F23, Accept and Refuse a join request): `crates/shipyard-app/src/work/join.rs`, `src/features/work/team-rights.tsx`, `src/features/crew/team-page.tsx`, `src/lib/ipc/mock-work.ts`. REQ-010.
 - [x] T022 [P] Build REQ-011 (F24, Release and Go to Today of the calendar): `src/features/plan/dates-page.tsx`. REQ-011.
 - [x] T023 Shared files: add the commands to the map of `src/lib/ipc/mock.ts` and to `crates/shipyard-app/src/lib.rs`, run `pnpm ipc:gen`, add the strings in English, French, German and Spanish to `src/lib/i18n/`.
-- [ ] T024 Docs: `docs/flows/network-flows.json` and `docs/flows/bricks.json` (re-run, reviewers, releases), `docs/data-models/*.dbml` (release in the mirror), `docs/models/architecture.c4` if a crate dependency changes; the scenarios in `docs/delivery/test-plans/code-host-tickets.feature`; the pictures in `docs/assets/screenshots/` and `docs/designs/screens.json` for each changed screen; one bullet each in `CHANGELOG.md` and `CHANGELOG.fr.md`; the page of the guide in four languages.
-- [ ] T025 Run the commands of the Validation block of `plan.md`.
-- [ ] T026 Compare the build with the spec and fix stale artifacts.
+- [x] T024 Docs: `docs/flows/network-flows.json` and `docs/flows/bricks.json` (re-run, reviewers, releases), `docs/data-models/*.dbml` (release in the mirror), `docs/models/architecture.c4` if a crate dependency changes; the scenarios in `docs/delivery/test-plans/code-host-tickets.feature`; the pictures in `docs/assets/screenshots/` and `docs/designs/screens.json` for each changed screen; one bullet each in `CHANGELOG.md` and `CHANGELOG.fr.md`; the page of the guide in four languages.
+- [x] T025 Run the commands of the Validation block of `plan.md`.
+- [x] T026 Compare the build with the spec and fix stale artifacts.
 
 ## Completion Check
 
-- [ ] All acceptance criteria are met.
-- [ ] Required validation passed or failures are marked pre-existing.
-- [ ] Specs, docs, and code agree.
+- [x] All acceptance criteria are met.
+- [x] Required validation passed or failures are marked pre-existing.
+- [x] Specs, docs, and code agree.

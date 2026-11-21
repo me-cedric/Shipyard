@@ -57,9 +57,6 @@ export function checkKinds(saved: TicketsConfig, next: TicketsConfig) {
 
 // ---------------------------------------------------------------- join requests
 
-/** No request waits at the start: a test or a click of the code host adds one. */
-export const seedJoins = (): JoinRequest[] => [];
-
 /** A join request, as the pull request of a person who asked to join. */
 export const joinOf = (number: number, name: string, asked: string): JoinRequest => ({
 	number,
@@ -68,6 +65,9 @@ export const joinOf = (number: number, name: string, asked: string): JoinRequest
 	asked,
 	url: `https://github.com/acme/web/pull/${number}`,
 });
+
+/** One request waits at the start, from the person of the demo audit ("zed asked to join"). */
+export const seedJoins = (): JoinRequest[] => [joinOf(150, "zed", "qa")];
 
 // ---------------------------------------------------------------- action plan
 

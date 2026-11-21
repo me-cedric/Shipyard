@@ -460,7 +460,18 @@ const scenes: Scene[] = [
 	{ name: "feature-brief", run: (p) => openFeature(p, /add-auth/, "Brief") },
 	// shortcut: no feature of the mock cites a design, so the picture shows the empty state.
 	{ name: "feature-design", run: (p) => openFeature(p, /Add export endpoint/, "Design") },
-	{ name: "feature-checks", run: (p) => openFeature(p, /Add export endpoint/, "Checks") },
+	// The pull request with failed checks shows the alert card with Run again beside Fix with an agent.
+	{
+		name: "feature-checks",
+		run: async (p) => {
+			await go(p, `/flow/feature/${PULL_FEATURE}`);
+			await p
+				.getByRole("navigation", { name: "Sections" })
+				.getByRole("button", { name: "Checks" })
+				.click();
+			await p.getByRole("button", { name: "Run again" }).waitFor();
+		},
+	},
 	{ name: "feature-chat", run: (p) => openFeature(p, /refuse an empty token/, "Chat") },
 	{ name: "setup-tickets", run: (p) => go(p, "/setup/project?page=tickets") },
 	{ name: "setup-extensions", run: (p) => go(p, "/setup/project?page=extensions") },

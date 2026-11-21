@@ -331,7 +331,8 @@ test("analyzes a branch in Impacts and shows the plan and the digest", async ({ 
 	await page.getByRole("link", { name: "Full impact report" }).click();
 	await more("Details");
 	await expect(heading(page, "Axes (7)")).toBeVisible();
-	await expect(page.getByText("Update the contract.")).toBeVisible();
+	// Each line of the plan has a check box that names the line, so the text must match whole.
+	await expect(page.getByText("Update the contract.", { exact: true })).toBeVisible();
 	await expect(page.getByText(/moves the release by one week/)).toBeVisible();
 	await page.getByRole("button", { name: "Past reports" }).click();
 	await expect(page.getByRole("button", { name: /2026-10-29 main/ })).toBeVisible();
