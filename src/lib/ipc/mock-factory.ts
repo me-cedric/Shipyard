@@ -784,7 +784,7 @@ const unit = (id: string, state: StepState): UnitView_Serialize => ({
 	id,
 	state,
 	runner: state === "pending" ? "" : "claude",
-	session: state === "pending" ? null : `sess-${id}`,
+	session: state === "pending" ? null : `sess-${id.replaceAll("/", "-")}`,
 	dir: state === "pending" ? "" : `/work/${id}`,
 	started: T0 / 1000,
 	last: T0 / 1000 + 60,

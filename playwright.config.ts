@@ -5,7 +5,8 @@ export default defineConfig({
 	use: { baseURL: "http://localhost:4174" },
 	projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 	webServer: {
-		command: "VITE_MOCK_DEMO=0 pnpm build && pnpm preview --port 4174 --strictPort",
+		command:
+			"VITE_MOCK_DEMO=0 VITE_PERMISSIONS_LATER=1 pnpm build && pnpm preview --port 4174 --strictPort",
 		url: "http://localhost:4174",
 		reuseExistingServer: !process.env.CI,
 		timeout: 120_000,

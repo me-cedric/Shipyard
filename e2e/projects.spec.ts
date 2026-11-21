@@ -41,6 +41,8 @@ test("closes a project, opens it again from the recent list and switches between
 		await expect(page.getByRole("menu")).toBeHidden();
 	};
 	await pick("menuitem", "Close project");
+	// Agents work in the demo project: closing asks first (`spec:shell-setup-rights#REQ-012`).
+	await page.getByRole("button", { name: "Keep them working" }).click();
 	// No project is open: the bare No project card has no rail and no project switch.
 	await expect(switcher).toHaveCount(0);
 	await page.getByRole("button", { name: "Open a project" }).click();
@@ -78,6 +80,13 @@ test("shows the open project on the Projects page and closes it there", async ({
 	).toBeVisible();
 	await expect(page.getByText("Drop a folder here")).toBeVisible();
 	await open.getByRole("button", { name: "Close project" }).click();
+	// Cancel keeps the project open.
+	const ask = page.getByRole("dialog", { name: /agents? still works?/i });
+	await ask.getByRole("button", { name: "Cancel" }).click();
+	await expect(ask).toBeHidden();
+	await expect(open).toBeVisible();
+	await open.getByRole("button", { name: "Close project" }).click();
+	await page.getByRole("button", { name: "Keep them working" }).click();
 	await expect(page.getByRole("heading", { level: 1, name: "No project is open" })).toBeVisible();
 });
 

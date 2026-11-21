@@ -38,18 +38,18 @@ The design shows twelve controls of the shell, Setup, sessions and rights that t
 
 ### Acceptance Criteria
 
-- [ ] Sign out (F01): each scenario below passes.
-- [ ] Take control and live output of a session (F20): each scenario below passes.
-- [ ] Processor, Memory and tool calls (F21): each scenario below passes.
-- [ ] Plan right and the levels of Rights (F22): each scenario below passes.
-- [ ] Fill from my work (F25): each scenario below passes.
-- [ ] A model for each agent role (F40): each scenario below passes.
-- [ ] Budget notice, Sound and Release channel (F41): each scenario below passes.
-- [ ] Data folder and Portable mode (F42): each scenario below passes.
-- [ ] Attach a file to feedback (F43): each scenario below passes.
-- [ ] The permissions moment (F44): each scenario below passes.
-- [ ] Places hidden for each role (F45): each scenario below passes.
-- [ ] Ask before a project closes (F46): each scenario below passes.
+- [x] Sign out (F01): each scenario below passes.
+- [x] Take control and live output of a session (F20): each scenario below passes.
+- [x] Processor, Memory and tool calls (F21): each scenario below passes.
+- [x] Plan right and the levels of Rights (F22): each scenario below passes.
+- [x] Fill from my work (F25): each scenario below passes.
+- [x] A model for each agent role (F40): each scenario below passes.
+- [x] Budget notice, Sound and Release channel (F41): each scenario below passes.
+- [x] Data folder and Portable mode (F42): each scenario below passes.
+- [x] Attach a file to feedback (F43): each scenario below passes.
+- [x] The permissions moment (F44): each scenario below passes.
+- [x] Places hidden for each role (F45): each scenario below passes.
+- [x] Ask before a project closes (F46): each scenario below passes.
 
 ### Existing References
 
@@ -234,6 +234,7 @@ The card "Shipyard needs N permissions" SHALL show at the first launch and each 
 Design control: F44
 
 Screen: SCR-017
+Screen: SCR-185
 
 #### Scenario: First launch
 

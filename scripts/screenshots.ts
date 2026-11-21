@@ -74,10 +74,15 @@ const openProjects = async (p: Page) => {
 	await p.getByRole("menuitem", { name: "Projects" }).click();
 	await p.getByRole("heading", { level: 1, name: "Projects" }).waitFor();
 };
-const openProject = async (p: Page) => {
+const openProject = async (p: Page, keepCard = false) => {
 	await p.goto("/home/today");
 	await p.getByRole("button", { name: "Continue" }).click();
 	await p.getByRole("button", { name: "Open a local folder" }).click();
+	// The card of the missing permissions comes with the first project: Later hides it, but for its own scene.
+	await p.getByRole("dialog", { name: /^Shipyard needs/ }).waitFor();
+	if (keepCard) return;
+	await p.getByRole("button", { name: "Later" }).click();
+	await p.getByRole("dialog").waitFor({ state: "detached" });
 	await p.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }).waitFor();
 };
 
@@ -355,7 +360,18 @@ const scenes: Scene[] = [
 			await p.getByRole("region", { name: "What this change touches" }).waitFor();
 		},
 	},
+	// The card of the missing permissions: the one scene that keeps it open.
+	{ name: "permissions-moment", light: true, run: (p) => p.getByRole("dialog").waitFor() },
 	{ name: "projects", run: openProjects },
+	// Close the open project while agents work: the question with Cancel, Stop them and close, and Keep them working.
+	{
+		name: "close-guard",
+		run: async (p) => {
+			await openProjects(p);
+			await p.getByRole("button", { name: "Close project" }).click();
+			await p.getByRole("dialog").waitFor();
+		},
+	},
 	{
 		name: "themes",
 		run: async (p) => {
@@ -405,7 +421,6 @@ const scenes: Scene[] = [
 		"crew-sessions-ended": "/crew/sessions?page=ended",
 		"crew-rights-team": "/crew/rights?page=team",
 		"crew-rights-levels": "/crew/rights?page=levels",
-		"crew-spend-how": "/crew/spend?page=how",
 		"crew-spend-budgets": "/crew/spend?page=budgets",
 		"crew-spend-usage": "/crew/spend?page=usage",
 		"activity-panel": "/today/activity",
@@ -433,6 +448,14 @@ const scenes: Scene[] = [
 		"code-history": "/code/history",
 		"code-branches": "/code/branches",
 	}).map(([name, path]): Scene => ({ name, run: (p) => go(p, path) })),
+	// How agents do, with the tool calls of the Build step open.
+	{
+		name: "crew-spend-how",
+		run: async (p) => {
+			await go(p, "/crew/spend?page=how");
+			await p.locator("summary").filter({ hasText: "Build" }).click();
+		},
+	},
 	// The mock has a spec on add-auth and a conversation on the pull request of the empty token.
 	{ name: "feature-brief", run: (p) => openFeature(p, /add-auth/, "Brief") },
 	// shortcut: no feature of the mock cites a design, so the picture shows the empty state.
@@ -549,7 +572,7 @@ for (const s of scenes) {
 		colorScheme: s.light || s.fresh ? "light" : "dark",
 	});
 	const page = await ctx.newPage();
-	if (!s.fresh) await openProject(page);
+	if (!s.fresh) await openProject(page, s.name === "permissions-moment");
 	if (!s.light && !s.fresh) {
 		// Light is the default theme: a dark scene picks Dark from the palette.
 		await page.keyboard.press("ControlOrMeta+k");

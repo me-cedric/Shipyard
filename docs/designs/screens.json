@@ -188,7 +188,7 @@
     {
       "id": "SCR-017",
       "slug": "settings-permissions",
-      "title": "Setup / This computer, Permissions: each OS permission with its state and one action, Allow all, and Replay the tour; the Get started steps are in Setup / Start",
+      "title": "Setup / This computer, Permissions: each OS permission with its state and one action, Allow all, and Replay the tour; the Get started steps are in Setup / Start; at launch, and each time a permission is missing, the card \"Shipyard needs N permissions\" lists the missing ones of Notifications and Files of your projects, each with Allow, with Later and Allow all (no keychain probe)",
       "artifacts": [
         "spec:onboarding",
         "spec:ux-declutter",
@@ -256,7 +256,7 @@
     {
       "id": "SCR-025",
       "slug": "work-team",
-      "title": "Crew / Rights: the rights of each role by area, who Shipyard found and the team file on its own page; the members are on Crew, and the old Work / Team address opens Crew (design picture 029, /crew/rights)",
+      "title": "Crew / Rights: the rights of each role by area, who Shipyard found and the team file on its own page; the members are on Crew, and the old Work / Team address opens Crew (design picture 029, /crew/rights); each role has a Plan level (No, See, Change) and the places it sees, and Code and merge is one row",
       "artifacts": [
         "spec:team-rights",
         "spec:ux-declutter",
@@ -313,7 +313,7 @@
     {
       "id": "SCR-028",
       "slug": "account-menu",
-      "title": "Account menu, beside the rail from the account row with the name: the name and the role with Change (Setup / Me), Theme (Light, Dark, System), Language, Manual, Shortcuts, What is new, Show the tour again, Check for an update, About Shipyard with the version, and Health with the count of its findings",
+      "title": "Account menu, beside the rail from the account row with the name: the name and the role with Change (Setup / Me), Theme (Light, Dark, System), Language, Manual, Shortcuts, What is new, Show the tour again, Check for an update, About Shipyard with the version, and Health with the count of its findings; the last row is a red Sign out",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter",
@@ -516,7 +516,7 @@
     {
       "id": "SCR-063",
       "slug": "setup-me",
-      "title": "Setup / Me: the theme tiles, the person with the role, the language, the look, the notifications in four groups, the updates and the tools; Look and layout opens its own page",
+      "title": "Setup / Me: the theme tiles, the person with the role, the language, the look, the notifications in four groups, the updates and the tools; Look and layout opens its own page; Sign out beside the name, the notification \"A budget reaches Warn at\", Sound, and the Release channel (Stable, Preview)",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -556,7 +556,7 @@
     {
       "id": "SCR-067",
       "slug": "plan-time",
-      "title": "Plan / Time: the time sheet of the person by week, with a duration, a note and a ticket, each field saved when you leave it, and the send of a worklog to the issue tracker; the old Work / Time address opens it (design picture 032, /plan/time)",
+      "title": "Plan / Time: the time sheet of the person by week, with a duration, a note and a ticket, each field saved when you leave it, and the send of a worklog to the issue tracker; the old Work / Time address opens it (design picture 032, /plan/time); Fill from my work makes rows from my runs and my commits of the day, and there is no Save button",
       "artifacts": [
         "spec:work",
         "spec:app-redesign",
@@ -567,7 +567,7 @@
     {
       "id": "SCR-068",
       "slug": "crew-sessions",
-      "title": "Crew / Sessions: the agent sessions of each kind (run, review, estimate, tile build) with state and tokens, the session shown with Open and its own Stop, and Previous on its own page; the old Factory / Sessions address opens it (design picture 028, /crew/sessions)",
+      "title": "Crew / Sessions: the agent sessions of each kind (run, review, estimate, tile build) with state and tokens, the session shown with Open and its own Stop, and Previous on its own page; the old Factory / Sessions address opens it (design picture 028, /crew/sessions); Take control stops the session and resumes it in the Shipyard terminal, and the pane shows the live output when the tool writes a history file",
       "artifacts": [
         "spec:factory",
         "spec:app-redesign",
@@ -836,7 +836,7 @@
     {
       "id": "SCR-092",
       "slug": "setup-agents-rules",
-      "title": "Setup / This computer, Models and rules: the sign-in of the AI tools, the three model tiers and the prompt language, the agent roles and the working rules of the agents",
+      "title": "Setup / This computer, Models and rules: the sign-in of the AI tools, the three model tiers and the prompt language, the agent roles and the working rules of the agents; each agent role shows its description and a model tier that a person changes",
       "artifacts": [
         "spec:extensions",
         "spec:app-redesign",
@@ -869,7 +869,7 @@
     {
       "id": "SCR-095",
       "slug": "setup-logs",
-      "title": "Setup / This computer, Logs and feedback: the console with a level switch, the findings over time, the personas for prices, what the system allows and the feedback form",
+      "title": "Setup / This computer, Logs and feedback: the console with a level switch, the findings over time, the personas for prices, what the system allows and the feedback form; Attach a file shows the file in the file manager and sends nothing",
       "artifacts": [
         "spec:shell",
         "spec:app-redesign",
@@ -880,12 +880,13 @@
     {
       "id": "SCR-096",
       "slug": "close-guard",
-      "title": "Close guard: the question before the app closes while agents work, with Stop them and close and Keep them working; it also names the unsaved drafts",
+      "title": "Close guard: the question before the app closes while agents work, with Stop them and close and Keep them working; it also names the unsaved drafts; closing a project while agents work asks with Cancel, Stop them and close, and Keep them working",
       "artifacts": [
         "spec:shell",
         "spec:app-redesign",
         "adr:0023"
-      ]
+      ],
+      "file": "docs/assets/screenshots/close-guard.png"
     },
     {
       "id": "SCR-097",
@@ -937,7 +938,7 @@
     {
       "id": "SCR-103",
       "slug": "role-views",
-      "title": "Setup / Role views: one card for each role with the page it starts on and the places it sees, a struck-through place for a place the role does not see, the tag My view on the card of the person, I only look for the viewer, and Rights of each role",
+      "title": "Setup / Role views: one card for each role with the page it starts on and the places it sees, a struck-through place for a place the role does not see, the tag My view on the card of the person, I only look for the viewer, and Rights of each role; a role can hide the places it does not see",
       "artifacts": [
         "spec:team-rights",
         "spec:app-redesign",
@@ -999,7 +1000,7 @@
     {
       "id": "SCR-143",
       "slug": "crew-spend-how",
-      "title": "Crew / Spend / How agents do: the success rate, the requests of one run as a tree or a flame, and the use of this computer (design picture 078, /crew/spend?page=how)",
+      "title": "Crew / Spend / How agents do: the success rate, the requests of one run as a tree or a flame, and the use of this computer (design picture 078, /crew/spend?page=how); Processor and Memory bars of the agent processes only, and each step of a run lists its tool calls",
       "artifacts": [
         "spec:app-redesign"
       ],
@@ -1227,7 +1228,7 @@
     {
       "id": "SCR-183",
       "slug": "setup-look",
-      "title": "Setup / Me, Look and layout: the colours, the layout side, motion and focus, the text and the fonts, and the things of this computer",
+      "title": "Setup / Me, Look and layout: the colours, the layout side, motion and focus, the text and the fonts, and the things of this computer; Change beside the data folder, and a Portable mode switch",
       "artifacts": [
         "spec:app-redesign",
         "adr:0023"
@@ -1336,6 +1337,16 @@
         "adr:0023"
       ],
       "file": "docs/assets/screenshots/pull-new.png"
+    },
+    {
+      "id": "SCR-185",
+      "slug": "permissions-moment",
+      "title": "The card \"Shipyard needs N permissions\", over the app once a project is open, while a permission of Notifications or Files of your projects is missing: each with Allow, with Later and Allow all (no keychain probe)",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/permissions-moment.png"
     }
   ]
 }

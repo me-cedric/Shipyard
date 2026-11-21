@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type OsPermission, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
+import { useActiveProject } from "@/lib/projects";
 import { laterPermissions, usePermissionsLater } from "@/lib/shell/permissions-later";
 import { Button } from "@/ui/atoms/button";
 import { Dialog } from "@/ui/organisms/dialog";
@@ -20,6 +21,8 @@ export function PermissionsMoment() {
 	const qc = useQueryClient();
 	const hidden = usePermissionsLater();
 	const tour = useTourOpen();
+	// The first run (role, first project) comes first, like the tour.
+	const hasProject = Boolean(useActiveProject().data);
 	const list = usePermissions().data ?? [];
 	const missing = list.filter((p) => p.state === "notAsked" || p.state === "off");
 	const asked = (p: OsPermission) => p.state === "notAsked";
@@ -35,7 +38,7 @@ export function PermissionsMoment() {
 	};
 	return (
 		<Dialog
-			open={!hidden && !tour && missing.length > 0}
+			open={hasProject && !hidden && !tour && missing.length > 0}
 			onOpenChange={(open) => {
 				if (!open) laterPermissions();
 			}}

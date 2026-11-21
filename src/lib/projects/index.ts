@@ -180,7 +180,7 @@ export function useProjectActions() {
 	 */
 	const close = useCallback(async () => {
 		const runs = await unwrap(commands.projectsCloseState());
-		const answer = runs.length ? await askProjectClose(runs.length) : "keep";
+		const answer = runs.length ? await askProjectClose(runs.map((r) => r.key)) : "keep";
 		if (answer === "cancel") return;
 		await unwrap(answer === "stop" ? commands.projectsCloseStop() : commands.projectsClose());
 		router.history.push("/");

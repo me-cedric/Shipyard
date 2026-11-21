@@ -42,12 +42,12 @@ Plan: [plan.md](plan.md)
 - [x] T023 Build REQ-011 (F45, Places hidden for each role): `crates/shipyard-core/src/rights.rs`, `src/features/crew/rights.tsx`, `src/lib/ipc/mock.ts`. REQ-011.
 - [x] T024 [P] Build REQ-012 (F46, Ask before a project closes): `src/lib/projects/index.ts`, `src/features/shell/close-guard.tsx`. REQ-012.
 - [x] T025 Shared files: add the commands to the map of `src/lib/ipc/mock.ts` and to `crates/shipyard-app/src/lib.rs`, run `pnpm ipc:gen`, add the strings in English, French, German and Spanish to `src/lib/i18n/`.
-- [ ] T026 Docs: `docs/designs/screens.json` and the pictures for Rights, Sessions, Look and layout and the permissions card; `docs/api/shipyard-mcp.yaml` only if a tool changes; the scenarios in `docs/delivery/test-plans/shell-setup-rights.feature`; the pictures in `docs/assets/screenshots/` and `docs/designs/screens.json` for each changed screen; one bullet each in `CHANGELOG.md` and `CHANGELOG.fr.md`; the page of the guide in four languages.
+- [x] T026 Docs: `docs/designs/screens.json` and the pictures for Rights, Sessions, Look and layout and the permissions card; `docs/api/shipyard-mcp.yaml` only if a tool changes; the scenarios in `docs/delivery/test-plans/shell-setup-rights.feature`; the pictures in `docs/assets/screenshots/` and `docs/designs/screens.json` for each changed screen; one bullet each in `CHANGELOG.md` and `CHANGELOG.fr.md`; the page of the guide in four languages.
 - [x] T027 Run the commands of the Validation block of `plan.md`.
-- [ ] T028 Compare the build with the spec and fix stale artifacts.
+- [x] T028 Compare the build with the spec and fix stale artifacts.
 
 ## Completion Check
 
-- [ ] All acceptance criteria are met.
-- [ ] Required validation passed or failures are marked pre-existing.
-- [ ] Specs, docs, and code agree.
+- [x] All acceptance criteria are met.
+- [x] Required validation passed or failures are marked pre-existing.
+- [x] Specs, docs, and code agree.

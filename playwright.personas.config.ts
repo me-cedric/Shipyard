@@ -16,7 +16,7 @@ export default defineConfig({
 		},
 	],
 	webServer: {
-		command: `pnpm exec vite build --outDir ${DIST} --emptyOutDir && pnpm exec vite preview --outDir ${DIST} --port 4177 --strictPort`,
+		command: `VITE_PERMISSIONS_LATER=1 pnpm exec vite build --outDir ${DIST} --emptyOutDir && pnpm exec vite preview --outDir ${DIST} --port 4177 --strictPort`,
 		url: "http://localhost:4177",
 		reuseExistingServer: !process.env.CI,
 		timeout: 300_000,

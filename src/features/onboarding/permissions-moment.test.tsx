@@ -58,6 +58,13 @@ describe("The permissions moment", () => {
 		await idle(router);
 	});
 
+	it("waits for the first project: the first run comes first", async () => {
+		const router = mountApp("/home/today");
+		await screen.findByRole("heading", { name: "What is your job?" });
+		expect(screen.queryByRole("dialog")).toBeNull();
+		await idle(router);
+	});
+
 	it("stays away when each permission is on", async () => {
 		for (const p of mockState().permissions) p.state = "on";
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
