@@ -232,7 +232,8 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		);
 		await user.click(await screen.findByRole("menuitem", { name: "Stop run" }));
 		const toast = within(await screen.findByRole("status", { name: "Notifications" }));
-		expect(await toast.findByText("ACME-2 stopped")).toBeVisible();
+		// The toast slides in from opacity 0: wait for the end of the slide.
+		await waitFor(() => expect(toast.getByText("ACME-2 stopped")).toBeVisible());
 		await waitFor(async () => expect((await find("ACME-2")).state).toBe("Cancelled"));
 		await user.click(toast.getByRole("button", { name: "History" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/done"));
