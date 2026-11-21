@@ -44,7 +44,7 @@ Plan: [plan.md](plan.md)
 - [x] T026 [P] Build REQ-013 (F39, Link from an endpoint to its feature): `src/features/design/api.tsx`. REQ-013.
 - [x] T027 Shared files: add the commands to the map of `src/lib/ipc/mock.ts` and to `crates/shipyard-app/src/lib.rs`, run `pnpm ipc:gen`, add the strings in English, French, German and Spanish to `src/lib/i18n/`.
 - [x] T028 Docs: `docs/flows/network-flows.json` is NOT changed (no new call); `docs/designs/screens.json` and the pictures for Slides, Learn, Reports, Dashboards and the flow matrix; the scenarios in `docs/delivery/test-plans/library-functions.feature`; the pictures in `docs/assets/screenshots/` and `docs/designs/screens.json` for each changed screen; one bullet each in `CHANGELOG.md` and `CHANGELOG.fr.md`; the page of the guide in four languages.
-- [ ] T029 Run the commands of the Validation block of `plan.md`.
+- [x] T029 Run the commands of the Validation block of `plan.md`.
 - [ ] T030 Compare the build with the spec and fix stale artifacts.
 
 ## Completion Check
