@@ -101,6 +101,20 @@ const sizeFaults = (page: Page) =>
 
 /** Waits for the opening move of a popup: a box that still grows reads a few px too small. */
 async function settled(popup: Locator) {
+	// The popup opens from 95 %: wait until it leaves its starting style and each transition ends.
+	await expect
+		.poll(() =>
+			popup.evaluate((el) => {
+				// The positioner holds the popup: only its own transitions count, not a spinner of the page.
+				const root = el.closest<HTMLElement>("[data-side]") ?? el;
+				return (
+					!root.matches("[data-starting-style]") &&
+					!root.querySelector("[data-starting-style]") &&
+					root.getAnimations({ subtree: true }).every((a) => a.playState !== "running")
+				);
+			}),
+		)
+		.toBe(true);
 	let last = -1;
 	await expect
 		.poll(async () => {
