@@ -121,7 +121,7 @@ Benachrichtigungen: Jede Quelle hat ihren eigenen Schalter, standardmäßig an. 
 
 Budget-Hinweis: Eine Benachrichtigung erscheint, wenn ein Budget seine Warnschwelle erreicht. Der Schalter Ton schaltet den Ton eines Systemhinweises ein oder aus. Der Release-Kanal ist Stabil oder Vorschau: Vorschau beachtet auch die Vorabversionen derselben Release-Adresse.
 
-Abmelden steht neben Ihrem Namen und am Ende des Kontomenüs. Nach Ihrer Bestätigung entfernt es die Tokens des Code-Hosts und des Issue-Trackers aus dem Schlüsselbund dieses Computers. Die Anmeldung eines KI-Tools oder von OpenRouter bleibt.
+Abmelden steht neben Ihrem Namen und am Ende des Kontomenüs. Nach Ihrer Bestätigung entfernt es die Anmeldung beim Code-Host und beim Issue-Tracker von diesem Computer. Die Anmeldung eines KI-Tools oder von OpenRouter bleibt.
 
 Beim ersten Start und jedes Mal, wenn eine Berechtigung fehlt, listet eine Karte „Shipyard braucht N Berechtigungen“ die fehlenden Berechtigungen mit Erlauben, Später und Alle erlauben.
 

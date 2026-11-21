@@ -121,7 +121,7 @@ Notifications: each source has its own switch, on by default. The sources are a 
 
 Budget notice: a notification shows when a budget reaches Warn at. The switch Sound turns the sound of a system notice on or off. The Release channel is Stable or Preview: Preview also considers the pre-releases of the same release address.
 
-Sign out is beside your name and at the end of the account menu. After you confirm, it removes the tokens of the code host and of the issue tracker from the keychain of this computer. The sign-in of an AI tool or of OpenRouter stays.
+Sign out is beside your name and at the end of the account menu. After you confirm, it removes the sign-in of the code host and of the issue tracker from this computer. The sign-in of an AI tool or of OpenRouter stays.
 
 At the first launch, and each time a permission is missing, a card "Shipyard needs N permissions" lists the missing permissions with Allow, Later and Allow all.
 

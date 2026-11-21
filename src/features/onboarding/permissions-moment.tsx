@@ -1,32 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useSyncExternalStore } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type OsPermission, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
+import { laterPermissions, usePermissionsLater } from "@/lib/shell/permissions-later";
 import { Button } from "@/ui/atoms/button";
 import { Dialog } from "@/ui/organisms/dialog";
 import { askAll, PERMISSIONS_KEY, usePermissions } from "./permissions";
 import { useTourOpen } from "./tour-store";
-
-/** Later hides the card until the app starts again: a permission that stays missing shows it at each launch. */
-let later = false;
-const listeners = new Set<() => void>();
-const setLater = (next: boolean) => {
-	later = next;
-	for (const l of listeners) l();
-};
-/** Hides the card for this run (the test setup uses it so that no test opens with a card). */
-export const hidePermissionsMoment = () => setLater(true);
-/** Lets the card show again. */
-export const resetPermissionsMoment = () => setLater(false);
-const useLater = () =>
-	useSyncExternalStore(
-		(l) => {
-			listeners.add(l);
-			return () => listeners.delete(l);
-		},
-		() => later,
-	);
 
 /**
  * The card "Shipyard needs N permissions" (`spec:shell-setup-rights#REQ-010`): the permissions of
@@ -38,7 +18,7 @@ export function PermissionsMoment() {
 	const m = t.onboarding.permissions;
 	const f = t.shellFn.permissions;
 	const qc = useQueryClient();
-	const hidden = useLater();
+	const hidden = usePermissionsLater();
 	const tour = useTourOpen();
 	const list = usePermissions().data ?? [];
 	const missing = list.filter((p) => p.state === "notAsked" || p.state === "off");
@@ -57,7 +37,7 @@ export function PermissionsMoment() {
 		<Dialog
 			open={!hidden && !tour && missing.length > 0}
 			onOpenChange={(open) => {
-				if (!open) setLater(true);
+				if (!open) laterPermissions();
 			}}
 			title={missing.length === 1 ? f.momentOne : format(f.moment, { count: missing.length })}
 			closeLabel={f.later}

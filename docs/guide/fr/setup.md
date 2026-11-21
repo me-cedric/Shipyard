@@ -121,7 +121,7 @@ Notifications : chaque source a son propre interrupteur, activé par défaut. Le
 
 Avis de budget : une notification s'affiche quand un budget atteint son seuil d'alerte. L'interrupteur Son active ou coupe le son d'un avis du système. Le canal de version est Stable ou Préversion : Préversion considère aussi les préversions de la même adresse de versions.
 
-Se déconnecter est à côté de votre nom et à la fin du menu du compte. Après votre confirmation, il retire de ce ordinateur les jetons de l'hébergeur de code et du suivi de tickets du trousseau. La connexion d'un outil d'IA ou d'OpenRouter reste.
+Se déconnecter est à côté de votre nom et à la fin du menu du compte. Après votre confirmation, il retire de cet ordinateur la connexion de l'hébergeur de code et du suivi de tickets. La connexion d'un outil d'IA ou d'OpenRouter reste.
 
 Au premier lancement, et chaque fois qu'une autorisation manque, une carte « Shipyard a besoin de N autorisations » liste les autorisations manquantes avec Autoriser, Plus tard et Tout autoriser.
 

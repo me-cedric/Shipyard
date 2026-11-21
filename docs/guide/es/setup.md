@@ -121,7 +121,7 @@ Notificaciones: cada origen tiene su propio interruptor, activado por defecto. L
 
 Aviso de presupuesto: se muestra una notificación cuando un presupuesto llega a su umbral de aviso. El interruptor Sonido activa o desactiva el sonido de un aviso del sistema. El canal de versiones es Estable o Vista previa: Vista previa también considera las prerrelease de la misma dirección de versiones.
 
-Cerrar sesión está junto a tu nombre y al final del menú de la cuenta. Tras tu confirmación, quita del llavero de este ordenador los tokens del alojamiento de código y del gestor de incidencias. El inicio de sesión de una herramienta de IA o de OpenRouter se mantiene.
+Cerrar sesión está junto a tu nombre y al final del menú de la cuenta. Tras tu confirmación, quita de este ordenador el inicio de sesión del alojamiento de código y del gestor de incidencias. El inicio de sesión de una herramienta de IA o de OpenRouter se mantiene.
 
 En el primer inicio, y cada vez que falta un permiso, una tarjeta «Shipyard necesita N permisos» lista los permisos que faltan con Permitir, Más tarde y Permitir todo.
 
