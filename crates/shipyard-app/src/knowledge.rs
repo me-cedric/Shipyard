@@ -12,7 +12,7 @@ use std::process::Command;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use shipyard_core::knowledge::{Stamp, Term, glossary, marks, path_order};
+use shipyard_core::knowledge::{Stamp, Term, glossary, marks, path_order, stale_code};
 use shipyard_mcp::proxy::{Proxy, SEP};
 use shipyard_store::design::{self, resolve_in};
 use shipyard_store::export::{
@@ -221,6 +221,8 @@ pub struct CodeGraph {
     pub state: CodeState,
     pub nodes: Vec<GraphNode>,
     pub edges: Vec<CodeEdge>,
+    /// The files whose spec changed after their last change. Only the overview fills it.
+    pub stale: Vec<String>,
 }
 
 /// The name of the graph of a folder in codebase-memory: its real path (a link such as `/tmp` or
@@ -306,6 +308,7 @@ fn empty(state: CodeState) -> CodeGraph {
         state,
         nodes: vec![],
         edges: vec![],
+        stale: vec![],
     }
 }
 
@@ -359,11 +362,43 @@ pub fn code_graph(src: &dyn CodeSource, root: &Path) -> CodeGraph {
     } else {
         CodeState::Ready
     };
+    let stale = stale_files(root, &nodes);
     CodeGraph {
         state,
         nodes,
         edges,
+        stale,
     }
+}
+
+/// The specs are the Markdown files of `docs/openspec/` that git knows. A file with no time
+/// (unreadable) is skipped.
+fn stale_files(root: &Path, nodes: &[GraphNode]) -> Vec<String> {
+    let Ok(files) = crate::code::scan_files(root) else {
+        return vec![];
+    };
+    let specs: Vec<&str> = files
+        .iter()
+        .map(String::as_str)
+        .filter(|f| f.starts_with("docs/openspec/") && f.ends_with(".md"))
+        .collect();
+    let paths: Vec<&str> = nodes
+        .iter()
+        .filter_map(|n| n.location.as_deref())
+        .chain(specs.iter().copied())
+        .collect();
+    let times = changed_times(root, &paths);
+    let at = |p: &str| times.get(p).copied().unwrap_or(0);
+    let texts: Vec<(String, i64)> = specs
+        .iter()
+        .filter_map(|f| Some((std::fs::read_to_string(root.join(f)).ok()?, at(f))))
+        .collect();
+    let code: Vec<(String, i64)> = nodes
+        .iter()
+        .filter_map(|n| n.location.as_deref())
+        .map(|p| (p.to_string(), at(p)))
+        .collect();
+    stale_code(&code, &texts)
 }
 
 /// The calls of one file, symbol by symbol: its symbols, and each symbol that calls them or that
@@ -428,6 +463,7 @@ pub fn code_focus(src: &dyn CodeSource, root: &Path, file: &str) -> Res<CodeGrap
         state,
         nodes,
         edges,
+        stale: vec![],
     })
 }
 
@@ -2057,6 +2093,54 @@ mod tests {
             .set_tool_filter(&id, ToolFilter::All)
             .unwrap();
         code_index_run(&proxy, dir.path()).unwrap();
+    }
+
+    /// A code source with a fixed overview of two files.
+    struct TwoFiles;
+    impl CodeSource for TwoFiles {
+        fn call(&self, _tool: &str, _args: Value) -> Result<Value, String> {
+            Ok(json!({ "rows": [["src/a.ts", "src/b.ts", "2"]] }))
+        }
+    }
+
+    // spec:library-functions#REQ-012
+    #[test]
+    fn a_part_of_the_code_is_stale_when_its_spec_changed_after_the_last_change_of_the_code() {
+        let dir = tempfile::tempdir().unwrap();
+        let git = |args: &[&str], date: &str| {
+            let ok = Command::new("git")
+                .arg("-C")
+                .arg(dir.path())
+                .args(["-c", "user.name=t", "-c", "user.email=t@t.test"])
+                .args(args)
+                .env("GIT_AUTHOR_DATE", date)
+                .env("GIT_COMMITTER_DATE", date)
+                .status()
+                .unwrap()
+                .success();
+            assert!(ok, "{args:?}");
+        };
+        let put = |rel: &str, text: &str| {
+            let p = dir.path().join(rel);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, text).unwrap();
+        };
+        git(&["init", "-q"], "2026-11-01T10:00:00Z");
+        put("src/a.ts", "a\n");
+        put("src/b.ts", "b\n");
+        git(&["add", "-A"], "2026-11-10T10:00:00Z");
+        git(&["commit", "-qm", "code"], "2026-11-10T10:00:00Z");
+        put("docs/openspec/specs/x/spec.md", "Files: `src/a.ts`\n");
+        git(&["add", "-A"], "2026-11-18T10:00:00Z");
+        git(&["commit", "-qm", "spec"], "2026-11-18T10:00:00Z");
+        let g = code_graph(&TwoFiles, dir.path());
+        assert_eq!(g.state, CodeState::Ready);
+        assert_eq!(g.stale, ["src/a.ts"]);
+        // The code changes after the spec: nothing is stale.
+        put("src/a.ts", "a2\n");
+        git(&["add", "-A"], "2026-11-19T10:00:00Z");
+        git(&["commit", "-qm", "code again"], "2026-11-19T10:00:00Z");
+        assert!(code_graph(&TwoFiles, dir.path()).stale.is_empty());
     }
 
     #[test]

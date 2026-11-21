@@ -441,13 +441,16 @@ const CALLS: [number, number][] = [
 	[0, 1],
 ];
 
+/** The spec that names a file of the mock code. */
+const CODE_SPEC: Record<string, string> = { "src/features/home/home.tsx": "spec:home" };
+
 const fileOf = (i: number) => SYMBOLS[i]?.[0] ?? "";
 const symbolId = (i: number) => `${fileOf(i)}::${SYMBOLS[i]?.[1]}`;
 
 /** The overview: the files, and the calls between two files counted. */
 export function graphCode(k: MockKnowledge): CodeGraph_Serialize {
-	if (!k.server) return { state: "off", nodes: [], edges: [] };
-	if (!k.indexed) return { state: "unindexed", nodes: [], edges: [] };
+	if (!k.server) return { state: "off", nodes: [], edges: [], stale: [] };
+	if (!k.indexed) return { state: "unindexed", nodes: [], edges: [], stale: [] };
 	const files = [...new Set(SYMBOLS.map(([f]) => f))];
 	const weight = new Map<string, number>();
 	for (const [a, b] of CALLS) {
@@ -455,8 +458,14 @@ export function graphCode(k: MockKnowledge): CodeGraph_Serialize {
 		const key = `${fileOf(a)}\n${fileOf(b)}`;
 		weight.set(key, (weight.get(key) ?? 0) + 1);
 	}
+	// The spec of a file changed after the last change of the file (`stale_code` of the core).
+	const stale = files.filter((f) => {
+		const at = k.changed[f] ?? 0;
+		return at > 0 && (k.changed[CODE_SPEC[f] ?? ""] ?? 0) > at;
+	});
 	return {
 		state: "ready",
+		stale,
 		nodes: files.map((f) => ({ ref: f, kind: "file", title: f, status: null, location: f })),
 		edges: [...weight].map(([key, w]) => {
 			const [source = "", target = ""] = key.split("\n");
@@ -467,12 +476,13 @@ export function graphCode(k: MockKnowledge): CodeGraph_Serialize {
 
 /** One file with its symbols and the symbols that call them or that they call. */
 export function graphCodeFocus(k: MockKnowledge, file: string): CodeGraph_Serialize {
-	if (!k.server) return { state: "off", nodes: [], edges: [] };
+	if (!k.server) return { state: "off", nodes: [], edges: [], stale: [] };
 	const calls = CALLS.filter(([a, b]) => fileOf(a) === file || fileOf(b) === file);
 	const used = [...new Set(calls.flat())];
 	const files = [...new Set(used.map(fileOf))];
 	return {
 		state: used.length ? "ready" : "unindexed",
+		stale: [],
 		nodes: [
 			...files.map((f) => ({ ref: f, kind: "file", title: f, status: null, location: f })),
 			...used.map((i) => ({

@@ -1613,12 +1613,16 @@ export type CodeGraph_Deserialize = {
 	state: CodeState,
 	nodes: GraphNode_Deserialize[],
 	edges: CodeEdge[],
+	/**  The files whose spec changed after their last change. Only the overview fills it. */
+	stale: string[],
 };
 
 export type CodeGraph_Serialize = {
 	state: CodeState,
 	nodes: GraphNode_Serialize[],
 	edges: CodeEdge[],
+	/**  The files whose spec changed after their last change. Only the overview fills it. */
+	stale: string[],
 };
 
 export type CodeState = 

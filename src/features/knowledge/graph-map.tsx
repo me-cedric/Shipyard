@@ -174,6 +174,8 @@ export function CodeMap({
 	const [orphans, setOrphans] = useState(false);
 	const [folder, setFolder] = useState<string | null>(null);
 	const [symbol, setSymbol] = useState<string | null>(null);
+	// The files whose spec changed after them (`spec:library-functions#REQ-012`).
+	const stale = new Set(graph.stale);
 	// A file that no call reaches or leaves.
 	const linkedFiles = new Set(graph.edges.flatMap((e) => [e.source, e.target]));
 	const folders = folderClusters(
@@ -243,6 +245,11 @@ export function CodeMap({
 									m.ref === current ? (
 										<Card key={m.ref} className="flex flex-[1_1_240px] flex-col gap-2.5 p-4">
 											<span className="break-all font-mono text-14 font-semibold">{m.ref}</span>
+											{stale.has(m.ref) ? (
+												<Badge variant="you" className="self-start">
+													{k.graph.stale}
+												</Badge>
+											) : null}
 											<fieldset
 												aria-label={`${k.graph.symbol}: ${base(m.ref)}`}
 												className="m-0 flex flex-wrap gap-2 border-0 p-0"
@@ -265,13 +272,14 @@ export function CodeMap({
 										<Chip
 											key={m.ref}
 											className={cn(WHITE, "font-mono text-14")}
-											aria-label={`${k.graph.file} ${m.ref}`}
+											aria-label={`${k.graph.file} ${m.ref}${stale.has(m.ref) ? `, ${k.graph.stale}` : ""}`}
 											onClick={() => {
 												setSymbol(null);
 												onFile(m.ref);
 											}}
 										>
 											{base(m.ref)}
+											{stale.has(m.ref) ? <Badge variant="you">{k.graph.stale}</Badge> : null}
 										</Chip>
 									),
 								)}
@@ -306,9 +314,14 @@ export function CodeMap({
 					<SideCards className="flex-[2_1_300px]">
 						<Card pad>
 							<section aria-label={k.graph.chosen} className="flex flex-col gap-3.5">
-								<Badge variant="accent" className="self-start">
-									{chosen ? (chosen.status ?? k.graph.function) : k.graph.file}
-								</Badge>
+								<div className="flex flex-wrap gap-2">
+									<Badge variant="accent">
+										{chosen ? (chosen.status ?? k.graph.function) : k.graph.file}
+									</Badge>
+									{!chosen && stale.has(target.ref) ? (
+										<Badge variant="you">{k.graph.stale}</Badge>
+									) : null}
+								</div>
 								<h2 className="break-all font-mono text-14 font-semibold text-n-12">
 									{chosen ? chosen.title : base(target.ref)}
 								</h2>

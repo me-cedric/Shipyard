@@ -453,7 +453,7 @@ export function Flows() {
 }
 
 /** The flows that are denied and that the code uses, with the way to show them and to ask for the change. */
-function UsedAlert({ names, onShow }: { names: string[]; onShow: (index: number) => void }) {
+function UsedAlert({ names, onShow }: { names: string[]; onShow: () => void }) {
 	const { t } = useI18n();
 	const c = t.library.fn.flows;
 	const { ask } = useShell();

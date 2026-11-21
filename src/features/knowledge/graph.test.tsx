@@ -264,7 +264,7 @@ describe("Knowledge / Graph", () => {
 		await user.click(await screen.findByRole("button", { name: "Code" }));
 		vi.spyOn(commands, "graphCode").mockResolvedValue({
 			status: "ok",
-			data: { state: "unindexed", nodes: [], edges: [] },
+			data: { state: "unindexed", nodes: [], edges: [], stale: [] },
 		});
 		await user.click(await screen.findByRole("button", { name: "Index" }));
 		expect(await screen.findByText("Indexed, no calls found")).toBeInTheDocument();
