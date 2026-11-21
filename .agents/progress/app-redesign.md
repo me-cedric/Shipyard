@@ -724,13 +724,13 @@ After the join:
 - A review in a fresh context found seven defects. All are fixed, with tests: the join accept takes one new entry with no admin or extra rights and refuses other changes; the data folder move and the portable copy happen at the next start, before a store opens; Change and Portable show their error; Sign out saves the file after a keychain error; Restore asks first and refuses with unsaved edits; Fill from my work fills only your own sheet; Add a word goes into the Glossary section.
 - The join cards of Crew / Rights / Team have the heading level after the page title (axe heading-order).
 - All pictures are retaken on the joined build (`scripts/screenshots.ts`, all scenes).
+- Final visual check against the 101 design pictures: 51 match, 49 minor, 1 major (068, Leave this page), fixed. Per-screen record: `.agents/progress/redesign-visual-final.md`. New pictures SCR-186 to SCR-193 (History, Restore, Add a word, Experts, pinned Today, Earlier versions, flow check, Leave this page).
 
 Gates on the joined tree, all passed: `pnpm typecheck`, `pnpm lint`, vitest (319 files, 2864 tests), `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --exclude shipyard-app` (1531), `cargo test -p shipyard-app --lib` (589, one keychain test skipped), `cargo test -p shipyard-app --test it` (61), `pnpm ipc:check`, `openspec validate add-redesign-functions --strict`, e2e (150), personas (7).
 
 Open items:
 
 - Fill from my work refuses the sheet of another member. A lead can fill another sheet only after a match of the commits to the emails of the team file.
-- The Restore question, the History dialog, Add a word, the Experts card and the pinned Today state have no picture.
 - The permissions card offers no request for a permission that is off, only Open the system settings.
 - `src/features/factory/runs.test.tsx` failed once under load and passed on two reruns.
 - The fr, de and es guide texts of the new controls need a review by a native speaker (`q:Q-172`).
