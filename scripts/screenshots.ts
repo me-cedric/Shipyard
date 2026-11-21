@@ -43,7 +43,8 @@ const open = async (p: Page, tab: string) => {
 	await side(p).getByRole("link", { name: PLACE[tab] }).click();
 	// Library has no section switch: a page opens from its chip in a door.
 	const from = PLACE[tab] === "Library" ? p.getByRole("main") : tabs(p);
-	await from.getByRole("link", { name: tab, exact: true }).click();
+	// Opened last can name the same page below the doors: the door comes first.
+	await from.getByRole("link", { name: tab, exact: true }).first().click();
 };
 // Crew / Live: one row for each agent at work (the agents map of before). Live is an item of More.
 const openLive = async (p: Page) => {
