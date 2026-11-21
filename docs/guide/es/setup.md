@@ -133,7 +133,7 @@ Vistas por rol está en `/setup/role-views`. Todas las vistas por rol, en la pá
 
 Aspecto y disposición contiene las fuentes, el lado de la barra y de los cajones, el color de acento, el formato de fecha y tu foto.
 
-Cambiar, junto a la carpeta de datos, mueve los datos a la carpeta que elijas, tras tu confirmación, y reinicia Shipyard. El interruptor Modo portátil escribe o quita la marca `portable` junto a la aplicación.
+Cambiar, junto a la carpeta de datos, mueve los datos a la carpeta que elijas, tras tu confirmación, y reinicia Shipyard. El interruptor Modo portátil escribe o quita la marca `portable` junto a la aplicación. Los datos se mueven en el siguiente inicio, antes de que Shipyard abra sus archivos. Si la copia falla, Shipyard conserva la carpeta anterior.
 
 ## Añadir un tipo de ticket
 

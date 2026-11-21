@@ -133,7 +133,7 @@ Vues par rôle est à l'adresse `/setup/role-views`. Toutes les vues par rôle, 
 
 Apparence et disposition contient les polices, le côté de la barre et des tiroirs, la couleur d'accent, le format de date et votre image.
 
-Changer, à côté du dossier des données, déplace les données vers le dossier que vous choisissez, après votre confirmation, puis redémarre Shipyard. L'interrupteur Mode portable écrit ou retire le marqueur `portable` à côté de l'application.
+Changer, à côté du dossier des données, déplace les données vers le dossier que vous choisissez, après votre confirmation, puis redémarre Shipyard. L'interrupteur Mode portable écrit ou retire le marqueur `portable` à côté de l'application. Les données se déplacent au démarrage suivant, avant que Shipyard ouvre ses fichiers. Si la copie échoue, Shipyard garde l'ancien dossier.
 
 ## Ajouter un type de ticket
 

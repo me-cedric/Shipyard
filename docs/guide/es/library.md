@@ -108,7 +108,7 @@ Decisiones contiene los registros de decisión (ADR). Cada registro da una decis
 
 Reglas del proyecto muestra una tarjeta numerada por regla que todo cambio debe seguir. Editar cambia el texto, y Añadir una regla añade una al final. La tarjeta Quién puede cambiar las reglas enlaza con Equipo / Derechos (Cambiar los derechos), y Quién sigue las reglas lista los roles de agente.
 
-Versiones anteriores lista los commits que cambiaron el archivo. Leer muestra una versión antigua; Restaurar escribe su texto en el archivo y no hace commit, así que aún puede deshacerse.
+Versiones anteriores lista los commits que cambiaron el archivo. Leer muestra una versión antigua; Restaurar escribe su texto en el archivo y no hace commit, así que aún puede deshacerse. Restaurar pregunta primero y se niega cuando el archivo tiene cambios que no están en un commit.
 
 ## Aprender y compartir
 

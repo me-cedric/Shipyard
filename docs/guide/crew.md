@@ -100,4 +100,4 @@ A sub-page has its own address and a back link, and no section switch.
 
 ## Join requests
 
-On the team file, each person who asked to join shows as a card with the pull request. As sets the role, Refuse closes the pull request, and Accept writes the role in the team file and merges the pull request. Accept needs the right to merge.
+On the team file, each person who asked to join shows as a card with the pull request. As sets the role, Refuse closes the pull request, and Accept writes the role in the team file and merges the pull request. Accept needs the right to merge. Accept refuses a pull request that changes another file, another person or the rights of the new person: it adds one person with the role that you set and no admin.

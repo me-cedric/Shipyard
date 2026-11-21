@@ -100,4 +100,4 @@ Una subpágina tiene su propia dirección y un enlace de vuelta, sin selector de
 
 ## Solicitudes de ingreso
 
-En el archivo del equipo, cada persona que pide unirse aparece como una tarjeta con la pull request. Como fija el rol, Rechazar cierra la pull request, y Aceptar escribe el rol en el archivo del equipo y fusiona la pull request. Aceptar necesita el derecho de fusionar.
+En el archivo del equipo, cada persona que pide unirse aparece como una tarjeta con la pull request. Como fija el rol, Rechazar cierra la pull request, y Aceptar escribe el rol en el archivo del equipo y fusiona la pull request. Aceptar necesita el derecho de fusionar. Aceptar rechaza una pull request que cambia otro archivo, otra persona o los derechos de la nueva persona: añade una persona con el rol elegido y sin admin.

@@ -33,7 +33,7 @@ Klicken Sie auf Monat lesen, um die Zeiteinträge des Monats aus dem Ticketsyste
 
 Eine Rolle mit weniger als drei Mitgliedern mit einem Tagessatz zeigt keine Kosten. Mit einem oder zwei Sätzen würden Kosten den Satz einer Person zeigen.
 
-Aus meiner Arbeit füllen fügt eine Zeile für jeden Run Ihrer Tickets und jeden Commit Ihres Tages hinzu. Die Tabelle hat keine Schaltfläche Speichern: Sie speichert, wenn Sie ein Feld verlassen.
+Aus meiner Arbeit füllen fügt eine Zeile für jeden Run Ihrer Tickets und jeden Commit Ihres Tages hinzu. Es füllt nur Ihre eigene Tabelle. Die Tabelle hat keine Schaltfläche Speichern: Sie speichert, wenn Sie ein Feld verlassen.
 
 ## Seiten
 

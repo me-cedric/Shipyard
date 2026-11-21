@@ -108,7 +108,7 @@ Décisions contient les relevés de décision (ADR). Chaque relevé donne une d�
 
 Règles du projet montre une carte numérotée par règle que chaque changement doit suivre. Modifier change le texte, et Ajouter une règle en ajoute une à la fin. La carte Qui peut modifier les règles renvoie vers Équipe / Droits (Modifier les droits), et Qui suit les règles liste les rôles d'agent.
 
-Versions précédentes liste les commits qui ont changé le fichier. Lire montre une ancienne version ; Restaurer écrit son texte dans le fichier et ne commit rien, donc vous pouvez encore l'annuler.
+Versions précédentes liste les commits qui ont changé le fichier. Lire montre une ancienne version ; Restaurer écrit son texte dans le fichier et ne commit rien, donc vous pouvez encore l'annuler. Restaurer demande d'abord, et refuse quand le fichier a des changements qui ne sont pas dans un commit.
 
 ## Apprendre et partager
 

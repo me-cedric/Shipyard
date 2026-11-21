@@ -133,7 +133,7 @@ Role views is at `/setup/role-views`. All role views on the page of the panels o
 
 Look and layout holds the fonts, the side of the bar and of the drawers, the accent colour, the date format and your picture.
 
-Change beside the data folder moves the data to the folder that you pick, after you confirm, then restarts Shipyard. The switch Portable mode writes or removes the `portable` marker next to the app.
+Change beside the data folder moves the data to the folder that you pick, after you confirm, then restarts Shipyard. The switch Portable mode writes or removes the `portable` marker next to the app. The data moves at the next start, before Shipyard opens its files. If the copy fails, Shipyard keeps the old folder.
 
 ## Add a kind of ticket
 

@@ -33,7 +33,7 @@ Haz clic en Leer el mes para leer los registros de tiempo del mes en el gestor d
 
 Un rol con menos de tres miembros con tarifa diaria no muestra ningún coste. Con una o dos tarifas, un coste mostraría la tarifa de una persona.
 
-Rellenar desde mi trabajo añade una fila por cada ejecución de tus tickets y cada commit de tu día. La hoja no tiene botón Guardar: guarda cuando sales de un campo.
+Rellenar desde mi trabajo añade una fila por cada ejecución de tus tickets y cada commit de tu día. Solo rellena tu propia hoja. La hoja no tiene botón Guardar: guarda cuando sales de un campo.
 
 ## Páginas
 

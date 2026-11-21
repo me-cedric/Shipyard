@@ -100,4 +100,4 @@ Eine Unterseite hat eine eigene Adresse und einen Zurück-Link, aber keinen Absc
 
 ## Beitrittsanfragen
 
-In der Teamdatei erscheint jede Person, die beitreten will, als Karte mit dem Pull Request. Als setzt die Rolle, Ablehnen schließt den Pull Request, und Annehmen schreibt die Rolle in die Teamdatei und führt den Pull Request zusammen. Annehmen braucht das Recht zum Zusammenführen.
+In der Teamdatei erscheint jede Person, die beitreten will, als Karte mit dem Pull Request. Als setzt die Rolle, Ablehnen schließt den Pull Request, und Annehmen schreibt die Rolle in die Teamdatei und führt den Pull Request zusammen. Annehmen braucht das Recht zum Zusammenführen. Annehmen lehnt einen Pull Request ab, der eine andere Datei, eine andere Person oder die Rechte der neuen Person ändert: Es fügt eine Person mit der gewählten Rolle und ohne Admin hinzu.

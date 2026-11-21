@@ -108,7 +108,7 @@ Entscheidungen enthält die Entscheidungsprotokolle (ADRs). Jedes Protokoll nenn
 
 Projektregeln zeigt eine nummerierte Karte je Regel, die jede Änderung befolgen muss. Bearbeiten ändert den Text, und Regel hinzufügen fügt am Ende eine an. Die Karte Wer die Regeln ändern kann verweist auf Team / Rechte (Die Rechte ändern), und Wer die Regeln befolgt listet die Agentenrollen auf.
 
-Frühere Versionen listet die Commits auf, die die Datei geändert haben. Lesen zeigt eine alte Version; Wiederherstellen schreibt ihren Text in die Datei und committet nichts, so lässt es sich noch rückgängig machen.
+Frühere Versionen listet die Commits auf, die die Datei geändert haben. Lesen zeigt eine alte Version; Wiederherstellen schreibt ihren Text in die Datei und committet nichts, so lässt es sich noch rückgängig machen. Wiederherstellen fragt zuerst und lehnt ab, wenn die Datei Änderungen hat, die in keinem Commit sind.
 
 ## Lernen und teilen
 

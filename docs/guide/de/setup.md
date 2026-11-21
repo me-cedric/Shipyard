@@ -133,7 +133,7 @@ Rollenansichten liegt unter `/setup/role-views`. Alle Rollenansichten, auf der S
 
 Aussehen und Layout enthält die Schriften, die Seite der Leiste und der Schubladen, die Akzentfarbe, das Datumsformat und Ihr Bild.
 
-Ändern neben dem Datenordner verschiebt die Daten nach Ihrer Bestätigung in den gewählten Ordner und startet Shipyard neu. Der Schalter Portabler Modus schreibt oder entfernt die Markierung `portable` neben der App.
+Ändern neben dem Datenordner verschiebt die Daten nach Ihrer Bestätigung in den gewählten Ordner und startet Shipyard neu. Der Schalter Portabler Modus schreibt oder entfernt die Markierung `portable` neben der App. Die Daten werden beim nächsten Start verschoben, bevor Shipyard seine Dateien öffnet. Schlägt die Kopie fehl, behält Shipyard den alten Ordner.
 
 ## Eine Art von Ticket hinzufügen
 

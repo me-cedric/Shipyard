@@ -100,4 +100,4 @@ Une sous-page a sa propre adresse et un lien de retour, sans sélecteur de secti
 
 ## Demandes d'adhésion
 
-Sur le fichier d'équipe, chaque personne qui demande à rejoindre s'affiche comme une carte avec la pull request. Comme règle le rôle, Refuser ferme la pull request, et Accepter écrit le rôle dans le fichier d'équipe et fusionne la pull request. Accepter demande le droit de fusionner.
+Sur le fichier d'équipe, chaque personne qui demande à rejoindre s'affiche comme une carte avec la pull request. Comme règle le rôle, Refuser ferme la pull request, et Accepter écrit le rôle dans le fichier d'équipe et fusionne la pull request. Accepter demande le droit de fusionner. Accepter refuse une pull request qui change un autre fichier, une autre personne ou les droits de la nouvelle personne : il ajoute une personne avec le rôle choisi et sans admin.

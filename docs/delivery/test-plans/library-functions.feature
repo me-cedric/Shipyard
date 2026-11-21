@@ -13,6 +13,12 @@ Feature: library-functions
     Then the file holds the old text and nothing is committed
 
   @spec:library-functions#REQ-002
+  Scenario: Earlier versions and History: Restore asks and keeps unsaved edits
+    Given a rules file with changes that are not in a commit
+    When the person selects Restore and confirms
+    Then the restore is refused and the file keeps the changes
+
+  @spec:library-functions#REQ-002
   Scenario: Earlier versions and History: Author line
     Given a handbook page that Grace changed last
     When the person opens the page

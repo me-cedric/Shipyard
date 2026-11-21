@@ -108,7 +108,7 @@ Decisions holds the decision records (ADRs). Each record gives one decision, the
 
 Project rules shows one numbered card for each rule that every change must follow. Edit changes the text, and Add a rule adds one at the end. The card Who can change the rules links to Crew / Rights (Change the rights), and Who follows the rules lists the agent roles.
 
-Earlier versions lists the commits that changed the file. Read shows an old version; Restore writes its text into the file and commits nothing, so you can still undo it.
+Earlier versions lists the commits that changed the file. Read shows an old version; Restore writes its text into the file and commits nothing, so you can still undo it. Restore asks first, and refuses when the file has changes that are not in a commit.
 
 ## Learn and share
 

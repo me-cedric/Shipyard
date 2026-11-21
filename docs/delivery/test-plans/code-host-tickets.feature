@@ -109,6 +109,12 @@ Feature: code-host-tickets
     Then the team file holds the role Developer and the pull request is merged
 
   @spec:code-host-tickets#REQ-010
+  Scenario: Accept refuses a join branch that asks for more
+    Given a join request whose branch sets admin, changes another person or changes another file
+    When the person selects Accept
+    Then the pull request is not merged and the team file does not change
+
+  @spec:code-host-tickets#REQ-010
   Scenario: No merge right
     Given a person with no merge right
     When the person opens the card
