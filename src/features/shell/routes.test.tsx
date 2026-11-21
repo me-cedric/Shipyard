@@ -85,6 +85,7 @@ describe("role homes (shell REQ-009, team-rights REQ-013, app-redesign REQ-006)"
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		await teamWithAdmin();
 		const router = mountApp("/");
+		// A person who is not in the team file reads as a viewer and keeps each place: Rights lets them ask to join.
 		expect(within(await sidebar()).getAllByRole("link")).toHaveLength(6);
 		await waitFor(() => expect(router.state.location.pathname).toBe("/today/today"));
 	});
@@ -101,7 +102,8 @@ describe("role homes (shell REQ-009, team-rights REQ-013, app-redesign REQ-006)"
 		await waitFor(() =>
 			expect(within(nav).queryByRole("link", { name: /^Code/ })).not.toBeInTheDocument(),
 		);
-		expect(within(nav).getAllByRole("link")).toHaveLength(6);
+		expect(within(nav).queryByRole("link", { name: /^Crew/ })).not.toBeInTheDocument();
+		expect(within(nav).getAllByRole("link")).toHaveLength(5);
 		// The card of the sync mark holds the links to the changes.
 		const card = await openSync(user);
 		expect(card.queryByRole("link", { name: /lines added/ })).toBeNull();

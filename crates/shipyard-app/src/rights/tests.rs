@@ -582,7 +582,7 @@ fn the_default_plan_level_follows_the_work_level() {
     let f = developer_bo();
     assert!(allows(&f.s, Right::PlanEdit));
     let v = current(&f.s).unwrap();
-    assert!(v.roles.iter().all(|r| r.hidden.is_empty()));
+    assert!(v.roles.iter().all(|r| r.hidden == r.role.default_hidden()));
     assert!(v.person.hidden.is_empty());
 }
 
@@ -635,5 +635,8 @@ fn hidden_places_save_in_the_block_and_reach_the_person() {
         hidden: Some(Vec::new()),
     }];
     let v = roles_save(&f.s, &none, &[]).unwrap();
-    assert!(v.roles.iter().all(|r| r.hidden.is_empty()));
+    let row = |role| v.roles.iter().find(|r| r.role == role).unwrap();
+    assert!(row(Role::Designer).hidden.is_empty());
+    // The other roles keep their defaults.
+    assert_eq!(row(Role::Po).hidden, ["code"]);
 }

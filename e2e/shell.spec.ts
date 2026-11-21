@@ -98,8 +98,16 @@ test("a viewer opens on Today and sees no Code place", async ({ page }) => {
 		"aria-current",
 		"page",
 	);
-	// The mock project has no admin: each right, and Code shows. Give the team an admin and a viewer.
-	await expect(sidebar.getByRole("link", { name: "Code" })).toBeVisible();
+	// The mock project has no admin: each right, but the job "I only look" hides Code and Crew, as the design of each role.
+	await expect(sidebar.getByRole("link", { name: "Code" })).toHaveCount(0);
+	await expect(sidebar.getByRole("link", { name: "Crew" })).toHaveCount(0);
+	// Setup / Me changes the job: a tech lead gives the team an admin and a viewer.
+	const job = async (name: string) => {
+		await visit(page, "/setup/me");
+		await page.getByRole("main").getByRole("combobox", { name: "Role" }).click();
+		await page.getByRole("option", { name, exact: true }).click();
+	};
+	await job("Tech lead");
 	await sidebar.getByRole("link", { name: "Crew" }).click();
 	await page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Crew" }).click();
 	const main = page.getByRole("main");
@@ -117,9 +125,10 @@ test("a viewer opens on Today and sees no Code place", async ({ page }) => {
 	};
 	await add("Vi Reader", "vi", "Viewer", false);
 	await add("Cy Lead", "cy", "Tech lead", true);
-	// This person is in no entry of the team file: the role viewer with its default levels.
+	await job("Viewer");
+	// This person is in no entry of the team file, with the job Viewer: no Code and no Crew.
 	await expect(sidebar.getByRole("link", { name: "Code" })).toHaveCount(0);
-	await expect(sidebar.getByRole("link")).toHaveCount(6);
+	await expect(sidebar.getByRole("link")).toHaveCount(5);
 	// The home address and an old address of the role page open Today too.
 	await visit(page, "/");
 	await expect(page).toHaveURL(/\/today\/today$/);

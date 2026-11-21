@@ -27,14 +27,14 @@ The design shows twelve controls of the shell, Setup, sessions and rights that t
 - REQ-008: Look and layout SHALL have Change beside the data folder and a Portable mode switch. Change SHALL move the data to the new place after a confirmation, then restart the app. The Portable switch SHALL write or remove the `portable` marker next to the app.
 - REQ-009: Feedback SHALL have Attach a file. The app SHALL still send nothing. Attach a file SHALL show the file in the file manager beside the text of the feedback.
 - REQ-010: The card "Shipyard needs N permissions" SHALL show at the first launch and each time a permission is missing. It SHALL list the missing permissions of the kinds Notifications and Files of your projects, each with Allow, with Later and Allow all. It SHALL NOT probe the keychain.
-- REQ-011: Rights SHALL have a setting for each role that lists the places the role sees. A place that a role does not see SHALL be hidden. The default rights SHALL NOT change.
+- REQ-011: Rights SHALL have a setting for each role that lists the places the role sees. A place that a role does not see SHALL be hidden. Each role SHALL start with the places of the design hidden. A personal role that Shipyard does not know SHALL hide no place. The default rights SHALL NOT change.
 - REQ-012: When a person closes a project while agents work, the app SHALL ask with Cancel, Stop them and close, and Keep them working. Keep them working SHALL let the runs go on with no project open.
 
 ### Non-Goals
 
 - A Shipyard account.
 - A probe of the keychain.
-- A change of the default rights of the roles.
+- A change of the default rights of the roles. The default places that a role hides are not rights.
 
 ### Acceptance Criteria
 
@@ -250,7 +250,7 @@ Screen: SCR-185
 
 ### Requirement: REQ-011 Places hidden for each role
 
-Rights SHALL have a setting for each role that lists the places the role sees. A place that a role does not see SHALL be hidden. The default rights SHALL NOT change.
+Rights SHALL have a setting for each role that lists the places the role sees. A place that a role does not see SHALL be hidden. Each role SHALL start with the places of the design hidden. A personal role that Shipyard does not know SHALL hide no place. The default rights SHALL NOT change.
 
 Design control: F45
 
@@ -267,7 +267,9 @@ Screen: SCR-025
 
 - GIVEN a project with no change
 - WHEN the person opens Rights
-- THEN the default rights are as before
+- THEN Product owner and Project manager hide Code, Business analyst hides Crew and Code, Architect hides Plan, QA hides Plan and Crew
+- AND Designer hides Plan, Crew and Code, Viewer hides Crew and Code, Tech lead and Developer hide none
+- AND the default rights are as before
 
 ### Requirement: REQ-012 Ask before a project closes
 

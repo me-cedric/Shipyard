@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.2.0]
+- Each team role hides by default the places that the design hides, for example Code for a Product owner; a personal role that Shipyard does not know hides none, and the rights do not change.
 - Crew / Sessions shows the first sessions with Show all, and Crew / Live puts the Cards and Live switch before the sections.
 - Leaving a page with a file that is not saved names the file and offers Stay, Leave and Save and leave.
 - Library keeps more: Opened last holds specs, decisions, diagrams and documents with a kind chip and Pin; Project rules has Earlier versions and a Handbook page has History and an author line, each with Read and Restore (a restore writes the old text and commits nothing); Documents has Add a file, which keeps a Word file as Word.

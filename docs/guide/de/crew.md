@@ -70,7 +70,7 @@ Ein Recht schaltet ein Bedienelement aus. Das Bedienelement bleibt sichtbar, und
 
 Admin gibt jedes Recht. Ein Mitglied kann Abweichungen haben: `+code.merge` fügt ein Recht hinzu, `-runs.approve` entfernt eines. Ihre persönliche Rolle in Einrichtung / Ich und das schreibgeschützte Profil eines Projekts können Rechte nur entfernen.
 
-Code und Merge ist eine Zeile: die Stufe von Code und ein Schalter Merge, die `code.write` und `code.merge` setzen. Die Stufe von Plan einer Rolle folgt ihrer Stufe von Arbeit, bis Sie sie ändern. Jede Rolle hat eine Einstellung Orte: Ein Ort, den Sie ausschalten, ist für diese Rolle ausgeblendet. Die Standardrechte blenden keinen Ort aus.
+Code und Merge ist eine Zeile: die Stufe von Code und ein Schalter Merge, die `code.write` und `code.merge` setzen. Die Stufe von Plan einer Rolle folgt ihrer Stufe von Arbeit, bis Sie sie ändern. Jede Rolle hat eine Einstellung Orte: Ein Ort, den Sie ausschalten, ist für diese Rolle ausgeblendet. Jede Rolle beginnt mit den ausgeblendeten Orten des Designs: Ein Product Owner sieht zum Beispiel Code nicht. Die Standardrechte ändern sich nicht.
 
 ### Wer Sie sind
 

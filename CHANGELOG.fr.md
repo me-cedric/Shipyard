@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Chaque rôle de l'équipe masque par défaut les lieux que le design masque, par exemple Code pour un Product owner ; un rôle personnel inconnu de Shipyard n'en masque aucun, et les droits ne changent pas.
 - Équipe / Sessions montre les premières sessions avec Tout voir, et Équipe / En direct place le choix Cartes et En direct avant les sections.
 - Quitter une page avec un fichier non enregistré nomme le fichier et propose Rester, Quitter et Enregistrer et quitter.
 - Library garde plus : Ouverts en dernier contient les specs, les décisions, les schémas et les documents avec une pastille de genre et Épingler ; Règles du projet a Versions précédentes et une page du Manuel a Historique et une ligne d'auteur, chacun avec Lire et Restaurer (une restauration écrit l'ancien texte et ne commit rien) ; Documents a Ajouter un fichier, qui garde un fichier Word comme Word.

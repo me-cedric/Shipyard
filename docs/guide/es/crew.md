@@ -70,7 +70,7 @@ Un derecho desactiva un control. El control sigue visible, y su ayuda emergente 
 
 La marca admin da todos los derechos. Un miembro puede tener cambios: `+code.merge` añade un derecho, `-runs.approve` quita uno. Tu rol personal en Configuración / Yo y el perfil de solo lectura de un proyecto solo pueden quitar derechos.
 
-Código y fusión es una sola fila: el nivel de Código y un interruptor Fusión, que fijan `code.write` y `code.merge`. El nivel de Plan de un rol sigue su nivel de Trabajo hasta que lo cambies. Cada rol tiene un ajuste Lugares: un lugar que desactivas queda oculto para ese rol. Los derechos por defecto no ocultan ningún lugar.
+Código y fusión es una sola fila: el nivel de Código y un interruptor Fusión, que fijan `code.write` y `code.merge`. El nivel de Plan de un rol sigue su nivel de Trabajo hasta que lo cambies. Cada rol tiene un ajuste Lugares: un lugar que desactivas queda oculto para ese rol. Cada rol empieza con los lugares del diseño ocultos: por ejemplo, un Product owner no ve Código. Los derechos por defecto no cambian.
 
 ### Quién eres
 

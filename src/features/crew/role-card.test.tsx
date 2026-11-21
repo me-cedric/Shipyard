@@ -110,7 +110,7 @@ function designerTeam() {
 
 // spec:shell-setup-rights#REQ-011: a place that a role does not see is hidden.
 describe("Crew / Rights: places of a role", () => {
-	it("hides Code for the designer when the admin turns its switch off, and keeps the rights", async () => {
+	it("shows Code to the designer when the admin turns its switch on, and keeps the rights", async () => {
 		const user = userEvent.setup();
 		await withTracker();
 		designerTeam();
@@ -118,25 +118,41 @@ describe("Crew / Rights: places of a role", () => {
 		const router = mountApp("/crew/rights?role=designer");
 		await user.click(await screen.findByRole("switch", { name: "Code for Designer" }));
 		await waitFor(() =>
-			expect(mockState().work.team.roles).toEqual({ designer: { hide: "code" } }),
+			expect(mockState().work.team.roles).toEqual({ designer: { hide: "plan,crew" } }),
 		);
 		const view = await unwrap(commands.rightsGet());
 		const designer = view.roles.find((r) => r.role === "designer");
-		expect(designer?.hidden).toEqual(["code"]);
+		expect(designer?.hidden).toEqual(["plan", "crew"]);
 		// The rights of the role are the defaults: only the place is hidden.
 		expect(designer?.access).toMatchObject({ code: "read", work: "write", plan: "write" });
 		await waitFor(() =>
-			expect(screen.getByRole("switch", { name: "Code for Designer" })).not.toBeChecked(),
+			expect(screen.getByRole("switch", { name: "Code for Designer" })).toBeChecked(),
 		);
 		await idle(router);
 	});
 
-	it("shows each place to a designer with the default rights", async () => {
+	it("hides Plan, Crew and Code from a designer by default", async () => {
 		await withTracker();
 		designerTeam();
 		const router = mountApp("/today");
 		const nav = within(await screen.findByRole("navigation", { name: "Sidebar" }));
-		expect(await nav.findByRole("link", { name: /^Code/ })).toBeInTheDocument();
+		expect(await nav.findByRole("link", { name: /^Flow/ })).toBeInTheDocument();
+		for (const place of [/^Plan/, /^Crew/, /^Code/])
+			expect(nav.queryByRole("link", { name: place })).toBeNull();
+		await idle(router);
+	});
+
+	it("does not show Code to a product owner by default", async () => {
+		await withTracker();
+		designerTeam();
+		mockState().work.team.members = mockState().work.team.members.map((m) =>
+			m.handle === "dee" ? { ...m, role: "po" } : m,
+		);
+		const router = mountApp("/today");
+		const nav = within(await screen.findByRole("navigation", { name: "Sidebar" }));
+		expect(await nav.findByRole("link", { name: /^Flow/ })).toBeInTheDocument();
+		expect(nav.getByRole("link", { name: /^Crew/ })).toBeInTheDocument();
+		expect(nav.queryByRole("link", { name: /^Code/ })).toBeNull();
 		await idle(router);
 	});
 

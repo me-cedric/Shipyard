@@ -34,6 +34,16 @@ describe("mock ipc", () => {
 		expect((await unwrap(commands.updateCheck())).notes).toContain("0.1.0");
 	});
 
+	it("hides the places of the personal role for a solo person, and none with no role", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await unwrap(commands.prefsSet({ role: "po" }));
+		expect((await unwrap(commands.rightsGet())).person.hidden).toEqual(["code"]);
+		await unwrap(commands.prefsSet({ role: "designer" }));
+		expect((await unwrap(commands.rightsGet())).person.hidden).toEqual(["plan", "crew", "code"]);
+		await unwrap(commands.prefsSet({ role: "none" }));
+		expect((await unwrap(commands.rightsGet())).person.hidden).toEqual([]);
+	});
+
 	it("serves the rights of the person: solo gives each right, read only keeps the read right", async () => {
 		await expect(unwrap(commands.rightsGet())).rejects.toBeTruthy();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));

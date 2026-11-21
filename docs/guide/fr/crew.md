@@ -70,7 +70,7 @@ Un droit désactive une commande. La commande reste visible, et son infobulle no
 
 Le statut admin donne tous les droits. Un membre peut avoir des écarts : `+code.merge` ajoute un droit, `-runs.approve` en retire un. Votre rôle personnel dans Configuration / Moi et le profil en lecture seule d'un projet ne peuvent que retirer des droits.
 
-Code et fusion est une seule ligne : le niveau de Code et un interrupteur Fusion, qui règlent `code.write` et `code.merge`. Le niveau de Plan d'un rôle suit son niveau de Travail tant que vous ne le changez pas. Chaque rôle a un réglage Lieux : un lieu que vous désactivez est masqué pour ce rôle. Les droits par défaut ne masquent aucun lieu.
+Code et fusion est une seule ligne : le niveau de Code et un interrupteur Fusion, qui règlent `code.write` et `code.merge`. Le niveau de Plan d'un rôle suit son niveau de Travail tant que vous ne le changez pas. Chaque rôle a un réglage Lieux : un lieu que vous désactivez est masqué pour ce rôle. Chaque rôle commence avec les lieux du design masqués : par exemple, un Product owner ne voit pas Code. Les droits par défaut ne changent pas.
 
 ### Qui vous êtes
 

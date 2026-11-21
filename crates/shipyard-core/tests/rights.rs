@@ -395,15 +395,33 @@ fn a_plan_level_leaves_the_block_only_when_it_differs_from_the_default() {
 // ---- shell-setup-rights REQ-011: the places that a role does not see
 
 #[test]
-fn a_role_hides_the_places_that_the_block_lists_and_the_defaults_hide_none() {
+fn a_role_hides_the_places_that_the_block_lists_and_the_defaults_follow_the_design() {
     let mut t = team(vec![member("dee", "designer")]);
-    for role in Role::ALL {
-        assert!(role_hidden(&t, role).is_empty());
+    let design: [(Role, &[&str]); 9] = [
+        (Role::Po, &["code"]),
+        (Role::Pm, &["code"]),
+        (Role::Ba, &["crew", "code"]),
+        (Role::Architect, &["plan"]),
+        (Role::Techlead, &[]),
+        (Role::Developer, &[]),
+        (Role::Qa, &["plan", "crew"]),
+        (Role::Designer, &["plan", "crew", "code"]),
+        (Role::Viewer, &["crew", "code"]),
+    ];
+    for (role, places) in design {
+        assert_eq!(role_hidden(&t, role), places);
     }
+    assert_eq!(
+        person(&t, &[], Some("dee@example.com"), None, false).hidden,
+        ["plan", "crew", "code"]
+    );
+    // The default rights do not change.
     assert!(
-        person(&t, &[], Some("dee@example.com"), None, false)
-            .hidden
-            .is_empty()
+        block(
+            &table(&t),
+            &design.map(|(r, p)| (r, p.iter().map(|x| x.to_string()).collect()))
+        )
+        .is_empty()
     );
     let rows = table(&t);
     t.roles = block(
@@ -453,5 +471,55 @@ fn only_known_places_can_be_hidden_and_a_bad_cell_is_a_finding() {
     )]
     .into();
     assert!(findings(&t).iter().any(|f| f.code == "team-level-unknown"));
+    assert_eq!(role_hidden(&t, Role::Designer), ["plan", "crew", "code"]);
+}
+
+#[test]
+fn an_empty_hide_cell_shows_every_place_and_is_kept() {
+    let mut t = team(vec![member("dee", "designer")]);
+    t.roles = block(&table(&t), &[(Role::Designer, Vec::new())]);
+    assert_eq!(t.roles["designer"]["hide"], Cell::Text(String::new()));
     assert!(role_hidden(&t, Role::Designer).is_empty());
+    assert!(findings(&t).iter().all(|f| f.code != "team-level-unknown"));
+    let yaml = serde_norway::to_string(&t).unwrap();
+    let back: Team = serde_norway::from_str(&yaml).unwrap();
+    assert!(role_hidden(&back, Role::Designer).is_empty());
+}
+
+#[test]
+fn a_personal_role_that_is_not_known_hides_nothing() {
+    let t = team(vec![member("dee", "techlead")]);
+    for personal in ["other", "boss", "none"] {
+        let p = person(&t, &["dee-gh".into()], None, Some(personal), false);
+        assert!(p.hidden.is_empty(), "{personal}");
+    }
+    let p = person(&t, &["dee-gh".into()], None, Some("lead"), false);
+    assert_eq!(p.hidden, ["code"]);
+    let p = person(&t, &["dee-gh".into()], None, Some("junior"), false);
+    assert!(p.hidden.is_empty());
+}
+
+#[test]
+fn a_solo_person_sees_the_places_of_the_personal_role_and_a_team_admin_sees_each() {
+    let solo = person(&team(vec![]), &[], Some("x@example.com"), Some("po"), false);
+    assert_eq!(solo.hidden, ["code"]);
+    assert!(
+        person(
+            &team(vec![]),
+            &[],
+            Some("x@example.com"),
+            Some("other"),
+            false
+        )
+        .hidden
+        .is_empty()
+    );
+    let mut ada = member("ada", "developer");
+    ada.admin = true;
+    let t = team(vec![ada]);
+    assert!(
+        person(&t, &[], Some("ada@example.com"), Some("designer"), false)
+            .hidden
+            .is_empty()
+    );
 }

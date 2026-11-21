@@ -992,6 +992,18 @@ const AREAS: Area[] = [
 ];
 /** The places that a role can hide (`HIDEABLE` of `crates/shipyard-core/src/rights.rs`). */
 const HIDEABLE = ["flow", "plan", "crew", "library", "code"];
+/** The places that each role hides until the team says otherwise (`Role::default_hidden`). */
+const DEFAULT_HIDDEN: Record<TeamRole, string[]> = {
+	po: ["code"],
+	pm: ["code"],
+	architect: ["plan"],
+	techlead: [],
+	ba: ["crew", "code"],
+	developer: [],
+	qa: ["plan", "crew"],
+	designer: ["plan", "crew", "code"],
+	viewer: ["crew", "code"],
+};
 const RANK: Record<Level, number> = { none: 0, read: 1, write: 2 };
 /** The area of each right, and the level that it needs (`Right::area`, `Right::need`). */
 const RIGHT_AREA: Record<Right, Area> = {
@@ -1067,10 +1079,11 @@ function roleTable(): [TeamRole, Access][] {
 	});
 }
 
-/** The places that a role does not see: the `hide` cell of its block, in the order of `HIDEABLE`. */
+/** The places that a role does not see: the `hide` cell of its block (empty: none), else the defaults. */
 function roleHidden(role: TeamRole): string[] {
 	const cell = state.work.team.roles?.[role]?.hide;
-	const named = typeof cell === "string" ? cell.split(",").map((x) => x.trim()) : [];
+	const named =
+		typeof cell === "string" ? cell.split(",").map((x) => x.trim()) : DEFAULT_HIDDEN[role];
 	return HIDEABLE.filter((p) => named.includes(p));
 }
 
@@ -1162,6 +1175,13 @@ function teamPerson(): RightsPerson_Serialize {
 		access: a,
 		rights: rightsOf(a),
 	};
+}
+
+/** The places that the personal role of this machine hides: `personal_hidden` of `rights.rs`. An unknown role hides none. */
+function personalHidden(role: string | null | undefined): string[] {
+	const r = (role ?? "").trim().toLowerCase();
+	const team = r === "lead" ? "po" : r === "junior" ? "developer" : r;
+	return ROLE_ACCESS.some(([x]) => x === team) ? roleHidden(team as TeamRole) : [];
 }
 
 /** A human step that names a role: only a person with that role approves it (`runs-recipes` REQ-008). */
@@ -1390,7 +1410,13 @@ const handlers: Handlers = {
 	rightsGet: () => {
 		const p = active();
 		if (!p) throw "no active project";
-		const person = state.person ? withAccess(state.person) : teamPerson();
+		const found = state.person ? withAccess(state.person) : teamPerson();
+		// The personal role of this machine only hides more. A team admin sees each place; a solo person sees the places of the role they picked.
+		const extra = found.admin && found.found !== "solo" ? [] : personalHidden(state.prefs.role);
+		const person = {
+			...found,
+			hidden: HIDEABLE.filter((x) => found.hidden.includes(x) || extra.includes(x)),
+		};
 		// The read-only profile leaves `read` at most, as the backend does.
 		const readOnly = person.readOnly || p.overrides.readOnly === true;
 		const a = readOnly ? zip(person.access, access("RRRRRRRR"), false) : person.access;
@@ -1445,7 +1471,7 @@ const handlers: Handlers = {
 			if (hide.some((p) => !HIDEABLE.includes(p)))
 				throw `a role hides only: ${HIDEABLE.join(", ")}`;
 			const list = HIDEABLE.filter((p) => hide.includes(p));
-			if (list.length) cells.hide = list.join(",");
+			if (list.join(",") !== DEFAULT_HIDDEN[role].join(",")) cells.hide = list.join(",");
 			if (Object.keys(cells).length) roles[role] = cells;
 		}
 		state.work.team = { members: next, ...(Object.keys(roles).length ? { roles } : {}) };

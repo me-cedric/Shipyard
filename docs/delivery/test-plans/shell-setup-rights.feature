@@ -122,7 +122,9 @@ Feature: shell-setup-rights
   Scenario: Places hidden for each role: Defaults
     Given a project with no change
     When the person opens Rights
-    Then the default rights are as before
+    Then Product owner and Project manager hide Code, Business analyst hides Crew and Code, Architect hides Plan, QA hides Plan and Crew
+    And Designer hides Plan, Crew and Code, Viewer hides Crew and Code, Tech lead and Developer hide none
+    And the default rights are as before
 
   @spec:shell-setup-rights#REQ-012
   Scenario: Project close: Stop them

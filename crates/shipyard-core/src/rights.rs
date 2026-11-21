@@ -454,8 +454,24 @@ fn hide_list(cell: &Cell) -> Option<Vec<String>> {
     })
 }
 
-/// The places that `role` does not see in this team: the `hide` cell of its `roles:` block. The
-/// default rights hide none.
+impl Role {
+    /// The places that the role does not see until the team says otherwise (the design of the
+    /// Role views page).
+    pub fn default_hidden(self) -> Vec<String> {
+        let places: &[&str] = match self {
+            Role::Po | Role::Pm => &["code"],
+            Role::Ba | Role::Viewer => &["crew", "code"],
+            Role::Architect => &["plan"],
+            Role::Qa => &["plan", "crew"],
+            Role::Designer => &["plan", "crew", "code"],
+            Role::Techlead | Role::Developer => &[],
+        };
+        places.iter().map(|p| (*p).to_string()).collect()
+    }
+}
+
+/// The places that `role` does not see in this team: the `hide` cell of its `roles:` block, or
+/// [`Role::default_hidden`] when the block has none. An empty cell hides none.
 pub fn role_hidden(team: &Team, role: Role) -> Vec<String> {
     team.roles
         .iter()
@@ -463,7 +479,7 @@ pub fn role_hidden(team: &Team, role: Role) -> Vec<String> {
         .filter_map(|(_, block)| block.iter().find(|(k, _)| k.trim() == HIDE_KEY))
         .filter_map(|(_, cell)| hide_list(cell))
         .next_back()
-        .unwrap_or_default()
+        .unwrap_or_else(|| role.default_hidden())
 }
 
 /// The places to save for a role: the known ones, in the order of [`HIDEABLE`]. An unknown place
@@ -497,7 +513,7 @@ pub fn block(
                 }
             }
             if let Some((_, h)) = hidden.iter().find(|(r, _)| r == role)
-                && !h.is_empty()
+                && *h != role.default_hidden()
             {
                 cells.insert(HIDE_KEY.into(), Cell::Text(h.join(",")));
             }
@@ -754,9 +770,10 @@ pub fn person(
             .collect(),
         _ => Vec::new(),
     };
-    // The personal role of this machine only hides more.
+    // The personal role of this machine only hides more. A team admin sees each place; a solo
+    // person sees the places of the role they picked.
     for p in personal.map_or_else(Vec::new, |r| personal_hidden(team, r)) {
-        if !hidden.contains(&p) && !admin {
+        if !hidden.contains(&p) && (found == Found::Solo || !admin) {
             hidden.push(p);
         }
     }
@@ -789,7 +806,7 @@ fn personal_hidden(team: &Team, role: &str) -> Vec<String> {
         "" | "none" => Vec::new(),
         "lead" => role_hidden(team, Role::Po),
         "junior" => role_hidden(team, Role::Developer),
-        other => role_hidden(team, Role::parse(other).unwrap_or(Role::Viewer)),
+        other => Role::parse(other).map_or_else(Vec::new, |r| role_hidden(team, r)),
     }
 }
 

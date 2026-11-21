@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import {
 	type Accent,
@@ -13,7 +13,7 @@ import {
 } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import { useActiveProject } from "@/lib/projects";
-import { useRightsView } from "@/lib/rights";
+import { rightsKey, useRightsView } from "@/lib/rights";
 import { resolveTheme, themeVars } from "@/lib/themes";
 
 export type { Accent, Contrast, Density, Theme };
@@ -167,6 +167,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 	const [personal, setPersonal] = useState<Prefs>(DEFAULTS);
 	const [loaded, setLoaded] = useState(false);
 	const project = useActiveProject().data;
+	const queryClient = useQueryClient();
 	const [email, setEmail] = useState<string | null>(null);
 	const teamPerson = useRightsView().data?.person.role ?? null;
 
@@ -206,10 +207,16 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 				// A null accent goes back to the colour of the theme.
 				const wire =
 					patch.accent === null ? { ...patch, accent: undefined, clearAccent: true } : patch;
-				unwrap(commands.prefsSet(wire)).catch(logError);
+				unwrap(commands.prefsSet(wire))
+					// The personal role lowers the levels and hides places: the rights read it again.
+					.then(() => {
+						if (patch.role !== undefined)
+							void queryClient.invalidateQueries({ queryKey: rightsKey });
+					})
+					.catch(logError);
 			},
 		};
-	}, [personal, project, loaded, email, teamPerson]);
+	}, [personal, project, loaded, email, teamPerson, queryClient]);
 
 	const accent = project?.overrides.accent ?? personal.accent;
 	const systemDark = useSystemDark();
