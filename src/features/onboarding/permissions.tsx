@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Fold } from "@/features/settings/connections/fold";
 import { SetupCard, SetupRow, StatePill } from "@/features/settings/parts";
@@ -23,7 +23,8 @@ const PILL: Record<PermissionState, "ready" | "fix" | "off"> = {
 	unknown: "off",
 };
 
-const KEY = ["os-permissions"];
+export const PERMISSIONS_KEY = ["os-permissions"];
+const KEY = PERMISSIONS_KEY;
 
 /** The OS permissions, read again when the window comes back from System Settings. */
 export const usePermissions = () =>
@@ -32,6 +33,13 @@ export const usePermissions = () =>
 		queryFn: () => unwrap(commands.permissionsList()),
 		refetchOnWindowFocus: true,
 	});
+
+/** One click asks for each permission that was not asked, one after the other. */
+export async function askAll(qc: QueryClient, list: OsPermission[]) {
+	for (const p of list)
+		if (p.state === "notAsked") await unwrap(commands.permissionsRequest(p.kind)).catch(logError);
+	await qc.invalidateQueries({ queryKey: PERMISSIONS_KEY });
+}
 
 /** The state of one permission and its actions: Allow, Open System Settings, Send a test (REQ-006). */
 export function PermissionControl({ permission: p }: { permission: OsPermission }) {
@@ -86,11 +94,6 @@ export function PermissionList() {
 	const qc = useQueryClient();
 	if (isLoading) return <Loading rows={2} />;
 	const open = (list ?? []).filter((p) => p.state === "notAsked");
-	// One click asks for each permission that was not asked, one after the other.
-	const allowAll = async () => {
-		for (const p of open) await unwrap(commands.permissionsRequest(p.kind)).catch(logError);
-		await qc.invalidateQueries({ queryKey: KEY });
-	};
 	return (
 		<div className="flex flex-col gap-2">
 			<ul
@@ -106,7 +109,7 @@ export function PermissionList() {
 				))}
 			</ul>
 			{open.length > 1 ? (
-				<Button className="min-h-control self-end" onClick={() => void allowAll()}>
+				<Button className="min-h-control self-end" onClick={() => void askAll(qc, list ?? [])}>
 					{t.onboarding.permissions.allowAll}
 				</Button>
 			) : null}

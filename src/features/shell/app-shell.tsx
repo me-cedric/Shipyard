@@ -9,7 +9,7 @@ import {
 } from "@/features/assistant";
 import { FileDrawer } from "@/features/code/file-drawer";
 import { TerminalDrawer } from "@/features/code/terminal-drawer";
-import { Tour } from "@/features/onboarding";
+import { PermissionsMoment, Tour } from "@/features/onboarding";
 import { useCodeActions } from "@/lib/code";
 import { useAnchorArrival } from "@/lib/errors/anchor";
 import { useI18n } from "@/lib/i18n";
@@ -205,6 +205,7 @@ function Frame() {
 			<AskOnItem />
 			<CloseGuard />
 			<ProjectCloseAsk />
+			<PermissionsMoment />
 			<WhatsNew />
 			<Tour />
 			<CommitDialog

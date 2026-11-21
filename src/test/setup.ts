@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { clearMocks } from "@tauri-apps/api/mocks";
 import { configure } from "@testing-library/react";
+import { hidePermissionsMoment } from "@/features/onboarding/permissions-moment";
 import { installMockIpc, resetMock } from "@/lib/ipc/mock";
 import { clearTabSelections } from "@/lib/shell/selection";
 import { settleRouters } from "./routers";
@@ -26,6 +27,8 @@ beforeEach(() => {
 	resetMock();
 	installMockIpc();
 	clearTabSelections();
+	// The card of the missing permissions has its own tests: no other test opens with it.
+	hidePermissionsMoment();
 });
 afterEach(async () => {
 	await settleRouters();
