@@ -20,6 +20,7 @@ function HistoryDialog({ path, onClose }: { path: string; onClose: () => void })
 	const [sha, setSha] = useState<string | null>(null);
 	const text = usePageVersion(path, sha).data;
 	const restore = useRestorePage(path);
+	const [asking, setAsking] = useState<string | null>(null);
 	return (
 		<Dialog open onOpenChange={(o) => !o && onClose()} title={h.title} wide>
 			{log.length === 0 ? <p className="text-n-11">{h.none}</p> : null}
@@ -40,14 +41,34 @@ function HistoryDialog({ path, onClose }: { path: string; onClose: () => void })
 						>
 							{h.readLabel}
 						</Button>
-						<RightButton
-							right="code.write"
-							className="min-h-control"
-							aria-label={format(h.restore, { summary: c.summary })}
-							onClick={() => restore.mutate(c.sha)}
-						>
-							{h.restoreLabel}
-						</RightButton>
+						{asking === c.sha ? (
+							<>
+								<RightButton
+									right="code.write"
+									variant="danger"
+									className="min-h-control"
+									aria-label={format(h.confirm, { summary: c.summary })}
+									onClick={() => {
+										restore.mutate(c.sha);
+										setAsking(null);
+									}}
+								>
+									{h.confirmLabel}
+								</RightButton>
+								<Button variant="ghost" className="min-h-control" onClick={() => setAsking(null)}>
+									{h.cancel}
+								</Button>
+							</>
+						) : (
+							<RightButton
+								right="code.write"
+								className="min-h-control"
+								aria-label={format(h.restore, { summary: c.summary })}
+								onClick={() => setAsking(c.sha)}
+							>
+								{h.restoreLabel}
+							</RightButton>
+						)}
 					</li>
 				))}
 			</ul>

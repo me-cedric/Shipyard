@@ -54,6 +54,13 @@ pub fn restore(s: &AppState, path: &str, sha: &str, click: bool) -> Res<()> {
     if !full.is_file() {
         return Err(format!("{path} does not exist"));
     }
+    // Edits that git does not hold would be lost: a page that is new or changed stays as it is.
+    let now = std::fs::read_to_string(&full).map_err(err)?;
+    if repo(s)?.file_at(&path, "HEAD").map_err(err)?.as_deref() != Some(now.as_str()) {
+        return Err(format!(
+            "{path} has changes that are not saved in a commit. Commit or undo them first."
+        ));
+    }
     let text = version(s, &path, sha)?;
     std::fs::write(&full, text).map_err(err)
 }
@@ -103,6 +110,11 @@ mod tests {
 
         let before = r.log(0, 10).unwrap().commits.len();
         assert!(restore(&f.s, path, old, false).is_err());
+        // A restore of a page with edits that git does not hold is refused.
+        std::fs::write(&file, "mine\n").unwrap();
+        assert!(restore(&f.s, path, old, true).unwrap_err().contains("not saved"));
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "mine\n");
+        std::fs::write(&file, "two\n").unwrap();
         restore(&f.s, path, old, true).unwrap();
         assert_eq!(std::fs::read_to_string(&file).unwrap(), "one\n");
         assert_eq!(r.log(0, 10).unwrap().commits.len(), before);

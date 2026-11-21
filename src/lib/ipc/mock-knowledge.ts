@@ -185,12 +185,16 @@ export function seedKnowledge(): MockKnowledge {
 				version(
 					3,
 					"Grace Hopper",
-					"# Getting started\n\nRead adr:0001 first, then the architecture overview.\n",
+					"# Getting started\n\nRead adr:0001 first, then the architecture overview. The first issue tracker is q:Q-012.\n",
 				),
 				version(2, "Ada Lovelace", "# Getting started\n\nRead the architecture overview.\n"),
 			],
 			"docs/openspec/constitution.md": [
-				version(5, "Grace Hopper", "# Constitution\n\n## Principles\n\n- The spec comes first.\n"),
+				version(
+					5,
+					"Grace Hopper",
+					"# Constitution\n\n## Principles\n\n- The spec comes first.\n- A change that cannot be undone needs a click.\n",
+				),
 				version(
 					4,
 					"Ada Lovelace",
@@ -307,6 +311,8 @@ export function pageRestore(
 	if (!click) throw "this change needs the click of a person";
 	const text = versionOf(k, path, sha);
 	if (!files[path]) throw `${path} does not exist`;
+	if (files[path].text !== k.history[path]?.[0]?.text)
+		throw `${path} has changes that are not saved in a commit. Commit or undo them first.`;
 	putText(files, path, text, null, false);
 	return null;
 }
