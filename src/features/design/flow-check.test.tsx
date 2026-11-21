@@ -24,16 +24,17 @@ describe("Check against the code of the flow matrix", () => {
 	it("shows an alert card with Show it and Ask for the change when a denied flow is used", async () => {
 		const user = userEvent.setup();
 		const router = await open();
-		expect(screen.queryByRole("region", { name: f.usedOne })).toBeNull();
+		expect(screen.queryByRole("heading", { name: f.usedOne })).toBeNull();
 		await user.click(screen.getByRole("button", { name: f.check }));
-		const card = await screen.findByRole("region", { name: f.usedOne });
-		expect(within(card).getByRole("button", { name: f.show })).toBeVisible();
-		expect(within(card).getByRole("button", { name: f.ask })).toBeVisible();
+		const heading = await screen.findByRole("heading", { name: f.usedOne });
+		const card = within(heading.closest("article") as HTMLElement);
+		expect(card.getByRole("button", { name: f.show })).toBeVisible();
+		expect(card.getByRole("button", { name: f.ask })).toBeVisible();
 		// The result stays: it is stored for the table.
 		expect((await unwrap(commands.designFlowsChecked(FLOWS)))?.rows).toHaveLength(20);
-		await user.click(within(card).getByRole("button", { name: f.show }));
+		await user.click(card.getByRole("button", { name: f.show }));
 		expect(rowOf(USERS, "10.20.0.20/32")).toHaveAttribute("aria-current", "true");
-		await user.click(within(card).getByRole("button", { name: f.ask }));
+		await user.click(card.getByRole("button", { name: f.ask }));
 		expect(await screen.findByDisplayValue(/10\.10\.0\.0\/24 to 10\.20\.0\.20/)).toBeVisible();
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});

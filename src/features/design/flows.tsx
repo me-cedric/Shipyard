@@ -22,12 +22,14 @@ import { commands, type FlowRow_Deserialize, unwrap } from "@/lib/ipc";
 import { RightButton, RightIconButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Chip } from "@/ui/atoms/chip";
 import { Input } from "@/ui/atoms/input";
 import { linkClass } from "@/ui/atoms/link-button";
 import { PlusIcon, TrashIcon } from "@/ui/icons";
+import { AttentionCard } from "@/ui/molecules/attention-card";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { CodeEditor } from "@/ui/molecules/code-editor";
@@ -459,22 +461,26 @@ function UsedAlert({ names, onShow }: { names: string[]; onShow: () => void }) {
 	const { ask } = useShell();
 	const title = names.length === 1 ? c.usedOne : format(c.usedMany, { count: names.length });
 	return (
-		<section
-			aria-label={title}
-			className="flex flex-wrap items-center gap-4 rounded-lg bg-attention-subtle px-6 py-5.5 shadow-2"
-		>
-			<h2 className="min-w-[260px] flex-1 text-17 font-semibold">{title}</h2>
-			<Button className="min-h-control" onClick={onShow}>
-				{c.show}
-			</Button>
-			<Button
-				variant="primary"
-				className="min-h-control"
-				onClick={() => ask(format(c.askText, { names: names.join(", ") }))}
-			>
-				{c.ask}
-			</Button>
-		</section>
+		<AttentionCard
+			heading="h2"
+			title={title}
+			titleClass="text-17 font-semibold"
+			icon={<Avatar agent name="Builder" />}
+			action={
+				<>
+					<Button className="min-h-control" onClick={onShow}>
+						{c.show}
+					</Button>
+					<Button
+						variant="primary"
+						className="min-h-control"
+						onClick={() => ask(format(c.askText, { names: names.join(", ") }))}
+					>
+						{c.ask}
+					</Button>
+				</>
+			}
+		/>
 	);
 }
 
