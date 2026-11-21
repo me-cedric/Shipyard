@@ -31,6 +31,8 @@ A recipe opens in a form. Use Form and Text to switch between the form and the Y
 
 Sessions lists the sessions of the agents: a run, a review of a pull request, an estimate and a tile build. Click a session to show it with Open and Stop. Stop of a run asks you to confirm. Stop of a review ends the review. Stop of an estimate ends the agent, and the sheet keeps its values. Stop of a tile build ends the build, and the dashboard does not change. Ended sessions are on their own page.
 
+Read only shows the live output of a session when its tool writes a history file that Shipyard can read (Claude Code and Codex do). With no history file, the pane shows no output. Take control stops the session after you confirm, and runs the resume command of its tool in the Shipyard terminal.
+
 ## Spend
 
 Spend shows the tokens and the money that the agents used, by day and by person, against the budgets, and the success rate of the runs.
@@ -41,6 +43,8 @@ Spend shows the tokens and the money that the agents used, by day and by person,
 - The amounts show by default. Switch Show prices off to hide them: a money tile then shows the token count. The app remembers the switch for each project.
 - Warn at is the percent of a budget where the alert shows. It is 80 percent for the project until you click Edit and set another percent from 1 to 100.
 - Each limit of a feature, a day and a person has a Then choice: Stop and ask (the default), Pause, Ask me or Go on. The run stops at 100 percent with the first three. Stop and ask also writes a comment on the ticket, Ask me asks in the app only, and Pause stops with no question. Raise the budget to go on. Go on turns the budget into a warning: the run goes on, and the alert shows once. Stop all agents, the stall timeout and the most turns still stop the run.
+
+How agents do shows Processor and Memory bars for the agent processes only, not for the whole computer. Each step of a run lists the tool calls of the agent.
 
 ## Rights
 
@@ -60,10 +64,13 @@ A right turns a control off. The control stays visible, and its tooltip names th
 - `code.merge`: merge a pull request.
 - `runs.start`: start, stop and resume a run.
 - `runs.approve`: approve what an agent wants to write, and its plan.
+- `plan.edit`: estimates, the plan calendar and the write of a plan to the issue tracker. Your own time entries stay personal and do not need it.
 - `project.settings`: Setup / This project, automation, recipes, connections, the team file.
 - `costs.view`: amounts of money.
 
 The admin flag gives every right. A member can have changes: `+code.merge` adds a right, `-runs.approve` removes one. Your personal role in Setup / Me and the read-only profile of a project can only remove rights.
+
+Code and merge is one row: the Code level and a Merge switch, which set `code.write` and `code.merge`. The Plan level of a role follows its Work level until you change it. Each role has a Places setting: a place that you switch off is hidden for that role. The default rights hide no place.
 
 ### Who you are
 

@@ -85,6 +85,9 @@
 - Spend edits Warn at for the project, and each limit of a feature, a day and a person has a choice Then: Stop and ask, Pause, Ask me or Go on. Go on makes the budget a warning only.
 - Automation has limits for the stages Plan, Build and Review beside the limits by status: a run waits where it is while its next stage is full.
 - A recipe step shows its Kind, Runs beside other steps, Child steps run side by side and Mode. A step that waits for a person can name a role: only that role approves it and gets its card on Today. May write: Alone is the approval "Do not ask again for this recipe".
+- Sign out is beside your name and at the end of the account menu: after you confirm, it removes the tokens of the code host and of the issue tracker from this computer and leaves the AI tools signed in. Take control of a session stops it and resumes it in the terminal, How agents do shows the load of the agent processes and the tool calls of each step, Rights has the Plan right, the row Code and merge and the places that each role sees, and Time has Fill from my work.
+- Setup has a model tier for each agent role, a notification when a budget reaches its warning level, the Sound switch, the release channel Stable or Preview, Change beside the data folder with Portable mode, Attach a file in Feedback, and a card that lists the permissions that are missing with Allow, Later and Allow all.
+- Closing a project while agents work asks: Cancel, Stop them and close, or Keep them working.
 
 ## [0.1.0]
 - Resume takes the limits that the workflow has now, so a budget that you removed no longer stops a run, and Resume with an empty amount works again.

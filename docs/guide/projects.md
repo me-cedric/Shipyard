@@ -10,6 +10,8 @@ The buttons of the page are Import projects (it opens Setup / This project), Ope
 2. Or click Open a folder and choose the folder of your project. When the folder is not a project yet, click Make it a project.
 3. Or click Clone from the code host and give its address.
 
+Close asks first when agents work for the project: Cancel, Stop them and close, or Keep them working. Keep them working closes the project and the runs go on.
+
 ## New project
 
 New project is a page of its own, at `/projects/new`. Open it with New project on the Projects page, on the first-run page or on the page No project is open. It asks one question at a time, with five steps: Name, Kind of product, Tools, Team and Ready. All steps shows the five parts on one page: Project, Brief, Team, Where the code lives and Start. Back leaves the page or goes one step back. Each step has defaults. Create the project is on when the name and the parent folder are set. Nothing is made before you click it.

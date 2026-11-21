@@ -33,6 +33,8 @@ Cliquez sur Lire le mois pour lire les temps du mois dans l'outil de suivi, à c
 
 Un rôle avec moins de trois membres qui ont un tarif journalier ne montre aucun coût. Avec un ou deux tarifs, un coût montrerait le tarif d'une personne.
 
+Remplir depuis mon travail ajoute une ligne pour chaque run de vos tickets et chaque commit de votre journée. La feuille n'a pas de bouton Enregistrer : elle enregistre quand vous quittez un champ.
+
 ## Pages
 
 Une sous-page a sa propre adresse et un lien de retour. Estimations garde aussi sa feuille dans l'adresse.

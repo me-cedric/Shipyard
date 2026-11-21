@@ -31,6 +31,8 @@ Una receta se abre en un formulario. Usa Formulario y Texto para pasar del formu
 
 Sesiones lista las sesiones de los agentes: una ejecución, una revisión de pull request, una estimación y la creación de un mosaico. Haz clic en una sesión para verla con Abrir y Detener. Detener una ejecución pide una confirmación. Detener una revisión termina la revisión. Detener una estimación termina el agente, y la hoja conserva sus valores. Detener la creación de un mosaico la termina, y el panel no cambia. Las sesiones terminadas están en su propia página.
 
+Solo lectura muestra la salida en vivo de una sesión cuando su herramienta escribe un archivo de historial que Shipyard puede leer (Claude Code y Codex lo hacen). Sin archivo de historial, el panel no muestra salida. Tomar el control detiene la sesión tras tu confirmación y ejecuta el comando de reanudación de su herramienta en el terminal de Shipyard.
+
 ## Gasto
 
 Gasto muestra los tokens y el dinero que usaron los agentes, por día y por persona, frente a los presupuestos, y la tasa de éxito de las ejecuciones.
@@ -41,6 +43,8 @@ Gasto muestra los tokens y el dinero que usaron los agentes, por día y por pers
 - Los importes se muestran por defecto. Desactiva Mostrar precios para ocultarlos: un mosaico de dinero muestra entonces el número de tokens. La aplicación recuerda el interruptor para cada proyecto.
 - Avisar al es el porcentaje de un presupuesto en el que se muestra la alerta. Es 80 por ciento para el proyecto hasta que hagas clic en Editar y fijes otro porcentaje de 1 a 100.
 - Cada límite de una funcionalidad, de un día y de una persona tiene una opción Después: Parar y preguntar (por defecto), Pausar, Preguntarme o Seguir. La ejecución se detiene al 100 por ciento con las tres primeras. Parar y preguntar también escribe un comentario en el ticket, Preguntarme pregunta solo en la aplicación y Pausar se detiene sin preguntar. Sube el presupuesto para seguir. Seguir convierte el presupuesto en un simple aviso: la ejecución sigue y la alerta se muestra una vez. Detener todos los agentes, el tiempo de inactividad y el máximo de turnos siguen deteniendo la ejecución.
+
+Cómo rinden los agentes muestra barras de Procesador y Memoria solo para los procesos de los agentes, no para todo el ordenador. Cada paso de una ejecución lista las llamadas a herramientas del agente.
 
 ## Derechos
 
@@ -60,10 +64,13 @@ Un derecho desactiva un control. El control sigue visible, y su ayuda emergente 
 - `code.merge`: fusionar una pull request.
 - `runs.start`: iniciar, detener y reanudar una ejecución.
 - `runs.approve`: aprobar lo que un agente quiere escribir, y su plan.
+- `plan.edit`: estimaciones, el calendario del plan y la escritura de un plan en el gestor de incidencias. Tus propias entradas de tiempo siguen siendo personales y no la necesitan.
 - `project.settings`: Configuración / Este proyecto, automatización, recetas, conexiones, el archivo del equipo.
 - `costs.view`: los importes de dinero.
 
 La marca admin da todos los derechos. Un miembro puede tener cambios: `+code.merge` añade un derecho, `-runs.approve` quita uno. Tu rol personal en Configuración / Yo y el perfil de solo lectura de un proyecto solo pueden quitar derechos.
+
+Código y fusión es una sola fila: el nivel de Código y un interruptor Fusión, que fijan `code.write` y `code.merge`. El nivel de Plan de un rol sigue su nivel de Trabajo hasta que lo cambies. Cada rol tiene un ajuste Lugares: un lugar que desactivas queda oculto para ese rol. Los derechos por defecto no ocultan ningún lugar.
 
 ### Quién eres
 

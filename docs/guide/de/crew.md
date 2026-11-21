@@ -31,6 +31,8 @@ Ein Rezept öffnet sich in einem Formular. Nutzen Sie Formular und Text, um zwis
 
 Sitzungen listet die Sitzungen der Agenten: einen Lauf, eine Prüfung eines Pull Requests, eine Schätzung und den Bau einer Kachel. Klicken Sie auf eine Sitzung, um sie mit Öffnen und Stoppen zu zeigen. Stoppen eines Laufs fragt nach einer Bestätigung. Stoppen einer Prüfung beendet die Prüfung. Stoppen einer Schätzung beendet den Agenten, und das Blatt behält seine Werte. Stoppen des Baus einer Kachel beendet ihn, und das Dashboard ändert sich nicht. Beendete Sitzungen stehen auf einer eigenen Seite.
 
+Nur lesen zeigt die Live-Ausgabe einer Sitzung, wenn ihr Tool eine Verlaufsdatei schreibt, die Shipyard lesen kann (Claude Code und Codex tun das). Ohne Verlaufsdatei zeigt der Bereich keine Ausgabe. Übernehmen stoppt die Sitzung nach Ihrer Bestätigung und führt den Fortsetzungsbefehl ihres Tools im Shipyard-Terminal aus.
+
 ## Ausgaben
 
 Ausgaben zeigt die Tokens und das Geld, die die Agenten verbraucht haben, pro Tag und pro Person, gegenüber den Budgets, und die Erfolgsquote der Läufe.
@@ -41,6 +43,8 @@ Ausgaben zeigt die Tokens und das Geld, die die Agenten verbraucht haben, pro Ta
 - Die Beträge zeigen sich standardmäßig. Schalten Sie Preise anzeigen aus, um sie zu verbergen: Eine Geld-Kachel zeigt dann die Token-Zahl. Die App merkt sich den Schalter für jedes Projekt.
 - Warnen bei ist der Prozentsatz eines Budgets, bei dem die Warnung erscheint. Er beträgt 80 Prozent für das Projekt, bis Sie auf Bearbeiten klicken und einen anderen Prozentsatz von 1 bis 100 setzen.
 - Jedes Limit eines Features, eines Tages und einer Person hat eine Wahl Danach: Anhalten und fragen (Standard), Pausieren, Mich fragen oder Weitermachen. Mit den ersten drei stoppt der Lauf bei 100 Prozent. Anhalten und fragen schreibt auch einen Kommentar am Ticket, Mich fragen fragt nur in der App, und Pausieren stoppt ohne Frage. Erhöhen Sie das Budget, um fortzufahren. Weitermachen macht das Budget zu einer reinen Warnung: Der Lauf geht weiter, und die Warnung erscheint einmal. Alle Agenten stoppen, das Leerlauf-Zeitlimit und die höchste Rundenzahl stoppen den Lauf weiterhin.
+
+Wie die Agenten arbeiten zeigt Balken für Prozessor und Speicher nur für die Prozesse der Agenten, nicht für den ganzen Computer. Jeder Schritt eines Runs listet die Tool-Aufrufe des Agenten auf.
 
 ## Rechte
 
@@ -60,10 +64,13 @@ Ein Recht schaltet ein Bedienelement aus. Das Bedienelement bleibt sichtbar, und
 - `code.merge`: einen Pull Request zusammenführen.
 - `runs.start`: einen Lauf starten, stoppen und fortsetzen.
 - `runs.approve`: freigeben, was ein Agent schreiben will, und seinen Plan.
+- `plan.edit`: Schätzungen, der Plankalender und das Schreiben eines Plans in den Issue-Tracker. Ihre eigenen Zeiteinträge bleiben persönlich und brauchen es nicht.
 - `project.settings`: Einrichtung / Dieses Projekt, Automatisierung, Rezepte, Verbindungen, die Teamdatei.
 - `costs.view`: Geldbeträge.
 
 Admin gibt jedes Recht. Ein Mitglied kann Abweichungen haben: `+code.merge` fügt ein Recht hinzu, `-runs.approve` entfernt eines. Ihre persönliche Rolle in Einrichtung / Ich und das schreibgeschützte Profil eines Projekts können Rechte nur entfernen.
+
+Code und Merge ist eine Zeile: die Stufe von Code und ein Schalter Merge, die `code.write` und `code.merge` setzen. Die Stufe von Plan einer Rolle folgt ihrer Stufe von Arbeit, bis Sie sie ändern. Jede Rolle hat eine Einstellung Orte: Ein Ort, den Sie ausschalten, ist für diese Rolle ausgeblendet. Die Standardrechte blenden keinen Ort aus.
 
 ### Wer Sie sind
 

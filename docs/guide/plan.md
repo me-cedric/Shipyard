@@ -33,6 +33,8 @@ Click Read the month to read the worklogs of the month from the issue tracker, b
 
 A role with fewer than three members with a day rate shows no cost. With one or two rates, a cost would show the rate of a person.
 
+Fill from my work adds one row for each run of your tickets and each commit of your day. The sheet has no Save button: it saves when you leave a field.
+
 ## Pages
 
 A sub-page has its own address and a back link. Estimates also keeps its sheet in the address.

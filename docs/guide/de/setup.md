@@ -68,6 +68,8 @@ Agenten und Regeln enthält die KI-Tools, die Modellanbieter, und die Regeln und
 
 Die App behält jede Datei, die eine Person geändert hat, außer Sie installieren neu.
 
+Agentenrollen zeigen die Beschreibung und das Modell jeder Rolle: Beste, Standard oder Schnell. Die Änderung einer mitgelieferten Rolle ohne Projektdatei schreibt die Projektdatei dieser Rolle.
+
 ### KI-Tools
 
 Die Liste zeigt jedes Coding-Tool, das die App kennt: Claude Code, Codex, GitHub Copilot, OpenCode und Gemini CLI (das Programm `agy` zählt als Gemini CLI). Jede Zeile zeigt den Namen, die Version, den Zustand und eine Aktion.
@@ -101,6 +103,8 @@ Zustand dieses Computers listet die Probleme der Werkzeuge auf diesem Rechner. J
 
 Protokolle und Feedback zeigt die Protokolle der App. In der Mail-App öffnen öffnet Ihre Mail-App mit Ihrem Feedback.
 
+Datei anhängen zeigt die Datei im Dateimanager, neben dem Text Ihres Feedbacks. Shipyard sendet nichts.
+
 ## Ich
 
 Ich enthält Ihre eigenen Einstellungen. Sie gelten in jedem Projekt.
@@ -115,6 +119,12 @@ Ich enthält Ihre eigenen Einstellungen. Sie gelten in jedem Projekt.
 
 Benachrichtigungen: Jede Quelle hat ihren eigenen Schalter, standardmäßig an. Die Quellen sind eine Frage, eine Freigabe, ein Lauf, der auf Sie wartet, ein fehlgeschlagener Sync, ein Update, ein verschobener Remote-Branch, ein Lauf, der endet, die Prüfungen Ihrer Pull Requests, ein fehlgeschlagener Scan, den Sie nicht gestartet haben, und ein Entwurf einer Agenten-Prüfung, der zum Senden bereit ist. Ein ausgeschalteter Schalter stoppt den Eintrag in Neuigkeiten und den Hinweis des Systems. Das System zeigt einen Hinweis, solange das Fenster im Hintergrund ist.
 
+Budget-Hinweis: Eine Benachrichtigung erscheint, wenn ein Budget seine Warnschwelle erreicht. Der Schalter Ton schaltet den Ton eines Systemhinweises ein oder aus. Der Release-Kanal ist Stabil oder Vorschau: Vorschau beachtet auch die Vorabversionen derselben Release-Adresse.
+
+Abmelden steht neben Ihrem Namen und am Ende des Kontomenüs. Nach Ihrer Bestätigung entfernt es die Tokens des Code-Hosts und des Issue-Trackers aus dem Schlüsselbund dieses Computers. Die Anmeldung eines KI-Tools oder von OpenRouter bleibt.
+
+Beim ersten Start und jedes Mal, wenn eine Berechtigung fehlt, listet eine Karte „Shipyard braucht N Berechtigungen“ die fehlenden Berechtigungen mit Erlauben, Später und Alle erlauben.
+
 ### Rollenansichten
 
 Rollenansichten liegt unter `/setup/role-views`. Alle Rollenansichten, auf der Seite der Panels von Heute, öffnet sie. Sie zeigt eine Karte für jede Rolle: die Seite, mit der die Rolle beginnt (zum Beispiel Beginnt mit Ablauf), und die Orte, die die Rolle sieht. Ein Ort, den die Rolle nicht sieht, ist durchgestrichen. Die Karte Ihrer Rolle hat das Etikett Meine Ansicht, und die Rolle Leser heißt Ich schaue nur. Die Schaltfläche Rechte jeder Rolle öffnet Team / Rechte, wo die Rechte eingestellt werden. Die Karten sind in jedem Projekt mit denselben Rechten gleich.
@@ -122,3 +132,5 @@ Rollenansichten liegt unter `/setup/role-views`. Alle Rollenansichten, auf der S
 ### Aussehen und Layout
 
 Aussehen und Layout enthält die Schriften, die Seite der Leiste und der Schubladen, die Akzentfarbe, das Datumsformat und Ihr Bild.
+
+Ändern neben dem Datenordner verschiebt die Daten nach Ihrer Bestätigung in den gewählten Ordner und startet Shipyard neu. Der Schalter Portabler Modus schreibt oder entfernt die Markierung `portable` neben der App.

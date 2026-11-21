@@ -10,6 +10,8 @@ Die Schaltflächen der Seite sind Projekte importieren (sie öffnet Einrichtung 
 2. Oder klicken Sie auf Ordner öffnen und wählen Sie den Ordner Ihres Projekts. Wenn der Ordner noch kein Projekt ist, klicken Sie auf Zum Projekt machen.
 3. Oder klicken Sie auf Von der Code-Plattform klonen und geben Sie die Adresse an.
 
+Schließen fragt zuerst, wenn Agenten für das Projekt arbeiten: Abbrechen, Stoppen und schließen oder Weiterarbeiten lassen. Weiterarbeiten lassen schließt das Projekt, und die Runs laufen weiter.
+
 ## Neues Projekt
 
 Neues Projekt ist eine eigene Seite unter `/projects/new`. Öffnen Sie sie mit Neues Projekt auf der Seite Projekte, auf der Seite des ersten Starts oder auf der Seite Kein Projekt ist offen. Sie stellt eine Frage nach der anderen, in fünf Schritten: Name, Art des Produkts, Werkzeuge, Team und Bereit. Alle Schritte zeigt die fünf Teile auf einer Seite: Projekt, Auftrag, Team, Wo der Code liegt und Start. Zurück verlässt die Seite oder geht einen Schritt zurück. Jeder Schritt hat Vorgaben. Projekt erstellen ist an, wenn der Name und der übergeordnete Ordner gesetzt sind. Vor Ihrem Klick wird nichts angelegt.

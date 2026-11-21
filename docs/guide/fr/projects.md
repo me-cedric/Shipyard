@@ -10,6 +10,8 @@ Les boutons de la page sont Importer des projets (il ouvre Configuration / Ce pr
 2. Ou cliquez sur Ouvrir un dossier et choisissez le dossier de votre projet. Quand le dossier n'est pas encore un projet, cliquez sur En faire un projet.
 3. Ou cliquez sur Cloner depuis l'hébergeur de code et donnez son adresse.
 
+Fermer demande d'abord quand des agents travaillent pour le projet : Annuler, Les arrêter et fermer, ou Les laisser travailler. Les laisser travailler ferme le projet et les runs continuent.
+
 ## Nouveau projet
 
 Nouveau projet est une page à part, à l'adresse `/projects/new`. Ouvrez-la avec Nouveau projet sur la page Projets, sur la page du premier lancement ou sur la page Aucun projet n'est ouvert. Elle pose une question à la fois, en cinq étapes : Nom, Type de produit, Outils, Équipe et Prêt. Toutes les étapes montre les cinq parties sur une page : Projet, Cahier, Équipe, Où vit le code et Départ. Retour quitte la page ou revient d'une étape. Chaque étape a des valeurs par défaut. Créer le projet est actif quand le nom et le dossier parent sont fixés. Rien n'est fait avant votre clic.

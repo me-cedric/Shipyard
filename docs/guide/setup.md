@@ -68,6 +68,8 @@ Agents and rules holds the AI tools, the model providers, and the rules and the 
 
 The app keeps each file that a person changed, unless you reinstall.
 
+Agent roles show the description and the model of each role: Best, Standard or Fast. A change of a bundled role that has no project file writes the project file of that role.
+
 ### AI tools
 
 The list shows each coding tool that the app knows: Claude Code, Codex, GitHub Copilot, OpenCode and Gemini CLI (the `agy` program counts as Gemini CLI). Each row shows the name, the version, the state and one action.
@@ -101,6 +103,8 @@ Health of this computer lists the problems of the tools on this machine. Each pr
 
 Logs and feedback shows the logs of the app. Open in mail opens your mail app with your feedback.
 
+Attach a file shows the file in the file manager, beside the text of your feedback. Shipyard sends nothing.
+
 ## Me
 
 Me holds your own settings. They apply in every project.
@@ -115,6 +119,12 @@ Me holds your own settings. They apply in every project.
 
 Notifications: each source has its own switch, on by default. The sources are a question, an approval, a run that needs you, a failed sync, an update, a moved remote branch, a run that ends, the checks of your pull requests, a failed scan that you did not start, and an agent review draft that is ready to post. A switch that is off stops the entry in News and the system notice. The system shows a notice while the window is in the background.
 
+Budget notice: a notification shows when a budget reaches Warn at. The switch Sound turns the sound of a system notice on or off. The Release channel is Stable or Preview: Preview also considers the pre-releases of the same release address.
+
+Sign out is beside your name and at the end of the account menu. After you confirm, it removes the tokens of the code host and of the issue tracker from the keychain of this computer. The sign-in of an AI tool or of OpenRouter stays.
+
+At the first launch, and each time a permission is missing, a card "Shipyard needs N permissions" lists the missing permissions with Allow, Later and Allow all.
+
 ### Role views
 
 Role views is at `/setup/role-views`. All role views on the page of the panels of Today opens it. It shows one card for each role: the page that the role starts on (Starts on Flow, for example) and the places that the role sees. A place that the role does not see is struck through. The card of your role has the tag My view, and the viewer role is named I only look. The button Rights of each role opens Crew / Rights, where the rights are set. The cards are the same in every project that has the same rights.
@@ -122,3 +132,5 @@ Role views is at `/setup/role-views`. All role views on the page of the panels o
 ### Look and layout
 
 Look and layout holds the fonts, the side of the bar and of the drawers, the accent colour, the date format and your picture.
+
+Change beside the data folder moves the data to the folder that you pick, after you confirm, then restarts Shipyard. The switch Portable mode writes or removes the `portable` marker next to the app.

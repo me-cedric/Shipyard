@@ -10,6 +10,8 @@ Los botones de la página son Importar proyectos (abre Configuración / Este pro
 2. O haz clic en Abrir una carpeta y elige la carpeta de tu proyecto. Cuando la carpeta no es todavía un proyecto, haz clic en Convertir en proyecto.
 3. O haz clic en Clonar desde la plataforma de código y da su dirección.
 
+Cerrar pregunta primero cuando hay agentes trabajando para el proyecto: Cancelar, Detenerlos y cerrar, o Dejarlos trabajando. Dejarlos trabajando cierra el proyecto y las ejecuciones siguen.
+
 ## Nuevo proyecto
 
 Nuevo proyecto es una página propia, en `/projects/new`. Ábrela con Nuevo proyecto en la página Proyectos, en la página del primer inicio o en la página No hay ningún proyecto abierto. Hace una pregunta cada vez, en cinco pasos: Nombre, Tipo de producto, Herramientas, Equipo y Listo. Todos los pasos muestra las cinco partes en una página: Proyecto, Encargo, Equipo, Dónde vive el código e Inicio. Atrás sale de la página o vuelve un paso. Cada paso tiene valores por defecto. Crear el proyecto está activo cuando el nombre y la carpeta superior están fijados. No se hace nada antes de tu clic.

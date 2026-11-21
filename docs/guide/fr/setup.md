@@ -68,6 +68,8 @@ Agents et règles contient les outils d'IA, les fournisseurs de modèles, et les
 
 L'application garde chaque fichier qu'une personne a changé, sauf si vous réinstallez.
 
+Les rôles d'agent montrent la description et le modèle de chaque rôle : Le meilleur, Standard ou Rapide. Le changement d'un rôle fourni qui n'a pas de fichier de projet écrit le fichier de projet de ce rôle.
+
 ### Outils d'IA
 
 La liste montre chaque outil de code que l'application connaît : Claude Code, Codex, GitHub Copilot, OpenCode et Gemini CLI (le programme `agy` compte comme Gemini CLI). Chaque ligne montre le nom, la version, l'état et une action.
@@ -101,6 +103,8 @@ Santé de cet ordinateur liste les problèmes des outils de cette machine. Chaqu
 
 Journaux et retours montre les journaux de l'application. Ouvrir dans la messagerie ouvre votre application de messagerie avec vos retours.
 
+Joindre un fichier affiche le fichier dans le gestionnaire de fichiers, à côté du texte de votre retour. Shipyard n'envoie rien.
+
 ## Moi
 
 Moi contient vos propres réglages. Ils valent dans chaque projet.
@@ -115,6 +119,12 @@ Moi contient vos propres réglages. Ils valent dans chaque projet.
 
 Notifications : chaque source a son propre interrupteur, activé par défaut. Les sources sont une question, une approbation, une exécution qui vous attend, un échec de synchronisation, une mise à jour, une branche distante déplacée, une exécution qui se termine, les contrôles de vos pull requests, un scan en échec que vous n'avez pas lancé, et un brouillon de revue d'agent prêt à publier. Un interrupteur désactivé arrête l'entrée dans Nouvelles et l'avis du système. Le système montre un avis tant que la fenêtre est en arrière-plan.
 
+Avis de budget : une notification s'affiche quand un budget atteint son seuil d'alerte. L'interrupteur Son active ou coupe le son d'un avis du système. Le canal de version est Stable ou Préversion : Préversion considère aussi les préversions de la même adresse de versions.
+
+Se déconnecter est à côté de votre nom et à la fin du menu du compte. Après votre confirmation, il retire de ce ordinateur les jetons de l'hébergeur de code et du suivi de tickets du trousseau. La connexion d'un outil d'IA ou d'OpenRouter reste.
+
+Au premier lancement, et chaque fois qu'une autorisation manque, une carte « Shipyard a besoin de N autorisations » liste les autorisations manquantes avec Autoriser, Plus tard et Tout autoriser.
+
 ### Vues par rôle
 
 Vues par rôle est à l'adresse `/setup/role-views`. Toutes les vues par rôle, sur la page des panneaux d'Aujourd'hui, l'ouvre. Elle montre une carte par rôle : la page sur laquelle le rôle commence (Commence sur Flux, par exemple) et les lieux que le rôle voit. Un lieu que le rôle ne voit pas est barré. La carte de votre rôle a l'étiquette Ma vue, et le rôle de lecteur se nomme Je regarde seulement. Le bouton Droits de chaque rôle ouvre Équipe / Droits, où les droits se règlent. Les cartes sont les mêmes dans chaque projet qui a les mêmes droits.
@@ -122,3 +132,5 @@ Vues par rôle est à l'adresse `/setup/role-views`. Toutes les vues par rôle, 
 ### Apparence et disposition
 
 Apparence et disposition contient les polices, le côté de la barre et des tiroirs, la couleur d'accent, le format de date et votre image.
+
+Changer, à côté du dossier des données, déplace les données vers le dossier que vous choisissez, après votre confirmation, puis redémarre Shipyard. L'interrupteur Mode portable écrit ou retire le marqueur `portable` à côté de l'application.

@@ -85,6 +85,9 @@
 - Dépenses modifie Prévenir à pour le projet, et chaque limite d'une fonctionnalité, d'un jour et d'une personne a un choix Ensuite : Arrêter et demander, Mettre en pause, Me demander ou Continuer. Continuer fait du budget un simple avertissement.
 - Automatisation a des limites pour les étapes Plan, Construction et Revue à côté des limites par statut : une exécution attend où elle est tant que son étape suivante est pleine.
 - L'étape d'une recette montre son Type, Tourne en même temps que d'autres étapes, Les sous-étapes tournent côte à côte et Mode. Une étape qui attend une personne peut nommer un rôle : seul ce rôle l'approuve et reçoit sa carte dans Aujourd'hui. Peut écrire : Seul est l'approbation « Ne plus demander pour cette recette ».
+- Se déconnecter est à côté de votre nom et à la fin du menu du compte : après votre confirmation, il retire de cet ordinateur les jetons de l'hébergeur de code et du suivi de tickets et laisse les outils d'IA connectés. Prendre la main sur une session l'arrête et la reprend dans le terminal, Comment les agents s'en sortent montre la charge des processus des agents et les appels d'outils de chaque étape, Droits a le droit Plan, la ligne Code et fusion et les lieux que voit chaque rôle, et Temps a Remplir depuis mon travail.
+- La configuration a un niveau de modèle pour chaque rôle d'agent, une notification quand un budget atteint son niveau d'alerte, l'interrupteur Son, le canal de version Stable ou Préversion, Changer à côté du dossier des données avec le Mode portable, Joindre un fichier dans les retours, et une carte qui liste les autorisations manquantes avec Autoriser, Plus tard et Tout autoriser.
+- Fermer un projet pendant que des agents travaillent pose la question : Annuler, Les arrêter et fermer, ou Les laisser travailler.
 
 ## [0.1.0]
 - Reprendre applique les limites actuelles du workflow : un budget retiré n’arrête plus une exécution, et Reprendre sans montant fonctionne de nouveau.

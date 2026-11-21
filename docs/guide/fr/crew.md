@@ -31,6 +31,8 @@ Une recette s'ouvre dans un formulaire. Utilisez Formulaire et Texte pour passer
 
 Sessions liste les sessions des agents : une exécution, une relecture de pull request, une estimation et la création d'une tuile. Cliquez sur une session pour l'afficher avec Ouvrir et Arrêter. Arrêter une exécution demande une confirmation. Arrêter une relecture met fin à la relecture. Arrêter une estimation met fin à l'agent, et la feuille garde ses valeurs. Arrêter la création d'une tuile y met fin, et le tableau de bord ne change pas. Les sessions terminées sont sur leur propre page.
 
+Lecture seule affiche la sortie en direct d'une session quand son outil écrit un fichier d'historique que Shipyard sait lire (Claude Code et Codex le font). Sans fichier d'historique, le volet n'affiche aucune sortie. Prendre la main arrête la session après votre confirmation, puis lance la commande de reprise de son outil dans le terminal de Shipyard.
+
 ## Dépenses
 
 Dépenses montre les jetons et l'argent que les agents ont utilisés, par jour et par personne, face aux budgets, et le taux de réussite des exécutions.
@@ -41,6 +43,8 @@ Dépenses montre les jetons et l'argent que les agents ont utilisés, par jour e
 - Les montants s'affichent par défaut. Désactivez Afficher les prix pour les masquer : une tuile d'argent montre alors le nombre de jetons. L'application retient l'interrupteur pour chaque projet.
 - Prévenir à est le pourcentage d'un budget où l'alerte s'affiche. C'est 80 pour cent pour le projet, jusqu'à ce que vous cliquiez sur Modifier et fixiez un autre pourcentage de 1 à 100.
 - Chaque limite d'une fonctionnalité, d'un jour et d'une personne a un choix Ensuite : Arrêter et demander (par défaut), Mettre en pause, Me demander ou Continuer. L'exécution s'arrête à 100 pour cent avec les trois premiers. Arrêter et demander écrit aussi un commentaire sur le ticket, Me demander demande dans l'application seulement, et Mettre en pause s'arrête sans question. Augmentez le budget pour continuer. Continuer fait du budget un simple avertissement : l'exécution continue, et l'alerte s'affiche une fois. Tout arrêter, le délai d'inactivité et le nombre maximal de tours arrêtent toujours l'exécution.
+
+Comment les agents s'en sortent affiche des barres Processeur et Mémoire pour les processus des agents seulement, pas pour tout l'ordinateur. Chaque étape d'un run liste les appels d'outils de l'agent.
 
 ## Droits
 
@@ -60,10 +64,13 @@ Un droit désactive une commande. La commande reste visible, et son infobulle no
 - `code.merge` : fusionner une pull request.
 - `runs.start` : lancer, arrêter et reprendre une exécution.
 - `runs.approve` : approuver ce qu'un agent veut écrire, et son plan.
+- `plan.edit` : estimations, calendrier du plan et écriture d'un plan dans le suivi de tickets. Vos propres entrées de temps restent personnelles et n'en ont pas besoin.
 - `project.settings` : Configuration / Ce projet, automatisation, recettes, connexions, le fichier d'équipe.
 - `costs.view` : les montants d'argent.
 
 Le statut admin donne tous les droits. Un membre peut avoir des écarts : `+code.merge` ajoute un droit, `-runs.approve` en retire un. Votre rôle personnel dans Configuration / Moi et le profil en lecture seule d'un projet ne peuvent que retirer des droits.
+
+Code et fusion est une seule ligne : le niveau de Code et un interrupteur Fusion, qui règlent `code.write` et `code.merge`. Le niveau de Plan d'un rôle suit son niveau de Travail tant que vous ne le changez pas. Chaque rôle a un réglage Lieux : un lieu que vous désactivez est masqué pour ce rôle. Les droits par défaut ne masquent aucun lieu.
 
 ### Qui vous êtes
 
