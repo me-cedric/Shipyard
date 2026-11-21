@@ -136,7 +136,8 @@ export function AssistantPage() {
 				}
 			/>
 			<div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,3fr)_minmax(280px,1.5fr)] gap-6 px-4 pb-6">
-				<div className="min-h-0 overflow-y-auto">
+				{/* A scroll area clips sideways too: the room keeps the outline of the open thread and the focus ring whole. */}
+				<div className="-m-1 min-h-0 overflow-y-auto p-1">
 					<Threads a={a} full />
 				</div>
 				<div className="flex min-h-0 min-w-0 flex-col gap-4">
