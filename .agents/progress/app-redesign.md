@@ -725,6 +725,7 @@ After the join:
 - The join cards of Crew / Rights / Team have the heading level after the page title (axe heading-order).
 - All pictures are retaken on the joined build (`scripts/screenshots.ts`, all scenes).
 - Final visual check against the 101 design pictures: 51 match, 49 minor, 1 major (068, Leave this page), fixed. Per-screen record: `.agents/progress/redesign-visual-final.md`. New pictures SCR-186 to SCR-193 (History, Restore, Add a word, Experts, pinned Today, Earlier versions, flow check, Leave this page).
+- Each role hides the places of the design by default (owner answer 2026-11-21, "Follow the design"); rights do not change, and the Places setting of Rights can show a place again. A change of the job in Setup / Me reads the rights again.
 
 Gates on the joined tree, all passed: `pnpm typecheck`, `pnpm lint`, vitest (319 files, 2864 tests), `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --exclude shipyard-app` (1531), `cargo test -p shipyard-app --lib` (589, one keychain test skipped), `cargo test -p shipyard-app --test it` (61), `pnpm ipc:check`, `openspec validate add-redesign-functions --strict`, e2e (150), personas (7).
 
