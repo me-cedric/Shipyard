@@ -4,7 +4,7 @@ Each screen of the built app (frozen demo build, mock data, 1440 px wide) was pu
 
 Verdicts: match (same layout, cards, controls and labels; sample data can differ), minor (small look difference, or a logical deviation that keeps each function), major (missing or extra section or control, other layout, broken page).
 
-Result: 51 match, 49 minor, 1 major, 0 not found, of 101 screens. The one major gap (068, Leave this page with no file and no save) is fixed. Each minor difference has its reason: Data (the demo data lacks the state), Deliberate (a logical change that keeps each function, as the owner asked), Platform, or Fixed: the question names the file and offers Stay, Leave and Save and leave (picture `leave-page.png`, SCR-193).
+Result: 51 match, 49 minor, 1 major, 0 not found, of 101 screens. The one major gap (068, Leave this page with no file and no save) is fixed. The owner accepted each deliberate deviation (2026-11-21). Each minor difference has its reason: Data (the demo data lacks the state), Deliberate (a logical change that keeps each function, as the owner asked), Platform, or Fixed: the question names the file and offers Stay, Leave and Save and leave (picture `leave-page.png`, SCR-193).
 
 | Design | Group | Verdict | Differences | Reason |
 | --- | --- | --- | --- | --- |

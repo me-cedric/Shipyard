@@ -35,7 +35,7 @@ Open after Wave 1:
 - `role-panels.tsx` and `onboarding/pictures.tsx` still show the names of the old spaces. `orderedSpaces`, `visibleTabs` and `barTabs` in `spaces.ts` serve only the redirects and the tests: T028 and T030 remove them.
 - Home / Projects is a section of Today for now. The plan puts it behind the project name (T027).
 - The guide has the new menu in `start.md` only (four languages). The pages by old space are for T032.
-- `q:Q-172` is open: the owner can change the French, German and Spanish names in `src/lib/i18n/` (`ui.place`).
+- `q:Q-172` is answered (2026-11-21): the place names are translated (option 1).
 - No old page was removed: Wave 1 replaced the shell only (the tab bar file is gone).
 
 ## How Wave 2 starts (T010 to T012, Today and Ask)
@@ -734,5 +734,6 @@ Open items:
 - Fill from my work refuses the sheet of another member. A lead can fill another sheet only after a match of the commits to the emails of the team file.
 - The permissions card offers no request for a permission that is off, only Open the system settings.
 - `src/features/factory/runs.test.tsx` failed once under load and passed on two reruns.
-- The fr, de and es guide texts of the new controls need a review by a native speaker (`q:Q-172`).
+- `q:Q-172` is answered (option 1, translated names). An agent review of the French, German and Spanish strings and guide pages against the English fixed 186 strings (meaning, English left in, place names, register). The guide pages other than `start.md` got automated checks and a term search, not a line-by-line read.
+- The owner accepted the deliberate deviations of the visual check (2026-11-21).
 - The test `commands::setup::tests::a_link_to_a_connection_that_is_gone_is_replaced_by_the_only_tracker` reads the real keychain and hangs when no one is at the screen (older than this change).

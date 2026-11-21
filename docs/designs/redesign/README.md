@@ -16,7 +16,7 @@ These are the screens of the change `update-app-redesign` (decision 0023 in `doc
 
 - The text in square brackets is a placeholder. Other sample values are invented.
 - The pictures come from local copies of the sources, not from the live canvas.
-- The names of the places are the English names. The names in French, German and Spanish wait for an answer in `docs/delivery/questions/Q-172.md`.
+- The names of the places are the English names. French, German and Spanish translate them (`docs/delivery/questions/Q-172.md`, option 1).
 
 ## Screens
 
