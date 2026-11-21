@@ -708,21 +708,30 @@ Checks of the lead on the final tree: see the last commit and the final report o
 
 ## Build of the design controls, `add-redesign-functions` (2026-11-21)
 
-The owner chose to build the 46 controls of the design that the app did not have (`q:Q-173`). The spec is `docs/openspec/changes/add-redesign-functions/`, with `adr:0024` and `q:Q-174` to `q:Q-176`. A workflow built the four capabilities in four worktrees from `45288ede`.
+The owner chose to build the 46 controls of the design that the app did not have (`q:Q-173`). The spec is `docs/openspec/changes/add-redesign-functions/`, with `adr:0024` and `q:Q-174` to `q:Q-176`. Workflows built the four capabilities in four worktrees from `45288ede`. All four are joined on this branch by cherry-pick. The worktrees and the `fn/*` branches are removed.
 
-The weekly spend limit stopped the workflow. It resets on 2026-11-25 at 15:00 (Europe/Paris).
+| Capability | Progress record | Tasks |
+| --- | --- | --- |
+| `runs-recipes` | `.agents/progress/fn-runs-recipes.md` | 22 done |
+| `code-host-tickets` | `.agents/progress/fn-code-host-tickets.md` | 26 done |
+| `library-functions` | `.agents/progress/fn-library-functions.md` | 30 done |
+| `shell-setup-rights` | `.agents/progress/fn-shell-setup-rights.md` | 28 done |
 
-| Capability | State | Branch and worktree | Tasks |
-| --- | --- | --- | --- |
-| `runs-recipes` | Joined on this branch. All gates passed (see `.agents/progress/fn-runs-recipes.md`). | Removed | 22 done |
-| `code-host-tickets` | Stopped in the finish pass. Last commit is a WIP commit; the gates did not run on it. | `fn/code-host-tickets`, `.claude/worktrees/fn-code-host-tickets` | 23 done, 6 open |
-| `library-functions` | Stopped in the build pass (F26 to F34 committed; F35 Pin to Today in the WIP commit). | `fn/library-functions`, `.claude/worktrees/fn-library-functions` | 16 done, 17 open |
-| `shell-setup-rights` | Stopped in the build pass. Backend and views committed; the tasks are not ticked. | `fn/shell-setup-rights`, `.claude/worktrees/fn-shell-setup-rights` | 0 ticked, 31 open |
+After the join:
 
-To resume:
+- F36: the release picker of Dashboards reads `work_releases` and the release of each ticket. The mock-only `releases_list` is removed.
+- F41: the budget notice reads Warn at of the open project (`budgets.warn_at` of `.shipyard/automation.yaml`), default 80.
+- A review in a fresh context found seven defects. All are fixed, with tests: the join accept takes one new entry with no admin or extra rights and refuses other changes; the data folder move and the portable copy happen at the next start, before a store opens; Change and Portable show their error; Sign out saves the file after a keychain error; Restore asks first and refuses with unsaved edits; Fill from my work fills only your own sheet; Add a word goes into the Glossary section.
+- The join cards of Crew / Rights / Team have the heading level after the page title (axe heading-order).
+- All pictures are retaken on the joined build (`scripts/screenshots.ts`, all scenes).
 
-1. In each of the three worktrees, read the WIP commit, finish the open tasks of `tasks.md` and run all gates. Resume the workflow with its script file and run id `wf_fbec4111-618`, or start one session for each worktree.
-2. Wire F36 (the release picker of Dashboards) to the release command of `code-host-tickets`, and the budget notice of F41 to Warn at of `runs-recipes`.
-3. Join the three branches here by cherry-pick, run all gates, run a review in a fresh context and a visual check of the changed screens.
+Gates on the joined tree, all passed: `pnpm typecheck`, `pnpm lint`, vitest (319 files, 2864 tests), `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --exclude shipyard-app` (1531), `cargo test -p shipyard-app --lib` (589, one keychain test skipped), `cargo test -p shipyard-app --test it` (61), `pnpm ipc:check`, `openspec validate add-redesign-functions --strict`, e2e (150), personas (7).
 
-Known items of `runs-recipes`: the test `commands::setup::tests::a_link_to_a_connection_that_is_gone_is_replaced_by_the_only_tracker` reads the real keychain and hangs when no one is at the screen (older than this change).
+Open items:
+
+- Fill from my work refuses the sheet of another member. A lead can fill another sheet only after a match of the commits to the emails of the team file.
+- The Restore question, the History dialog, Add a word, the Experts card and the pinned Today state have no picture.
+- The permissions card offers no request for a permission that is off, only Open the system settings.
+- `src/features/factory/runs.test.tsx` failed once under load and passed on two reruns.
+- The fr, de and es guide texts of the new controls need a review by a native speaker (`q:Q-172`).
+- The test `commands::setup::tests::a_link_to_a_connection_that_is_gone_is_replaced_by_the_only_tracker` reads the real keychain and hangs when no one is at the screen (older than this change).

@@ -32,7 +32,7 @@ Compared with the design pictures 071, 045, 077, 036. The structure matches. Two
 
 ## Open items
 
-- F36: the release picker reads the mock-only command `releases_list`. It stays hidden in the real app until the merge swaps `useReleases` (`src/lib/knowledge/releases.ts`) to `work_releases` and the release of each ticket, and deletes `releasesList` from the mock.
+- F36: joined. The release picker reads `work_releases` and the release of each ticket; `releases_list` is removed from the mock.
 - F35: the pin is in localStorage (`shipyard.pinned-dashboards`), per person on this machine (Q-070). The card shows on Today, not on the role panels page of SCR-104.
 - No picture for the dialogs History, Add a word, Experts and the pinned Today state.
 
