@@ -1,9 +1,8 @@
 //! The budget notice (`shell-setup-rights` REQ-007): "A budget reaches Warn at". It reads the
 //! monthly budgets of this computer and what each AI tool spent this month.
 //!
-//! The one seam is [`warn_at`]. The Warn at level of a budget belongs to the group runs-recipes
-//! (`spec:runs-recipes#REQ-006`). Until that change is merged, the level is [`DEFAULT_WARN_AT`].
-//! When it is merged, only the body of [`warn_at`] changes.
+//! The level is Warn at of the open project (`spec:runs-recipes#REQ-006`), in
+//! `.shipyard/automation.yaml`. With no project or no valid file, it is [`DEFAULT_WARN_AT`].
 
 use serde::Serialize;
 use shipyard_agents::machine::SpendRow;
@@ -12,12 +11,16 @@ use specta::Type;
 use crate::commands::{Api, AppState, blocking};
 use crate::machine::Budget;
 
-/// The share of a budget at which the notice shows, until Warn at has a setting.
-pub const DEFAULT_WARN_AT: f64 = 0.8;
+/// The share of a budget at which the notice shows when the project sets no Warn at.
+pub const DEFAULT_WARN_AT: f64 = shipyard_core::run::BUDGET_ALERT;
 
-/// The Warn at level of the budgets, from 0 to 1. THE SEAM: see the module text.
-pub fn warn_at(_s: &AppState) -> f64 {
-    DEFAULT_WARN_AT
+/// The Warn at level of the budgets, from 0 to 1: the setting of the open project.
+pub fn warn_at(s: &AppState) -> f64 {
+    use shipyard_store::automation_file::{AutomationRead, read_automation};
+    match crate::factory::root_of(s).map(|(_, root)| read_automation(&root)) {
+        Ok(Ok(AutomationRead::Valid(a))) => a.budgets.warn(),
+        _ => DEFAULT_WARN_AT,
+    }
 }
 
 /// A budget that reached the Warn at level this month.

@@ -86,11 +86,11 @@ export function machineBudgetSet(m: MockMachine, runner: string, usd: number | n
 	return m.budgets;
 }
 
-/** The default Warn at level of a budget, the seam of `crates/shipyard-app/src/shell/budget.rs`. */
+/** The Warn at level of a budget when the project sets none (`crates/shipyard-app/src/shell/budget.rs`). */
 export const DEFAULT_WARN_PERCENT = 80;
 
 /** The budgets that reached Warn at this month: the notice of Setup / Me. */
-export function budgetStatus(m: MockMachine): BudgetStatus {
+export function budgetStatus(m: MockMachine, warnPercent = DEFAULT_WARN_PERCENT): BudgetStatus {
 	const month = new Date().toISOString().slice(0, 7);
 	const rows = machineSpend(m, 31).rows.filter((r) => r.day.startsWith(month));
 	const reached = m.budgets
@@ -100,7 +100,7 @@ export function budgetStatus(m: MockMachine): BudgetStatus {
 			const spent = rows
 				.filter((r) => !b.runner || r.runner === b.runner)
 				.reduce((a, r) => a + (r.costUsd ?? 0), 0);
-			return spent >= (b.usd * DEFAULT_WARN_PERCENT) / 100
+			return spent >= (b.usd * warnPercent) / 100
 				? [
 						{
 							runner: b.runner,
@@ -111,7 +111,7 @@ export function budgetStatus(m: MockMachine): BudgetStatus {
 					]
 				: [];
 		});
-	return { warnPercent: DEFAULT_WARN_PERCENT, month, reached };
+	return { warnPercent, month, reached };
 }
 
 /** Take control: only a running session of a tool that resumes can be taken, and it stops. */

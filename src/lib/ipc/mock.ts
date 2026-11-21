@@ -1689,7 +1689,7 @@ const handlers: Handlers & { releasesList: () => ReturnType<typeof kw.releasesLi
 	machineSessionTake: (pid, click) => mc.machineTake(state.machine, pid, click),
 	machineSessionOutput: (runner, session) => mc.machineOutput(state.machine, runner, session),
 	machineLoad: () => mc.machineLoad(state.machine),
-	budgetStatus: () => mc.budgetStatus(state.machine),
+	budgetStatus: () => mc.budgetStatus(state.machine, state.factory.budgets.warn_at ?? undefined),
 	machineSessionStop: (pid, click) => {
 		if (!click) throw "this change needs the click of a person";
 		return mc.machineStop(state.machine, pid);

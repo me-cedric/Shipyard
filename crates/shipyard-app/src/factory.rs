@@ -1542,7 +1542,7 @@ pub fn close(s: &AppState, run: &str) -> Res<RunState> {
 
 // ---------------------------------------------------------------- workflows and roles
 
-fn root_of(s: &AppState) -> Res<(String, PathBuf)> {
+pub(crate) fn root_of(s: &AppState) -> Res<(String, PathBuf)> {
     let e = s
         .registry()?
         .active()
