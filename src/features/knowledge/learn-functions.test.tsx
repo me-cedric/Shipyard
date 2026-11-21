@@ -42,6 +42,20 @@ describe("Learn: Experts, Add a word and the second pill", () => {
 		expect(screen.getByRole("textbox", { name: f.word })).toHaveValue(known);
 	});
 
+	it("adds a word inside the Glossary section when a heading follows it, once", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const files = mockState().knowledge.files;
+		files["docs/glossary.md"] = {
+			text: "### Glossary\n\n- Slot: a place\n\n## Notes\n\ntext\n",
+			stamp: "1",
+		};
+		await unwrap(commands.glossaryAddWord("Lane", "a road", true));
+		expect(files["docs/glossary.md"]?.text).toBe(
+			"### Glossary\n\n- Slot: a place\n- Lane: a road\n\n## Notes\n\ntext\n",
+		);
+		await expect(unwrap(commands.glossaryAddWord("Lane", "again", true))).rejects.toBeDefined();
+	});
+
 	it("shows an expert of the team file with the topic", async () => {
 		await mountKnowledge("learn");
 		const team = await unwrap(commands.workTeam());

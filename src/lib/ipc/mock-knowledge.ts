@@ -383,10 +383,22 @@ export function glossaryAdd(
 		throw `${w} is already in the glossary`;
 	const line = `- ${w}: ${m}\n`;
 	const old = k.files[GLOSSARY]?.text;
-	const text =
-		old === undefined
-			? `# Glossary\n\n### Glossary\n\n${line}`
-			: `${old.endsWith("\n") ? old : `${old}\n`}${/^### Glossary\s*$/m.test(old) ? "" : "\n### Glossary\n\n"}${line}`;
+	let text = `# Glossary\n\n### Glossary\n\n${line}`;
+	if (old !== undefined) {
+		// The line goes at the end of the `### Glossary` section: the reader stops at the next heading.
+		const lines = old.split("\n");
+		if (lines.at(-1) === "") lines.pop();
+		const i = lines.findIndex((l) => l.trimEnd() === "### Glossary");
+		if (i < 0) text = `${lines.join("\n")}\n\n### Glossary\n\n${line}`;
+		else {
+			const next = lines.findIndex((l, n) => n > i && l.startsWith("#"));
+			const end = next < 0 ? lines.length : next;
+			let at = i + 1;
+			for (let n = i + 1; n < end; n++) if (lines[n]?.trim()) at = n + 1;
+			lines.splice(at, 0, line.trimEnd());
+			text = `${lines.join("\n")}\n`;
+		}
+	}
 	putText(k.files, GLOSSARY, text, null, old === undefined);
 	return null;
 }

@@ -248,7 +248,10 @@ mod tests {
             ..Member::default()
         };
         let team = work::Team {
-            members: vec![member("ana", "ana@acme.test"), member("bob", "bob@acme.test")],
+            members: vec![
+                member("ana", "ana@acme.test"),
+                member("bob", "bob@acme.test"),
+            ],
             ..work::Team::default()
         };
         team_save(&f.s, team).unwrap();

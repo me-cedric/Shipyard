@@ -860,13 +860,24 @@ pub fn glossary_add(s: &AppState, term: &str, meaning: &str, click: bool) -> Res
     let line = format!("- {term}: {meaning}\n");
     match read_text(&full, GLOSSARY) {
         Ok(old) => {
-            // The reader looks under `### Glossary`: a file with no such heading gets it first.
-            let heading = if old.text.lines().any(|l| l.trim_end() == "### Glossary") {
-                ""
-            } else {
-                "\n### Glossary\n\n"
+            // The reader stops at the next heading: the line goes at the end of the `### Glossary`
+            // section. A file with no such heading gets it last.
+            let mut lines: Vec<&str> = old.text.lines().collect();
+            let text = match lines.iter().position(|l| l.trim_end() == "### Glossary") {
+                Some(i) => {
+                    let end = lines[i + 1..]
+                        .iter()
+                        .position(|l| l.starts_with('#'))
+                        .map_or(lines.len(), |n| i + 1 + n);
+                    let at = (i + 1..end)
+                        .rev()
+                        .find(|&n| !lines[n].trim().is_empty())
+                        .map_or(i + 1, |n| n + 1);
+                    lines.insert(at, line.trim_end());
+                    lines.join("\n") + "\n"
+                }
+                None => format!("{}\n### Glossary\n\n{line}", with_final_newline(&old.text)),
             };
-            let text = format!("{}{heading}{line}", with_final_newline(&old.text));
             let w = put(
                 s,
                 &full,
@@ -1772,6 +1783,20 @@ mod tests {
             file,
             "# Words\n\n### Glossary\n\n- Slot: a place for a run\n"
         );
+        // A heading after the section: the word goes inside the section and shows once.
+        std::fs::write(
+            repo.path().join("docs/glossary.md"),
+            "### Glossary\n\n- Slot: a place\n\n## Notes\n\ntext\n",
+        )
+        .unwrap();
+        glossary_add(&s, "Lane", "a road", true).unwrap();
+        let file = std::fs::read_to_string(repo.path().join("docs/glossary.md")).unwrap();
+        assert_eq!(
+            file,
+            "### Glossary\n\n- Slot: a place\n- Lane: a road\n\n## Notes\n\ntext\n"
+        );
+        assert!(learn(&s).unwrap().glossary.iter().any(|g| g.term == "Lane"));
+        assert!(glossary_add(&s, "Lane", "again", true).is_err());
         std::fs::remove_file(repo.path().join("docs/glossary.md")).unwrap();
         glossary_add(&s, "Recipe", "the steps of an agent", true).unwrap();
         glossary_add(&s, "Wave", "a group of tasks", true).unwrap();

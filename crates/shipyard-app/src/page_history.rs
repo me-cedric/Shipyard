@@ -112,7 +112,11 @@ mod tests {
         assert!(restore(&f.s, path, old, false).is_err());
         // A restore of a page with edits that git does not hold is refused.
         std::fs::write(&file, "mine\n").unwrap();
-        assert!(restore(&f.s, path, old, true).unwrap_err().contains("not saved"));
+        assert!(
+            restore(&f.s, path, old, true)
+                .unwrap_err()
+                .contains("not saved")
+        );
         assert_eq!(std::fs::read_to_string(&file).unwrap(), "mine\n");
         std::fs::write(&file, "two\n").unwrap();
         restore(&f.s, path, old, true).unwrap();
