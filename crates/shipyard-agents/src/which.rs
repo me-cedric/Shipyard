@@ -132,7 +132,7 @@ pub fn fix_path() {
         if let Ok(path) = std::env::join_paths(merged_dirs(login.as_deref(), search_dirs())) {
             // SAFETY: the app calls this first in `run`, before it starts a thread. The only other
             // thread is the pipe reader of `login_path`: it never reads the environment.
-            unsafe { std::env::set_var("PATH", path) };
+            unsafe { std::env::set_var("PATH", path) }; // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - set_var at start, before threads
         }
     });
 }

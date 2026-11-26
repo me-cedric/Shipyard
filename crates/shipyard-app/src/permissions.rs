@@ -201,7 +201,7 @@ mod mac {
         let (tx, rx) = mpsc::channel();
         let done = RcBlock::new(move |settings: NonNull<UNNotificationSettings>| {
             // SAFETY: the system passes a valid settings object for the time of the call.
-            let _ = tx.send(unsafe { settings.as_ref() }.authorizationStatus().0);
+            let _ = tx.send(unsafe { settings.as_ref() }.authorizationStatus().0); // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - objc2 FFI
         });
         UNUserNotificationCenter::currentNotificationCenter()
             .getNotificationSettingsWithCompletionHandler(&done);
@@ -217,7 +217,7 @@ mod mac {
         let (tx, rx) = mpsc::channel();
         let done = RcBlock::new(move |_: Bool, error: *mut NSError| {
             // SAFETY: the system passes a valid error, or null, for the time of the call.
-            let why = unsafe { error.as_ref() }.map(|e| e.localizedDescription().to_string());
+            let why = unsafe { error.as_ref() }.map(|e| e.localizedDescription().to_string()); // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - objc2 FFI
             let _ = tx.send(why);
         });
         UNUserNotificationCenter::currentNotificationCenter()

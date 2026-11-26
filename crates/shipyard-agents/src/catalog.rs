@@ -130,7 +130,7 @@ fn output(program: &Path, args: &[&str], wait: Duration) -> Option<String> {
     let mut cmd = Command::new(program);
     // The temp folder: a tool that scans its working folder does not scan a project.
     cmd.args(args)
-        .current_dir(std::env::temp_dir())
+        .current_dir(std::env::temp_dir()) // nosemgrep: rust.lang.security.temp-dir.temp-dir - only the cwd of a probe
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());

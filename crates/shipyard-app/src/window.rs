@@ -237,7 +237,7 @@ pub struct DataFolder {
 }
 
 fn state(dir: &Path) -> DataFolder {
-    let folder = std::env::current_exe().ok().as_deref().and_then(app_folder);
+    let folder = std::env::current_exe().ok().as_deref().and_then(app_folder); // nosemgrep: rust.lang.security.current-exe.current-exe - path of our own binary, not a trust decision
     DataFolder {
         path: dir.display().to_string(),
         portable: folder.as_ref().is_some_and(|f| dir == f.join(PORTABLE_DIR)),
@@ -258,7 +258,7 @@ pub async fn app_data_folder(app: AppHandle) -> Api<DataFolder> {
 pub async fn app_portable_set(app: AppHandle, on: bool, click: bool) -> Api<DataFolder> {
     blocking(app, move |s| {
         crate::rights::need_click_local(s, click)?;
-        let exe = std::env::current_exe().map_err(err)?;
+        let exe = std::env::current_exe().map_err(err)?; // nosemgrep: rust.lang.security.current-exe.current-exe - path of our own binary, not a trust decision
         set_portable(&exe, on)?;
         Ok(state(&s.dir))
     })
@@ -273,7 +273,7 @@ pub async fn app_data_folder_move(app: AppHandle, to: String, click: bool) -> Ap
     let handle = app.clone();
     blocking(app, move |s| {
         crate::rights::need_click_local(s, click)?;
-        let exe = std::env::current_exe().ok();
+        let exe = std::env::current_exe().ok(); // nosemgrep: rust.lang.security.current-exe.current-exe - path of our own binary, not a trust decision
         move_data(&s.dir, Path::new(&to), &system, exe.as_deref())
     })
     .await?;

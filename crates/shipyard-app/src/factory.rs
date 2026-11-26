@@ -158,7 +158,7 @@ impl FactoryHost {
             (Ok(w), Ok(r)) => (w, r, None),
             (Err(x), _) | (_, Err(x)) => {
                 eprintln!("run log {}: {x}", path.display());
-                let scratch = std::env::temp_dir()
+                let scratch = std::env::temp_dir() // nosemgrep: rust.lang.security.temp-dir.temp-dir - fallback only, macOS temp folder is per user
                     .join(format!("shipyard-run-log-{}.sqlite", std::process::id()));
                 let _ = std::fs::remove_file(&scratch);
                 let (w, r) = match (RunLog::open(&scratch), RunLog::open(&scratch)) {
@@ -472,7 +472,7 @@ pub fn cli_path() -> PathBuf {
     } else {
         "shipyard"
     };
-    std::env::current_exe()
+    std::env::current_exe() // nosemgrep: rust.lang.security.current-exe.current-exe - path of our own binary, not a trust decision
         .ok()
         .and_then(|p| Some(p.parent()?.join(name)))
         .filter(|p| p.exists())

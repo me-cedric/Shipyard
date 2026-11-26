@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.2.0]
+- The question of a Stop button, such as Stop Security scan findings?, wraps inside its button, and the Agents on switch of Crew shows with no box around it.
 - An error that Shipyard does not know shows one plain sentence, with the technical text behind Details and a Copy button; a sentence that the interface writes itself, such as a missing scope or a limit, shows as written, and a broken link in Project health names its target in words, for example Decision 0009.
 - The page of a feature has Link a screen and Link a diagram: you pick an item of the Library, Shipyard writes it in the proposal of the change, and the item shows in the Design card at once; a feature with no change keeps the button that opens the Library.
 - An agent that you run outside Shipyard can read an item by its ref, such as adr:0011, with the Read files switch of Setup / This computer / Share; it sees only the areas and the switches that you can see.

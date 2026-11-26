@@ -19,7 +19,7 @@ export function useAgentsSwitch() {
 }
 
 /**
- * The global kill switch as one toggle in a white pill: on, the agents work; off, every run stops
+ * The global kill switch as one plain toggle with its label: on, the agents work; off, every run stops
  * (factory REQ-031, `spec:app-redesign#REQ-016`).
  */
 export function AgentsToggle() {
@@ -29,7 +29,7 @@ export function AgentsToggle() {
 	if (kill === undefined) return null;
 	return (
 		<span className="flex items-center gap-2">
-			<span className="inline-flex min-h-control items-center rounded-md border border-n-7 bg-surface-2 px-4 font-semibold text-n-12">
+			<span className="inline-flex min-h-control items-center font-semibold text-n-12">
 				<Switch
 					label={kill ? f.agentsStopped : f.agentsOn}
 					checked={!kill}

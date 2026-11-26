@@ -651,7 +651,7 @@ pub fn run() {
             let _ = app.emit("menu-action", event.id().as_ref());
         })
         .setup(|app| {
-            let exe = std::env::current_exe().ok();
+            let exe = std::env::current_exe().ok(); // nosemgrep: rust.lang.security.current-exe.current-exe - path of our own binary, not a trust decision
             let dir = window::start_dir(exe.as_deref(), app.path().app_data_dir()?);
             std::fs::create_dir_all(&dir)?;
             window::restore(app.handle(), &dir);

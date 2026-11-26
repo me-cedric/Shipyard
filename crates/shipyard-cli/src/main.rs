@@ -3,7 +3,7 @@ mod bridge;
 use shipyard_mcp::relay::{FLAG, run};
 
 fn main() {
-    let args: Vec<String> = std::env::args().skip(1).collect();
+    let args: Vec<String> = std::env::args().skip(1).collect(); // nosemgrep: rust.lang.security.args.args - the CLI parses its own arguments, no security decision
     match args.as_slice() {
         // `shipyard --mcp-relay <server-id>`: an agent starts this in place of a stdio MCP server.
         [flag, server] if flag == FLAG => {

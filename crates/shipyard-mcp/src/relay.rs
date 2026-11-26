@@ -295,6 +295,7 @@ impl Relay {
         let sddl: Vec<u16> = "D:P(A;;GA;;;OW)\0".encode_utf16().collect();
         let mut descriptor = std::ptr::null_mut();
         // SAFETY: both pointers are valid for the call. The descriptor is never freed: one per run.
+        // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - Windows named-pipe FFI
         let ok = unsafe {
             ConvertStringSecurityDescriptorToSecurityDescriptorW(
                 sddl.as_ptr(),
@@ -321,6 +322,7 @@ impl Relay {
                 };
             let mode = PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS;
             // SAFETY: `wide` ends with 0 and `attributes` lives until the call returns.
+            // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - Windows named-pipe FFI
             let handle = unsafe {
                 CreateNamedPipeW(
                     wide.as_ptr(),
@@ -337,6 +339,7 @@ impl Relay {
                 return Err(io::Error::last_os_error());
             }
             // SAFETY: the handle is new and valid, and nothing else owns it.
+            // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - Windows named-pipe FFI
             Ok(unsafe { std::fs::File::from_raw_handle(handle) })
         };
         let mut pipe = create(true)?;
@@ -347,8 +350,7 @@ impl Relay {
             while !flag.load(Ordering::Relaxed) {
                 use std::os::windows::io::AsRawHandle;
                 // SAFETY: the handle is a pipe that `pipe` owns. No overlapped I/O: it blocks.
-                let linked =
-                    unsafe { ConnectNamedPipe(pipe.as_raw_handle(), std::ptr::null_mut()) } != 0
+                let linked = unsafe { ConnectNamedPipe(pipe.as_raw_handle(), std::ptr::null_mut()) } != 0 // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - Windows named-pipe FFI
                         || io::Error::last_os_error().raw_os_error()
                             == Some(ERROR_PIPE_CONNECTED as i32);
                 // The next instance exists before this client is served: the name is never free.

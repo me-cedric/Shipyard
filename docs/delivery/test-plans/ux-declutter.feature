@@ -390,6 +390,12 @@ Feature: ux-declutter
     When the person submits the review
     Then the page clears the two that were sent and keeps the third as pending
 
+  @spec:ux-declutter#REQ-049
+  Scenario: Inline comments: Cancel with text
+    Given an open comment box with text
+    When the person clicks Cancel
+    Then the page asks before it discards the text
+
   @spec:ux-declutter#REQ-050
   Scenario: Pending review is kept: Restart
     Given a pending comment and a restart

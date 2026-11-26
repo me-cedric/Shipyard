@@ -693,9 +693,9 @@ pub fn kill_group(pid: u32) {
         let tree = descendants(pid);
         // SAFETY: `killpg` and `kill` only send a signal; they touch no memory. An id that no
         // longer exists gives ESRCH, which is the answer we want.
-        unsafe { libc::killpg(pid as i32, libc::SIGKILL) };
+        unsafe { libc::killpg(pid as i32, libc::SIGKILL) }; // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - killpg on our own process group
         for d in tree {
-            unsafe { libc::kill(d as i32, libc::SIGKILL) };
+            unsafe { libc::kill(d as i32, libc::SIGKILL) }; // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - kill of a child of our own process group
         }
     }
     #[cfg(windows)]

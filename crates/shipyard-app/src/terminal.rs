@@ -304,7 +304,7 @@ mod tests {
     #[test]
     fn the_shell_environment_holds_no_secret_value() {
         // SAFETY: the variable name is unique to this test.
-        unsafe { std::env::set_var("SHIPYARD_TEST_LEAK", "tok-connection-secret") };
+        unsafe { std::env::set_var("SHIPYARD_TEST_LEAK", "tok-connection-secret") }; // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - test only
         let cmd = shell_command("/bin/sh", Path::new("/"), &["tok-connection-secret".into()]);
         let vars: Vec<(String, String)> = cmd
             .iter_full_env_as_str()

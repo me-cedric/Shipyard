@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { Button, type ButtonProps } from "../atoms/button";
 
 /**
@@ -16,6 +17,11 @@ export function ConfirmButton({
 	return asking ? (
 		<Button
 			{...props}
+			// The question is longer than the first label: it wraps inside the button and never runs over it.
+			className={cn(
+				props.className,
+				"h-auto px-4.5 py-2 text-center leading-snug whitespace-normal",
+			)}
 			variant="danger"
 			autoFocus
 			onBlur={() => setAsking(false)}

@@ -607,7 +607,7 @@ fn run_with_deadline(
                 #[cfg(unix)]
                 if let Ok(pgid) = i32::try_from(child.id()) {
                     // SAFETY: `killpg` only sends a signal; it touches no memory.
-                    unsafe { libc::killpg(pgid, libc::SIGKILL) };
+                    unsafe { libc::killpg(pgid, libc::SIGKILL) }; // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - killpg on our own process group
                 }
                 let _ = child.kill();
                 let _ = child.wait();
@@ -903,7 +903,7 @@ impl Session {
         #[cfg(unix)]
         if let Ok(pgid) = i32::try_from(self.child.id()) {
             // SAFETY: `killpg` only sends a signal; it touches no memory.
-            unsafe { libc::killpg(pgid, libc::SIGKILL) };
+            unsafe { libc::killpg(pgid, libc::SIGKILL) }; // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - killpg on our own process group
         }
     }
 }
@@ -1453,7 +1453,7 @@ impl McpControl {
                 Err(TryLockError::WouldBlock) => {
                     if let Some(pgid) = pgid.and_then(|p| i32::try_from(p).ok()) {
                         // SAFETY: `killpg` only sends a signal; it touches no memory.
-                        unsafe { libc::killpg(pgid, libc::SIGKILL) };
+                        unsafe { libc::killpg(pgid, libc::SIGKILL) }; // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - killpg on our own process group
                     }
                 }
                 Err(_) => {}

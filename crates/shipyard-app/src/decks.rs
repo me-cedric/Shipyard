@@ -413,7 +413,7 @@ fn print_pdf(app: &AppHandle, rel: &str, out: &Path, paper: Paper) -> Res<()> {
             let to = out.to_path_buf();
             // Safety: on macOS the platform webview is a `WKWebView`; the call runs on the main thread.
             window
-                .with_webview(move |v| unsafe { print_to(v.inner().cast(), &to, paper) })
+                .with_webview(move |v| unsafe { print_to(v.inner().cast(), &to, paper) }) // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - WebKit FFI
                 .map_err(err)
         })
         .and_then(|()| wait_for(out, Duration::from_secs(60)));
@@ -473,10 +473,11 @@ unsafe fn print_to(view: *mut objc2_web_kit::WKWebView, out: &Path, paper: Paper
     use objc2_foundation::{NSSize, NSString, NSURL};
 
     // Safety: the caller gives the live `WKWebView` of the window.
-    let view = unsafe { &*view };
+    let view = unsafe { &*view }; // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - WebKit FFI
     let info = NSPrintInfo::new();
     let url = NSURL::fileURLWithPath(&NSString::from_str(&out.to_string_lossy()));
     // Safety: the keys and values are the constants that AppKit documents for a save job.
+    // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - WebKit FFI
     unsafe {
         info.setJobDisposition(NSPrintSaveJob);
         info.dictionary().insert(NSPrintJobSavingURL, &url);
@@ -494,6 +495,7 @@ unsafe fn print_to(view: *mut objc2_web_kit::WKWebView, out: &Path, paper: Paper
     info.setRightMargin(margin);
     info.setHorizontalPagination(NSPrintingPaginationMode::Fit);
     // Safety: the operation and the window belong to this view, on the main thread.
+    // nosemgrep: rust.lang.security.unsafe-usage.unsafe-usage - WebKit FFI
     unsafe {
         let op = view.printOperationWithPrintInfo(&info);
         op.setShowsPrintPanel(false);

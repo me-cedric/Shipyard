@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.2.0]
+- La question d'un bouton Arrêter, par exemple Arrêter Security scan findings ?, passe à la ligne dans son bouton, et l'interrupteur Agents actifs de Crew s'affiche sans cadre.
 - Une erreur que Shipyard ne connaît pas montre une phrase simple, avec le texte technique derrière Détails et un bouton Copier ; une phrase que l'interface écrit elle-même, comme une permission manquante ou une limite, s'affiche telle quelle, et un lien cassé dans la santé du projet nomme sa cible en mots, par exemple Décision 0009.
 - La page d'une fonctionnalité a Lier un écran et Lier un diagramme : vous choisissez un élément de la Bibliothèque, Shipyard l'écrit dans la proposition du changement, et l'élément s'affiche tout de suite dans la carte Design ; une fonctionnalité sans changement garde le bouton qui ouvre la Bibliothèque.
 - Un agent que vous lancez hors de Shipyard peut lire un élément par sa référence, par exemple adr:0011, avec l'interrupteur Lire les fichiers de Configuration / Cet ordinateur / Partager ; il ne voit que les domaines et les interrupteurs que vous voyez.
