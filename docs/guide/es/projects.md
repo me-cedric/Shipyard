@@ -31,7 +31,7 @@ Crear el proyecto crea el repositorio, escribe los archivos, hace el primer comm
 
 ## Ningún proyecto abierto
 
-Cuando cierras el proyecto, o cuando no hay ningún proyecto abierto tras el primer inicio, una tarjeta dice No hay ningún proyecto abierto. Nuevo proyecto abre la página del creador. Abrir un proyecto abre un menú: tus proyectos recientes, Proyectos, Abrir una carpeta y Traer un proyecto del alojamiento de código. La página del primer inicio sirve solo para el primer inicio (consulta Primeros pasos, Primer inicio).
+Cuando cierras el proyecto, o cuando no hay ningún proyecto abierto tras el primer inicio, una tarjeta dice No hay ningún proyecto abierto. Nuevo proyecto abre la página del creador. Abrir un proyecto abre un menú: tus proyectos recientes, Proyectos, Abrir una carpeta y Traer un proyecto de la plataforma de código. La página del primer inicio sirve solo para el primer inicio (consulta Primeros pasos, Primer inicio).
 
 ## Ajustes del proyecto
 

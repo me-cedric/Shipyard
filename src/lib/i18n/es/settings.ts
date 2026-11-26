@@ -26,7 +26,7 @@ export const settingsEs: typeof settingsEn = {
 	},
 	tiers: {
 		name: "Niveles de modelo",
-		top: "Superior",
+		top: "Potente",
 		mid: "Intermedio",
 		small: "Pequeño",
 		default: "Predeterminado",
@@ -78,7 +78,7 @@ export const settingsEs: typeof settingsEn = {
 		git: "Historial de versiones",
 		forge: "Dirección de la plataforma de código",
 		exec: "Ejecutar comprobaciones",
-		delivery: "Cambios de una función",
+		delivery: "Cambios de una funcionalidad",
 		tickets: "Tickets",
 		adrs: "Decisiones",
 		qa: "Informes de calidad",

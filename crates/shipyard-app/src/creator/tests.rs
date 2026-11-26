@@ -123,20 +123,23 @@ fn bad_answers_are_refused() {
 
 #[test]
 fn the_handles_stay_unique() {
-    let t = team_of(&[
-        NewMember {
-            name: "Bo".into(),
-            role: "qa".into(),
-        },
-        NewMember {
-            name: "bo".into(),
-            role: "qa".into(),
-        },
-        NewMember {
-            name: "李".into(),
-            role: "qa".into(),
-        },
-    ]);
+    let t = team_of(
+        &[
+            NewMember {
+                name: "Bo".into(),
+                role: "qa".into(),
+            },
+            NewMember {
+                name: "bo".into(),
+                role: "qa".into(),
+            },
+            NewMember {
+                name: "李".into(),
+                role: "qa".into(),
+            },
+        ],
+        None,
+    );
     let h: Vec<_> = t.members.iter().map(|m| m.handle.as_str()).collect();
     assert_eq!(h, ["bo", "bo-2", "member-3"]);
     assert!(t.check().is_ok());
@@ -249,4 +252,45 @@ fn the_draft_follows_the_docs_language() {
             .starts_with("Set up the project")
     );
     assert!(draft("X", "node", "fr").vision.starts_with("X aide"));
+}
+
+#[test]
+fn the_person_with_a_git_email_is_the_admin_of_the_new_team() {
+    let members = [
+        NewMember {
+            name: "Ada".into(),
+            role: "po".into(),
+        },
+        NewMember {
+            name: "Bo".into(),
+            role: "qa".into(),
+        },
+    ];
+    let t = team_of(&members, Some("ada@example.com"));
+    assert!(t.members[0].admin);
+    assert_eq!(t.members[0].emails, ["ada@example.com"]);
+    assert!(!t.members[1].admin && t.members[1].emails.is_empty());
+    // A project manager and an architect are admins too (the answer of the owner to Q-154).
+    let more = [
+        NewMember {
+            name: "Ada".into(),
+            role: "developer".into(),
+        },
+        NewMember {
+            name: "Cy".into(),
+            role: "pm".into(),
+        },
+        NewMember {
+            name: "Di".into(),
+            role: "architect".into(),
+        },
+    ];
+    let admins: Vec<bool> = team_of(&more, Some("ada@example.com"))
+        .members
+        .iter()
+        .map(|m| m.admin)
+        .collect();
+    assert_eq!(admins, [true, true, true]);
+    // With no e-mail the file names no admin, so the rights lock nobody out.
+    assert!(team_of(&members, None).members.iter().all(|m| !m.admin));
 }

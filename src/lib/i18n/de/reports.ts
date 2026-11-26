@@ -66,7 +66,7 @@ export const reportsDe: typeof reportsEn = {
 	bdd: {
 		title: "Szenarioprüfung",
 		coverage: "Szenarioabdeckung",
-		clean: "Kein Fund",
+		clean: "Kein Befund",
 		covered: "{name}: {count} Szenarien",
 		uncovered: "{name}: kein Szenario",
 		rule: {

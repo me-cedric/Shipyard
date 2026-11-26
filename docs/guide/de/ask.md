@@ -1,22 +1,22 @@
 # Die Fragen-Leiste
 
-Shipyard fragen oder beauftragen, in der oberen Zeile jeder Seite, ist die eine Leiste für eine Frage, einen Ort und eine Aktion. Drücken Sie Ctrl+K (Cmd+K auf einem Mac), um dorthin zu gehen. Tippen Sie, dann nutzen Sie die Pfeiltasten und die Eingabetaste. Escape schließt sie.
+Shipyard fragen oder beauftragen, in der oberen Zeile jeder Seite, ist die eine Leiste für eine Frage, einen Bereich und eine Aktion. Drücken Sie Ctrl+K (Cmd+K auf einem Mac), um dorthin zu gehen. Tippen Sie, dann nutzen Sie die Pfeiltasten und die Eingabetaste. Escape schließt sie.
 
-## Gehe zu
+## Wechseln zu
 
-Gehe zu öffnet einen Ort, einen Abschnitt, ein Projekt, ein Element oder ein Suchergebnis.
+Wechseln zu öffnet einen Bereich, einen Abschnitt, ein Projekt, ein Element oder ein Suchergebnis.
 
 Tippen Sie ein paar Wörter, um den Text Ihrer Dokumente, Entscheidungen, Spezifikationen, Fragen, Tickets und Entwürfe zu durchsuchen. Groß- und Kleinschreibung und Akzente spielen keine Rolle („decision“ findet „décision“), jedes Wort muss passen, und das letzte Wort kann ein Anfang sein. Die Ergebnisse sind nach Art gruppiert, zeigen einen kurzen Auszug mit den markierten Wörtern, und stellen eine Seite, die viele Elemente zitieren, an den Anfang. Das Dokument, das Sie aus einem Ergebnis öffnen, markiert die Wörter.
 
 Wählen Sie Den Assistenten fragen, um diese Elemente als Kontext in das Nachrichtenfeld des Assistenten zu setzen. Nichts wird gesendet, bis Sie es senden.
 
-## Tun
+## Aktionen
 
-Tun startet eine Aktion oder eine Anfrage für die Seite, die Sie sehen. Beispiele: Neues Feature, Einen Agenten auf ein Ticket ansetzen (das öffnet die Seite Neues Feature), Jetzt synchronisieren, Anleitung zu dieser Seite öffnen, Tour wiederholen. Eine Aktion, die Ihre Rolle nicht nutzen kann, zeigt sich nicht.
+Aktionen starten eine Aktion oder eine Anfrage für die Seite, die Sie sehen. Beispiele: Neues Feature, Einen Agenten auf ein Ticket ansetzen (das öffnet die Seite Neues Feature), Jetzt synchronisieren, Anleitung zu dieser Seite öffnen, Tour wiederholen. Eine Aktion, die Ihre Rolle nicht nutzen kann, zeigt sich nicht.
 
 ## Fragen
 
-Fragen Sie, was blockiert, was gestoppt ist oder was auf Sie wartet. Die Antwort nennt jedes Feature und gibt seine Aktion: Antworten, Entblocken, Budget hinzufügen, Erneut versuchen, Fortsetzen oder Als erledigt schließen. Antworten öffnet ein Feld in der Antwort: Tippen Sie den Text, dann klicken Sie auf Senden. Gehe zu und Tun stehen unter der Antwort, und Den vollen Assistenten öffnen öffnet die Seite Fragen.
+Fragen Sie, was blockiert, was gestoppt ist oder was auf Sie wartet. Die Antwort nennt jedes Feature und gibt seine Aktion: Antworten, Blockade lösen, Budget hinzufügen, Erneut versuchen, Fortsetzen oder Als erledigt schließen. Antworten öffnet ein Feld in der Antwort: Tippen Sie den Text, dann klicken Sie auf Senden. Gehe zu und Tun stehen unter der Antwort, und Den vollen Assistenten öffnen öffnet die Seite Fragen.
 
 Jeder andere Text geht mit der Eingabetaste an den Assistenten.
 

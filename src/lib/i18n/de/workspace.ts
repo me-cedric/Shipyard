@@ -40,7 +40,7 @@ export const workspaceDe: typeof workspaceEn = {
 	},
 	gate: {
 		stale: "{from} hat sich geändert und {to} nicht",
-		cannotPush: "Das Konto darf nicht nach {remote} pushen",
+		cannotPush: "Das Konto darf nicht an {remote} senden",
 		onDefault:
 			"Sie arbeiten auf {branch}, dem gemeinsamen Branch. Legen Sie zuerst einen neuen Branch an.",
 	},
@@ -61,7 +61,7 @@ export const workspaceDe: typeof workspaceEn = {
 	picker: {
 		account: "Konto",
 		search: "Repositories suchen",
-		readOnly: "Nur Lesen",
+		readOnly: "Nur lesen",
 		owner: "Eigentümer",
 		allOwners: "Alle Eigentümer",
 		saved: "Gespeichert",
@@ -134,12 +134,12 @@ export const workspaceDe: typeof workspaceEn = {
 		title: "Profil",
 		role: "Rolle",
 		tabs: "Bereiche",
-		readOnly: "Nur Lesen",
+		readOnly: "Nur lesen",
 		screens: "Bildschirme",
 		profiles: "Profile",
 		pages: "Seiten",
 		profile: "Profil",
-		mode: { editable: "Bearbeitbar", "read-only": "Nur Lesen", hidden: "Ausgeblendet" },
+		mode: { editable: "Bearbeitbar", "read-only": "Nur lesen", hidden: "Ausgeblendet" },
 		people: "Personen",
 		email: "E-Mail",
 		assign: "Zuweisen",

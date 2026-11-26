@@ -12,7 +12,7 @@ export const createFr: typeof createEn = {
 
 export const createDe: typeof createEn = {
 	back: "Ablauf",
-	avatars: { agent: "Planer", mine: "Sie", build: "Bauer" },
+	avatars: { agent: "Planer", mine: "Sie", build: "Umsetzer" },
 };
 
 export const createEs: typeof createEn = {

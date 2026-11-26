@@ -36,7 +36,7 @@ export const errorsDe: Record<Exclude<ErrorCode, "unknown">, string> = {
 		"Git kennt Ihren Namen und Ihre E-Mail nicht. Legen Sie sie in Git auf diesem Computer fest und versuchen Sie es erneut.",
 	git_busy:
 		"Git ist mitten in einem Merge oder Rebase. Schließen Sie ihn in Code ab und versuchen Sie es erneut.",
-	git_no_upstream: "Dieser Branch ist noch nicht auf dem Server. Pushen Sie ihn zuerst.",
+	git_no_upstream: "Dieser Branch ist noch nicht auf dem Server. Senden Sie ihn zuerst.",
 	no_terminal: "Keine Terminal-App gefunden. Wählen Sie eine unter Einrichtung, dann Ich.",
 	terminal_gone:
 		"Diese Terminal-App ist nicht installiert. Wählen Sie eine andere unter Einrichtung, dann Ich.",
@@ -78,7 +78,7 @@ export const errorsDe: Record<Exclude<ErrorCode, "unknown">, string> = {
 	agent_no_title: "Der Agent hat keinen Titel geschrieben. Versuchen Sie es erneut.",
 	review_no_draft: "Dieses Review hat keinen Entwurf. Starten Sie zuerst das Review.",
 	review_empty:
-		"Das Review hat keinen Text. Schreiben Sie eine Zusammenfassung oder behalten Sie einen Fund.",
+		"Das Review hat keinen Text. Schreiben Sie eine Zusammenfassung oder behalten Sie einen Befund.",
 	no_base:
 		"Dieser Branch hat keine Basis zum Vergleichen. Rufen Sie den Basis-Branch ab und versuchen Sie es erneut.",
 	figma_address: "Verwenden Sie die Adresse einer Figma-Datei.",
@@ -90,7 +90,7 @@ export const errorsDe: Record<Exclude<ErrorCode, "unknown">, string> = {
 		"Dieses Element existiert nicht mehr. Laden Sie die Seite neu und versuchen Sie es erneut.",
 	no_remote: "Dieses Projekt hat kein Remote-Repository. Veröffentlichen Sie es zuerst.",
 	secret_found:
-		"Dieser Text sieht wie ein Geheimnis aus. Entfernen Sie ihn und versuchen Sie es erneut.",
+		"Dieser Text sieht wie ein Passwort oder Schlüssel aus. Entfernen Sie ihn und versuchen Sie es erneut.",
 	file_too_big: "Diese Datei ist zu groß oder keine einfache Datei. Wählen Sie eine andere Datei.",
 	file_unsupported: "Diese Datei hat den falschen Typ oder Inhalt. Wählen Sie eine andere Datei.",
 	path_invalid:
@@ -112,9 +112,9 @@ export const errorsDe: Record<Exclude<ErrorCode, "unknown">, string> = {
 	thread_state:
 		"Diese Unterhaltung kann das jetzt nicht tun. Warten Sie, bis die Runde endet, und versuchen Sie es erneut.",
 	stopped: "Das wurde gestoppt. Starten Sie es erneut.",
-	tile_no_result: "Der Agent hat keine Kachel geliefert. Bauen Sie sie erneut.",
+	tile_no_result: "Der Agent hat keine Kachel geliefert. Erstellen Sie sie erneut.",
 	tile_time_limit:
-		"Der Agent hat zu lange gebraucht und wurde gestoppt. Bauen Sie die Kachel erneut.",
+		"Der Agent hat zu lange gebraucht und wurde gestoppt. Erstellen Sie die Kachel erneut.",
 	import_not_planned: "Es ist kein Import geplant. Lesen Sie zuerst die Quelle.",
 	server_off: "Dieser Server ist aus. Schalten Sie ihn zuerst ein.",
 	input_invalid:

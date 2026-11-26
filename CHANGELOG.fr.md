@@ -1,6 +1,8 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Les sessions actives listent chaque session d'IA de cet ordinateur : une session dont le numéro de processus est court était oubliée.
+- Un nouveau projet nomme ses admins : la personne qui le crée, chaque chef de projet et chaque architecte ; l'histoire d'une fonctionnalité dit en mots simples que l'agent s'est arrêté avec le code 1 ; les textes allemands et espagnols de l'interface et du manuel ont été relus, avec un seul mot pour chaque chose.
 - Code / Historique dessine le graphe des commits avec une ligne par branche, une courbe là où une fusion reprend une branche et une courbe là où une branche démarre, et chaque ligne montre ses étiquettes de branche et de tag ; une ligne sélectionnée ou survolée garde ses coins arrondis dans sa carte sur Historique, Modifications, Pull requests, les plans de test et le panneau de la barre de menus.
 - Les sessions actives ne listent plus l'application de bureau Claude comme dix sessions vides : Shipyard trouve Claude Code de l'application de bureau, et chaque ligne montre le titre de la session, son dossier et son modèle.
 - Un changement que votre rôle ne permet pas montre une phrase simple avec un bouton vers Configuration / Moi, et le choix À la limite de Crew / Dépenses / Budgets est inactif sans le droit ; une erreur que Shipyard ne connaît pas garde sa cause après la phrase là où une page n'a pas de contrôle Détails.

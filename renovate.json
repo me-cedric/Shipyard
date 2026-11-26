@@ -11,6 +11,7 @@
       "matchManagers": ["git-submodules"],
       "matchPackageNames": ["/agent-compass/"],
       "versioning": "semver-coerced",
+      "minimumReleaseAge": "7 days",
       "groupName": "agent-compass"
     }
   ],

@@ -28,7 +28,7 @@ export const specsDe: typeof specsEn = {
 	status: { missing: "Fehlt", unchecked: "Nicht geprüft", draft: "Entwurf", done: "Erledigt" },
 	markers: "Offene Markierungen",
 	unlinked: "Nicht verknüpft",
-	findings: "Funde",
+	findings: "Befunde",
 	validate: "Validieren",
 	valid: "Keine Probleme gefunden",
 	problems: "Gefundene Probleme: {count}",

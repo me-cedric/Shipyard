@@ -44,7 +44,7 @@ export const personalEs: typeof personalEn = {
 		rulesText: "Editar como texto",
 		share: "Compartir Shipyard con otras herramientas",
 		tier: {
-			top: "Fuerte",
+			top: "Potente",
 			mid: "Estándar",
 			small: "Rápido",
 		},

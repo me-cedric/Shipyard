@@ -8,7 +8,7 @@ export const uiDe: typeof uiEn = {
 		label: "Phasen",
 		idea: "Idee",
 		spec: "Spezifikation",
-		build: "Bau",
+		build: "Umsetzung",
 		review: "Prüfung",
 		ready: "Bereit",
 		done: "erledigt",
@@ -43,7 +43,7 @@ export const uiDe: typeof uiEn = {
 	},
 	welcome: "Willkommen",
 	menu: {
-		go: "Gehe zu",
+		go: "Wechseln zu",
 		toggleAssistant: "Assistent umschalten",
 		toggleTheme: "Design wechseln",
 		shortcuts: "Tastenkürzel",

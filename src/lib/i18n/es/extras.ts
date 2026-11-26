@@ -74,7 +74,7 @@ export const extrasEs: typeof extrasEn = {
 	},
 	git: {
 		title: "Repositorio",
-		stashes: "Cambios guardados",
+		stashes: "Cambios apartados",
 		show: "Ver los cambios de {name}",
 		pop: "Restaurar {name}",
 		branches: "Ramas atrasadas",
@@ -89,7 +89,7 @@ export const extrasEs: typeof extrasEn = {
 		ahead: "Por delante",
 		behind: "Por detrás",
 		changes: "Cambios",
-		stashes: "Cambios guardados",
+		stashes: "Cambios apartados",
 		last: "Último commit",
 		none: "Ninguno",
 	},

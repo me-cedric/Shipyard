@@ -146,7 +146,7 @@ export const codeHostDe: typeof codeHostEn = {
 	calendar: {
 		release: "Release",
 		sheet: "Schätzblatt",
-		goTo: "Gehe zu",
+		goTo: "Wechseln zu",
 		today: "Heute",
 		none: "Keines",
 	},
@@ -191,7 +191,7 @@ export const codeHostEs: typeof codeHostEn = {
 		role: "Rol de {name}",
 		refuse: "Rechazar",
 		accept: "Aceptar",
-		noRight: "Hace falta el derecho de fusionar",
+		noRight: "Necesitas el permiso para fusionar",
 	},
 	calendar: {
 		release: "Versión",

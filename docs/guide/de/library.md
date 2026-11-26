@@ -6,7 +6,7 @@ Bibliothek öffnet sich mit vier Türen. Jede Tür nennt, wonach Sie suchen, und
 
 Bibliothek hat keinen Umschalter für Abschnitte. Klicken Sie auf jeder Seite von Bibliothek oben auf Bibliothek, um zu den Türen zurückzukehren.
 
-Die Chips Was getestet ist, Antworten und Glossar öffnen die Seite, die sie enthält. Der Chip Lernen zeigt, wie viele Schritte des Pfads Sie beendet haben. Unter den Türen listen die Karten Angeheftet und Zuletzt geöffnet Seiten: Anheften hält eine Seite in Angeheftet, und Lösen entfernt sie. Zuletzt geöffnet behält auch die Elemente mit einer Ref (eine Spec, eine Entscheidung, ein Diagramm, ein Dokument): Jede Zeile zeigt einen Chip für die Art, den Namen und Anheften.
+Die Chips Was getestet ist, Antworten und Glossar öffnen die Seite, die sie enthält. Der Chip Lernen zeigt, wie viele Schritte des Pfads Sie beendet haben. Unter den Türen listen die Karten Angeheftet und Zuletzt geöffnet Seiten: Anheften hält eine Seite in Angeheftet, und Lösen entfernt sie. Zuletzt geöffnet behält auch die Elemente mit einer Ref (eine Spezifikation, eine Entscheidung, ein Diagramm, ein Dokument): Jede Zeile zeigt einen Chip für die Art, den Namen und Anheften.
 
 ## Ein Element lesen und ändern
 
@@ -54,7 +54,7 @@ Karte zeichnet die Elemente des Projekts in Gruppen, mit den Links zwischen ihne
 
 Mit der Quelle Code zeigt die Karte die Ordner des Codes. Eine Linie zwischen zwei Ordnern ist dicker, wenn mehr Aufrufe zwischen ihren Dateien laufen. Wählen Sie einen Ordner, um seine Dateien zu sehen, dann eine Datei, um ihre Symbole zu sehen, und welche Aufrufe zu ihnen führen oder von ihnen ausgehen. Alle anzeigen führt zur Karte zurück. Index startet den Code-Index-Server, wenn er aus ist, baut den Index und stoppt den Server wieder. Wenn das Programm mit einem Fehler endet, nennt die Seite das Programm, seinen Exit-Code und seine letzten Zeilen: Beheben Sie die Ursache, dann klicken Sie erneut auf Index. Die Karte des Symbols hat Erklären und Im Editor öffnen, und Spezifikationen und Entscheidungen, die es nutzen öffnet den Inspektor. Verwaiste zeigt die Dateien, die kein Aufruf erreicht oder verlässt. Der Umschalter Wissen und Code steht oben, und Code hat die Adresse `/library/graph?source=code`.
 
-Eine Datei, deren Spec sich nach ihrer letzten Änderung geändert hat, zeigt den Chip Veraltet.
+Eine Datei, deren Spezifikation sich nach ihrer letzten Änderung geändert hat, zeigt den Chip Veraltet.
 
 ### Architektur
 
@@ -73,7 +73,7 @@ Diagramme enthält die Zeichnungen des Projekts: Excalidraw, Mermaid, draw.io un
 
 ### Bildschirme
 
-Bildschirme zeigt die Bildschirme des Produkts und die Design-Tokens Ihres Projekts. Sie kommen aus dem Design-Dokument (CSS in einem Codeblock), aus einer Datei `tokens.css`, aus einer Datei `*.tokens.json` oder aus einem `@theme`-Block von Tailwind 4, gruppiert nach Datei. Ohne Token sagt die Seite Keine Design-Tokens; klicken Sie auf Tokens zum Design-Dokument hinzufügen, bearbeiten Sie den Block, dann speichern Sie. Die Seite zeigt nie die Tokens von Shipyard. Jeder Bildschirm ist eine Karte mit Umgesetzt oder Nicht umgesetzt. Der Umschalter Bildschirme und Design-Tokens zeigt die Tokens. Vom Design zum Code öffnet den offenen Bildschirm, sonst den ersten, im Inspektor, wo Plan schreiben steht.
+Bildschirme zeigt die Bildschirme des Produkts und die Design-Tokens Ihres Projekts. Sie kommen aus dem Designdokument (CSS in einem Codeblock), aus einer Datei `tokens.css`, aus einer Datei `*.tokens.json` oder aus einem `@theme`-Block von Tailwind 4, gruppiert nach Datei. Ohne Token sagt die Seite Keine Design-Tokens; klicken Sie auf Tokens zum Designdokument hinzufügen, bearbeiten Sie den Block, dann speichern Sie. Die Seite zeigt nie die Tokens von Shipyard. Jeder Bildschirm ist eine Karte mit Umgesetzt oder Nicht umgesetzt. Der Umschalter Bildschirme und Design-Tokens zeigt die Tokens. Vom Design zum Code öffnet den offenen Bildschirm, sonst den ersten, im Inspektor, wo Plan schreiben steht.
 
 - Eine `.fig`-Datei zeigt die Vorschau, die Figma darin hält.
 - Um Figma zu lesen, fügen Sie einmal das Token Ihres Figma-Kontos hinzu. Es geht in den Schlüsselbund Ihres Computers.
@@ -121,7 +121,7 @@ Lernen hilft einer neuen Person, sich zurechtzufinden.
 - Lernpfade: Kurse, Zertifizierungen und Lektüren, mit den Experten des Teams, die helfen können. Wählen Sie eine Person, dann haken Sie die Schritte an, die diese Person beendet hat. Die Fortschrittstabelle des Teams zeigt jede Person und jeden Pfad. Der Fortschritt des Teams steht in der rechten Spalte: eine Zeile je Person, mit einem Balken und N von M.
 - Feeds: die Nachrichten-Feeds des Projekts. Fügen Sie die RSS- oder Atom-Adresse einer Website ein, dann klicken Sie auf Abonnieren. Die App liest jeden Feed und hält eine Kopie für eine Stunde.
 
-Experten ist eine Karte mit den Personen der Teamdatei und ihren Themen. Wort hinzufügen schreibt ein Wort und seine Bedeutung in `docs/glossary.md`, und das Glossar liest diese Datei neben den Specs. Ein Schritt kann einen zweiten Chip haben: Lektüre, Kurs oder Zertifizierung.
+Experten ist eine Karte mit den Personen der Teamdatei und ihren Themen. Wort hinzufügen schreibt ein Wort und seine Bedeutung in `docs/glossary.md`, und das Glossar liest diese Datei neben den Spezifikationen. Ein Schritt kann einen zweiten Chip haben: Lektüre, Kurs oder Zertifizierung.
 
 ### Handbuch
 
@@ -156,15 +156,15 @@ Dashboards zeigt ein Dashboard auf einmal; der Umschalter oben auf der Seite wä
 
 Die Bearbeitungsseite hat die Adresse `/library/dashboards/<name>/edit`, den Link Dashboards zurück, Umbenennen und Fertig. Kachel hinzufügen zeigt einen Chip je Kachelart. Jede Kachel hat einen Ziehgriff, Einstellungen und Entfernen; Nach links, Nach rechts und die Größe stehen in Einstellungen. Als Tabelle zeigen gibt die Zahlen hinter einem Diagramm.
 
-Kachel für mich bauen bittet einen Agenten, aus Ihren Worten eine Kachel vorzuschlagen. Sie müssen die Arten von Kacheln nicht kennen.
+Kachel für mich erstellen bittet einen Agenten, aus Ihren Worten eine Kachel vorzuschlagen. Sie müssen die Arten von Kacheln nicht kennen.
 
-1. Öffnen Sie die Bearbeitungsseite des Dashboards (Bearbeiten), dann klicken Sie auf Kachel für mich bauen, neben Kachel hinzufügen.
+1. Öffnen Sie die Bearbeitungsseite des Dashboards (Bearbeiten), dann klicken Sie auf Kachel für mich erstellen, neben Kachel hinzufügen.
 2. Tippen Sie in einfachen Worten, was die Kachel zeigen soll. Zum Beispiel: die offenen Fragen pro Verantwortlichem.
 3. Budget (USD) ist das Limit des Agenten: Der Agent stoppt beim Budget, oder nach 2 Minuten. Seine letzte Antwort kann das Budget leicht überschreiten. Das Budget beginnt bei 2 Dollar. Weniger Budget und Mehr Budget ändern es um 1 Dollar.
-4. Klicken Sie auf Bauen. Während der Agent arbeitet, beendet Stoppen ihn. Die Arbeit zeigt sich auch in Team / Sitzungen, und ihr Stoppen tut dasselbe.
+4. Klicken Sie auf Erstellen. Während der Agent arbeitet, beendet Stoppen ihn. Die Arbeit zeigt sich auch in Team / Sitzungen, und ihr Stoppen tut dasselbe.
 5. Sehen Sie sich die Vorgeschlagene Kachel an. Annehmen fügt sie dem Dashboard hinzu und speichert. Verwerfen lässt sie fallen.
 
-Der Agent darf das Projekt nur lesen. Das Dashboard ändert sich nicht, bis Sie auf Annehmen klicken. Wenn die Seite sagt, dass das Budget aufgebraucht ist, fügen Sie Budget hinzu, dann klicken Sie erneut auf Bauen. Ein Dashboard, das Sie nicht ändern können, hat die Schaltfläche Kachel für mich bauen nicht.
+Der Agent darf das Projekt nur lesen. Das Dashboard ändert sich nicht, bis Sie auf Annehmen klicken. Wenn die Seite sagt, dass das Budget aufgebraucht ist, fügen Sie Budget hinzu, dann klicken Sie erneut auf Bauen. Ein Dashboard, das Sie nicht ändern können, hat die Schaltfläche Kachel für mich erstellen nicht.
 
 Jede Kachel hat ein Diagramm: Zahl, Balken, Linie, Liste, Flussstufen, Ausgaben oder Zustand. Die Art der Daten wählt das erste Diagramm; ändern Sie es im Menü der Kachel. An Heute anheften zeigt auf der Bearbeitungsseite das Dashboard als eine Karte auf Heute. Eine Releaseauswahl neben Bearbeiten behält in den Kacheln des Ticketsystems nur die Tickets des Releases.
 
@@ -184,8 +184,8 @@ Die Formatwahl bietet auch PDF (nur macOS) und Markdown; jeder Textbericht kann 
 
 ### Anleitung
 
-Anleitung ist dieser Leitfaden. Öffnen Sie ihn mit Anleitung im Kontomenü, mit F1, mit der Fragen-Leiste oder mit dem Chip Anleitung von Bibliothek. Er kommt mit der App, in der Sprache der Oberfläche, und funktioniert ohne Projekt. Tippen Sie ein Wort in das Suchfeld, um jeden Abschnitt zu finden, der es enthält. Anleitung zu dieser Seite öffnen, in der Fragen-Leiste, öffnet die Seite des Ortes und den Abschnitt, den Sie sehen.
+Anleitung ist dieser Leitfaden. Öffnen Sie ihn mit Anleitung im Kontomenü, mit F1, mit der Fragen-Leiste oder mit dem Chip Anleitung von Bibliothek. Er kommt mit der App, in der Sprache der Oberfläche, und funktioniert ohne Projekt. Tippen Sie ein Wort in das Suchfeld, um jeden Abschnitt zu finden, der es enthält. Anleitung zu dieser Seite öffnen, in der Fragen-Leiste, öffnet die Seite des Bereichs und den Abschnitt, den Sie sehen.
 
-Die Anleitung hat eine Seite für jeden Ort, in der Reihenfolge der Seitenleiste, und sie öffnet mit Start. Jede Seite hat ein Bild. F1 öffnet die Anleitung für jede Rolle, auch für eine Rolle, die Bibliothek nicht sieht: Die Anleitung ist Hilfe. Unter einer Seite setzt Zu dieser Seite fragen eine Frage zur Seite in den Assistenten, Tastenkürzel öffnet die Tastenkürzel, und Handbuch des Projekts öffnet das Handbuch des Projekts.
+Die Anleitung hat eine Seite für jeden Bereich, in der Reihenfolge der Seitenleiste, und sie öffnet mit Start. Jede Seite hat ein Bild. F1 öffnet die Anleitung für jede Rolle, auch für eine Rolle, die Bibliothek nicht sieht: Die Anleitung ist Hilfe. Unter einer Seite setzt Zu dieser Seite fragen eine Frage zur Seite in den Assistenten, Tastenkürzel öffnet die Tastenkürzel, und Handbuch des Projekts öffnet das Handbuch des Projekts.
 
 Ein Link im Text einer Seite, zum Beispiel `adr:0003`, öffnet eine Karte, die ihn erklärt. Die Karte sagt, ob das Element im Projekt ist und womit es verknüpft ist. Öffnen und Mit einem Agenten erklären stehen nebeneinander. Mehr zeigt die anderen Aktionen, und Referenz kopieren kopiert den Namen des Elements.

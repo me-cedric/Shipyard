@@ -55,9 +55,19 @@ A full review of each screen and each state of the app after the redesign. The a
 | `openspec validate --all --strict` (pinned 1.15.0, as the app runs it) | passed, 36 items |
 | `pnpm ipc:gen` | the generated file does not change |
 
+## After the first try of the build (2026-11-26, evening)
+
+- Code / History draws the commit graph with curves. A test checks that no line of the graph ends in the air; the same check passed on the 600 newest commits of this repository.
+- Active sessions: the Claude desktop app is not a session, Claude Code of the desktop app is one, and the process list reads a short process number. On this computer the list went from ten empty rows to the three real sessions.
+- A missing right has the error code `missing_right`. An error with no code keeps its cause after the sentence where a view has no Details control: the interface has no log file.
+- The owner answered Q-140, Q-154, Q-164 and Q-177. No question is open. The creator names the admins of a new team. German and Spanish were reviewed (about 220 strings changed).
+- Semgrep with the five rule packs of CI: 0 findings. Its own download fails on this network (strict certificate check of Python); the rule packs were fetched with curl, with certificate checks on.
+- Worktrees: only `main` and this session's worktree are left.
+
 ## Open
 
-1. A tool that lets an outside agent ask a person a question: the requirement is open, see `docs/delivery/questions/Q-177.md`.
-2. A cut answer of a tool with no path input still ends with "Ask for one path."
-3. About 120 places show an error as a string, not through `ErrorNotice`: they show the sentence, and the raw text is in the app log only.
-4. The comment button of a diff line is 24 px, by decision (see Decisions).
+1. `adr:0017` stays proposed: Azure sign-in is not built (it needs a Microsoft app registration).
+2. 13 spec changes are built and not archived, so Flow shows them as "Not started". Archive them when the owner says so.
+3. A personal role lowers the rights of an admin (`spec:team-rights#REQ-006`). The owner can change this rule.
+4. About 120 places show an error as a string, not through `ErrorNotice`.
+5. The comment button of a diff line is 24 px, by decision (see Decisions).

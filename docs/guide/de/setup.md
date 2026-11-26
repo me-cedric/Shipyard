@@ -12,7 +12,7 @@ Dieses Projekt enthält, was das Projekt speichert und mit dem Team teilt. Vier 
 
 Das Projektformular enthält den Namen und das Logo (das Logo zeigt sich neben dem Projektnamen, oben in der Seitenleiste), die Ordner des Projekts, das Standardrezept, die Automatisierung und den Projektimport. Selten geänderte Einstellungen stehen unter Erweitert. Dieselbe Seite stellt beiseitegelegte Änderungen (Stashes) wieder her, zeigt, was sie enthalten, und bringt einen Branch, der hinter dem Server liegt, auf den neuesten Stand.
 
-- Automatisierung: Wie viele gleichzeitig hat ein Limit für diesen Computer und für dieses Projekt. Es hat auch Plan, Bau und Prüfung: Jedes Limit ist die Zahl der Läufe des Projekts, die gleichzeitig in dieser Stufe sein dürfen, und ein Lauf wartet, wo er ist, solange seine nächste Stufe voll ist. Ein pausierter Lauf behält seinen Platz. Die Schalter lassen die Agenten ohne Klick pushen, einen Pull Request öffnen, ein Ticket verschieben und es kommentieren. Mit einem ausgeschalteten Schalter wartet jeder Schreibvorgang dieser Art auf Ihre Freigabe.
+- Automatisierung: Wie viele gleichzeitig hat ein Limit für diesen Computer und für dieses Projekt. Es hat auch Plan, Umsetzung und Prüfung: Jedes Limit ist die Zahl der Läufe des Projekts, die gleichzeitig in dieser Stufe sein dürfen, und ein Lauf wartet, wo er ist, solange seine nächste Stufe voll ist. Ein pausierter Lauf behält seinen Platz. Die Schalter lassen die Agenten ohne Klick pushen, einen Pull Request öffnen, ein Ticket verschieben und es kommentieren. Mit einem ausgeschalteten Schalter wartet jeder Schreibvorgang dieser Art auf Ihre Freigabe.
 - Erlaubnisse eines Rezepts: „Für dieses Rezept nicht mehr fragen“ an einer Freigabe erlaubt genau die Arten ihrer Wirkungen (zum Beispiel `transition` und `open_pr`) nur für die Läufe dieses Rezepts. Eine andere Art wartet weiterhin. Die Gruppe Automatisierung listet jedes Rezept mit einer Erlaubnis: Entfernen nimmt eine Art mit Speichern weg, und der nächste Schreibvorgang dieser Art wartet wieder auf Sie. Ein Speichern fügt nie eine Erlaubnis hinzu. Nur Allein auf der Seite eines Pull-Request-Schritts tut das, mit Ihrem Klick. Ein erzwungener Push wartet immer auf Sie. Die Datei hält sie unter `recipe_writes` in `.shipyard/automation.yaml`. Die Datei ist geteilt: Jedes Teammitglied braucht eine Version von Shipyard, die `recipe_writes` liest, sonst ist die Datei für dieses Teammitglied ungültig und sein Sync stoppt.
 - Sprachen: Die Doku-Sprache und die Pull-Request-Sprache legen die Sprache der Spezifikationen, Dokumente und Pull-Request-Texte der Agenten fest. Code und Kommentare bleiben auf Englisch. Eine Änderung gilt nur für den nächsten Agenten-Auftrag und den nächsten Pull Request.
 - Agenten-Prüfung jedes Pull Requests: Aus, Entwurf oder Senden. Entwurf hält ein Review zum Lesen und Senden bereit, eines für jeden neuen Head-Commit. Senden fügt von selbst ein Kommentar-Review hinzu und gibt nie frei.
@@ -41,11 +41,11 @@ Tickets legt fest, welche Verbindung zu einem Ticketsystem und welcher Bereich d
 
 ### Erweiterungen
 
-Erweiterungen enthält den Katalog, die Plugins und die Kindprojekte.
+Erweiterungen enthält den Katalog, die Plugins und die Unterprojekte.
 
 - Katalog: fertige Teile. Klicken Sie auf Bereitstellen, um eines zum Projekt hinzuzufügen.
 - Plugins: Ein Plugin ist eine .zip-Datei. Die App liest sie als Daten und listet jede Datei und jede Einstellung. Sie schreibt nur die Elemente, die Sie annehmen. Klicken Sie bei einem installierten Plugin auf Einstellungen, um seine Einstellungen in einem Formular auszufüllen, dann speichern Sie: Die Dateien, die die neuen Werte ändern, zeigen sich in der Prüfung. Um ein Plugin zu schreiben, klicken Sie auf Neues Plugin (es kopiert ein Beispiel und öffnet es als Projekt), bearbeiten Sie es, klicken Sie auf In diesem Projekt testen, um die Prüfung eines Ordners zu sehen, und klicken Sie auf Paketieren, um die .zip-Datei zu erstellen. Ein Fehler in manifest.json zeigt sich mit seiner Zeile; klicken Sie darauf, um diese Zeile zu öffnen. Ein Plugin kann Skills, Regeln, Designs und Sprachen hinzufügen, und kann {{config.<key>}} in Textdateien nutzen. Ein Design geht in die Design-Bibliothek dieses Computers (siehe Designs).
-- Kindprojekte: andere Projekte, die dieselben Regeln übernehmen. Klonen Sie ein Kindprojekt, dann klicken Sie auf Bereitstellen. Die App legt einen Branch und einen Commit im Klon an. Sie pusht nie.
+- Unterprojekte: andere Projekte, die dieselben Regeln übernehmen. Klonen Sie ein Unterprojekt, dann klicken Sie auf Bereitstellen. Die App legt einen Branch und einen Commit im Klon an. Sie pusht nie.
 
 ### Zustand dieses Projekts
 
@@ -55,7 +55,7 @@ Alles mit einem Agenten beheben legt ein Feature in Ablauf mit den Befunden in s
 
 ## Dieser Computer
 
-Dieser Computer enthält, was dieser Rechner speichert: die KI-Tools, die Modellanbieter, die MCP-Server, die Zertifikate und die Berechtigungen des Systems mit Tour wiederholen (siehe Erste Schritte, Berechtigungen). Drei Reiter öffnen seine Seiten: KI-Tools und Verbindungen, Modelle und Regeln und Zustand. Shipyard mit anderen Tools teilen und Protokolle und Feedback öffnen sich über Zeilen.
+Dieser Computer enthält, was dieser Computer speichert: die KI-Tools, die Modellanbieter, die MCP-Server, die Zertifikate und die Berechtigungen des Systems mit Tour wiederholen (siehe Erste Schritte, Berechtigungen). Drei Reiter öffnen seine Seiten: KI-Tools und Verbindungen, Modelle und Regeln und Zustand. Shipyard mit anderen Tools teilen und Protokolle und Feedback öffnen sich über Zeilen.
 
 - MCP-Server: die Werkzeuge, die Agenten aufrufen können. Sie sind nach Kategorie gruppiert. Klicken Sie auf Empfohlenen Satz hinzufügen, um die Server einzuschalten, die zum Projekt passen. Klicken Sie bei einem Server auf Testen, oder auf Alle testen, um zu sehen, ob jeder funktioniert und wie viele Werkzeuge er anbietet. Jeder Server hat eine Erlaubnisliste: Alle Werkzeuge, Nur Lesen (die Werkzeuge, die der Server als nur lesend markiert, sonst keine) oder Eigene, wo Sie die Werkzeuge anhaken. Ein Werkzeug, das nicht auf der Liste steht, ist vor den Agenten verborgen und wird beim Aufruf abgelehnt.
 - Eigener MCP-Server: Wählen Sie Eigene in Hinzufügen, oder fügen Sie das JSON (`mcpServers`) eines Servers in JSON einfügen ein. Ein geheimer Wert geht in den Schlüsselbund, nicht in eine Datei. Ein Geheimnis in den Argumenten wird abgelehnt: Verschieben Sie es in die Variablen.
@@ -88,7 +88,7 @@ Die App fragt das Tool nach seinem Zustand und liest nie seine Token-Dateien ode
 Unter den Tools listet eine Zeile jeden Anbieter.
 
 - OpenRouter: Klicken Sie auf Anmelden. Der Browser öffnet sich. Geben Sie dort frei, und die App speichert den Schlüssel im Schlüsselbund. Klicken Sie auf Abbrechen, um das Warten zu beenden. Das Warten endet nach 10 Minuten.
-- Ollama, LM Studio, vLLM und LiteLLM: Die App sucht nur auf diesem Rechner. Eine Laufzeit, die antwortet, zeigt eine Zeile mit Hinzufügen. Hinzufügen legt einen Anbieter ohne Schlüssel an.
+- Ollama, LM Studio, vLLM und LiteLLM: Die App sucht nur auf diesem Computer. Eine Laufzeit, die antwortet, zeigt eine Zeile mit Hinzufügen. Hinzufügen legt einen Anbieter ohne Schlüssel an.
 - OpenAI, Anthropic, Mistral, Google AI Studio und Azure OpenAI: Klicken Sie auf Schlüssel erstellen, um die Schlüsselseite des Anbieters zu öffnen. Klicken Sie auf Schlüssel einfügen, fügen Sie den Schlüssel ein und klicken Sie auf Speichern (oder drücken Sie die Eingabetaste). Die App testet den Schlüssel zuerst. Ein Schlüssel, der fehlschlägt, wird nicht gespeichert, und die Zeile zeigt den Grund und was zu tun ist. Azure OpenAI fragt auch nach der Adresse Ihrer Ressource.
 
 Ein Schlüssel geht nur in den Schlüsselbund. Er geht nie in eine Datei, ein Protokoll oder eine Adresse.
@@ -99,7 +99,7 @@ Shipyard kann seine Werkzeuge einem Agenten anbieten, den Sie selbst starten. Sc
 
 ### Zustand dieses Computers
 
-Zustand dieses Computers listet die Probleme der Werkzeuge auf diesem Rechner. Jedes Problem hat eine Schaltfläche, die es behebt. Der Eintrag Zustand des Kontomenüs öffnet den Bereich des schwersten Befunds.
+Zustand dieses Computers listet die Probleme der Werkzeuge auf diesem Computer. Jedes Problem hat eine Schaltfläche, die es behebt. Der Eintrag Zustand des Kontomenüs öffnet den Bereich des schwersten Befunds.
 
 ### Protokolle und Feedback
 
@@ -129,7 +129,7 @@ Beim ersten Start und jedes Mal, wenn eine Berechtigung fehlt, listet eine Karte
 
 ### Rollenansichten
 
-Rollenansichten liegt unter `/setup/role-views`. Alle Rollenansichten, auf der Seite der Panels von Heute, öffnet sie. Sie zeigt eine Karte für jede Rolle: die Seite, mit der die Rolle beginnt (zum Beispiel Beginnt mit Ablauf), und die Orte, die die Rolle sieht. Ein Ort, den die Rolle nicht sieht, ist durchgestrichen. Die Karte Ihrer Rolle hat das Etikett Meine Ansicht, und die Rolle Leser heißt Ich schaue nur. Die Schaltfläche Rechte jeder Rolle öffnet Team / Rechte, wo die Rechte eingestellt werden. Die Karten sind in jedem Projekt mit denselben Rechten gleich.
+Rollenansichten liegt unter `/setup/role-views`. Alle Rollenansichten, auf der Seite der Karten von Heute, öffnet sie. Sie zeigt eine Karte für jede Rolle: die Seite, mit der die Rolle beginnt (zum Beispiel Beginnt mit Ablauf), und die Bereiche, die die Rolle sieht. Ein Bereich, den die Rolle nicht sieht, ist durchgestrichen. Die Karte Ihrer Rolle hat das Etikett Meine Ansicht, und die Rolle Leser heißt Ich schaue nur. Die Schaltfläche Rechte jeder Rolle öffnet Team / Rechte, wo die Rechte eingestellt werden. Die Karten sind in jedem Projekt mit denselben Rechten gleich.
 
 ### Aussehen und Layout
 

@@ -76,7 +76,7 @@ const NOUN = {
 	de: {
 		decision: ["diese Entscheidung", "die Entscheidungen dieses Projekts"],
 		spec: ["diese Spezifikation", "die Spezifikationen dieses Projekts"],
-		workItem: ["dieses Arbeitselement", "die Arbeitselemente dieses Projekts"],
+		workItem: ["dieses Ticket", "die Tickets dieses Projekts"],
 		run: ["diesen Lauf", "die Läufe dieses Projekts"],
 		pullRequest: ["diesen Pull Request", "die Pull Requests dieses Projekts"],
 		file: ["diese Datei", "die Dateien dieses Projekts"],
@@ -85,7 +85,7 @@ const NOUN = {
 	es: {
 		decision: ["esta decisión", "las decisiones de este proyecto"],
 		spec: ["esta especificación", "las especificaciones de este proyecto"],
-		workItem: ["este elemento de trabajo", "los elementos de trabajo de este proyecto"],
+		workItem: ["este ticket", "los tickets de este proyecto"],
 		run: ["esta ejecución", "las ejecuciones de este proyecto"],
 		pullRequest: ["esta pull request", "las pull requests de este proyecto"],
 		file: ["este archivo", "los archivos de este proyecto"],

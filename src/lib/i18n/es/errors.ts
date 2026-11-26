@@ -20,8 +20,8 @@ export const errorsEs: Record<Exclude<ErrorCode, "unknown">, string> = {
 	change_exists: "Ya existe un cambio con este título. Usa otro título.",
 	run_not_started: "La ejecución no se inició.",
 	run_active: "Hay una ejecución activa en este ticket.",
-	merge_draft: "Este pull request es un borrador. Márcalo primero como listo.",
-	merge_closed: "Este pull request no está abierto.",
+	merge_draft: "Esta pull request es un borrador. Márcala primero como lista.",
+	merge_closed: "Esta pull request no está abierta.",
 	merge_method: "Esta plataforma de código no ofrece este método de fusión.",
 	forge_unreachable: "El servidor no respondió. Revisa la red e inténtalo de nuevo.",
 	cert_untrusted: "La conexión no es de confianza. Añade el certificado del proxy de tu empresa.",
@@ -31,7 +31,8 @@ export const errorsEs: Record<Exclude<ErrorCode, "unknown">, string> = {
 	git_nothing_staged: "No hay ningún archivo preparado. Prepara primero un archivo.",
 	git_identity:
 		"Git no conoce tu nombre ni tu correo. Defínelos en Git en este ordenador e inténtalo de nuevo.",
-	git_busy: "Git está en mitad de una fusión o un rebase. Termínalo en Code e inténtalo de nuevo.",
+	git_busy:
+		"Git está en mitad de una fusión o un rebase. Termínalo en Código e inténtalo de nuevo.",
 	git_no_upstream: "Esta rama aún no está en el servidor. Haz push primero.",
 	no_terminal: "No se encontró ninguna app de terminal. Elige una en Configuración y luego Yo.",
 	terminal_gone:
@@ -56,10 +57,11 @@ export const errorsEs: Record<Exclude<ErrorCode, "unknown">, string> = {
 	agents_stopped: "Los agentes están detenidos. Actívalos e inténtalo de nuevo.",
 	agent_limit: "Hay demasiados agentes en marcha. Espera a que termine uno e inténtalo de nuevo.",
 	budget_spent: "El presupuesto se agotó. La revisión espera al próximo presupuesto.",
-	head_missing: "Este pull request aún no está en tu equipo. Trae su rama e inténtalo de nuevo.",
+	head_missing:
+		"Esta pull request aún no está en este ordenador. Trae su rama e inténtalo de nuevo.",
 	no_changes: "Esta rama aún no tiene cambios. Haz commit de algunos e inténtalo de nuevo.",
 	review_posted: "Esta revisión ya está publicada.",
-	review_running: "Hay una revisión de este pull request en curso.",
+	review_running: "Hay una revisión de esta pull request en curso.",
 	figma_no_token: "Añade primero el token de tu cuenta de Figma.",
 	branch_diverged: "Esta rama tiene sus propios commits. Fusiónala o haz rebase en su lugar.",
 	picture_invalid: "Elige una imagen PNG o JPEG de 1 MB como máximo.",

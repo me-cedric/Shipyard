@@ -111,7 +111,7 @@ export const checksDe: typeof checksEn = {
 	noScenario: "Noch kein Szenario",
 	gates: "Qualitätsprüfungen dieser Änderung",
 	scanners: "Geheimnisse, Code-Scan, Abhängigkeiten",
-	stale: "Docs, die diese Änderung veralten lässt",
+	stale: "Dokumente, die diese Änderung veralten lässt",
 	noStale: "Keine",
 	recipe: "Rezept",
 	developers: "Für Entwickler",
@@ -123,7 +123,7 @@ export const checksDe: typeof checksEn = {
 	stop: "Stoppen",
 	busy: "Der Agent liest eine Nachricht, wenn er anhält",
 	working: "{agent} arbeitet",
-	builder: "Builder",
+	builder: "Umsetzer",
 	you: "Sie",
 };
 

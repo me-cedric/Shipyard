@@ -755,15 +755,23 @@ fn processes() -> Vec<Proc> {
     let Some(out) = output("ps", &["-axww", "-o", "pid=,ppid=,command="]) else {
         return Vec::new();
     };
+    parse_ps(&out)
+}
+
+/// The lines of `ps -o pid=,ppid=,command=`. `ps` pads its columns, so more than one space can
+/// stand between two fields.
+fn parse_ps(out: &str) -> Vec<Proc> {
     out.lines()
         .filter_map(|line| {
-            let mut parts = line.trim_start().splitn(3, char::is_whitespace);
-            let pid = parts.next()?.trim().parse().ok()?;
-            let ppid = parts.next()?.trim().parse().ok()?;
+            let (pid, rest) = line.trim_start().split_once(char::is_whitespace)?;
+            let (ppid, command) = rest
+                .trim_start()
+                .split_once(char::is_whitespace)
+                .unwrap_or((rest.trim(), ""));
             Some(Proc {
-                pid,
-                ppid,
-                command: parts.next().unwrap_or("").trim().into(),
+                pid: pid.parse().ok()?,
+                ppid: ppid.parse().ok()?,
+                command: command.trim().into(),
             })
         })
         .collect()
@@ -1301,6 +1309,26 @@ not json"#;
         assert_eq!(day_string(at(0)), "1970-01-01");
         assert_eq!(day_string(at(1_782_864_000)), "2026-07-01");
         assert_eq!(day_string(at(1_709_164_800 + 86_399)), "2024-02-29");
+    }
+
+    #[test]
+    fn a_process_line_with_padded_columns_is_read() {
+        // `ps` aligns the numbers: a short pid leaves two spaces before the parent pid.
+        let procs = parse_ps(
+            " 1842  1841 /opt/bin/claude --verbose\n49042 49041 /opt/bin/codex\n  77     1 zsh\n",
+        );
+        let read: Vec<_> = procs
+            .iter()
+            .map(|p| (p.pid, p.ppid, p.command.as_str()))
+            .collect();
+        assert_eq!(
+            read,
+            [
+                (1842, 1841, "/opt/bin/claude --verbose"),
+                (49042, 49041, "/opt/bin/codex"),
+                (77, 1, "zsh"),
+            ]
+        );
     }
 
     #[test]

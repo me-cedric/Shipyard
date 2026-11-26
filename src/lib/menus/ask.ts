@@ -112,7 +112,7 @@ const LABEL: Record<Lang, Text> = {
 	de: {
 		summary: (w) => `${w} zusammenfassen`,
 		explain: (w) => `${w} erklären`,
-		impact: () => "Was betrifft eine Änderung hier?",
+		impact: () => "Welche Auswirkungen hat eine Änderung hier?",
 		tests: (w) => `Testplan für ${w} schreiben`,
 		risks: (w) => `Risiken von ${w} auflisten`,
 	},
@@ -152,7 +152,7 @@ const PROMPT: Record<Lang, Text> = {
 		explain: (w) =>
 			`Erkläre ${w}: was es ist, warum es existiert und wie es mit dem Rest des Projekts zusammenhängt.`,
 		impact: (w) =>
-			`Was betrifft eine Änderung an ${w}? Liste die Elemente auf, die davon abhängen, und sage, was jedes braucht.`,
+			`Welche Auswirkungen hat eine Änderung an ${w}? Liste die Elemente auf, die davon abhängen, und sage, was jedes braucht.`,
 		tests: (w) =>
 			`Schreibe den Testplan für ${w}: die wichtigen Fälle und die Grenzfälle, als Given/When/Then-Szenarien.`,
 		risks: (w) => `Liste die Risiken von ${w} auf und wie sich jedes verringern lässt.`,
@@ -192,7 +192,7 @@ const CONTEXT = {
 		path: "Datei",
 		spec: "Spezifikation",
 		ticket: "Ticket",
-		links: "Verwiesen von",
+		links: "Verlinkt von",
 	},
 	es: {
 		head: "Contexto",

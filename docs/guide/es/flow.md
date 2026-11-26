@@ -53,7 +53,7 @@ Hecho contiene las funcionalidades listas y el historial de las ejecuciones: cad
 
 ## La página de una funcionalidad
 
-Cada funcionalidad tiene una página, `/flow/feature/<id>`. El identificador es la ref de una de sus partes: el ticket, el cambio de especificación, la ejecución o la pull request. La página muestra el título, la línea de etapas y un selector de seis secciones: Historia, Encargo, Diseño, Cambios, Controles y Charla. Más contiene Abrir en el gestor de tickets, Copiar la referencia y, en una funcionalidad detenida, Qué pasó. Atrás vuelve a Flujo con su búsqueda y su filtro, y Escape hace lo mismo. Un enlace a una ejecución o a una pull request abre esta página en la sección de esa parte.
+Cada funcionalidad tiene una página, `/flow/feature/<id>`. El identificador es la ref de una de sus partes: el ticket, el cambio de especificación, la ejecución o la pull request. La página muestra el título, la línea de etapas y un selector de seis secciones: Historia, Encargo, Diseño, Cambios, Comprobaciones y Chat. Más contiene Abrir en el gestor de tickets, Copiar la referencia y, en una funcionalidad detenida, Qué pasó. Atrás vuelve a Flujo con su búsqueda y su filtro, y Escape hace lo mismo. Un enlace a una ejecución o a una pull request abre esta página en la sección de esa parte.
 
 ### Historia
 
@@ -65,7 +65,7 @@ La columna lateral muestra el agente (la herramienta de IA, el modelo, el paso n
 
 ### Encargo
 
-Encargo muestra los datos del ticket y el cambio de especificación de la funcionalidad como tarjetas de requisito, cada una con su prueba, y los tickets de la funcionalidad. Los archivos del cambio se abren en una página propia, con un enlace de vuelta a Encargo. Un formulario muestra cada parte del cambio con su estado: falta, borrador o terminada. También hay una vista de texto sin formato. Haz clic en Validar: cada problema se muestra en su parte, con su línea. Sigue el paso siguiente que la aplicación muestra, por ejemplo dividir el trabajo en tickets. Un cambio toma su título del primer encabezado de su propuesta. El identificador sigue siendo el nombre de la carpeta. Una funcionalidad sin especificación tiene Escribir la spec.
+Encargo muestra los datos del ticket y el cambio de especificación de la funcionalidad como tarjetas de requisito, cada una con su prueba, y los tickets de la funcionalidad. Los archivos del cambio se abren en una página propia, con un enlace de vuelta a Encargo. Un formulario muestra cada parte del cambio con su estado: falta, borrador o terminada. También hay una vista de texto sin formato. Haz clic en Validar: cada problema se muestra en su parte, con su línea. Sigue el paso siguiente que la aplicación muestra, por ejemplo dividir el trabajo en tickets. Un cambio toma su título del primer encabezado de su propuesta. El identificador sigue siendo el nombre de la carpeta. Una funcionalidad sin especificación tiene Escribir la especificación.
 
 ### Diseño
 
@@ -97,13 +97,13 @@ Revisión por un agente:
 
 Una revisión por un agente se muestra en Equipo / Sesiones, donde Detener la termina. Cuenta en el límite de agentes y en el presupuesto del proyecto. Un proyecto de solo lectura la rechaza.
 
-### Controles
+### Comprobaciones
 
-Controles muestra los pasos de control de la ejecución, los controles de la pull request con el estado de la CI, el plan de pruebas, las docs que este cambio deja obsoletas y la fila Impactos en el resto del código. Corregir con un agente pide a un agente que corrija los controles que fallan.
+Comprobaciones muestra los pasos de control de la ejecución, los controles de la pull request con el estado de la CI, el plan de pruebas, las docs que este cambio deja obsoletas y la fila Impactos en el resto del código. Corregir con un agente pide a un agente que corrija los controles que fallan.
 
-### Charla
+### Chat
 
-Charla tiene un botón + junto al campo de mensaje. Copia un archivo como contexto en la carpeta de la ejecución: el siguiente turno del agente lo lee. Un archivo de texto llega hasta 200 KiB y una imagen hasta 2 MiB, y la charla dice qué límite rompe un archivo mayor. Pausar está en la tarjeta Agente, entre Hablar y Detener. El agente termina su turno, luego la ejecución queda en pausa por una persona, conserva su lugar en los límites y espera Reanudar. Charla muestra la conversación de la sesión del agente (el terminal en vivo y las peticiones están en Para desarrolladores), la conversación de la pull request y los comentarios del ticket. La conversación de la pull request lista los comentarios generales y los hilos de revisión en orden de tiempo. Haz clic en Responder para responder a un hilo, en Resolver para cerrarlo y en Reabrir para abrirlo de nuevo. El cuadro de escritura tiene Escribir y Vista previa. Comentar publica un comentario general. Devolver al agente se muestra para una pull request que abrió una ejecución.
+Chat tiene un botón + junto al campo de mensaje. Copia un archivo como contexto en la carpeta de la ejecución: el siguiente turno del agente lo lee. Un archivo de texto llega hasta 200 KiB y una imagen hasta 2 MiB, y la charla dice qué límite rompe un archivo mayor. Pausar está en la tarjeta Agente, entre Hablar y Detener. El agente termina su turno, luego la ejecución queda en pausa por una persona, conserva su lugar en los límites y espera Reanudar. Charla muestra la conversación de la sesión del agente (el terminal en vivo y las peticiones están en Para desarrolladores), la conversación de la pull request y los comentarios del ticket. La conversación de la pull request lista los comentarios generales y los hilos de revisión en orden de tiempo. Haz clic en Responder para responder a un hilo, en Resolver para cerrarlo y en Reabrir para abrirlo de nuevo. El cuadro de escritura tiene Escribir y Vista previa. Comentar publica un comentario general. Devolver al agente se muestra para una pull request que abrió una ejecución.
 
 ## Aprobaciones
 
@@ -154,7 +154,7 @@ La frescura de la documentación lista los documentos que no siguieron al códig
 
 ## Impactos
 
-Impactos dice qué elementos toca un cambio, y propone un plan de acción. Se abre como página desde los Controles de una funcionalidad: haz clic en Impactos en el resto del código. Muestra los archivos cambiados, el código que depende de ellos y las docs que quedan obsoletas. Corregir los documentos obsoletos con un agente inicia una ejecución solo después de tu clic. La página `/flow/impacts` sigue existiendo. Necesita acceso al código.
+Impactos dice qué elementos toca un cambio, y propone un plan de acción. Se abre como página desde las Comprobaciones de una funcionalidad: haz clic en Impactos en el resto del código. Muestra los archivos cambiados, el código que depende de ellos y las docs que quedan obsoletas. Corregir los documentos obsoletos con un agente inicia una ejecución solo después de tu clic. La página `/flow/impacts` sigue existiendo. Necesita acceso al código.
 
 Informe de impacto completo abre el informe como página: el tamaño del cambio por Código, Especificaciones, Documentos, Pruebas y Personas, el plan de acción y el resumen. Escribir el informe de nuevo hace otro. Informes anteriores lista los más antiguos. Copiar el resumen copia el resumen para un agente.
 

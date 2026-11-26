@@ -1,10 +1,10 @@
 # Plan
 
-Plan enthält den Zeitplan, die Auslastung der Personen, die Schätzungen und die Zeit. Der Umschalter hat vier Abschnitte: Zeitplan, Personen, Schätzungen und Zeit. Zeitplan, Personen und Schätzungen teilen ein Schätzblatt: Das Blatt bleibt in der Adresse.
+Plan enthält den Zeitplan, die Auslastung der Personen, die Schätzungen und die Zeit. Der Umschalter hat vier Abschnitte: Zeitplan, Personen, Schätzungen und Zeit. Zeitplan, Personen und Schätzungen teilen ein Schätztabelle: Das Blatt bleibt in der Adresse.
 
 ## Zeitplan
 
-Zeitplan zeichnet den Zeitplan eines Loses als Gantt-Diagramm, aus einem Schätzblatt, dem Team und dem Kalender. Der Titel nennt den Tag, an dem das Release endet.
+Zeitplan zeichnet den Zeitplan eines Loses als Gantt-Diagramm, aus einer Schätztabelle, dem Team und dem Kalender. Der Titel nennt den Tag, an dem das Release endet.
 
 - Termine und freie Tage legt die Arbeitstage und die Feiertage fest.
 - Exportieren Sie das Diagramm als Bild.
@@ -21,7 +21,7 @@ Schätzungen enthält ein Blatt für jedes Los. Jede Zeile hat eine niedrige, ei
 
 - Duplizieren Sie ein Blatt, benennen Sie es um, frieren Sie es ein oder löschen Sie es, über sein Menü.
 - Versiegeln Sie das Projekt mit einer Passphrase, um die Tagessätze in den Dateien zu verbergen.
-- Einen Agenten schätzen lassen: Wählen Sie Aufgaben, dann klicken Sie darauf. Der Agent schlägt je einen Wert für Bestfall, Wahrscheinlich und Schlimmstfall mit seinen Annahmen vor. Ein Wert kommt erst ins Blatt, wenn Sie auf Annehmen klicken. Verwerfen lässt den Vorschlag fallen. Der Agent zeigt sich in Team / Sitzungen, während er arbeitet. Stoppen beendet ihn, und das Blatt behält seine Werte. Die Aktion ist auf einem versiegelten und auf einem eingefrorenen Blatt aus.
+- Einen Agenten schätzen lassen: Wählen Sie Aufgaben, dann klicken Sie darauf. Der Agent schlägt je einen Wert für Best Case, Wahrscheinlich und Worst Case mit seinen Annahmen vor. Ein Wert kommt erst ins Blatt, wenn Sie auf Annehmen klicken. Verwerfen lässt den Vorschlag fallen. Der Agent zeigt sich in Team / Sitzungen, während er arbeitet. Stoppen beendet ihn, und das Blatt behält seine Werte. Die Aktion ist auf einem versiegelten und auf einem eingefrorenen Blatt aus.
 
 ## Zeit
 
@@ -46,4 +46,4 @@ Eine Unterseite hat eine eigene Adresse und einen Zurück-Link. Schätzungen hä
 
 ## Release und Heute
 
-Die Karte Kalender des Plans hat die Zeile Release mit den Releases des Ticketsystems, die Zeile Schätzblatt und Gehe zu Heute. Heute öffnet den Zeitplan am aktuellen Tag.
+Die Karte Kalender des Plans hat die Zeile Release mit den Releases des Ticketsystems, die Zeile Schätztabelle und Wechseln zu Heute. Heute öffnet den Zeitplan am aktuellen Tag.

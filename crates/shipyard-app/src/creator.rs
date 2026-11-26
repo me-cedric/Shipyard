@@ -12,7 +12,7 @@ use shipyard_core::project::{
 };
 use shipyard_core::work::{Member, Row, RowKind, Team};
 use shipyard_git::Repo;
-use shipyard_git::project::{global_user_name, init};
+use shipyard_git::project::{global_user_email, global_user_name, init};
 use shipyard_store::project::render_project_file;
 use specta::Type;
 
@@ -266,7 +266,10 @@ fn agents_md(p: &NewProject, gates: &[String]) -> String {
 }
 
 /// The team file: the person first, then the members. A handle comes from the name and stays unique.
-fn team_of(members: &[NewMember]) -> Team {
+/// With the git e-mail of the person, the admins are the person, each project manager and each
+/// architect (`q:Q-154`, `adr:0019`). With no e-mail the file names no admin: Shipyard could not
+/// find the person, and the rights would lock the project.
+fn team_of(members: &[NewMember], email: Option<&str>) -> Team {
     let mut out: Vec<Member> = Vec::new();
     for (i, m) in members.iter().enumerate() {
         let base = Some(kebab(&m.name))
@@ -278,11 +281,14 @@ fn team_of(members: &[NewMember]) -> Team {
             handle = format!("{base}-{n}");
             n += 1;
         }
+        let me = email.filter(|_| i == 0);
         out.push(Member {
             name: m.name.trim().into(),
             handle,
             role: m.role.clone(),
             capacity: 5.0,
+            admin: email.is_some() && (i == 0 || matches!(m.role.as_str(), "pm" | "architect")),
+            emails: me.map(|e| vec![e.to_string()]).unwrap_or_default(),
             ..Default::default()
         });
     }
@@ -386,6 +392,11 @@ fn check(p: &NewProject) -> Res<ProjectFile> {
 
 /// The files and the starts of the answers. Nothing is written (REQ-009).
 pub fn preview(p: &NewProject) -> Res<CreatorPreview> {
+    preview_as(p, global_user_email().as_deref())
+}
+
+/// The preview for a person with this git e-mail.
+fn preview_as(p: &NewProject, email: Option<&str>) -> Res<CreatorPreview> {
     let f = check(p)?;
     let (_, ignore) = stack(&p.stack).ok_or("unknown stack")?;
     let mut files = vec![
@@ -402,7 +413,8 @@ pub fn preview(p: &NewProject) -> Res<CreatorPreview> {
         ("docs/brief.md".into(), brief_md(p)),
     ];
     if !p.members.is_empty() {
-        let team = shipyard_store::work::write_team(&team_of(&p.members), None).map_err(err)?;
+        let team =
+            shipyard_store::work::write_team(&team_of(&p.members, email), None).map_err(err)?;
         files.push((".shipyard/team.yaml".into(), team));
     }
     let issues = scope_lines(&p.brief.scope)

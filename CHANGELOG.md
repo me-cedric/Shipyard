@@ -1,6 +1,8 @@
 # Changelog
 
 ## [0.2.0]
+- Active sessions lists every AI session of this computer: a session whose process number is short was left out before.
+- A new project names its admins: the person who creates it, each project manager and each architect; the Story of a feature says that the agent exited with code 1 in plain words; the German and Spanish texts of the interface and of the manual were reviewed, with one word for each thing.
 - Code / History draws the commit graph with one line for each branch, a curve where a merge takes a branch in and a curve where a branch starts, and each row shows its branch and tag labels; a selected or hovered row keeps its round corners inside its card on History, Changes, Pull requests, the test plans and the menu bar panel.
 - Active sessions no longer lists the Claude desktop app as ten empty sessions: it finds Claude Code of the desktop app, and each row shows the title of the session, its folder and its model.
 - A change that your role does not allow shows a plain sentence with a button to Setup / Me, and the At the limit choice of Crew / Spend / Budgets is off without the right; an error that Shipyard does not know keeps its cause after the sentence where a page has no Details control.

@@ -4,7 +4,7 @@ export const reportsEs: typeof reportsEn = {
 	export: "Exportar",
 	exported: "Exportado: {path}",
 	text: { empty: "Sin contenido.", gap: "Falta", generated: "Generado", contents: "Contenido" },
-	dossierComplete: "Dossier completo",
+	dossierComplete: "Dosier completo",
 	dossierSections: [
 		"Vistas de arquitectura",
 		"Decisiones",

@@ -65,7 +65,7 @@ export const planEs: typeof planEn = {
 		myTime: "Mi tiempo",
 		timeOf: "Tiempo de {name}",
 		readMonth: "Leer el mes del gestor de tickets",
-		receipt: "Guardar un recibo",
+		receipt: "Guardar un justificante",
 		lower: "Reducir el tiempo restante del ticket",
 		addTicket: "Añadir un ticket",
 		total: "Horas",

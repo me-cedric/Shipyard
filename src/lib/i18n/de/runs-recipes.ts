@@ -24,7 +24,7 @@ export const runsRecipesDe: typeof runsRecipesEn = {
 		ask: "Mich fragen",
 		go_on: "Weitermachen",
 	},
-	role: "Wer genehmigt",
+	role: "Wer gibt frei",
 	anyRole: "Alle",
 	kind: { agent: "Agent", person: "Person", check: "Prüfung" },
 	runsBeside: "Läuft neben anderen Schritten",

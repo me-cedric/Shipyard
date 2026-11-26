@@ -8,7 +8,7 @@ Der Umschalter hat vier Abschnitte: Ablauf, Liste, Erledigt und Zustand. Ablauf 
 |---|---|
 | Idee | Ein Ticket ohne Arbeit, oder eine Spezifikationsänderung, die nur ihren Vorschlag hat. |
 | Spezifikation | Eine Spezifikationsänderung in Arbeit, oder ein Lauf, der wartet, plant oder dessen Plan geprüft wird. |
-| Bau | Ein Agent arbeitet oder prüft seine eigene Arbeit. Ein fehlgeschlagener oder abgebrochener Lauf bleibt hier, als gestoppt markiert. |
+| Umsetzung | Ein Agent arbeitet oder prüft seine eigene Arbeit. Ein fehlgeschlagener oder abgebrochener Lauf bleibt hier, als gestoppt markiert. |
 | Prüfung | Der Pull Request ist offen, oder Änderungen sind angefordert. |
 | Fertig | Der Pull Request ist zusammengeführt, oder der Lauf ist erledigt. |
 
@@ -125,11 +125,11 @@ Dann stoppt der Lauf, und das Feature wartet auf Sie. Die Seite sagt den Zustand
 | Aktion | Wann |
 |---|---|
 | Antworten | Der Agent hat eine Frage gestellt. |
-| Entblocken | Der Lauf ist blockiert. Tippen Sie eine Nachricht: Der Lauf erhält eine weitere Runde und liest sie. |
+| Blockade lösen | Der Lauf ist blockiert. Tippen Sie eine Nachricht: Der Lauf erhält eine weitere Runde und liest sie. |
 | Budget hinzufügen | Der Lauf hat sein Budget verbraucht. Erhöhen Sie das Budget, dann läuft er weiter. |
 | Fortsetzen | Der Lauf ist pausiert. |
 | Übernehmen | Der Lauf ist blockiert. Er endet als abgebrochen mit dem Grund „Übernommen von“ und Ihrem Namen, der Branch und der Worktree bleiben, das Ticket gehört Ihnen und der Worktree öffnet sich in Ihrem Editor. |
-| Anmelden | Der Lauf ist blockiert und sein KI-Werkzeug ist abgemeldet: Die Karte sagt es. Anmelden startet die Anmeldung des Werkzeugs im Terminal; klicken Sie danach auf Entblocken. |
+| Anmelden | Der Lauf ist blockiert und sein KI-Tool ist abgemeldet: Die Karte sagt es. Anmelden startet die Anmeldung des Werkzeugs im Terminal; klicken Sie danach auf Blockade lösen. |
 | Erneut versuchen | Der Lauf ist fehlgeschlagen oder wurde abgebrochen. Ein neuer Lauf startet. |
 | Als erledigt schließen | Der Lauf hat keine Datei geändert und die Arbeit ist schon da. |
 

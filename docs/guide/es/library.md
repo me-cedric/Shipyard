@@ -6,7 +6,7 @@ Biblioteca se abre con cuatro puertas. Cada puerta nombra lo que buscas, y conti
 
 Biblioteca no tiene selector de secciones. En cada página de Biblioteca, haz clic en Biblioteca arriba para volver a las puertas.
 
-Las fichas Qué está probado, Respuestas y Glosario abren la página que las contiene. La ficha Aprender muestra cuántos pasos de la ruta has terminado. Bajo las puertas, las tarjetas Fijado y Abierto por último listan páginas: Fijar guarda una página en Fijado, y Quitar la retira. Abierto por último guarda también los elementos con una ref (una spec, una decisión, un diagrama, un documento): cada fila muestra una etiqueta de su tipo, su nombre y Fijar.
+Las fichas Qué está probado, Respuestas y Glosario abren la página que las contiene. La ficha Aprender muestra cuántos pasos de la ruta has terminado. Bajo las puertas, las tarjetas Fijado y Abierto por último listan páginas: Fijar guarda una página en Fijado, y Quitar la retira. Abierto por último guarda también los elementos con una ref (una especificación, una decisión, un diagrama, un documento): cada fila muestra una etiqueta de su tipo, su nombre y Fijar.
 
 ## Leer y cambiar un elemento
 
@@ -54,7 +54,7 @@ Mapa dibuja los elementos del proyecto en grupos, con los enlaces entre ellos. F
 
 Con el origen Código, el mapa muestra las carpetas del código. Una línea entre dos carpetas es más gruesa cuando hay más llamadas entre sus archivos. Selecciona una carpeta para ver sus archivos, y luego un archivo para ver sus símbolos y qué los llama o qué llaman. Mostrar todo vuelve al mapa. Índice inicia el servidor de índice del código cuando está apagado, construye el índice y detiene el servidor. Si el programa termina con un error, la página nombra el programa, su código de salida y sus últimas líneas: corrige la causa y haz clic de nuevo en Índice. La tarjeta del símbolo tiene Explicar y Abrir en el editor, y Especificaciones y decisiones que lo usan abre el inspector. Huérfanos muestra los archivos que ninguna llamada alcanza ni deja. El selector Conocimiento y Código está arriba, y Código tiene la dirección `/library/graph?source=code`.
 
-Un archivo cuya spec cambió después de su último cambio muestra la etiqueta Obsoleto.
+Un archivo cuya especificación cambió después de su último cambio muestra la etiqueta Obsoleto.
 
 ### Arquitectura
 
@@ -121,7 +121,7 @@ Aprender ayuda a una persona nueva a orientarse.
 - Rutas de aprendizaje: cursos, certificaciones y lecturas, con los expertos del equipo que pueden ayudar. Elige una persona y marca los pasos que esa persona terminó. La tabla de progreso del equipo muestra cada persona y cada ruta. El avance del equipo está en la columna derecha: una fila por persona, con una barra y N de M.
 - Canales: los canales de noticias del proyecto. Pega la dirección RSS o Atom de un sitio y haz clic en Suscribirse. La aplicación lee cada canal y guarda una copia durante una hora.
 
-Expertos es una tarjeta con las personas del archivo del equipo y sus temas. Añadir una palabra escribe una palabra y su sentido en `docs/glossary.md`, y el glosario lee ese archivo junto a las specs. Un paso puede tener una segunda etiqueta: Lectura, Curso o Certificación.
+Expertos es una tarjeta con las personas del archivo del equipo y sus temas. Añadir una palabra escribe una palabra y su sentido en `docs/glossary.md`, y el glosario lee ese archivo junto a las especificaciones. Un paso puede tener una segunda etiqueta: Lectura, Curso o Certificación.
 
 ### Guía del equipo
 
@@ -180,7 +180,7 @@ Un informe se muestra solo cuando tu rol puede ver la página que contiene su ex
 
 Una página de formulario tiene la dirección `/library/reports/change-request` o `/library/reports/work-done`, y el enlace Informes para volver. Rellena los campos (una solicitud de cambio pide Desde la versión, Hasta la versión y Personas que aprueban: Añadir muestra el equipo con una casilla por persona) y haz clic en Escribir el informe. Un campo obligatorio vacío da una línea de error y no escribe nada. Tras escribir, la tarjeta Escrito muestra cada archivo con su ruta, Mostrar en la carpeta y Abrir. Las tarjetas de la derecha listan los otros informes con formulario, los informes sin formulario (Todos los informes) y las partes del dosier completo.
 
-El selector de formato ofrece también PDF (solo macOS) y Markdown; cada informe de texto puede escribirse en Markdown. Un informe escrito muestra su fecha y su persona, Páginas que enlazan a un informe lista las páginas que lo citan, y Dossier completo pregunta el título, el cliente y la fecha antes de escribir.
+El selector de formato ofrece también PDF (solo macOS) y Markdown; cada informe de texto puede escribirse en Markdown. Un informe escrito muestra su fecha y su persona, Páginas que enlazan a un informe lista las páginas que lo citan, y Dosier completo pregunta el título, el cliente y la fecha antes de escribir.
 
 ### Manual
 

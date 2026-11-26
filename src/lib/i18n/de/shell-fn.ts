@@ -48,7 +48,7 @@ export const shellFnDe: typeof shellFnEn = {
 		preview: "Vorschau",
 		budgetTitle: "Ein Budget hat {percent} % erreicht",
 		budgetBody: "{name}: {spent} von {budget}",
-		allTools: "Alle KI-Werkzeuge",
+		allTools: "Alle KI-Tools",
 	},
 	data: {
 		change: "Ändern",

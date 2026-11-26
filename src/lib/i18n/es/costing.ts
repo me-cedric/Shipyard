@@ -82,7 +82,7 @@ export const costingEs: typeof costingEn = {
 		chooseTicket: "Elegir un ticket",
 		otherWork: "Otro trabajo, no de construcción",
 		onlyIf: "Esto es cierto solo si",
-		newAssumption: "Nueva hipótesis",
+		newAssumption: "Nuevo supuesto",
 		add: "Añadir",
 		removeAssumption: "Quitar: {text}",
 		bothEnds: "Indica Mejor y Peor, o ninguno de los dos",

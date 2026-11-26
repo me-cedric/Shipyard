@@ -1318,7 +1318,11 @@ impl Inner {
                     let output = json!({"summary": u.text});
                     self.unit_done(run_id, sid, i, output, false);
                 } else {
-                    let reason = format!("the agent exited with {code:?}");
+                    // Plain words for the Story: no debug form of the exit code.
+                    let reason = code.map_or_else(
+                        || "the agent stopped with no exit code".to_string(),
+                        |c| format!("the agent exited with code {c}"),
+                    );
                     self.unit_failed(run_id, sid, i, &reason);
                 }
             }

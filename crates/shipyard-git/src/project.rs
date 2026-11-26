@@ -99,6 +99,16 @@ pub fn global_user_name() -> Option<String> {
     (!n.is_empty()).then(|| n.to_string())
 }
 
+/// The e-mail of the global git identity, lower case.
+pub fn global_user_email() -> Option<String> {
+    let e = git2::Config::open_default()
+        .ok()?
+        .get_string("user.email")
+        .ok()?;
+    let e = e.trim().to_lowercase();
+    (!e.is_empty()).then_some(e)
+}
+
 /// Starts a repository in `path` and writes the OS ignore rules.
 /// Only for a repository that Shipyard creates (REQ-005).
 pub fn init(path: &Path) -> Result<(), String> {

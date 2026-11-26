@@ -74,7 +74,7 @@ export const pullFr: typeof pullEn = {
 };
 
 export const pullDe: typeof pullEn = {
-	changesAsked: "Änderungen gewünscht",
+	changesAsked: "Änderungen angefordert",
 	pass: "Bestanden",
 	fail: "Fehler",
 	stepsOne: "1 Schritt vor dem Merge",
@@ -94,7 +94,7 @@ export const pullDe: typeof pullEn = {
 	describe: "Beschreibung schreiben",
 	askReview: "Den Assistenten um ein Review bitten",
 	askReply: "Den Assistenten um Antworten bitten",
-	mergePull: "Pull Request mergen",
+	mergePull: "Pull Request zusammenführen",
 	branches: "{source} nach {target}",
 	impactReport: "Auswirkungsbericht",
 	back: "Änderungen",

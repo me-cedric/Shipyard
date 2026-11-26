@@ -10,7 +10,7 @@ Team öffnet sich mit den Karten. Personen zeigt jede Person als Karte: die aktu
 
 ## Live
 
-Der Umschalter Karten und Live steht oben in Team. Live zeigt die Agenten bei der Arbeit. Jede Zeile zeigt einen Agenten, sein Feature mit seinem Zustand, und die Dateien und Specs, die der Agent liest und ändert. Der Filter ist Bei der Arbeit, Beendet, Dateien oder Specs. Fahren Sie über einen Agenten, um seine Ref zu sehen. Klicken Sie mit der rechten Maustaste, oder drücken Sie die Kontextmenü-Taste, um die Ref zu kopieren. Klicken Sie auf das Feature, um seine Seite zu öffnen.
+Der Umschalter Karten und Live steht oben in Team. Live zeigt die Agenten bei der Arbeit. Jede Zeile zeigt einen Agenten, sein Feature mit seinem Zustand, und die Dateien und Spezifikationen, die der Agent liest und ändert. Der Filter ist Bei der Arbeit, Beendet, Dateien oder Spezifikationen. Fahren Sie über einen Agenten, um seine Ref zu sehen. Klicken Sie mit der rechten Maustaste, oder drücken Sie die Kontextmenü-Taste, um die Ref zu kopieren. Klicken Sie auf das Feature, um seine Seite zu öffnen.
 
 ## Rezepte
 
@@ -54,7 +54,7 @@ Die Teamdatei `.shipyard/team.yaml` listet die Personen des Projekts, ihre Rolle
 
 Jedes Mitglied hat eine Rolle: Product Owner, Projektleitung, Architekt, Tech Lead, Business-Analyst, Entwickler, Tester, Designer oder Leser. Die Rolle gibt die Rechte, die erste Seite und die Felder in Heute (siehe Erste Schritte, Ihre Rolle).
 
-Ein Recht schaltet ein Bedienelement aus. Das Bedienelement bleibt sichtbar, und sein Tooltip nennt das fehlende Recht und Ihre Rolle. Ein Ort oder ein Abschnitt verschwindet nur, wenn das Team Ihrer Rolle keinen Zugriff darauf gibt.
+Ein Recht schaltet ein Bedienelement aus. Das Bedienelement bleibt sichtbar, und sein Tooltip nennt das fehlende Recht und Ihre Rolle. Ein Bereich oder ein Abschnitt verschwindet nur, wenn das Team Ihrer Rolle keinen Zugriff darauf gibt.
 
 - `work.edit`: Tickets, die Liste, das Board, der Plan, Schätzungen, Zeit.
 - `specs.edit`: Spezifikationsänderungen, Spezifikationen, Fragen, Testpläne, Projektregeln.
@@ -70,7 +70,7 @@ Ein Recht schaltet ein Bedienelement aus. Das Bedienelement bleibt sichtbar, und
 
 Die Markierung Admin gibt jedes Recht. Ein Mitglied kann Abweichungen haben: `+code.merge` fügt ein Recht hinzu, `-runs.approve` entfernt eines. Ihre persönliche Rolle in Einrichtung / Ich und das schreibgeschützte Profil eines Projekts können Rechte nur entfernen.
 
-Code und Merge ist eine Zeile: die Stufe von Code und ein Schalter Merge, die `code.write` und `code.merge` setzen. Die Stufe von Plan einer Rolle folgt ihrer Stufe von Arbeit, bis Sie sie ändern. Jede Rolle hat eine Einstellung Orte: Ein Ort, den Sie ausschalten, ist für diese Rolle ausgeblendet. Standardmäßig sehen Product Owner und Projektleitung Code nicht, Business-Analyst und Leser sehen Team und Code nicht, Architekt sieht Plan nicht, Tester sieht Plan und Team nicht, und Designer sieht Plan, Team und Code nicht. Die Standardrechte ändern sich nicht.
+Code und Merge ist eine Zeile: die Stufe von Code und ein Schalter Merge, die `code.write` und `code.merge` setzen. Die Stufe von Plan einer Rolle folgt ihrer Stufe von Arbeit, bis Sie sie ändern. Jede Rolle hat eine Einstellung Bereiche: Ein Bereich, den Sie ausschalten, ist für diese Rolle ausgeblendet. Standardmäßig sehen Product Owner und Projektleitung Code nicht, Business-Analyst und Leser sehen Team und Code nicht, Architekt sieht Plan nicht, Tester sieht Plan und Team nicht, und Designer sieht Plan, Team und Code nicht. Die Standardrechte ändern sich nicht.
 
 ### Wer Sie sind
 
@@ -80,13 +80,13 @@ Shipyard findet Sie über das Konto einer angemeldeten Verbindung, dann über Ih
 
 Wenn das Projekt ein Remote hat, liest Shipyard die Rechte aus der Teamdatei des Standard-Branches. Eine Änderung in Ihrer Arbeitskopie gibt kein Recht, bis sie zusammengeführt ist. Rechte warnt Sie, solange die beiden sich unterscheiden. Schützen Sie den Standard-Branch auf Ihrer Code-Plattform, und verlangen Sie ein Review für `.shipyard/team.yaml`: Shipyard kann eine Person nicht aufhalten, die Dateien mit einem anderen Werkzeug bearbeitet.
 
-### Die Rollen dieses Rechners übertragen
+### Die Rollen dieses Computers übertragen
 
-Wenn dieser Rechner Rollen nach E-Mail hält, bietet Rechte an, sie als Mitglieder zu schreiben. Ein früherer fachlicher Leiter wird Product Owner. Ein früherer Junior wird Entwickler ohne `code.merge` und `runs.approve`. Die Seitenmodi der alten Profile entfallen, und die Liste zeigt jeden von ihnen. Eine Person mit `project.settings` bestätigt.
+Wenn dieser Computer Rollen nach E-Mail hält, bietet Rechte an, sie als Mitglieder zu schreiben. Ein früherer fachlicher Leiter wird Product Owner. Ein früherer Junior wird Entwickler ohne `code.merge` und `runs.approve`. Die Seitenmodi der alten Profile entfallen, und die Liste zeigt jeden von ihnen. Eine Person mit `project.settings` bestätigt.
 
 ### Audit
 
-Jeder Schreibvorgang, der ein Recht braucht, und jede Ablehnung fügen dem Audit-Protokoll auf Ihrem Rechner eine Zeile hinzu. Rechte zeigt einer Person mit `project.settings` die letzten 100 Zeilen.
+Jeder Schreibvorgang, der ein Recht braucht, und jede Ablehnung fügen dem Audit-Protokoll auf Ihrem Computer eine Zeile hinzu. Rechte zeigt einer Person mit `project.settings` die letzten 100 Zeilen.
 
 ## Seiten
 

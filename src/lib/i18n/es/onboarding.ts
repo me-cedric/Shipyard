@@ -21,7 +21,7 @@ export const onboardingEs: typeof onboardingEn = {
 		},
 		connect: {
 			title: "Conectar el gestor de tickets y la plataforma de código",
-			body: "Los tickets vienen del gestor de tickets. Los pull requests van a la plataforma de código.",
+			body: "Los tickets vienen del gestor de tickets. Las pull requests van a la plataforma de código.",
 		},
 		ai: {
 			title: "Elegir la herramienta de IA",
@@ -33,7 +33,7 @@ export const onboardingEs: typeof onboardingEn = {
 		},
 		run: {
 			title: "Ejecutar tu primer ticket",
-			body: "Un agente planifica, construye y comprueba el ticket, y luego abre un pull request para tu revisión.",
+			body: "Un agente planifica, construye y comprueba el ticket, y luego abre una pull request para tu revisión.",
 		},
 	},
 	setup: {

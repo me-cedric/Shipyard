@@ -153,7 +153,7 @@ export const impactDe: typeof impactEn = {
 };
 
 export const impactEs: typeof impactEn = {
-	checks: "Controles",
+	checks: "Comprobaciones",
 	flow: "Flujo",
 	touches: "Lo que toca este cambio",
 	compare: "Comparar",
@@ -193,11 +193,11 @@ export const impactEs: typeof impactEn = {
 		you: "Tú",
 		showFindings: "Mostrar los hallazgos",
 		runAll: "Ejecutar todo",
-		runAllConfirm: "¿Ejecutar los {count} controles?",
+		runAllConfirm: "¿Ejecutar las {count} comprobaciones?",
 		setupScanners: "Configurar los escáneres",
 		setupOne: "Configurar",
 		sbom: "Exportar la lista de piezas (SBOM)",
-		commands: "Comandos de los controles",
+		commands: "Comandos de las comprobaciones",
 		edit: "Editar",
 		open: "Abrir",
 		openName: "Abrir {name}",

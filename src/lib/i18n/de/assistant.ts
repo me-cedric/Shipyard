@@ -29,7 +29,7 @@ export const assistantDe: typeof assistantEn = {
 		approve: "Bearbeiten mit Freigabe",
 		auto: "Auto: Änderungen annehmen",
 		bypass: "Berechtigungen umgehen",
-		read_only: "Nur Lesen",
+		read_only: "Nur lesen",
 	},
 	trace: "So habe ich es gefunden",
 	tools: "{count} Werkzeuge",

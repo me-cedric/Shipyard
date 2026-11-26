@@ -13,9 +13,9 @@ export const runsRecipesEs: typeof runsRecipesEn = {
 	limitError: "El límite es una cantidad de más de cero dólares.",
 	budgetError: "El presupuesto es de cero dólares o más.",
 	stageAtOnce: "{name}, a la vez",
-	warnAtPercent: "Avisar al, en porcentaje",
-	editWarn: "Cambiar Avisar al",
-	warnAtError: "Avisar al: un número entero de 1 a 100",
+	warnAtPercent: "Avisar al llegar a (%)",
+	editWarn: "Cambiar el aviso",
+	warnAtError: "Aviso: un número entero de 1 a 100",
 	save: "Guardar",
 	thenFor: "Después, {name}",
 	choice: {

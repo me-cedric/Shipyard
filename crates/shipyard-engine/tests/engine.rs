@@ -762,7 +762,7 @@ fn a_stop_report_gives_the_cause_the_lines_what_was_tried_and_the_action() {
     );
     for part in [
         "retries spent",
-        "the agent exited with Some(2)",
+        "the agent exited with code 2",
         "Tried: ",
         "Action: ",
     ] {
