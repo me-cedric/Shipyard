@@ -56,7 +56,7 @@ export function SessionsPart() {
 			<ul aria-label={p.title} tabIndex={-1} className="max-h-80 overflow-y-auto py-1 empty:hidden">
 				<AnimatePresence initial={false}>
 					{live.map((s) => {
-						const name = `${runnerName(s.runner)} ${s.project}`;
+						const name = `${runnerName(s.runner)} ${s.title || s.project}`.trim();
 						const pid = s.pid;
 						return (
 							<Leave as="li" key={s.key} className="flex items-center gap-2.5 px-3 py-1.5">
@@ -68,13 +68,18 @@ export function SessionsPart() {
 								</span>
 								<span className="flex min-w-0 flex-1 flex-col">
 									<span className="flex items-center gap-1.5">
-										<span className="truncate text-n-12">{s.project}</span>
+										{/* The title of the session, else its folder, else the tool: a row always has a name. */}
+										<span className="truncate text-n-12">
+											{s.title || s.project || runnerName(s.runner)}
+										</span>
 										<span className="text-12 text-n-10">
 											{m.state[s.state as "idle"] ?? s.state}
 										</span>
 									</span>
 									<span className="truncate font-mono text-11 text-n-11">
-										{runnerName(s.runner)} · {s.model}
+										{[runnerName(s.runner), s.model, s.title ? s.project : ""]
+											.filter(Boolean)
+											.join(" · ")}
 									</span>
 								</span>
 								<span className="flex shrink-0 flex-col items-end font-mono text-11 text-n-11">

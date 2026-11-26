@@ -57,6 +57,8 @@ export const errorsDe: Record<Exclude<ErrorCode, "unknown">, string> = {
 	gitlab_address:
 		"Die GitLab-Adresse hat sich geändert. Schalten Sie die GitLab-Werkzeuge erneut ein.",
 	read_only: "Dieses Projekt ist schreibgeschützt. Ändern Sie sein Profil, um zu bearbeiten.",
+	missing_right:
+		"Ihre Rolle erlaubt diese Änderung nicht. Fragen Sie einen Admin des Teams oder ändern Sie Ihre Rolle unter Einrichtung / Ich.",
 	agents_stopped: "Die Agenten sind gestoppt. Schalten Sie sie ein und versuchen Sie es erneut.",
 	agent_limit:
 		"Zu viele Agenten laufen gerade. Warten Sie, bis einer endet, und versuchen Sie es erneut.",

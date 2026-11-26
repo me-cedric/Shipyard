@@ -103,7 +103,8 @@ describe("the error contract", () => {
 		expect(classify("odd failure")).toEqual({ code: "unknown", action: null });
 		// The error of a command: `unwrap` marks it.
 		const odd = toFailure("odd failure", true);
-		expect(odd.message).toBe("Something went wrong. Try again.");
+		// The text for a view with no Details control: the sentence, then the raw text.
+		expect(odd.message).toBe("Something went wrong. Try again. (odd failure)");
 		expect(odd.details).toBe("odd failure");
 		expect(log).toHaveBeenCalledTimes(1);
 		expect(log).toHaveBeenCalledWith("odd failure");
@@ -112,7 +113,7 @@ describe("the error contract", () => {
 		for (const lang of ["en", "fr", "de", "es"] as const)
 			expect(errorMessage(odd, lang)).toBe(unknownMessage[lang]);
 		expect(toFailure({ code: "unknown", details: "boom", action: null }).message).toBe(
-			unknownMessage.en,
+			`${unknownMessage.en} (boom)`,
 		);
 		// A text or an `Error` of the interface holds a sentence for the person: it shows as written, with no log line.
 		log.mockClear();

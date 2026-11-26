@@ -556,7 +556,7 @@ export function WorkingCopy({ changes }: { changes: ChangesData }) {
 									<li
 										key={r.path}
 										className={cn(
-											"flex min-h-13 items-center gap-3 px-5 [&+&]:border-t [&+&]:border-n-6",
+											"mx-2 flex min-h-13 items-center gap-3 rounded-md px-5 [&+&]:border-t [&+&]:border-n-6",
 											r.path === path && "bg-accent-tint",
 										)}
 									>

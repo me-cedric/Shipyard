@@ -52,7 +52,7 @@ function Row({ r }: { r: PrRowView }) {
 	const menu = useMenus();
 	const navigate = useNavigate();
 	return (
-		<div className="flex items-center gap-2 border-b pr-3 transition-colors duration-(--duration-fast) last:border-b-0 hover:bg-n-3">
+		<div className="mx-2 flex items-center gap-2 rounded-md border-b pr-3 transition-colors duration-(--duration-fast) last:border-b-0 hover:bg-n-3">
 			<ContextMenu
 				items={menu("pull", {
 					open: () => void navigate(pullHref(r.reference)),

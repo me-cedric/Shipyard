@@ -51,6 +51,8 @@ export const errorsEs: Record<Exclude<ErrorCode, "unknown">, string> = {
 		"Este inicio de sesión de GitLab no puede abrir las herramientas de GitLab. Inicia sesión de nuevo.",
 	gitlab_address: "La dirección de GitLab cambió. Vuelve a activar las herramientas de GitLab.",
 	read_only: "Este proyecto es de solo lectura. Cambia su perfil para editar.",
+	missing_right:
+		"Tu rol no permite este cambio. Pide el permiso a un admin del equipo o cambia tu rol en Configuración / Yo.",
 	agents_stopped: "Los agentes están detenidos. Actívalos e inténtalo de nuevo.",
 	agent_limit: "Hay demasiados agentes en marcha. Espera a que termine uno e inténtalo de nuevo.",
 	budget_spent: "El presupuesto se agotó. La revisión espera al próximo presupuesto.",

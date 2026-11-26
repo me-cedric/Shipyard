@@ -103,8 +103,8 @@ describe("Today / Activity (spec:app-redesign#REQ-008)", () => {
 			"href",
 			"/crew/sessions",
 		);
-		await user.click(within(list).getByRole("button", { name: "Stop Codex beta" }));
-		await user.click(within(list).getByRole("button", { name: "Stop Codex beta?" }));
+		await user.click(within(list).getByRole("button", { name: "Stop Codex Add the export" }));
+		await user.click(within(list).getByRole("button", { name: "Stop Codex Add the export?" }));
 		await waitFor(() =>
 			expect(mockState().machine.sessions.some((s) => s.pid === 4188)).toBe(false),
 		);

@@ -25,7 +25,7 @@ function Slide({
 			animate={{ opacity: 1, x: 0 }}
 			exit={slide}
 			transition={still ? { duration: 0 } : SPRING.smooth}
-			className="pointer-events-auto rounded-md border border-n-7 bg-n-2"
+			className="pointer-events-auto rounded-lg border border-n-7 bg-surface-3 shadow-3"
 		>
 			{children}
 		</motion.div>
@@ -84,6 +84,7 @@ export function Toaster({
 				{toasts.map((n) => (
 					<Slide key={n.id} slide={slide} still={still}>
 						<NotificationRow
+							toast
 							kind={n.kind}
 							kindLabel={t.notifications.kind[n.kind]}
 							title={n.title}

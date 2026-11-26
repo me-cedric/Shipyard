@@ -17,9 +17,8 @@ async function openKnowledge(page: Page, tab: string) {
 
 test("filters the graph by kind and explains an entity from the inspector", async ({ page }) => {
 	await openKnowledge(page, "Map");
-	// The Map opens on its cards: the graph, the table and the filters are in the page menu.
-	await page.getByRole("main").getByRole("button", { name: "More", exact: true }).click();
-	await page.getByRole("menuitem", { name: "Graph" }).click();
+	// The Map opens on its cards: the switch View has the table and the graph.
+	await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Graph" }).click();
 	// The clusters come first: a click opens one in place, a second click closes it.
 	const adr = page.getByRole("button", { name: /^Decision adr:0001/ });
 	const cluster = page.locator('button[data-node="cluster/adr"]');

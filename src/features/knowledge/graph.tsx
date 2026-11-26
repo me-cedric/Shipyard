@@ -226,9 +226,6 @@ export function Graph() {
 		<LibraryPage
 			title={k.graph.title}
 			menu={[
-				...(source === "code" ? (["graph"] as const) : (["map", "table", "graph"] as const))
-					.filter((id) => id !== view)
-					.map((id) => ({ label: k.graph.views[id], onClick: () => go({ view: id }) })),
 				// The filter of the knowledge map: it needs the flags that the knowledge items carry.
 				...(source === "refs" && view === "map"
 					? (["orphan", "stale"] as const)
@@ -250,22 +247,18 @@ export function Graph() {
 							items={(["refs", "code"] as const).map((id) => ({ value: id, label: k.graph[id] }))}
 						/>
 					</div>
-					{source === "code" ? (
-						<div>
-							<Segmented
-								label={k.graph.view}
-								value={view}
-								onValueChange={(to) => go({ view: to })}
-								items={(view === "graph"
-									? (["map", "table", "graph"] as View[])
-									: (["map", "table"] as View[])
-								).map((id) => ({
-									value: id,
-									label: k.graph.views[id],
-								}))}
-							/>
-						</div>
-					) : null}
+					{/* The three views show for each source: the graph is one click away, not in More. */}
+					<div>
+						<Segmented
+							label={k.graph.view}
+							value={view}
+							onValueChange={(to) => go({ view: to })}
+							items={(["map", "table", "graph"] as View[]).map((id) => ({
+								value: id,
+								label: k.graph.views[id],
+							}))}
+						/>
+					</div>
 					{source === "code" && !wantsIndex ? (
 						<Button className="min-h-control" busy={index.isPending} onClick={runIndex}>
 							{k.graph.indexAgain}

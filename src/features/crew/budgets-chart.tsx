@@ -5,11 +5,21 @@ import { useMachineSpend } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Segmented } from "@/ui/atoms/segmented";
+import { Tooltip } from "@/ui/atoms/tooltip";
 import { Card } from "@/ui/molecules/card";
 
 type By = "day" | "runner" | "model" | "project";
 const DAY = 86_400_000;
 const BARS = 7;
+const TICKS = 4;
+
+/** Round ticks from 0 to a round top above `max`: 5 values. */
+export function niceTicks(max: number): number[] {
+	const raw = max / TICKS;
+	const pow = 10 ** Math.floor(Math.log10(raw));
+	const step = [1, 2, 2.5, 5, 10].map((k) => k * pow).find((v) => v >= raw * 0.999999) ?? pow * 10;
+	return Array.from({ length: TICKS + 1 }, (_, i) => Number((i * step).toPrecision(12)));
+}
 
 /** The spend of this computer in the last 30 days, grouped (picture 083). */
 export function SpendChart({ prices }: { prices: boolean }) {
@@ -34,7 +44,8 @@ export function SpendChart({ prices }: { prices: boolean }) {
 			: group(rows, by).slice(0, BARS);
 	// One period for every view: the 30 days.
 	const total = rows.reduce((n, r) => n + (r.costUsd ?? 0), 0);
-	const max = Math.max(...lines.map((l) => l.usd), 0.01);
+	const ticks = niceTicks(Math.max(...lines.map((l) => l.usd), 0.01));
+	const top = ticks[TICKS] ?? 1;
 	const label = (name: string) =>
 		by === "day" ? plain(name) : by === "runner" ? runnerName(name) : name;
 	const amount = (usd: number) => (prices ? `$${usd.toFixed(2)}` : t.extras.usage.hidden);
@@ -53,19 +64,53 @@ export function SpendChart({ prices }: { prices: boolean }) {
 					/>
 				</div>
 			</div>
-			<div role="img" aria-label={s.spendBy} className="flex h-50 items-end gap-3 pt-6">
-				{lines.map((l) => (
-					<div
-						key={l.name}
-						title={`${label(l.name)}: ${amount(l.usd)}`}
-						style={{ height: `${Math.max(2, (l.usd / max) * 100)}%` }}
-						className="min-w-0 flex-1 rounded-t-md bg-accent/45"
-					/>
-				))}
+			<div className="flex h-50 gap-3 pt-6">
+				<div aria-hidden="true" className="relative w-14 shrink-0 text-12 text-n-11">
+					{ticks.map((v) => (
+						<span
+							key={v}
+							style={{ bottom: `${(v / top) * 100}%` }}
+							className="absolute right-0 translate-y-1/2 tabular-nums"
+						>
+							{prices ? amount(v) : ""}
+						</span>
+					))}
+				</div>
+				<fieldset
+					aria-label={s.spendBy}
+					className="relative m-0 flex min-w-0 flex-1 gap-3 border-0 p-0"
+				>
+					<div aria-hidden="true" className="pointer-events-none absolute inset-0">
+						{ticks.map((v) => (
+							<div
+								key={v}
+								style={{ bottom: `${(v / top) * 100}%` }}
+								className="absolute inset-x-0 border-t border-n-5"
+							/>
+						))}
+					</div>
+					{lines.map((l) => {
+						const text = `${label(l.name)}: ${amount(l.usd)}`;
+						return (
+							<Tooltip key={l.name} label={text}>
+								<button
+									type="button"
+									aria-label={text}
+									className="relative flex min-w-11 flex-1 items-end rounded-t-md outline-none focus-visible:ring-2 focus-visible:ring-accent"
+								>
+									<span
+										style={{ height: `${Math.max(2, (l.usd / top) * 100)}%` }}
+										className="w-full rounded-t-md bg-accent/45"
+									/>
+								</button>
+							</Tooltip>
+						);
+					})}
+				</fieldset>
 			</div>
 			<div
 				aria-hidden="true"
-				className="flex justify-between gap-3 text-13 font-semibold text-n-11"
+				className="flex justify-between gap-3 pl-17 text-13 font-semibold text-n-11"
 			>
 				{lines.map((l) => (
 					<span

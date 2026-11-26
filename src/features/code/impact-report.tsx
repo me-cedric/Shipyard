@@ -118,7 +118,7 @@ function ReportPage({ title, back }: { title: string; back: ReactNode }) {
 								type="button"
 								aria-current={e.plan === entry?.plan || undefined}
 								onClick={() => setPath(e.plan)}
-								className="flex min-h-control w-full items-center gap-2 px-3 text-left text-ui hover:bg-n-3 aria-[current]:bg-accent-soft"
+								className="mx-auto flex min-h-control w-[calc(100%-1rem)] items-center gap-2 rounded-md px-3 text-left text-ui hover:bg-n-3 aria-[current]:bg-accent-soft"
 							>
 								<span className="font-mono text-12 text-n-11">{e.date}</span>
 								{e.slug}

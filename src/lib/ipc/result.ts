@@ -5,8 +5,8 @@ import type { ErrorAction, ErrorCode } from "./bindings";
 type Result<T> = { status: "ok"; data: T } | { status: "error"; error: unknown };
 
 /**
- * A failed command. `message` is the sentence of the error code in the language of the app, so a
- * view that shows `error.message` never shows a raw Rust text. `details` keeps the raw text.
+ * A failed command. `message` is the sentence of the error code in the language of the app.
+ * `details` keeps the raw text; `ErrorNotice` shows it behind Details.
  */
 export class AppFailure extends Error implements ErrorParts {
 	readonly code: ErrorCode;
@@ -21,7 +21,14 @@ export class AppFailure extends Error implements ErrorParts {
 		this.details = parts.details;
 		this.action = parts.action;
 		this.own = parts.own ?? false;
-		Object.defineProperty(this, "message", { get: () => errorMessage(this) });
+		// A view that shows only this text has no Details control: an error with no code keeps its
+		// raw text after the sentence, so the cause is never lost.
+		Object.defineProperty(this, "message", {
+			get: () =>
+				this.code === "unknown" && !this.own && this.details
+					? `${errorMessage(this)} (${this.details})`
+					: errorMessage(this),
+		});
 	}
 }
 

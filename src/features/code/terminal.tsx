@@ -48,11 +48,14 @@ export function TerminalScreen({
 						<Button onClick={restart}>{t.forge.terminal.restart}</Button>
 					</div>
 				) : null}
-				<section
-					ref={host}
-					aria-label={t.forge.terminal.label}
-					className="min-h-0 flex-1 p-6 [&_.xterm-scrollable-element]:bg-transparent! [&_.xterm-viewport]:bg-transparent!"
-				/>
+				{/* The padding sits on the wrapper: xterm measures `host` and fits whole rows in it. */}
+				<div className="flex min-h-0 flex-1 flex-col p-6">
+					<section
+						ref={host}
+						aria-label={t.forge.terminal.label}
+						className="min-h-0 flex-1 overflow-hidden [&_.xterm-scrollable-element]:bg-transparent! [&_.xterm-viewport]:bg-transparent!"
+					/>
+				</div>
 			</div>
 		</>
 	);

@@ -79,6 +79,7 @@ pub enum ErrorCode {
     GitlabNoMcp,
     GitlabAddress,
     ReadOnly,
+    MissingRight,
     AgentsStopped,
     AgentLimit,
     BudgetSpent,
@@ -175,6 +176,7 @@ impl ErrorCode {
             Self::GitState => (ActionKind::Open, "/code/branches"),
             Self::FigmaNoToken => (ActionKind::Open, "/library/screens"),
             Self::ReadOnly | Self::ProjectFileInvalid => (ActionKind::Open, "/setup/project"),
+            Self::MissingRight => (ActionKind::Open, "/setup/me"),
             Self::AgentsStopped => (ActionKind::Open, "/flow/flow"),
             Self::GitDirty => (ActionKind::Open, "/code/now"),
             _ => return None,
@@ -258,6 +260,8 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ),
     ("the GitLab address changed", ErrorCode::GitlabAddress),
     ("is read only", ErrorCode::ReadOnly),
+    // After "is read only": a refusal of a read-only profile keeps that code and its action.
+    ("missing right ", ErrorCode::MissingRight),
     ("the agents are stopped", ErrorCode::AgentsStopped),
     ("the agent limit is reached", ErrorCode::AgentLimit),
     ("is spent: the review waits", ErrorCode::BudgetSpent),
@@ -639,7 +643,19 @@ mod tests {
             AppError::from("missing dependency: Docker").code,
             ErrorCode::ExtensionDependency
         );
+        assert_eq!(
+            AppError::from("missing right project.settings (architect)").code,
+            ErrorCode::MissingRight
+        );
+        assert_eq!(
+            AppError::from(
+                "missing right code.write (po): the profile of this project is read only"
+            )
+            .code,
+            ErrorCode::ReadOnly
+        );
         for text in [
+            "missing right project.settings (admin)",
             "no Figma token: add it",
             "the profile of this project is read only",
             "the agents are stopped: switch them on first",

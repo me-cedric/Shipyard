@@ -684,8 +684,15 @@ pub struct Proc {
 
 /// The agent that a command line runs.
 pub fn agent_of_command(command: &str) -> Option<&'static str> {
+    // The Claude desktop app and its helper processes are not sessions: their binary is `Claude`,
+    // with a capital. The launcher `disclaimer` only starts the binary of a session.
+    if command.contains("/Contents/MacOS/Claude") || command.contains("/Helpers/disclaimer ") {
+        return None;
+    }
     let lower = command.replace('\\', "/").to_ascii_lowercase();
     for (package, agent) in [
+        // Claude Code inside the desktop app: its path holds a space, so the first word is no help.
+        ("/claude.app/contents/macos/claude", "claude"),
         ("@anthropic-ai/claude-code/", "claude"),
         ("@openai/codex/", "codex"),
         ("@github/copilot/", "copilot"),
@@ -1312,6 +1319,21 @@ not json"#;
         );
         assert_eq!(agent_of_command("/usr/bin/bun codex"), Some("codex"));
         assert_eq!(agent_of_command("/opt/bin/claude"), Some("claude"));
+        // Claude Code of the desktop app is a session, also with a space in its path.
+        assert_eq!(
+            agent_of_command(
+                "/Users/a/Library/Application Support/Claude/claude-code/2.1/x/claude.app/Contents/MacOS/claude --verbose"
+            ),
+            Some("claude")
+        );
+        // The desktop app, its helpers and the launcher of a session are not sessions.
+        for gui in [
+            "/Applications/Claude.app/Contents/MacOS/Claude",
+            "/Applications/Claude.app/Contents/Frameworks/Claude Helper.app/Contents/MacOS/Claude Helper --type=gpu-process",
+            "/Applications/Claude.app/Contents/Helpers/disclaimer --pgroup -- /Users/a/Library/Application Support/Claude/claude-code/2.1/x/claude.app/Contents/MacOS/claude --verbose",
+        ] {
+            assert_eq!(agent_of_command(gui), None, "{gui}");
+        }
         for not_agent in ["vim claude", "less codex", "python ./codex", "node"] {
             assert_eq!(agent_of_command(not_agent), None, "{not_agent}");
         }

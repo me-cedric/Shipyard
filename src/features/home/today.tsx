@@ -18,7 +18,6 @@ import { MenuButton } from "@/ui/molecules/menu-button";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { NeedsRow, OpenQuestion } from "./inbox/inbox";
 import { PinnedDashboards, PlanCards } from "./role-panels";
-import { useMyItems } from "./stats";
 import { TimeReminder } from "./time-reminder";
 import { WorkingNow } from "./working-now";
 
@@ -68,7 +67,6 @@ export function Today() {
 	// The queue shows the next three things; "N more" shows the rest in place.
 	const [rest, setRest] = useState(false);
 	const { teamRole } = usePrefs();
-	const mine = useMyItems();
 	// Later moves a thing to the end of the queue for this visit; a click on the queue picks one.
 	const ordered = [
 		...items.filter((i) => !later.includes(i.id)),
@@ -100,7 +98,8 @@ export function Today() {
 		setLater([...later.filter((x) => x !== id), id]);
 		setPicked(null);
 	};
-	const nothing = items.length === 0 && mine.length === 0;
+	// With no thing to answer, the page says so: tickets of the person are not things that wait.
+	const nothing = items.length === 0;
 	const toEnd = ordered.length > 1 && first ? () => toLater(first.id) : undefined;
 	return (
 		// tabIndex -1: where the focus lands when the last thing leaves (`Leave`).

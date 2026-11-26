@@ -1,6 +1,10 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Code / Historique dessine le graphe des commits avec une ligne par branche, une courbe là où une fusion reprend une branche et une courbe là où une branche démarre, et chaque ligne montre ses étiquettes de branche et de tag ; une ligne sélectionnée ou survolée garde ses coins arrondis dans sa carte sur Historique, Modifications, Pull requests, les plans de test et le panneau de la barre de menus.
+- Les sessions actives ne listent plus l'application de bureau Claude comme dix sessions vides : Shipyard trouve Claude Code de l'application de bureau, et chaque ligne montre le titre de la session, son dossier et son modèle.
+- Un changement que votre rôle ne permet pas montre une phrase simple avec un bouton vers Configuration / Moi, et le choix À la limite de Crew / Dépenses / Budgets est inactif sans le droit ; une erreur que Shipyard ne connaît pas garde sa cause après la phrase là où une page n'a pas de contrôle Détails.
+- Le graphique des dépenses de Crew a un axe en argent avec des lignes de grille, et chaque barre montre son montant au survol ou au focus ; Bibliothèque / Carte montre Carte, Tableau et Graphe dans un seul sélecteur ; Aujourd'hui dit Rien ne vous attend quand rien n'attend ; une notification tient sur une ligne centrée ; la dernière ligne du terminal n'est plus coupée.
 - La question d'un bouton Arrêter, par exemple Arrêter Security scan findings ?, passe à la ligne dans son bouton, et l'interrupteur Agents actifs de Crew s'affiche sans cadre.
 - Une erreur que Shipyard ne connaît pas montre une phrase simple, avec le texte technique derrière Détails et un bouton Copier ; une phrase que l'interface écrit elle-même, comme une permission manquante ou une limite, s'affiche telle quelle, et un lien cassé dans la santé du projet nomme sa cible en mots, par exemple Décision 0009.
 - La page d'une fonctionnalité a Lier un écran et Lier un diagramme : vous choisissez un élément de la Bibliothèque, Shipyard l'écrit dans la proposition du changement, et l'élément s'affiche tout de suite dans la carte Design ; une fonctionnalité sans changement garde le bouton qui ouvre la Bibliothèque.

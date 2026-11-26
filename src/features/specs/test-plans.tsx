@@ -284,11 +284,11 @@ function PlanView({
 				<Card className="py-2">
 					<ul aria-label={s.errors} className="flex flex-col">
 						{plan.errors.map((e) => (
-							<li key={`${e.line}:${e.message}`} className="[&+&]:border-t [&+&]:border-n-6">
+							<li key={`${e.line}:${e.message}`} className="mx-2 [&+&]:border-t [&+&]:border-n-6">
 								<button
 									type="button"
 									onClick={() => show(e.line)}
-									className="flex min-h-15 w-full cursor-pointer flex-wrap items-center gap-3 px-6 text-left hover:bg-n-2"
+									className="flex min-h-15 w-full cursor-pointer flex-wrap items-center gap-3 rounded-md px-4 text-left hover:bg-n-2"
 								>
 									<span className="font-semibold">
 										{s.editor.line} {e.line}

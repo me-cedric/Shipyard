@@ -271,7 +271,7 @@ describe("Code / the files to commit", () => {
 		await user.clear(result);
 		await user.type(result, "<<<<<<< x");
 		await user.click(screen.getByRole("button", { name: "Save result" }));
-		expect(await screen.findByText("Something went wrong. Try again.")).toBeInTheDocument();
+		expect(await screen.findByText(/Something went wrong\. Try again\./)).toBeInTheDocument();
 		await user.clear(result);
 		await user.type(result, "typed");
 		await user.click(screen.getByRole("button", { name: "Save result" }));

@@ -38,4 +38,14 @@ describe("Toaster", () => {
 		expect(screen.getByText("Title b").closest("[inert]")).toBeNull();
 		await vi.waitFor(() => expect(screen.queryByText("Title a")).toBeNull());
 	});
+
+	it("draws a toast as one centred row with its button beside the text", () => {
+		const run = vi.fn();
+		render(ui([{ ...notice("a"), action: { label: "Open", run } } as Notice]));
+		const row = screen.getByRole("article");
+		expect(row).toHaveClass("items-center");
+		expect(row).not.toHaveClass("border-b");
+		const open = screen.getByRole("button", { name: "Open" });
+		expect(open.parentElement?.parentElement).toBe(row);
+	});
 });

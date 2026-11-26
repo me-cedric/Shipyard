@@ -314,7 +314,7 @@ describe("assistant panel: modes and failures", () => {
 			"Budget at 80 % or more: day 2026-10-29",
 		);
 		await say(user, "spent");
-		expect(await screen.findByText("Something went wrong. Try again.")).toBeInTheDocument();
+		expect(await screen.findByText(/Something went wrong\. Try again\./)).toBeInTheDocument();
 		await waitFor(() => expect(input()).toHaveValue("spent"));
 	});
 });

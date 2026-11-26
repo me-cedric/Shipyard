@@ -132,9 +132,10 @@ test("junior", async ({ page }) => {
 		"Knowledge, Graph",
 		async () => {
 			await w.go("Library", "Map");
-			// The graph is in the page menu.
-			await w.click(page.getByRole("main").getByRole("button", { name: "More", exact: true }));
-			await w.click(page.getByRole("menuitem", { name: "Graph" }));
+			// The graph is in the switch View of the page.
+			await w.click(
+				page.getByRole("group", { name: "View" }).getByRole("button", { name: "Graph" }),
+			);
 			await w.see(page.getByRole("button", { name: "Table view" }), "no table view of the graph");
 		},
 		true,

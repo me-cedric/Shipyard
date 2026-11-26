@@ -5,13 +5,14 @@ import { useGuard } from "@/features/work/guard";
 import { useFactoryWrites, useMachineSpend, useMachineWrites, useUsage } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type Then, unwrap } from "@/lib/ipc";
-import { RightButton } from "@/lib/rights";
+import { RightButton, useRights } from "@/lib/rights";
 import { syncKeys, useAutomation } from "@/lib/sync";
 import { runnerName } from "@/ui/atoms/brand-icon";
 import { Button, buttonVariants } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { SpendMeter } from "@/ui/molecules/spend-meter";
@@ -39,7 +40,7 @@ export function useBudgetRules() {
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const view = useAutomation().data;
-	const { error, run } = useGuard();
+	const { error, failure, run } = useGuard();
 	const budgets = view?.automation.budgets;
 	const save = (patch: object, check?: () => string | null) =>
 		run(async () => {
@@ -58,6 +59,7 @@ export function useBudgetRules() {
 		warn: budgets?.warn_at ?? WARN_AT,
 		choice: (scope: ThenScope): Then => budgets?.at_limit?.[scope] ?? "stop_ask",
 		error,
+		failure,
 		setWarn: (text: string) =>
 			save({ warn_at: Number(text) }, () =>
 				/^\d+$/.test(text.trim()) && Number(text) >= 1 && Number(text) <= 100
@@ -122,11 +124,7 @@ export function WarnAt() {
 			>
 				{r.save}
 			</RightButton>
-			{rules.error ? (
-				<p role="alert" className="w-full text-ui text-danger-text">
-					{rules.error}
-				</p>
-			) : null}
+			{rules.failure ? <ErrorNotice error={rules.failure} className="w-full" /> : null}
 		</form>
 	);
 }
@@ -211,6 +209,7 @@ export function BudgetsPage() {
 	const m = f.machine;
 	const b = useBudgets();
 	const rules = useBudgetRules();
+	const gate = useRights().gate("project.settings");
 	const { prices, price, menu } = usePrices();
 	const usage = useUsage().data;
 	const spend = useMachineSpend(90);
@@ -267,6 +266,9 @@ export function BudgetsPage() {
 						className="min-h-control"
 						items={THEN.map((v) => ({ value: v, label: f.runsRecipes.choice[v] }))}
 						value={rules.choice(then)}
+						// The save needs the right to change the project: the control is off without it.
+						disabled={gate.disabled}
+						reason={gate.reason}
 						onValueChange={(v) => void rules.setThen(then, v as Then)}
 					/>
 				) : null}
@@ -398,10 +400,12 @@ export function BudgetsPage() {
 			/>
 			<div className="flex flex-wrap items-start gap-5 px-4 pb-4">
 				<div className="flex flex-[2_1_21rem] flex-col gap-5">
-					{b.error || error || rules.error ? (
+					{b.error || error ? (
 						<p role="alert" className="text-ui text-danger-text">
-							{b.error ?? error ?? rules.error}
+							{b.error ?? error}
 						</p>
+					) : rules.failure ? (
+						<ErrorNotice error={rules.failure} />
 					) : null}
 					<Card className="py-2" role="region" aria-label={f.budgets}>
 						<h2 className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">{s.limits}</h2>

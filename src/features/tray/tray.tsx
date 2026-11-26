@@ -207,13 +207,13 @@ export function TrayView() {
 									</button>
 								) : null}
 							</div>
-							<ul>
+							<ul className="pb-2">
 								{items.slice(0, SHOWN).map((i) => (
-									<li key={i.id} className="[&+&]:border-t [&+&]:border-n-6">
+									<li key={i.id} className="mx-2 [&+&]:border-t [&+&]:border-n-6">
 										<button
 											type="button"
 											onClick={() => void run(() => openItem(i.ref))}
-											className="flex min-h-13 w-full items-center gap-3 px-4 text-left hover:bg-n-2"
+											className="flex min-h-13 w-full items-center gap-3 rounded-md px-4 text-left hover:bg-n-2"
 										>
 											<Avatar name={i.by || "Shipyard"} size="s" agent={i.who === "agent"} />
 											<span className="min-w-0 flex-1 truncate font-semibold">
@@ -251,7 +251,7 @@ export function TrayView() {
 							{runs.slice(0, SHOWN_RUNS).map((r) => (
 								<div
 									key={r.id}
-									className="flex min-h-13 items-center gap-3 pr-2 pl-4 [&+&]:border-t [&+&]:border-n-6"
+									className="mx-2 flex min-h-13 items-center gap-3 pr-2 pl-4 [&+&]:border-t [&+&]:border-n-6"
 								>
 									<Avatar name={r.workflow || "Shipyard"} size="s" agent />
 									<span className="min-w-0 flex-1 truncate font-semibold">{r.title || r.key}</span>

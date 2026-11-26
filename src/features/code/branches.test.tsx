@@ -41,13 +41,14 @@ describe("Code / History", () => {
 		expect(await screen.findByRole("region", { name: "Diff of src/app.ts" })).toBeInTheDocument();
 	});
 
-	it("shows the labels of a commit behind More", async () => {
+	it("shows the labels of a commit on its row and behind More", async () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/code/history");
 		await screen.findByRole("button", { name: /fix\(auth\): refuse an empty token/ });
 		await user.click(await screen.findByRole("button", { name: "More" }));
-		expect(await screen.findByText("origin/main")).toBeInTheDocument();
+		// The row of the commit shows the label, and More of the open commit shows it again.
+		expect(await screen.findAllByText("origin/main")).toHaveLength(2);
 	});
 
 	it("loads older commits and stops when the log is whole", async () => {

@@ -55,6 +55,8 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		gitlab_no_mcp: "This GitLab sign-in cannot open the GitLab tools. Sign in again.",
 		gitlab_address: "The GitLab address changed. Switch the GitLab tools on again.",
 		read_only: "This project is read only. Change its profile to edit.",
+		missing_right:
+			"Your role does not allow this change. Ask an admin of the team, or change your role in Setup / Me.",
 		agents_stopped: "Agents are stopped. Switch them on, then try again.",
 		agent_limit: "Too many agents run now. Wait for one to end, then try again.",
 		budget_spent: "The budget is spent. The review waits for the next budget.",
@@ -162,6 +164,8 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		gitlab_no_mcp: "Cette connexion GitLab ne peut pas ouvrir les outils GitLab. Reconnectez-vous.",
 		gitlab_address: "L'adresse GitLab a changé. Réactivez les outils GitLab.",
 		read_only: "Ce projet est en lecture seule. Changez son profil pour modifier.",
+		missing_right:
+			"Votre rôle ne permet pas ce changement. Demandez à un admin de l'équipe, ou changez votre rôle dans Configuration / Moi.",
 		agents_stopped: "Les agents sont arrêtés. Activez-les, puis réessayez.",
 		agent_limit: "Trop d'agents tournent. Attendez la fin de l'un d'eux, puis réessayez.",
 		budget_spent: "Le budget est épuisé. La revue attend le prochain budget.",
@@ -312,6 +316,7 @@ export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["the GitLab sign-in has no mcp scope", "gitlab_no_mcp"],
 	["the GitLab address changed", "gitlab_address"],
 	["is read only", "read_only"],
+	["missing right ", "missing_right"],
 	["the agents are stopped", "agents_stopped"],
 	["the agent limit is reached", "agent_limit"],
 	["is spent: the review waits", "budget_spent"],
@@ -509,6 +514,7 @@ const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {
 	git_state: { kind: "open", target: "/code/branches" },
 	figma_no_token: { kind: "open", target: "/library/screens" },
 	read_only: { kind: "open", target: "/setup/project" },
+	missing_right: { kind: "open", target: "/setup/me" },
 	project_file_invalid: { kind: "open", target: "/setup/project" },
 	agents_stopped: { kind: "open", target: "/flow/flow" },
 	git_dirty: { kind: "open", target: "/code/now" },

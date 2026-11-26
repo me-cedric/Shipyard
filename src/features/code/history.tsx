@@ -10,7 +10,7 @@ import {
 	useEditors,
 	useLog,
 } from "@/lib/code";
-import { graph } from "@/lib/code/graph";
+import { type GraphRow, graph } from "@/lib/code/graph";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
@@ -38,10 +38,98 @@ import { featureOf } from "./branches-feature";
 import { withProject } from "./project-gate";
 import { diffCounts } from "./viewer";
 
-/** One colour per lane of the graph, in turn. */
+/** One colour per lane of the graph, in turn: the fill of a line or a dot, and the stroke of a curve. */
 const LANE = ["bg-accent", "bg-success", "bg-warning", "bg-info", "bg-danger"];
+const STROKE = [
+	"stroke-accent",
+	"stroke-success",
+	"stroke-warning",
+	"stroke-info",
+	"stroke-danger",
+];
 const lane = (i: number) => LANE[i % LANE.length];
+const stroke = (i: number) => STROKE[i % STROKE.length];
 const STEP = 14;
+/** The centre of a lane, and the height of the curve that joins two lanes. */
+const at = (i: number) => i * STEP + 12;
+const BEND = 22;
+
+/**
+ * The graph of one row: the lanes that run past, the line through the dot, and a curve for each
+ * lane that ends at the commit (from above) and for each other parent of a merge (to below).
+ */
+function Rail({
+	row,
+	lanes,
+	hidden,
+}: {
+	row: GraphRow | undefined;
+	lanes: number;
+	hidden: boolean;
+}) {
+	const mine = row?.lane ?? 0;
+	const line = "absolute w-0.5 -translate-x-1/2 opacity-60";
+	return (
+		<span
+			aria-hidden="true"
+			data-lane={row?.lane}
+			hidden={hidden}
+			className="relative ml-2 shrink-0"
+			style={{ width: lanes * STEP + 12 }}
+		>
+			{row?.pass.map((i) => (
+				<span key={i} className={`${line} inset-y-0 ${lane(i)}`} style={{ left: at(i) }} />
+			))}
+			{row?.top ? (
+				<span className={`${line} top-0 bottom-1/2 ${lane(mine)}`} style={{ left: at(mine) }} />
+			) : null}
+			{row?.bottom ? (
+				<span className={`${line} top-1/2 bottom-0 ${lane(mine)}`} style={{ left: at(mine) }} />
+			) : null}
+			{row?.joins.map((i) => (
+				<span
+					key={i}
+					className={`${line} top-0 ${lane(i)}`}
+					style={{ left: at(i), bottom: `calc(50% + ${BEND}px)` }}
+				/>
+			))}
+			{row?.forks.map((i) => (
+				<span
+					key={i}
+					className={`${line} bottom-0 ${lane(i)}`}
+					style={{ left: at(i), top: `calc(50% + ${BEND}px)` }}
+				/>
+			))}
+			{row && row.joins.length + row.forks.length > 0 ? (
+				<svg
+					aria-hidden="true"
+					className="absolute left-0 w-full fill-none opacity-60"
+					style={{ top: `calc(50% - ${BEND}px)`, height: BEND * 2 }}
+					strokeWidth={2}
+				>
+					{row.joins.map((i) => (
+						<path
+							key={`j${i}`}
+							className={stroke(i)}
+							d={`M${at(i)} 0C${at(i)} ${BEND * 0.7} ${at(mine)} ${BEND * 0.3} ${at(mine)} ${BEND}`}
+						/>
+					))}
+					{row.forks.map((i) => (
+						<path
+							key={`f${i}`}
+							className={stroke(i)}
+							d={`M${at(mine)} ${BEND}C${at(mine)} ${BEND * 1.7} ${at(i)} ${BEND * 1.3} ${at(i)} ${BEND * 2}`}
+						/>
+					))}
+				</svg>
+			) : null}
+			<span
+				className={`absolute top-1/2 size-2.5 -translate-1/2 rounded-full ring-2 ring-surface-2 ${lane(mine)}`}
+				style={{ left: at(mine) }}
+			/>
+		</span>
+	);
+}
 /** The commits that show first, and the commits that "Older commits" adds. */
 const PAGE = 5;
 const LABEL = { branch: "accent", remote: "neutral", tag: "warning" } as const;
@@ -248,8 +336,8 @@ function HistoryView() {
 	const rows = graph(all);
 	const rowOf = new Map(all.map((c, n) => [c.sha, rows[n]]));
 	const lanes = Math.max(1, ...rows.map((r) => r.width));
-	// The rail of the graph shows for a history with side lines, on the whole list only.
-	const rail = lanes > 1 && commits.length === all.length;
+	// The rail of the graph shows on the whole list only: a search leaves gaps between the commits.
+	const rail = commits.length === all.length;
 
 	// The selected commit stays in view, even past the limit.
 	const shown = commits.filter((c, i) => i < limit || c.sha === sha);
@@ -288,28 +376,13 @@ function HistoryView() {
 					<Card className="py-2">
 						{shown.map((c) => {
 							const row = rowOf.get(c.sha);
-							const tags = c.labels.filter((l) => l.kind === "tag");
 							return (
-								<div key={c.sha} className="flex items-stretch [&+&]:border-t [&+&]:border-n-6">
-									<span
-										aria-hidden="true"
-										data-lane={row?.lane}
-										hidden={!rail}
-										className="relative shrink-0"
-										style={{ width: lanes * STEP + 12 }}
-									>
-										{row?.through.map((i) => (
-											<span
-												key={i}
-												className={`absolute inset-y-0 w-0.5 opacity-60 ${lane(i)}`}
-												style={{ left: i * STEP + 11 }}
-											/>
-										))}
-										<span
-											className={`absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full ring-2 ring-surface-2 ${lane(row?.lane ?? 0)}`}
-											style={{ left: (row?.lane ?? 0) * STEP + 7 }}
-										/>
-									</span>
+								<div
+									key={c.sha}
+									// The row sits 8 px inside the card with round corners: its fill never covers the corner of the card.
+									className="mx-2 flex items-stretch rounded-md hover:bg-n-2 has-[button[aria-pressed=true]]:bg-accent-tint [&+&]:border-t [&+&]:border-n-6"
+								>
+									<Rail row={row} lanes={lanes} hidden={!rail} />
 									<ContextMenu
 										items={menu("commit", {
 											open: () => setSha(c.sha),
@@ -320,7 +393,7 @@ function HistoryView() {
 											type="button"
 											aria-pressed={c.sha === sha}
 											onClick={() => setSha(c.sha)}
-											className="flex min-h-17 min-w-0 flex-1 flex-wrap items-center gap-3 px-6 py-2 text-left hover:bg-n-2 aria-pressed:bg-accent-tint"
+											className="flex min-h-17 min-w-0 flex-1 flex-wrap items-center gap-3 rounded-md px-4 py-2 text-left"
 										>
 											<Avatar
 												name={c.author_name}
@@ -335,8 +408,17 @@ function HistoryView() {
 													})}
 												</span>
 											</span>
-											{tags.map((l) => (
-												<Badge key={l.name} variant="warning">
+											{c.labels.map((l) => (
+												<Badge
+													key={`${l.kind}:${l.name}`}
+													variant={
+														l.kind === "tag"
+															? "warning"
+															: l.kind === "branch"
+																? "accent"
+																: "neutral"
+													}
+												>
 													{l.name}
 												</Badge>
 											))}

@@ -22,6 +22,7 @@ export function NotificationRow({
 	unread,
 	action,
 	wrap,
+	toast,
 	detail,
 	detailLabel,
 	onOpen,
@@ -40,6 +41,8 @@ export function NotificationRow({
 	action?: ReactNode;
 	/** The centre shows the whole body. A toast cuts it to one line. */
 	wrap?: boolean;
+	/** A toast: one row, centred, with its buttons beside the text and no line under it. */
+	toast?: boolean;
 	/** The long text, in a fold named `detailLabel`. */
 	detail?: string;
 	detailLabel?: string;
@@ -53,7 +56,7 @@ export function NotificationRow({
 	const [open, setOpen] = useState(false);
 	// shortcut: a text over 3 lines or 200 characters counts as long, measure the box if this is wrong.
 	const long = !!detail && (detail.length > 200 || detail.split("\n").length > 3);
-	const clip = wrap ? "break-words" : "truncate";
+	const clip = wrap || toast ? "break-words" : "truncate";
 	const text = (
 		<>
 			<span className={cn("block", clip, unread ? "font-medium text-n-12" : "text-n-11")}>
@@ -62,12 +65,24 @@ export function NotificationRow({
 			{body ? <span className={cn("block text-12 text-n-11", clip)}>{body}</span> : null}
 		</>
 	);
+	const buttons = actions?.length ? (
+		<div className={cn("flex shrink-0 gap-2", !toast && "pt-1")}>
+			{actions.map((a) => (
+				<Button key={a.label} onClick={a.run}>
+					{a.label}
+				</Button>
+			))}
+		</div>
+	) : null;
 	return (
 		<article
 			aria-label={body ? `${title}: ${body}` : title}
-			className="flex items-start gap-2 border-b px-3 py-2 text-ui"
+			className={cn(
+				"flex gap-2 text-ui",
+				toast ? "items-center py-1 pr-1 pl-4" : "items-start border-b px-3 py-2",
+			)}
 		>
-			<span className="mt-1">
+			<span className={toast ? undefined : "mt-1"}>
 				<StatusDot status={SHAPE[kind]} label={kindLabel} />
 			</span>
 			<div className="min-w-0 flex-1">
@@ -105,16 +120,9 @@ export function NotificationRow({
 						{notice.label}
 					</Button>
 				) : null}
-				{actions?.length ? (
-					<div className="flex gap-2 pt-1">
-						{actions.map((a) => (
-							<Button key={a.label} onClick={a.run}>
-								{a.label}
-							</Button>
-						))}
-					</div>
-				) : null}
+				{toast ? null : buttons}
 			</div>
+			{toast ? buttons : null}
 			<span className="shrink-0 text-12 text-n-10">{time}</span>
 			{action}
 		</article>

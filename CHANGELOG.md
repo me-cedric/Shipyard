@@ -1,6 +1,10 @@
 # Changelog
 
 ## [0.2.0]
+- Code / History draws the commit graph with one line for each branch, a curve where a merge takes a branch in and a curve where a branch starts, and each row shows its branch and tag labels; a selected or hovered row keeps its round corners inside its card on History, Changes, Pull requests, the test plans and the menu bar panel.
+- Active sessions no longer lists the Claude desktop app as ten empty sessions: it finds Claude Code of the desktop app, and each row shows the title of the session, its folder and its model.
+- A change that your role does not allow shows a plain sentence with a button to Setup / Me, and the At the limit choice of Crew / Spend / Budgets is off without the right; an error that Shipyard does not know keeps its cause after the sentence where a page has no Details control.
+- The spend chart of Crew has a money axis with grid lines, and each bar shows its amount on hover or focus; Library / Map shows Map, Table and Graph in one switch; Today says Nothing needs you when nothing waits; a notification is one centred row; the last line of the terminal is no longer cut.
 - The question of a Stop button, such as Stop Security scan findings?, wraps inside its button, and the Agents on switch of Crew shows with no box around it.
 - An error that Shipyard does not know shows one plain sentence, with the technical text behind Details and a Copy button; a sentence that the interface writes itself, such as a missing scope or a limit, shows as written, and a broken link in Project health names its target in words, for example Decision 0009.
 - The page of a feature has Link a screen and Link a diagram: you pick an item of the Library, Shipyard writes it in the proposal of the change, and the item shows in the Design card at once; a feature with no change keeps the button that opens the Library.
