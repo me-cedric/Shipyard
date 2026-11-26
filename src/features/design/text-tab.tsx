@@ -17,7 +17,7 @@ import { CodeEditor } from "@/ui/molecules/code-editor";
 import { ContextMenu } from "@/ui/molecules/context-menu";
 import { SideSwitch, useSides } from "@/ui/molecules/pane-toggle";
 import type { Highlighter } from "@/ui/molecules/syntax";
-import { LibraryPage } from "../library/page-parts";
+import { LibraryPage } from "@/ui/templates/library-page";
 import { FileFrame, type Frame } from "./frame";
 import {
 	DesignGate,

@@ -99,6 +99,7 @@ export function SendPage({ slug }: { slug: string }) {
 						<Row key={ref}>
 							<Checkbox
 								hideLabel
+								id={`send-${ref}`}
 								label={format(r.write, { name: d.row.title })}
 								checked={!dropped.includes(ref)}
 								onCheckedChange={(on) =>
@@ -128,7 +129,13 @@ export function SendPage({ slug }: { slug: string }) {
 									) : null}
 								</>
 							) : (
-								<span className="flex-[1_1_12rem] font-semibold">{titleOf(d)}</span>
+								// A click on the title toggles the box.
+								<label
+									htmlFor={`send-${ref}`}
+									className="flex min-h-control flex-[1_1_12rem] cursor-pointer items-center font-semibold"
+								>
+									{titleOf(d)}
+								</label>
 							)}
 							<span className="ml-auto text-n-10">{fields(changed(d))}</span>
 							<IconButton

@@ -17,7 +17,7 @@ describe("Pin a dashboard to Today", () => {
 		);
 		await router.navigate({ to: "/home/today" });
 		const card = await screen.findByRole("region", { name: "Delivery" });
-		for (const tile of ["Work items", "Runs", "Questions"])
+		for (const tile of ["Tickets", "Runs", "Questions"])
 			expect(await within(card).findByRole("region", { name: tile })).toBeVisible();
 		expect(within(card).getAllByRole("region")).toHaveLength(3);
 		await waitFor(() => expect(router.state.status).toBe("idle"));

@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { usePanelSize } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
@@ -34,8 +34,20 @@ export function Inspector({
 	const still = useReducedMotionPref();
 	const stop = () => setResizing(false);
 	// The panel turns inert on close: move the focus out first, so it does not drop to <body>.
+	// The element that had the focus when the panel opened: the focus goes back to it on close.
+	const opener = useRef<HTMLElement | null>(null);
+	useLayoutEffect(() => {
+		if (!open) opener.current = null;
+		else if (!ref.current?.contains(document.activeElement))
+			opener.current = document.activeElement as HTMLElement | null;
+	}, [open]);
 	const close = () => {
-		if (ref.current?.contains(document.activeElement)) document.querySelector("main")?.focus();
+		if (ref.current?.contains(document.activeElement)) {
+			const main = document.querySelector("main");
+			(opener.current?.isConnected ? opener.current : main)?.focus();
+			// The opener can refuse the focus (the body, a disabled control): the page takes it then.
+			if (ref.current.contains(document.activeElement)) main?.focus();
+		}
 		onClose();
 	};
 	// The link card closes on Escape wherever the focus is: the page under it stays in use.
@@ -55,7 +67,7 @@ export function Inspector({
 			{card && open ? (
 				<div
 					aria-hidden="true"
-					className="pointer-events-none fixed inset-0 z-30 bg-surface-1/50"
+					className="pointer-events-none fixed inset-0 z-(--z-dim) bg-surface-1/50"
 				/>
 			) : null}
 			<motion.aside
@@ -79,7 +91,7 @@ export function Inspector({
 				className={cn(
 					"max-w-[60vw] shrink-0 overflow-hidden transition-[border-color] duration-(--duration-base) ease-standard data-[open=false]:border-transparent",
 					card
-						? "fixed top-23 right-8 z-40 max-h-[calc(100vh-7.5rem)] rounded-lg border-2 border-accent bg-surface-2"
+						? "fixed top-23 right-8 z-(--z-backdrop) max-h-[calc(100vh-7.5rem)] rounded-lg border-2 border-accent bg-surface-2"
 						: "relative border-l",
 					card && open && "shadow-3",
 				)}
@@ -92,7 +104,8 @@ export function Inspector({
 					invert
 					onChange={panel.set}
 					onReset={panel.reset}
-					className="left-0"
+					// The hit area grows 6 px inward, inside the padding of the inspector.
+					className="left-0 before:absolute before:inset-y-0 before:left-0 before:-right-1.5"
 				/>
 				{/* Full width of the aside; the floor keeps the text whole while the aside opens from 0. */}
 				<div className="flex h-full w-full min-w-60 flex-col">

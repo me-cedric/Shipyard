@@ -1,22 +1,14 @@
 import { Link, Navigate, useParams } from "@tanstack/react-router";
-import { type ReactNode, useState } from "react";
-import {
-	DetailColumn,
-	LibraryPage,
-	LinkedCard,
-	LinkedRow,
-	PageColumns,
-	SideCards,
-} from "@/features/library/page-parts";
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { NoProject } from "@/features/shell/no-project";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import { commands, saveAs, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { useTeam } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button, buttonVariants } from "@/ui/atoms/button";
-import { Input } from "@/ui/atoms/input";
+import { Input, type InputProps } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
 import { DocumentTextIcon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
@@ -24,6 +16,14 @@ import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { Row } from "@/ui/molecules/row";
+import {
+	DetailColumn,
+	LibraryPage,
+	LinkedCard,
+	LinkedRow,
+	PageColumns,
+	SideCards,
+} from "@/ui/templates/library-page";
 import { SavedActions, type TextOut } from "./export-menu";
 import { renderViews } from "./export-views";
 import { usePdfAvailable } from "./pdf";
@@ -32,6 +32,18 @@ import { useReports } from "./reports-page";
 const FIELD = "w-56 flex-none";
 const TITLE = "w-80 flex-none";
 const SHORT = "w-44 flex-none font-semibold";
+
+/** The names of the fields whose value is empty. */
+const names = (fields: [string, string][]) => fields.filter(([, v]) => !v.trim()).map(([n]) => n);
+
+/** The names of the empty required fields after a refused Write. */
+const Refused = createContext<string[]>([]);
+
+/** An Input that is marked as invalid when it is one of the empty fields of a refused Write. */
+function Box(props: InputProps) {
+	const bad = useContext(Refused).includes(props.label);
+	return <Input {...props} aria-invalid={bad || undefined} />;
+}
 
 /** One row of a form: the name of the field, then its control. */
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -48,12 +60,13 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
  * action, then one card for each written file. `run` gives the paths of the files.
  */
 function Sheet({
-	ready,
+	empty,
 	run,
-	format,
+	format: choice,
 	children,
 }: {
-	ready: boolean;
+	/** The names of the required fields that are empty. */
+	empty: string[];
 	run: () => Promise<string[]>;
 	/** The choice of the file, beside the button that writes. */
 	format?: ReactNode;
@@ -64,19 +77,26 @@ function Sheet({
 	const [failure, setFailure] = useState<unknown>(null);
 	const [missing, setMissing] = useState(false);
 	const [busy, setBusy] = useState(false);
+	const [tries, setTries] = useState(0);
+	const card = useRef<HTMLDivElement>(null);
+	// After a refused Write, the focus goes to the first empty field.
+	useEffect(() => {
+		if (tries) card.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+	}, [tries]);
 	return (
 		<>
-			<Card className="py-2">
-				{children}
-				<Field label="">
-					{format}
+			<Card ref={card} className="py-2">
+				<Refused value={missing ? empty : []}>{children}</Refused>
+				<div className="flex flex-wrap items-center justify-end gap-3 px-6 py-2">
+					{choice}
 					<Button
 						variant="primary"
 						busy={busy}
 						onClick={() => {
 							// A required field that is empty gives an error line, not a dead button.
-							setMissing(!ready);
-							if (!ready) return;
+							setMissing(empty.length > 0);
+							if (empty.length) setTries((n) => n + 1);
+							if (empty.length) return;
 							setFailure(null);
 							setBusy(true);
 							run()
@@ -87,13 +107,13 @@ function Sheet({
 					>
 						{t.reports.write}
 					</Button>
-				</Field>
+				</div>
+				{missing && empty.length ? (
+					<p role="alert" className="px-6 pb-2 text-ui text-danger-text">
+						{format(t.reports.form.required, { fields: empty.join(", ") })}
+					</p>
+				) : null}
 			</Card>
-			{missing ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{t.reports.form.required}
-				</p>
-			) : null}
 			<ErrorNotice error={failure} />
 			{written.length ? (
 				<Card pad className="flex flex-col gap-3">
@@ -128,7 +148,11 @@ function ChangeRequest() {
 	const g = t.library.fn.reports;
 	return (
 		<Sheet
-			ready={Boolean(title.trim() && base.trim() && head.trim())}
+			empty={names([
+				[f.title, title],
+				[f.base, base],
+				[f.head, head],
+			])}
 			format={
 				<Segmented
 					label={t.reports.format}
@@ -157,7 +181,7 @@ function ChangeRequest() {
 			}}
 		>
 			<Field label={f.title}>
-				<Input
+				<Box
 					label={f.title}
 					className={TITLE}
 					value={title}
@@ -165,7 +189,7 @@ function ChangeRequest() {
 				/>
 			</Field>
 			<Field label={f.base}>
-				<Input
+				<Box
 					label={f.base}
 					className={SHORT}
 					value={base}
@@ -173,7 +197,7 @@ function ChangeRequest() {
 				/>
 			</Field>
 			<Field label={f.head}>
-				<Input
+				<Box
 					label={f.head}
 					className={SHORT}
 					value={head}
@@ -200,7 +224,7 @@ function ChangeRequest() {
 						/>
 					</span>
 				) : (
-					<Input
+					<Box
 						label={f.approvers}
 						className={FIELD}
 						value={typed}
@@ -224,7 +248,12 @@ function WorkDone() {
 	const [to, setTo] = useState(day(0));
 	return (
 		<Sheet
-			ready={Boolean(base.trim() && head.trim() && from && to)}
+			empty={names([
+				[f.base, base],
+				[f.head, head],
+				[f.from, from],
+				[f.to, to],
+			])}
 			run={async () => {
 				const path = await saveAs("work-done", "xlsx");
 				if (!path) return [];
@@ -236,7 +265,7 @@ function WorkDone() {
 			}}
 		>
 			<Field label={f.base}>
-				<Input
+				<Box
 					label={f.base}
 					className={SHORT}
 					value={base}
@@ -244,7 +273,7 @@ function WorkDone() {
 				/>
 			</Field>
 			<Field label={f.head}>
-				<Input
+				<Box
 					label={f.head}
 					className={SHORT}
 					value={head}
@@ -252,7 +281,7 @@ function WorkDone() {
 				/>
 			</Field>
 			<Field label={f.from}>
-				<Input
+				<Box
 					type="date"
 					label={f.from}
 					className={FIELD}
@@ -261,7 +290,7 @@ function WorkDone() {
 				/>
 			</Field>
 			<Field label={f.to}>
-				<Input
+				<Box
 					type="date"
 					label={f.to}
 					className={FIELD}
@@ -285,7 +314,11 @@ function DossierComplete() {
 	const pdf = usePdfAvailable();
 	return (
 		<Sheet
-			ready={Boolean(title.trim() && client.trim() && date)}
+			empty={names([
+				[r.form.title, title],
+				[g.client, client],
+				[g.date, date],
+			])}
 			format={
 				<Segmented
 					label={r.format}
@@ -313,7 +346,7 @@ function DossierComplete() {
 			}}
 		>
 			<Field label={t.reports.form.title}>
-				<Input
+				<Box
 					label={t.reports.form.title}
 					className={TITLE}
 					value={title}
@@ -321,7 +354,7 @@ function DossierComplete() {
 				/>
 			</Field>
 			<Field label={g.client}>
-				<Input
+				<Box
 					label={g.client}
 					className={FIELD}
 					value={client}
@@ -329,7 +362,7 @@ function DossierComplete() {
 				/>
 			</Field>
 			<Field label={g.date}>
-				<Input
+				<Box
 					type="date"
 					label={g.date}
 					className={FIELD}

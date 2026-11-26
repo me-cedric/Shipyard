@@ -26,7 +26,7 @@ export const workspaceDe: typeof workspaceEn = {
 	},
 	pr: {
 		group: "Assistent",
-		describe: "Beschreibung schreiben",
+		describe: "Die Beschreibung schreiben",
 		review: "Prüfen",
 		reply: "Antworten",
 		prompt: {
@@ -39,14 +39,15 @@ export const workspaceDe: typeof workspaceEn = {
 		},
 	},
 	gate: {
-		stale: "{from} hat sich geändert, {to} nicht: {paths}",
+		stale: "{from} hat sich geändert und {to} nicht",
 		cannotPush: "Das Konto darf nicht nach {remote} pushen",
-		onDefault: "{branch} ist der Standard-Branch von {remote}",
+		onDefault:
+			"Sie arbeiten auf {branch}, dem gemeinsamen Branch. Legen Sie zuerst einen neuen Branch an.",
 	},
 	conflict: {
 		agent: "An Agenten übergeben",
 		factory: "An Ablauf senden",
-		sent: "Arbeitselement {key} erstellt",
+		sent: "Ticket {key} erstellt",
 		prompt:
 			"Löse die Merge-Konflikte in {files}. Behalte die Absicht beider Seiten. Lass keine Markierung zurück.",
 	},

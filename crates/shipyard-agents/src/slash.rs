@@ -38,7 +38,7 @@ const CLAUDE_BUILT_IN: [&str; 6] = [
 
 /// The `description` of a front matter block. shortcut: one line, or the first line after `>`
 /// or `|`; no other YAML.
-fn description(text: &str) -> Option<String> {
+pub fn description(text: &str) -> Option<String> {
     let mut lines = text.lines();
     if lines.next()?.trim() != "---" {
         return None;

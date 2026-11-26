@@ -60,7 +60,11 @@ export function CostingView({
 	const priced = (n: number | null) =>
 		!costs ? "—" : unrated ? e.unrated : money(n, currency, lang);
 	const rate =
-		!costs || sheet.marginRate == null ? "—" : `${figure(sheet.marginRate * 100, lang)} %`;
+		!costs || sheet.marginRate == null
+			? "—"
+			: new Intl.NumberFormat(lang, { style: "percent", maximumFractionDigits: 1 }).format(
+					sheet.marginRate,
+				);
 	const spend = (usage?.days ?? []).reduce((n, d) => n + (d.usd ?? 0), 0);
 	const people = [...members].sort((a, b) => (days.get(b.handle) ?? 0) - (days.get(a.handle) ?? 0));
 	const amountColumns = (["cost", "price", "margin"] as const).map(

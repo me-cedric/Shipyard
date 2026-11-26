@@ -195,7 +195,9 @@ impl AgentEvents for Factory {
         match event {
             AgentEvent::AskQuestion(a) => {
                 let id = self.ask(run, step, a)?;
-                Ok(json!({"question": id, "state": "the run waits for the answer"}))
+                Ok(
+                    json!({"question": id, "next": "End your turn now. The answer comes in your next turn."}),
+                )
             }
             AgentEvent::PostProgress(p) => {
                 self.tool(run, step, json!({"tool": "post_progress", "text": p.text}))?;

@@ -25,7 +25,7 @@ export const onboardingEs: typeof onboardingEn = {
 		},
 		ai: {
 			title: "Elegir la herramienta de IA",
-			body: "Claude Code o Codex hace el trabajo, dentro del presupuesto y los límites que defines.",
+			body: "Una herramienta de IA hace el trabajo, dentro del presupuesto y los límites que defines.",
 		},
 		permissions: {
 			title: "Permitir lo que Shipyard necesita",
@@ -52,6 +52,19 @@ export const onboardingEs: typeof onboardingEn = {
 			spec: "Primera especificación",
 			assign: "Primer ticket para una persona",
 			run: "Primer trabajo de un agente",
+		},
+		next: {
+			project: "Abrir un proyecto",
+			ai: "Elegir la herramienta de IA",
+			models: "Elegir los modelos",
+			tracker: "Conectar el gestor de tickets",
+			forge: "Conectar la plataforma de código",
+			team: "Configurar el equipo",
+			permissions: "Revisar los permisos",
+			decision: "Escribir la primera decisión",
+			spec: "Escribir la primera especificación",
+			assign: "Dar un ticket a una persona",
+			run: "Iniciar el primer trabajo de un agente",
 		},
 		action: {
 			project: "Nuevo proyecto",

@@ -115,7 +115,7 @@ const comment = async (p: Page, line: number, text: string) => {
 // The role of the person, set in Setup / Me: Today and Role views follow it.
 const pickRole = async (p: Page, role: string) => {
 	await go(p, "/setup/me");
-	await p.getByRole("combobox", { name: "Role" }).first().click();
+	await p.getByRole("combobox", { name: "My role view" }).first().click();
 	await p.getByRole("option", { name: role }).click();
 };
 const go = async (p: Page, path: string) => {
@@ -407,7 +407,7 @@ const scenes: Scene[] = [
 			await p.getByRole("textbox", { name: "Name" }).fill("Acme Web");
 			await p
 				.getByRole("navigation", { name: "Steps" })
-				.getByRole("button", { name: "Kind of product" })
+				.getByRole("button", { name: "Technology" })
 				.click();
 		},
 	},
@@ -580,7 +580,7 @@ const scenes: Scene[] = [
 		},
 	},
 	// The mock has a spec on add-auth and a conversation on the pull request of the empty token.
-	{ name: "feature-brief", run: (p) => openFeature(p, /add-auth/, "Brief") },
+	{ name: "feature-brief", run: (p) => openFeature(p, /Add auth/, "Brief") },
 	// shortcut: no feature of the mock cites a design, so the picture shows the empty state.
 	{ name: "feature-design", run: (p) => openFeature(p, /Add export endpoint/, "Design") },
 	// The pull request with failed checks shows the alert card with Run again beside Fix with an agent.

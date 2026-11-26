@@ -29,7 +29,7 @@ Une recette s'ouvre dans un formulaire. Utilisez Formulaire et Texte pour passer
 
 ## Sessions
 
-Sessions liste les sessions des agents : une exécution, une relecture de pull request, une estimation et la création d'une tuile. Cliquez sur une session pour l'afficher avec Ouvrir et Arrêter. Arrêter une exécution demande une confirmation. Arrêter une relecture met fin à la relecture. Arrêter une estimation met fin à l'agent, et la feuille garde ses valeurs. Arrêter la création d'une tuile y met fin, et le tableau de bord ne change pas. Les sessions terminées sont sur leur propre page.
+Sessions liste les sessions des agents : une exécution, une relecture de pull request, une estimation et la création d'une tuile. Cliquez sur une session pour l'afficher avec Ouvrir et Arrêter. Arrêter une session, un agent ou tous les agents demande d'abord une confirmation. Arrêter une relecture met fin à la relecture. Arrêter une estimation met fin à l'agent, et la feuille garde ses valeurs. Arrêter la création d'une tuile y met fin, et le tableau de bord ne change pas. Les sessions terminées sont sur leur propre page.
 
 Lecture seule affiche la sortie en direct d'une session quand son outil écrit un fichier d'historique que Shipyard sait lire (Claude Code et Codex le font). Sans fichier d'historique, le volet n'affiche aucune sortie. Prendre la main arrête la session après votre confirmation, puis lance la commande de reprise de son outil dans le terminal de Shipyard.
 

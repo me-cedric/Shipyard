@@ -314,30 +314,25 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 		const bar = await openPalette(user);
 		const area = document.querySelector("[data-page-area]");
 		expect(area?.querySelector("[data-ask-layer]")).toContainElement(bar);
-		expect(screen.getByRole("textbox", { name: "Reply" })).toBeVisible();
-		const layer = within(document.querySelector("[data-ask-layer]") as HTMLElement);
-		expect(layer.getByRole("button", { name: "Send" })).toBeVisible();
+		// With no text there is no answer to reply to.
+		expect(screen.queryByRole("textbox", { name: "Reply" })).toBeNull();
 		await user.keyboard("{Escape}");
 		expect(document.querySelector("[data-ask-layer]")).toBeNull();
 		expect(screen.queryByRole("textbox", { name: "Reply" })).toBeNull();
 		expect(bar).toBeInTheDocument();
 	});
 
-	it("sends the text of the Reply field to the assistant draft, with and without an answer", async () => {
+	it("sends the text of the Reply field to the assistant draft, under the answer", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/today");
 		const bar = await openPalette(user);
-		await user.type(screen.getByRole("textbox", { name: "Reply" }), "write a poem{Enter}");
-		const draft = await screen.findByRole("textbox", { name: "Message" });
-		await waitFor(() => expect(draft).toHaveValue("write a poem"));
-		expect(screen.queryByRole("listbox")).toBeNull();
-		await user.click(bar);
 		await user.type(bar, "what stopped?{Enter}");
 		await user.type(await screen.findByRole("textbox", { name: "Reply" }), "start it again");
 		const layer = within(document.querySelector("[data-ask-layer]") as HTMLElement);
 		await user.click(layer.getByRole("button", { name: "Send" }));
 		// The reply goes under the question that it answers.
+		const draft = await screen.findByRole("textbox", { name: "Message" });
 		await waitFor(() => expect(draft).toHaveValue("what stopped?\n\nstart it again"));
 		expect(bar).toHaveValue("");
 	});
@@ -428,7 +423,7 @@ describe("palette pages and tickets", () => {
 		mountApp("/home/today");
 		await openPalette(user);
 		await user.keyboard("ACME-7");
-		expect(await screen.findByRole("option", { name: /^wi:ACME-7 Pay the invoice/ })).toBeVisible();
+		expect(await screen.findByRole("option", { name: /^Pay the invoice/ })).toBeVisible();
 	});
 
 	it("groups hits by kind with a snippet that marks the words, and asks the assistant", async () => {
@@ -443,7 +438,7 @@ describe("palette pages and tickets", () => {
 		await openPalette(user);
 		await user.keyboard("invoice");
 		const dialog = within(await screen.findByRole("listbox"));
-		const option = await dialog.findByRole("option", { name: /^wi:ACME-8/ });
+		const option = await dialog.findByRole("option", { name: /^Pay the invoice/ });
 		expect(within(option).getByText("invoice").tagName).toBe("MARK");
 		await user.click(dialog.getByRole("option", { name: "Ask the assistant" }));
 		// The shell puts the text in the message box of the open thread, and does not send it.

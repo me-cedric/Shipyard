@@ -29,7 +29,9 @@ describe("No-project page (REQ-006)", () => {
 		expect(screen.getByRole("button", { name: "New project" })).not.toHaveClass("bg-primary");
 		const menu = await openMenu(user);
 		expect(menu.getByRole("menuitem", { name: "Open a local folder" })).toBeInTheDocument();
-		expect(menu.getByRole("menuitem", { name: "Clone a repository" })).toBeInTheDocument();
+		expect(
+			menu.getByRole("menuitem", { name: "Get a project from the code host" }),
+		).toBeInTheDocument();
 		await user.keyboard("{Escape}");
 		// The title of the page is the one h1: the page shows without the shell.
 		expect(within(screen.getByRole("main")).getAllByRole("heading", { level: 1 })).toHaveLength(1);

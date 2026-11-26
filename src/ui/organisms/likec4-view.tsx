@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { ZoomFrame } from "../molecules/zoom-frame";
 import type { EditorError } from "./error-line";
 import { edgePath, type Layout, shortMessage, toLayout } from "./likec4-layout";
 import { LineError, useRender } from "./use-render";
+import { ZoomFrame } from "./zoom-frame";
 
 /**
  * The layouted views of a LikeC4 text. The browser build of `@likec4/language-services` parses

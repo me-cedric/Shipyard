@@ -198,7 +198,7 @@ export const knowledgeDe: typeof knowledgeEn = {
 		right: "Nach rechts",
 		pinned: "Angeheftet",
 		kind: {
-			work: "Arbeitselemente",
+			work: "Tickets",
 			runs: "Läufe",
 			questions: "Fragen",
 			specs: "Spezifikationen",
@@ -217,6 +217,8 @@ export const knowledgeDe: typeof knowledgeEn = {
 		switch: "Dashboard",
 		tileSettings: "Einstellungen",
 		tileRemove: "Entfernen",
+		tileRemoved: "Kachel entfernt: {name}",
+		tileUndo: "Rückgängig",
 		more: "Mehr Zahlen",
 		spend: "Ausgaben der Agenten",
 		gates: "Qualitätsprüfungen",

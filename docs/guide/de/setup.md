@@ -70,7 +70,7 @@ Agenten und Regeln enthält die KI-Tools, die Modellanbieter, und die Regeln und
 
 Die App behält jede Datei, die eine Person geändert hat, es sei denn, Sie installieren neu.
 
-Agentenrollen zeigen die Beschreibung und das Modell jeder Rolle: Bestes, Standard oder Schnell. Die Änderung einer mitgelieferten Rolle ohne Projektdatei schreibt die Projektdatei dieser Rolle.
+Agentenrollen zeigen die Beschreibung und das Modell jeder Rolle: Stark, Standard oder Schnell. Die Änderung einer mitgelieferten Rolle ohne Projektdatei schreibt die Projektdatei dieser Rolle.
 
 ### KI-Tools
 

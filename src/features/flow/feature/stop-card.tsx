@@ -66,9 +66,9 @@ function PlainCard({ who, title, children }: { who: string; title: string; child
 	return (
 		<article className="flex min-w-0 flex-col gap-3 rounded-lg bg-surface-2 px-6 py-5.5 shadow-2">
 			<Badge className="self-start">{who}</Badge>
-			<h3 tabIndex={-1} className="text-20 font-semibold text-n-12 outline-none">
+			<h2 tabIndex={-1} className="text-20 font-semibold text-n-12 outline-none">
 				{title}
-			</h3>
+			</h2>
 			{children}
 		</article>
 	);
@@ -172,8 +172,15 @@ export function StopCard({
 		setAvailable?.(offered);
 		return () => setAvailable?.(false);
 	}, [setAvailable, offered]);
+	// The cause hides the agent's own words: show them under the heading.
+	const said =
+		esc &&
+		(view === "unblock" || view === "tryAgain") &&
+		!!run.reason &&
+		!title.includes(run.reason);
 	const body = (
 		<>
+			{said ? <p className="text-n-12">{run.reason}</p> : null}
 			{/* Enter in the note sends the main action. */}
 			<form
 				className="flex flex-col gap-3"
@@ -280,9 +287,13 @@ export function StopCard({
 						</Button>
 					) : null}
 					{view === "unblock" ? (
-						<RightButton right="runs.start" onClick={() => void guard(() => act.takeOver(run.id))}>
+						<ConfirmButton
+							{...gate("runs.start")}
+							confirm={format(t.factory.runsRecipes.confirmTakeOver, { name: run.title })}
+							onConfirm={() => void guard(() => act.takeOver(run.id))}
+						>
 							{t.factory.runsRecipes.takeOver}
-						</RightButton>
+						</ConfirmButton>
 					) : null}
 					{/* Only a blocked run can go on: a run whose pull request ended has nothing to keep open. */}
 					{action === "closeDone" && !kept && run.state === "Blocked" ? (
@@ -363,6 +374,7 @@ export function StopCard({
 		);
 	return (
 		<AttentionCard
+			heading="h2"
 			head={
 				<Badge variant="you" className="self-start">
 					{s.state[view]}

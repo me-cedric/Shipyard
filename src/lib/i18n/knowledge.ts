@@ -100,7 +100,7 @@ export const knowledgeEn = {
 		reload: "Reload",
 		keepMine: "Keep mine",
 		dirty: "Unsaved",
-		copy: "Copy ref",
+		copy: "Copy the reference",
 		line: "Line",
 	},
 	slides: {
@@ -197,7 +197,7 @@ export const knowledgeEn = {
 		right: "Move right",
 		pinned: "Pinned",
 		kind: {
-			work: "Work items",
+			work: "Tickets",
 			runs: "Runs",
 			questions: "Questions",
 			specs: "Specs",
@@ -216,6 +216,8 @@ export const knowledgeEn = {
 		switch: "Dashboard",
 		tileSettings: "Settings",
 		tileRemove: "Remove",
+		tileRemoved: "Tile removed: {name}",
+		tileUndo: "Undo",
 		more: "More numbers",
 		spend: "Spend of the agents",
 		gates: "Quality gates",
@@ -356,7 +358,7 @@ export const knowledgeFr: typeof knowledgeEn = {
 		reload: "Recharger",
 		keepMine: "Garder le mien",
 		dirty: "Non enregistré",
-		copy: "Copier la ref",
+		copy: "Copier la référence",
 		line: "Ligne",
 	},
 	slides: {
@@ -453,7 +455,7 @@ export const knowledgeFr: typeof knowledgeEn = {
 		right: "Déplacer à droite",
 		pinned: "Épinglé",
 		kind: {
-			work: "Éléments",
+			work: "Tickets",
 			runs: "Exécutions",
 			questions: "Questions",
 			specs: "Spécifications",
@@ -472,6 +474,8 @@ export const knowledgeFr: typeof knowledgeEn = {
 		switch: "Tableau de bord",
 		tileSettings: "Réglages",
 		tileRemove: "Retirer",
+		tileRemoved: "Tuile retirée : {name}",
+		tileUndo: "Annuler",
 		more: "Plus de chiffres",
 		spend: "Dépenses des agents",
 		gates: "Contrôles qualité",

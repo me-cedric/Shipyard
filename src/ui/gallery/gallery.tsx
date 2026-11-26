@@ -33,9 +33,7 @@ import {
 	LanguageIcon,
 	MagnifyingGlassIcon,
 	MoonIcon,
-	QueueListIcon,
 	SunIcon,
-	ViewColumnsIcon,
 	XMarkIcon,
 } from "../icons";
 import { AskBar } from "../molecules/ask-bar";
@@ -44,19 +42,23 @@ import { BackLink } from "../molecules/back-link";
 import { BacklinkList } from "../molecules/backlink-list";
 import { BoardColumn } from "../molecules/board-column";
 import { Card } from "../molecules/card";
-import { CommitRow } from "../molecules/commit-row";
+import { ConfirmButton } from "../molecules/confirm-button";
 import { ConflictBlock, type ConflictChoice } from "../molecules/conflict-block";
 import { ConnectionRow } from "../molecules/connection-row";
 import { ContextMenu } from "../molecules/context-menu";
+import { DateButton } from "../molecules/date-button";
 import { DiffView } from "../molecules/diff-view";
-import { Door } from "../molecules/door";
 import { EmptyState } from "../molecules/empty-state";
+import { ErrorNotice } from "../molecules/error-notice";
 import { FileRow } from "../molecules/file-row";
 import { FilterBar } from "../molecules/filter-bar";
 import { FindingRow } from "../molecules/finding-row";
 import { FlagList } from "../molecules/flag-list";
+import { Fold } from "../molecules/fold";
 import { GroupSection } from "../molecules/group-section";
-import { MemberRow, SuggestionRow } from "../molecules/member-row";
+import { Loading } from "../molecules/loading";
+import { MemberRow } from "../molecules/member-row";
+import { MenuButton } from "../molecules/menu-button";
 import { NotificationRow } from "../molecules/notification-row";
 import { Option } from "../molecules/option";
 import { PageHeader, PageSwitchContext } from "../molecules/page-header";
@@ -70,13 +72,11 @@ import { SectionSwitch } from "../molecules/section-switch";
 import { SettingsRow } from "../molecules/settings-row";
 import { SpendMeter } from "../molecules/spend-meter";
 import { StageLine } from "../molecules/stage-line";
-import { Stat } from "../molecules/stat";
 import { StatStrip } from "../molecules/stat-strip";
 import { SyncStatus } from "../molecules/sync-status";
 import { TicketCard } from "../molecules/ticket-card";
 import { TicketRow } from "../molecules/ticket-row";
 import { TILE_GRID, Tile } from "../molecules/tile";
-import { Timeline, TimelineItem } from "../molecules/timeline";
 import { ViewTabs } from "../molecules/view-tabs";
 import { ApplyDialog } from "../organisms/apply-dialog";
 import { CommandPalette } from "../organisms/command-palette";
@@ -85,7 +85,7 @@ import { DataTable } from "../organisms/data-table";
 import { Dialog } from "../organisms/dialog";
 import { Gantt } from "../organisms/gantt";
 import { Inspector } from "../organisms/inspector";
-import { NotificationCentre } from "../organisms/notification-centre";
+import { MarkdownView } from "../organisms/markdown-view";
 import { Toaster } from "../organisms/toaster";
 import { Board } from "../templates/board";
 import { ListDetail } from "../templates/list-detail";
@@ -448,11 +448,6 @@ function Molecules() {
 					]}
 				/>
 			</Row>
-			<Row name="Door">
-				<div className="w-48">
-					<Door label="Specs" icon={<InboxIcon size={24} />} count={4} onClick={noop} />
-				</div>
-			</Row>
 			<Row name="Value row (SettingsRow)">
 				<div className="w-96">
 					<SettingsRow label="Branch">
@@ -566,17 +561,10 @@ function Molecules() {
 			</Row>
 			<Row name="TicketCard, BoardColumn">
 				<BoardColumn title="In Progress" category="in-progress" count={1} onDropKey={noop}>
-					<TicketCard
-						itemKey="ACME-1"
-						title="Fix login redirect"
-						assignee="Ada Lovelace"
-						claimed={t.sync.backlog.claimed}
-						onOpen={noop}
-						onMove={noop}
-					/>
+					<TicketCard itemKey="ACME-1" title="Fix login redirect" onOpen={noop} onMove={noop} />
 				</BoardColumn>
 			</Row>
-			<Row name="MemberRow, SuggestionRow">
+			<Row name="MemberRow">
 				<div className="w-full max-w-2xl">
 					<MemberRow
 						name="Ada Lovelace"
@@ -596,20 +584,9 @@ function Molecules() {
 						lockedLabel={t.work.team.lockedRate}
 						onOpen={noop}
 					/>
-					<div className="w-72">
-						<SuggestionRow
-							name="Ada Lovelace"
-							reasons={[
-								{ id: "a", text: "api", tone: "success" },
-								{ id: "b", text: format(t.work.reason.missing, { skill: "ui" }), tone: "neutral" },
-								{ id: "c", text: t.work.reason.full, tone: "warning" },
-							]}
-							action={<Button variant="ghost">{t.work.ticket.assignShort}</Button>}
-						/>
-					</div>
 				</div>
 			</Row>
-			<Row name="ViewTabs, Stat">
+			<Row name="ViewTabs">
 				<ViewTabs
 					label={t.tabs.work.estimates}
 					value="summary"
@@ -619,10 +596,6 @@ function Molecules() {
 						{ value: "summary", label: t.work.estimates.views.summary },
 					]}
 				/>
-				<dl className="flex gap-6">
-					<Stat label={t.work.estimates.days} value="34.5" />
-					<Stat label={t.work.estimates.price} value="€21,000" />
-				</dl>
 			</Row>
 			<Row name="ContextMenu">
 				<ContextMenu
@@ -687,22 +660,6 @@ function Molecules() {
 					/>
 				</div>
 			</Row>
-			<Row name="CommitRow">
-				<div className="w-full max-w-xl">
-					<CommitRow
-						short="1a2b3c4"
-						summary="fix(auth): refuse an empty token"
-						author="Ada Lovelace"
-						date="29 Oct 2026"
-						labels={[
-							{ name: "main", kind: "branch" },
-							{ name: "origin/main", kind: "remote" },
-							{ name: "v0.1.0", kind: "tag" },
-						]}
-						onSelect={noop}
-					/>
-				</div>
-			</Row>
 			<Row name="ConflictBlock">
 				<div className="w-full max-w-xl">
 					<ConflictBlock
@@ -736,6 +693,35 @@ function Molecules() {
 			</Row>
 			<Row name="EmptyState">
 				<EmptyState title={t.empty.nothing} action={{ label: t.empty.create, onClick: () => {} }} />
+			</Row>
+			<Row name="ErrorNotice">
+				<ErrorNotice error="no project is open" />
+			</Row>
+			<Row name="Loading">
+				<div className="w-96">
+					<Loading rows={2} />
+				</div>
+			</Row>
+			<Row name="MenuButton">
+				<MenuButton
+					label={t.ui.more}
+					items={[{ id: "open", label: t.common.open, onSelect: noop }]}
+				/>
+			</Row>
+			<Row name="ConfirmButton">
+				<ConfirmButton confirm="Stop ACME-1?" onConfirm={noop}>
+					Stop
+				</ConfirmButton>
+			</Row>
+			<Row name="Fold">
+				<div className="w-96">
+					<Fold label="Branch" value="main" fields>
+						<span>main</span>
+					</Fold>
+				</div>
+			</Row>
+			<Row name="DateButton">
+				<DateButton label="Start" text="3 Nov" value="2026-11-03" onChange={noop} />
 			</Row>
 			<Row name="PageHeader">
 				<div className="w-full">
@@ -839,19 +825,6 @@ function Molecules() {
 					</Card>
 				</Panel>
 			</Row>
-			<Row name="Timeline">
-				<div className="w-80">
-					<Timeline>
-						<TimelineItem lead={<Avatar name="Plan" />} title="ACME-1 plan started" time="10:02" />
-						<TimelineItem
-							lead={<StatusDot status="warning" />}
-							title="ACME-1: question"
-							body="Q-101"
-							time="10:04"
-						/>
-					</Timeline>
-				</div>
-			</Row>
 		</div>
 	);
 }
@@ -899,6 +872,11 @@ function Organisms() {
 						},
 					]}
 				/>
+			</Row>
+			<Row name="MarkdownView">
+				<div className="w-96">
+					<MarkdownView source={"# Notes\n\nOne **short** paragraph."} label="Notes" />
+				</div>
 			</Row>
 			<Row name="CommitDialog">
 				<Button onClick={() => setCommit(true)}>{t.shell.commit}</Button>
@@ -1001,22 +979,6 @@ function Organisms() {
 					]}
 				/>
 			</Row>
-			<Row name="NotificationCentre">
-				<NotificationCentre
-					items={[
-						{
-							id: "a",
-							kind: "needs-you",
-							title: format(t.notifications.update, { version: "0.2.0" }),
-							time: Date.now(),
-							read: false,
-						},
-					]}
-					unread={1}
-					onOpen={noop}
-					onClear={noop}
-				/>
-			</Row>
 			<Row name="Toaster">
 				<div className="relative h-24 w-[28rem]">
 					<Toaster
@@ -1051,7 +1013,6 @@ function Organisms() {
 function Templates() {
 	const { t } = useI18n();
 	const [open, setOpen] = useState(true);
-	const prefs = usePrefs();
 	return (
 		<div>
 			<Row name="Shell">
@@ -1075,11 +1036,7 @@ function Templates() {
 			</Row>
 			<Row name="ListDetail">
 				<div className="flex h-40 w-full flex-col border">
-					<ListDetail
-						title={t.tabs.work.backlog}
-						icon={<QueueListIcon size={16} />}
-						toolbar={<Button variant="primary">{t.sync.backlog.import}</Button>}
-					>
+					<ListDetail title={t.tabs.work.backlog} icon={<Cog6ToothIcon size={16} />}>
 						<div className="p-3">
 							<Skeleton className="h-row" />
 						</div>
@@ -1088,10 +1045,7 @@ function Templates() {
 			</Row>
 			<Row name="Board">
 				<div className="flex h-56 w-full flex-col border">
-					<Board title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />}>
-						<BoardColumn title="To Do" category="todo" count={1} onDropKey={() => {}}>
-							<TicketCard itemKey="ACME-3" title="Plan" onOpen={() => {}} onMove={() => {}} />
-						</BoardColumn>
+					<Board title={t.tabs.work.board} icon={<Cog6ToothIcon size={16} />}>
 						<BoardColumn title="Done" category="done" count={0} onDropKey={() => {}}>
 							{null}
 						</BoardColumn>
@@ -1105,34 +1059,7 @@ function Templates() {
 							id: "prefs",
 							title: t.gallery.settings,
 							rows: [
-								{
-									id: "contrast",
-									icon: <SunIcon size={14} />,
-									label: t.prefs.contrast,
-									control: (
-										<Switch
-											label={t.prefs.contrast}
-											iconOnly
-											checked={prefs.contrast === "high"}
-											onCheckedChange={(c) => prefs.setPrefs({ contrast: c ? "high" : "default" })}
-										/>
-									),
-								},
-								{
-									id: "density",
-									icon: <Cog6ToothIcon size={14} />,
-									label: t.prefs.compact,
-									control: (
-										<Switch
-											label={t.prefs.compact}
-											iconOnly
-											checked={prefs.density === "compact"}
-											onCheckedChange={(c) =>
-												prefs.setPrefs({ density: c ? "compact" : "default" })
-											}
-										/>
-									),
-								},
+								{ id: "theme", label: t.prefs.theme, control: <StatusDot status="success" /> },
 							],
 						},
 					]}

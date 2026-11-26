@@ -36,7 +36,7 @@ export const shellFnEs: typeof shellFnEn = {
 	},
 	roles: {
 		tier: "Modelo de {name}",
-		top: "El mejor",
+		top: "Potente",
 		mid: "Estándar",
 		small: "Rápido",
 	},

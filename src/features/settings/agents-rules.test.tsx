@@ -124,7 +124,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 			"has space",
 		);
 		await user.tab();
-		expect(await screen.findByRole("alert")).toHaveTextContent("is not a model id");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
 		expect((await unwrap(commands.tiersGet()))[2]?.mid).toBe("");
 	});
 

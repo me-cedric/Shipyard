@@ -50,7 +50,7 @@ export function RunNeeds({
 	const action = stopAction(run);
 	const planning = run.state === "PlanReview";
 	if (!(waits.questions.length || waits.approvals.length || action || planning)) return null;
-	const agent = agentOf(run);
+	const agent = agentOf(run, t.factory.agentNames);
 	const folded = pick ?? (action !== null || planning || waits.questions.length > 0);
 	const [first] = waits.questions;
 	// The card of Reply holds the first question as one plain Answer field; the others are rows below.
@@ -112,6 +112,7 @@ export function RunNeeds({
 						/>
 						<RightButton
 							right="runs.approve"
+							disabled={!note.trim()}
 							onClick={() => void guard(() => act.planReject(id, note))}
 						>
 							{x.plan.back}

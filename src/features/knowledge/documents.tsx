@@ -18,7 +18,7 @@ import { DocumentTextIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
-import { DocSearch, DocxView, useDocActions, useDocumentExports } from "./documents-parts";
+import { DocSearch, DocxView, useDocumentExports } from "./documents-parts";
 import { ListTab } from "./list-tab";
 import { CardHeader, PageCard } from "./pages";
 
@@ -174,7 +174,7 @@ export function Documents() {
 				</>
 			)}
 		>
-			{(row) => <Document path={row.path} title={row.title} onRenamed={pick} />}
+			{(row) => <Document path={row.path} title={row.title} />}
 		</ListTab>
 	);
 }
@@ -188,37 +188,27 @@ const kindOf = (path: string, names: { md: string; docx: string }) =>
 			: (path.split(".").pop() ?? "").toUpperCase();
 
 /** The open document: a Markdown file in the page card, or a Word file as text, read only. */
-function Document({
-	path,
-	title,
-	onRenamed,
-}: {
-	path: string;
-	title: string;
-	onRenamed: (path: string) => void;
-}) {
+function Document({ path, title }: { path: string; title: string }) {
 	const { t } = useI18n();
-	const actions = useDocActions(path, onRenamed);
 	return (
 		<>
 			{path.endsWith(".docx") ? (
 				<>
-					<CardHeader title={title} more={actions.items} />
+					<CardHeader title={title} />
 					<DocxView path={path} title={title} />
 				</>
 			) : !path.endsWith(".md") ? (
 				// A file that Shipyard cannot show: it opens in the app of the system.
 				<section aria-label={title} className="flex flex-col gap-4.5">
-					<CardHeader title={title} more={actions.items}>
+					<CardHeader title={title}>
 						<Button className="min-h-control" onClick={() => openDefault(path)}>
 							{t.library.fn.documents.open}
 						</Button>
 					</CardHeader>
 				</section>
 			) : (
-				<PageCard path={path} title={title} more={actions.items} />
+				<PageCard path={path} title={title} />
 			)}
-			{actions.dialog}
 		</>
 	);
 }

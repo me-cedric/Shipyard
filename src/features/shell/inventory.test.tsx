@@ -187,7 +187,7 @@ describe("inventory (app-redesign REQ-003 and REQ-029, ux-declutter REQ-016)", (
 		for (const name of [
 			"Projects",
 			"Open a local folder",
-			"Clone a repository",
+			"Get a project from the code host",
 			"Close project",
 			"Remove from list",
 		])

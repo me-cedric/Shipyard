@@ -114,10 +114,13 @@ export function RoleCard({ role, onRole }: { role: TeamRole; onRole: (role: Team
 								<fieldset
 									disabled={off.disabled || mine.access.code !== "write"}
 									title={off.reason}
-									className="shrink-0 disabled:opacity-60"
+									className="flex shrink-0 items-center gap-2 disabled:opacity-60"
 								>
+									<span aria-hidden="true" className="text-ui text-n-11">
+										{r.merge}
+									</span>
 									<Toggle
-										label={`${name} ${r.merge}`}
+										label={`${r.merge}, ${name}`}
 										checked={mine.access.merge}
 										onCheckedChange={(on) =>
 											void roles.setAccess(role, { ...mine.access, merge: on })

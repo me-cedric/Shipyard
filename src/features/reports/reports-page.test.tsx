@@ -99,8 +99,11 @@ describe("Library / Reports (spec:app-redesign#REQ-003)", () => {
 		const write = screen.getByRole("button", { name: "Write the report" });
 		expect(write).toBeEnabled();
 		await user.click(write);
-		expect(await screen.findByRole("alert")).toHaveTextContent("Fill in each field");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Fill in: ");
 		expect(mockState().reports.changeRequests).toEqual([]);
+		// The empty field is marked and has the focus.
+		expect(screen.getByRole("textbox", { name: "Title" })).toBeInvalid();
+		expect(screen.getByRole("textbox", { name: "Title" })).toHaveFocus();
 		await user.type(screen.getByRole("textbox", { name: "Title" }), "Add billing");
 		expect(screen.getByRole("textbox", { name: "From version" })).toHaveValue("main");
 		expect(screen.getByRole("textbox", { name: "To version" })).toHaveValue("HEAD");

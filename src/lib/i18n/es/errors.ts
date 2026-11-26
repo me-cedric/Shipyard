@@ -4,7 +4,7 @@ export const errorsEs: Record<Exclude<ErrorCode, "unknown">, string> = {
 	no_project: "Abre o crea primero un proyecto.",
 	no_tracker: "Este proyecto no tiene conexión con un gestor de tickets.",
 	scope_missing: "Elige el proyecto del gestor de tickets que se va a leer.",
-	pickup_off: "Los agentes no toman ningún ticket: la etiqueta de toma está desactivada.",
+	pickup_off: "Los agentes no toman ningún ticket: ninguna etiqueta marca los tickets para ellos.",
 	ticket_not_in_mirror: "Este ticket aún no está aquí. Sincroniza e inténtalo de nuevo.",
 	needs_click: "Confirma esta acción para continuar.",
 	node_missing: "Falta Node. Las herramientas de agente lo necesitan.",
@@ -29,11 +29,13 @@ export const errorsEs: Record<Exclude<ErrorCode, "unknown">, string> = {
 	forge_missing:
 		"El servidor no conoce este elemento. Revisa la dirección y los permisos del token.",
 	git_nothing_staged: "No hay ningún archivo preparado. Prepara primero un archivo.",
-	git_identity: "Git no tiene nombre ni correo. Define user.name y user.email.",
-	git_busy: "El repositorio está ocupado. Termina primero la fusión o el rebase.",
+	git_identity:
+		"Git no conoce tu nombre ni tu correo. Defínelos en Git en este ordenador e inténtalo de nuevo.",
+	git_busy: "Git está en mitad de una fusión o un rebase. Termínalo en Code e inténtalo de nuevo.",
 	git_no_upstream: "Esta rama aún no está en el servidor. Haz push primero.",
-	no_terminal: "No se encontró ninguna aplicación de terminal. Elige una en tus ajustes.",
-	terminal_gone: "Esta aplicación de terminal no está instalada. Elige otra en tus ajustes.",
+	no_terminal: "No se encontró ninguna app de terminal. Elige una en Configuración y luego Yo.",
+	terminal_gone:
+		"Esta aplicación de terminal no está instalada. Elige otra en Configuración y luego Yo.",
 	device_not_set:
 		"El inicio de sesión por el navegador no está configurado para este host. Usa un token.",
 	no_editor:
@@ -79,7 +81,7 @@ export const errorsEs: Record<Exclude<ErrorCode, "unknown">, string> = {
 	path_invalid: "Esta ruta no es válida. Elige otro archivo o carpeta del proyecto.",
 	already_exists: "Ya existe un elemento con este nombre. Usa otro nombre.",
 	file_changed: "El archivo cambió en el disco. Vuelve a cargarlo e inténtalo de nuevo.",
-	no_compass: "No hay ninguna versión de compass fijada. Fija una primero.",
+	no_compass: "No hay ninguna versión elegida de las reglas de trabajo. Elige una primero.",
 	tool_missing:
 		"Un programa que esto necesita no está instalado o no se inició. Revisa Configuración y luego Este ordenador.",
 	tool_failed: "Un programa falló. Lee su salida e inténtalo de nuevo.",
@@ -96,16 +98,20 @@ export const errorsEs: Record<Exclude<ErrorCode, "unknown">, string> = {
 	input_invalid: "Un valor está vacío o no es válido. Revisa los campos e inténtalo de nuevo.",
 	tracker_unsupported: "Tu gestor de tickets no puede hacer esto. Usa el propio gestor de tickets.",
 	project_file_invalid:
-		"El archivo del proyecto no es válido. Corrígelo en los ajustes del proyecto e inténtalo de nuevo.",
+		"El archivo del proyecto no es válido. Corrígelo en Configuración y luego Este proyecto.",
 	doc_not_stale: "Este documento está al día. No hay nada que actualizar.",
+	extension_setting: "Un ajuste de esta extensión está vacío. Complétalo y inténtalo de nuevo.",
+	extension_dependency:
+		"Falta un programa que esta extensión necesita. Instálalo y inténtalo de nuevo.",
 	git_dirty:
-		"Tienes cambios que no están guardados en un commit. Haz commit o stash e inténtalo de nuevo.",
+		"Tienes cambios que no están guardados en un commit. Haz commit o apártalos e inténtalo de nuevo.",
 };
 
 export const actionsEs: Record<ActionKind, string> = {
-	setting: "Abrir ajustes",
+	setting: "Abrir la configuración",
 	sync: "Sincronizar",
 	install: "Instalar",
 	create_project: "Crear un proyecto",
 	open: "Abrir",
 };
+export const unknownEs = "Algo salió mal. Inténtalo de nuevo.";

@@ -73,7 +73,7 @@ Diagramme enthält die Zeichnungen des Projekts: Excalidraw, Mermaid, draw.io un
 
 ### Bildschirme
 
-Bildschirme zeigt die Bildschirme des Produkts und die Design-Tokens Ihres Projekts. Sie kommen aus dem Design-Dokument (CSS in einem Codeblock), aus einer Datei `tokens.css`, aus einer Datei `*.tokens.json` oder aus einem `@theme`-Block von Tailwind 4, gruppiert nach Datei. Ohne Token sagt die Seite Noch keine Tokens; klicken Sie auf Tokens zum Design-Dokument hinzufügen, bearbeiten Sie den Block, dann speichern Sie. Die Seite zeigt nie die Tokens von Shipyard. Jeder Bildschirm ist eine Karte mit Umgesetzt oder Nicht umgesetzt. Der Umschalter Bildschirme und Tokens zeigt die Tokens. Vom Design zum Code öffnet den offenen Bildschirm, sonst den ersten, im Inspektor, wo Plan schreiben steht.
+Bildschirme zeigt die Bildschirme des Produkts und die Design-Tokens Ihres Projekts. Sie kommen aus dem Design-Dokument (CSS in einem Codeblock), aus einer Datei `tokens.css`, aus einer Datei `*.tokens.json` oder aus einem `@theme`-Block von Tailwind 4, gruppiert nach Datei. Ohne Token sagt die Seite Keine Design-Tokens; klicken Sie auf Tokens zum Design-Dokument hinzufügen, bearbeiten Sie den Block, dann speichern Sie. Die Seite zeigt nie die Tokens von Shipyard. Jeder Bildschirm ist eine Karte mit Umgesetzt oder Nicht umgesetzt. Der Umschalter Bildschirme und Design-Tokens zeigt die Tokens. Vom Design zum Code öffnet den offenen Bildschirm, sonst den ersten, im Inspektor, wo Plan schreiben steht.
 
 - Eine `.fig`-Datei zeigt die Vorschau, die Figma darin hält.
 - Um Figma zu lesen, fügen Sie einmal das Token Ihres Figma-Kontos hinzu. Es geht in den Schlüsselbund Ihres Computers.

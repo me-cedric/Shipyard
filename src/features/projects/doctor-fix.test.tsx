@@ -24,7 +24,11 @@ const finding = (id: string, detail: string): Finding_Serialize => ({
 	fix: { kind: "recheck" },
 });
 const THREE = [finding("a", "adr:0001"), finding("b", "adr:0002"), finding("c", "adr:0003")];
-const LINES = ["Broken ref adr:0001", "Broken ref adr:0002", "Broken ref adr:0003"];
+const LINES = [
+	"A link points to a document that does not exist: adr:0001",
+	"A link points to a document that does not exist: adr:0002",
+	"A link points to a document that does not exist: adr:0003",
+];
 
 /** The actions alone, on a router of their own: the page that holds them moves in this wave. */
 function mount(findings: Finding_Serialize[]) {

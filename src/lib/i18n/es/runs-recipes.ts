@@ -3,6 +3,7 @@ import type { runsRecipesEn } from "../runs-recipes";
 export const runsRecipesEs: typeof runsRecipesEn = {
 	pause: "Pausar",
 	takeOver: "Tomar el control",
+	confirmTakeOver: "¿Detener al agente y tomar el control de {name}?",
 	addDocument: "Añadir un documento",
 	removeDocument: "Quitar {name}",
 	documentKinds: "{name}: añade un archivo Markdown, PDF o Word.",
@@ -10,6 +11,7 @@ export const runsRecipesEs: typeof runsRecipesEn = {
 	limit: "Límite",
 	limitAmount: "Límite de la funcionalidad, en dólares",
 	limitError: "El límite es una cantidad de más de cero dólares.",
+	budgetError: "El presupuesto es de cero dólares o más.",
 	stageAtOnce: "{name}, a la vez",
 	warnAtPercent: "Avisar al, en porcentaje",
 	editWarn: "Cambiar Avisar al",

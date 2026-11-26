@@ -187,6 +187,15 @@ pub struct ChangeView {
     pub artifacts: Vec<ArtifactState>,
 }
 
+/// The id as words: `add-auth` gives "Add auth".
+fn humanise(id: &str) -> String {
+    let words = id.replace('-', " ");
+    let mut c = words.chars();
+    c.next()
+        .map(|f| f.to_uppercase().chain(c).collect())
+        .unwrap_or_default()
+}
+
 /// The first heading of `proposal.md` when it is not the id. Strict OpenSpec rejects a `title`
 /// key in `.openspec.yaml`, so the title lives in the heading. An old `title` key still reads.
 fn change_title(dir: &Path, id: &str) -> String {
@@ -205,7 +214,7 @@ fn change_title(dir: &Path, id: &str) -> String {
                 .ok()
                 .filter(|t| !t.is_empty())
         })
-        .unwrap_or_else(|| id.into())
+        .unwrap_or_else(|| humanise(id))
 }
 
 fn change_view(s: &AppState, p: &Proj, id: &str) -> ChangeView {

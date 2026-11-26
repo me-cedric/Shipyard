@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { LibraryPage } from "@/features/library/page-parts";
 import { PageExport } from "@/features/reports/page-export";
 import { WithProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
@@ -28,6 +27,7 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
 import { Row } from "@/ui/molecules/row";
+import { LibraryPage } from "@/ui/templates/library-page";
 import { useGuard } from "./guard";
 import { STATE_TONE } from "./parts";
 import { FoldDialog, QuestionDialog } from "./question-dialogs";
@@ -131,11 +131,14 @@ function OpenCard({
 					{s.answer}
 				</RightButton>
 			</form>
-			{empty ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{p.answerRequired}
-				</p>
-			) : null}
+			{/* The line keeps its height, so the error does not move the form of the other cards. */}
+			<div className="min-h-5">
+				{empty ? (
+					<p role="alert" className="text-ui text-danger-text">
+						{p.answerRequired}
+					</p>
+				) : null}
+			</div>
 			<ErrorNotice error={failure} />
 		</AttentionCard>
 	);

@@ -55,7 +55,7 @@ describe("Chart kinds of dashboard tiles", () => {
 			expect(runs.getByRole("list", { name: /chart/ })).toHaveAttribute("data-chart", "bars"),
 		);
 		expect(
-			(await tile("Work items")).getByRole("list", { name: `Work items, ${names.stages}` }),
+			(await tile("Tickets")).getByRole("list", { name: `Tickets, ${names.stages}` }),
 		).toBeVisible();
 	});
 

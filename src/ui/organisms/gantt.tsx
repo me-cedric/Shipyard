@@ -289,7 +289,7 @@ export function Gantt({
 								aria-label={
 									milestoneLabel?.(e.id, ends.get(e.id) ?? "") ?? `${e.id} ${ends.get(e.id)}`
 								}
-								className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] bg-primary"
+								className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[calc(var(--radius-sm)/4)] bg-primary"
 								style={{ left: x(ends.get(e.id) ?? today) + dayWidth }}
 							/>
 						) : null}

@@ -100,8 +100,8 @@ describe("Code / Impacts", () => {
 			"/flow/flow",
 		);
 		expect(screen.getByText("Compare")).toBeVisible();
-		// Both sides of the compare are selects with a chevron (screen 50).
-		expect(screen.getByRole("combobox", { name: "My changes" })).toBeVisible();
+		// The base is a select with a chevron (screen 50); the left side is plain text.
+		expect(screen.getByText("My changes")).toBeVisible();
 		expect(screen.getByRole("combobox", { name: "Compare with" })).toBeVisible();
 		expect(await screen.findByText("1 doc goes stale with this change")).toBeVisible();
 		expect(screen.getByRole("heading", { name: "Files changed" })).toBeVisible();
@@ -142,6 +142,20 @@ describe("Code / Impacts", () => {
 		await idle(router);
 	});
 
+	it("lists the files of the pull request of a feature, not the local changes", async () => {
+		await open();
+		await unwrap(commands.pullsList());
+		const path = (await unwrap(commands.codePullDetail(141))).files[0]?.path ?? "";
+		vi.spyOn(commands, "featuresList").mockResolvedValue({
+			status: "ok",
+			data: [{ ...feature, pr: "pr:github:141" }],
+		});
+		const router = mountApp("/flow/feature/change%3Ax/impacts");
+		const column = await screen.findByRole("region", { name: "Files changed" });
+		expect(await within(column).findByText(path)).toBeVisible();
+		await idle(router);
+	});
+
 	it("opens the impacts of a change from its Checks, analyzes, counts the past reports and goes back to Checks", async () => {
 		const user = userEvent.setup();
 		await open();
@@ -177,7 +191,7 @@ describe("Code / Impacts", () => {
 		await user.click(screen.getByRole("button", { name: /2026-10-28/ }));
 		await pick(user, "Details");
 		expect(await screen.findByRole("heading", { name: "Axes (7)" })).toBeVisible();
-		expect(screen.getByRole("heading", { name: "Stale refs (0)" })).toBeVisible();
+		expect(screen.getByRole("heading", { name: "Out-of-date links (0)" })).toBeVisible();
 		for (const size of ["Code", "Specs", "Docs", "Tests", "People"])
 			expect(screen.getByRole("heading", { name: size })).toBeVisible();
 		expect(await screen.findByText(/The release date holds/)).toBeVisible();

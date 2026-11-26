@@ -15,7 +15,7 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 		expect(formatDay("2026-10-31", "iso", "en")).toBe("2026-10-31");
 		expect(formatDay("2026-10-31", "dmy", "en")).toBe("31/10/2026");
 		expect(formatDay("2026-10-31", "mdy", "en")).toBe("10/31/2026");
-		expect(formatDay("2026-10-31", "", "en")).toBe("10/31/2026");
+		expect(formatDay("2026-10-31", "", "en")).toBe("31 Oct 2026");
 		expect(formatDay("", "iso", "en")).toBe("");
 	});
 
@@ -47,7 +47,7 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 		await user.click(
 			screen.getByRole("switch", { name: "Push the saved changes when the window closes" }),
 		);
-		await choose(user, "Date format", "31/10/2026");
+		await choose(user, "Dates", "31/10/2026");
 		await waitFor(() => expect(mockState().prefs.dateFormat).toBe("dmy"));
 		const p = mockState().prefs;
 		expect([p.navSide, p.drawerSide, p.narrowBar, p.showAllPages, p.closePush]).toEqual([
@@ -71,8 +71,8 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 			expect([root.motion, root.focusRing, root.focusWidth]).toEqual(["system", "keyboard", "2"]),
 		);
 		await user.click(await screen.findByRole("switch", { name: "Motion" }));
-		await user.click(screen.getByRole("switch", { name: "Focus ring" }));
-		await user.click(screen.getByRole("button", { name: "More: Focus ring width" }));
+		await user.click(screen.getByRole("switch", { name: "Ring around the active control" }));
+		await user.click(screen.getByRole("button", { name: "More: Width of the ring" }));
 		await waitFor(() =>
 			expect([
 				mockState().prefs.motion,

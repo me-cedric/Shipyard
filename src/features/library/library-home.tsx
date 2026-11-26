@@ -21,7 +21,7 @@ import { ATTENTION_CHIP } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
-import { LinkedCard } from "./page-parts";
+import { LinkedCard } from "@/ui/templates/library-page";
 import { useLibraryPins, useLibraryRecent } from "./recent";
 
 /** The icons of the doors, from the design source (24 px grid). */

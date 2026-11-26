@@ -42,8 +42,29 @@ export function AssistantPanel({
 	const editor = useEditorTarget(panel);
 	const missing = useRunnersMissing();
 	// Opening puts the focus in the input (REQ-001).
+	// Closing gives the focus back to what opened it, else to the main view.
+	const opener = useRef<Element | null>(null);
+	const wasOpen = useRef(false);
 	useEffect(() => {
-		if (open) input.current?.focus();
+		if (open) {
+			wasOpen.current = true;
+			// The body is no opener: with it the focus would be lost again.
+			opener.current = document.activeElement === document.body ? null : document.activeElement;
+			input.current?.focus();
+			return;
+		}
+		// It never opened: the first render has nothing to give back.
+		if (!wasOpen.current) return;
+		wasOpen.current = false;
+		const was = opener.current;
+		opener.current = null;
+		if (
+			!panel.current?.contains(document.activeElement) &&
+			document.activeElement !== document.body
+		)
+			return;
+		if (was instanceof HTMLElement && was.isConnected && !panel.current?.contains(was)) was.focus();
+		else document.querySelector<HTMLElement>("main")?.focus();
 	}, [open]);
 	const other = a.side === "right" ? "left" : "right";
 	return (
@@ -85,7 +106,7 @@ export function AssistantPanel({
 				<h1 className="min-w-0 flex-1 truncate text-14 font-medium text-n-12">
 					{t.assistant.title}
 				</h1>
-				<SendToFactory a={a} />
+				<SendToFactory a={a} compact />
 				<IconButton
 					label={format(t.assistant.side.move, { side: t.assistant.side[other] })}
 					onClick={() => a.setSide(other)}

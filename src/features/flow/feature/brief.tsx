@@ -36,6 +36,7 @@ import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Row } from "@/ui/molecules/row";
 import { CARD_LABEL, DesignToCode, forDesign, SCREEN_BOX, useCited } from "./design";
+import { LinkDesign } from "./link-design";
 import { keyOf, WriteSpec } from "./start";
 import type { Parts } from "./use-feature";
 
@@ -194,7 +195,7 @@ function Requirements({ change, featureId }: { change: Change; featureId: string
 						{rows.map((r) => (
 							<li
 								key={r.ref}
-								className="flex flex-wrap items-center gap-3 rounded-[14px] bg-n-2 p-4"
+								className="flex flex-wrap items-center gap-3 rounded-field bg-n-2 p-4"
 							>
 								<svg
 									aria-hidden="true"
@@ -307,8 +308,9 @@ export function Brief({ parts }: { parts: Parts; onBack?: () => void }) {
 								className="flex-[1_1_120px]"
 								onClick={() => void navigate({ to: "/library/screens" })}
 							>
-								{b.linkScreen}
+								{b.openScreens}
 							</Button>
+							{change ? <LinkDesign kind="screen" change={change} /> : null}
 							{first ? <DesignToCode screen={first} className="flex-[1_1_120px]" /> : null}
 						</div>
 					</section>

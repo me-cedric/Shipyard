@@ -180,7 +180,7 @@ export function TimelineBars({
 										role="img"
 										aria-label={milestoneLabel(g, day(end))}
 										title={milestoneLabel(g, day(end))}
-										className="absolute top-1 size-2 -translate-x-1/2 rotate-45 rounded-[2px] bg-n-9"
+										className="absolute top-1 size-2 -translate-x-1/2 rotate-45 rounded-[calc(var(--radius-sm)/4)] bg-n-9"
 										style={{ left: pct(diffDays(from, end) + 1) }}
 									/>
 								</div>

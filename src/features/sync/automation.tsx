@@ -265,16 +265,8 @@ function Form({ view }: { view: AutomationView }) {
 				) : null}
 			</div>
 			<div className="flex min-w-0 flex-[2_1_320px] flex-col gap-4">
-				<SetupCard id="writes" title={k.write}>
-					{WRITES.map((w) => (
-						<SetupRow key={w} label={plain(a.write[WRITE_KEY[w]])}>
-							<Toggle
-								label={a.write[WRITE_KEY[w]]}
-								checked={draft.writes[w]}
-								onCheckedChange={(on) => set({ writes: { ...draft.writes, [w]: on } })}
-							/>
-						</SetupRow>
-					))}
+				<SetupCard>
+					<SetupRow label={plain(t.doctor.project.alone)} href="/setup/project#alone" />
 				</SetupCard>
 				{recipes.length ? (
 					<SetupCard id="recipe-writes" title={a.recipes}>
@@ -298,7 +290,6 @@ function Form({ view }: { view: AutomationView }) {
 					</SetupCard>
 				) : null}
 				<SetupCard>
-					<SetupRow label={<span className="text-n-11">{k.offMeans}</span>} />
 					<SetupRow label={plain(k.today)} href="/today/today" />
 				</SetupCard>
 				<SetupCard>

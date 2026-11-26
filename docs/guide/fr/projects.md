@@ -14,7 +14,7 @@ Fermer demande d'abord quand des agents travaillent pour le projet : Annuler, Le
 
 ## Nouveau projet
 
-Nouveau projet est une page à part, à l'adresse `/projects/new`. Ouvrez-la avec Nouveau projet sur la page Projets, sur la page du premier lancement ou sur la page Aucun projet n'est ouvert. Elle pose une question à la fois, en cinq étapes : Nom, Type de produit, Outils, Équipe et Prêt. Toutes les étapes montre les cinq parties sur une page : Projet, Cahier, Équipe, Où vit le code et Départ. Retour quitte la page ou revient d'une étape. Chaque étape a des valeurs par défaut. Créer le projet est actif quand le nom et le dossier parent sont fixés. Rien n'est fait avant votre clic.
+Nouveau projet est une page à part, à l'adresse `/projects/new`. Ouvrez-la avec Nouveau projet sur la page Projets, sur la page du premier lancement ou sur la page Aucun projet n'est ouvert. Elle pose une question à la fois, en cinq étapes : Nom, Technologie, Outils, Équipe et Prêt. Toutes les étapes montre les cinq parties sur une page : Projet, Cahier, Équipe, Où vit le code et Départ. Retour quitte la page ou revient d'une étape. Chaque étape a des valeurs par défaut. Créer le projet est actif quand le nom et le dossier parent sont fixés. Rien n'est fait avant votre clic.
 
 1. Projet : le nom, la clé courte des tickets (tirée du nom, vous pouvez la modifier), le dossier parent et la technologie : Node, Rust, Python, Java, Go ou Autre. La technologie fixe les contrôles du fichier de projet et les règles d'exclusion de `.gitignore`. Le dossier doit être vide ou nouveau : Créer le projet refuse un dossier qui contient des fichiers.
 2. Cahier : la vision, les utilisateurs et le périmètre, en texte que vous modifiez. Ils vont dans `docs/brief.md`. Choisissez aussi la langue des docs et la langue des pull requests. Les deux prennent par défaut la langue de l'interface. Les agents écrivent les specs, les diagrammes, les documents et le texte des pull requests dans ces langues. Le code, les identifiants, les commentaires de code et les messages de commit restent en anglais.
@@ -31,7 +31,7 @@ Créer le projet crée le dépôt, écrit les fichiers, fait le premier commit e
 
 ## Aucun projet ouvert
 
-Quand vous fermez le projet, ou quand aucun projet n'est ouvert après le premier lancement, une carte dit Aucun projet n'est ouvert. Nouveau projet ouvre la page du créateur. Ouvrir un projet ouvre un menu : vos projets récents, Projets, Ouvrir un dossier et Cloner un dépôt. La page du premier lancement sert seulement au premier lancement (voir Démarrer, Premier lancement).
+Quand vous fermez le projet, ou quand aucun projet n'est ouvert après le premier lancement, une carte dit Aucun projet n'est ouvert. Nouveau projet ouvre la page du créateur. Ouvrir un projet ouvre un menu : vos projets récents, Projets, Ouvrir un dossier et Récupérer un projet de l’hébergeur de code. La page du premier lancement sert seulement au premier lancement (voir Démarrer, Premier lancement).
 
 ## Réglages du projet
 

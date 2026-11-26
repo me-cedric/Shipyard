@@ -9,7 +9,7 @@ Jetzt ist eine kurze Übersicht: die Dateien für den Commit und die offenen Pul
 Die Karte der Dateien für den Commit zeigt die ersten drei Dateien mit den hinzugefügten und entfernten Zeilen, einen Link zu den anderen Dateien, eine Commit-Nachricht, Schreib es für mich und Commit. Der Link öffnet die Seite der lokalen Änderungen.
 
 1. Haken Sie die Dateien, die Sie behalten wollen, in einer flachen Liste an. Alle wählen und Keine wählen haken die ganze Liste an. Oder verwerfen Sie eine Änderung.
-2. Schreiben Sie die Commit-Nachricht, fügen Sie eine Beschreibung hinzu, wenn Sie wollen, dann klicken Sie auf Commit. Ein Commit nimmt nur die angehakten Dateien. Die Schaltfläche Commit in der Karte der Sync-Markierung tut dasselbe von jeder Seite aus.
+2. Schreiben Sie die Commit-Nachricht, fügen Sie eine Beschreibung hinzu, wenn Sie wollen, dann klicken Sie auf Commit. Ein Commit nimmt nur die angehakten Dateien. Die Schaltfläche Commit in der Karte der Sync-Markierung tut dasselbe von jeder Seite aus. Eine Commit-Nachricht in einfachen Worten wird angenommen: Wählen Sie die Art in einer Liste, und Shipyard setzt das Präfix davor.
 
 - Schreib es für mich bittet den Assistenten um eine Nachricht aus den vorgemerkten Dateien. Nichts wird gesendet, bis Sie es senden.
 - Eine Gruppe ohne Dateien zeigt eine gedämpfte Zeile, etwa „Nichts vorgemerkt“.
@@ -30,7 +30,7 @@ Verlauf listet die Commits, den neuesten zuerst. Wählen Sie einen Commit, um se
 
 Branches listet die Branches auf diesem Computer und auf dem Server. Legen Sie einen Branch an, wechseln Sie zu ihm, führen Sie ihn zusammen oder löschen Sie ihn. Die App löscht nie den Branch, an dem Sie arbeiten.
 
-Die Branch-Auswahl, in der Karte der Sync-Markierung und auf Code / Jetzt, hat ein Filterfeld. Tippen Sie, um die Liste einzugrenzen, bewegen Sie sich mit den Pfeiltasten und drücken Sie die Eingabetaste. Ein Remote-Branch wird als neuer lokaler Branch ausgecheckt, der ihm folgt. Die Zeile Neuer Branch legt einen Branch aus dem Branch an, an dem Sie arbeiten.
+Die Branch-Auswahl, in der Karte der Sync-Markierung und auf Code / Jetzt, hat ein Filterfeld. Tippen Sie, um die Liste einzugrenzen, bewegen Sie sich mit den Pfeiltasten und drücken Sie die Eingabetaste. Ein Remote-Branch wird als neuer lokaler Branch ausgecheckt, der ihm folgt. Die Zeile Neuer Branch legt einen Branch aus dem Branch an, an dem Sie arbeiten. Ein Branch-Name in einfachen Worten wird zu einem gültigen Namen.
 
 ## Terminal
 

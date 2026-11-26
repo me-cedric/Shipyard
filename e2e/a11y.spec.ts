@@ -58,6 +58,7 @@ const EXEMPT: [string, string][] = [
 	[".excalidraw", "The canvas of the whiteboard sets the sizes of its tools."],
 	[".react-flow", "A diagram zooms: its nodes and its zoom buttons change size with it."],
 	[".xterm", "The terminal reads the keys in a hidden text area."],
+	["[data-line-action]", 'The "+" of a diff line fills one text line of the diff, 44 px wide.'],
 	["[data-gantt-bar]", "A bar of the timeline is a mark on a time scale, 20 px high in its row."],
 ];
 

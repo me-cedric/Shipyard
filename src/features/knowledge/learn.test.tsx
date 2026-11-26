@@ -1,6 +1,7 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
+import { mountApp } from "@/test/mount";
 import { inspector, mountKnowledge } from "./harness";
 
 const RANK = ["model", "adr", "spec"];
@@ -22,6 +23,16 @@ describe("Knowledge / Learn", () => {
 		expect(shown).toEqual(learn.path.map((s) => s.title));
 		const ranks = learn.path.map((s) => RANK.indexOf(s.kind));
 		expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+	});
+
+	it("keeps the steps that the old shared key held", async () => {
+		await mountKnowledge("learn");
+		const learn = await unwrap(commands.learnGet());
+		localStorage.setItem("shipyard.learn.done", JSON.stringify([learn.path[0]?.ref]));
+		cleanup();
+		mountApp("/knowledge/learn");
+		expect(await screen.findByText(`1 of ${learn.path.length}`)).toBeInTheDocument();
+		localStorage.clear();
 	});
 
 	it("marks the next step with Start, and Start opens it and moves the mark on", async () => {

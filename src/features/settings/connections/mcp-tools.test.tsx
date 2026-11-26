@@ -37,7 +37,9 @@ describe("Settings / Connections / MCP servers: categories, recommended set and 
 		const results = await screen.findByRole("list", { name: "Test all" });
 		await waitFor(() => expect(within(results).getAllByRole("listitem")).toHaveLength(2));
 		expect(results).toHaveTextContent("SonarQube does not work");
-		expect(results).toHaveTextContent("missing dependency: Docker");
+		expect(results).toHaveTextContent(
+			"A program that this extension needs is missing. Install it, then try again. (Docker)",
+		);
 	});
 
 	it("filters the servers to add by category", async () => {

@@ -18,14 +18,12 @@ describe("the inspector actions of a ref", () => {
 		const user = userEvent.setup();
 		const { unmount } = renderApp(detail("change:add-auth"));
 		await user.click(await screen.findByRole("button", { name: "More" }));
-		expect(
-			await screen.findByRole("button", { name: "Split into work items" }),
-		).toBeInTheDocument();
-		expect(screen.queryByRole("button", { name: "Create work item" })).toBeNull();
+		expect(await screen.findByRole("button", { name: "Split into tickets" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Create a ticket" })).toBeNull();
 		unmount();
 		renderApp(detail("test:auth-login"));
 		await screen.findByText("Login");
 		await user.click(screen.getByRole("button", { name: "More" }));
-		expect(screen.queryByRole("button", { name: /Write plan|Split into work items/ })).toBeNull();
+		expect(screen.queryByRole("button", { name: /Write plan|Split into tickets/ })).toBeNull();
 	});
 });

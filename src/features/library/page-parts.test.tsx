@@ -1,8 +1,14 @@
 import { render as rtlRender, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { I18nProvider } from "@/lib/i18n";
+import {
+	LibraryPage,
+	LinkedCard,
+	LinkedRow,
+	ListCard,
+	ListColumn,
+} from "@/ui/templates/library-page";
 import { LibraryBack } from "./back-link";
-import { LibraryPage, LinkedCard, LinkedRow, ListCard, ListColumn } from "./page-parts";
 
 vi.mock("@tanstack/react-router", () => ({
 	Link: ({ to, ...props }: { to: string; className?: string; children?: React.ReactNode }) => (

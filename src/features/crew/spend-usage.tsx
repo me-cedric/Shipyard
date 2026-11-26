@@ -10,6 +10,7 @@ import { Loading } from "@/ui/molecules/loading";
 import { SpendMeter, spendStatus } from "@/ui/molecules/spend-meter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
+import { percent } from "./spend-const";
 
 type Kind = "run" | "day" | "member";
 type Row = {
@@ -192,7 +193,7 @@ export function UsageCard({
 					},
 					{
 						label: f.successRate,
-						value: ended.length ? `${Math.round((won / ended.length) * 100)} %` : "-",
+						value: ended.length ? percent(Math.round((won / ended.length) * 100), lang) : "-",
 						icon: <CheckIcon size={12} />,
 						tone: "success",
 						delta: `${won}/${ended.length}`,

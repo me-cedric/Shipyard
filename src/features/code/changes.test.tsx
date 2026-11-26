@@ -13,8 +13,12 @@ const main = () => screen.getByRole("main");
 /** The title of the page of the local changes counts the files to commit. */
 const title = (name: string) => screen.findByRole("heading", { name });
 // The commit action of the old status bar is in the card of the sync mark.
-const commitOfCard = async (user: Parameters<typeof openSync>[0]) =>
-	(await openSync(user)).getByRole("button", { name: "Commit" });
+const commitOfCard = async (user: Parameters<typeof openSync>[0]) => {
+	const card = await openSync(user);
+	// Until the staged files load, Commit is a link to the page of the changes.
+	await waitFor(() => expect(card.getByRole("button", { name: "Commit" })).toBeInTheDocument());
+	return card.getByRole("button", { name: "Commit" });
+};
 const list = () => within(screen.getByRole("list", { name: "Files" }));
 const box = () => within(screen.getByRole("form", { name: "Commit" }));
 
@@ -132,25 +136,18 @@ describe("Code / the files to commit", () => {
 		await waitFor(() => expect(screen.queryByRole("group", { name: "wip auth" })).toBeNull());
 	});
 
-	it("refuses a wrong type, then commits the chosen files with a description", async () => {
+	it("adds the chosen kind to a message in plain words, and commits the chosen files with a description", async () => {
 		const user = userEvent.setup();
 		await changes();
 		expect(box().queryByRole("textbox", { name: "Description" })).toBeNull();
-		await user.type(box().getByRole("textbox", { name: "Commit message" }), "wip: tidy");
-		await user.click(box().getByRole("button", { name: "Commit 1 file" }));
-		expect(await box().findByRole("alert")).toHaveTextContent(
-			"feat, fix, chore, docs, refactor, test",
-		);
-		expect(mockState().code?.branches.main?.log).toHaveLength(3);
-		const summary = box().getByRole("textbox", { name: "Commit message" });
-		await user.clear(summary);
-		await user.type(summary, "fix(auth): refuse nothing");
+		await user.type(box().getByRole("textbox", { name: "Commit message" }), "Fixed the typo");
 		await user.click(box().getByRole("button", { name: "More" }));
 		await user.type(box().getByRole("textbox", { name: "Description" }), "the why");
 		await user.click(box().getByRole("button", { name: "Commit 1 file" }));
 		await waitFor(() => expect(mockState().code?.branches.main?.log).toHaveLength(4));
 		const code = mockState().code;
 		const sha = code?.branches.main?.log[0] ?? "";
+		expect(code?.commits[sha]?.info.summary).toBe("fix: Fixed the typo");
 		expect(code?.commits[sha]?.info.description).toBe("the why");
 		// The unstaged part of util.ts stays: the commit button goes off.
 		expect(await screen.findByRole("button", { name: "Commit" })).toBeDisabled();
@@ -197,7 +194,7 @@ describe("Code / the files to commit", () => {
 		await changes();
 		const row = box().getByRole("switch", { name: "Auto-commit" }).closest("div");
 		expect(row).toContainElement(box().getByRole("switch", { name: "Auto-review" }));
-		expect(screen.queryByText(/is the default branch of/)).toBeNull();
+		expect(screen.queryByText(/the shared branch/)).toBeNull();
 	});
 
 	it("resolves each conflict block with a choice and leaves no conflict", async () => {
@@ -222,9 +219,9 @@ describe("Code / the files to commit", () => {
 		expect(resolve).toBeDisabled();
 		const one = screen.getByRole("group", { name: "Block 1" });
 		const two = screen.getByRole("group", { name: "Block 2" });
-		await user.click(within(one).getByRole("button", { name: "Theirs" }));
-		await user.click(within(two).getByRole("button", { name: "Ours" }));
-		expect(within(one).getByRole("button", { name: "Theirs" })).toHaveAttribute(
+		await user.click(within(one).getByRole("button", { name: "Other version" }));
+		await user.click(within(two).getByRole("button", { name: "My version" }));
+		expect(within(one).getByRole("button", { name: "Other version" })).toHaveAttribute(
 			"aria-pressed",
 			"true",
 		);
@@ -256,7 +253,7 @@ describe("Code / the files to commit", () => {
 		expect(await screen.findByText("0 of 2 chosen")).toBeInTheDocument();
 		await user.click(
 			within(screen.getByRole("group", { name: "Block 1" })).getByRole("button", {
-				name: "Theirs",
+				name: "Other version",
 			}),
 		);
 		expect(screen.getByText("1 of 2 chosen")).toBeInTheDocument();
@@ -274,7 +271,7 @@ describe("Code / the files to commit", () => {
 		await user.clear(result);
 		await user.type(result, "<<<<<<< x");
 		await user.click(screen.getByRole("button", { name: "Save result" }));
-		expect(await screen.findByText(/conflict marker/)).toBeInTheDocument();
+		expect(await screen.findByText("Something went wrong. Try again.")).toBeInTheDocument();
 		await user.clear(result);
 		await user.type(result, "typed");
 		await user.click(screen.getByRole("button", { name: "Save result" }));
@@ -293,7 +290,7 @@ describe("Code / the files to commit", () => {
 		mountApp("/code/changes");
 		await user.click(await screen.findByRole("button", { name: "Solve it myself" }));
 		expect(screen.queryByRole("button", { name: "Resolve" })).toBeNull();
-		await user.click(await screen.findByRole("button", { name: "Take theirs" }));
+		await user.click(await screen.findByRole("button", { name: "Keep the other version" }));
 		await waitFor(() =>
 			expect(screen.queryByRole("button", { name: "Solve it myself" })).toBeNull(),
 		);
@@ -311,7 +308,7 @@ describe("Code / the files to commit", () => {
 		const banner = within(await main.findByRole("region", { name: "1 file has a conflict" }));
 		await user.click(await banner.findByRole("button", { name: "More" }));
 		await user.click(await banner.findByRole("button", { name: "Send to Flow" }));
-		expect(await screen.findByText("Work item SHIP-200 created")).toBeInTheDocument();
+		expect(await screen.findByText("Ticket SHIP-200 created")).toBeInTheDocument();
 	});
 
 	it("shows the empty state with one action when no project is active", async () => {
@@ -331,11 +328,11 @@ describe("the commit action of the sync mark", () => {
 		await unwrap(commands.codeUnstage(["src/lib/util.ts"]));
 		mountApp("/code/now");
 		await screen.findByRole("region", { name: "4 files to commit" });
-		expect(await commitOfCard(user)).toBeDisabled();
-		await user.keyboard("{Escape}");
+		// Nothing is chosen: Commit leads to the page where the files are picked.
+		const card = await openSync(user);
+		expect(card.getByRole("link", { name: "Commit" })).toHaveAttribute("href", "/code/changes");
 		await unwrap(commands.codeStage(["src/app.ts"]));
-		const commit = await commitOfCard(user);
-		await waitFor(() => expect(commit).toBeEnabled());
+		await waitFor(() => expect(card.getByRole("button", { name: "Commit" })).toBeEnabled());
 	});
 
 	it("is off while a conflict remains", async () => {
@@ -345,7 +342,9 @@ describe("the commit action of the sync mark", () => {
 		mockState().code = code;
 		mountApp("/code/now");
 		await screen.findByRole("region", { name: "5 files to commit" });
-		expect(await commitOfCard(userEvent.setup())).toBeDisabled();
+		expect(
+			(await openSync(userEvent.setup())).getByRole("link", { name: "Commit" }),
+		).toHaveAttribute("href", "/code/changes");
 	});
 
 	it("refuses a wrong type, then commits the staged files only", async () => {
@@ -374,6 +373,9 @@ describe("the commit action of the sync mark", () => {
 		expect(code?.commits[sha]?.info.description).toBe("the why");
 		// The unstaged part of util.ts stays unstaged, and the commit button goes off.
 		await waitFor(() => expect(mockState().code?.files["src/lib/util.ts"]?.head).toBe("x\ny\n"));
-		expect(await commitOfCard(user)).toBeDisabled();
+		expect((await openSync(user)).getByRole("link", { name: "Commit" })).toHaveAttribute(
+			"href",
+			"/code/changes",
+		);
 	});
 });

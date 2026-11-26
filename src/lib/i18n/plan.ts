@@ -1,7 +1,9 @@
 /** Plan (`spec:app-redesign#REQ-018`, `spec:app-redesign#REQ-019`). */
 export const planEn = {
 	views: { timeline: "Timeline", people: "People", estimates: "Estimates", time: "Time" },
+	openEstimates: "Open the estimates",
 	ends: "{name} ends {day}",
+	late: "{name} was due {day}",
 	calendar: "Dates and days off",
 	send: "Send to the issue tracker",
 	tooMuch: "{count} people have too much work",
@@ -10,6 +12,7 @@ export const planEn = {
 	show: "Show",
 	apply: "Apply",
 	rebalance: "Rebalance",
+	confirmRebalance: "Move the proposed tasks?",
 	moveTo: "from {from} to {to}",
 	startsOn: "starts {day}",
 	noOwner: "Tasks with no owner",
@@ -62,7 +65,7 @@ export const planEn = {
 		timeOf: "Time of {name}",
 		readMonth: "Read the month from the issue tracker",
 		receipt: "Keep a receipt",
-		lower: "Lower what is left",
+		lower: "Lower the time left on the ticket",
 		addTicket: "Add a ticket",
 		total: "Hours",
 		noteFor: "Note for {ticket}",
@@ -76,7 +79,9 @@ export const planEn = {
 
 export const planFr: typeof planEn = {
 	views: { timeline: "Calendrier", people: "Personnes", estimates: "Estimations", time: "Temps" },
+	openEstimates: "Ouvrir les estimations",
 	ends: "{name} se termine le {day}",
+	late: "{name} était prévu le {day}",
 	calendar: "Dates et jours d'absence",
 	send: "Envoyer à l'outil de suivi",
 	tooMuch: "{count} personnes ont trop de travail",
@@ -85,6 +90,7 @@ export const planFr: typeof planEn = {
 	show: "Afficher",
 	apply: "Appliquer",
 	rebalance: "Rééquilibrer",
+	confirmRebalance: "Déplacer les tâches proposées ?",
 	moveTo: "de {from} à {to}",
 	startsOn: "commence le {day}",
 	noOwner: "Tâches sans responsable",
@@ -137,7 +143,7 @@ export const planFr: typeof planEn = {
 		timeOf: "Temps de {name}",
 		readMonth: "Lire le mois dans l'outil de suivi",
 		receipt: "Garder un reçu",
-		lower: "Réduire le reste",
+		lower: "Réduire le temps restant sur le ticket",
 		addTicket: "Ajouter un ticket",
 		total: "Heures",
 		noteFor: "Note pour {ticket}",

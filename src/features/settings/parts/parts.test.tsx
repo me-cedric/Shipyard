@@ -62,7 +62,8 @@ describe("the parts of the Setup pages (look pass 2)", () => {
 		);
 		const toggle = screen.getByRole("switch", { name: "Auto-review" });
 		expect(toggle).toBeChecked();
-		expect(toggle).toHaveClass("h-(--control-h)");
+		// The Switch atom: its label is the 44 px target.
+		expect(toggle.closest("label")).toHaveClass("min-h-control");
 		await user.click(toggle);
 		expect(toggle).not.toBeChecked();
 		expect(seen).toHaveBeenLastCalledWith(false);

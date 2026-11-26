@@ -42,7 +42,7 @@ export function MenuPill({
 			>
 				{icon ?? label}
 			</Menu.Trigger>
-			<MenuList items={items} value={value} />
+			<MenuList items={items} value={value} align={icon ? "end" : "start"} />
 		</Menu.Root>
 	);
 }

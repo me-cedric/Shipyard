@@ -33,7 +33,7 @@ export const creatorEs: typeof creatorEn = {
 		pt: "Portugués",
 	},
 	role: {
-		po: "Product owner",
+		po: "Propietario del producto",
 		pm: "Jefe de proyecto",
 		architect: "Arquitecto",
 		techlead: "Responsable técnico",
@@ -63,14 +63,14 @@ export const creatorEs: typeof creatorEn = {
 	issuesCreated: "{count} tickets creados",
 	guided: {
 		name: "Nombre",
-		kind: "Tipo de producto",
+		kind: "Tecnología",
 		tools: "Herramientas",
 		team: "Equipo",
 		ready: "Listo",
 	},
 	ask: {
 		name: "¿Cómo se llama el proyecto?",
-		kind: "¿Qué construyes?",
+		kind: "¿Qué tecnología usas?",
 		tools: "¿Qué herramientas usas?",
 		team: "¿Quién está en el equipo?",
 	},

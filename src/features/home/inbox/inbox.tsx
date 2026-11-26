@@ -297,7 +297,7 @@ export function ApprovalsQuestion({
 									: "rounded-full bg-n-3 px-3 py-1 text-ui text-n-12"
 							}
 						>
-							{approvalSentence(h.approval, a)}
+							{approvalSentence(h, a)}
 						</li>
 					))}
 				</ul>
@@ -382,6 +382,7 @@ export function PlanRow({ run, ticket, title }: { run: string; ticket: string; t
 				<RightButton
 					right="runs.approve"
 					className="min-h-control"
+					disabled={!note.trim()}
 					onClick={() => void guard(() => act.planReject(run, note))}
 				>
 					{t.home.planReject}

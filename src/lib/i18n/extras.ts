@@ -53,6 +53,7 @@ export const extrasEn = {
 	assistant: {
 		unread: "Unread",
 		filesTouched: "{count} files",
+		filesTouchedOne: "{count} file",
 		quote: "Quote",
 		redo: "Redo",
 		live: "Steps so far",
@@ -147,6 +148,7 @@ export const extrasFr: typeof extrasEn = {
 	assistant: {
 		unread: "Non lu",
 		filesTouched: "{count} fichiers",
+		filesTouchedOne: "{count} fichier",
 		quote: "Citer",
 		redo: "Refaire",
 		live: "Étapes en cours",

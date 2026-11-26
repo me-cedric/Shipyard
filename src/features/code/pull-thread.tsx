@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { type PullDetail, useForgeActions } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
+import { dateLocale, useStamp } from "@/lib/prefs";
 import { RightButton } from "@/lib/rights";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Textarea } from "@/ui/atoms/textarea";
@@ -15,14 +16,18 @@ type Thread = PullDetail["threads"][number];
 /** The time of a comment: date and time, the full form in the title. Nothing when the host gave none. */
 function Stamp({ iso }: { iso: string }) {
 	const { lang } = useI18n();
+	const stamp = useStamp();
 	const at = new Date(iso);
 	if (!iso || Number.isNaN(at.getTime())) return null;
 	return (
 		<time
 			dateTime={iso}
-			title={new Intl.DateTimeFormat(lang, { dateStyle: "full", timeStyle: "long" }).format(at)}
+			title={new Intl.DateTimeFormat(dateLocale(lang), {
+				dateStyle: "full",
+				timeStyle: "long",
+			}).format(at)}
 		>
-			{new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" }).format(at)}
+			{stamp(at.getTime())}
 		</time>
 	);
 }

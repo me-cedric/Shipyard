@@ -70,7 +70,7 @@ Agents and rules holds the AI tools, the model providers, and the rules and the 
 
 The app keeps each file that a person changed, unless you reinstall.
 
-Agent roles show the description and the model of each role: Best, Standard or Fast. A change of a bundled role that has no project file writes the project file of that role.
+Agent roles show the description and the model of each role: Strong, Standard or Fast. A change of a bundled role that has no project file writes the project file of that role.
 
 ### AI tools
 

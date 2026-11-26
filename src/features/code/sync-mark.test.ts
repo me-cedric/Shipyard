@@ -26,7 +26,11 @@ describe("the sync mark", () => {
 		["2 ahead", { ...clean, ahead: 2 }, false],
 		["3 behind", { ...clean, ahead: 2, behind: 3 }, false],
 		["Not shared yet", { ...clean, upstream: null }, false],
-		["Changed files (2)", { ...clean, behind: 3, unstaged: [file], untracked: [file] }, false],
+		[
+			"Changed files (2)",
+			{ ...clean, behind: 3, unstaged: [file], untracked: [{ ...file, path: "b.ts" }] },
+			false,
+		],
 		["Sync failed", { ...clean, unstaged: [file] }, true],
 	];
 	it.each(cases)("says %s", (text, changes, failed) => {

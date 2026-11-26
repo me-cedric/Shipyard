@@ -1,6 +1,6 @@
 import { toFailure, unwrap } from "@/lib/ipc";
 import rust from "../../../crates/shipyard-app/src/errors.rs?raw";
-import { actionLabels, classify, errorMessages, RAW } from "./errors";
+import { actionLabels, classify, errorMessage, errorMessages, RAW, unknownMessage } from "./errors";
 
 /** `("needle", ErrorCode::TicketNotInMirror)` of `KNOWN` in `errors.rs`, as `[needle, ticket_not_in_mirror]`. rustfmt puts a long pair on three lines. */
 const known = [...rust.matchAll(/\(\s*"([^"]+)",\s*ErrorCode::(\w+),?\s*\)/g)].map(
@@ -35,18 +35,15 @@ describe("the error contract", () => {
 			expect(failure.message, needle).not.toBe(raw);
 			const sentence = errorMessages.en[failure.code as keyof typeof errorMessages.en];
 			// A failed program keeps the tail of its output after the sentence.
-			expect(failure.message, needle).toBe(
-				failure.code === "tool_failed" ? `${sentence} ${raw}` : sentence,
-			);
+			expect(failure.message, needle).toBe(sentence);
 			expect(failure.details).toBe(raw);
 		}
 	});
 
 	it("keeps the output of a failed program, and keeps unrelated texts out of the sign-in and tool codes", () => {
 		const failed = toFailure("`git fetch` failed: fatal: no route");
-		expect(failed.message).toBe(
-			`${errorMessages.en.tool_failed} \`git fetch\` failed: fatal: no route`,
-		);
+		expect(failed.message).toBe(errorMessages.en.tool_failed);
+		expect(failed.details).toBe("`git fetch` failed: fatal: no route");
 		expect(classify("`codebase-memory-mcp` failed: exited with code 3: no daemon")).toEqual({
 			code: "tool_failed",
 			action: { kind: "open", target: "/setup/computer?page=health#tools" },
@@ -57,6 +54,10 @@ describe("the error contract", () => {
 		for (const text of ["branch not found: x", "stash not found: 2", "worktree not found: w"])
 			expect(classify(text).code, text).toBe("unknown");
 		expect(classify("github.com gave no token for gh").code).toBe("sign_in_failed");
+		expect(classify("missing setting: Figma API token").code).toBe("extension_setting");
+		expect(toFailure("missing dependency: Docker").message).toBe(
+			`${errorMessages.en.extension_dependency} (Docker)`,
+		);
 		expect(classify("device login: github.com gave no user_code: ").code).toBe("sign_in_failed");
 	});
 
@@ -97,9 +98,35 @@ describe("the error contract", () => {
 		);
 	});
 
-	it("shows the details of a text that has no code, and no action", () => {
+	it("gives a general sentence in each language to a text that has no code, and keeps the text in the details and the log", () => {
+		const log = vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(classify("odd failure")).toEqual({ code: "unknown", action: null });
-		expect(toFailure("odd failure").message).toBe("odd failure");
+		// The error of a command: `unwrap` marks it.
+		const odd = toFailure("odd failure", true);
+		expect(odd.message).toBe("Something went wrong. Try again.");
+		expect(odd.details).toBe("odd failure");
+		expect(log).toHaveBeenCalledTimes(1);
+		expect(log).toHaveBeenCalledWith("odd failure");
+		toFailure(odd);
+		expect(log).toHaveBeenCalledTimes(1);
+		for (const lang of ["en", "fr", "de", "es"] as const)
+			expect(errorMessage(odd, lang)).toBe(unknownMessage[lang]);
+		expect(toFailure({ code: "unknown", details: "boom", action: null }).message).toBe(
+			unknownMessage.en,
+		);
+		// A text or an `Error` of the interface holds a sentence for the person: it shows as written, with no log line.
+		log.mockClear();
+		expect(toFailure("Interval: at least 30 s").message).toBe("Interval: at least 30 s");
+		expect(toFailure(new Error("Enter a limit of 1 or more.")).message).toBe(
+			"Enter a limit of 1 or more.",
+		);
+		expect(log).not.toHaveBeenCalled();
+		log.mockRestore();
+		expect(classify("uncommitted changes would be overwritten: a.ts").code).toBe("git_dirty");
+		// The sentence keeps the names of the files.
+		expect(toFailure("uncommitted changes would be overwritten: a.ts, b.ts").message).toBe(
+			`${errorMessages.en.git_dirty} (a.ts, b.ts)`,
+		);
 	});
 
 	it("speaks French when the app speaks French, and gives the action of the code", () => {

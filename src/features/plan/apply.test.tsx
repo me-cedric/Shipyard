@@ -210,7 +210,7 @@ describe("Create work item", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		renderApp(<CreateWorkItem refId="diagram:context" title="Context diagram" />);
-		await user.click(await screen.findByRole("button", { name: "Create work item" }));
+		await user.click(await screen.findByRole("button", { name: "Create a ticket" }));
 		let dialog = within(await screen.findByRole("dialog"));
 		expect(await dialog.findByRole("heading", { name: "Create (1)" })).toBeInTheDocument();
 		// The preview alone writes nothing.
@@ -220,7 +220,7 @@ describe("Create work item", () => {
 		expect(mockState().work.written["diagram:context"]?.row.title).toBe("Context diagram");
 		await user.keyboard("{Escape}");
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-		await user.click(screen.getByRole("button", { name: "Create work item" }));
+		await user.click(screen.getByRole("button", { name: "Create a ticket" }));
 		dialog = within(await screen.findByRole("dialog"));
 		expect(await dialog.findByRole("heading", { name: "Unchanged (1)" })).toBeInTheDocument();
 		expect(dialog.getByRole("button", { name: "Apply" })).toBeDisabled();

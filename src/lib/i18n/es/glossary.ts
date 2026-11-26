@@ -7,6 +7,7 @@ export const glossaryEs: typeof glossaryEn = {
 		"code-host": "El sitio web que guarda tu código en línea, como GitHub o GitLab.",
 		"ai-tool":
 			"Un programa de este ordenador que escribe código cuando se lo pides, como Claude Code.",
+		agent: "Una herramienta de IA que trabaja en un ticket.",
 		model:
 			"El cerebro de IA que usa una herramienta de IA. Un modelo más grande piensa mejor y cuesta más.",
 		spec: "Un texto corto que dice qué construir y cómo comprobar que funciona.",
@@ -19,6 +20,7 @@ export const glossaryEs: typeof glossaryEn = {
 		"issue-tracker": "gestor de tickets",
 		"code-host": "plataforma de código",
 		"ai-tool": "herramienta de IA",
+		agent: "agente",
 		model: "modelo",
 		spec: "especificación",
 		decision: "decisión",

@@ -4,7 +4,8 @@ import { openLibrary, placeOf } from "./places";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 /** The row of a spec change in Flow / List: the title is the id of the change. */
-const change = (page: Page, id: string) => page.getByRole("button", { name: new RegExp(`^${id}`) });
+const change = (page: Page, title: string) =>
+	page.getByRole("button", { name: new RegExp(`^${title}`) });
 
 /** Opens the mock project with a Linear tracker, then the Specs space on the given tab. */
 async function openSpecs(page: Page, tab: string) {
@@ -51,7 +52,7 @@ test("shows a validation finding on the artifact that holds it, with its line", 
 	page,
 }) => {
 	await openSpecs(page, "List");
-	await change(page, "add-billing").click();
+	await change(page, "Add billing").click();
 	// The files of the change are a page of their own, opened from the Brief.
 	await page.getByRole("link", { name: "Files of the change" }).click();
 	await page.getByRole("button", { name: "Check", exact: true }).click();
@@ -106,7 +107,7 @@ test("folds an answer into its spec after the preview and one click", async ({ p
 
 test("applies a split once and a second apply creates no duplicate", async ({ page }) => {
 	await openSpecs(page, "List");
-	await change(page, "add-auth").click();
+	await change(page, "Add auth").click();
 	const open = async () => {
 		await page.getByRole("main").getByRole("button", { name: "Split into more tickets" }).click();
 		await page.getByRole("button", { name: "Preview" }).click();

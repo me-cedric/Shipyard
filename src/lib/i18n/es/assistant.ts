@@ -33,6 +33,7 @@ export const assistantEs: typeof assistantEn = {
 	},
 	trace: "Cómo lo encontré",
 	tools: "{count} herramientas",
+	toolsOne: "{count} herramienta",
 	copy: "Copiar",
 	copyCode: "Copiar código",
 	insert: "Insertar",
@@ -50,7 +51,7 @@ export const assistantEs: typeof assistantEn = {
 	factory: {
 		send: "Enviar a un agente",
 		workflow: "Receta",
-		none: "Elemento de trabajo",
+		none: "Ticket",
 		create: "Enviar",
 		sent: "Enviado {key}",
 	},
@@ -69,7 +70,7 @@ export const assistantEs: typeof assistantEn = {
 		factory: "Enviar a un agente",
 		promptExplain: "Explica esto:",
 		promptFix: "Corrige esto:",
-		promptFactory: "Escribe un elemento de trabajo a partir de esto:",
+		promptFactory: "Escribe un ticket a partir de esto:",
 	},
 	noCli: {
 		title: "No se encontró ninguna herramienta de IA",
@@ -81,12 +82,12 @@ export const assistantEs: typeof assistantEn = {
 	moreModels: "Más modelos",
 	bypassWarn: {
 		title: "Omitir permisos",
-		body: "La herramienta de IA omite todas las aprobaciones y su sandbox. Puede ejecutar cualquier comando y cambiar cualquier archivo al que llegue tu cuenta, no solo el worktree de esta conversación. Úsalo en un proyecto de confianza.",
+		body: "La herramienta de IA no pide ninguna aprobación. Puede ejecutar cualquier comando y cambiar cualquier archivo al que llegue tu cuenta, también fuera de este proyecto. Úsala solo en un proyecto de confianza.",
 		accept: "Omitir permisos",
 	},
 	autoWarn: {
 		title: "Permitir ediciones sin aprobación",
-		body: "El asistente edita archivos en el worktree de esta conversación con Edit, Write y MultiEdit y no te espera. Nunca ejecuta comandos de shell. Tu copia de trabajo no cambia hasta que apliques los cambios.",
+		body: "El asistente cambia archivos en su propia copia del proyecto y no te espera. Nunca ejecuta comandos. Tus archivos no cambian hasta que apliques los cambios.",
 		accept: "Permitir ediciones automáticas",
 	},
 	ask: {

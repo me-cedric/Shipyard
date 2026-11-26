@@ -483,7 +483,7 @@ export function PullFiles({
 											{open ? (
 												<span className="flex items-center gap-3">
 													<LinkButton
-														aria-label={format(t.forge.openFile, { path: f.path })}
+														aria-label={`${x.wholeFile}: ${f.path}`}
 														onClick={() => setViewing(f.path)}
 													>
 														{x.wholeFile}

@@ -1,8 +1,6 @@
-import { Menu } from "@base-ui/react/menu";
 import { createContext, type ReactNode, useContext, useLayoutEffect } from "react";
 import { useI18n } from "@/lib/i18n";
-import { Tooltip } from "../atoms/tooltip";
-import { MENU_ITEM, MENU_POPUP } from "./menu-button";
+import { MenuButton } from "./menu-button";
 
 export type PageMenuItem = {
 	label: string;
@@ -45,59 +43,29 @@ export function PageHeader({
 	return (
 		<div data-page-header className="flex shrink-0 flex-col px-4 pb-6">
 			{back}
-			<div className="flex items-center gap-4">
-				<div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1">
-					<h1 className="min-w-0 text-44 font-semibold text-n-12">{title}</h1>
+			<div className="flex flex-wrap items-center gap-4">
+				<div className="flex flex-[1_1_20rem] flex-wrap items-center gap-x-4 gap-y-1">
+					<h1 className="text-44 font-semibold text-n-12">{title}</h1>
 					{count === undefined ? null : <span className="text-17 text-n-11">{count}</span>}
 					{chips ? <div className="flex flex-wrap items-center gap-1.5">{chips}</div> : null}
 				</div>
-				{/* The actions stay in one row with the menu at its end; the title shrinks instead. */}
-				<div className="flex shrink-0 items-center gap-4">
+				{/* The actions go below the title when the space is small; they never cover it. */}
+				<div className="ml-auto flex flex-wrap items-center justify-end gap-4">
 					{slot?.node}
 					{action}
 					{menu?.length ? (
-						<Menu.Root>
-							<Tooltip label={t.ui.more}>
-								<Menu.Trigger
-									aria-label={t.ui.more}
-									className="inline-flex size-(--control-h) items-center justify-center rounded-md text-n-11 hover:bg-n-3 hover:text-n-12"
-								>
-									<svg
-										aria-hidden="true"
-										viewBox="0 0 16 16"
-										className="size-4"
-										fill="currentColor"
-									>
-										<circle cx="3" cy="8" r="1.25" />
-										<circle cx="8" cy="8" r="1.25" />
-										<circle cx="13" cy="8" r="1.25" />
-									</svg>
-								</Menu.Trigger>
-							</Tooltip>
-							<Menu.Portal>
-								<Menu.Positioner align="end" sideOffset={4} className="z-50">
-									<Menu.Popup className={MENU_POPUP}>
-										{menu.map((m) => (
-											<Menu.Item
-												key={m.label}
-												className={MENU_ITEM}
-												disabled={m.disabled}
-												title={m.disabled ? m.reason : undefined}
-												aria-description={m.disabled ? m.reason : undefined}
-												onClick={m.onClick}
-											>
-												{m.icon ? (
-													<span aria-hidden="true" className="flex text-n-10">
-														{m.icon}
-													</span>
-												) : null}
-												{m.label}
-											</Menu.Item>
-										))}
-									</Menu.Popup>
-								</Menu.Positioner>
-							</Menu.Portal>
-						</Menu.Root>
+						<MenuButton
+							iconOnly
+							label={t.ui.more}
+							icon={
+								<svg aria-hidden="true" viewBox="0 0 16 16" className="size-4" fill="currentColor">
+									<circle cx="3" cy="8" r="1.25" />
+									<circle cx="8" cy="8" r="1.25" />
+									<circle cx="13" cy="8" r="1.25" />
+								</svg>
+							}
+							items={menu.map((m) => ({ ...m, id: m.label, onSelect: m.onClick }))}
+						/>
 					) : null}
 				</div>
 			</div>

@@ -51,13 +51,15 @@ export function GateNotice({ push }: { push: boolean }) {
 				const to = t.projects.path[c.to as "specs"] ?? c.to;
 				return (
 					<div key={`${c.from}:${c.to}`} className="flex items-center gap-2">
-						<p className="min-w-0 flex-1">
-							{format(w.stale, {
-								from: t.projects.path[c.from as "specs"] ?? c.from,
-								to,
-								paths: c.changed.join(", "),
-							})}
-						</p>
+						<div className="min-w-0 flex-1">
+							<p>
+								{format(w.stale, {
+									from: t.projects.path[c.from as "specs"] ?? c.from,
+									to,
+								})}
+							</p>
+							<p className="break-words text-n-11">{c.changed.join(", ")}</p>
+						</div>
 						<Button
 							aria-label={format(c18.acknowledgeName, { name: to })}
 							onClick={() => setAsking({ from: c.from, to: c.to, name: to })}

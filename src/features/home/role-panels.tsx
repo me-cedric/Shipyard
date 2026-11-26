@@ -343,6 +343,10 @@ export function PlanCards({ className }: { className?: string }) {
 		.at(-1);
 	const name = sheet.name || sheet.slug;
 	const over = overloaded(plan.load.members);
+	const done = features.filter((f) => f.stage === "ready").length;
+	// A finish day in the past with features left is late, not an end ahead.
+	const late =
+		finish !== undefined && finish < new Date().toLocaleDateString("sv") && done < features.length;
 	const ready = format(t.home.featuresReady, {
 		done: features.filter((f) => f.stage === "ready").length,
 		total: features.length,
@@ -355,8 +359,10 @@ export function PlanCards({ className }: { className?: string }) {
 			)}
 		>
 			<section className={cn(SURFACE, "flex flex-col gap-3.5 px-6 py-5.5")}>
-				<h2 className="text-17 font-semibold text-n-12">
-					{finish ? format(t.planPlace.ends, { name, day: day(finish, true) }) : name}
+				<h2 className={cn("text-17 font-semibold", late ? "text-danger-text" : "text-n-12")}>
+					{finish
+						? format(late ? t.planPlace.late : t.planPlace.ends, { name, day: day(finish, true) })
+						: name}
 				</h2>
 				<Progress
 					value={features.filter((f) => f.stage === "ready").length}

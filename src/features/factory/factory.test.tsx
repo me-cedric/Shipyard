@@ -176,9 +176,11 @@ describe("Factory tabs", () => {
 			await screen.findByRole("region", { name: "Live output of Review of pull request 141" }),
 		);
 		// A run has no Stop here: only the review has one.
-		expect(screen.getAllByRole("button", { name: /^Stop #/ })).toHaveLength(1);
-		await user.click(panel.getByRole("button", { name: "Stop #141" }));
-		await waitFor(() => expect(screen.queryByRole("button", { name: "Stop #141" })).toBeNull());
+		expect(screen.getAllByRole("button", { name: /^Stop Review of/ })).toHaveLength(1);
+		await user.click(panel.getByRole("button", { name: "Stop Review of pull request 141" }));
+		await waitFor(() =>
+			expect(screen.queryByRole("button", { name: "Stop Review of pull request 141" })).toBeNull(),
+		);
 		expect(mockState().agentPr?.running).toEqual([]);
 	});
 

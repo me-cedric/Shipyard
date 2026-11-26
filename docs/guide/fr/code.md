@@ -9,7 +9,7 @@ Maintenant est un court résumé : les fichiers à committer et les pull request
 La carte des fichiers à committer montre les trois premiers fichiers avec les lignes ajoutées et retirées, un lien vers les autres fichiers, un seul message de commit, Écris-le pour moi et Commit. Le lien ouvre la page des changements locaux.
 
 1. Cochez les fichiers à garder dans une liste plate. Tout choisir et Ne rien choisir cochent toute la liste. Ou abandonnez un changement.
-2. Écrivez le message de commit, ajoutez une description si vous le voulez, puis cliquez sur Commit. Un commit prend seulement les fichiers cochés. Le bouton Commit de la carte de la marque de synchronisation fait de même depuis toute page.
+2. Écrivez le message de commit, ajoutez une description si vous le voulez, puis cliquez sur Commit. Un commit prend seulement les fichiers cochés. Le bouton Commit de la carte de la marque de synchronisation fait de même depuis toute page. Un message de commit en mots simples est accepté : choisissez le Type dans une liste et Shipyard ajoute le préfixe.
 
 - Écris-le pour moi demande à l'assistant un message à partir des fichiers indexés. Rien n'est envoyé avant votre envoi.
 - Un groupe sans fichier montre une ligne discrète, comme « Rien d'indexé ».
@@ -30,7 +30,7 @@ Historique liste les commits, le plus récent d'abord. Sélectionnez un commit p
 
 Branches liste les branches de cet ordinateur et du serveur. Créez, fusionnez ou supprimez une branche, ou passez à une autre. L'application ne supprime jamais la branche sur laquelle vous travaillez.
 
-Le sélecteur de branche, dans la carte de la marque de synchronisation et sur Code / Maintenant, a un champ de filtre. Tapez pour réduire la liste, déplacez-vous avec les flèches et appuyez sur Entrée. Une branche distante s'extrait comme une nouvelle branche locale qui la suit. La ligne Nouvelle branche crée une branche à partir de celle sur laquelle vous travaillez.
+Le sélecteur de branche, dans la carte de la marque de synchronisation et sur Code / Maintenant, a un champ de filtre. Tapez pour réduire la liste, déplacez-vous avec les flèches et appuyez sur Entrée. Une branche distante s'extrait comme une nouvelle branche locale qui la suit. La ligne Nouvelle branche crée une branche à partir de celle sur laquelle vous travaillez. Un nom de branche en mots simples devient un nom valide.
 
 ## Terminal
 

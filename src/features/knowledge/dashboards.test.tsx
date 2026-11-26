@@ -62,7 +62,7 @@ describe("Knowledge / Dashboards", () => {
 	it("saves a moved tile to the file", async () => {
 		const user = userEvent.setup();
 		await mountEdit();
-		await user.click(await screen.findByRole("button", { name: "Tile settings Work items" }));
+		await user.click(await screen.findByRole("button", { name: "Tile settings Tickets" }));
 		const panel = within(await screen.findByRole("complementary", { name: "Tile settings" }));
 		await user.click(panel.getByRole("button", { name: "Move right" }));
 		await waitFor(async () =>
@@ -73,7 +73,7 @@ describe("Knowledge / Dashboards", () => {
 
 	it("moves a tile when it is dragged to another column", async () => {
 		await mountEdit();
-		const item = (await screen.findByRole("region", { name: "Work items" })).closest("li");
+		const item = (await screen.findByRole("region", { name: "Tickets" })).closest("li");
 		const grid = item?.parentElement;
 		if (!(item && grid)) throw new Error("grid");
 		// 12 columns of 100 px.
@@ -198,6 +198,8 @@ describe("Knowledge / Dashboards", () => {
 		);
 		await user.click(await screen.findByRole("button", { name: "Remove tile Spec health" }));
 		await waitFor(async () => expect((await saved()).some((x) => x.id === "specs")).toBe(false));
+		await user.click(await screen.findByRole("button", { name: "Undo" }));
+		await waitFor(async () => expect((await saved()).some((x) => x.id === "specs")).toBe(true));
 	});
 
 	it("creates a dashboard from a template", async () => {

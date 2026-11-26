@@ -63,14 +63,14 @@ export const creatorDe: typeof creatorEn = {
 	issuesCreated: "{count} Tickets erstellt",
 	guided: {
 		name: "Name",
-		kind: "Art des Produkts",
+		kind: "Technologie",
 		tools: "Werkzeuge",
 		team: "Team",
 		ready: "Bereit",
 	},
 	ask: {
 		name: "Wie heißt das Projekt?",
-		kind: "Was bauen Sie?",
+		kind: "Welche Technologie nutzen Sie?",
 		tools: "Welche Werkzeuge nutzen Sie?",
 		team: "Wer ist im Team?",
 	},

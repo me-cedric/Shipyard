@@ -6,7 +6,7 @@ export const boardEn = {
 	fromTicket: "Start from a ticket",
 	bring: "Bring",
 	filters: "Filters",
-	owner: "Owner: {value}",
+	owner: "Assignee: {value}",
 	label: "Label: {value}",
 	agent: "Agent: {value}",
 	all: "all",
@@ -14,6 +14,10 @@ export const boardEn = {
 	feature: "Feature",
 	end: "End",
 	who: "Who",
+	noMatch: "No match",
+	clearSearch: "Clear the search",
+	nothingFinished: "Nothing finished yet",
+	noTicket: "No ticket has the key {key}.",
 	again: "Start again",
 };
 
@@ -24,7 +28,7 @@ export const boardFr: typeof boardEn = {
 	fromTicket: "Partir d’un ticket",
 	bring: "Apporter",
 	filters: "Filtres",
-	owner: "Responsable : {value}",
+	owner: "Assigné : {value}",
 	label: "Étiquette : {value}",
 	agent: "Agent : {value}",
 	all: "tous",
@@ -32,6 +36,10 @@ export const boardFr: typeof boardEn = {
 	feature: "Fonctionnalité",
 	end: "Fin",
 	who: "Qui",
+	noMatch: "Aucun résultat",
+	clearSearch: "Effacer la recherche",
+	nothingFinished: "Rien n’est encore terminé",
+	noTicket: "Aucun ticket n’a la clé {key}.",
 	again: "Recommencer",
 };
 
@@ -42,7 +50,7 @@ export const boardDe: typeof boardEn = {
 	fromTicket: "Von einem Ticket starten",
 	bring: "Holen",
 	filters: "Filter",
-	owner: "Verantwortlich: {value}",
+	owner: "Zugewiesen an: {value}",
 	label: "Label: {value}",
 	agent: "Agent: {value}",
 	all: "alle",
@@ -50,6 +58,10 @@ export const boardDe: typeof boardEn = {
 	feature: "Feature",
 	end: "Ende",
 	who: "Wer",
+	noMatch: "Kein Treffer",
+	clearSearch: "Suche löschen",
+	nothingFinished: "Noch nichts fertig",
+	noTicket: "Kein Ticket hat den Schlüssel {key}.",
 	again: "Neu starten",
 };
 
@@ -60,7 +72,7 @@ export const boardEs: typeof boardEn = {
 	fromTicket: "Empezar desde un ticket",
 	bring: "Traer",
 	filters: "Filtros",
-	owner: "Responsable: {value}",
+	owner: "Asignado a: {value}",
 	label: "Etiqueta: {value}",
 	agent: "Agente: {value}",
 	all: "todos",
@@ -68,5 +80,9 @@ export const boardEs: typeof boardEn = {
 	feature: "Funcionalidad",
 	end: "Fin",
 	who: "Quién",
+	noMatch: "Sin resultados",
+	clearSearch: "Borrar la búsqueda",
+	nothingFinished: "Nada terminado todavía",
+	noTicket: "Ningún ticket tiene la clave {key}.",
 	again: "Empezar de nuevo",
 };

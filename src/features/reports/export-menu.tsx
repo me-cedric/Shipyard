@@ -1,4 +1,3 @@
-import { Menu } from "@base-ui/react/menu";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -6,6 +5,7 @@ import { format, useI18n } from "@/lib/i18n";
 import { commands, type Right, saveAs, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { MenuButton } from "@/ui/molecules/menu-button";
 
 /** The file of a text report: Word, Markdown or PDF. The extension of the path picks it. */
 export type TextOut = "docx" | "md" | "pdf";
@@ -129,24 +129,11 @@ export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?
 	const { pick, status } = useExportRun();
 	return (
 		<span className="inline-flex flex-wrap items-center gap-2">
-			<Menu.Root>
-				<Menu.Trigger render={<Button disabled={disabled} />}>{t.reports.export}</Menu.Trigger>
-				<Menu.Portal>
-					<Menu.Positioner align="end" sideOffset={4} className="z-50">
-						<Menu.Popup className="min-w-40 origin-(--transform-origin) rounded-lg border border-n-6 bg-surface-3 p-1 text-ui shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
-							{items.map((x) => (
-								<Menu.Item
-									key={x.id}
-									onClick={() => void pick(x)}
-									className="flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5"
-								>
-									{x.label}
-								</Menu.Item>
-							))}
-						</Menu.Popup>
-					</Menu.Positioner>
-				</Menu.Portal>
-			</Menu.Root>
+			<MenuButton
+				label={t.reports.export}
+				disabled={disabled}
+				items={items.map((x) => ({ id: x.id, label: x.label, onSelect: () => void pick(x) }))}
+			/>
 			{status}
 		</span>
 	);

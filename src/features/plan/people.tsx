@@ -160,8 +160,7 @@ export function People() {
 										</span>
 										<div className="grid flex-1 gap-2" style={columns}>
 											{periods.map((x) => {
-												if (x.pad)
-													return <div key={x.key} className="h-10 rounded-[10px] bg-n-3" />;
+												if (x.pad) return <div key={x.key} className="h-10 rounded-sm bg-n-3" />;
 												const days = m.days.filter((d) => period(d.day) === x.key);
 												const used = sum(days.map((d) => d.used));
 												const capacity = sum(days.map((d) => d.capacity));
@@ -176,7 +175,7 @@ export function People() {
 														role="img"
 														aria-label={label}
 														title={label}
-														className={`flex h-10 items-end overflow-hidden rounded-[10px] ${isOver ? ATTENTION_TINT : "bg-n-3"}`}
+														className={`flex h-10 items-end overflow-hidden rounded-sm ${isOver ? ATTENTION_TINT : "bg-n-3"}`}
 													>
 														<i
 															className={`block w-full ${isOver ? ATTENTION_FILL : "bg-accent/45"}`}
@@ -199,7 +198,7 @@ export function People() {
 							{proposed.list.map((x) => (
 								<div
 									key={x.task}
-									className="flex flex-wrap items-center gap-2.5 rounded-[14px] bg-n-2 p-3.5"
+									className="flex flex-wrap items-center gap-2.5 rounded-field bg-n-2 p-3.5"
 								>
 									<span className="flex-[1_1_11rem]">
 										<span className="font-semibold">{x.name}</span> {proposed.rest(x)}

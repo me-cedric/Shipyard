@@ -36,11 +36,7 @@ export function RunsPart({ live }: { live: { id: string; key: string; title: str
 				</p>
 			) : null}
 			{/* The list stays mounted so the last row can leave; the empty text sits after it. */}
-			<ul
-				aria-label={t.shell.runs}
-				tabIndex={-1}
-				className="max-h-60 overflow-y-auto py-1 empty:hidden"
-			>
+			<ul aria-label={t.shell.runs} tabIndex={-1} className="py-1 empty:hidden">
 				<AnimatePresence initial={false}>
 					{live.map((r) => (
 						<Leave as="li" key={r.id} className="flex items-center gap-2.5 px-3 py-1.5">
@@ -54,10 +50,11 @@ export function RunsPart({ live }: { live: { id: string; key: string; title: str
 							<ConfirmButton
 								variant="ghost"
 								{...stopGate}
-								confirm={format(t.factory.machine.confirmStop, { name: r.key })}
+								aria-label={format(t.factory.machine.stop, { name: r.title || r.key })}
+								confirm={format(t.factory.machine.confirmStop, { name: r.title || r.key })}
 								onConfirm={() => void run(() => cancel(r.id))}
 							>
-								{format(t.factory.machine.stop, { name: r.key })}
+								{t.assistant.stop}
 							</ConfirmButton>
 						</Leave>
 					))}

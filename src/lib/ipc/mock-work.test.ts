@@ -139,7 +139,7 @@ describe("mock work: the rules of the Rust commands", () => {
 		const other = mockState().work.team.members.find((m) => m.handle !== "ada");
 		await expect(
 			unwrap(commands.timeFillDay(other?.handle ?? "", "2026-11-20", true)),
-		).rejects.toMatchObject({ message: expect.stringMatching(/only your own/) });
+		).rejects.toMatchObject({ details: expect.stringMatching(/only your own/) });
 		await unwrap(commands.timeFillDay("ada", "2026-11-20", true));
 	});
 

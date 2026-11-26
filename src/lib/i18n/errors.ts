@@ -1,10 +1,10 @@
 import type { ActionKind, ErrorAction, ErrorCode, Lang } from "@/lib/ipc/bindings";
-import { actionsDe, errorsDe } from "./de/errors";
-import { actionsEs, errorsEs } from "./es/errors";
+import { actionsDe, errorsDe, unknownDe } from "./de/errors";
+import { actionsEs, errorsEs, unknownEs } from "./es/errors";
 
 /**
  * The messages of the error contract. Each code that Rust returns (`crates/shipyard-app/src/errors.rs`)
- * has one plain sentence in each language. `unknown` has none: the view shows the details.
+ * has one plain sentence in each language. `unknown` has one general sentence (`unknownMessage`): the raw text stays in the details.
  * A new code fails the build here until it has both sentences.
  */
 export type Known = Exclude<ErrorCode, "unknown">;
@@ -14,7 +14,7 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		no_project: "Open or create a project first.",
 		no_tracker: "This project has no issue tracker connection.",
 		scope_missing: "Pick the issue tracker project to read from.",
-		pickup_off: "Agents take no ticket: the pickup label is off.",
+		pickup_off: "Agents take no ticket: no label marks tickets for agents.",
 		ticket_not_in_mirror: "This ticket is not here yet. Sync, then try again.",
 		needs_click: "Confirm this action to continue.",
 		node_missing: "Node is missing. Agent tools need it.",
@@ -37,11 +37,12 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		forge_denied: "The server refused the token. Make a new token.",
 		forge_missing: "The server does not know this item. Check the address and the token rights.",
 		git_nothing_staged: "No file is staged. Stage a file first.",
-		git_identity: "Git has no name and email. Set user.name and user.email.",
-		git_busy: "The repository is busy. Finish the merge or the rebase first.",
+		git_identity:
+			"Git does not know your name and email. Set them in Git on this computer, then try again.",
+		git_busy: "Git is in the middle of a merge or a rebase. Finish it in Code, then try again.",
 		git_no_upstream: "This branch is not on the server yet. Push it first.",
-		no_terminal: "No terminal app was found. Pick one in your settings.",
-		terminal_gone: "This terminal app is not installed. Pick another in your settings.",
+		no_terminal: "No terminal app was found. Pick one in Setup, then Me.",
+		terminal_gone: "This terminal app is not installed. Pick another in Setup, then Me.",
 		device_not_set: "Browser sign-in is not set up for this host. Use a token instead.",
 		no_editor: "No code editor was found. Install VS Code, Cursor, Zed, JetBrains or Sublime Text.",
 		no_first_commit: "Make a first commit before you publish the project.",
@@ -83,7 +84,7 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		path_invalid: "This path does not work. Pick another file or folder of the project.",
 		already_exists: "An item with this name exists already. Use another name.",
 		file_changed: "The file changed on disk. Reload it, then try again.",
-		no_compass: "No compass version is pinned. Pin one first.",
+		no_compass: "No version of the working rules is chosen. Choose one first.",
 		tool_missing:
 			"A program that this needs is not installed or did not start. Check Setup, then This computer.",
 		tool_failed: "A program failed. Read its output, then try again.",
@@ -98,17 +99,20 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		server_off: "This server is off. Switch it on first.",
 		input_invalid: "A value is empty or does not fit. Check the fields, then try again.",
 		tracker_unsupported: "Your issue tracker cannot do this. Use the issue tracker itself.",
-		project_file_invalid:
-			"The project file is not valid. Fix it in the project settings, then try again.",
+		project_file_invalid: "The project file is not valid. Fix it in Setup, then This project.",
 		doc_not_stale: "This doc is up to date. Nothing to update.",
+		extension_setting: "A setting of this extension is empty. Fill it in, then try again.",
+		extension_dependency:
+			"A program that this extension needs is missing. Install it, then try again.",
 		git_dirty:
-			"You have changes that are not saved in a commit. Commit or stash them, then try again.",
+			"You have changes that are not saved in a commit. Commit them or put them aside, then try again.",
 	},
 	fr: {
 		no_project: "Ouvrez ou créez d'abord un projet.",
 		no_tracker: "Ce projet n'a pas de connexion à un outil de suivi.",
 		scope_missing: "Choisissez le projet de l'outil de suivi à lire.",
-		pickup_off: "Les agents ne prennent aucun ticket : l'étiquette de prise est désactivée.",
+		pickup_off:
+			"Les agents ne prennent aucun ticket : aucune étiquette ne marque les tickets pour eux.",
 		ticket_not_in_mirror: "Ce ticket n'est pas encore ici. Synchronisez, puis réessayez.",
 		needs_click: "Confirmez cette action pour continuer.",
 		node_missing: "Node manque. Les outils d'agent en ont besoin.",
@@ -134,12 +138,15 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		forge_missing:
 			"Le serveur ne connaît pas cet élément. Vérifiez l'adresse et les droits du jeton.",
 		git_nothing_staged: "Aucun fichier n'est indexé. Indexez d'abord un fichier.",
-		git_identity: "Git n'a ni nom ni e-mail. Définissez user.name et user.email.",
-		git_busy: "Le dépôt est occupé. Terminez d'abord la fusion ou le rebase.",
+		git_identity:
+			"Git ne connaît pas votre nom et votre e-mail. Définissez-les dans Git sur cet ordinateur, puis réessayez.",
+		git_busy:
+			"Git est au milieu d'une fusion ou d'un rebase. Terminez-le dans Code, puis réessayez.",
 		git_no_upstream: "Cette branche n'est pas encore sur le serveur. Poussez-la d'abord.",
-		no_terminal: "Aucune application de terminal trouvée. Choisissez-en une dans vos réglages.",
+		no_terminal:
+			"Aucune application de terminal trouvée. Choisissez-en une dans Configuration, puis Moi.",
 		terminal_gone:
-			"Cette application de terminal n'est pas installée. Choisissez-en une autre dans vos réglages.",
+			"Cette application de terminal n'est pas installée. Choisissez-en une autre dans Configuration, puis Moi.",
 		device_not_set:
 			"La connexion par le navigateur n'est pas prévue pour cet hôte. Utilisez un jeton.",
 		no_editor:
@@ -187,7 +194,7 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		path_invalid: "Ce chemin ne convient pas. Choisissez un autre fichier ou dossier du projet.",
 		already_exists: "Un élément porte déjà ce nom. Utilisez un autre nom.",
 		file_changed: "Le fichier a changé sur le disque. Rechargez-le, puis réessayez.",
-		no_compass: "Aucune version de compass n'est épinglée. Épinglez-en une d'abord.",
+		no_compass: "Aucune version des règles de travail n'est choisie. Choisissez-en une d'abord.",
 		tool_missing:
 			"Un programme nécessaire n'est pas installé ou n'a pas démarré. Voyez Configuration, puis Cet ordinateur.",
 		tool_failed: "Un programme a échoué. Lisez sa sortie, puis réessayez.",
@@ -205,8 +212,11 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		tracker_unsupported:
 			"Votre outil de suivi des tickets ne peut pas faire cela. Utilisez l'outil lui-même.",
 		project_file_invalid:
-			"Le fichier du projet n'est pas valide. Corrigez-le dans les réglages du projet, puis réessayez.",
+			"Le fichier du projet n'est pas valide. Corrigez-le dans Configuration, puis Ce projet.",
 		doc_not_stale: "Ce document est à jour. Rien à mettre à jour.",
+		extension_setting: "Un réglage de cette extension est vide. Remplissez-le, puis réessayez.",
+		extension_dependency:
+			"Un programme dont cette extension a besoin manque. Installez-le, puis réessayez.",
 		git_dirty:
 			"Des modifications ne sont pas enregistrées dans un commit. Validez-les ou mettez-les de côté, puis réessayez.",
 	},
@@ -214,17 +224,25 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 	es: errorsEs,
 };
 
+/** The sentence of `unknown`. The raw backend text never is the main message. */
+export const unknownMessage: Record<Lang, string> = {
+	en: "Something went wrong. Try again.",
+	fr: "Un problème est survenu. Réessayez.",
+	de: unknownDe,
+	es: unknownEs,
+};
+
 /** The label of the action button of each kind. */
 export const actionLabels: Record<Lang, Record<ActionKind, string>> = {
 	en: {
-		setting: "Open settings",
+		setting: "Open Setup",
 		sync: "Sync",
 		install: "Install",
 		create_project: "Create a project",
 		open: "Open",
 	},
 	fr: {
-		setting: "Ouvrir les réglages",
+		setting: "Ouvrir la configuration",
 		sync: "Synchroniser",
 		install: "Installer",
 		create_project: "Créer un projet",
@@ -247,6 +265,9 @@ export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["the project file is not valid", "project_file_invalid"],
 	["this doc is not stale", "doc_not_stale"],
 	["commit or stash your changes first", "git_dirty"],
+	["uncommitted changes would be overwritten", "git_dirty"],
+	["missing setting:", "extension_setting"],
+	["missing dependency:", "extension_dependency"],
 	["switch to a branch first", "git_state"],
 	["has no issue tracker connection", "no_tracker"],
 	["the issue tracker scope is not set", "scope_missing"],
@@ -450,6 +471,9 @@ export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["this is not a Figma project address", "figma_address"],
 	["needs a name", "input_invalid"],
 	["not a saved analysis", "path_invalid"],
+	["must be zero or more", "input_invalid"],
+	["does not resolve", "input_invalid"],
+	["needs an id and a name", "input_invalid"],
 ];
 
 const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {
@@ -487,7 +511,6 @@ const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {
 	read_only: { kind: "open", target: "/setup/project" },
 	project_file_invalid: { kind: "open", target: "/setup/project" },
 	agents_stopped: { kind: "open", target: "/flow/flow" },
-	git_identity: { kind: "open", target: "/setup/me#me" },
 	git_dirty: { kind: "open", target: "/code/now" },
 };
 
@@ -511,13 +534,24 @@ export const setErrorPack = (next: typeof pack) => {
 	pack = next;
 };
 
-export type ErrorParts = { code: ErrorCode; details: string; action: ErrorAction | null };
+/** `own` marks a sentence that the interface wrote in the language of the person: it shows as written. */
+export type ErrorParts = {
+	code: ErrorCode;
+	details: string;
+	action: ErrorAction | null;
+	own?: boolean;
+};
 
-/** The sentence of an error in a language. A code with no sentence gives its details. A failed program adds its output tail. */
+/** The sentence of an error in a language. `unknown` gives the general sentence, unless the interface wrote it. The details stay apart. */
 export function errorMessage(e: ErrorParts, lang: Lang = languageOf()): string {
-	if (e.code === "unknown") return e.details;
+	if (e.code === "unknown") return e.own ? e.details : unknownMessage[lang];
 	const sentence = pack.errors[e.code] ?? errorMessages[lang][e.code];
-	return e.code === "tool_failed" ? `${sentence} ${e.details}` : sentence;
+	// The files that a switch or a rebase would overwrite: the person must know which ones.
+	const files = e.code === "git_dirty" ? /would be overwritten: (.+)$/.exec(e.details)?.[1] : null;
+	if (files) return `${sentence} (${files})`;
+	// The names after the colon are the setting or the program: keep them in view.
+	const names = /missing (?:setting|dependency): ([^(]*)/.exec(e.details)?.[1]?.trim();
+	return names && e.code.startsWith("extension_") ? `${sentence} (${names})` : sentence;
 }
 
 export const actionLabel = (a: ErrorAction, lang: Lang = languageOf()) =>

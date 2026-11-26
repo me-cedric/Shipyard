@@ -78,7 +78,7 @@ describe("Today / Activity (spec:app-redesign#REQ-008)", () => {
 		expect(await screen.findByRole("heading", { level: 1, name: "Activity" })).toBeInTheDocument();
 		expect(await screen.findByRole("region", { name: "Active runs" })).toBeInTheDocument();
 		expect(await screen.findByRole("region", { name: "Active sessions" })).toBeInTheDocument();
-		expect(await screen.findAllByRole("button", { name: /^Stop ACME-/ })).not.toHaveLength(0);
+		expect(await screen.findAllByRole("button", { name: /^Stop [^?]+$/ })).not.toHaveLength(0);
 	});
 
 	it("stops a live run after a confirmation, and lists and stops a session", async () => {
@@ -88,7 +88,7 @@ describe("Today / Activity (spec:app-redesign#REQ-008)", () => {
 		mountApp("/today/activity");
 		const runs = within(await screen.findByRole("region", { name: "Active runs" }));
 		await user.click(
-			(await runs.findAllByRole("button", { name: /^Stop ACME/ }))[0] as HTMLElement,
+			(await runs.findAllByRole("button", { name: /^Stop [^?]+$/ }))[0] as HTMLElement,
 		);
 		expect(cancel).not.toHaveBeenCalled();
 		await user.click(await runs.findByRole("button", { name: /^Stop .*\?$/ }));
@@ -104,6 +104,7 @@ describe("Today / Activity (spec:app-redesign#REQ-008)", () => {
 			"/crew/sessions",
 		);
 		await user.click(within(list).getByRole("button", { name: "Stop Codex beta" }));
+		await user.click(within(list).getByRole("button", { name: "Stop Codex beta?" }));
 		await waitFor(() =>
 			expect(mockState().machine.sessions.some((s) => s.pid === 4188)).toBe(false),
 		);
@@ -121,7 +122,7 @@ describe("Today / Activity (spec:app-redesign#REQ-008)", () => {
 		};
 		mountApp("/today/activity");
 		const runs = within(await screen.findByRole("region", { name: "Active runs" }));
-		for (const s of await runs.findAllByRole("button", { name: /^Stop ACME/ }))
+		for (const s of await runs.findAllByRole("button", { name: /^Stop [^?]+$/ }))
 			expect(s).toBeDisabled();
 	});
 

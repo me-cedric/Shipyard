@@ -14,6 +14,7 @@ import { graph } from "@/lib/code/graph";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
+import { useStamp } from "@/lib/prefs";
 import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
@@ -71,7 +72,8 @@ function FileCounts({ sha, file }: { sha: string; file: { path: string; state: F
  * to the assistant. The labels, the short id and the export are behind More.
  */
 function Detail({ sha }: { sha: string }) {
-	const { t, lang } = useI18n();
+	const { t } = useI18n();
+	const stamp = useStamp();
 	const h = t.forge.history;
 	const menu = useMenus();
 	const { ask } = useShell();
@@ -103,11 +105,7 @@ function Detail({ sha }: { sha: string }) {
 				<div className="flex items-center gap-3">
 					<Avatar name={info.author_name} src={avatars[info.author_email.trim().toLowerCase()]} />
 					<span className="min-w-0 truncate font-semibold">{info.author_name}</span>
-					<span className="ml-auto shrink-0 text-n-11">
-						{new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" }).format(
-							info.time * 1000,
-						)}
-					</span>
+					<span className="ml-auto shrink-0 text-n-11">{stamp(info.time * 1000)}</span>
 				</div>
 				<h2 className="text-20 font-semibold text-n-12">{info.summary}</h2>
 				{info.description ? (
@@ -191,9 +189,7 @@ function Detail({ sha }: { sha: string }) {
 								<span className="w-8 shrink-0 text-right font-mono text-n-11">{b.line}</span>
 								<span className="min-w-0 flex-1 truncate">{b.author}</span>
 								{b.time ? (
-									<span className="shrink-0 text-n-11">
-										{new Intl.DateTimeFormat(lang, { dateStyle: "medium" }).format(b.time * 1000)}
-									</span>
+									<span className="shrink-0 text-n-11">{stamp(b.time * 1000, true)}</span>
 								) : null}
 							</li>
 						))}
@@ -224,7 +220,8 @@ function Detail({ sha }: { sha: string }) {
 }
 
 function HistoryView() {
-	const { t, lang } = useI18n();
+	const { t } = useI18n();
+	const stamp = useStamp();
 	const h = t.forge.history;
 	const menu = useMenus();
 	const navigate = useNavigate();
@@ -262,7 +259,6 @@ function HistoryView() {
 		if (hasNextPage && limit + PAGE >= commits.length) void fetchNextPage();
 	};
 
-	const date = new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" });
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 			<PageHeader title={t.tabs.code.history} />
@@ -335,7 +331,7 @@ function HistoryView() {
 												<span className="truncate text-n-11">
 													{format(h.by, {
 														author: c.author_name,
-														time: date.format(c.time * 1000),
+														time: stamp(c.time * 1000),
 													})}
 												</span>
 											</span>
@@ -351,7 +347,10 @@ function HistoryView() {
 							);
 						})}
 						{commits.length === 0 && log.data ? (
-							<p className="px-6 py-4 text-n-11">{h.none}</p>
+							<EmptyState
+								title={h.none}
+								action={query ? { label: h.clearSearch, onClick: () => setQuery("") } : undefined}
+							/>
 						) : null}
 						{more ? (
 							<div className="border-t border-n-6 px-6 py-2">
@@ -369,8 +368,8 @@ function HistoryView() {
 						<EmptyState
 							title={t.empty.commit}
 							action={{
-								label: t.ui.place.code,
-								onClick: () => void navigate({ to: "/code/now" }),
+								label: t.empty.openChanges,
+								onClick: () => void navigate({ to: "/code/changes" }),
 							}}
 						/>
 					</div>

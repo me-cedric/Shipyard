@@ -243,7 +243,7 @@ describe("Plan / Timeline and People", () => {
 		// The member opens in Crew, under the name of the member: the capacity is there to change.
 		expect(await screen.findByRole("heading", { name: name ?? "" })).toBeInTheDocument();
 		await waitFor(() =>
-			expect(screen.getByRole("button", { name: "Days in a week, more" })).toBeInTheDocument(),
+			expect(screen.getByRole("button", { name: "More: Days in a week" })).toBeInTheDocument(),
 		);
 		// The week of the warning is there too: the load of the member on each day of it.
 		const week = await screen.findByRole("region", {
@@ -383,6 +383,9 @@ describe("Plan / Timeline and People", () => {
 		await bars();
 		const before = Object.keys(mockState().work.decisions.tasks).length;
 		await user.click(screen.getByRole("button", { name: "Rebalance" }));
+		// Rebalance asks once, then moves the tasks.
+		expect(Object.keys(mockState().work.decisions.tasks).length).toBe(before);
+		await user.click(screen.getByRole("button", { name: "Move the proposed tasks?" }));
 		await waitFor(() =>
 			expect(Object.keys(mockState().work.decisions.tasks).length).toBeGreaterThan(before),
 		);

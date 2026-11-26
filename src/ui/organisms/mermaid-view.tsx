@@ -1,7 +1,7 @@
-import { ZoomFrame } from "../molecules/zoom-frame";
 import type { EditorError } from "./error-line";
 import { useDark } from "./use-dark";
 import { useRender } from "./use-render";
+import { ZoomFrame } from "./zoom-frame";
 
 let seq = 0;
 

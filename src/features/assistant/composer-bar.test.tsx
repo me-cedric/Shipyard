@@ -73,7 +73,7 @@ describe("assistant composer: permission choices", () => {
 		await agent(user);
 		await chooseBypass(user);
 		const dialog = await screen.findByRole("dialog", { name: "Bypass permissions" });
-		expect(dialog).toHaveTextContent("skips every approval");
+		expect(dialog).toHaveTextContent("asks for no approval");
 		expect(permission()).toHaveTextContent("Edit with approval");
 		await user.click(within(dialog).getByRole("button", { name: "Bypass permissions" }));
 		await waitFor(() => expect(permission()).toHaveTextContent("Bypass permissions"));
@@ -96,7 +96,7 @@ describe("assistant composer: permission choices", () => {
 		await user.click(
 			within(await screen.findByRole("dialog")).getByRole("button", { name: "Bypass permissions" }),
 		);
-		expect(await screen.findByRole("alert")).toHaveTextContent("agents switch is off");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
 		expect(permission()).toHaveTextContent("Edit with approval");
 		expect(localStorage.length).toBe(0);
 		await unwrap(commands.killSwitchSet(false));

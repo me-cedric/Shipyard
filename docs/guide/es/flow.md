@@ -35,7 +35,7 @@ Añadir un documento está junto a los tipos. Acepta un archivo Markdown, PDF o 
 
 O empieza desde un ticket, bajo las tres maneras: busca un ticket sin ejecución y haz clic en Iniciar un agente. Empezar desde un ticket, en Más de Flujo, la abre.
 
-Cada manera crea primero un cambio de especificación con tu texto como título. Una manera está desactivada cuando te falta el derecho que necesita.
+Cada manera crea primero un cambio de especificación con tu texto como título. Una manera está desactivada cuando te falta el derecho que necesita. Un formulario con texto escrito (funcionalidad nueva, texto de ticket, pull request) pregunta antes de que salgas de la página.
 
 ## Lista
 
@@ -53,7 +53,7 @@ Hecho contiene las funcionalidades listas y el historial de las ejecuciones: cad
 
 ## La página de una funcionalidad
 
-Cada funcionalidad tiene una página, `/flow/feature/<id>`. El identificador es la ref de una de sus partes: el ticket, el cambio de especificación, la ejecución o la pull request. La página muestra el título, la línea de etapas y un selector de seis secciones: Historia, Encargo, Diseño, Cambios, Controles y Charla. Más contiene Abrir en el gestor de tickets, Copiar referencia y, en una funcionalidad detenida, Qué pasó. Atrás vuelve a Flujo con su búsqueda y su filtro, y Escape hace lo mismo. Un enlace a una ejecución o a una pull request abre esta página en la sección de esa parte.
+Cada funcionalidad tiene una página, `/flow/feature/<id>`. El identificador es la ref de una de sus partes: el ticket, el cambio de especificación, la ejecución o la pull request. La página muestra el título, la línea de etapas y un selector de seis secciones: Historia, Encargo, Diseño, Cambios, Controles y Charla. Más contiene Abrir en el gestor de tickets, Copiar la referencia y, en una funcionalidad detenida, Qué pasó. Atrás vuelve a Flujo con su búsqueda y su filtro, y Escape hace lo mismo. Un enlace a una ejecución o a una pull request abre esta página en la sección de esa parte.
 
 ### Historia
 

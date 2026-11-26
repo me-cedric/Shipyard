@@ -42,14 +42,15 @@ function AfterApprove({ run }: { run: RunScopeData["run"] }) {
 	const { t } = useI18n();
 	const x = t.flow.look.page;
 	const step = stepperOf(run);
+	const names = t.factory.agentNames;
 	const next = run.steps[step.n];
 	const cost = run.costUsd ?? 0;
 	return (
 		<Block title={x.plan.after}>
 			{next ? (
 				<p className="flex items-center gap-3 font-semibold text-n-12">
-					<Avatar agent name={nameOf(next.id)} />
-					{format(x.plan.starts, { agent: nameOf(next.id) })}
+					<Avatar agent name={nameOf(next.id, names)} />
+					{format(x.plan.starts, { agent: nameOf(next.id, names) })}
 				</p>
 			) : null}
 			{run.budgetUsd === null ? null : (
@@ -159,6 +160,7 @@ export function Side({
 			</aside>
 		);
 	const who = feature.who;
+	const whoName = who ? (who.agent ? nameOf(who.name, t.factory.agentNames) : who.name) : "";
 	return (
 		<aside className="flex flex-col gap-4">
 			{agent}
@@ -201,8 +203,8 @@ export function Side({
 			{who ? (
 				<Block title={x.side.people}>
 					<p className="flex items-center gap-3 text-n-12">
-						<Avatar agent={who.agent} name={who.agent ? nameOf(who.name) : who.name} />
-						<span className="font-semibold">{who.agent ? nameOf(who.name) : who.name}</span>
+						<Avatar agent={who.agent} name={whoName} />
+						<span className="font-semibold">{whoName}</span>
 						{who.agent ? null : <span className="text-n-11">{p.owner}</span>}
 					</p>
 					{pull && hasSidebar(pull, cited) ? <PullSidebar d={pull} /> : null}

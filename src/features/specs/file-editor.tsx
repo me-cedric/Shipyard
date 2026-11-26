@@ -43,6 +43,7 @@ export function FileEditor({
 	pick,
 	highlight,
 	form,
+	view: fixed,
 	read,
 	page,
 	frame,
@@ -62,6 +63,8 @@ export function FileEditor({
 	highlight?: (line: string) => Token[];
 	/** Open in the section form, with the text view as the other choice. */
 	form?: boolean;
+	/** The page picks the view in its own switch: the editor draws none and follows this value. */
+	view?: "form" | "text";
 	/** Open as a page to read, with an Edit switch. */
 	read?: boolean;
 	/** The page to read of a file that is not Markdown. Null when the text has nothing to read. */
@@ -80,7 +83,8 @@ export function FileEditor({
 	const [disk, setDisk] = useState<string | null>(null);
 	// The stamp when the edit started: a later read must not replace it.
 	const [opened, setOpened] = useState<string | null>(null);
-	const [view, setView] = useState<"form" | "text">(form ? "form" : "text");
+	const [own, setView] = useState<"form" | "text">(form ? "form" : "text");
+	const view = fixed ?? own;
 	const [mode, setMode] = useViewState<"read" | "edit">(`mode:${path}`, read ? "read" : "edit");
 	// A picked line shows in the text view: the form has no line numbers. The stored choice stays.
 	const [picked, setPicked] = useState(false);
@@ -100,7 +104,7 @@ export function FileEditor({
 	const dirty = draft !== null && draft !== base;
 
 	// A file with no section, such as a new one, has nothing to show in the form.
-	const formed = !!form && sections(text).length > 0;
+	const formed = (!!form || !!fixed) && sections(text).length > 0;
 	const edit = (v: string) => {
 		if (draft === null) setOpened(file.data?.stamp ?? null);
 		setDraft(v);
@@ -189,15 +193,17 @@ export function FileEditor({
 				formed ? (
 					<>
 						{frame ? null : modes}
-						<ViewTabs
-							label={t.editing.view.label}
-							value={view}
-							onValueChange={setView}
-							tabs={[
-								{ value: "form", label: t.editing.view.form },
-								{ value: "text", label: t.editing.view.text },
-							]}
-						/>
+						{fixed ? null : (
+							<ViewTabs
+								label={t.editing.view.label}
+								value={view}
+								onValueChange={setView}
+								tabs={[
+									{ value: "form", label: t.editing.view.form },
+									{ value: "text", label: t.editing.view.text },
+								]}
+							/>
+						)}
 						{actions}
 					</>
 				) : (

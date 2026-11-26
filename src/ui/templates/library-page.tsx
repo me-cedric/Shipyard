@@ -1,10 +1,37 @@
-import type { ComponentProps, ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import {
+	type ComponentProps,
+	createContext,
+	type ReactNode,
+	useContext,
+	useLayoutEffect,
+} from "react";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { ChevronRightIcon } from "@/ui/icons";
-import { Card } from "@/ui/molecules/card";
-import { PageHeader, type PageMenuItem } from "@/ui/molecules/page-header";
-import { Row, type RowProps } from "@/ui/molecules/row";
-import { LibraryBackLink, useLibraryBackClaim } from "./back-link";
+import { ChevronRightIcon } from "../icons";
+import { BackLink } from "../molecules/back-link";
+import { Card } from "../molecules/card";
+import { EmptyState } from "../molecules/empty-state";
+import { PageHeader, type PageMenuItem } from "../molecules/page-header";
+import { Row, type RowProps } from "../molecules/row";
+import { TILE, TILE_ON } from "../molecules/tile";
+
+/** The link to the doors of Library. */
+export function LibraryBackLink() {
+	const { t } = useI18n();
+	return (
+		<BackLink label={t.library.back} render={(props) => <Link to="/library/home" {...props} />} />
+	);
+}
+
+/** A page that draws the way back in its own header claims it here; the result releases it. */
+export const BackClaimContext = createContext<(() => () => void) | null>(null);
+
+/** Tells the frame that this page draws the way back in its page header. */
+export function useLibraryBackClaim() {
+	const claim = useContext(BackClaimContext);
+	useLayoutEffect(() => claim?.(), [claim]);
+}
 
 /**
  * The frame of a Library page: the way back in the header, the 44 px title, the header actions,
@@ -98,11 +125,7 @@ export function ListCard({
 	selected?: boolean;
 	render?: (props: ListCardProps) => ReactNode;
 } & Omit<ComponentProps<"button">, "children">) {
-	const look = cn(
-		"flex min-h-control w-full cursor-pointer flex-col items-start gap-3 rounded-lg bg-surface-2 p-4.5 text-left text-n-12 shadow-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-		selected && "bg-accent-tint outline-2 outline-accent",
-		className,
-	);
+	const look = cn(TILE, "w-full items-start", selected && TILE_ON, className);
 	const children = (
 		<>
 			<span className="max-w-full break-words text-17 font-semibold">{name}</span>
@@ -167,4 +190,10 @@ export function LinkedRow({
 			</span>
 		</Row>
 	);
+}
+
+/** The list when a search finds nothing: the plain words and a way to clear the search. */
+export function NoMatch({ onClear }: { onClear: () => void }) {
+	const u = useI18n().t.ui.item;
+	return <EmptyState title={u.noMatch} action={{ label: u.clearSearch, onClick: onClear }} />;
 }

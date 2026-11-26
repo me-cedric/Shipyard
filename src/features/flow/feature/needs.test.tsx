@@ -19,7 +19,7 @@ const needsOf = async (id: string) => {
 	return within(await screen.findByRole("region", { name: "Needs you" }));
 };
 const OPEN_PR = "Open a pull request for ACME-2";
-const MOVE = "Change the status of ACME-2";
+const MOVE = "Move ACME-2 to In Progress";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -321,12 +321,14 @@ describe("One main action for a stopped run (REQ-014)", () => {
 		const needs = await needsOf(run.id);
 		const card = within(await needs.findByRole("article"));
 		// The blocked agent speaks: its tile, "cannot go on", the cause as the heading, the answer field.
-		expect(card.getByText("Fix cannot go on", { exact: true })).toBeVisible();
+		expect(card.getByText("Fixer cannot go on", { exact: true })).toBeVisible();
+		// The words of the agent show once, not as the heading and again under it.
+		expect(card.getAllByText("The French catalog is locked by another branch.")).toHaveLength(1);
 		// A ticket of an issue tracker shows the page of the ticket: the Comments card replies on it.
 		const comments = (await screen.findByRole("heading", { name: "Comments" }))
 			.parentElement as HTMLElement;
 		expect(within(comments).getByRole("textbox", { name: "Comment" })).toBeVisible();
-		await user.type(card.getByRole("textbox", { name: "Answer to Fix" }), "Keep both.{Enter}");
+		await user.type(card.getByRole("textbox", { name: "Answer to Fixer" }), "Keep both.{Enter}");
 		await waitFor(() => expect(unblock).toHaveBeenCalledWith(run.id, "Keep both."));
 	});
 
@@ -340,9 +342,10 @@ describe("One main action for a stopped run (REQ-014)", () => {
 		await user.click(screen.getByRole("button", { name: "Cancel" }));
 		expect(screen.queryByRole("textbox", { name: "Description" })).toBeNull();
 		const box = await screen.findByRole("textbox", { name: "Comment" });
-		await user.type(box, "Looks good");
 		const form = box.closest("form");
 		if (!form) throw new Error("the comment box has a form");
+		expect(within(form).getByRole("button", { name: "Send" })).toBeDisabled();
+		await user.type(box, "Looks good");
 		await user.click(within(form).getByRole("button", { name: "Send" }));
 		await waitFor(() => expect(add).toHaveBeenCalledWith("ACME-9", "Looks good", true));
 		expect(screen.getByRole("textbox", { name: "Comment" })).toHaveValue("");

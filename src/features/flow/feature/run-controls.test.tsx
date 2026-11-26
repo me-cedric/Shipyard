@@ -51,7 +51,7 @@ describe("Pause an agent (REQ-001)", () => {
 		const card = within(await screen.findByRole("region", { name: "Agent" }));
 		const names = card.getAllByRole("button").map((b) => b.textContent);
 		expect(names.slice(names.indexOf("Pause") - 1, names.indexOf("Pause") + 2)).toEqual([
-			"Talk to Build",
+			"Talk to Builder",
 			"Pause",
 			"Stop",
 		]);
@@ -77,7 +77,7 @@ describe("Pause an agent (REQ-001)", () => {
 		const blocked = (await unwrap(commands.runsList())).find((r) => r.key === "ACME-9");
 		if (!blocked) throw new Error("the demo has a blocked run");
 		await expect(unwrap(commands.runPause(blocked.id))).rejects.toMatchObject({
-			message: expect.stringContaining("refused Pause in Blocked"),
+			details: expect.stringContaining("refused Pause in Blocked"),
 		});
 	});
 });
@@ -96,13 +96,14 @@ describe("Take it over (REQ-002)", () => {
 		expect(order.indexOf("Take it over")).toBeGreaterThanOrEqual(0);
 		expect(order.indexOf("Take it over")).toBeLessThan(order.indexOf("Unblock"));
 		await user.click(card.getByRole("button", { name: "Take it over" }));
+		await user.click(card.getByRole("button", { name: /^Stop the agent and take over/ }));
 		await waitFor(() => expect(takeOver).toHaveBeenCalledWith(run.id));
 		const rec = mockState().factory.runs.find((r) => r.id === run.id);
 		expect(rec?.state).toBe("Cancelled");
 		const notes = rec?.log.map((e) => e.payload).filter((p) => p.includes("Taken over by"));
 		expect(notes?.length).toBe(1);
 		expect(await unwrap(commands.runTakeOver(run.id)).catch((e) => e)).toMatchObject({
-			message: "the run ended",
+			details: "the run ended",
 		});
 	});
 });

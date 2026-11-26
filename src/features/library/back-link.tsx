@@ -1,33 +1,6 @@
-import { Link } from "@tanstack/react-router";
-import {
-	createContext,
-	type ReactNode,
-	useCallback,
-	useContext,
-	useEffect,
-	useLayoutEffect,
-	useState,
-} from "react";
-import { useI18n } from "@/lib/i18n";
-import { BackLink } from "@/ui/molecules/back-link";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { BackClaimContext, LibraryBackLink } from "@/ui/templates/library-page";
 import { noteOpened } from "./recent";
-
-/** The link to the doors of Library. */
-export function LibraryBackLink() {
-	const { t } = useI18n();
-	return (
-		<BackLink label={t.library.back} render={(props) => <Link to="/library/home" {...props} />} />
-	);
-}
-
-/** A page that draws the way back in its own header claims it here; the result releases it. */
-const BackClaimContext = createContext<(() => () => void) | null>(null);
-
-/** Tells the frame that this page draws the way back in its page header. */
-export function useLibraryBackClaim() {
-	const claim = useContext(BackClaimContext);
-	useLayoutEffect(() => claim?.(), [claim]);
-}
 
 /**
  * The way back to the doors (`spec:app-redesign#REQ-020`). A page built on `LibraryPage` draws it

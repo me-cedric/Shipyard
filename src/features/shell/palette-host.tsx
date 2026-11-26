@@ -183,17 +183,24 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		// The hits group by kind. The index already chose them, so the label filter skips them.
 		...[...new Set(hits.map((h) => h.kind))].map((kind) => ({
 			id: `refs-${kind}`,
-			heading: kind,
+			heading: (t.refGroup as Record<string, string>)[kind] ?? kind,
 			items: hits
 				.filter((h) => h.kind === kind)
 				.map((h) => ({
 					id: `ref-${h.ref}`,
-					label: `${h.ref} ${h.title}`,
+					label: h.title || h.ref,
 					listed: true,
 					detail: h.snippet
 						? snippetParts(h.snippet).map((p, i) =>
-								// biome-ignore lint/suspicious/noArrayIndexKey: parts never reorder
-								p.hit ? <mark key={i}>{p.text}</mark> : <span key={i}>{p.text}</span>,
+								p.hit ? (
+									// biome-ignore lint/suspicious/noArrayIndexKey: parts never reorder
+									<mark key={i} className="bg-accent-subtle text-n-12">
+										{p.text}
+									</mark>
+								) : (
+									// biome-ignore lint/suspicious/noArrayIndexKey: parts never reorder
+									<span key={i}>{p.text}</span>
+								),
 							)
 						: undefined,
 					icon: <DocumentTextIcon size={20} />,
@@ -368,30 +375,32 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 					{stopError}
 				</p>
 			) : null}
-			<form
-				className="flex flex-wrap gap-2.5"
-				onSubmit={(e) => {
-					e.preventDefault();
-					const v = reply.trim();
-					if (!v) return;
-					// The reply goes to the full assistant, under the question that it answers.
-					ask(text ? `${text}\n\n${v}` : v);
-					void navigate({ to: "/ask" });
-					setReply("");
-					setQuery("");
-					setPaletteOpen(false);
-				}}
-			>
-				<Input
-					label={t.palette.reply}
-					value={reply}
-					onChange={(e) => setReply(e.target.value)}
-					className="w-auto flex-[1_1_200px]"
-				/>
-				<Button type="submit" variant="primary">
-					{t.palette.send}
-				</Button>
-			</form>
+			{found ? (
+				<form
+					className="flex flex-wrap gap-2.5"
+					onSubmit={(e) => {
+						e.preventDefault();
+						const v = reply.trim();
+						if (!v) return;
+						// The reply goes to the full assistant, under the question that it answers.
+						ask(text ? `${text}\n\n${v}` : v);
+						void navigate({ to: "/ask" });
+						setReply("");
+						setQuery("");
+						setPaletteOpen(false);
+					}}
+				>
+					<Input
+						label={t.palette.reply}
+						value={reply}
+						onChange={(e) => setReply(e.target.value)}
+						className="w-auto flex-[1_1_200px]"
+					/>
+					<Button type="submit" variant="primary">
+						{t.palette.send}
+					</Button>
+				</form>
+			) : null}
 			<LinkButton
 				onClick={() => {
 					// The text goes to the draft of the Ask page; no text only opens the page.

@@ -6,24 +6,24 @@ import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { formatDay, TEAM_ROLES, usePrefs } from "@/lib/prefs";
 import { RightButton } from "@/lib/rights";
-import { cn } from "@/lib/utils";
 import { addDays, type Member, usePlan, useTeam, useWorkActions } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
-import { Button, buttonVariants } from "@/ui/atoms/button";
+import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Switch } from "@/ui/atoms/switch";
 import { ChevronRightIcon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
+import { DateButton } from "@/ui/molecules/date-button";
 import { PageSwitchContext } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { SettingsRow } from "@/ui/molecules/settings-row";
+import { Stepper } from "@/ui/molecules/stepper";
 
 const CARD = "min-w-0 rounded-lg bg-surface-2 py-2 shadow-2";
 const H2 = "px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11";
 const COL = "flex min-w-0 flex-col gap-5";
-const STEP = "size-(--control-h) text-20 text-n-12";
 
 const list = (s: string) =>
 	s
@@ -108,24 +108,7 @@ function Day({
 					year: y === new Date().getFullYear() ? undefined : "numeric",
 					timeZone: "UTC",
 				});
-	return (
-		<span
-			className={cn(
-				buttonVariants(),
-				"relative focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent",
-			)}
-		>
-			{text}
-			<input
-				type="date"
-				aria-label={label}
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				onClick={(e) => e.currentTarget.showPicker?.()}
-				className="absolute inset-0 size-full cursor-pointer opacity-0"
-			/>
-		</span>
-	);
+	return <DateButton label={label} text={text} value={value} onChange={onChange} />;
 }
 
 /**
@@ -358,25 +341,13 @@ export function MemberForm({
 								</section>
 							) : null}
 							<SettingsRow label={c.daysInWeek}>
-								<span className="inline-flex items-center rounded-md border border-n-7 bg-surface-1">
-									<button
-										type="button"
-										aria-label={format(c.stepLess, { label: c.daysInWeek })}
-										className={STEP}
-										onClick={() => set({ capacity: Math.max(0, capacity - 0.5) })}
-									>
-										−
-									</button>
-									<output className="min-w-10 text-center font-semibold">{capacity}</output>
-									<button
-										type="button"
-										aria-label={format(c.stepMore, { label: c.daysInWeek })}
-										className={STEP}
-										onClick={() => set({ capacity: Math.min(7, capacity + 0.5) })}
-									>
-										+
-									</button>
-								</span>
+								<Stepper
+									label={c.daysInWeek}
+									value={capacity}
+									max={7}
+									step={0.5}
+									onValueChange={(v) => set({ capacity: v })}
+								/>
 							</SettingsRow>
 							<Chips
 								label={m.skills}

@@ -133,6 +133,6 @@ test.describe("gallery in the dev build", () => {
 
 test("the release build has no gallery route", async ({ page }) => {
 	await page.goto("/dev/gallery");
-	await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "No such page" })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Atoms" })).toHaveCount(0);
 });

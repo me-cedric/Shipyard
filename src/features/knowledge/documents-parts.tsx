@@ -1,14 +1,10 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { type FileAction, FileActionDialog } from "@/features/code/file-actions";
 import { renderViews } from "@/features/reports/export-views";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type ExportText, unwrap } from "@/lib/ipc";
 import { useDocSearch, useDocx } from "@/lib/knowledge/documents";
-import { useRights } from "@/lib/rights";
 import { Input } from "@/ui/atoms/input";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import type { MenuButtonItem } from "@/ui/molecules/menu-button";
 
 /**
  * The three documents that Shipyard writes from the project: the name of the file, its format and
@@ -107,40 +103,6 @@ export function DocSearch({ onPick }: { onPick: (path: string) => void }) {
 			) : null}
 		</div>
 	);
-}
-
-/**
- * Rename and delete of one document, as items of the "More" menu of its card. A delete asks first
- * and moves the file to the trash. The lists read their data again after each one.
- */
-export function useDocActions(path: string, onRenamed: (path: string) => void) {
-	const { t } = useI18n();
-	const d = t.review.documents;
-	const qc = useQueryClient();
-	const reason = useRights().gate("knowledge.edit").reason;
-	const [action, setAction] = useState<FileAction | null>(null);
-	const item = (kind: "rename" | "delete"): MenuButtonItem => ({
-		id: kind,
-		label: d[kind],
-		disabled: !!reason,
-		reason,
-		onSelect: () => setAction({ kind, path }),
-	});
-	return {
-		items: [item("rename"), item("delete")],
-		dialog: action ? (
-			<FileActionDialog
-				action={action}
-				onClose={() => setAction(null)}
-				onDone={(done, target) => {
-					void qc.invalidateQueries({ queryKey: ["knowledge"] });
-					void qc.invalidateQueries({ queryKey: ["refs"] });
-					setAction(null);
-					if (done.kind === "rename") onRenamed(target);
-				}}
-			/>
-		) : null,
-	};
 }
 
 /** A `.docx` file as text, read only: the headings and the paragraphs. */

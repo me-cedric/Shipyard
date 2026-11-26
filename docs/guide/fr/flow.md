@@ -35,7 +35,7 @@ Ajouter un document est à côté des types. Il prend un fichier Markdown, PDF o
 
 Ou partez d'un ticket, sous les trois manières : trouvez un ticket sans exécution, puis cliquez sur Lancer un agent. Partir d'un ticket, dans Plus sur Flux, l'ouvre.
 
-Chaque manière crée d'abord un changement de spec avec votre texte comme titre. Une manière est désactivée quand il vous manque le droit qu'elle demande.
+Chaque manière crée d'abord un changement de spec avec votre texte comme titre. Une manière est désactivée quand il vous manque le droit qu'elle demande. Un formulaire avec du texte saisi (nouvelle fonctionnalité, texte de ticket, pull request) demande avant que vous quittiez la page.
 
 ## Liste
 

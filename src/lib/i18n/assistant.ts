@@ -32,6 +32,7 @@ export const assistantEn = {
 	},
 	trace: "How I found this",
 	tools: "{count} tools",
+	toolsOne: "{count} tool",
 	copy: "Copy",
 	copyCode: "Copy code",
 	insert: "Insert",
@@ -49,7 +50,7 @@ export const assistantEn = {
 	factory: {
 		send: "Send to an agent",
 		workflow: "Recipe",
-		none: "Work item",
+		none: "Ticket",
 		create: "Send",
 		sent: "Sent {key}",
 	},
@@ -68,7 +69,7 @@ export const assistantEn = {
 		factory: "Send to an agent",
 		promptExplain: "Explain this:",
 		promptFix: "Fix this:",
-		promptFactory: "Write a work item from this:",
+		promptFactory: "Write a ticket from this:",
 	},
 	noCli: {
 		title: "No AI tool found",
@@ -80,12 +81,12 @@ export const assistantEn = {
 	moreModels: "More models",
 	bypassWarn: {
 		title: "Bypass permissions",
-		body: "The AI tool skips every approval and its sandbox. It can run any command and change any file that your account can reach, not only the worktree of this thread. Use it in a project that you trust.",
+		body: "The AI tool asks for no approval. It can run any command and change any file that your account can reach, also outside this project. Use it only in a project that you trust.",
 		accept: "Bypass permissions",
 	},
 	autoWarn: {
 		title: "Allow edits without approval",
-		body: "The assistant edits files in the worktree of this thread with Edit, Write and MultiEdit and does not wait for you. It never runs shell commands. Your working copy stays as it is until you apply the changes.",
+		body: "The assistant changes files in its own copy of the project and does not wait for you. It never runs commands. Your files stay as they are until you apply the changes.",
 		accept: "Allow auto edits",
 	},
 	ask: {
@@ -158,6 +159,7 @@ export const assistantFr: typeof assistantEn = {
 	},
 	trace: "Comment j'ai trouvé",
 	tools: "{count} outils",
+	toolsOne: "{count} outil",
 	copy: "Copier",
 	copyCode: "Copier le code",
 	insert: "Insérer",
@@ -206,12 +208,12 @@ export const assistantFr: typeof assistantEn = {
 	moreModels: "Plus de modèles",
 	bypassWarn: {
 		title: "Ignorer les permissions",
-		body: "L'outil d'IA ignore chaque accord et son bac à sable. Il peut lancer toute commande et modifier tout fichier que votre compte atteint, pas seulement le worktree de ce fil. Utilisez-le dans un projet de confiance.",
+		body: "L’outil d’IA ne demande aucun accord. Il peut lancer toute commande et modifier tout fichier que votre compte atteint, même hors de ce projet. Utilisez-le seulement dans un projet de confiance.",
 		accept: "Ignorer les permissions",
 	},
 	autoWarn: {
 		title: "Autoriser les éditions sans accord",
-		body: "L'assistant modifie les fichiers du worktree de ce fil avec Edit, Write et MultiEdit et n'attend pas votre accord. Il ne lance jamais de commande shell. Votre copie de travail reste intacte jusqu'à ce que vous appliquiez les changements.",
+		body: "L’assistant modifie les fichiers dans sa propre copie du projet et n’attend pas votre accord. Il ne lance jamais de commande. Vos fichiers restent intacts jusqu’à ce que vous appliquiez les changements.",
 		accept: "Autoriser les éditions auto",
 	},
 	ask: {

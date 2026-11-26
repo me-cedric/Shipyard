@@ -132,11 +132,11 @@ describe("Flow / List: the tickets of the backlog", () => {
 		await rows();
 		// The filters are three pills in one group: the chosen value is in the name of its pill.
 		const pills = within(screen.getByRole("group", { name: "Filters" }));
-		expect(pills.getByRole("button", { name: "Owner: all" })).toBeVisible();
-		await pick(user, /^Owner:/, "Grace Hopper");
+		expect(pills.getByRole("button", { name: "Assignee: all" })).toBeVisible();
+		await pick(user, /^Assignee:/, "Grace Hopper");
 		await waitFor(() => expect(count()).toBe(3));
-		expect(pills.getByRole("button", { name: "Owner: Grace Hopper" })).toBeVisible();
-		await pick(user, /^Owner:/, "All assignees");
+		expect(pills.getByRole("button", { name: "Assignee: Grace Hopper" })).toBeVisible();
+		await pick(user, /^Assignee:/, "All assignees");
 		// The status filter is in More.
 		await pick(user, "More", "In Review");
 		await waitFor(() => expect(count()).toBe(1));
@@ -285,6 +285,16 @@ describe("Flow / List: the tickets of the backlog", () => {
 		vi.restoreAllMocks();
 	});
 
+	it("says in plain words that a key has no ticket", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/flow/list");
+		const field = await screen.findByRole("textbox", { name: "Bring a ticket by its key" });
+		await user.type(field, "zzz-999");
+		await user.click(screen.getByRole("button", { name: "Bring" }));
+		expect(await screen.findByText("No ticket has the key zzz-999.")).toBeVisible();
+	});
+
 	it("names the issue tracker as missing when the project has none (REQ-007)", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/flow/list");
@@ -349,7 +359,7 @@ describe("Flow / List: the tickets of the backlog", () => {
 		await importAll();
 		mountApp("/flow/list");
 		await rows();
-		expect(screen.getByRole("button", { name: "Responsable : tous" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Assigné : tous" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Étiquette : tous" })).toBeInTheDocument();
 		expect(
 			screen.getByRole("textbox", { name: "Apporter un ticket par sa clé" }),
@@ -370,8 +380,8 @@ describe("Flow / List: the changes of Specs", () => {
 	it("lists each change as a row with its stage and state", async () => {
 		await open();
 		mountApp("/flow/list");
-		for (const id of ["add-auth", "add-billing"])
-			expect(await screen.findByRole("button", { name: new RegExp(id) })).toBeVisible();
+		for (const title of ["Add auth", "Add billing"])
+			expect(await screen.findByRole("button", { name: new RegExp(title) })).toBeVisible();
 		// add-export cites ACME-3 in its proposal: its row joins that ticket and shows the title of the ticket, once.
 		const joined = (await unwrap(commands.featuresList())).filter(
 			(f) => f.change === "change:add-export",
@@ -415,14 +425,14 @@ describe("Flow / List: the changes of Specs", () => {
 		const user = userEvent.setup();
 		await open();
 		const router = mountApp("/flow/list");
-		(await screen.findByRole("button", { name: /add-auth/ })).focus();
+		(await screen.findByRole("button", { name: /Add auth/ })).focus();
 		await user.keyboard("{Enter}");
 		await waitFor(() =>
 			expect(router.state.location.pathname).toBe("/flow/feature/change%3Aadd-auth"),
 		);
 		// The feature page shows the change, not the list.
 		await waitFor(() => expect(screen.queryByRole("list", { name: "Features" })).toBeNull());
-		expect(await screen.findByRole("region", { name: "add-auth" })).toBeVisible();
+		expect(await screen.findByRole("region", { name: "Add auth" })).toBeVisible();
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
@@ -430,8 +440,8 @@ describe("Flow / List: the changes of Specs", () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/flow/list");
-		fireEvent.contextMenu(await screen.findByRole("button", { name: /add-billing/ }));
-		await user.click(await screen.findByRole("menuitem", { name: "Copy reference" }));
+		fireEvent.contextMenu(await screen.findByRole("button", { name: /Add billing/ }));
+		await user.click(await screen.findByRole("menuitem", { name: "Copy the reference" }));
 		expect(await navigator.clipboard.readText()).toBe("change:add-billing");
 	});
 
@@ -439,7 +449,7 @@ describe("Flow / List: the changes of Specs", () => {
 		mockState().prefs.lang = "fr";
 		await open();
 		mountApp("/flow/list");
-		expect(await screen.findByRole("button", { name: /add-auth/ })).toBeVisible();
+		expect(await screen.findByRole("button", { name: /Add auth/ })).toBeVisible();
 		await userEvent.click(screen.getByRole("button", { name: "Plus" }));
 		expect(await screen.findByRole("menuitem", { name: "Nouveau changement" })).toBeInTheDocument();
 	});

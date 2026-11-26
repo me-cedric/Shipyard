@@ -261,7 +261,9 @@ export function Checks({ parts, ci }: { parts: Parts; ci?: string | null }) {
 				className={`flex flex-wrap items-center gap-4 rounded-lg bg-surface-2 px-6 py-5 shadow-2 ${failing.length ? ATTENTION_FRAME : ""}`}
 			>
 				<h2 className="mr-auto flex items-center gap-3 text-20 font-semibold text-n-12">
-					{failing.length ? <Avatar agent name={scope ? agentOf(scope.run) : c.builder} /> : null}
+					{failing.length ? (
+						<Avatar agent name={scope ? agentOf(scope.run, t.factory.agentNames) : c.builder} />
+					) : null}
 					{title}
 				</h2>
 				{/* The state that the card of Flow names. A failing count says it already. */}

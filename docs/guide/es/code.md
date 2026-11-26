@@ -9,7 +9,7 @@ Ahora es un resumen corto: los archivos para el commit y las pull requests abier
 La tarjeta de los archivos para el commit muestra los tres primeros archivos con las líneas añadidas y quitadas, un enlace a los demás archivos, un mensaje de commit, Escríbelo por mí y Commit. El enlace abre la página de los cambios locales.
 
 1. Marca los archivos que quieres conservar en una lista plana. Elegir todo y No elegir nada marcan toda la lista. O descarta un cambio.
-2. Escribe el mensaje de commit, añade una descripción si quieres, y haz clic en Commit. Un commit toma solo los archivos marcados. El botón Commit de la tarjeta de la marca de sincronización hace lo mismo desde cualquier página.
+2. Escribe el mensaje de commit, añade una descripción si quieres, y haz clic en Commit. Un commit toma solo los archivos marcados. El botón Commit de la tarjeta de la marca de sincronización hace lo mismo desde cualquier página. Se acepta un mensaje de commit en palabras simples: elige el Tipo en una lista y Shipyard añade el prefijo.
 
 - Escríbelo por mí pide al asistente un mensaje a partir de los archivos preparados. No se envía nada hasta que lo envías.
 - Un grupo sin archivos muestra una línea discreta, como «Nada preparado».
@@ -30,7 +30,7 @@ Historial lista los commits, el más reciente primero. Selecciona un commit para
 
 Ramas lista las ramas de este ordenador y del servidor. Crea, cambia a, fusiona o elimina una rama. La aplicación nunca elimina la rama en la que trabajas.
 
-El selector de rama, en la tarjeta de la marca de sincronización y en Código / Ahora, tiene un campo de filtro. Escribe para reducir la lista, muévete con las flechas y pulsa Intro. Una rama remota se extrae como una rama local nueva que la sigue. La fila Rama nueva crea una rama a partir de la rama en la que trabajas.
+El selector de rama, en la tarjeta de la marca de sincronización y en Código / Ahora, tiene un campo de filtro. Escribe para reducir la lista, muévete con las flechas y pulsa Intro. Una rama remota se extrae como una rama local nueva que la sigue. La fila Rama nueva crea una rama a partir de la rama en la que trabajas. Un nombre de rama en palabras simples se convierte en un nombre válido.
 
 ## Terminal
 

@@ -1,9 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useId, useState } from "react";
-import { LinkedCard, LinkedRow } from "@/features/library/page-parts";
 import { format, useI18n } from "@/lib/i18n";
 import { DOC_DIR, useDocFile, useDocList } from "@/lib/knowledge";
-import { copyText } from "@/lib/menus";
 import { useBacklinks } from "@/lib/refs";
 import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
@@ -24,6 +22,7 @@ import { markdown } from "@/ui/molecules/syntax";
 import { AUTOSAVE_MS } from "@/ui/organisms/editor-frame";
 import { LeaveGuard } from "@/ui/organisms/leave-guard";
 import { blocks, MarkdownView } from "@/ui/organisms/markdown-view";
+import { LinkedCard, LinkedRow } from "@/ui/templates/library-page";
 import { ListTab } from "./list-tab";
 import { HistoryFooter } from "./page-history";
 
@@ -79,20 +78,17 @@ export function CardHeader({
 
 /**
  * One Markdown file in the card of a Library page: Read or Text, Edit, and the "More" menu with
- * the reference. It opens on the page to read. The text saves itself after a short pause; a change
+ * the side-by-side choice (Copy ref, Rename and Delete are in the "More" menu of the page). It opens on the page to read. The text saves itself after a short pause; a change
  * on disk asks before it replaces the file (REQ-011), and a draft asks before the person leaves.
  */
 export function PageCard({
 	path,
 	title,
-	more,
 	contents,
 	footer,
 }: {
 	path: string;
 	title: string;
-	/** More items of the "More" menu of the card: Rename, Delete. */
-	more?: MenuButtonItem[];
 	/** The read view has a table of contents. */
 	contents?: boolean;
 	/** A row under the page, behind a divider. */
@@ -147,8 +143,6 @@ export function PageCard({
 								},
 							]
 						: []),
-					{ id: "copy", label: t.context.copyRef, onSelect: () => void copyText(`doc:${path}`) },
-					...(more ?? []),
 				]}
 			>
 				{file.dirty ? <StatusDot status="warning" label={e.dirty} /> : null}

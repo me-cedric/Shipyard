@@ -11,7 +11,7 @@ Shipyard ayuda a un equipo a entregar un proyecto de software: las funcionalidad
   - El nombre del proyecto abre un menú con tus proyectos y la página Proyectos.
   - Tu cuenta abre el menú de la cuenta, junto a la barra lateral. La fila de la cuenta muestra tu nombre y tus iniciales.
 - La fila superior de cada página contiene el botón de la barra lateral, Atrás y Adelante, la barra Preguntar o indicar a Shipyard, la marca de sincronización y los botones Asistente y Terminal, que abren el panel del asistente y el terminal desde cualquier página. La ventana no tiene barra superior ni barra de estado.
-  - La marca de sincronización muestra el estado del repositorio. Haz clic en ella para ver los archivos modificados, la rama, Sincronizar y Commit. Consulta la página Código, Sincronizar.
+  - La marca de sincronización muestra el estado del repositorio. Haz clic en ella para ver los archivos modificados, la rama, Sincronizar y Commit. Consulta la página Código, Sincronizar. Un rol sin acceso a Código no ve allí ni los archivos modificados ni Commit.
   - Preguntar o indicar a Shipyard es la única barra para una pregunta, un lugar y una acción. Consulta la página La barra Preguntar.
   - El menú de la cuenta contiene tu nombre y tu rol con Cambiar (Configuración / Yo), Tema (Claro, Oscuro, Sistema), Idioma, Manual, Atajos, Novedades, Repetir el recorrido, Buscar una actualización, Acerca de Shipyard con la versión, y Salud. Atajos y Novedades se abren como cuadros de diálogo.
 - Por debajo de 1100 px, los botones Archivos y Terminal están en el menú Más.
@@ -27,7 +27,7 @@ La ventana se abre con el tamaño con el que la cerraste. Para guardar los datos
 
 ## Primer inicio
 
-La página del primer inicio se muestra solo en el primer inicio. Hace una pregunta: ¿qué rol te corresponde? Elige un icono (Product owner, Jefe de proyecto, Arquitecto, Responsable técnico, Analista de negocio, Desarrollador, Tester, Diseñador, Lector u Otro) y haz clic en Continuar. El icono del lector dice «Solo miro». Después abre un proyecto, clona un repositorio o empieza un proyecto nuevo, o elige un proyecto reciente. Después de eso, cuando no hay ningún proyecto abierto (por ejemplo tras Cerrar proyecto), una tarjeta dice No hay ningún proyecto abierto, con Nuevo proyecto y Abrir un proyecto. Consulta la página Proyectos.
+La página del primer inicio se muestra solo en el primer inicio. Hace una pregunta: ¿qué rol te corresponde? Elige un icono (Propietario del producto, Jefe de proyecto, Arquitecto, Responsable técnico, Analista de negocio, Desarrollador, Tester, Diseñador, Lector u Otro) y haz clic en Continuar. El icono del lector dice «Solo miro». Después abre un proyecto, clona un repositorio o empieza un proyecto nuevo, o elige un proyecto reciente. Después de eso, cuando no hay ningún proyecto abierto (por ejemplo tras Cerrar proyecto), una tarjeta dice No hay ningún proyecto abierto, con Nuevo proyecto y Abrir un proyecto. Consulta la página Proyectos.
 
 En Hoy, una tarjeta pequeña de configuración nombra el paso siguiente de la lista: proyecto, herramienta de IA, modelos, gestor de tickets, plataforma de código, equipo, permisos, primera decisión, primera especificación, primer ticket asignado y primera ejecución. Cada paso tiene una acción que nombra el paso siguiente real, como Instalar, Iniciar sesión, Elegir o Conectar. Continuar, en la tarjeta, abre Configuración / Inicio, que muestra los mismos pasos, una pregunta cada vez. En Hoy la tarjeta se oculta cuando no queda nada por hacer.
 
@@ -55,7 +55,7 @@ En Configuración, luego Yo, elige tu rol. El rol fija la página que se abre pr
 
 | Rol | Primera página |
 |---|---|
-| Product owner | Flujo / Lista |
+| Propietario del producto | Flujo / Lista |
 | Jefe de proyecto | Plan / Cronograma |
 | Arquitecto | Biblioteca / Decisiones |
 | Responsable técnico | Flujo |

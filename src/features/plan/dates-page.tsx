@@ -5,7 +5,6 @@ import { useGuard } from "@/features/work/guard";
 import { HolidayCountry } from "@/features/work/holiday-country";
 import { format, useI18n } from "@/lib/i18n";
 import { RightButton, useRights } from "@/lib/rights";
-import { cn } from "@/lib/utils";
 import {
 	type Calendar,
 	type Decisions,
@@ -15,18 +14,19 @@ import {
 	useTeam,
 	useWorkActions,
 } from "@/lib/work";
-import { Button, buttonVariants } from "@/ui/atoms/button";
+import { Button } from "@/ui/atoms/button";
 import { Chip } from "@/ui/atoms/chip";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
 import { ChevronRightIcon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
+import { DateButton } from "@/ui/molecules/date-button";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { usePlainDay } from "./capacity";
 import { usePlanRelease } from "./plan-release";
-import { usePlanTitle, usePngItem } from "./timeline-export";
+import { usePngItem } from "./timeline-export";
 
 const HEAD = "px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-10";
 
@@ -41,42 +41,6 @@ export function FieldRow({ label, children }: { label: ReactNode; children: Reac
 			</span>
 			{children}
 		</Row>
-	);
-}
-
-/** A day as a button. The date field of the system lies on it and opens the date picker. */
-function DayButton({
-	label,
-	text,
-	value,
-	disabled,
-	onChange,
-}: {
-	label: string;
-	text: string;
-	value: string;
-	disabled?: boolean;
-	onChange: (value: string) => void;
-}) {
-	return (
-		<span
-			className={cn(
-				buttonVariants(),
-				"relative focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent",
-				disabled && "pointer-events-none opacity-50",
-			)}
-		>
-			{text}
-			<input
-				type="date"
-				aria-label={label}
-				disabled={disabled}
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				onClick={(e) => e.currentTarget.showPicker?.()}
-				className="absolute inset-0 size-full cursor-pointer opacity-0"
-			/>
-		</span>
 	);
 }
 
@@ -173,7 +137,7 @@ function TaskCard({ slug, task }: { slug: string; task: string }) {
 				</span>
 			</FieldRow>
 			<FieldRow label={d.fixedDay}>
-				<DayButton
+				<DateButton
 					label={d.fixedDay}
 					text={mine.start ? plain(mine.start) : d.fixedDay}
 					disabled={!edit}
@@ -266,7 +230,7 @@ function CalendarCards({ slug }: { slug: string }) {
 				})}
 				<Row>
 					<span className="flex-1" />
-					<DayButton
+					<DateButton
 						label={d.addHoliday}
 						text={d.addHoliday}
 						disabled={!can("work.edit")}
@@ -322,7 +286,6 @@ export function DatesPage({
 }) {
 	const { t } = useI18n();
 	const d = t.planPlace.dates;
-	const title = usePlanTitle(slug);
 	const navigate = useNavigate();
 	const releases = useReleases().data ?? [];
 	const [release, setRelease] = usePlanRelease(slug);
@@ -332,7 +295,7 @@ export function DatesPage({
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
 			<PageHeader
-				title={title}
+				title={t.planPlace.calendar}
 				back={
 					<BackLink
 						label={t.planPlace.views.timeline}

@@ -95,7 +95,10 @@ export function AccountMenu({ compact }: { compact?: boolean }) {
 				{/* In the page area, right of the rail (picture 064): the offset clears the 14 px padding of the rail. */}
 				<Menu.Positioner side="right" align="end" sideOffset={18} className="z-50">
 					<Menu.Popup
-						className={cn(MENU_POPUP, "w-94 max-w-[calc(100vw-2rem)] border-2 border-accent px-0")}
+						className={cn(
+							MENU_POPUP,
+							"max-h-[var(--available-height)] w-94 max-w-[calc(100vw-2rem)] overflow-y-auto border-2 border-accent px-0",
+						)}
 					>
 						<Menu.Item
 							className={cn(ITEM, "min-h-19")}
@@ -177,8 +180,8 @@ export function AccountMenu({ compact }: { compact?: boolean }) {
 								["update-check", t.shell.menu.update],
 							] as [string, string][]
 						).map(item)}
-						{/* Disabled: the arrow keys and a screen reader reach the version, and a click does nothing. */}
-						<Menu.Item disabled className={cn(ITEM, "cursor-default")}>
+						{/* The version row opens the What is new dialog, which shows the version. */}
+						<Menu.Item className={ITEM} onClick={action("whats-new").run}>
 							{t.menu.about}
 							{current ? (
 								<span className="ml-auto font-mono text-13 font-normal text-n-11">

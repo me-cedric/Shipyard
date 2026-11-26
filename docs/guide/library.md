@@ -73,7 +73,7 @@ Diagrams holds the drawings of the project: Excalidraw, Mermaid, draw.io and BPM
 
 ### Screens
 
-Screens shows the screens of the product and the design tokens of your project. They come from the design doc (CSS in a code block), from a `tokens.css` file, from a `*.tokens.json` file or from a Tailwind 4 `@theme` block, grouped by file. With no token the page says No tokens yet; click Add tokens to the design doc, edit the block, then save. The page never shows the tokens of Shipyard. Each screen is a card with Built or Not built. The switch Screens and Tokens shows the tokens. Design to code opens the open screen, else the first, in the inspector, where Write plan is.
+Screens shows the screens of the product and the design tokens of your project. They come from the design doc (CSS in a code block), from a `tokens.css` file, from a `*.tokens.json` file or from a Tailwind 4 `@theme` block, grouped by file. With no token the page says No design tokens; click Add tokens to the design doc, edit the block, then save. The page never shows the tokens of Shipyard. Each screen is a card with Built or Not built. The switch Screens and Design tokens shows the tokens. Design to code opens the open screen, else the first, in the inspector, where Write plan is.
 
 - A `.fig` file shows the preview that Figma keeps in it.
 - To read Figma, add the token of your Figma account once. It goes to the keychain of your computer.
@@ -188,4 +188,4 @@ Manual is this guide. Open it with Manual in the account menu, with F1, with the
 
 The manual has one page for each place, in the order of the rail, and it opens on Start. Each page has a picture. F1 opens the manual for every role, also for a role that does not see Library: the manual is help. Under a page, Ask about this page puts a question about the page in the assistant, Shortcuts opens the keyboard shortcuts, and Handbook of the project opens the handbook of the project.
 
-A link in the text of a page, such as `adr:0003`, opens a card that explains it. The card says whether the item is in the project, and what it is linked to. Open and Explain with an agent sit side by side. More shows the other actions, and Copy the ref copies the name of the item.
+A link in the text of a page, such as `adr:0003`, opens a card that explains it. The card says whether the item is in the project, and what it is linked to. Open and Explain with an agent sit side by side. More shows the other actions, and Copy the reference copies the name of the item.

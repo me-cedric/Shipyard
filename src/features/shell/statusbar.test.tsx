@@ -41,12 +41,15 @@ describe("the controls of the old status bar and context bar (shell REQ-007)", (
 		expect(link).toHaveTextContent("Changes: +5 lines added, −2 removed");
 	});
 
-	it("keeps the commit action off with nothing staged", async () => {
+	it("links the commit action to the changes when files changed", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		await unwrap(commands.codeUnstage(["src"]));
 		mountApp("/home");
-		expect((await openSync(user)).getByRole("button", { name: "Commit" })).toBeDisabled();
+		expect((await openSync(user)).getByRole("link", { name: "Commit" })).toHaveAttribute(
+			"href",
+			"/code/changes",
+		);
 	});
 
 	it("runs one sync from the action and announces the failure when the card is closed", async () => {
@@ -58,9 +61,9 @@ describe("the controls of the old status bar and context bar (shell REQ-007)", (
 		// The mock tick passes, then the pull fails: the card shows that reason, so the sync ran.
 		const top = within((await screen.findByRole("banner")) as HTMLElement);
 		const alert = await top.findByRole("alert");
-		expect(alert).toHaveTextContent("uncommitted changes");
+		expect(alert).toHaveTextContent("not saved in a commit");
 		expect(screen.getByRole("dialog", { name: "Sync state" })).toHaveTextContent(
-			"uncommitted changes",
+			"not saved in a commit",
 		);
 		expect(sync).toBeEnabled();
 		// One alert in the top row, the same element with the card open or closed: it is spoken one

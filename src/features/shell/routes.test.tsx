@@ -104,10 +104,12 @@ describe("role homes (shell REQ-009, team-rights REQ-013, app-redesign REQ-006)"
 		);
 		expect(within(nav).queryByRole("link", { name: /^Crew/ })).not.toBeInTheDocument();
 		expect(within(nav).getAllByRole("link")).toHaveLength(5);
-		// The card of the sync mark holds the links to the changes.
+		// The sync mark stays with its actions. Only the links to the changes are hidden.
 		const card = await openSync(user);
+		expect(card.getByRole("button", { name: "Sync" })).toBeInTheDocument();
 		expect(card.queryByRole("link", { name: /lines added/ })).toBeNull();
 		expect(card.queryByRole("link", { name: /^Changed files/ })).toBeNull();
+		expect(card.queryByRole("link", { name: "Commit" })).toBeNull();
 		await user.keyboard("{Escape}");
 		await user.keyboard("{Control>}k{/Control}");
 		const panel = within(await screen.findByRole("listbox"));

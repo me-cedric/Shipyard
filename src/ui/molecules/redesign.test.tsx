@@ -5,7 +5,6 @@ import { vi } from "vitest";
 import { renderApp } from "../test-utils";
 import { AskBar } from "./ask-bar";
 import { AttentionCard } from "./attention-card";
-import { Door } from "./door";
 import { PlaceMenu } from "./place-menu";
 import { SectionSwitch } from "./section-switch";
 import { SettingsRow } from "./settings-row";
@@ -146,37 +145,6 @@ describe("SectionSwitch", () => {
 		);
 		expect(screen.getByRole("link", { name: "Alpha" })).toHaveAttribute("aria-current", "page");
 		expect(screen.getByRole("link", { name: "Beta" })).toHaveClass("min-h-control");
-	});
-});
-
-describe("Door", () => {
-	it("is a large tile with a name and the count of items that wait", async () => {
-		const onClick = vi.fn();
-		renderApp(<Door label="Specs" icon={<i />} count={4} onClick={onClick} />);
-		const tile = screen.getByRole("button", { name: "Specs 4" });
-		expect(tile).toHaveClass("min-h-control");
-		await userEvent.click(tile);
-		expect(onClick).toHaveBeenCalled();
-	});
-
-	it("shows no count when nothing waits", () => {
-		renderApp(<Door label="Specs" icon={<i />} count={0} />);
-		expect(screen.getByRole("button", { name: "Specs" })).toBeInTheDocument();
-	});
-
-	it("draws the tile with the render prop", () => {
-		renderApp(
-			<Door
-				label="Specs"
-				icon={<i />}
-				render={(props) => (
-					<a href="/specs" {...props}>
-						{props.children}
-					</a>
-				)}
-			/>,
-		);
-		expect(screen.getByRole("link", { name: "Specs" })).toHaveAttribute("href", "/specs");
 	});
 });
 

@@ -59,7 +59,7 @@ export const flowEn = {
 		stopRun: "Stop run",
 		moveTo: "Move to {status}",
 		openPullRequest: "Open pull request",
-		copyRef: "Copy reference",
+		copyRef: "Copy the reference",
 		copyChangeRef: "Copy change reference",
 		edit: "Edit the ticket",
 		open: "Open",
@@ -81,6 +81,8 @@ export const flowEn = {
 		writeSpec: "Write the spec",
 		startAgent: "Start an agent",
 		noSpec: "No spec yet",
+		missing: "No such feature",
+		openBrief: "Open the brief",
 		noRun: "No agent yet",
 		noPull: "No pull request yet",
 		noTicket: "No ticket",
@@ -130,6 +132,7 @@ export const flowEn = {
 		fromTicket: "Or start from a ticket",
 		startAgent: "Start an agent",
 		find: "Find a ticket",
+		changeSpec: "Change the spec {spec}: ",
 	},
 };
 
@@ -206,6 +209,8 @@ export const flowFr: typeof flowEn = {
 		writeSpec: "Écrire la spec",
 		startAgent: "Lancer un agent",
 		noSpec: "Pas encore de spec",
+		missing: "Cette fonctionnalité n'existe pas",
+		openBrief: "Ouvrir le brief",
 		noRun: "Pas encore d'agent",
 		noPull: "Pas encore de pull request",
 		noTicket: "Aucun ticket",
@@ -255,5 +260,6 @@ export const flowFr: typeof flowEn = {
 		fromTicket: "Ou partir d'un ticket",
 		startAgent: "Lancer un agent",
 		find: "Trouver un ticket",
+		changeSpec: "Modifier la spec {spec} : ",
 	},
 };

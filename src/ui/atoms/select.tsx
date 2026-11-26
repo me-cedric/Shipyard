@@ -44,7 +44,7 @@ export function Select({
 				aria-label={label}
 				aria-description={disabled ? reason : undefined}
 				className={cn(
-					"inline-flex min-h-control min-w-24 shrink-0 items-center justify-between gap-2 rounded-md whitespace-nowrap border border-n-7 bg-surface-1 px-4.5 font-semibold text-n-12",
+					"inline-flex min-h-control min-w-24 shrink-0 items-center justify-between gap-2 rounded-md whitespace-nowrap border border-n-7 bg-surface-1 px-4.5 font-semibold text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 aria-invalid:border-2 aria-invalid:border-danger-text",
 					className,
 				)}
 			>
@@ -54,7 +54,7 @@ export function Select({
 				</BaseSelect.Icon>
 			</BaseSelect.Trigger>
 			<BaseSelect.Portal>
-				<BaseSelect.Positioner sideOffset={4} className="z-50">
+				<BaseSelect.Positioner sideOffset={4} className="z-(--z-popup)">
 					<BaseSelect.Popup className="min-w-(--anchor-width) rounded-field border border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring origin-(--transform-origin) data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 p-1 text-ui">
 						<BaseSelect.List>
 							{items.map((item) => (

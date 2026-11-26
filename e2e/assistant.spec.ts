@@ -88,7 +88,7 @@ test("sends a thread to the factory as a work item with a workflow", async ({ pa
 test("adds a ref by typing, refuses an unknown one and explains the ref", async ({ page }) => {
 	await openPanel(page);
 	await input(page).pressSequentially("@wi:NONE-1 ");
-	await expect(panel(page).getByRole("alert")).toContainText("wi:NONE-1 does not resolve");
+	await expect(panel(page).getByRole("alert")).toContainText("A value is empty or does not fit");
 	await input(page).pressSequentially(`@${REF} `);
 	const context = panel(page).getByRole("list", { name: "Context" });
 	await expect(context.getByRole("button", { name: new RegExp(`^${REF}`) })).toBeVisible();

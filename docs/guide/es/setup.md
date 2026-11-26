@@ -70,7 +70,7 @@ Agentes y reglas contiene las herramientas de IA, los proveedores de modelos, y 
 
 La aplicación conserva cada archivo que una persona cambió, salvo si reinstalas.
 
-Los roles de agente muestran la descripción y el modelo de cada rol: El mejor, Estándar o Rápido. El cambio de un rol incluido que no tiene archivo de proyecto escribe el archivo de proyecto de ese rol.
+Los roles de agente muestran la descripción y el modelo de cada rol: Potente, Estándar o Rápido. El cambio de un rol incluido que no tiene archivo de proyecto escribe el archivo de proyecto de ese rol.
 
 ### Herramientas de IA
 

@@ -109,7 +109,7 @@ describe("Code: close, send back and archive", () => {
 		);
 		await user.keyboard("{Escape}");
 		await user.click(await screen.findByRole("button", { name: "Archive in this pull request" }));
-		expect(await screen.findByText(/^Archived in /)).toBeInTheDocument();
+		expect(await screen.findByText("Spec change archived")).toBeInTheDocument();
 	}, 20_000);
 });
 

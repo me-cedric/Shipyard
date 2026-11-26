@@ -26,8 +26,11 @@ describe("Factory / machine-wide AI sessions and spend", () => {
 		expect(await within(here).findByText("Fix the login")).toBeInTheDocument();
 		expect(within(here).getByText("Done")).toBeInTheDocument();
 		// A finished session has no process: only the two running ones can stop.
-		expect(screen.getAllByRole("button", { name: /^Stop (claude|codex) / })).toHaveLength(2);
-		await user.click(screen.getByRole("button", { name: "Stop claude alpha" }));
+		expect(
+			screen.getAllByRole("button", { name: /^Stop (Fix the login|Add the export)$/ }),
+		).toHaveLength(2);
+		await user.click(screen.getByRole("button", { name: "Stop Fix the login" }));
+		await user.click(screen.getByRole("button", { name: "Stop Fix the login?" }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.machineSessions())).map((s) => s.pid)).toEqual([4188, null]),
 		);

@@ -34,7 +34,7 @@ describe("Crew / Spend", () => {
 			main.getByRole("heading", { name: "Limits" }).parentElement as HTMLElement,
 		);
 		expect(limits.getByText("Each feature")).toBeInTheDocument();
-		expect(limits.getByText("80 %")).toBeInTheDocument();
+		expect(limits.getByText("80%")).toBeInTheDocument();
 		expect(limits.getByRole("link", { name: "All budgets" })).toBeInTheDocument();
 		for (const name of ["Success rate", "Requests of one run", "Use of this machine"])
 			expect(main.getByRole("link", { name })).toBeInTheDocument();
@@ -91,6 +91,20 @@ describe("Crew / Spend", () => {
 		await idle(router);
 	});
 
+	it("keeps the agents on when the person says No to the stop-all question", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		mockState().confirm = false;
+		const router = mountApp("/crew/crew");
+		const toggle = await screen.findByRole("switch", { name: "Agents on" });
+		await user.click(toggle);
+		await waitFor(() => expect(mockState().asked.length).toBeGreaterThan(0));
+		expect(screen.getByRole("switch", { name: "Agents on" })).toBeChecked();
+		expect(await unwrap(commands.killSwitchGet())).toBe(false);
+		mockState().confirm = true;
+		await idle(router);
+	});
+
 	it("turns Stop all agents off without runs.start, with the reason", async () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		viewer();
@@ -128,14 +142,45 @@ describe("Crew / Spend / Budgets", () => {
 		await idle(router);
 	});
 
+	it("opens the form under its row and refuses a negative amount", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const write = vi.spyOn(commands, "budgetSet");
+		const router = mountApp("/crew/spend?page=budgets");
+		await user.click(await screen.findByRole("button", { name: "Edit the limit of each day" }));
+		const amount = screen.getByRole("spinbutton", { name: "Budget (USD)" });
+		expect(amount).toHaveFocus();
+		await user.type(amount, "-5");
+		await user.click(screen.getByRole("button", { name: "Set budget" }));
+		expect(await screen.findByRole("alert")).toBeVisible();
+		expect(write).not.toHaveBeenCalled();
+		write.mockRestore();
+		await idle(router);
+	});
+
+	it("keeps the form of a named limit open while its key changes", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		mockState().factory.budgets.day.alice = 3;
+		const router = mountApp("/crew/spend?page=budgets");
+		await user.click(await screen.findByRole("button", { name: "Edit the limit of alice" }));
+		await user.type(screen.getByRole("textbox", { name: "Day or member" }), "x");
+		expect(screen.getByRole("button", { name: "Set budget" })).toBeInTheDocument();
+		await idle(router);
+	});
+
 	it("sets the limit of each day in place, and a blank amount clears it", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const router = mountApp("/crew/spend?page=budgets");
 		await user.click(await screen.findByRole("button", { name: "Edit the limit of each day" }));
+		// The form of the default limit has the amount only: no scope and no name.
+		expect(screen.queryByText("Budget for")).toBeNull();
 		await user.type(screen.getByRole("spinbutton", { name: "Budget (USD)" }), "4");
 		await user.click(screen.getByRole("button", { name: "Set budget" }));
 		await waitFor(() => expect(mockState().factory.budgets.day["*"]).toBe(4));
+		// The form closes after the write.
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Set budget" })).toBeNull());
 		await user.click(screen.getByRole("button", { name: "Edit the limit of each day" }));
 		await user.clear(screen.getByRole("spinbutton", { name: "Budget (USD)" }));
 		await user.click(screen.getByRole("button", { name: "Set budget" }));

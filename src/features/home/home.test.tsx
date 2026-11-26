@@ -37,7 +37,10 @@ describe("Home / Today, Needs you", () => {
 		]);
 		// The approvals of one run are one question: each run counts once.
 		const total =
-			questions.length + new Set(approvals.map((a) => a.run)).size + plans.length + messages.length;
+			questions.filter((q) => q.question.state === "open" || q.question.spec).length +
+			new Set(approvals.map((a) => a.run)).size +
+			plans.length +
+			messages.length;
 		expect(
 			await screen.findByRole("heading", { level: 1, name: `${total} things need you` }),
 		).toBeInTheDocument();
@@ -45,7 +48,7 @@ describe("Home / Today, Needs you", () => {
 		const on = await card();
 		// The feature name opens the run. The card shows no raw id.
 		expect(await on.findByRole("button", { name: waiting.title })).toBeInTheDocument();
-		expect(on.getByText(waiting.workflow)).toBeInTheDocument();
+		expect(on.queryByText(waiting.workflow)).toBeNull();
 		expect(
 			on.getByRole("heading", {
 				level: 2,
@@ -55,16 +58,21 @@ describe("Home / Today, Needs you", () => {
 		expect(on.queryByText(/Q-101|run:/)).toBeNull();
 	});
 
-	it("answers an open question with a digit and Enter, and the card says Answered", async () => {
+	it("answers an open question with a digit and Enter, and the question leaves the queue", async () => {
 		const user = userEvent.setup();
-		// Q-103 is the decision about a screen that Design shows: Q-101 stays the last question, so its card says Answered.
+		// Q-103 is the decision about a screen that Design shows: Q-101 stays the last question.
 		const design = mockState().factory.questions.find((x) => x.q.id === "Q-103");
 		if (design) design.q.state = "answered";
 		await renderNeedsYou();
 		const on = await card();
 		await user.click(await on.findByRole("button", { name: "The home page" }));
 		await user.keyboard("{Enter}");
-		await waitFor(() => expect(on.getByText("Answered")).toBeInTheDocument());
+		// The answered question leaves the card and the count.
+		await waitFor(() =>
+			expect(
+				screen.queryByRole("heading", { level: 2, name: /Where should the user land/ }),
+			).toBeNull(),
+		);
 		const q = mockState().factory.questions.find((x) => x.q.id === "Q-101")?.q;
 		expect(q?.answer?.choice).toEqual({ kind: "option", n: 2 });
 	});

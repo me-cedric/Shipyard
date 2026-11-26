@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { DetailColumn, LinkedCard, PageColumns, SideCards } from "@/features/library/page-parts";
 import { useEditors } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { type CodeGraph_Serialize, commands, type KGraph_Serialize, unwrap } from "@/lib/ipc";
@@ -13,11 +12,13 @@ import { Chip } from "@/ui/atoms/chip";
 import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
+import { TILE } from "@/ui/molecules/tile";
+import { DetailColumn, LinkedCard, PageColumns, SideCards } from "@/ui/templates/library-page";
 import { folderClusters } from "./graph-clusters";
 
 /** The chips of a group before "N more". */
 const FIRST = 4;
-const GROUP = "flex flex-col gap-3.5 rounded-[24px] bg-n-4 p-5";
+const GROUP = "flex flex-col gap-3.5 rounded-lg bg-n-4 p-5";
 const WHITE = "bg-surface-2";
 const LINKED = "outline-2 outline-accent";
 
@@ -293,7 +294,7 @@ export function CodeMap({
 								<button
 									key={f.id}
 									type="button"
-									className="flex min-h-control cursor-pointer flex-col gap-3 rounded-lg bg-n-4 p-4.5 text-left text-n-12"
+									className={TILE}
 									onClick={() => {
 										setFolder(f.key);
 										setSymbol(null);

@@ -11,7 +11,7 @@ Shipyard hilft einem Team, ein Softwareprojekt auszuliefern: die Features, den P
   - Der Projektname öffnet ein Menü mit Ihren Projekten und der Seite Projekte.
   - Ihr Konto öffnet das Kontomenü, neben der Seitenleiste. Die Kontozeile zeigt Ihren Namen und Ihre Initialen.
 - Die obere Zeile jeder Seite enthält die Schaltfläche der Seitenleiste, Zurück und Vorwärts, die Leiste Shipyard fragen oder beauftragen, die Sync-Markierung und die Schaltflächen Assistent und Terminal, die den Assistenten und das Terminal auf jeder Seite öffnen. Das Fenster hat keine obere Leiste und keine Statusleiste.
-  - Die Sync-Markierung zeigt den Zustand des Repositorys. Klicken Sie darauf, um die geänderten Dateien, den Branch, Sync und Commit zu sehen. Siehe die Seite Code, Synchronisieren.
+  - Die Sync-Markierung zeigt den Zustand des Repositorys. Klicken Sie darauf, um die geänderten Dateien, den Branch, Sync und Commit zu sehen. Siehe die Seite Code, Synchronisieren. Eine Rolle ohne Zugriff auf Code sieht dort weder die geänderten Dateien noch Commit.
   - Shipyard fragen oder beauftragen ist die eine Leiste für eine Frage, einen Ort und eine Aktion. Siehe die Seite Die Fragen-Leiste.
   - Das Kontomenü enthält Ihren Namen und Ihre Rolle mit Ändern (Einrichtung / Ich), Design (Hell, Dunkel, System), Sprache, Anleitung, Tastenkürzel, Neuigkeiten, Tour wiederholen, Nach einem Update suchen, Über Shipyard mit der Version, und Zustand. Tastenkürzel und Neuigkeiten öffnen sich als Dialoge.
 - Unter 1100 px stehen die Schaltflächen Dateien und Terminal im Menü Mehr.

@@ -104,7 +104,7 @@ test("a viewer opens on Today and sees no Code place", async ({ page }) => {
 	// Setup / Me changes the job: a tech lead gives the team an admin and a viewer.
 	const job = async (name: string) => {
 		await visit(page, "/setup/me");
-		await page.getByRole("main").getByRole("combobox", { name: "Role" }).click();
+		await page.getByRole("main").getByRole("combobox", { name: "My role view" }).click();
 		await page.getByRole("option", { name, exact: true }).click();
 	};
 	await job("Tech lead");
@@ -125,11 +125,24 @@ test("a viewer opens on Today and sees no Code place", async ({ page }) => {
 	};
 	await add("Vi Reader", "vi", "Viewer", false);
 	await add("Cy Lead", "cy", "Tech lead", true);
-	await job("Viewer");
+	await job("I only look");
 	// This person is in no entry of the team file, with the job Viewer: no Code and no Crew.
 	await expect(sidebar.getByRole("link", { name: "Code" })).toHaveCount(0);
 	await expect(sidebar.getByRole("link")).toHaveCount(5);
 	// The home address and an old address of the role page open Today too.
 	await visit(page, "/");
 	await expect(page).toHaveURL(/\/today\/today$/);
+});
+
+test("the resize handle of the rail takes no click from a place link", async ({ page }) => {
+	await page.goto("/");
+	await openFirstFolder(page);
+	const flow = page
+		.getByRole("navigation", { name: "Sidebar" })
+		.getByRole("link", { name: "Flow", exact: true });
+	const box = await flow.boundingBox();
+	if (!box) throw new Error("The Flow link has no box");
+	// 3 px inside the right edge of the link: the nearest point to the handle.
+	await page.mouse.click(box.x + box.width - 3, box.y + box.height / 2);
+	await expect(flow).toHaveAttribute("aria-current", "page");
 });

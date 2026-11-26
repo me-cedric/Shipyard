@@ -159,6 +159,8 @@ describe("tokens (REQ-001)", () => {
 			/\b(?:text|bg|border|fill|stroke|ring|outline|from|to|via)-(?:red|green|blue|gray|grey|slate|zinc|neutral|white|black|yellow|orange|amber|emerald|sky|indigo|violet|purple|pink|rose)\b/,
 			/\b(?:text|bg|fill)-\[/,
 			/\bfont-(?:serif|bold|black|thin)\b/,
+			// Only the radius scale: an arbitrary radius is a part of a token in calc().
+			/\brounded(?:-[a-z]+)?-\[(?!calc)/,
 		];
 		for (const [path, text] of Object.entries(sources)) {
 			// A test names the values it forbids. The gallery holds a draw.io sample as data. The slide

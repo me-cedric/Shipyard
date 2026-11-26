@@ -163,14 +163,14 @@ describe("Setup scopes (spec:app-redesign#REQ-024)", () => {
 		const user = userEvent.setup();
 		mountApp("/setup/me");
 		expect(await screen.findByRole("group", { name: "Theme" })).toBeInTheDocument();
-		expect(screen.getByRole("combobox", { name: "Role" })).toBeInTheDocument();
+		expect(screen.getByRole("combobox", { name: "My role view" })).toBeInTheDocument();
 		expect(screen.getByRole("region", { name: /^Notifications/ })).toBeInTheDocument();
 		// The permissions are of this computer, and the start list is on Start.
 		expect(screen.queryByRole("region", { name: /^Permissions/ })).not.toBeInTheDocument();
-		expect(screen.queryByRole("combobox", { name: "Interface font" })).not.toBeInTheDocument();
+		expect(screen.queryByRole("combobox", { name: "Font of the app" })).not.toBeInTheDocument();
 		await user.click(screen.getByRole("link", { name: "Look and layout" }));
-		expect(await screen.findByRole("combobox", { name: "Interface font" })).toBeInTheDocument();
-		expect(screen.queryByRole("combobox", { name: "Role" })).not.toBeInTheDocument();
+		expect(await screen.findByRole("combobox", { name: "Font of the app" })).toBeInTheDocument();
+		expect(screen.queryByRole("combobox", { name: "My role view" })).not.toBeInTheDocument();
 	});
 
 	it("keeps the permissions and the tour under Me for a role that does not see This computer", async () => {

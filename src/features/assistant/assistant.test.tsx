@@ -27,6 +27,25 @@ describe("assistant panel: open", () => {
 		await waitFor(() => expect(input()).toHaveFocus());
 	});
 
+	it("gives the focus back to what opened it, else to the main view", async () => {
+		const main = document.body.appendChild(document.createElement("main"));
+		main.tabIndex = -1;
+		const { again } = await mountAssistant({ open: false });
+		(await screen.findByRole("textbox", { name: "Notes" })).focus();
+		again({ open: true });
+		await waitFor(() => expect(input()).toHaveFocus());
+		again({ open: false });
+		await waitFor(() => expect(screen.getByRole("textbox", { name: "Notes" })).toHaveFocus());
+		// Opened with the focus on the body: the main view gets it back.
+		(document.activeElement as HTMLElement).blur();
+		again({ open: true });
+		await waitFor(() => expect(input()).toHaveFocus());
+		(document.activeElement as HTMLElement).blur();
+		again({ open: false });
+		await waitFor(() => expect(main).toHaveFocus());
+		main.remove();
+	});
+
 	it("starts a thread for a project that has none, and names it once", async () => {
 		await mountAssistant();
 		expect(screen.getByRole("heading", { name: "Untitled" })).toBeInTheDocument();
@@ -92,12 +111,12 @@ describe("assistant panel: context", () => {
 	it("lists the view and the selected entity and removes each one", async () => {
 		const user = userEvent.setup();
 		await mountAssistant({ view: "/work/board", selected: REF });
-		expect(context().getByText(/\/work\/board/)).toBeInTheDocument();
+		expect(context().getByTitle("/work/board")).toHaveTextContent("This screen");
 		expect(context().getByRole("button", { name: new RegExp(`^${REF}`) })).toBeInTheDocument();
 		await user.click(context().getByRole("button", { name: `Remove ${REF}` }));
 		expect(context().queryByRole("button", { name: new RegExp(`^${REF}`) })).toBeNull();
-		await user.click(context().getByRole("button", { name: "Remove /work/board" }));
-		expect(context().queryByText(/\/work\/board/)).toBeNull();
+		await user.click(context().getByRole("button", { name: "Remove This screen" }));
+		expect(context().queryByTitle("/work/board")).toBeNull();
 	});
 
 	it("adds a ref that the person types after @", async () => {
@@ -129,7 +148,9 @@ describe("assistant panel: context", () => {
 		const user = userEvent.setup();
 		await mountAssistant();
 		await user.type(input(), "@wi:NONE-1 ");
-		expect(await screen.findByRole("alert")).toHaveTextContent("wi:NONE-1 does not resolve");
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"A value is empty or does not fit. Check the fields, then try again.",
+		);
 		expect(context().queryByRole("button", { name: /wi:NONE-1/ })).toBeNull();
 	});
 
@@ -293,7 +314,7 @@ describe("assistant panel: modes and failures", () => {
 			"Budget at 80 % or more: day 2026-10-29",
 		);
 		await say(user, "spent");
-		expect(await screen.findByText("The budget day 2026-10-29 is spent")).toBeInTheDocument();
+		expect(await screen.findByText("Something went wrong. Try again.")).toBeInTheDocument();
 		await waitFor(() => expect(input()).toHaveValue("spent"));
 	});
 });

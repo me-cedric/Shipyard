@@ -106,7 +106,7 @@ describe("Crew / Spend / How agents do", () => {
 		const router = mountApp("/crew/spend?page=how");
 		const strip = await screen.findByRole("img", { name: "Outcome of the last 4 runs" });
 		expect(strip.children).toHaveLength(4);
-		expect(await screen.findByText("50 %")).toBeInTheDocument();
+		expect(await screen.findByText("50%")).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "The runs" })).toHaveAttribute("href", "/flow/done");
 		// The tiles are on the usage page, from More.
 		await router.navigate({ to: "/crew/spend", search: { page: "usage" } as never });

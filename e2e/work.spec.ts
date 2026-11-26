@@ -177,7 +177,7 @@ test("edits the team and seals the project, then unlocks it", async ({ page }) =
 	const panel = page.getByRole("main");
 	await expect(panel.getByRole("heading", { level: 1, name: "Grace Hopper" })).toBeVisible();
 	// "Capacity (days a week)" is the stepper "Days in a week": half a day for each press.
-	const less = panel.getByRole("button", { name: "Days in a week, less" });
+	const less = panel.getByRole("button", { name: "Less: Days in a week" });
 	const value = less.locator("xpath=..").locator("output");
 	const now = Number(await value.textContent());
 	for (let n = 0; n < Math.round((now - 3) * 2); n++) await less.click();
@@ -189,7 +189,7 @@ test("edits the team and seals the project, then unlocks it", async ({ page }) =
 	await expect(
 		page
 			.getByRole("main")
-			.getByRole("button", { name: "Days in a week, less" })
+			.getByRole("button", { name: "Less: Days in a week" })
 			.locator("xpath=..")
 			.locator("output"),
 	).toHaveText("3");
@@ -272,7 +272,7 @@ test("Plan gives the end date in its title and one capacity card with proposals"
 		.first()
 		.click();
 	await expect(page).toHaveURL(/\/crew\/crew\?member=/);
-	await expect(page.getByRole("button", { name: "Days in a week, less" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Less: Days in a week" })).toBeVisible();
 });
 
 test("asks an agent to estimate, and Accept puts the values in the sheet", async ({ page }) => {
@@ -282,7 +282,7 @@ test("asks an agent to estimate, and Accept puts the values in the sheet", async
 	// No task is selected: the action asks for a choice, opens the selection and starts nothing.
 	await expect(days).toContainText("6");
 	await ask.click();
-	await expect(page.getByText("Select tasks first")).toBeVisible();
+	await expect(page.getByRole("checkbox", { name: "Select Export endpoint" })).toBeVisible();
 	await expect(page.getByRole("region", { name: "Proposals of the agent" })).toHaveCount(0);
 	await page.getByRole("checkbox", { name: "Select Export endpoint" }).check();
 	await ask.click();

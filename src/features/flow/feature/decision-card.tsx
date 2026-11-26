@@ -87,7 +87,7 @@ export function DecisionCard({
 										: "rounded-full bg-n-3 px-2.5 py-0.5 text-13 font-semibold text-n-11"
 								}
 							>
-								{approvalSentence(h.approval, a)}
+								{approvalSentence(h, a)}
 							</li>
 						))}
 					</ul>
@@ -97,7 +97,13 @@ export function DecisionCard({
 				<>
 					<Button onClick={onNotYet}>{h.notYet}</Button>
 					{ids.length ? (
-						<Button variant="primary" disabled={!!reason} reason={reason} onClick={send}>
+						<Button
+							id="decision-send"
+							variant="primary"
+							disabled={!!reason}
+							reason={reason}
+							onClick={send}
+						>
 							{review ? x.send : ids.length > 1 ? h.approveAll : h.approve}
 						</Button>
 					) : null}

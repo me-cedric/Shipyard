@@ -104,7 +104,7 @@ export function ProjectSwitcher({
 		<Menu.Root>
 			{compact ? <Tooltip label={t.projects.switcher}>{trigger}</Tooltip> : trigger}
 			<Menu.Portal>
-				<Menu.Positioner align="start" sideOffset={4} className="z-50">
+				<Menu.Positioner align="start" sideOffset={4} className="z-(--z-popup)">
 					<Menu.Popup className={MENU_POPUP}>
 						<Menu.RadioGroup value={value ?? ""} onValueChange={(id) => onChange(String(id))}>
 							{projects.map((p) => (
@@ -142,7 +142,7 @@ export function ProjectSwitcher({
 									<ChevronRightIcon size={12} className="text-n-10" />
 								</Menu.SubmenuTrigger>
 								<Menu.Portal>
-									<Menu.Positioner sideOffset={4} className="z-50">
+									<Menu.Positioner sideOffset={4} className="z-(--z-popup)">
 										<Menu.Popup className={MENU_POPUP}>
 											{projects.map((p) => (
 												<Menu.Item key={p.id} className={MENU_ITEM} onClick={() => onRemove(p)}>

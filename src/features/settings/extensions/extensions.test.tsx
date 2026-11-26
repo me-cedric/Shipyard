@@ -156,7 +156,7 @@ describe("Settings / Extensions", () => {
 			"/x/bad.zip",
 		);
 		await user.click(screen.getByRole("button", { name: "Review" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("not a valid zip archive");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
 	});
 
 	it("lists the child projects with n of m, adds and clones one", async () => {

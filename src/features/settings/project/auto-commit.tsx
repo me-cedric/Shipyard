@@ -3,8 +3,8 @@ import { useGuard } from "@/features/work/guard";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useRights } from "@/lib/rights";
+import { Switch } from "@/ui/atoms/switch";
 import { SetupRow, Toggle } from "../parts";
-import { MiniSwitch } from "./mini-switch";
 
 const key = ["auto-commit"] as const;
 
@@ -31,7 +31,7 @@ export function AutoCommit({ inline }: { inline?: boolean }) {
 	return (
 		<>
 			{inline ? (
-				<MiniSwitch {...control} />
+				<Switch size="sm" {...control} />
 			) : (
 				<SetupRow label={t.ui.autoCommit}>
 					<Toggle {...control} />

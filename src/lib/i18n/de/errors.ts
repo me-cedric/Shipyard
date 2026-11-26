@@ -4,7 +4,7 @@ export const errorsDe: Record<Exclude<ErrorCode, "unknown">, string> = {
 	no_project: "Öffnen oder erstellen Sie zuerst ein Projekt.",
 	no_tracker: "Dieses Projekt hat keine Verbindung zu einem Ticketsystem.",
 	scope_missing: "Wählen Sie das Projekt des Ticketsystems, das gelesen werden soll.",
-	pickup_off: "Agenten übernehmen kein Ticket: Das Aufnahme-Label ist aus.",
+	pickup_off: "Agenten übernehmen kein Ticket: Kein Label markiert Tickets für Agenten.",
 	ticket_not_in_mirror:
 		"Dieses Ticket ist noch nicht hier. Synchronisieren Sie und versuchen Sie es erneut.",
 	needs_click: "Bestätigen Sie diese Aktion, um fortzufahren.",
@@ -32,12 +32,14 @@ export const errorsDe: Record<Exclude<ErrorCode, "unknown">, string> = {
 	forge_missing:
 		"Der Server kennt dieses Element nicht. Prüfen Sie die Adresse und die Rechte des Tokens.",
 	git_nothing_staged: "Keine Datei ist vorgemerkt. Merken Sie zuerst eine Datei vor.",
-	git_identity: "Git hat keinen Namen und keine E-Mail. Legen Sie user.name und user.email fest.",
-	git_busy: "Das Repository ist beschäftigt. Beenden Sie zuerst den Merge oder den Rebase.",
+	git_identity:
+		"Git kennt Ihren Namen und Ihre E-Mail nicht. Legen Sie sie in Git auf diesem Computer fest und versuchen Sie es erneut.",
+	git_busy:
+		"Git ist mitten in einem Merge oder Rebase. Schließen Sie ihn in Code ab und versuchen Sie es erneut.",
 	git_no_upstream: "Dieser Branch ist noch nicht auf dem Server. Pushen Sie ihn zuerst.",
-	no_terminal: "Keine Terminal-App gefunden. Wählen Sie eine in den Einstellungen.",
+	no_terminal: "Keine Terminal-App gefunden. Wählen Sie eine unter Einrichtung, dann Ich.",
 	terminal_gone:
-		"Diese Terminal-App ist nicht installiert. Wählen Sie eine andere in den Einstellungen.",
+		"Diese Terminal-App ist nicht installiert. Wählen Sie eine andere unter Einrichtung, dann Ich.",
 	device_not_set:
 		"Die Anmeldung im Browser ist für diesen Host nicht eingerichtet. Verwenden Sie stattdessen ein Token.",
 	no_editor:
@@ -95,7 +97,7 @@ export const errorsDe: Record<Exclude<ErrorCode, "unknown">, string> = {
 		"Ein Element mit diesem Namen ist schon vorhanden. Verwenden Sie einen anderen Namen.",
 	file_changed:
 		"Die Datei hat sich auf dem Datenträger geändert. Laden Sie sie neu und versuchen Sie es erneut.",
-	no_compass: "Es ist keine Compass-Version festgelegt. Legen Sie zuerst eine fest.",
+	no_compass: "Keine Version der Arbeitsregeln ist gewählt. Wählen Sie zuerst eine.",
 	tool_missing:
 		"Ein benötigtes Programm ist nicht installiert oder wurde nicht gestartet. Prüfen Sie Einrichtung, dann Dieser Computer.",
 	tool_failed:
@@ -117,16 +119,21 @@ export const errorsDe: Record<Exclude<ErrorCode, "unknown">, string> = {
 		"Ein Wert ist leer oder passt nicht. Prüfen Sie die Felder und versuchen Sie es erneut.",
 	tracker_unsupported: "Ihr Ticketsystem kann das nicht. Nutzen Sie das Ticketsystem selbst.",
 	project_file_invalid:
-		"Die Projektdatei ist ungültig. Korrigieren Sie sie in den Projekteinstellungen und versuchen Sie es erneut.",
+		"Die Projektdatei ist ungültig. Korrigieren Sie sie unter Einrichtung, dann Dieses Projekt.",
 	doc_not_stale: "Diese Doku ist aktuell. Nichts zu aktualisieren.",
+	extension_setting:
+		"Eine Einstellung dieser Erweiterung ist leer. Füllen Sie sie aus und versuchen Sie es erneut.",
+	extension_dependency:
+		"Ein Programm, das diese Erweiterung braucht, fehlt. Installieren Sie es und versuchen Sie es erneut.",
 	git_dirty:
-		"Sie haben Änderungen, die nicht in einem Commit gespeichert sind. Committen Sie sie oder legen Sie sie in einen Stash und versuchen Sie es erneut.",
+		"Sie haben Änderungen, die nicht in einem Commit gespeichert sind. Committen Sie sie oder legen Sie sie beiseite und versuchen Sie es erneut.",
 };
 
 export const actionsDe: Record<ActionKind, string> = {
-	setting: "Einstellungen öffnen",
+	setting: "Einrichtung öffnen",
 	sync: "Synchronisieren",
 	install: "Installieren",
 	create_project: "Projekt erstellen",
 	open: "Öffnen",
 };
+export const unknownDe = "Etwas ist schiefgelaufen. Versuchen Sie es erneut.";

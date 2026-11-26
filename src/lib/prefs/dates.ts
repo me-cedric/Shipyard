@@ -9,8 +9,10 @@ export function formatDay(day: string, format: string, lang: string, short = fal
 	if (format === "dmy") return `${d}/${m}/${y}`;
 	if (format === "mdy") return `${m}/${d}/${y}`;
 	return new Date(Date.UTC(+y, +m - 1, +d)).toLocaleDateString(
-		lang,
-		short ? { day: "numeric", month: "short", timeZone: "UTC" } : { timeZone: "UTC" },
+		dateLocale(lang),
+		short
+			? { day: "numeric", month: "short", timeZone: "UTC" }
+			: { dateStyle: "medium", timeZone: "UTC" },
 	);
 }
 
@@ -19,4 +21,27 @@ export function useDay() {
 	const { lang } = useI18n();
 	const { dateFormat } = usePrefs();
 	return (day: string, short = false) => formatDay(day, dateFormat, lang, short);
+}
+
+/** The locale for a date: English gives the day first ("17 Nov"), as the Plan does. */
+export const dateLocale = (lang: string) => (lang === "en" ? "en-GB" : lang);
+
+/** The stamp formatter of the person: the day in their date format, then the time. `day` alone gives the day only. */
+export function useStamp() {
+	const { lang } = useI18n();
+	const { dateFormat } = usePrefs();
+	return (ms: number, day = false) => {
+		const at = new Date(ms);
+		if (!dateFormat)
+			return new Intl.DateTimeFormat(
+				dateLocale(lang),
+				day ? { dateStyle: "medium" } : { dateStyle: "medium", timeStyle: "short" },
+			).format(at);
+		const p = (n: number) => String(n).padStart(2, "0");
+		const local = `${at.getFullYear()}-${p(at.getMonth() + 1)}-${p(at.getDate())}`;
+		const text = formatDay(local, dateFormat, lang);
+		return day
+			? text
+			: `${text} ${new Intl.DateTimeFormat(dateLocale(lang), { timeStyle: "short" }).format(at)}`;
+	};
 }

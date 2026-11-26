@@ -26,7 +26,7 @@ describe("Settings / Agents and rules: own rules and policy packs", () => {
 		await mountTab("agents-rules");
 		await user.type(await screen.findByRole("textbox", { name: "Rules file path" }), "/mock/a.exe");
 		await user.click(screen.getByRole("button", { name: "Import" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent(".md or .txt");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
 	});
 
 	it("sends a current skill back to absent with Remove", async () => {

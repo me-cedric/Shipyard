@@ -2,7 +2,12 @@ import { format, useI18n } from "@/lib/i18n";
 import { InboxIcon } from "../icons";
 import { RefChip } from "./ref-chip";
 
-export type BacklinkItem = { ref: string; title?: string | null };
+export type BacklinkItem = {
+	ref: string;
+	title?: string | null;
+	/** The words to show in place of the ref, such as the title of a project. */
+	label?: string;
+};
 export type BacklinkGroup = { kind: string; items: BacklinkItem[] };
 
 /** The entities that cite an entity, grouped by kind. Each heading shows a count. No citation shows "Nothing links here". */
@@ -37,6 +42,7 @@ export function BacklinkList({
 										refId={i.ref}
 										state="resolved"
 										title={i.title ?? undefined}
+										text={i.label}
 										onOpen={onOpen}
 									/>
 								</li>

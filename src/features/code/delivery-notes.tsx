@@ -3,6 +3,7 @@ import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
+import { useDay } from "@/lib/prefs";
 import { useDeliveryNotes } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
@@ -10,6 +11,7 @@ import { MarkdownView } from "@/ui/organisms/markdown-view";
 /** The notes of `docs/delivery/impacts` of the project: one card, the open note and a Copy button. */
 export function DeliveryNotes() {
 	const { t } = useI18n();
+	const day = useDay();
 	const notes = useDeliveryNotes().data ?? [];
 	const [path, setPath] = useState<string | null>(null);
 	const open = path ?? notes[0]?.path ?? null;
@@ -31,7 +33,7 @@ export function DeliveryNotes() {
 				</Button>
 			</div>
 			{notes.map((n) => {
-				const name = n.date ? `${n.title} · ${n.date}` : n.title;
+				const name = n.date ? `${n.title} · ${day(n.date)}` : n.title;
 				return (
 					<Button
 						key={n.path}

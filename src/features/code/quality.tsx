@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageExport } from "@/features/reports/page-export";
 import { useCoverageReport, useForgeActions, useQuality } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import type { SbomReport } from "@/lib/ipc";
+import { useStamp } from "@/lib/prefs";
 import { RightButton, RightIconButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { formatDuration } from "@/lib/utils";
@@ -40,6 +41,7 @@ type Shown = string | "score" | "sbom" | "scanners" | null;
 
 function QualityView() {
 	const { t, lang } = useI18n();
+	const stamp = useStamp();
 	const quality = useQuality();
 	const q = quality.data;
 	const coverage = useCoverageReport().data;
@@ -52,6 +54,11 @@ function QualityView() {
 	const [confirming, setConfirming] = useState<string | null>(null);
 	const [installing, setInstalling] = useState<string | null>(null);
 	const [shown, setShown] = useState<Shown>(null);
+	const panel = useRef<HTMLDivElement>(null);
+	// The findings open below the fold: bring them into view.
+	useEffect(() => {
+		if (shown) panel.current?.scrollIntoView?.({ block: "start" });
+	}, [shown]);
 	const [setting, setSetting] = useState(false);
 	const [allAsk, setAllAsk] = useState(false);
 	const [exported, setExported] = useState<SbomReport | null>(null);
@@ -63,7 +70,6 @@ function QualityView() {
 				<ErrorNotice error={quality.error} className="px-4 py-2" />
 			</>
 		);
-	const date = new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" });
 	const q18 = t.forge.quality;
 	const h = t.flow.health;
 	const i = t.flow.look.impact.health;
@@ -158,7 +164,12 @@ function QualityView() {
 							</h2>
 						</div>
 						{firstWithFindings ? (
-							<Button onClick={() => setShown(firstWithFindings.key)}>{i.showFindings}</Button>
+							<Button
+								aria-expanded={shown === firstWithFindings.key}
+								onClick={() => setShown(firstWithFindings.key)}
+							>
+								{i.showFindings}
+							</Button>
 						) : null}
 						<Button
 							variant="primary"
@@ -275,74 +286,76 @@ function QualityView() {
 					</Button>
 				</div>
 				{open?.r.last ? (
-					<Panel
-						title={nameOf(open.r)}
-						bodyClassName="gap-3 p-3"
-						toolbar={
-							<>
-								{open.r.command ? (
-									<RightIconButton
-										right="code.write"
-										label={format(q18.terminal, { name: nameOf(open.r) })}
-										onClick={() => open.r.command && runInTerminal(open.r.command)}
-									>
-										<CommandLineIcon size={16} />
-									</RightIconButton>
+					<div ref={panel}>
+						<Panel
+							title={nameOf(open.r)}
+							bodyClassName="gap-3 p-3"
+							toolbar={
+								<>
+									{open.r.command ? (
+										<RightIconButton
+											right="code.write"
+											label={format(q18.terminal, { name: nameOf(open.r) })}
+											onClick={() => open.r.command && runInTerminal(open.r.command)}
+										>
+											<CommandLineIcon size={16} />
+										</RightIconButton>
+									) : null}
+									{runButton(open)}
+									<Button className="min-h-control" onClick={() => setShown(null)}>
+										{i.close}
+									</Button>
+								</>
+							}
+						>
+							<p className="text-12 text-n-11">
+								{formatDuration(open.r.last.durationMs, lang)} ·{" "}
+								{format(q18.at, { date: stamp(new Date(open.r.last.at).getTime()) })}
+							</p>
+							<div className="-mx-3 -mb-3 border-t">
+								{open.r.last.findings.map((f, n) => {
+									// A finding with no path is the reason that a check failed.
+									const tool = TOOLS[MISSING.exec(f.message)?.[1] ?? ""];
+									return (
+										<FindingRow
+											// biome-ignore lint/suspicious/noArrayIndexKey: the findings never reorder
+											key={n}
+											status={SEVERITY_STATUS[f.severity] ?? "idle"}
+											title={f.path ? `${q18.severity[f.severity]}: ${f.message}` : f.message}
+											source={
+												f.path ? (
+													<Button
+														variant="ghost"
+														aria-label={format(q18.open, { path: f.path })}
+														disabled={noCode}
+														reason={noCode ? t.rights.noAccess : undefined}
+														onClick={() => setViewing({ path: f.path, line: f.line })}
+													>
+														{f.path}
+														{f.line ? `:${f.line}` : ""}
+													</Button>
+												) : tool ? (
+													<RightButton
+														right="code.write"
+														variant="ghost"
+														className="border-n-7"
+														onClick={() => void run(() => installTool(tool))}
+													>
+														{format(q18.installName, { name: tool })}
+													</RightButton>
+												) : undefined
+											}
+										/>
+									);
+								})}
+								{open.r.last.tail ? (
+									<pre className="overflow-x-auto px-3 py-1 font-mono text-12">
+										{open.r.last.tail}
+									</pre>
 								) : null}
-								{runButton(open)}
-								<Button className="min-h-control" onClick={() => setShown(null)}>
-									{i.close}
-								</Button>
-							</>
-						}
-					>
-						<p className="text-12 text-n-11">
-							{formatDuration(open.r.last.durationMs, lang)} ·{" "}
-							{format(q18.at, { date: date.format(new Date(open.r.last.at)) })}
-						</p>
-						<div className="-mx-3 -mb-3 border-t">
-							{open.r.last.findings.map((f, n) => {
-								// A finding with no path is the reason that a check failed.
-								const tool = TOOLS[MISSING.exec(f.message)?.[1] ?? ""];
-								return (
-									<FindingRow
-										// biome-ignore lint/suspicious/noArrayIndexKey: the findings never reorder
-										key={n}
-										status={SEVERITY_STATUS[f.severity] ?? "idle"}
-										title={f.path ? `${q18.severity[f.severity]}: ${f.message}` : f.message}
-										source={
-											f.path ? (
-												<Button
-													variant="ghost"
-													aria-label={format(q18.open, { path: f.path })}
-													disabled={noCode}
-													reason={noCode ? t.rights.noAccess : undefined}
-													onClick={() => setViewing({ path: f.path, line: f.line })}
-												>
-													{f.path}
-													{f.line ? `:${f.line}` : ""}
-												</Button>
-											) : tool ? (
-												<RightButton
-													right="code.write"
-													variant="ghost"
-													className="border-n-7"
-													onClick={() => void run(() => installTool(tool))}
-												>
-													{format(q18.installName, { name: tool })}
-												</RightButton>
-											) : undefined
-										}
-									/>
-								);
-							})}
-							{open.r.last.tail ? (
-								<pre className="overflow-x-auto px-3 py-1 font-mono text-12">
-									{open.r.last.tail}
-								</pre>
-							) : null}
-						</div>
-					</Panel>
+							</div>
+						</Panel>
+					</div>
 				) : null}
 				{shown === "scanners" ? (
 					<Panel title={i.setupScanners} count={q.scanners.length} flush>

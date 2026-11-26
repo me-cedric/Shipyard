@@ -100,6 +100,7 @@ export function DeviceCode({ code }: { code: string }) {
 export function ConnectionForm({
 	connection,
 	initialGroup,
+	initialKind,
 	types = ADD_TYPES,
 	onType,
 	onDone,
@@ -108,6 +109,8 @@ export function ConnectionForm({
 	types?: readonly AddType[];
 	connection?: Connection_Serialize;
 	initialGroup?: ConnectionGroup;
+	/** The product that the person picked before the form: the form opens on it. */
+	initialKind?: string;
 	/** The person picked a type that has another form: the parent swaps the form. */
 	onType?: (type: "mcp" | "provider") => void;
 	onDone: () => void;
@@ -121,7 +124,10 @@ export function ConnectionForm({
 		connection?.group ?? initialGroup ?? "tracker",
 	);
 	const [kind, setKind] = useState<ConnectionKind>(
-		connection?.kind ?? KINDS[group][0] ?? "jira-cloud",
+		connection?.kind ??
+			KINDS[group].find((k) => k === initialKind) ??
+			KINDS[group][0] ??
+			"jira-cloud",
 	);
 	const [name, setName] = useState(connection?.name ?? "");
 	const [url, setUrl] = useState(connection?.url ?? "");
@@ -145,7 +151,8 @@ export function ConnectionForm({
 		queryFn: () => unwrap(commands.connectionsSuggest()),
 		enabled: !editing,
 	}).data;
-	const [prefilled, setPrefilled] = useState(false);
+	// A product that was picked first is not the remote's: the remote does not fill the form.
+	const [prefilled, setPrefilled] = useState(Boolean(initialKind));
 	useEffect(() => {
 		if (!suggestion || prefilled || editing || name || url) return;
 		setPrefilled(true);

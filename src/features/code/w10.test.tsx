@@ -21,7 +21,7 @@ describe("Code, W10", () => {
 		mountApp("/code/now");
 		await user.click(await screen.findByRole("link", { name: /health route/ }));
 		await toChat(user);
-		await user.click(await screen.findByRole("button", { name: "Write description" }));
+		await user.click(await screen.findByRole("button", { name: "Write the description" }));
 		expect(await draft(/Write the description of pull request #\d+ .*health route/)).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Review" }));
 		expect(await draft(/Review pull request #\d+/)).toBeVisible();
@@ -34,9 +34,7 @@ describe("Code, W10", () => {
 		if (!files) throw new Error("no code state");
 		files["docs/openspec/x/spec.md"] = { head: null, index: "s\n", work: "s\n" };
 		mountApp("/code/now");
-		expect(
-			await screen.findByText("Specs changed, Test plans did not: docs/openspec/x/spec.md"),
-		).toBeInTheDocument();
+		expect(await screen.findByText("Specs changed and Test plans did not")).toBeInTheDocument();
 	}, 20_000);
 
 	it("acknowledges the warning of the commit gate with a reason, as in the branch watch", async () => {
@@ -47,7 +45,7 @@ describe("Code, W10", () => {
 		if (!files) throw new Error("no code state");
 		files["docs/openspec/x/spec.md"] = { head: null, index: "s\n", work: "s\n" };
 		mountApp("/code/now");
-		const text = "Specs changed, Test plans did not: docs/openspec/x/spec.md";
+		const text = "Specs changed and Test plans did not";
 		await user.click(await screen.findByRole("button", { name: "Acknowledge Test plans" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		await user.type(dialog.getByRole("textbox", { name: "Reason" }), "No test impact");
@@ -60,7 +58,7 @@ describe("Code, W10", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		await unwrap(commands.codeStatus());
 		mountApp("/code/branches");
-		expect(await screen.findByText(/is the default branch of origin/)).toBeInTheDocument();
+		expect(await screen.findByText(/You work on main, the shared branch/)).toBeInTheDocument();
 	});
 
 	it("hands the conflicted files to the assistant", async () => {
@@ -85,7 +83,7 @@ describe("Code, W10", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/flow/impacts/report");
 		expect(
-			await screen.findByRole("button", { name: "Open Sync impact · 2026-10-20" }),
+			await screen.findByRole("button", { name: "Open Sync impact · 20 Oct 2026" }),
 		).toBeInTheDocument();
 	});
 });

@@ -27,7 +27,7 @@ describe("the ref of a design artifact", () => {
 		// The reference sits in the "More" menu of the page.
 		const [more] = await screen.findAllByRole("button", { name: "More" });
 		await user.click(more as HTMLElement);
-		await user.click(await screen.findByRole("menuitem", { name: "Copy ref" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Copy the reference" }));
 		expect(writeText).toHaveBeenCalledWith("diagram:context");
 	});
 
@@ -38,9 +38,9 @@ describe("the ref of a design artifact", () => {
 		const panel = await inspector();
 		expect(await panel.findByText("diagram:context", { selector: "code" })).toBeInTheDocument();
 		// The design doc and the home screen cite the diagram.
-		expect(await panel.findAllByRole("button", { name: /^doc:/ })).toHaveLength(1);
-		expect(panel.getAllByRole("button", { name: /^screen:/ })).toHaveLength(1);
-		expect(panel.getByRole("button", { name: /^screen:home/ })).toBeInTheDocument();
+		expect(await panel.findAllByRole("button", { name: /^Document,/ })).toHaveLength(1);
+		expect(panel.getAllByRole("button", { name: /^Screen,/ })).toHaveLength(1);
+		expect(panel.getByRole("button", { name: /^Screen, Home/ })).toBeInTheDocument();
 	});
 
 	it("shows the citation of an ADR in its backlinks", async () => {
@@ -48,7 +48,7 @@ describe("the ref of a design artifact", () => {
 		await mountDesign(<Decisions />);
 		await user.click((await list("Decisions")).getByRole("button", { name: /Polling sync/ }));
 		const panel = await inspector();
-		expect(await panel.findAllByRole("button", { name: /^doc:/ })).not.toHaveLength(0);
+		expect(await panel.findAllByRole("button", { name: /^Document,/ })).not.toHaveLength(0);
 	});
 
 	it("shows ghost rows for an artifact that nothing cites", async () => {

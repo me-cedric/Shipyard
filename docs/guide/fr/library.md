@@ -73,7 +73,7 @@ Diagrammes contient les dessins du projet : Excalidraw, Mermaid, draw.io et BPMN
 
 ### Écrans
 
-Écrans montre les écrans du produit et les jetons de design de votre projet. Ils viennent du document de conception (du CSS dans un bloc de code), d'un fichier `tokens.css`, d'un fichier `*.tokens.json` ou d'un bloc `@theme` de Tailwind 4, groupés par fichier. Sans jeton, la page dit Aucun jeton pour l'instant ; cliquez sur Ajouter des jetons au document de conception, modifiez le bloc, puis enregistrez. La page ne montre jamais les jetons de Shipyard. Chaque écran est une carte avec Réalisé ou Pas réalisé. Le sélecteur Écrans et Jetons montre les jetons. Du design au code ouvre l'écran ouvert, sinon le premier, dans l'inspecteur, où se trouve Écrire le plan.
+Écrans montre les écrans du produit et les jetons de design de votre projet. Ils viennent du document de conception (du CSS dans un bloc de code), d'un fichier `tokens.css`, d'un fichier `*.tokens.json` ou d'un bloc `@theme` de Tailwind 4, groupés par fichier. Sans jeton, la page dit Aucun jeton de design ; cliquez sur Ajouter des jetons au document de conception, modifiez le bloc, puis enregistrez. La page ne montre jamais les jetons de Shipyard. Chaque écran est une carte avec Réalisé ou Pas réalisé. Le sélecteur Écrans et Jetons de design montre les jetons. Du design au code ouvre l'écran ouvert, sinon le premier, dans l'inspecteur, où se trouve Écrire le plan.
 
 - Un fichier `.fig` montre l'aperçu que Figma y garde.
 - Pour lire Figma, ajoutez une fois le jeton de votre compte Figma. Il va dans le trousseau de votre ordinateur.

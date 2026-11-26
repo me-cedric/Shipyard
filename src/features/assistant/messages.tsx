@@ -83,9 +83,14 @@ function Trace({ steps, full }: { steps: ChatMessage["trace"]; full?: boolean })
 				>
 					<ChevronRightIcon size={10} />
 				</span>
-				{t.assistant.trace} · {format(t.assistant.tools, { count: steps.length })}
-				{files ? ` · ${format(t.extras.assistant.filesTouched, { count: files })}` : ""} ·{" "}
-				{formatDuration(total, lang)}
+				{t.assistant.trace} ·{" "}
+				{format(steps.length === 1 ? t.assistant.toolsOne : t.assistant.tools, {
+					count: steps.length,
+				})}
+				{files
+					? ` · ${format(files === 1 ? t.extras.assistant.filesTouchedOne : t.extras.assistant.filesTouched, { count: files })}`
+					: ""}{" "}
+				· {formatDuration(total, lang)}
 			</summary>
 			<Steps steps={steps} />
 		</details>

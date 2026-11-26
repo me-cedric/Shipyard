@@ -14,7 +14,7 @@ Close asks first when agents work for the project: Cancel, Stop them and close, 
 
 ## New project
 
-New project is a page of its own, at `/projects/new`. Open it with New project on the Projects page, on the first-run page or on the page No project is open. It asks one question at a time, with five steps: Name, Kind of product, Tools, Team and Ready. All steps shows the five parts on one page: Project, Brief, Team, Where the code lives and Start. Back leaves the page or goes one step back. Each step has defaults. Create the project is on when the name and the parent folder are set. Nothing is made before you click it.
+New project is a page of its own, at `/projects/new`. Open it with New project on the Projects page, on the first-run page or on the page No project is open. It asks one question at a time, with five steps: Name, Technology, Tools, Team and Ready. All steps shows the five parts on one page: Project, Brief, Team, Where the code lives and Start. Back leaves the page or goes one step back. Each step has defaults. Create the project is on when the name and the parent folder are set. Nothing is made before you click it.
 
 1. Project: the name, the short key for tickets (from the name, you can edit it), the parent folder and the technology: Node, Rust, Python, Java, Go or Other. The technology sets the gates of the project file and the ignore rules of `.gitignore`. The folder must be empty or new: Create the project refuses a folder that holds files.
 2. Brief: the vision, the users and the scope, as text that you edit. They go to `docs/brief.md`. Also choose the docs language and the pull request language. Both default to the language of the interface. The agents write specs, diagrams, documents and pull request text in these languages. Code, identifiers, code comments and commit messages stay in English.
@@ -31,7 +31,7 @@ Create the project makes the repository, writes the files, makes the first commi
 
 ## No project is open
 
-When you close the project, or when no project is open after the first launch, one card says No project is open. New project opens the page of the creator. Open a project opens a menu: your recent projects, Projects, Open a folder and Clone a repository. The first-run page is for the first launch only (see Getting started, First launch).
+When you close the project, or when no project is open after the first launch, one card says No project is open. New project opens the page of the creator. Open a project opens a menu: your recent projects, Projects, Open a folder and Get a project from the code host. The first-run page is for the first launch only (see Getting started, First launch).
 
 ## Project settings
 

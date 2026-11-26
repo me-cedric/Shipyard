@@ -76,7 +76,7 @@ export function CommandPalette({
 		if (!el) return;
 		const list = el.closest("[cmdk-root]")?.querySelector("[cmdk-list]")?.id;
 		const item = el.closest("[cmdk-root]")?.querySelector('[cmdk-item][data-selected="true"]')?.id;
-		if (open && chosen && list) el.setAttribute("aria-controls", list);
+		if (open && list) el.setAttribute("aria-controls", list);
 		else el.removeAttribute("aria-controls");
 		if (open && chosen && item) el.setAttribute("aria-activedescendant", item);
 		else el.removeAttribute("aria-activedescendant");

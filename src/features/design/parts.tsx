@@ -19,7 +19,7 @@ import { Loading } from "@/ui/molecules/loading";
 import type { PageMenuItem } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { Dialog } from "@/ui/organisms/dialog";
-import { LinkedCard, LinkedRow, ListCard, PageColumns } from "../library/page-parts";
+import { LinkedCard, LinkedRow, ListCard, PageColumns } from "@/ui/templates/library-page";
 
 /** One item of a Design page: a file, an ADR or a screen. */
 export type Item = {
@@ -321,7 +321,7 @@ export function Empty({ label, onAdd }: { label: string; onAdd: () => void }) {
 export function Canvas({ className, children }: { className?: string; children: ReactNode }) {
 	return (
 		<section
-			className={`relative flex min-h-[560px] min-w-0 ${className ?? "flex-[3_1_420px]"} flex-col rounded-[24px] bg-n-4 p-4`}
+			className={`relative flex min-h-[560px] min-w-0 ${className ?? "flex-[3_1_420px]"} flex-col rounded-lg bg-n-4 p-4`}
 		>
 			{children}
 		</section>

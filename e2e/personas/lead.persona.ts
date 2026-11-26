@@ -12,12 +12,12 @@ test("functional lead", async ({ page }) => {
 		async () => {
 			await w.landsOn("Flow", "List");
 			await w.go("Flow", "List");
-			await w.see(page.getByRole("button", { name: /add-billing/ }), "no change in the list");
+			await w.see(page.getByRole("button", { name: /Add billing/ }), "no change in the list");
 		},
 	);
 
 	await w.step("Review a change", "the change row, Brief, Files of the change, Check", async () => {
-		await w.click(page.getByRole("button", { name: /add-billing/ }));
+		await w.click(page.getByRole("button", { name: /Add billing/ }));
 		await w.click(
 			page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Brief" }),
 		);

@@ -81,6 +81,8 @@ export const flowEs: typeof flowEn = {
 		writeSpec: "Escribir la spec",
 		startAgent: "Iniciar un agente",
 		noSpec: "Aún no hay spec",
+		missing: "Esa función no existe",
+		openBrief: "Abrir el brief",
 		noRun: "Aún no hay agente",
 		noPull: "Aún no hay pull request",
 		noTicket: "Sin ticket",
@@ -130,5 +132,6 @@ export const flowEs: typeof flowEn = {
 		fromTicket: "O empezar desde un ticket",
 		startAgent: "Iniciar un agente",
 		find: "Buscar un ticket",
+		changeSpec: "Cambiar la especificación {spec}: ",
 	},
 };

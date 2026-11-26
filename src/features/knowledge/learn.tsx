@@ -1,6 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { DetailColumn, LibraryPage, PageColumns, SideCards } from "@/features/library/page-parts";
 import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import type { StepKind } from "@/lib/ipc";
@@ -15,26 +14,41 @@ import { AcademicCapIcon, ArrowPathIcon, CheckIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
+import { DetailColumn, LibraryPage, PageColumns, SideCards } from "@/ui/templates/library-page";
 import { AddWord } from "./add-word";
 import { LearnCard, LearnFeeds, useLearning } from "./learn-feeds";
 import { blankStep, type Draft, LearnActions, LearnPaths } from "./learn-paths";
 
-const DONE = "shipyard.learn.done";
+/** One key for each project: the same ref in two projects is two steps. */
+const doneKey = (project: string) => `shipyard.learn.done:${project}`;
 
 /** The steps that the user opened, kept on this machine. */
-function useDone() {
-	const [done, setDone] = useState<string[]>(() => {
+function useDone(project: string) {
+	const key = doneKey(project);
+	const read = (): string[] => {
 		try {
-			return JSON.parse(localStorage.getItem(DONE) ?? "[]");
+			// The old key held one list for all projects: copy it once to the key of the project.
+			const old = localStorage.getItem("shipyard.learn.done");
+			const own = localStorage.getItem(key) ?? old;
+			if (own !== null && localStorage.getItem(key) === null) localStorage.setItem(key, own);
+			return JSON.parse(own ?? "[]");
 		} catch {
 			return [];
 		}
-	});
+	};
+	// The project can change, or load after the first render: the list follows the key.
+	const [state, setState] = useState({ key, done: read() });
+	if (state.key !== key) setState({ key, done: read() });
+	const done = state.done;
 	const mark = (ref: string) => {
 		if (done.includes(ref)) return;
 		const next = [...done, ref];
-		localStorage.setItem(DONE, JSON.stringify(next));
-		setDone(next);
+		try {
+			localStorage.setItem(key, JSON.stringify(next));
+		} catch {
+			// Storage is blocked: the step counts for this session only.
+		}
+		setState({ key, done: next });
 	};
 	return { done, mark };
 }
@@ -52,7 +66,7 @@ export function Learn() {
 	const active = useActiveProject().data;
 	const { openRef } = useShell();
 	const learn = useLearn().data;
-	const { done, mark } = useDone();
+	const { done, mark } = useDone(active?.path ?? "");
 	// The kind of the learning step that is about an item of the path: its second pill.
 	const second = new Map(
 		(useLearning().data?.paths ?? []).flatMap((p) =>

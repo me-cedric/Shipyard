@@ -4,11 +4,18 @@ import type { ApprovalView } from "@/lib/ipc";
 import { cn } from "@/lib/utils";
 import { Button } from "../atoms/button";
 
+/** A status change: its detail is the status, not a text that goes out. */
+export const isMove = (kind: string) => /^transition$/.test(kind);
+
 /** The write in plain words, as the bar and the question name it. */
 export function approvalSentence(
-	said: Messages["home"]["approval"],
-	a: Pick<ApprovalView, "kind" | "key" | "title" | "force">,
+	home: Messages["home"],
+	a: Pick<ApprovalView, "kind" | "key" | "title" | "force"> & { detail?: string },
 ) {
+	// A status change names its target: the detail holds the status.
+	if (!a.force && isMove(a.kind) && a.detail)
+		return format(home.event.what.transition, { key: a.key, status: a.detail });
+	const said = home.approval;
 	const kind = a.force ? "force" : a.kind in said ? (a.kind as keyof typeof said) : "other";
 	return format(said[kind], { key: a.key || a.title });
 }
@@ -38,7 +45,7 @@ export function ApprovalBar({
 	body?: (text: string) => ReactNode;
 }) {
 	const { t } = useI18n();
-	const sentence = approvalSentence(t.home.approval, a);
+	const sentence = approvalSentence(t.home, a);
 	const command = a.kind === "push";
 	return (
 		<section
@@ -62,7 +69,7 @@ export function ApprovalBar({
 					{t.home.approve}
 				</Button>
 			</div>
-			{a.detail && !command ? (
+			{a.detail && !command && !isMove(a.kind) ? (
 				body ? (
 					body(a.detail)
 				) : (

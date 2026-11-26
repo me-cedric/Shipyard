@@ -54,6 +54,11 @@ function Finding({
 		}
 	};
 	const message = (t.health.finding as Record<string, string>)[finding.code] ?? finding.code;
+	// A broken link names its target in words: "Decision 0009", not the token `adr:0009`.
+	const [kind = "", ...rest] = (finding.detail ?? "").split(":");
+	const named = (t.refKind as Record<string, string>)[kind];
+	const detail =
+		finding.code === "ref-broken" && named ? `${named} ${rest.join(":")}` : (finding.detail ?? "");
 	const run = () =>
 		attempt(async () => {
 			if (fix.kind === "open") openRef(fix.target);
@@ -75,9 +80,7 @@ function Finding({
 	return (
 		<div className="flex flex-1 flex-col gap-3">
 			<div className="flex flex-wrap items-center gap-2 rounded-md bg-n-3 p-4 text-ui text-n-12">
-				<span className="min-w-0 flex-[1_1_8rem]">
-					{format(message, { detail: finding.detail ?? "" })}
-				</span>
+				<span className="min-w-0 flex-[1_1_8rem]">{format(message, { detail })}</span>
 				{finding.source && showSource ? (
 					<RefChip refId={finding.source} state="resolved" onOpen={openRef} />
 				) : null}

@@ -30,6 +30,7 @@ fn server(root: &std::path::Path, state: Arc<Mutex<(bool, Vec<String>)>>) -> Ser
             only,
             rights: None,
             tickets: None,
+            refs: None,
             hidden: Vec::new(),
         })
     });
@@ -139,6 +140,7 @@ fn the_allow_list_filters_the_tools_and_the_read_only_preset_has_no_write_tool()
             only,
             rights: None,
             tickets: None,
+            refs: None,
             hidden: Vec::new(),
         })
     };

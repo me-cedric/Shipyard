@@ -253,6 +253,6 @@ export function useShell() {
 /** The shell, or null outside the app shell (a card in a test or a gallery). */
 export const useShellIfAny = () => useContext(Ctx);
 
-export { askForm, useFormIntent, useFormIntentFor } from "./intent";
+export { askForm, takeFormKind, useFormIntent, useFormIntentFor } from "./intent";
 export { pullHref, pullNumberOf, pullOfRef } from "./pull-href";
 export { runHref, runOfRef } from "./run-href";

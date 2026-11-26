@@ -823,7 +823,7 @@ fn describe(w: &Write) -> (&'static str, String, String, bool) {
         Write::Transition { key, status } => (
             "transition",
             format!("Move {key} to {status}"),
-            String::new(),
+            status.to_string(),
             false,
         ),
         Write::Labels { key, labels, .. } => (

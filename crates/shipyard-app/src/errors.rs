@@ -124,6 +124,8 @@ pub enum ErrorCode {
     ProjectFileInvalid,
     DocNotStale,
     GitDirty,
+    ExtensionSetting,
+    ExtensionDependency,
 }
 
 impl ErrorCode {
@@ -174,7 +176,6 @@ impl ErrorCode {
             Self::FigmaNoToken => (ActionKind::Open, "/library/screens"),
             Self::ReadOnly | Self::ProjectFileInvalid => (ActionKind::Open, "/setup/project"),
             Self::AgentsStopped => (ActionKind::Open, "/flow/flow"),
-            Self::GitIdentity => (ActionKind::Open, "/setup/me#me"),
             Self::GitDirty => (ActionKind::Open, "/code/now"),
             _ => return None,
         };
@@ -198,6 +199,12 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ),
     ("this doc is not stale", ErrorCode::DocNotStale),
     ("commit or stash your changes first", ErrorCode::GitDirty),
+    (
+        "uncommitted changes would be overwritten",
+        ErrorCode::GitDirty,
+    ),
+    ("missing setting:", ErrorCode::ExtensionSetting),
+    ("missing dependency:", ErrorCode::ExtensionDependency),
     ("switch to a branch first", ErrorCode::GitState),
     ("has no issue tracker connection", ErrorCode::NoTracker),
     (
@@ -443,6 +450,9 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ),
     ("needs a name", ErrorCode::InputInvalid),
     ("not a saved analysis", ErrorCode::PathInvalid),
+    ("must be zero or more", ErrorCode::InputInvalid),
+    ("does not resolve", ErrorCode::InputInvalid),
+    ("needs an id and a name", ErrorCode::InputInvalid),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -621,11 +631,18 @@ mod tests {
             AppError::from("this doc is not stale").code,
             ErrorCode::DocNotStale
         );
+        assert_eq!(
+            AppError::from("missing setting: Figma API token").code,
+            ErrorCode::ExtensionSetting
+        );
+        assert_eq!(
+            AppError::from("missing dependency: Docker").code,
+            ErrorCode::ExtensionDependency
+        );
         for text in [
             "no Figma token: add it",
             "the profile of this project is read only",
             "the agents are stopped: switch them on first",
-            "no git identity: set user.name and user.email",
             "switch to a branch first: the run starts from your branch",
         ] {
             assert!(AppError::from(text).action.is_some(), "{text}");

@@ -174,7 +174,7 @@ describe("Role of a human step (REQ-008)", () => {
 		};
 		as("developer");
 		await expect(unwrap(commands.runPlanApprove(run.id))).rejects.toMatchObject({
-			message: expect.stringContaining("only the role techlead approves this step"),
+			details: expect.stringContaining("only the role techlead approves this step"),
 		});
 		await expect(unwrap(commands.runPlanReject(run.id, "no"))).rejects.toBeTruthy();
 		as("techlead");

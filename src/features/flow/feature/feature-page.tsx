@@ -65,10 +65,10 @@ function FeatureView({ partRef, ...view }: View) {
 						? t.forge.pullPage.notFound
 						: partRef.startsWith("run:")
 							? t.empty.run
-							: t.empty.nothing
+							: t.flow.feature.missing
 				}
 				icon={<CpuChipIcon size={28} />}
-				action={{ label: t.flow.views.flow, onClick: () => void navigate({ to: "/flow/flow" }) }}
+				action={{ label: t.home.openFlow, onClick: () => void navigate({ to: "/flow/flow" }) }}
 			/>
 		);
 	const pullId = parts.pr?.replace(/^pr:/, "").replace(/:(\d+)$/, "-$1");
@@ -186,16 +186,14 @@ function Page({
 						<MenuButton iconOnly label={t.ui.more} icon={<MoreIcon />} items={menu} />
 					</div>
 				</div>
-				{/* The stage line shows on Story, Brief, Changes, the plan and the ticket page; Design, Checks and Chat show none. */}
-				{mode || section === "story" || section === "brief" || section === "changes" ? (
-					// The plan in review shows the stage dot only: its card says what waits.
-					<StageLine
-						stage={feature.stage}
-						mark={
-							planning ? null : (feature.mark ?? (feature.runState === "Failed" ? "stopped" : null))
-						}
-					/>
-				) : null}
+				{/* The stage line shows on every section, so that the section switch keeps its place. */}
+				{/* The plan in review shows the stage dot only: its card says what waits. */}
+				<StageLine
+					stage={feature.stage}
+					mark={
+						planning ? null : (feature.mark ?? (feature.runState === "Failed" ? "stopped" : null))
+					}
+				/>
 				{mode ? null : (
 					<SectionSwitch
 						label={x.sections}

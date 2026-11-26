@@ -1,10 +1,11 @@
-import { Dialog } from "@base-ui/react/dialog";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useId, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Button } from "../atoms/button";
 import { Input } from "../atoms/input";
 import { Textarea } from "../atoms/textarea";
+import { ErrorNotice } from "../molecules/error-notice";
+import { Dialog } from "./dialog";
 
 /** The advice for the summary length. A longer summary still commits. */
 const ADVICE = 50;
@@ -26,9 +27,10 @@ export function CommitDialog({
 	reason?: string;
 }) {
 	const { t } = useI18n();
+	const formId = useId();
 	const [summary, setSummary] = useState("");
 	const [description, setDescription] = useState("");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
 
 	const submit = async (e?: FormEvent) => {
@@ -42,57 +44,57 @@ export function CommitDialog({
 			setDescription("");
 			onOpenChange(false);
 		} catch (err) {
-			setError(err instanceof Error ? err.message : String(err));
+			setError(err);
 		} finally {
 			setBusy(false);
 		}
 	};
 
 	return (
-		<Dialog.Root open={open} onOpenChange={onOpenChange}>
-			<Dialog.Portal>
-				<Dialog.Backdrop className="fixed inset-0 z-40 bg-n-1/60 backdrop-blur-sm transition-opacity duration-(--duration-fast) data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
-				<Dialog.Popup className="fixed top-24 left-1/2 z-50 w-[32rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
-					<form onSubmit={submit} className="flex flex-col gap-2 p-3">
-						<Dialog.Title className="text-14 font-medium">{t.shell.commit}</Dialog.Title>
-						<div className="flex items-center gap-2">
-							<Input
-								label={t.code.summary}
-								value={summary}
-								onChange={(e) => setSummary(e.target.value)}
-								autoFocus
-							/>
-							<span
-								className={cn(
-									"shrink-0 text-12",
-									summary.length > ADVICE ? "text-warning-text" : "text-n-10",
-								)}
-							>
-								{format(t.code.counter, { count: summary.length, max: ADVICE })}
-							</span>
-						</div>
-						<Textarea
-							label={t.code.description}
-							value={description}
-							onChange={(e) => setDescription(e.target.value)}
-							onKeyDown={(e) => {
-								if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit();
-							}}
-						/>
-						{error ? (
-							<p role="alert" className="text-ui text-danger-text">
-								{error}
-							</p>
-						) : null}
-						<div className="flex justify-end gap-2">
-							<Dialog.Close render={<Button variant="ghost" />}>{t.common.close}</Dialog.Close>
-							<Button type="submit" variant="primary" disabled={busy || !!reason} reason={reason}>
-								{t.shell.commit}
-							</Button>
-						</div>
-					</form>
-				</Dialog.Popup>
-			</Dialog.Portal>
-		</Dialog.Root>
+		<Dialog
+			open={open}
+			onOpenChange={onOpenChange}
+			title={t.shell.commit}
+			closeLabel={t.common.close}
+			actions={
+				<Button
+					type="submit"
+					form={formId}
+					variant="primary"
+					disabled={busy || !!reason}
+					reason={reason}
+				>
+					{t.shell.commit}
+				</Button>
+			}
+		>
+			<form id={formId} onSubmit={submit} className="flex flex-col gap-2">
+				<div className="flex items-center gap-2">
+					<Input
+						label={t.code.summary}
+						value={summary}
+						onChange={(e) => setSummary(e.target.value)}
+						autoFocus
+					/>
+					<span
+						className={cn(
+							"shrink-0 text-12",
+							summary.length > ADVICE ? "text-warning-text" : "text-n-10",
+						)}
+					>
+						{format(t.code.counter, { count: summary.length, max: ADVICE })}
+					</span>
+				</div>
+				<Textarea
+					label={t.code.description}
+					value={description}
+					onChange={(e) => setDescription(e.target.value)}
+					onKeyDown={(e) => {
+						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit();
+					}}
+				/>
+				<ErrorNotice error={error} />
+			</form>
+		</Dialog>
 	);
 }

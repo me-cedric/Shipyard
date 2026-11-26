@@ -35,7 +35,7 @@ Add a document sits beside the kinds. It takes a Markdown, PDF or Word file, up 
 
 Or start from a ticket, under the three ways: find a ticket that has no run, then click Start an agent. Start from a ticket in More on Flow opens it.
 
-Each way first makes a spec change with your text as its title. A way is off when you lack the right that it needs.
+Each way first makes a spec change with your text as its title. A way is off when you lack the right that it needs. A form with typed text (new feature, ticket text, pull request) asks before you leave the page.
 
 ## List
 
@@ -53,7 +53,7 @@ Done holds the features that are ready, and the history of the runs: each run th
 
 ## The feature page
 
-Each feature has one page, `/flow/feature/<id>`. The id is the ref of one of its parts: the ticket, the spec change, the run or the pull request. The page shows the title, the stage line and a switch of six sections: Story, Brief, Design, Changes, Checks and Chat. More holds Open in the issue tracker, Copy ref and, on a stopped feature, What happened. Back returns to Flow with its search and its filter, and Escape does the same. A link to a run or to a pull request opens this page on the section of that part.
+Each feature has one page, `/flow/feature/<id>`. The id is the ref of one of its parts: the ticket, the spec change, the run or the pull request. The page shows the title, the stage line and a switch of six sections: Story, Brief, Design, Changes, Checks and Chat. More holds Open in the issue tracker, Copy the reference and, on a stopped feature, What happened. Back returns to Flow with its search and its filter, and Escape does the same. A link to a run or to a pull request opens this page on the section of that part.
 
 ### Story
 

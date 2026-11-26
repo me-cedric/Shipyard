@@ -119,7 +119,7 @@ export function HealthActions() {
 					title: change.title,
 					description: list,
 				});
-				if (row.error || !row.key) throw new Error(row.error ?? "no ticket");
+				if (row.error || !row.key) throw row.error ?? "no ticket";
 				key = row.key;
 				// The new ticket is not in the mirror yet: a run needs it there.
 				await adopt(key);
@@ -289,7 +289,7 @@ export function DoctorCompliance() {
 								onClick={() =>
 									void attempt(async () => {
 										const [r] = await unwrap(commands.childDeploy([c.id], c.proposed));
-										if (r?.error) throw new Error(r.error);
+										if (r?.error) throw r.error;
 										setNote(format(d.propagate.done, { name: c.name }));
 									})
 								}

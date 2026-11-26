@@ -60,7 +60,7 @@ describe("Specs / Change detail", () => {
 		);
 		// Edit opens the form of the file.
 		await user.click(files.getByRole("button", { name: "Proposal" }));
-		await user.click(screen.getByRole("button", { name: "Edit" }));
+		await user.click(screen.getByRole("button", { name: "Form" }));
 		expect(await screen.findByRole("textbox", { name: "Why" })).toBeVisible();
 	});
 
@@ -120,7 +120,7 @@ describe("Specs / Change detail", () => {
 		const user = userEvent.setup();
 		await open(user, "add-billing");
 		const path = `${CH}/add-billing/proposal.md`;
-		await user.click(await screen.findByRole("tab", { name: "Text" }));
+		await user.click(await screen.findByRole("button", { name: "Text" }));
 		const box = await screen.findByRole("textbox", { name: "Proposal" });
 		await waitFor(() => expect(box).toHaveValue(files()[path]?.text ?? ""));
 		const real = commands.specsWrite;
@@ -153,7 +153,7 @@ describe("Specs / Change detail", () => {
 		const user = userEvent.setup();
 		await open(user, "add-billing");
 		const path = `${CH}/add-billing/proposal.md`;
-		await user.click(await screen.findByRole("tab", { name: "Text" }));
+		await user.click(await screen.findByRole("button", { name: "Text" }));
 		const box = await screen.findByRole("textbox", { name: "Proposal" });
 		await waitFor(() => expect(box).toHaveValue(files()[path]?.text ?? ""));
 		await user.type(box, "X");
@@ -191,7 +191,7 @@ describe("Specs / Change detail", () => {
 		const user = userEvent.setup();
 		await open(user, "add-billing");
 		const path = `${CH}/add-billing/proposal.md`;
-		await user.click(await screen.findByRole("tab", { name: "Text" }));
+		await user.click(await screen.findByRole("button", { name: "Text" }));
 		const box = await screen.findByRole("textbox", { name: "Proposal" });
 		await waitFor(() => expect(box).toHaveValue(files()[path]?.text ?? ""));
 		files()[path] = { text: "other", stamp: "99" };

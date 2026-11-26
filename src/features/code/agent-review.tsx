@@ -225,7 +225,7 @@ export function LocalReview({ path }: { path: string }) {
 		<section
 			key={`${f.line}:${f.text}`}
 			aria-label={format(n.comment, { line: f.line })}
-			className="mx-6 mb-5 flex flex-col gap-3 rounded-[14px] bg-n-3 p-4"
+			className="mx-6 mb-5 flex flex-col gap-3 rounded-field bg-n-3 p-4"
 		>
 			<p className="flex items-start gap-3">
 				<Avatar agent size="s" name={n.reviewer} />

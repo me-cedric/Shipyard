@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
+import { useShellIfAny } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { BrandIcon, brandOf } from "../atoms/brand-icon";
 import { type Status, StatusDot } from "../atoms/status-dot";
@@ -31,6 +32,7 @@ export function RefChip({
 	title,
 	text,
 	onOpen,
+	expanded,
 	className,
 }: {
 	refId: string;
@@ -39,14 +41,20 @@ export function RefChip({
 	/** A shorter text in place of a long ref, such as the ticket of a run. */
 	text?: string;
 	onOpen?: (refId: string) => void;
+	/** True while the inspector shows this ref. */
+	expanded?: boolean;
 	className?: string;
 }) {
 	const { t } = useI18n();
 	const menu = useMenus();
+	const shell = useShellIfAny();
+	// The chip says "expanded" while the link card shows its ref.
+	const shown =
+		expanded ?? (shell?.inspectorOpen && shell.selectedRef === refId ? true : undefined);
 	const [kind = "", host = ""] = refId.split(":");
 	const stateLabel = t.ref[state];
 	// The ref holds the kind. The name starts with the visible text, then adds the title and the state.
-	const name = [text, refId, title, stateLabel].filter(Boolean).join(", ");
+	const name = [...new Set([text, refId, title, stateLabel].filter(Boolean))].join(", ");
 	return (
 		<ContextMenu
 			items={menu("ref", {
@@ -61,6 +69,7 @@ export function RefChip({
 					data-state={state}
 					data-ask={refId}
 					aria-label={name}
+					aria-expanded={shown}
 					// A drop on the assistant panel adds the ref to its context.
 					draggable
 					onDragStart={(e) => e.dataTransfer.setData("text/plain", refId)}

@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "../atoms/avatar";
 import { Badge } from "../atoms/badge";
@@ -66,43 +65,3 @@ export function MemberRow({
 }
 
 export type Reason = { id: string; text: string; tone: "success" | "neutral" | "warning" };
-
-/** A ranked member for one ticket: the reasons as marks, and the action that assigns. */
-export function SuggestionRow({
-	name,
-	reasons,
-	current,
-	action,
-}: {
-	name: string;
-	reasons: Reason[];
-	/** The ticket is already assigned to this member. */
-	current?: boolean;
-	action: ReactNode;
-}) {
-	return (
-		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
-		<div
-			role="group"
-			aria-label={name}
-			className={cn("flex min-h-row items-center gap-2 border-b py-1", current && "bg-n-3")}
-		>
-			<Avatar name={name} className="size-5 text-11" />
-			<span className="min-w-0 flex-1">
-				<span className="block truncate text-ui">{name}</span>
-				<span className="flex flex-wrap gap-1">
-					{reasons.map((r) => (
-						<Badge
-							key={r.id}
-							variant={r.tone === "neutral" ? "neutral" : r.tone}
-							className="h-4 text-11"
-						>
-							{r.text}
-						</Badge>
-					))}
-				</span>
-			</span>
-			{action}
-		</div>
-	);
-}

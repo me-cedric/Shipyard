@@ -70,7 +70,7 @@ describe("Run address", () => {
 		const user = userEvent.setup();
 		const router = mountApp("/factory/runs/nope");
 		expect(await screen.findByText("No run")).toBeInTheDocument();
-		await user.click(screen.getByRole("button", { name: "Flow" }));
+		await user.click(screen.getByRole("button", { name: "Open the flow" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/flow"));
 		await idle(router);
 	});
@@ -232,7 +232,7 @@ describe("Run address", () => {
 		const link = await panel.findByRole("link", { name: /ACME-2/ });
 		expect(link).toHaveAttribute("href", `/flow/runs/${run.id}`);
 		expect(within(link).queryByRole("button")).not.toBeInTheDocument();
-		expect(panel.getByRole("button", { name: "Stop ACME-2" })).toBeInTheDocument();
+		expect(panel.getByRole("button", { name: `Stop ${run.title}` })).toBeInTheDocument();
 		await user.click(link);
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
 		await idle(router);

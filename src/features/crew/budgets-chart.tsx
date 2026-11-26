@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { group } from "@/features/factory/usage/machine-usage";
+import { usePlainDay } from "@/features/plan/capacity";
 import { useMachineSpend } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
@@ -12,7 +13,8 @@ const BARS = 7;
 
 /** The spend of this computer in the last 30 days, grouped (picture 083). */
 export function SpendChart({ prices }: { prices: boolean }) {
-	const { t, lang } = useI18n();
+	const { t } = useI18n();
+	const plain = usePlainDay();
 	const s = t.factory.spendPage;
 	const names = {
 		day: s.groupDay,
@@ -24,24 +26,17 @@ export function SpendChart({ prices }: { prices: boolean }) {
 	const spend = useMachineSpend(90);
 	const since = new Date(Date.now() - 29 * DAY).toISOString().slice(0, 10);
 	const rows = ((spend.data ?? spend.partial)?.rows ?? []).filter((r) => r.day >= since);
-	const total = rows.reduce((n, r) => n + (r.costUsd ?? 0), 0);
 	const lines =
 		by === "day"
 			? Array.from({ length: BARS }, (_, i) =>
 					new Date(Date.now() - (BARS - 1 - i) * DAY).toISOString().slice(0, 10),
 				).map((d) => group(rows, "day").find((l) => l.name === d) ?? { name: d, tokens: 0, usd: 0 })
 			: group(rows, by).slice(0, BARS);
+	// One period for every view: the 30 days.
+	const total = rows.reduce((n, r) => n + (r.costUsd ?? 0), 0);
 	const max = Math.max(...lines.map((l) => l.usd), 0.01);
 	const label = (name: string) =>
-		by === "day"
-			? new Date(`${name}T00:00:00Z`).toLocaleDateString(lang, {
-					day: "numeric",
-					month: "short",
-					timeZone: "UTC",
-				})
-			: by === "runner"
-				? runnerName(name)
-				: name;
+		by === "day" ? plain(name) : by === "runner" ? runnerName(name) : name;
 	const amount = (usd: number) => (prices ? `$${usd.toFixed(2)}` : t.extras.usage.hidden);
 	return (
 		<Card pad className="flex flex-[3_1_30rem] flex-col gap-3.5">

@@ -37,7 +37,14 @@ import { ContextMenu } from "@/ui/molecules/context-menu";
 import { SectionSwitch } from "@/ui/molecules/section-switch";
 import { type FlowDraft, type FlowError, FlowMatrix } from "@/ui/organisms/flow-matrix";
 import type { FlowField } from "@/ui/organisms/flow-rows";
-import { LibraryPage, LinkedCard, LinkedRow, PageColumns, SideCards } from "../library/page-parts";
+import {
+	LibraryPage,
+	LinkedCard,
+	LinkedRow,
+	NoMatch,
+	PageColumns,
+	SideCards,
+} from "@/ui/templates/library-page";
 import { FileFrame, type Frame } from "./frame";
 import { DesignGate, Empty, fileName, ListNotice, TextCard, usePage } from "./parts";
 
@@ -354,7 +361,12 @@ function List({
 												</span>
 											</td>
 											<td aria-hidden="true" className="px-0">
-												<span className="block h-0.5 bg-accent" />
+												<span
+													className={cn(
+														"block h-0.5",
+														r.action === "deny" ? "bg-danger" : "bg-accent",
+													)}
+												/>
 											</td>
 											<td className="w-[28%] py-2.5">
 												<span
@@ -368,9 +380,19 @@ function List({
 												</span>
 											</td>
 											<td aria-hidden="true" className="px-0">
-												<span className="block h-0.5 bg-accent" />
+												<span
+													className={cn(
+														"block h-0.5",
+														r.action === "deny" ? "bg-danger" : "bg-accent",
+													)}
+												/>
 											</td>
 											<td className="py-2.5">
+												{r.action === "deny" ? (
+													<Badge variant="danger" className="mr-2">
+														{p.denied}
+													</Badge>
+												) : null}
 												{r.note || r.name || [r.protocol, r.port].filter(Boolean).join(" ")}
 											</td>
 										</tr>
@@ -404,7 +426,7 @@ function List({
 										key={`${b}>${h}`}
 										className={cn(
 											"block h-8 rounded-sm",
-											rows.some((r) => ends(r)[0] === b && ends(r)[1] === h)
+											rows.some((r) => ends(r)[0] === b && ends(r)[1] === h && r.action === "allow")
 												? "bg-accent"
 												: "bg-n-3",
 										)}
@@ -526,6 +548,7 @@ function Matrix({
 						: undefined
 				}
 				addSignal={signal}
+				noMatch={(clear) => <NoMatch onClear={clear} />}
 				chipLabels={{ allow: p.allowed, deny: p.denied }}
 				rows={rows.map((r) => ({
 					id: String(r.id),

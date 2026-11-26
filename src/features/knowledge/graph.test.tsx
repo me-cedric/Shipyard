@@ -156,7 +156,7 @@ describe("Knowledge / Graph", () => {
 		const g = await graph();
 		const count = g.nodes.filter((n) => n.kind === "adr").length;
 		await graphNode("cluster/adr");
-		await user.click(await screen.findByRole("button", { name: `ADR ${count}` }));
+		await user.click(await screen.findByRole("button", { name: `Decision ${count}` }));
 		await waitFor(() => expect(screen.queryByTestId("rf__node-cluster/adr")).toBeNull());
 		expect(screen.getByTestId(`rf__node-${clusterOf(g, "spec:auth")}`)).toBeInTheDocument();
 	});

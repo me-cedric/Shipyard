@@ -117,7 +117,7 @@ describe("Projects", () => {
 		await user.click(screen.getByRole("button", { name: "Back" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/projects"));
 		await user.click(await screen.findByRole("button", { name: "Clone from the code host" }));
-		const clone = await screen.findByRole("dialog", { name: "Clone a repository" });
+		const clone = await screen.findByRole("dialog", { name: "Get a project from the code host" });
 		await user.click(within(clone).getByRole("button", { name: "Close" }));
 		await user.click(screen.getByRole("button", { name: "Import projects" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
@@ -182,7 +182,9 @@ describe("Clone dialog repo picker", () => {
 	const openDialog = async (user: ReturnType<typeof userEvent.setup>) => {
 		mountApp("/home/today");
 		await user.click(await screen.findByRole("button", { name: /^Project/ }));
-		await user.click(await screen.findByRole("menuitem", { name: "Clone a repository" }));
+		await user.click(
+			await screen.findByRole("menuitem", { name: "Get a project from the code host" }),
+		);
 		return within(await screen.findByRole("dialog"));
 	};
 

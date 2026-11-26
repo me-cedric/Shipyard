@@ -9,7 +9,7 @@ export const editingDe: typeof editingEn = {
 	openFigma: "In Figma öffnen",
 	next: {
 		plan: "Plan schreiben",
-		split: "In Arbeitselemente aufteilen",
+		split: "In Tickets aufteilen",
 		assign: "Mir zuweisen",
 		start: "Lauf starten",
 		answer: "Antworten",

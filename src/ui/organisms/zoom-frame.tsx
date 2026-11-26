@@ -9,7 +9,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { IconButton } from "../atoms/icon-button";
-import { Dialog } from "../organisms/dialog";
+import { Dialog } from "./dialog";
 
 export const MIN_ZOOM = 0.05;
 export const MAX_ZOOM = 8;

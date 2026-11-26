@@ -144,7 +144,7 @@ describe("Reports page cards and the dossier form", () => {
 		).toBeVisible();
 		const write = screen.getByRole("button", { name: "Write the report" });
 		await user.click(write);
-		expect(await screen.findByRole("alert")).toHaveTextContent("Fill in each field");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Fill in: ");
 		expect(exported()).toEqual([]);
 		expect(screen.getByLabelText(f.date)).toHaveValue(new Date().toISOString().slice(0, 10));
 		await user.clear(screen.getByRole("textbox", { name: "Title" }));

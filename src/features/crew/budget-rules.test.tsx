@@ -13,14 +13,14 @@ describe("Warn at and Then of budgets", () => {
 		const limits = within(
 			(await screen.findByRole("heading", { name: "Limits" })).parentElement as HTMLElement,
 		);
-		expect(limits.getByText("80 %")).toBeVisible();
+		expect(limits.getByText("80%")).toBeVisible();
 		await user.click(limits.getByRole("button", { name: "Edit Warn at" }));
 		const field = limits.getByRole("spinbutton", { name: "Warn at, in percent" });
 		await user.clear(field);
 		await user.type(field, "70");
 		await user.click(limits.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().factory.budgets.warn_at).toBe(70));
-		expect(await limits.findByText("70 %")).toBeVisible();
+		expect(await limits.findByText("70%")).toBeVisible();
 	});
 
 	it("refuses a percent out of 1 to 100 and keeps the old one", async () => {

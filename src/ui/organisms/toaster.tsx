@@ -78,7 +78,7 @@ export function Toaster({
 			}}
 			aria-live="polite"
 			aria-label={t.notifications.title}
-			className="pointer-events-none fixed right-4 bottom-10 z-50 flex w-96 max-w-[calc(100vw-2rem)] flex-col gap-2"
+			className="pointer-events-none fixed right-4 bottom-10 z-(--z-popup) flex w-96 max-w-[calc(100vw-2rem)] flex-col gap-2"
 		>
 			<AnimatePresence initial={false}>
 				{toasts.map((n) => (

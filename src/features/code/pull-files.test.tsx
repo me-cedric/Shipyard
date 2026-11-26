@@ -93,7 +93,7 @@ describe("PullFiles", () => {
 		expect(row).toHaveAttribute("aria-expanded", "true");
 		expect(screen.getByRole("region", { name: "Diff of src/ui/b.ts" })).toBeInTheDocument();
 		expect(screen.getByText("1 added, 0 removed")).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Open src/ui/b.ts" })).toHaveTextContent(
+		expect(screen.getByRole("button", { name: "Whole file: src/ui/b.ts" })).toHaveTextContent(
 			"Whole file",
 		);
 		await user.click(row);

@@ -35,7 +35,7 @@ export const shellFnEn = {
 	},
 	roles: {
 		tier: "Model of {name}",
-		top: "Best",
+		top: "Strong",
 		mid: "Standard",
 		small: "Fast",
 	},
@@ -109,7 +109,7 @@ export const shellFnFr: typeof shellFnEn = {
 	},
 	roles: {
 		tier: "Modèle de {name}",
-		top: "Le meilleur",
+		top: "Fort",
 		mid: "Standard",
 		small: "Rapide",
 	},

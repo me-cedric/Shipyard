@@ -65,7 +65,7 @@ function RenameDialog({ job, onClose }: { job: Job; onClose: () => void }) {
 			open
 			wide={review !== null}
 			onOpenChange={(o) => !o && onClose()}
-			title={format(u.renameTitle, { path: job.path })}
+			title={format(u.renameTitle, { path: file })}
 			actions={
 				review ? (
 					<>
@@ -119,6 +119,11 @@ function RenameDialog({ job, onClose }: { job: Job; onClose: () => void }) {
 					<span className="pb-1 text-ui text-n-11">{ext}</span>
 				</form>
 			)}
+			{!review && name !== "" && /[/\\]/.test(name) ? (
+				<p role="alert" className="text-ui text-danger-text">
+					{u.renameSlash}
+				</p>
+			) : null}
 			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 		</Dialog>
 	);

@@ -73,7 +73,7 @@ Diagramas contiene los dibujos del proyecto: Excalidraw, Mermaid, draw.io y BPMN
 
 ### Pantallas
 
-Pantallas muestra las pantallas del producto y los tokens de diseño de tu proyecto. Vienen del documento de diseño (CSS en un bloque de código), de un archivo `tokens.css`, de un archivo `*.tokens.json` o de un bloque `@theme` de Tailwind 4, agrupados por archivo. Sin tokens la página dice Aún no hay tokens; haz clic en Añadir tokens al documento de diseño, edita el bloque y guarda. La página nunca muestra los tokens de Shipyard. Cada pantalla es una tarjeta con Construida o Sin construir. El selector Pantallas y Tokens muestra los tokens. Del diseño al código abre la pantalla abierta, o la primera, en el inspector, donde está Escribir el plan.
+Pantallas muestra las pantallas del producto y los tokens de diseño de tu proyecto. Vienen del documento de diseño (CSS en un bloque de código), de un archivo `tokens.css`, de un archivo `*.tokens.json` o de un bloque `@theme` de Tailwind 4, agrupados por archivo. Sin tokens la página dice Sin tokens de diseño; haz clic en Añadir tokens al documento de diseño, edita el bloque y guarda. La página nunca muestra los tokens de Shipyard. Cada pantalla es una tarjeta con Construida o Sin construir. El selector Pantallas y Tokens de diseño muestra los tokens. Del diseño al código abre la pantalla abierta, o la primera, en el inspector, donde está Escribir el plan.
 
 - Un archivo `.fig` muestra la vista previa que Figma guarda en él.
 - Para leer Figma, añade una vez el token de tu cuenta de Figma. Va al llavero de tu ordenador.

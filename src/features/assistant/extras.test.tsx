@@ -28,7 +28,7 @@ describe("assistant panel: tabs, quote, redo and file counts", () => {
 		await user.click(pills.getByRole("button", { name: "Do" }));
 		await user.type(input(), "Change hello{Enter}");
 		expect(await log().findByText("I changed src/hello.ts in the worktree.")).toBeInTheDocument();
-		expect(log().getByText(/1 files/)).toBeInTheDocument();
+		expect(log().getByText(/ 1 file ·/)).toBeInTheDocument();
 		await user.click(log().getByRole("button", { name: "Quote" }));
 		expect(input()).toHaveValue("> I changed src/hello.ts in the worktree.\n");
 		await user.click(log().getByRole("button", { name: "Redo" }));

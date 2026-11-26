@@ -47,7 +47,7 @@ export const reportsEs: typeof reportsEn = {
 		base: "Desde la versión",
 		head: "Hasta la versión",
 		approvers: "Personas que aprueban",
-		required: "Rellena cada campo antes de escribir el informe.",
+		required: "Rellena: {fields}.",
 		add: "Añadir",
 		from: "Desde",
 		to: "Hasta",

@@ -26,7 +26,7 @@ export const workspaceEs: typeof workspaceEn = {
 	},
 	pr: {
 		group: "Asistente",
-		describe: "Escribir descripción",
+		describe: "Escribir la descripción",
 		review: "Revisar",
 		reply: "Responder",
 		prompt: {
@@ -39,14 +39,14 @@ export const workspaceEs: typeof workspaceEn = {
 		},
 	},
 	gate: {
-		stale: "{from} cambió, {to} no: {paths}",
+		stale: "{from} cambió y {to} no",
 		cannotPush: "La cuenta no puede hacer push a {remote}",
-		onDefault: "{branch} es la rama predeterminada de {remote}",
+		onDefault: "Trabajas en {branch}, la rama compartida. Crea primero una rama nueva.",
 	},
 	conflict: {
 		agent: "Pasar al agente",
 		factory: "Enviar a Flujo",
-		sent: "Elemento de trabajo {key} creado",
+		sent: "Ticket {key} creado",
 		prompt:
 			"Resuelve los conflictos de fusión en {files}. Conserva la intención de ambos lados. No dejes ningún marcador.",
 	},

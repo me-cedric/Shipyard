@@ -11,13 +11,13 @@ import { RightButton, useRights } from "@/lib/rights";
 import { Button } from "@/ui/atoms/button";
 import { linkClass } from "@/ui/atoms/link-button";
 import { Progress } from "@/ui/atoms/progress";
+import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { CloseConfirm } from "./close-confirm";
-import { FitSegmented } from "./fit-segmented";
 import { focusPullTitle } from "./focus-title";
 import { defaultMergeMethod } from "./merge-default";
 import { usePullAsk } from "./pull-ask";
@@ -68,9 +68,7 @@ export function ArchiveBar({ number }: { number: number }) {
 					{t.forge.archiveAnyway}
 				</Button>
 			) : null}
-			{done ? (
-				<span role="status">{format(t.forge.archived, { sha: done.slice(0, 7) })}</span>
-			) : null}
+			{done ? <span role="status">{t.forge.archived}</span> : null}
 			<ErrorNotice error={error} />
 		</Card>
 	);
@@ -258,7 +256,8 @@ export function MergeCard({ d }: { d: PullDetail }) {
 						title={gate("code.merge").reason}
 						className="m-0 w-fit min-w-0 border-0 p-0"
 					>
-						<FitSegmented
+						<Segmented
+							fit
 							label={t.forge.method}
 							value={current}
 							onValueChange={setMethod}

@@ -1,7 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderApp } from "../test-utils";
-import { CommitRow } from "./commit-row";
 import { ConflictBlock } from "./conflict-block";
 import { DiffView, parseDiff, shownLines } from "./diff-view";
 import { FileRow } from "./file-row";
@@ -66,27 +65,6 @@ describe("FileRow", () => {
 	it("shows a folder with no mark", () => {
 		renderApp(<FileRow name="src" />);
 		expect(screen.queryByRole("img")).toBeNull();
-	});
-});
-
-describe("CommitRow", () => {
-	it("shows the summary, the labels, the author and selects on click", async () => {
-		const onSelect = vi.fn();
-		renderApp(
-			<CommitRow
-				short="1a2b3c4"
-				summary="fix: x"
-				author="Ada"
-				date="today"
-				labels={[{ name: "main", kind: "branch" }]}
-				onSelect={onSelect}
-			/>,
-		);
-		const row = screen.getByRole("button");
-		expect(row).toHaveTextContent("1a2b3c4");
-		expect(row).toHaveTextContent("main");
-		await userEvent.click(row);
-		expect(onSelect).toHaveBeenCalledOnce();
 	});
 });
 

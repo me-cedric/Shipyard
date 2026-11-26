@@ -99,7 +99,7 @@ describe("Code / Now, the pull requests", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent(
 			"The server refused the token. Make a new token.",
 		);
-		expect(screen.getByRole("button", { name: "Open settings" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Open Setup" })).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: "New pull request" })).toBeNull();
 		expect(screen.queryByRole("button", { name: "Connect" })).toBeNull();
 	});
@@ -295,7 +295,7 @@ describe("Code / Now, the pull requests", () => {
 		const router = mountApp("/code/now");
 		await user.pointer({ keys: "[MouseRight]", target: await row(/health route/) });
 		expect(await screen.findByRole("menuitem", { name: "Open" })).toBeInTheDocument();
-		expect(screen.getByRole("menuitem", { name: "Copy ref" })).toBeInTheDocument();
+		expect(screen.getByRole("menuitem", { name: "Copy the reference" })).toBeInTheDocument();
 		await user.keyboard("{Escape}");
 		await idle(router);
 	});
@@ -414,7 +414,7 @@ describe("Code / Now, the pull requests", () => {
 			expect(screen.getByRole("button", { name: "Merge pull request" })).toBeEnabled(),
 		);
 		await user.click((await mergeCard()).getByRole("button", { name: "More" }));
-		await screen.findByRole("menuitem", { name: "Copy ref" });
+		await screen.findByRole("menuitem", { name: "Copy the reference" });
 		expect(screen.queryByRole("menuitem", { name: "Mark ready" })).toBeNull();
 		await user.keyboard("{Escape}");
 		await user.click(screen.getByRole("button", { name: "Merge pull request" }));
@@ -478,7 +478,7 @@ describe("Code / Now, the pull requests", () => {
 		const router = mountApp("/code/pull-requests/github-demo-141");
 		await user.click((await mergeCard()).getByRole("button", { name: "More" }));
 		expect(await screen.findByRole("menuitem", { name: "Open in browser" })).toBeEnabled();
-		expect(screen.getByRole("menuitem", { name: "Copy ref" })).toBeEnabled();
+		expect(screen.getByRole("menuitem", { name: "Copy the reference" })).toBeEnabled();
 		await user.keyboard("{Escape}");
 		await idle(router);
 	});
@@ -513,9 +513,13 @@ describe("Code / Now, the pull requests", () => {
 			await screen.findByRole("heading", { level: 1, name: "New pull request" }),
 		).toBeVisible();
 		const submit = () => user.click(screen.getByRole("button", { name: "Open the pull request" }));
+		// No title, no open: the field is marked and the text says why.
+		const title = screen.getByRole("textbox", { name: "Title" });
+		// This branch has no commit of its own, so the title starts empty.
+		expect(title).toHaveValue("");
 		await submit();
-		expect(await screen.findByRole("alert")).toHaveTextContent("needs a title");
-		await user.type(screen.getByRole("textbox", { name: "Title" }), "feat(code): login");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Write a title first");
+		await user.type(title, "feat(code): login");
 		await user.click(screen.getByRole("combobox", { name: "Into" }));
 		await user.click(await screen.findByRole("option", { name: "feat/demo/login" }));
 		await submit();
@@ -581,7 +585,7 @@ describe("New pull request, the cards before the push", () => {
 		expect(screen.getByRole("button", { name: "Push as it is" })).toBeInTheDocument();
 		expect(await screen.findByRole("heading", { name: "1 doc goes stale" })).toBeInTheDocument();
 		// The warning of the default branch is for a screen reader only.
-		const warning = screen.getByText(/is the default branch of/);
+		const warning = screen.getByText(/the shared branch/);
 		expect(warning).toHaveClass("sr-only");
 		await idle(router);
 	});
@@ -685,7 +689,7 @@ describe("Code / Pull requests, the page", () => {
 		await user.click(draft);
 		await waitFor(() => expect(screen.getAllByText("Draft")).toHaveLength(before + 1));
 		await user.pointer({ keys: "[MouseRight]", target: draft });
-		expect(await screen.findByRole("menuitem", { name: "Copy ref" })).toBeInTheDocument();
+		expect(await screen.findByRole("menuitem", { name: "Copy the reference" })).toBeInTheDocument();
 		await user.keyboard("{Escape}");
 		await idle(router);
 	});
@@ -734,7 +738,7 @@ describe("Pull request conversation", () => {
 			"Pushed a new",
 			"this branch ",
 		]);
-		const time = within(panel).getAllByText(/^Nov 9, 2026/)[0];
+		const time = within(panel).getAllByText(/^9 Nov 2026/)[0];
 		expect(time).toHaveTextContent(/\d{1,2}:\d{2}/);
 		expect(time).toHaveAttribute("datetime", "2026-11-09T16:00:00Z");
 		expect(time?.getAttribute("title")).toContain("2026");

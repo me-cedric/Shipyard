@@ -1,6 +1,6 @@
 import { type ComponentType, type LazyExoticComponent, lazy, Suspense } from "react";
 import { type SectionSpace, tabIcon, tabLabel } from "@/features/shell";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
@@ -96,7 +96,7 @@ export function TabView({ space, tab }: { space: SectionSpace; tab: string }) {
 	return (
 		<div className="flex flex-col gap-4">
 			<PageHeader icon={icon} title={title} />
-			<EmptyState title={t.empty.nothing} />
+			<EmptyState title={format(t.empty.none, { name: title })} icon={icon} />
 		</div>
 	);
 }

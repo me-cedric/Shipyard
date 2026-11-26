@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
@@ -126,7 +126,7 @@ describe("Home / Today", () => {
 		rec.state = "Paused";
 		const resume = vi.spyOn(commands, "runResume");
 		mountApp("/today/today");
-		await user.click(await screen.findByRole("button", { name: `Resume ${run.key}` }));
+		await user.click(await screen.findByRole("button", { name: `Resume ${run.title || run.key}` }));
 		await waitFor(() => expect(resume).toHaveBeenCalledWith(run.id, 0, 0, null));
 		vi.restoreAllMocks();
 	});
@@ -244,13 +244,36 @@ describe("Home / Today", () => {
 		await importAll();
 		await unwrap(commands.prefsSet({ role: "po" }));
 		mountApp("/today/today");
-		const ends = await screen.findByRole("heading", { name: /^MVP 1 ends / });
+		const ends = await screen.findByRole("heading", { name: /^MVP 1 (ends|was due) / });
 		const working = await screen.findByRole("region", { name: /^Working now/ });
 		expect(ends.compareDocumentPosition(working) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 		expect(
 			await screen.findByRole("heading", { name: "3 people have too much work" }),
 		).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "Show" })).toHaveAttribute("href", "/plan/people");
+	});
+
+	it("shows the plan end as late in red once the day has passed, and as ahead before", async () => {
+		await withTracker();
+		await importAll();
+		await unwrap(commands.prefsSet({ role: "po" }));
+		const real = commands.planGet.bind(commands);
+		for (const [end, name, danger] of [
+			["2000-01-01", /^MVP 1 was due /, true],
+			["2999-01-01", /^MVP 1 ends /, false],
+		] as const) {
+			vi.spyOn(commands, "planGet").mockImplementation(async (slug) => {
+				const r = await real(slug);
+				if (r.status !== "ok") return r;
+				const bars = r.data.gantt.bars.map((b) => ({ ...b, end }));
+				return { ...r, data: { ...r.data, gantt: { bars } } };
+			});
+			mountApp("/today/today");
+			const h = await screen.findByRole("heading", { name });
+			expect(h.classList.contains("text-danger-text")).toBe(danger);
+			cleanup();
+		}
+		vi.restoreAllMocks();
 	});
 
 	it("shows no stat tiles: the spend of today sits in the foot of Working now", async () => {
@@ -313,9 +336,9 @@ describe("Home / Today", () => {
 		mountApp("/home/today");
 		const agents = within(await screen.findByRole("region", { name: /^Working now/ }));
 		for (const r of runs.filter((x) => keys.has(x.key)))
-			expect(await agents.findByRole("button", { name: `Stop ${r.key}` })).toBeInTheDocument();
+			expect(await agents.findByRole("button", { name: `Stop ${r.title}` })).toBeInTheDocument();
 		for (const r of runs.filter((x) => !keys.has(x.key)))
-			expect(agents.queryByRole("button", { name: `Stop ${r.key}` })).toBeNull();
+			expect(agents.queryByRole("button", { name: `Stop ${r.title}` })).toBeNull();
 	});
 
 	it("keeps a focus target around the sections for a row that leaves last", async () => {
@@ -345,7 +368,7 @@ describe("Home / Today", () => {
 		mountApp("/home/today");
 		const agents = await screen.findByRole("region", { name: /^Working now/ });
 		expect(
-			await within(agents).findByRole("button", { name: `Stop ${runs[0]?.key}` }),
+			await within(agents).findByRole("button", { name: `Stop ${runs[0]?.title}` }),
 		).toBeDisabled();
 	});
 

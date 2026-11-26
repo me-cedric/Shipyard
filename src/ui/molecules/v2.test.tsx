@@ -5,7 +5,6 @@ import { Card } from "./card";
 import { PageHeader } from "./page-header";
 import { Panel } from "./panel";
 import { StatStrip } from "./stat-strip";
-import { Timeline, TimelineItem } from "./timeline";
 
 describe("visual language v2 molecules (ADR 0014)", () => {
 	it("PageHeader shows the title, the count, one action and the overflow menu", async () => {
@@ -51,18 +50,5 @@ describe("visual language v2 molecules (ADR 0014)", () => {
 		const terms = screen.getAllByRole("term").map((t) => t.textContent);
 		expect(terms).toEqual(["Needs you", "Spend today"]);
 		expect(screen.getAllByRole("definition")[1]).toHaveTextContent("$1.20");
-	});
-
-	it("Timeline lists the events in order", () => {
-		renderApp(
-			<Timeline>
-				<TimelineItem lead={null} title="first" time="10:00" />
-				<TimelineItem lead={null} title="second" body="more" time="10:01" />
-			</Timeline>,
-		);
-		expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual([
-			"first10:00",
-			"secondmore10:01",
-		]);
 	});
 });

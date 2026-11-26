@@ -37,6 +37,7 @@ const OUTSIDE_TOOLS = [
 	"workflow_read",
 	"workflow_validate",
 	"workflow_propose",
+	"ref_read",
 ];
 
 const GROUP_OF: Record<string, keyof McpGates_Deserialize> = {
@@ -55,15 +56,16 @@ const GROUP_OF: Record<string, keyof McpGates_Deserialize> = {
 	adr_list: "adrs",
 	adr_read: "adrs",
 	adr_propose: "adrs",
-	qa_run_check: "qa",
+	qa_run_check: "exec",
 	qa_read_report: "qa",
 	docs_stale: "qa",
 	spec_validate: "qa",
-	qa_run_scanner: "qa",
+	qa_run_scanner: "exec",
 	workflow_list: "workflows",
 	workflow_read: "workflows",
 	workflow_validate: "workflows",
 	workflow_propose: "workflows",
+	ref_read: "reads",
 };
 
 const READ_ONLY = [
@@ -84,6 +86,7 @@ const READ_ONLY = [
 	"workflow_list",
 	"workflow_read",
 	"workflow_validate",
+	"ref_read",
 ];
 
 type Gates = Required<McpGates_Deserialize>;

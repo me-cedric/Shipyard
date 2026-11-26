@@ -6,7 +6,7 @@ import { commands, type DesignToken, type FigmaFile, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { ZoomFrame } from "@/ui/molecules/zoom-frame";
+import { ZoomFrame } from "@/ui/organisms/zoom-frame";
 
 /**
  * Design / Screens: the Figma API. The token goes to the OS keychain; then the files of a Figma

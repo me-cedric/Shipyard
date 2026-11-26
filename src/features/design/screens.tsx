@@ -20,10 +20,11 @@ import { EditorPreview } from "@/ui/molecules/pane-toggle";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { Row } from "@/ui/molecules/row";
 import { SectionSwitch } from "@/ui/molecules/section-switch";
-import { ZoomFrame } from "@/ui/molecules/zoom-frame";
+import { TILE, TILE_ON } from "@/ui/molecules/tile";
 import { svgDataUri } from "@/ui/organisms/drawio";
 import { HtmlPreview } from "@/ui/organisms/html-preview";
-import { LibraryPage, LinkedCard, PageColumns, SideCards } from "../library/page-parts";
+import { ZoomFrame } from "@/ui/organisms/zoom-frame";
+import { LibraryPage, LinkedCard, PageColumns, SideCards } from "@/ui/templates/library-page";
 import { FigmaPanel } from "./figma-panel";
 import { FileFrame } from "./frame";
 import { useOpenOutside } from "./open";
@@ -166,12 +167,9 @@ function ScreenTile({
 			type="button"
 			aria-pressed={selected}
 			onClick={onPick}
-			className={cn(
-				"flex min-h-control w-full cursor-pointer flex-col items-start gap-3 rounded-lg bg-surface-2 p-4.5 text-left text-n-12 shadow-2 focus-visible:outline-offset-2",
-				selected && "bg-accent-tint outline-2 outline-accent",
-			)}
+			className={cn(TILE, "w-full items-start", selected && TILE_ON)}
 		>
-			<span className="flex h-[170px] w-full items-center justify-center overflow-hidden rounded-[14px] border border-dashed border-n-8 bg-n-2">
+			<span className="flex h-[170px] w-full items-center justify-center overflow-hidden rounded-field border border-dashed border-n-8 bg-n-2">
 				{screen.file && /\.(png|jpe?g|gif|webp|svg)$/i.test(screen.file) ? (
 					<Preview path={screen.file} label={screen.title} plain />
 				) : null}

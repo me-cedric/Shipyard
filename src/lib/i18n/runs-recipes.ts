@@ -2,6 +2,7 @@
 export const runsRecipesEn = {
 	pause: "Pause",
 	takeOver: "Take it over",
+	confirmTakeOver: "Stop the agent and take over {name}?",
 	addDocument: "Add a document",
 	removeDocument: "Remove {name}",
 	documentKinds: "{name}: add a Markdown, PDF or Word file.",
@@ -9,6 +10,7 @@ export const runsRecipesEn = {
 	limit: "Limit",
 	limitAmount: "Limit of the feature, in dollars",
 	limitError: "The limit is an amount of more than zero dollars.",
+	budgetError: "The budget is zero dollars or more.",
 	stageAtOnce: "{name}, at once",
 	warnAtPercent: "Warn at, in percent",
 	editWarn: "Edit Warn at",
@@ -32,6 +34,7 @@ export const runsRecipesEn = {
 export const runsRecipesFr: typeof runsRecipesEn = {
 	pause: "Mettre en pause",
 	takeOver: "Reprendre la main",
+	confirmTakeOver: "Arrêter l'agent et reprendre la main sur {name} ?",
 	addDocument: "Ajouter un document",
 	removeDocument: "Retirer {name}",
 	documentKinds: "{name} : ajoutez un fichier Markdown, PDF ou Word.",
@@ -39,6 +42,7 @@ export const runsRecipesFr: typeof runsRecipesEn = {
 	limit: "Limite",
 	limitAmount: "Limite de la fonctionnalité, en dollars",
 	limitError: "La limite est un montant de plus de zéro dollar.",
+	budgetError: "Le budget est de zéro dollar ou plus.",
 	stageAtOnce: "{name}, à la fois",
 	warnAtPercent: "Prévenir à, en pourcent",
 	editWarn: "Modifier Prévenir à",

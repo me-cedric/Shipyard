@@ -17,13 +17,13 @@ test("business analyst", async ({ page }) => {
 		},
 	);
 
-	await w.step("Open a change", "the change row, Brief, Files of the change, Edit", async () => {
+	await w.step("Open a change", "the change row, Brief, Files of the change, Form", async () => {
 		await w.click(page.getByRole("button", { name: /Bump dependencies/ }));
 		await w.click(
 			page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Brief" }),
 		);
 		await w.click(page.getByRole("link", { name: "Files of the change" }));
-		await w.click(page.getByRole("button", { name: "Edit", exact: true }));
+		await w.click(page.getByRole("button", { name: "Form", exact: true }));
 		await w.see(
 			page.getByRole("button", { name: "Next step: split into tickets" }),
 			"no way to split the change",
@@ -67,17 +67,7 @@ test("business analyst", async ({ page }) => {
 			await w.fill(page.getByRole("textbox", { name: "Title" }), "Add login page");
 			await w.click(page.getByRole("button", { name: "I write the spec" }));
 			await w.click(page.getByRole("button", { name: "Create" }));
-			await w.see(
-				page
-					.getByRole("complementary", { name: "Inspector" })
-					.getByText("change:add-login-page", { exact: true }),
-				"the new change does not open from a plain title",
-			);
-			await w.click(
-				page
-					.getByRole("complementary", { name: "Inspector" })
-					.getByRole("button", { name: "Open", exact: true }),
-			);
+			// Create opens the new feature on its Brief.
 			await w.until(
 				() => page.getByRole("heading", { name: "What do you want to build?" }).count(),
 				0,

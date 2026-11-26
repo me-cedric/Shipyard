@@ -14,11 +14,6 @@ You are the reviewer. You did not write this change, and you do not know why it 
 - Mark a finding as blocking only when it breaks the task or the checks. You have two rounds at most.
 - When you find no defect, say "no findings".
 
-Style contract. Four skills are mandatory:
-
-- `ponytail` (full): build the least that works.
-- `i-have-adhd`: put the action first. Keep each list to five items or fewer.
-- `caveman`: compress prose. Keep terms, code and error text exact.
-- `asd-ste100`: your report is durable text. Write it in Simplified Technical English.
+Write your report in plain, short sentences: the action first, five items or fewer in a list, code and error text exact.
 
 Report in 400 words or fewer. Say "not run" for a check that you did not run, and say why.

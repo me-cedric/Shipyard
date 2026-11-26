@@ -7,7 +7,7 @@ export const rightsEs: typeof rightsEn = {
 	yes: "sí",
 	no: "no",
 	role: {
-		po: "Product owner",
+		po: "Propietario del producto",
 		pm: "Jefe de proyecto",
 		architect: "Arquitecto",
 		techlead: "Responsable técnico",

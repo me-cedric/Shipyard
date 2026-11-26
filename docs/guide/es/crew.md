@@ -29,7 +29,7 @@ Una receta se abre en un formulario. Usa Formulario y Texto para pasar del formu
 
 ## Sesiones
 
-Sesiones lista las sesiones de los agentes: una ejecución, una revisión de pull request, una estimación y la creación de un mosaico. Haz clic en una sesión para verla con Abrir y Detener. Detener una ejecución pide una confirmación. Detener una revisión termina la revisión. Detener una estimación termina el agente, y la hoja conserva sus valores. Detener la creación de un mosaico la termina, y el panel no cambia. Las sesiones terminadas están en su propia página.
+Sesiones lista las sesiones de los agentes: una ejecución, una revisión de pull request, una estimación y la creación de un mosaico. Haz clic en una sesión para verla con Abrir y Detener. Detener una sesión, un agente o todos los agentes pide primero una confirmación. Detener una revisión termina la revisión. Detener una estimación termina el agente, y la hoja conserva sus valores. Detener la creación de un mosaico la termina, y el panel no cambia. Las sesiones terminadas están en su propia página.
 
 Solo lectura muestra la salida en vivo de una sesión cuando su herramienta escribe un archivo de historial que Shipyard puede leer (Claude Code y Codex lo hacen). Sin archivo de historial, el panel no muestra salida. Tomar el control detiene la sesión tras tu confirmación y ejecuta el comando de reanudación de su herramienta en el terminal de Shipyard.
 
@@ -52,7 +52,7 @@ El archivo del equipo `.shipyard/team.yaml` lista las personas del proyecto, su 
 
 ### Roles y derechos
 
-Cada miembro tiene un rol: Product owner, Jefe de proyecto, Arquitecto, Responsable técnico, Analista de negocio, Desarrollador, Tester, Diseñador o Lector. El rol da los derechos, la primera página y los paneles de Hoy (consulta Primeros pasos, Tu rol).
+Cada miembro tiene un rol: Propietario del producto, Jefe de proyecto, Arquitecto, Responsable técnico, Analista de negocio, Desarrollador, Tester, Diseñador o Lector. El rol da los derechos, la primera página y los paneles de Hoy (consulta Primeros pasos, Tu rol).
 
 Un derecho desactiva un control. El control sigue visible, y su ayuda emergente nombra el derecho que falta y tu rol. Un lugar o una sección se oculta solo cuando el equipo no da a tu rol ningún acceso.
 
@@ -70,7 +70,7 @@ Un derecho desactiva un control. El control sigue visible, y su ayuda emergente 
 
 La marca admin da todos los derechos. Un miembro puede tener cambios: `+code.merge` añade un derecho, `-runs.approve` quita uno. Tu rol personal en Configuración / Yo y el perfil de solo lectura de un proyecto solo pueden quitar derechos.
 
-Código y fusión es una sola fila: el nivel de Código y un interruptor Fusión, que fijan `code.write` y `code.merge`. El nivel de Plan de un rol sigue su nivel de Flujo y tickets hasta que lo cambies. Cada rol tiene un ajuste Lugares: un lugar que desactivas queda oculto para ese rol. Por defecto, Product owner y Jefe de proyecto no ven Código, Analista de negocio y Lector no ven Equipo ni Código, Arquitecto no ve Plan, Tester no ve Plan ni Equipo, y Diseñador no ve Plan, Equipo ni Código. Los derechos por defecto no cambian.
+Código y fusión es una sola fila: el nivel de Código y un interruptor Fusión, que fijan `code.write` y `code.merge`. El nivel de Plan de un rol sigue su nivel de Flujo y tickets hasta que lo cambies. Cada rol tiene un ajuste Lugares: un lugar que desactivas queda oculto para ese rol. Por defecto, Propietario del producto y Jefe de proyecto no ven Código, Analista de negocio y Lector no ven Equipo ni Código, Arquitecto no ve Plan, Tester no ve Plan ni Equipo, y Diseñador no ve Plan, Equipo ni Código. Los derechos por defecto no cambian.
 
 ### Quién eres
 

@@ -70,7 +70,7 @@ Agents et règles contient les outils d'IA, les fournisseurs de modèles, et les
 
 L'application garde chaque fichier qu'une personne a changé, sauf si vous réinstallez.
 
-Les rôles d'agent montrent la description et le modèle de chaque rôle : Le meilleur, Standard ou Rapide. Le changement d'un rôle fourni qui n'a pas de fichier de projet écrit le fichier de projet de ce rôle.
+Les rôles d'agent montrent la description et le modèle de chaque rôle : Fort, Standard ou Rapide. Le changement d'un rôle fourni qui n'a pas de fichier de projet écrit le fichier de projet de ce rôle.
 
 ### Outils d'IA
 

@@ -12,8 +12,10 @@ describe("Settings / Connections / Outside agents", () => {
 		const box = within(await screen.findByRole("region", { name: "Address of Shipyard" }));
 		const all = within(screen.getByRole("main"));
 		expect(all.getByText("Stopped")).toBeInTheDocument();
-		// The server switch is under More of the card of what the tools may use.
-		expect(box.queryByRole("switch")).toBeNull();
+		// The server switch, the token and Check are in the card of the address.
+		expect(box.getByRole("switch", { name: "Server on" })).toBeInTheDocument();
+		expect(box.getByRole("button", { name: "Copy access token" })).toBeInTheDocument();
+		expect(box.getByRole("button", { name: "Check" })).toBeInTheDocument();
 		// Each tool of a group is off until its switch is on.
 		await user.click(all.getByRole("switch", { name: "Server on" }));
 		await user.click(all.getByRole("button", { name: "Read files" }));
@@ -23,13 +25,47 @@ describe("Settings / Connections / Outside agents", () => {
 		);
 		expect(await all.findByText("Running")).toBeInTheDocument();
 		const status = await unwrap(commands.mcpOutsideGet());
-		expect(status.active).toEqual(["project_list_files", "project_read_file"]);
+		expect(status.active).toEqual(["project_list_files", "project_read_file", "ref_read"]);
 		expect(status.url).toBe("http://127.0.0.1:47821/mcp");
 
 		await user.clear(all.getByRole("spinbutton", { name: "Port" }));
 		await user.type(all.getByRole("spinbutton", { name: "Port" }), "80");
 		await user.click(all.getByRole("button", { name: "Apply" }));
-		expect(await all.findByRole("alert")).toHaveTextContent("1024 or more");
+		expect(await all.findByRole("alert")).toHaveTextContent("between 1024 and 65535");
+	});
+
+	it("Check reads the state of the server again", async () => {
+		const user = userEvent.setup();
+		mountApp("/setup/computer?page=share");
+		const box = within(await screen.findByRole("region", { name: "Address of Shipyard" }));
+		expect(await box.findByText("Stopped")).toBeInTheDocument();
+		mockState().doctor.gates.enabled = true;
+		await user.click(box.getByRole("button", { name: "Check" }));
+		expect(await box.findByText("Running")).toBeInTheDocument();
+	});
+
+	it("shows Apply in the address card when the switch changed", async () => {
+		const user = userEvent.setup();
+		mountApp("/setup/computer?page=share");
+		const box = within(await screen.findByRole("region", { name: "Address of Shipyard" }));
+		await user.click(box.getByRole("switch", { name: "Server on" }));
+		await user.click(box.getByRole("button", { name: "Apply" }));
+		expect(await box.findByText("Running")).toBeInTheDocument();
+	});
+
+	it("stops the server when Server on is off, even with a group on", async () => {
+		const user = userEvent.setup();
+		mountApp("/setup/computer?page=share");
+		const all = within(await screen.findByRole("main"));
+		await user.click(await all.findByRole("switch", { name: "Server on" }));
+		await user.click(all.getByRole("button", { name: "Read files" }));
+		await user.click(all.getByRole("button", { name: "Apply" }));
+		await waitFor(() => expect(mockState().doctor.gates.enabled).toBe(true));
+		await user.click(all.getByRole("switch", { name: "Server on" }));
+		await user.click(all.getByRole("button", { name: "Apply" }));
+		await waitFor(() =>
+			expect(mockState().doctor.gates).toMatchObject({ enabled: false, reads: true }),
+		);
 	});
 
 	it("limits the tools with a preset or a pick, and imports a server of another tool", async () => {
@@ -38,7 +74,7 @@ describe("Settings / Connections / Outside agents", () => {
 		mountApp("/setup/computer?page=share");
 		const box = within(await screen.findByRole("main"));
 		await user.click(await box.findByRole("switch", { name: "Server on" }));
-		await user.click(box.getByRole("button", { name: "Git" }));
+		await user.click(box.getByRole("button", { name: "Version history" }));
 		await user.click(box.getByRole("checkbox", { name: "git_status" }));
 		await user.click(box.getByRole("button", { name: "Apply" }));
 		await waitFor(async () =>
@@ -75,7 +111,11 @@ describe("Settings / Connections / Outside agents", () => {
 		await user.click(within(review).getByRole("button", { name: "Write the file" }));
 		expect(await box.findByRole("status")).toHaveTextContent(`${DEMO_FOLDER}/.mcp.json`);
 		expect(mockState().doctor.wired).toEqual({ claude: "http://127.0.0.1:47821/mcp" });
-		expect(box.getByText("Connected")).toBeInTheDocument();
+		// A written file with a stopped server is not Connected: Turn on starts the server.
+		expect(await box.findByText("Stopped")).toBeInTheDocument();
+		expect(box.queryByText("Connected")).toBeNull();
+		await user.click(box.getByRole("button", { name: "Turn on" }));
+		expect(await box.findByText("Connected")).toBeInTheDocument();
 
 		// The server settings change: the wired file is out of date, and one click updates it.
 		const outside = within(screen.getByRole("main"));

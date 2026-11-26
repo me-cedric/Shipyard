@@ -627,7 +627,7 @@ function view(f: MockFactory, r: Rec): RunView_Serialize {
 		pr: pr ? prRow(f, pr) : null,
 		openQuestions: f.questions.filter((x) => x.run === r.id && x.q.state === "open").length,
 		approvals: f.approvals.filter((a) => a.run === r.id).length,
-		reason: null,
+		reason: r.state === "Blocked" ? "The French catalog is locked by another branch." : null,
 		stop: stopOfRun(r, pr?.state ?? null),
 		...(approverOf(f, r.id) ? { approver: approverOf(f, r.id) as string } : {}),
 	};
@@ -999,7 +999,7 @@ export function seedFactory(): MockFactory {
 		"The export needs the v2 schema. I used the v1 shape for now.",
 		false,
 	);
-	approval(building, "transition", "Move ACME-2 to In Progress", "");
+	approval(building, "transition", "Move ACME-2 to In Progress", "In Progress");
 	approval(
 		building,
 		"open_pr",

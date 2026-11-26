@@ -43,7 +43,7 @@ describe("the sync action and the connection state rows", () => {
 		// The one alert is the live region beside the mark; the card shows the same reason.
 		expect(screen.getAllByRole("alert")[0]).toHaveTextContent("This connection has no token yet.");
 		expect(card.getByText("This connection has no token yet.")).toBeVisible();
-		expect(card.getByRole("button", { name: "Open settings" })).toBeVisible();
+		expect(card.getByRole("button", { name: "Open Setup" })).toBeVisible();
 	});
 
 	it("focuses the pickup label field when the address names its anchor", async () => {
@@ -91,13 +91,11 @@ describe("Settings / Project, group Automation", () => {
 		expect(within(less.parentElement as HTMLElement).getByText("2")).toBeVisible();
 		// The main switch is on while the limit of this computer is above zero.
 		expect(screen.getByRole("switch", { name: "Agents pick up tickets alone" })).toBeChecked();
-		for (const name of [
-			"Push the branch",
-			"Open the pull request",
-			"Move the ticket",
-			"Comment in the issue tracker",
-		])
-			expect(screen.getByRole("switch", { name })).toBeChecked();
+		// The write rights live in one place: this page links to it.
+		expect(screen.getByRole("link", { name: "What agents may do alone" })).toHaveAttribute(
+			"href",
+			"/setup/project#alone",
+		);
 		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 	});
 
@@ -113,7 +111,7 @@ describe("Settings / Project, group Automation", () => {
 		expect(mockState().sync.file).toBe("missing");
 	});
 
-	it("saves the pickup filter, the limits, the mapping and a write switch", async () => {
+	it("saves the pickup filter, the limits and the mapping", async () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mountApp("/setup/project?page=automation");
@@ -125,7 +123,6 @@ describe("Settings / Project, group Automation", () => {
 		await user.type(screen.getByRole("textbox", { name: "Statuses" }), "To Do, Ready");
 		await user.type(screen.getByRole("textbox", { name: "Per status" }), "To Do=1");
 		await user.type(screen.getByRole("textbox", { name: "Done, Status" }), "Closed");
-		await user.click(screen.getByRole("switch", { name: "Comment in the issue tracker" }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().sync.file).toBe("valid"));
 		const a = mockState().sync.automation;
@@ -138,7 +135,7 @@ describe("Settings / Project, group Automation", () => {
 			push: true,
 			pull_request: true,
 			tracker_transition: true,
-			tracker_comment: false,
+			tracker_comment: true,
 		});
 		// The saved file resets the form: no Save button.
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
@@ -254,7 +251,7 @@ describe("Settings / Project, group Automation", () => {
 		mountApp("/setup/project?page=automation");
 		expect(await screen.findByRole("spinbutton", { name: "Intervalle (s)" })).toBeInTheDocument();
 		expect(
-			screen.getByRole("switch", { name: "Commenter dans l'outil de suivi" }),
+			screen.getAllByRole("link", { name: "Ce que les agents font seuls" })[0],
 		).toBeInTheDocument();
 		expect(screen.getByRole("textbox", { name: "Terminé, Statut" })).toBeInTheDocument();
 	});

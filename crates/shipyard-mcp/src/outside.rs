@@ -9,6 +9,9 @@
 //! default. Each write tool needs the right of the person, as the app checks it
 //! (`team-rights` REQ-007): a read-only project takes no comment, no proposal and no check.
 //!
+//! `ref_read` is in the reads group (`refs` REQ-015). It refuses a ref of a hidden area and leaves
+//! out each backlink of a hidden area. It gives no text of a file.
+//!
 //! shortcut: no resources. Add them when an outside agent needs them.
 
 use serde::{Deserialize, Serialize};
@@ -19,7 +22,10 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use shipyard_core::rights::{Area, Right};
+use shipyard_core::rights::{Area, Right, ref_area};
+use shipyard_store::ref_query::State;
+
+use crate::tools::read_ref::ReadRef;
 
 /// The groups of tools that an outside agent may call.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -52,6 +58,19 @@ pub struct RightsPort(pub Arc<RightsFn>);
 
 pub type RightsFn = dyn Fn(Right, &str, &str) -> Result<(), String> + Send + Sync;
 
+/// How the app reads a ref in the ref index of the open project, as `read_ref` of a run does.
+/// `Err` says that no project is open, with the next step.
+#[derive(Clone)]
+pub struct RefPort(pub Arc<RefFn>);
+
+pub type RefFn = dyn Fn(&str) -> Result<ReadRef, String> + Send + Sync;
+
+impl std::fmt::Debug for RefPort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("RefPort")
+    }
+}
+
 impl std::fmt::Debug for RightsPort {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("RightsPort")
@@ -75,6 +94,8 @@ pub struct Outside {
     pub rights: Option<RightsPort>,
     /// The ticket tools answer through it. `None`: they say that no tracker is wired.
     pub tickets: Option<TicketPort>,
+    /// `ref_read` reads through it. `None`: it says that Shipyard is not open.
+    pub refs: Option<RefPort>,
     /// The areas at `none` for the person: their read tools refuse (`team-rights` REQ-018).
     pub hidden: Vec<Area>,
 }
@@ -87,7 +108,7 @@ impl Outside {
 }
 
 /// The tool names. One group each.
-pub const NAMES: [&str; 24] = [
+pub const NAMES: [&str; 25] = [
     "project_list_files",
     "project_read_file",
     "project_write_file",
@@ -112,10 +133,11 @@ pub const NAMES: [&str; 24] = [
     "workflow_read",
     "workflow_validate",
     "workflow_propose",
+    "ref_read",
 ];
 
 /// The tools that change nothing: the "read only" preset of the allow list.
-pub const READ_ONLY: [&str; 17] = [
+pub const READ_ONLY: [&str; 18] = [
     "project_list_files",
     "project_read_file",
     "git_status",
@@ -133,6 +155,7 @@ pub const READ_ONLY: [&str; 17] = [
     "workflow_list",
     "workflow_read",
     "workflow_validate",
+    "ref_read",
 ];
 
 const MAX_READ: u64 = 256 * 1024;
@@ -166,17 +189,33 @@ fn area_of(name: &str) -> Option<Area> {
     })
 }
 
+/// The name of the switch of a tool, as the Share page shows it.
+fn group_label(name: &str) -> &'static str {
+    match name {
+        "project_list_files" | "project_read_file" | "ref_read" => "Read files",
+        "project_write_file" => "Write files",
+        "git_status" | "git_log" | "git_diff" => "Version history",
+        "forge_remote" => "Code host address",
+        "run_check" | "qa_run_check" | "qa_run_scanner" => "Run checks",
+        "delivery_diff" => "Changes of a feature",
+        "ticket_list" | "ticket_read" | "ticket_comment" => "Tickets",
+        "adr_list" | "adr_read" | "adr_propose" => "Decisions",
+        "qa_read_report" | "docs_stale" | "spec_validate" => "Quality reports",
+        _ => "Recipes",
+    }
+}
+
 fn group(name: &str, s: &Switches) -> bool {
     match name {
-        "project_list_files" | "project_read_file" => s.reads,
+        "project_list_files" | "project_read_file" | "ref_read" => s.reads,
         "project_write_file" => s.writes,
         "git_status" | "git_log" | "git_diff" => s.git,
         "forge_remote" => s.forge,
-        "run_check" | "qa_run_check" => s.exec,
+        "run_check" | "qa_run_check" | "qa_run_scanner" => s.exec,
         "delivery_diff" => s.delivery,
         "ticket_list" | "ticket_read" | "ticket_comment" => s.tickets,
         "adr_list" | "adr_read" | "adr_propose" => s.adrs,
-        "qa_read_report" | "docs_stale" | "spec_validate" | "qa_run_scanner" => s.qa,
+        "qa_read_report" | "docs_stale" | "spec_validate" => s.qa,
         "workflow_list" | "workflow_read" | "workflow_validate" | "workflow_propose" => s.workflows,
         _ => false,
     }
@@ -195,6 +234,11 @@ fn tool(name: &str, description: &str, props: Value, required: &[&str]) -> Value
     })
 }
 
+/// A text property with a description for the agent.
+fn text_prop(description: &str) -> Value {
+    json!({ "type": "string", "description": description })
+}
+
 fn check_props() -> Value {
     json!({
         "name": { "type": "string", "enum": ["test", "lint", "typecheck"] },
@@ -204,7 +248,9 @@ fn check_props() -> Value {
 
 /// The `tools/list` entries for the tools that `o` turns on.
 pub fn definitions(o: &Outside) -> Vec<Value> {
-    let path = json!({ "type": "string" });
+    let path =
+        text_prop("A path relative to the project folder, such as docs/a.md. Empty: the root.");
+    let diff_path = text_prop("Only this path, relative to the project folder. Empty: all files.");
     let all = [
         tool(
             "project_list_files",
@@ -221,7 +267,7 @@ pub fn definitions(o: &Outside) -> Vec<Value> {
         tool(
             "project_write_file",
             "Write a text file of the open project.",
-            json!({ "path": path, "text": { "type": "string" } }),
+            json!({ "path": path, "text": text_prop("The full new text of the file.") }),
             &["path", "text"],
         ),
         tool(
@@ -233,13 +279,13 @@ pub fn definitions(o: &Outside) -> Vec<Value> {
         tool(
             "git_log",
             "The last commits of the open project.",
-            json!({ "limit": { "type": "integer", "minimum": 1, "maximum": 100 } }),
+            json!({ "limit": { "type": "integer", "minimum": 1, "maximum": 100, "description": "How many commits. Default 20." } }),
             &[],
         ),
         tool(
             "git_diff",
             "The uncommitted changes of the open project.",
-            json!({}),
+            json!({ "path": diff_path }),
             &[],
         ),
         tool(
@@ -257,7 +303,7 @@ pub fn definitions(o: &Outside) -> Vec<Value> {
         tool(
             "delivery_diff",
             "The changes of the branch against its base.",
-            json!({ "base": { "type": "string" } }),
+            json!({ "base": text_prop("The base branch. Default main."), "path": diff_path }),
             &[],
         ),
         tool(
@@ -269,13 +315,13 @@ pub fn definitions(o: &Outside) -> Vec<Value> {
         tool(
             "ticket_read",
             "Read one ticket and its comments.",
-            json!({ "key": { "type": "string" } }),
+            json!({ "key": text_prop("The ticket key, such as ACME-12.") }),
             &["key"],
         ),
         tool(
             "ticket_comment",
             "Add a comment to a ticket.",
-            json!({ "key": { "type": "string" }, "body": { "type": "string" } }),
+            json!({ "key": text_prop("The ticket key, such as ACME-12."), "body": text_prop("The text of the comment.") }),
             &["key", "body"],
         ),
         tool(
@@ -287,7 +333,7 @@ pub fn definitions(o: &Outside) -> Vec<Value> {
         tool(
             "adr_read",
             "Read one ADR by its number.",
-            json!({ "number": { "type": "string" } }),
+            json!({ "number": text_prop("The ADR number with zeros, such as 0011.") }),
             &["number"],
         ),
         tool(
@@ -317,12 +363,12 @@ pub fn definitions(o: &Outside) -> Vec<Value> {
         tool(
             "spec_validate",
             "Validate one OpenSpec change in strict mode.",
-            json!({ "id": { "type": "string" } }),
+            json!({ "id": text_prop("The name of the change folder, such as add-login.") }),
             &["id"],
         ),
         tool(
             "qa_run_scanner",
-            "Run one scanner (secrets, dependencies, code or skills) and keep the report.",
+            "Run one scanner (secrets, dependencies, code or skills) and keep the report. It needs the Run checks switch.",
             json!({ "name": { "type": "string", "enum": ["secrets", "dependencies", "code", "skills"] } }),
             &["name"],
         ),
@@ -335,20 +381,26 @@ pub fn definitions(o: &Outside) -> Vec<Value> {
         tool(
             "workflow_read",
             "Read the text of one workflow of the open project.",
-            json!({ "id": { "type": "string" } }),
+            json!({ "id": text_prop("The workflow id, as workflow_list shows it.") }),
             &["id"],
         ),
         tool(
             "workflow_validate",
             "Check the text of a workflow and name the first problem. Nothing is written.",
-            json!({ "id": { "type": "string" }, "text": { "type": "string" } }),
+            json!({ "id": text_prop("The workflow id, as workflow_list shows it."), "text": text_prop("The full YAML text of the workflow.") }),
             &["id", "text"],
         ),
         tool(
             "workflow_propose",
             "Propose the text of a workflow. A person applies it in Factory / Workflows.",
-            json!({ "id": { "type": "string" }, "text": { "type": "string" } }),
+            json!({ "id": text_prop("The workflow id, as workflow_list shows it."), "text": text_prop("The full YAML text of the workflow.") }),
             &["id", "text"],
+        ),
+        tool(
+            "ref_read",
+            "Read the title, the state, the location and the backlinks of a ref. It gives no file text.",
+            json!({ "ref": text_prop("A ref, such as spec:auth#REQ-003, adr:0011 or wi:ACME-12.") }),
+            &["ref"],
         ),
     ];
     all.into_iter()
@@ -427,11 +479,8 @@ fn front_matter(text: &str) -> (String, &str) {
     let Some((head, body)) = rest.split_once("\n---") else {
         return (String::new(), text);
     };
-    let description = head
-        .lines()
-        .find_map(|l| l.strip_prefix("description:"))
-        .map(|d| d.trim().trim_matches(['"', '\'']).to_string())
-        .unwrap_or_default();
+    let description =
+        shipyard_agents::slash::description(&format!("---\n{head}\n---")).unwrap_or_default();
     (description, body.trim_start_matches(['-', '\n']))
 }
 
@@ -520,9 +569,12 @@ fn drain(p: Option<impl Read + Send + 'static>, tail: bool) -> std::thread::Join
     std::thread::spawn(move || {
         let Some(mut p) = p else { return String::new() };
         if !tail {
-            let mut s = String::new();
-            let _ = p.take(MAX_OUT as u64).read_to_string(&mut s);
-            return s;
+            let mut b = Vec::new();
+            // Four bytes per char: a longer answer still shows its cut. The rest is read and
+            // dropped, so the child gets no SIGPIPE and its exit stays a success.
+            let _ = p.by_ref().take(MAX_OUT as u64 * 4).read_to_end(&mut b);
+            let _ = std::io::copy(&mut p, &mut std::io::sink());
+            return String::from_utf8_lossy(&b).into_owned();
         }
         // A check keeps its last bytes: the verdict is at the end. The pipe is read to its end,
         // so the child never blocks on a full pipe.
@@ -775,8 +827,75 @@ fn app_tool(o: &Outside, name: &str, args: &Value) -> Result<String, String> {
     let port = o
         .tickets
         .as_ref()
-        .ok_or("the app is not wired to this server")?;
+        .ok_or("Shipyard is not open. Open the Shipyard app and call again.")?;
     (port.0)(name, args)
+}
+
+/// The refusal of a read in a hidden area (`team-rights` REQ-018).
+fn hidden_error(a: Area) -> String {
+    format!("the area {} is hidden for this person", a.as_str())
+}
+
+fn off_error(name: &str) -> String {
+    format!(
+        "{name} is off. A person turns on {} in Setup / This computer / Share.",
+        group_label(name)
+    )
+}
+
+/// The read tool of a ref whose source is not a project file. Its switch must be on as well.
+fn source_tool(reference: &str) -> Option<&'static str> {
+    Some(match reference.trim().split(':').next()? {
+        "wi" => "ticket_read",
+        "pr" => "forge_remote",
+        "commit" => "git_log",
+        "run" | "wf" => "workflow_read",
+        _ => return None,
+    })
+}
+
+/// True when the area of the ref is not hidden and the switch of its source is on.
+fn can_see(o: &Outside, reference: &str) -> bool {
+    ref_area(reference).is_none_or(|a| !o.hidden.contains(&a))
+        && source_tool(reference).is_none_or(|t| o.allows(t))
+}
+
+/// `ref_read` (`refs` REQ-015): the answer of `read_ref`, with no backlink of a hidden area or
+/// of a source whose switch is off.
+fn ref_read(o: &Outside, args: &Value) -> Result<String, String> {
+    let text = arg(args, "ref").ok_or("ref is required")?.trim();
+    if shipyard_core::refs::parse(text).is_none() {
+        return Err(format!(
+            "not a ref: {text}. Write a ref such as spec:auth#REQ-003 or adr:0011."
+        ));
+    }
+    if let Some(a) = ref_area(text).filter(|a| o.hidden.contains(a)) {
+        return Err(hidden_error(a));
+    }
+    if let Some(t) = source_tool(text).filter(|t| !o.allows(t)) {
+        return Err(off_error(t));
+    }
+    let port = o
+        .refs
+        .as_ref()
+        .ok_or("Shipyard is not open. Open the Shipyard app and call again.")?;
+    let mut found = (port.0)(text)?;
+    match found.resolved.state {
+        State::Resolved => {}
+        State::Unresolved => {
+            return Err(format!("{text} is unresolved: its source is not indexed"));
+        }
+        State::Broken => return Err(format!("{text} is broken: no such entity")),
+    }
+    for g in &mut found.backlinks {
+        g.items.retain(|b| can_see(o, &b.source));
+        g.count = g.items.len() as u32;
+    }
+    found.backlinks.retain(|g| !g.items.is_empty());
+    // Through a `Value`, as the engine answers `read_ref`: the same text for the same ref.
+    serde_json::to_value(&found)
+        .map(|v| v.to_string())
+        .map_err(|e| e.to_string())
 }
 
 /// Strict validation of one change of the project.
@@ -797,16 +916,24 @@ fn spec_validate(root: &Path, args: &Value) -> Result<String, String> {
         .join("\n"))
 }
 
+/// The `-- <path>` of a diff tool. Empty without a path.
+fn diff_path(root: &Path, args: &Value) -> Result<Vec<String>, String> {
+    match arg(args, "path").filter(|p| !p.is_empty()) {
+        Some(p) => inside(root, p).map(|_| vec!["--".into(), p.into()]),
+        None => Ok(Vec::new()),
+    }
+}
+
 /// Run one tool. `Err` is a message for the agent. A switch that is off refuses the call.
 pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
     if !NAMES.contains(&name) {
         return Err(format!("unknown tool: {name}"));
     }
     if !o.allows(name) {
-        return Err(format!("{name} is turned off in the Shipyard settings"));
+        return Err(off_error(name));
     }
     if let Some(a) = area_of(name).filter(|a| o.hidden.contains(a)) {
-        return Err(format!("the area {} is hidden for this person", a.as_str()));
+        return Err(hidden_error(a));
     }
     if let Some(right) = right_of(name) {
         let port = o
@@ -883,12 +1010,12 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
                 Duration::from_secs(20),
             )?
         }
-        "git_diff" => run(
-            root,
-            "git",
-            &["diff", "--no-color"],
-            Duration::from_secs(20),
-        )?,
+        "git_diff" => {
+            let path = diff_path(root, args)?;
+            let mut git = vec!["diff", "--no-color"];
+            git.extend(path.iter().map(String::as_str));
+            run(root, "git", &git, Duration::from_secs(20))?
+        }
         "forge_remote" => run(
             root,
             "git",
@@ -931,6 +1058,7 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
             app_tool(o, name, args)?
         }
         "spec_validate" => spec_validate(root, args)?,
+        "ref_read" => ref_read(o, args)?,
         "qa_read_report" => {
             let all = shipyard_store::code::list_quality(root);
             serde_json::to_string_pretty(&all).map_err(|e| e.to_string())?
@@ -941,21 +1069,39 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
             if base.starts_with('-') || base.contains("..") {
                 return Err("base is not a branch name".into());
             }
-            run(
-                root,
-                "git",
-                &["diff", "--no-color", &format!("{base}...HEAD")],
-                Duration::from_secs(30),
-            )?
+            let range = format!("{base}...HEAD");
+            let path = diff_path(root, args)?;
+            let mut git = vec!["diff", "--no-color", range.as_str()];
+            git.extend(path.iter().map(String::as_str));
+            run(root, "git", &git, Duration::from_secs(30))?
         }
     };
-    let text: String = text.chars().take(MAX_OUT).collect();
+    let cut = text.chars().nth(MAX_OUT).is_some();
+    let mut text: String = text.chars().take(MAX_OUT).collect();
+    if cut {
+        text += if name == "ref_read" {
+            "\n[cut: the answer is longer than 131072 characters, so its JSON is not complete. Ask for a narrower ref, such as spec:auth#REQ-003.]"
+        } else {
+            "\n[cut: the answer is longer than 131072 characters. Ask for one path.]"
+        };
+    }
     Ok(json!({ "content": [{ "type": "text", "text": text }] }))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_folded_description_is_read_and_the_scanner_is_in_the_exec_group() {
+        let (d, _) = front_matter("---\nname: x\ndescription: >-\n  Does a thing.\n---\nbody");
+        assert_eq!(d, "Does a thing.");
+        let exec_only = Switches {
+            exec: true,
+            ..Switches::default()
+        };
+        assert!(group("qa_run_scanner", &exec_only) && !group("qa_read_report", &exec_only));
+    }
 
     fn all() -> Switches {
         Switches {
@@ -979,6 +1125,7 @@ mod tests {
             only: Vec::new(),
             rights: Some(RightsPort(Arc::new(|_, _, _| Ok(())))),
             tickets: Some(TicketPort(Arc::new(|name, _| Ok(format!("ran {name}"))))),
+            refs: None,
             hidden: Vec::new(),
         }
     }
@@ -998,15 +1145,18 @@ mod tests {
         };
         let dir = tempfile::tempdir().unwrap();
         let mut o = open(dir.path(), s);
-        assert_eq!(enabled(&o), ["project_list_files", "project_read_file"]);
-        assert_eq!(definitions(&o).len(), 2);
+        assert_eq!(
+            enabled(&o),
+            ["project_list_files", "project_read_file", "ref_read"]
+        );
+        assert_eq!(definitions(&o).len(), 3);
         let err = call(
             &o,
             "project_write_file",
             &json!({ "path": "a", "text": "x" }),
         )
         .unwrap_err();
-        assert!(err.contains("turned off"));
+        assert!(err.contains("is off"));
         // A tool outside the allowed list is refused too.
         o.only = vec!["project_list_files".into()];
         assert_eq!(enabled(&o), ["project_list_files"]);
@@ -1097,7 +1247,7 @@ mod tests {
         assert!(
             call(&off, "workflow_list", &json!({}))
                 .unwrap_err()
-                .contains("turned off")
+                .contains("is off")
         );
         let mut o = open(dir.path(), all());
         let args = json!({ "id": "a", "text": "x" });
@@ -1147,7 +1297,7 @@ mod tests {
         assert!(
             call(&o, "qa_run_check", &json!({ "name": "test" }))
                 .unwrap_err()
-                .contains("turned off")
+                .contains("is off")
         );
     }
 
@@ -1201,7 +1351,7 @@ mod tests {
         let off = open(dir.path(), Switches::default());
         assert!(enabled(&off).is_empty());
         let err = call(&off, "ticket_list", &json!({})).unwrap_err();
-        assert!(err.contains("turned off"));
+        assert!(err.contains("is off"));
         let mut o = open(dir.path(), all());
         o.rights = viewer();
         for (tool, args) in [
@@ -1375,5 +1525,208 @@ mod tests {
         assert!(call(&ro, "qa_run_scanner", &json!({ "name": "secrets" })).is_err());
         assert!(call(&ro, "docs_stale", &json!({})).is_ok());
         assert!(READ_ONLY.contains(&"spec_validate") && !READ_ONLY.contains(&"qa_run_scanner"));
+    }
+
+    fn text_of(v: &Value) -> &str {
+        v["content"][0]["text"].as_str().unwrap()
+    }
+
+    #[test]
+    fn git_diff_takes_a_path_inside_the_project_and_a_long_answer_is_cut() {
+        let dir = tempfile::tempdir().unwrap();
+        let git = |a: &[&str]| {
+            let ok = std::process::Command::new("git")
+                .args(["-c", "user.name=t", "-c", "user.email=t@t"])
+                .args(a)
+                .current_dir(dir.path())
+                .output()
+                .unwrap()
+                .status
+                .success();
+            assert!(ok, "git {a:?}");
+        };
+        git(&["init", "-q"]);
+        for f in ["a", "b"] {
+            std::fs::write(dir.path().join(f), "one\n").unwrap();
+        }
+        git(&["add", "."]);
+        git(&["commit", "-q", "-m", "x"]);
+        for f in ["a", "b"] {
+            std::fs::write(dir.path().join(f), "two\n").unwrap();
+        }
+        let o = open(dir.path(), all());
+        let one = call(&o, "git_diff", &json!({ "path": "a" })).unwrap();
+        assert!(text_of(&one).contains("a/a") && !text_of(&one).contains("a/b"));
+        let err = call(&o, "git_diff", &json!({ "path": "../x" })).unwrap_err();
+        assert!(err.contains("stay inside the project"));
+        std::fs::write(dir.path().join("big"), "x".repeat(MAX_OUT + 10)).unwrap();
+        let big = call(&o, "project_read_file", &json!({ "path": "big" })).unwrap();
+        assert!(text_of(&big).contains("\n[cut:"));
+        std::fs::write(dir.path().join("a"), "y\n".repeat(MAX_OUT)).unwrap();
+        let long = call(&o, "git_diff", &json!({ "path": "a" })).unwrap();
+        assert!(text_of(&long).contains("\n[cut:"));
+    }
+
+    #[test]
+    fn drain_keeps_the_text_when_the_cut_splits_a_character() {
+        let mut v = "x".repeat(MAX_OUT * 4 - 1).into_bytes();
+        v.extend("é tail".as_bytes());
+        let s = drain(Some(std::io::Cursor::new(v)), false).join().unwrap();
+        assert!(s.starts_with("xxx") && s.len() >= MAX_OUT * 4 - 1);
+    }
+
+    /// An index with `adr:0011`, which `spec:auth` and `wi:ACME-1` cite, and `doc:.env`.
+    fn with_refs(dir: &Path, s: Switches) -> Outside {
+        with_title(dir, s, "Use SQLite")
+    }
+
+    /// [`with_refs`] with this title for `adr:0011`.
+    fn with_title(dir: &Path, s: Switches, title: &str) -> Outside {
+        use shipyard_store::ref_index::{Citation, Entity, RefIndex};
+        let mut index = RefIndex::open_memory().unwrap();
+        let adr = Entity::new(
+            "adr:0011",
+            title,
+            Some("accepted"),
+            Some("docs/decisions/0011-use-sqlite.md"),
+        );
+        let cites = |source: &str| Citation {
+            source: source.into(),
+            target: "adr:0011".into(),
+        };
+        index
+            .set_source(
+                "file:a",
+                "1",
+                &[
+                    adr,
+                    Entity::new("spec:auth", "Auth", None, None),
+                    Entity::new("wi:ACME-1", "Login", None, None),
+                    Entity::new("doc:.env", "Env", None, Some(".env")),
+                ],
+                &[cites("spec:auth"), cites("wi:ACME-1")],
+            )
+            .unwrap();
+        let index = std::sync::Mutex::new(index);
+        let mut o = open(dir, s);
+        o.refs = Some(RefPort(Arc::new(move |text| {
+            crate::tools::read_ref::read_ref(&index.lock().unwrap(), text)
+        })));
+        o
+    }
+
+    fn reads() -> Switches {
+        Switches {
+            reads: true,
+            ..Switches::default()
+        }
+    }
+
+    fn reads_and_tickets() -> Switches {
+        Switches {
+            tickets: true,
+            ..reads()
+        }
+    }
+
+    #[test]
+    fn ref_read_is_off_by_default_and_read_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let o = with_refs(dir.path(), Switches::default());
+        assert!(!enabled(&o).contains(&"ref_read"));
+        let err = call(&o, "ref_read", &json!({ "ref": "adr:0011" })).unwrap_err();
+        assert!(
+            err.contains("is off") && err.contains("Read files"),
+            "{err}"
+        );
+        assert!(READ_ONLY.contains(&"ref_read") && right_of("ref_read").is_none());
+    }
+
+    #[test]
+    fn ref_read_gives_the_answer_of_read_ref() {
+        let dir = tempfile::tempdir().unwrap();
+        let o = with_refs(dir.path(), reads_and_tickets());
+        let got = call(&o, "ref_read", &json!({ "ref": "adr:0011" })).unwrap();
+        let v: Value = serde_json::from_str(text_of(&got)).unwrap();
+        assert_eq!(v["title"], "Use SQLite");
+        assert_eq!(v["status"], "accepted");
+        assert_eq!(v["state"], "resolved");
+        assert_eq!(v["location"], "docs/decisions/0011-use-sqlite.md");
+        let kinds: Vec<_> = v["backlinks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|g| g["kind"].as_str().unwrap())
+            .collect();
+        assert_eq!(kinds, ["spec", "wi"]);
+        let broken = call(&o, "ref_read", &json!({ "ref": "adr:0099" })).unwrap_err();
+        assert!(broken.contains("is broken"), "{broken}");
+    }
+
+    #[test]
+    fn ref_read_refuses_a_hidden_area_and_drops_its_backlinks() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut o = with_refs(dir.path(), reads_and_tickets());
+        o.hidden = vec![Area::Design];
+        let err = call(&o, "ref_read", &json!({ "ref": "adr:0011" })).unwrap_err();
+        assert_eq!(err, "the area design is hidden for this person");
+        o.hidden = vec![Area::Work];
+        let got = call(&o, "ref_read", &json!({ "ref": "adr:0011" })).unwrap();
+        let v: Value = serde_json::from_str(text_of(&got)).unwrap();
+        assert_eq!(v["backlinks"].as_array().unwrap().len(), 1);
+        assert_eq!(v["backlinks"][0]["kind"], "spec");
+        assert_eq!(v["backlinks"][0]["count"], 1);
+        assert!(!text_of(&got).contains("ACME-1"));
+    }
+
+    #[test]
+    fn ref_read_needs_the_switch_of_the_source_of_the_ref() {
+        let dir = tempfile::tempdir().unwrap();
+        let o = with_refs(dir.path(), reads());
+        let err = call(&o, "ref_read", &json!({ "ref": "wi:ACME-1" })).unwrap_err();
+        assert_eq!(
+            err,
+            "ticket_read is off. A person turns on Tickets in Setup / This computer / Share."
+        );
+        let got = call(&o, "ref_read", &json!({ "ref": "adr:0011" })).unwrap();
+        let v: Value = serde_json::from_str(text_of(&got)).unwrap();
+        assert_eq!(v["backlinks"].as_array().unwrap().len(), 1);
+        assert_eq!(v["backlinks"][0]["kind"], "spec");
+        assert!(!text_of(&got).contains("ACME-1"));
+        let on = with_refs(dir.path(), reads_and_tickets());
+        let got = call(&on, "ref_read", &json!({ "ref": "wi:ACME-1" })).unwrap();
+        assert!(text_of(&got).contains("Login"));
+    }
+
+    #[test]
+    fn ref_read_cuts_a_long_answer_with_a_step_for_a_ref() {
+        let dir = tempfile::tempdir().unwrap();
+        let o = with_title(dir.path(), reads(), &"t".repeat(MAX_OUT + 10));
+        let got = call(&o, "ref_read", &json!({ "ref": "adr:0011" })).unwrap();
+        assert!(text_of(&got).ends_with("Ask for a narrower ref, such as spec:auth#REQ-003.]"));
+    }
+
+    #[test]
+    fn ref_read_refuses_text_that_is_not_a_ref_and_gives_no_file_text() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(".env"), "KEY=fake-value-1").unwrap(); // shipyard:allow-secret
+        let mut o = with_refs(dir.path(), reads());
+        let err = call(&o, "ref_read", &json!({ "ref": "nope" })).unwrap_err();
+        assert!(err.starts_with("not a ref: nope.") && err.contains("spec:auth#REQ-003"));
+        let secret = call(&o, "ref_read", &json!({ "ref": "doc:.env" })).unwrap();
+        let v: Value = serde_json::from_str(text_of(&secret)).unwrap();
+        assert_eq!(v["title"], "Env");
+        assert_eq!(v["location"], ".env");
+        assert!(!text_of(&secret).contains("fake-value-1"));
+        o.refs = None;
+        let err = call(&o, "ref_read", &json!({ "ref": "adr:0011" })).unwrap_err();
+        assert!(err.contains("Open the Shipyard app"), "{err}");
+    }
+
+    #[test]
+    fn switch_names_are_the_ones_of_the_share_page() {
+        assert_eq!(group_label("git_log"), "Version history");
+        assert_eq!(group_label("delivery_diff"), "Changes of a feature");
+        assert_eq!(group_label("adr_read"), "Decisions");
     }
 }

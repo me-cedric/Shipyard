@@ -53,9 +53,11 @@ function PullRow({ r }: { r: PrRowView }) {
 					data-ask={r.reference}
 					className="flex min-h-control min-w-0 flex-1 flex-wrap items-center gap-3"
 				>
-					<span aria-hidden="true" className="contents">
-						<Avatar name={r.title} />
-					</span>
+					{r.author ? (
+						<span aria-hidden="true" className="contents">
+							<Avatar name={r.author} />
+						</span>
+					) : null}
 					<span className="mr-auto min-w-0 font-semibold">{r.title}</span>
 					<StatePill r={r} />
 				</Link>

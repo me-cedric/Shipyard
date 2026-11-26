@@ -24,7 +24,7 @@ export const onboardingEn = {
 		},
 		ai: {
 			title: "Choose the AI tool",
-			body: "Claude Code or Codex does the work, inside the budget and the limits that you set.",
+			body: "An AI tool does the work, inside the budget and the limits that you set.",
 		},
 		permissions: {
 			title: "Allow what Shipyard needs",
@@ -51,6 +51,19 @@ export const onboardingEn = {
 			spec: "First spec",
 			assign: "First ticket for a person",
 			run: "First work by an agent",
+		},
+		next: {
+			project: "Open a project",
+			ai: "Choose the AI tool",
+			models: "Choose the models",
+			tracker: "Connect the issue tracker",
+			forge: "Connect the code host",
+			team: "Set up the team",
+			permissions: "Check the permissions",
+			decision: "Write the first decision",
+			spec: "Write the first spec",
+			assign: "Give a ticket to a person",
+			run: "Start the first agent work",
 		},
 		action: {
 			project: "New project",
@@ -150,7 +163,7 @@ export const onboardingFr: typeof onboardingEn = {
 		},
 		ai: {
 			title: "Choisir l'outil d'IA",
-			body: "Claude Code ou Codex fait le travail, dans le budget et les limites que vous fixez.",
+			body: "Un outil d’IA fait le travail, dans le budget et les limites que vous fixez.",
 		},
 		permissions: {
 			title: "Autoriser ce dont Shipyard a besoin",
@@ -177,6 +190,19 @@ export const onboardingFr: typeof onboardingEn = {
 			spec: "Première spec",
 			assign: "Premier ticket pour une personne",
 			run: "Premier travail d'un agent",
+		},
+		next: {
+			project: "Ouvrir un projet",
+			ai: "Choisir l'outil d'IA",
+			models: "Choisir les modèles",
+			tracker: "Connecter l'outil de suivi",
+			forge: "Connecter l'hébergeur de code",
+			team: "Configurer l'équipe",
+			permissions: "Vérifier les autorisations",
+			decision: "Écrire la première décision",
+			spec: "Écrire la première spec",
+			assign: "Confier un ticket à une personne",
+			run: "Lancer le premier travail d'un agent",
 		},
 		action: {
 			project: "Nouveau projet",

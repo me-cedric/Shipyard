@@ -36,8 +36,8 @@ describe("Settings / Connections", () => {
 			within(menu)
 				.getAllByRole("menuitem")
 				.map((i) => i.textContent),
-		).toEqual(["Test", "Edit", "Remove", "Copy ref"]);
-		await user.click(within(menu).getByRole("menuitem", { name: "Copy ref" }));
+		).toEqual(["Test", "Edit", "Remove", "Copy the reference"]);
+		await user.click(within(menu).getByRole("menuitem", { name: "Copy the reference" }));
 		expect(await navigator.clipboard.readText()).toBe("conn:acme");
 		fireEvent.contextMenu(await row("Acme"));
 		await user.click(await screen.findByRole("menuitem", { name: "Test" }));
@@ -257,13 +257,13 @@ describe("Settings / Connections", () => {
 		mockState().logins = [{ tool: "gh", host: "github.com", user: "ada" }];
 		mountApp("/setup/project?page=connections");
 		const issues = await row("Issues");
-		expect(await within(issues).findByText("The token was refused.")).toBeInTheDocument();
+		expect(await within(issues).findByText("The access token was refused.")).toBeInTheDocument();
 		expect(within(issues).queryByText(/Bad credentials/)).toBeNull();
 		expect(within(issues).getByRole("button", { name: "Sign in again" })).toBeInTheDocument();
 		// A test that fails the same way adds no second line.
 		await user.click(within(issues).getByRole("button", { name: "Test" }));
 		await waitFor(() => expect(within(issues).queryByText(/was rejected/)).toBeNull());
-		expect(within(issues).getAllByText("The token was refused.")).toHaveLength(1);
+		expect(within(issues).getAllByText("The access token was refused.")).toHaveLength(1);
 		await user.click(within(issues).getByRole("button", { name: "Use the gh login" }));
 		await waitFor(() =>
 			expect(mockState().connections.some((c) => c.name === "github.com (gh)")).toBe(true),
@@ -358,7 +358,7 @@ describe("Settings / Connections", () => {
 		const linear = await row("Linear");
 		await user.click(within(linear).getByRole("button", { name: "Remove" }));
 		expect(
-			await within(linear).findByRole("button", { name: "spec:auth, Spec: auth, Resolved" }),
+			await within(linear).findByRole("button", { name: "Spec: auth, spec:auth, Resolved" }),
 		).toBeInTheDocument();
 		// Cancel keeps both.
 		await user.click(within(linear).getByRole("button", { name: "Cancel" }));

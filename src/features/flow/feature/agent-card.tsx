@@ -66,8 +66,8 @@ export function AgentCard({
 	const { run, act, guard, openPr, again, active } = scope;
 	const id = run.id;
 	const sessions = useSessions().data;
-	const agent = agentOf(run);
-	const step = stepperOf(run);
+	const agent = agentOf(run, f.agentNames);
+	const step = stepperOf(run, f.agentNames);
 	const stepText = format(f.stepOf, { n: step.n, total: step.total });
 	const units = run.steps.flatMap((s) => s.units).filter((u) => u.runner !== "");
 	const session = units.findLast((u) => u.state === "running") ?? units.at(-1);

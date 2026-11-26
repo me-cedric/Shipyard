@@ -124,7 +124,7 @@ fn the_title_is_the_first_heading_of_the_proposal_unless_it_is_the_id() {
         .collect();
     assert!(titles.contains(&("add-auth".into(), "Sign in".into())));
     assert!(titles.contains(&("add-pay".into(), "Take payment".into())));
-    assert!(titles.contains(&("add-log".into(), "add-log".into())));
+    assert!(titles.contains(&("add-log".into(), "Add log".into())));
 }
 
 #[test]

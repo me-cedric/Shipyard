@@ -18,11 +18,11 @@ describe("refs in the shell", () => {
 		const input = await openPalette(user);
 		await user.type(input, "Q-012");
 		expect(
-			await screen.findByRole("option", { name: /q:Q-012 Which issue tracker first\?/ }),
+			await screen.findByRole("option", { name: /Which issue tracker first\?/ }),
 		).toBeVisible();
 		await user.clear(input);
 		await user.type(input, "polling");
-		expect(await screen.findByRole("option", { name: /adr:0004 Polling sync/ })).toBeVisible();
+		expect(await screen.findByRole("option", { name: /Polling sync/ })).toBeVisible();
 	});
 
 	it("puts the entity of a ref first", async () => {
@@ -30,8 +30,8 @@ describe("refs in the shell", () => {
 		mountApp("/home/today");
 		const input = await openPalette(user);
 		await user.type(input, "Q-012");
-		const options = await screen.findAllByRole("option", { name: /Q-012/ });
-		expect(options[0]).toHaveTextContent("q:Q-012 Which issue tracker first?");
+		const options = await screen.findAllByRole("option", { name: /Which issue tracker first/ });
+		expect(options[0]).toHaveTextContent("Which issue tracker first?");
 	});
 
 	it("opens the entity with its backlinks grouped by kind with a count", async () => {
@@ -39,11 +39,15 @@ describe("refs in the shell", () => {
 		mountApp("/home/today");
 		const input = await openPalette(user);
 		await user.type(input, "polling");
-		await user.click(await screen.findByRole("option", { name: /adr:0004/ }));
+		await user.click(await screen.findByRole("option", { name: /Polling sync/ }));
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
 		// One line for each linked item, in a list.
-		expect(await within(inspector).findAllByRole("button", { name: /^spec:/ })).toHaveLength(2);
-		expect(within(inspector).getAllByRole("button", { name: /^change:/ })).toHaveLength(1);
+		expect(
+			await within(inspector).findAllByRole("button", { name: /^Spec, .*, Resolved$/ }),
+		).toHaveLength(2);
+		expect(
+			within(inspector).getAllByRole("button", { name: /^Change, .*, Resolved$/ }),
+		).toHaveLength(1);
 		expect(within(inspector).getByText("adr:0004", { selector: "code" })).toBeVisible();
 	});
 
@@ -55,14 +59,16 @@ describe("refs in the shell", () => {
 		await user.keyboard("{ArrowDown}{Enter}");
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
 		const chip = await within(inspector).findByRole("button", {
-			name: /spec:auth, Spec: auth, Resolved/,
+			name: /^Spec, Spec: auth, Resolved/,
 		});
 		chip.focus();
 		await user.keyboard("{ArrowDown}{Enter}");
 		await waitFor(() =>
 			expect(within(inspector).getByText("spec:auth", { selector: "code" })).toBeVisible(),
 		);
-		expect(within(inspector).queryAllByRole("button", { name: /^spec:/ })).toHaveLength(0);
+		expect(
+			within(inspector).queryAllByRole("button", { name: /^Spec, .*, Resolved$/ }),
+		).toHaveLength(0);
 	});
 
 	it("shows ghost rows and no text for an entity that nothing cites", async () => {
@@ -89,6 +95,8 @@ describe("refs in the shell", () => {
 		);
 		await user.keyboard("{ArrowDown}{Enter}");
 		const inspector = await screen.findByLabelText("Inspecteur", { selector: "aside" });
-		expect(await within(inspector).findAllByRole("button", { name: /^spec:/ })).toHaveLength(2);
+		expect(
+			await within(inspector).findAllByRole("button", { name: /^Spécification, .*, Résolu$/ }),
+		).toHaveLength(2);
 	});
 });

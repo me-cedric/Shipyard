@@ -9,6 +9,7 @@ import { useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
+import { IconButton } from "@/ui/atoms/icon-button";
 import { linkClass } from "@/ui/atoms/link-button";
 import { ArrowPathIcon, ChevronRightIcon, ClockIcon } from "@/ui/icons";
 import { approvalSentence } from "@/ui/molecules/approval-bar";
@@ -36,7 +37,7 @@ function actionOf(t: Messages, x: NeedsYouItem) {
 	switch (x.kind) {
 		case "approval":
 			return x.items.length === 1
-				? approvalSentence(h.approval, x.item)
+				? approvalSentence(h, x.item)
 				: format(h.effectsWait, { count: x.items.length });
 		case "plan":
 			return h.act.plan;
@@ -224,28 +225,34 @@ export function Today() {
 							{t.home.myPanels}
 						</Link>
 						<span className="ml-auto">
-							<MenuButton
-								label={t.ui.more}
-								items={[
-									{
-										id: "refresh",
-										label: t.home.refresh,
-										icon: <ArrowPathIcon size={12} />,
-										onSelect: () => void qc.invalidateQueries(),
-									},
-									// The routing by role is on only for a person with a role.
-									...(role === null
-										? []
-										: [
-												{
-													id: "everyone",
-													label: t.rights.everyone,
-													checked: everyone,
-													onSelect: () => setEveryone(!everyone),
-												},
-											]),
-								]}
-							/>
+							{role === null ? (
+								<IconButton label={t.home.refresh} onClick={() => void qc.invalidateQueries()}>
+									<ArrowPathIcon size={16} />
+								</IconButton>
+							) : (
+								<MenuButton
+									label={t.ui.more}
+									items={[
+										{
+											id: "refresh",
+											label: t.home.refresh,
+											icon: <ArrowPathIcon size={12} />,
+											onSelect: () => void qc.invalidateQueries(),
+										},
+										// The routing by role is on only for a person with a role.
+										...(role === null
+											? []
+											: [
+													{
+														id: "everyone",
+														label: t.rights.everyone,
+														checked: everyone,
+														onSelect: () => setEveryone(!everyone),
+													},
+												]),
+									]}
+								/>
+							)}
 						</span>
 					</div>
 				</div>

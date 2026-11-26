@@ -217,7 +217,10 @@ export function TrayView() {
 										>
 											<Avatar name={i.by || "Shipyard"} size="s" agent={i.who === "agent"} />
 											<span className="min-w-0 flex-1 truncate font-semibold">
-												{i.kind === "question" ? t.flow.state.answer : i.text}
+												{i.text}
+												{i.kind === "question" ? (
+													<span className="font-normal text-n-11"> {i.title}</span>
+												) : null}
 											</span>
 											<ChevronRightIcon size={16} />
 										</button>

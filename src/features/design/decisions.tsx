@@ -14,7 +14,7 @@ import { SectionSwitch } from "@/ui/molecules/section-switch";
 import { markdown } from "@/ui/molecules/syntax";
 import { DocForm } from "@/ui/organisms/doc-form";
 import { sections } from "@/ui/organisms/doc-parts";
-import { DetailColumn, LibraryPage, ListColumn, PageColumns } from "../library/page-parts";
+import { DetailColumn, LibraryPage, ListColumn, PageColumns } from "@/ui/templates/library-page";
 import { FileFrame, type Frame } from "./frame";
 import { DesignGate, Empty, ItemList, ListNotice, UsedBy, usePage } from "./parts";
 
@@ -26,7 +26,6 @@ const STATUSES = ["proposed", "accepted", "rejected", "deprecated", "superseded"
 /**
  * The answer to a proposed decision (REQ-010): a reason, then Refuse or Accept. Both need the
  * reason: the field is marked as required and a click on an empty field shows an error line.
- * `DesignAdrDecision` of the shared parts has the field above the buttons; the design has one row.
  */
 function Answer({
 	busy,
@@ -148,7 +147,7 @@ function Decision({ adr, frame }: { adr: Adr; frame: Frame }) {
 						// biome-ignore lint/suspicious/noArrayIndexKey: two sections can have the same heading.
 						key={`${i}:${s.heading}`}
 						aria-label={s.heading}
-						className="flex flex-col gap-1.5 rounded-[14px] bg-n-3 p-4 text-17"
+						className="flex flex-col gap-1.5 rounded-field bg-n-3 p-4 text-17"
 					>
 						<h3 className="text-13 font-semibold text-n-12">{s.heading}</h3>
 						<p className="whitespace-pre-wrap">{s.body.trim()}</p>

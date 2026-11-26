@@ -1,6 +1,7 @@
-import { Link, useSearch } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TicketPicker } from "@/features/factory/ticket-picker";
+import { featureOfRef } from "@/features/shell/ref-page";
 import { useGuard } from "@/features/work/guard";
 import { ENDED, useFactoryWrites, useRunActions, useRuns, useWorkflows } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
@@ -22,6 +23,7 @@ import { XMarkIcon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { TILE_GRID, Tile } from "@/ui/molecules/tile";
+import { LeaveGuard } from "@/ui/organisms/leave-guard";
 
 type Kind = "feature" | "bug" | "idea";
 type Way = "agent" | "mine" | "build";
@@ -57,6 +59,7 @@ export function NewFeature() {
 	const n = t.flow.new;
 	const c = t.flow.look.create;
 	const { openRef } = useShell();
+	const navigate = useNavigate();
 	const { gate, person } = useRights();
 	const members = useTeam().data?.team.members ?? [];
 	const specs = useSpecsActions();
@@ -68,8 +71,10 @@ export function NewFeature() {
 	const items = useWorkItems(NO_FILTER).data ?? [];
 	const all = useRuns().data;
 	const { failure, run: guard } = useGuard();
-	const [title, setTitle] = useState("");
-	const search: { kind?: "idea" } = useSearch({ strict: false });
+	const search: { kind?: "idea"; spec?: string } = useSearch({ strict: false });
+	// Edit of a spec starts the text with what the person does; the page asks before it drops more.
+	const [start0] = useState(() => (search.spec ? format(n.changeSpec, { spec: search.spec }) : ""));
+	const [title, setTitle] = useState(start0);
 	const [kind, setKind] = useState<Kind>(search.kind ?? "feature");
 	const [way, setWay] = useState<Way>("agent");
 	const [recipe, setRecipe] = useState("");
@@ -77,6 +82,13 @@ export function NewFeature() {
 	const [docs, setDocs] = useState<File[]>([]);
 	const [refused, setRefused] = useState<string | null>(null);
 	const [limit, setLimit] = useState("");
+	// The change that a failed try made: a retry with the same title goes on with it.
+	const made = useRef<{ title: string; id: string; docs: Set<string> } | null>(null);
+	const [to, setTo] = useState<ReturnType<typeof featureOfRef>>();
+	// The page opens after the guard is off: it would ask about the text that it just saved.
+	useEffect(() => {
+		if (to) void navigate(to);
+	}, [to, navigate]);
 	const picker = useRef<HTMLInputElement>(null);
 	const find = useRef<HTMLInputElement>(null);
 	const r = t.factory.runsRecipes;
@@ -100,7 +112,7 @@ export function NewFeature() {
 	// The typed key of a ticket that has a live run: refuse it and link that run.
 	const taken = live.get(key.trim());
 	const free = items.filter((i) => !skip.has(i.key) && i.category !== "done");
-	const chosen = recipe || workflows[0]?.id || "";
+	const chosen = recipe || workflows.find((w) => w.id === kind)?.id || workflows[0]?.id || "";
 	const mode = kind === "idea" ? "idea" : way;
 	// The first right that the person lacks turns Create off, with its reason.
 	const off = NEEDS[mode].map(gate).find((g) => g.disabled);
@@ -112,7 +124,7 @@ export function NewFeature() {
 			title: title.trim(),
 			description: "",
 		});
-		if (row.error || !row.key) throw new Error(row.error ?? "no ticket");
+		if (row.error || !row.key) throw row.error ?? "no ticket";
 		// The new ticket is not in the mirror yet: a run needs it there.
 		await adopt(row.key);
 		await work.addLabel(row.key, kind);
@@ -123,16 +135,24 @@ export function NewFeature() {
 		// The limit of the feature goes in the file by its ticket key: it needs a ticket.
 		const usd = limit.trim() === "" ? null : Number(limit);
 		if (usd !== null && !(Number.isFinite(usd) && usd > 0)) throw new Error(r.limitError);
-		const made = (await specs.createChange(title.trim())).id;
-		for (const f of docs)
-			await specs.addInput(made, f.name, Array.from(new Uint8Array(await f.arrayBuffer())));
+		const name = title.trim();
+		if (made.current?.title !== name)
+			made.current = { title: name, id: (await specs.createChange(name)).id, docs: new Set() };
+		const id = made.current.id;
+		// A retry skips the documents that the change already has: it refuses a name twice.
+		for (const f of docs) {
+			if (made.current.docs.has(f.name)) continue;
+			await specs.addInput(id, f.name, Array.from(new Uint8Array(await f.arrayBuffer())));
+			made.current.docs.add(f.name);
+		}
 		const limited = async (k: string) => {
 			if (usd !== null) await budgets.budget("feature", k, usd);
 			return k;
 		};
-		if (mode === "build") await runs.start(await limited(await ticket(made)));
-		else if (mode === "agent") await specs.delegate(await limited(await ticket(made)), chosen);
-		openRef(`change:${made}`);
+		if (mode === "build") await runs.start(await limited(await ticket(id)));
+		else if (mode === "agent") await specs.delegate(await limited(await ticket(id)), chosen);
+		// The new feature opens on its Brief: the form does not stay to make a second one.
+		setTo(featureOfRef(`change:${id}`));
 	};
 	const start = (k: string) =>
 		void guard(async () => {
@@ -142,12 +162,13 @@ export function NewFeature() {
 		});
 	return (
 		<div className="mx-auto flex w-full max-w-200 flex-col gap-5 p-6">
+			<LeaveGuard dirty={title.trim() !== start0.trim() && !to} />
 			<BackLink label={c.back} render={(props) => <Link to="/flow/flow" {...props} />} />
 			<h1 className="text-44 font-semibold text-n-12">{n.heading}</h1>
 			<Textarea
 				autoFocus
 				label={n.title}
-				className="min-h-40 rounded-xl border-2 border-accent p-5 text-20 focus-visible:outline-none"
+				className="min-h-40 rounded-xl border-2 border-n-7 p-5 text-20 focus-visible:border-accent"
 				value={title}
 				onChange={(e) => setTitle(e.target.value)}
 			/>
@@ -258,7 +279,7 @@ export function NewFeature() {
 					variant="primary"
 					size="lg"
 					className="ml-auto min-w-40 disabled:opacity-100"
-					disabled={title.trim() === "" || off !== undefined}
+					disabled={title.trim() === "" || title.trim() === start0.trim() || off !== undefined}
 					reason={off?.reason}
 					onClick={() => void guard(create)}
 				>

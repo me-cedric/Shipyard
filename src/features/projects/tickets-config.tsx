@@ -242,7 +242,7 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 						<SetupRow key={s} label={s}>
 							<ButtonLink
 								href="/setup/project?page=automation#status-map"
-								aria-label={format(d.stageOf, { name: s })}
+								aria-label={`${stageOf(s) ?? t.doctor.project.map}, ${format(d.stageOf, { name: s })}`}
 							>
 								{stageOf(s) ?? t.doctor.project.map}
 							</ButtonLink>

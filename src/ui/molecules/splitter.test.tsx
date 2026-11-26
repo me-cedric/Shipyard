@@ -51,6 +51,13 @@ describe("Splitter", () => {
 		expect(onChange).toHaveBeenLastCalledWith(300, true);
 	});
 
+	it("divides the drag by the scale of the value", () => {
+		const { onChange, bar } = setup({ scale: 1.25 });
+		fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1 });
+		fireEvent.pointerMove(bar, { clientX: 110, pointerId: 1 });
+		expect(onChange).toHaveBeenLastCalledWith(308, false);
+	});
+
 	it.each([
 		["a cancel", fireEvent.pointerCancel],
 		["a lost capture", fireEvent.lostPointerCapture],

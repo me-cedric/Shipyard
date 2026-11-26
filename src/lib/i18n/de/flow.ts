@@ -81,6 +81,8 @@ export const flowDe: typeof flowEn = {
 		writeSpec: "Spezifikation schreiben",
 		startAgent: "Agent starten",
 		noSpec: "Noch keine Spezifikation",
+		missing: "Diese Funktion gibt es nicht",
+		openBrief: "Brief öffnen",
 		noRun: "Noch kein Agent",
 		noPull: "Noch kein Pull Request",
 		noTicket: "Kein Ticket",
@@ -130,5 +132,6 @@ export const flowDe: typeof flowEn = {
 		fromTicket: "Oder mit einem Ticket beginnen",
 		startAgent: "Agent starten",
 		find: "Ticket suchen",
+		changeSpec: "Die Spezifikation {spec} ändern: ",
 	},
 };

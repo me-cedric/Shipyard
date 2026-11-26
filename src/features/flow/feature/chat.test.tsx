@@ -52,7 +52,7 @@ describe("Chat (REQ-023)", () => {
 			within(panel).getByRole("button", { name: "Live terminal of this agent" }),
 		).toBeVisible();
 		expect(within(panel).getByRole("button", { name: "Requests and cost" })).toBeVisible();
-		const message = within(panel).getByRole("textbox", { name: "Message to Build" });
+		const message = within(panel).getByRole("textbox", { name: "Message to Builder" });
 		expect(message).toBeVisible();
 		// The open questions of the agent have their own Send: the composer is the form of the field.
 		const composer = within(message.closest("form") as HTMLElement);
@@ -97,7 +97,7 @@ describe("Chat (REQ-023)", () => {
 		const bubble = reply.closest("div.rounded-xl") as HTMLElement;
 		expect(within(bubble).getByRole("button", { name: "Show the change" })).toBeVisible();
 		// An approval: the sentence first, then Reject and Approve in this order, and no Details for a comment of text.
-		const approval = within(panel).getByRole("region", { name: "Change the status of ACME-2" });
+		const approval = within(panel).getByRole("region", { name: "Move ACME-2 to In Progress" });
 		const order = within(approval)
 			.getAllByRole("button")
 			.map((b) => b.textContent);

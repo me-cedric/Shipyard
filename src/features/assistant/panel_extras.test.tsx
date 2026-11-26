@@ -176,7 +176,7 @@ describe("assistant panel: warnings before a risky step", () => {
 		await user.click(permission());
 		await user.click(await screen.findByRole("option", { name: "Auto: accept edits" }));
 		const dialog = await screen.findByRole("dialog", { name: "Allow edits without approval" });
-		expect(dialog).toHaveTextContent("It never runs shell commands");
+		expect(dialog).toHaveTextContent("It never runs commands");
 		expect(permission()).toHaveTextContent("Edit with approval");
 		await user.click(within(dialog).getByRole("button", { name: "Allow auto edits" }));
 		await waitFor(() => expect(permission()).toHaveTextContent("Auto: accept edits"));

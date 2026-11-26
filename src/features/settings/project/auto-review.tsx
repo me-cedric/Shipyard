@@ -4,8 +4,8 @@ import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { type Automation, syncKeys, useAutomation } from "@/lib/sync";
 import { Segmented } from "@/ui/atoms/segmented";
+import { Switch } from "@/ui/atoms/switch";
 import { SetupRow, Toggle } from "../parts";
-import { MiniSwitch } from "./mini-switch";
 
 type Choice = "off" | "draft" | "post";
 
@@ -51,7 +51,7 @@ export function AutoReview({ inline }: { inline?: boolean }) {
 		<>
 			{inline ? (
 				<>
-					<MiniSwitch {...control} label={t.doctor.project.autoReview} />
+					<Switch size="sm" {...control} label={t.doctor.project.autoReview} />
 					{mode}
 				</>
 			) : (

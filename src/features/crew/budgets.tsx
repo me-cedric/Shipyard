@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { Fragment, type ReactNode, useRef, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { useFactoryWrites, useMachineSpend, useMachineWrites, useUsage } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
@@ -16,13 +16,20 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { SpendMeter } from "@/ui/molecules/spend-meter";
 import { SpendChart } from "./budgets-chart";
-import { WARN_AT } from "./spend-const";
+import { percent, WARN_AT } from "./spend-const";
 import { BackToSpend, RowsCard, usePrices } from "./spend-parts";
 
 type Scope = "day" | "member";
 /** The kinds of budget that have a choice `Then` (`runs-recipes` REQ-006). */
 type ThenScope = "feature" | "day" | "member";
 const THEN: Then[] = ["stop_ask", "pause", "ask", "go_on"];
+
+/** A budget amount: empty for no limit, else zero or more dollars. A bad value gets a plain sentence. */
+const usdOf = (text: string, bad: string) => {
+	const usd = text.trim() === "" ? null : Number(text);
+	if (usd !== null && !(Number.isFinite(usd) && usd >= 0)) throw new Error(bad);
+	return usd;
+};
 
 /**
  * Warn at and Then of the project budgets (`runs-recipes` REQ-006): read from the automation file,
@@ -72,14 +79,14 @@ export function useBudgetRules() {
 
 /** "Warn at 80 %" with Edit: the value turns into a field with Save. */
 export function WarnAt() {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const r = t.factory.runsRecipes;
 	const rules = useBudgetRules();
 	const [text, setText] = useState<string | null>(null);
 	if (text === null)
 		return (
 			<>
-				<span>{rules.warn} %</span>
+				<span>{percent(rules.warn, lang)}</span>
 				<Button
 					className="min-h-control"
 					aria-label={r.editWarn}
@@ -132,8 +139,12 @@ export function useBudgets() {
 	const writes = useFactoryWrites();
 	const { error, run } = useGuard();
 	const [editing, setEditing] = useState(false);
+	// A new limit has its form at the end of the list: the typed key must not move it.
+	const [adding, setAdding] = useState(false);
 	const [scope, setScope] = useState<Scope>("day");
 	const [key, setKey] = useState("");
+	// The row that the form edits: typing in its key must not move the form.
+	const [row, setRow] = useState<{ scope: Scope; key: string } | null>(null);
 	const [amount, setAmount] = useState("");
 	const field = useRef<HTMLInputElement>(null);
 	// The configured budgets: the default `*` once, then each key of its own.
@@ -151,22 +162,27 @@ export function useBudgets() {
 	);
 	const set = () =>
 		void run(async () => {
-			const usd = amount.trim() === "" ? null : Number(amount);
+			const usd = usdOf(amount, t.factory.runsRecipes.budgetError);
 			await writes.budget(scope, key.trim(), usd);
 			setKey("");
 			setAmount("");
+			setEditing(false);
 		});
 	/** Opens the form on one budget. */
 	const edit = (scope: Scope, key: string, amount = "") => {
 		setScope(scope);
 		setKey(key);
 		setAmount(amount);
+		setRow({ scope, key });
+		setAdding(key === "");
 		setEditing(true);
 	};
 	return {
 		list,
 		error,
 		editing,
+		adding,
+		row,
 		setEditing,
 		scope,
 		setScope,
@@ -222,6 +238,10 @@ export function BudgetsPage() {
 	const monthUsd = (spend.data?.rows ?? [])
 		.filter((r) => r.day.startsWith(thisMonth))
 		.reduce((a, r) => a + (r.costUsd ?? 0), 0);
+	// The form opens under the row that it edits.
+	const at = (scope: Scope, key: string) =>
+		b.editing && !b.adding && b.row?.scope === scope && b.row.key === key ? limitForm : null;
+	const atMachine = (runner: string) => (machine?.runner === runner ? machineForm : null);
 	const row = (
 		name: string,
 		value: number | null,
@@ -229,44 +249,136 @@ export function BudgetsPage() {
 		link?: boolean,
 		meter?: boolean,
 		then?: ThenScope,
+		form?: ReactNode,
 	) => (
-		<Row key={name}>
-			<span className="flex-1">{name}</span>
-			{/* The meter of a monthly limit is a function of today: it stays with its limit. */}
-			{meter ? (
-				<span className="w-40">
-					<SpendMeter usd={monthUsd} budget={value} label={m.budget} />
-				</span>
-			) : null}
-			<span className="font-semibold">{money(value)}</span>
-			{then ? (
-				<Select
-					label={format(f.runsRecipes.thenFor, { name: name.toLowerCase() })}
-					className="min-h-control"
-					items={THEN.map((v) => ({ value: v, label: f.runsRecipes.choice[v] }))}
-					value={rules.choice(then)}
-					onValueChange={(v) => void rules.setThen(then, v as Then)}
-				/>
-			) : null}
-			{onEdit ? (
-				<Button
-					className="min-h-control"
-					aria-label={format(s.editLimit, { name: name.toLowerCase() })}
-					onClick={onEdit}
-				>
-					{f.edit}
-				</Button>
-			) : link ? (
-				// The limit of a feature comes from its recipe: Edit opens the recipes.
-				<Link
-					to="/crew/recipes"
-					aria-label={format(s.editLimit, { name: name.toLowerCase() })}
-					className={buttonVariants()}
-				>
-					{f.edit}
-				</Link>
-			) : null}
-		</Row>
+		<Fragment key={name}>
+			<Row>
+				<span className="flex-1">{name}</span>
+				{/* The meter of a monthly limit is a function of today: it stays with its limit. */}
+				{meter ? (
+					<span className="w-40">
+						<SpendMeter usd={monthUsd} budget={value} label={m.budget} />
+					</span>
+				) : null}
+				<span className="font-semibold">{money(value)}</span>
+				{then ? (
+					<Select
+						label={format(f.runsRecipes.thenFor, { name: name.toLowerCase() })}
+						className="min-h-control"
+						items={THEN.map((v) => ({ value: v, label: f.runsRecipes.choice[v] }))}
+						value={rules.choice(then)}
+						onValueChange={(v) => void rules.setThen(then, v as Then)}
+					/>
+				) : null}
+				{onEdit ? (
+					<Button
+						className="min-h-control"
+						aria-label={format(s.editLimit, { name: name.toLowerCase() })}
+						onClick={onEdit}
+					>
+						{f.edit}
+					</Button>
+				) : link ? (
+					// The limit of a feature comes from its recipe: Edit opens the recipes.
+					<Link
+						to="/crew/recipes"
+						aria-label={format(s.editLimit, { name: name.toLowerCase() })}
+						className={buttonVariants()}
+					>
+						{f.edit}
+					</Link>
+				) : null}
+			</Row>
+			{form}
+		</Fragment>
+	);
+	const limitForm = (
+		<div className="flex flex-wrap items-end gap-2 px-6 py-3">
+			{b.key === "*" ? null : (
+				<>
+					<Select
+						caption
+						label={f.budgetScope}
+						className="min-h-control"
+						items={[
+							{ value: "day", label: f.perDay },
+							{ value: "member", label: f.perMember },
+						]}
+						value={b.scope}
+						onValueChange={(v) => b.setScope(v === "member" ? "member" : "day")}
+					/>
+					<Input
+						ref={b.field}
+						autoFocus={b.key === ""}
+						caption
+						label={f.budgetKey}
+						className="min-h-control w-48"
+						value={b.key}
+						onChange={(e) => b.setKey(e.target.value)}
+					/>
+				</>
+			)}
+			<Input
+				caption
+				label={f.budgetAmount}
+				autoFocus={b.key !== ""}
+				type="number"
+				min="0"
+				step="any"
+				className="min-h-control w-28"
+				value={b.amount}
+				onChange={(e) => b.setAmount(e.target.value)}
+			/>
+			<RightButton
+				right="project.settings"
+				variant="primary"
+				className="min-h-control"
+				disabled={!b.key.trim()}
+				onClick={b.set}
+			>
+				{f.setBudget}
+			</RightButton>
+		</div>
+	);
+	const machineForm = machine && (
+		<div className="flex flex-wrap items-end gap-2 px-6 py-3">
+			<Select
+				caption
+				label={m.budgetFor}
+				className="min-h-control"
+				items={[ALL, ...new Set([...runners, ...tools.map((x) => x.runner)])].map((r) => ({
+					value: r,
+					label: r === ALL ? m.allRunners : runnerName(r),
+				}))}
+				value={machine.runner}
+				onValueChange={(runner) => setMachine({ ...machine, runner })}
+			/>
+			<Input
+				caption
+				label={m.budgetAmount}
+				autoFocus
+				type="number"
+				min="0"
+				step="any"
+				className="min-h-control w-28"
+				value={machine.amount}
+				onChange={(e) => setMachine({ ...machine, amount: e.target.value })}
+			/>
+			<RightButton
+				right="project.settings"
+				variant="primary"
+				className="min-h-control"
+				onClick={() =>
+					void run(async () => {
+						const { runner, amount } = machine;
+						await writes.budget(runner, usdOf(amount, f.runsRecipes.budgetError));
+						setMachine(null);
+					})
+				}
+			>
+				{m.save}
+			</RightButton>
+		</div>
 	);
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -301,8 +413,17 @@ export function BudgetsPage() {
 							false,
 							false,
 							"day",
+							at("day", "*"),
 						)}
-						{row(s.eachMonth, month, () => editMachine(ALL, month), false, true)}
+						{row(
+							s.eachMonth,
+							month,
+							() => editMachine(ALL, month),
+							false,
+							true,
+							undefined,
+							atMachine(ALL),
+						)}
 						{row(
 							s.eachPerson,
 							of("member", "*")?.budget ?? null,
@@ -310,103 +431,51 @@ export function BudgetsPage() {
 							false,
 							false,
 							"member",
+							at("member", "*"),
 						)}
-						{row(s.eachTool, null, () => editMachine(runners[0] ?? ALL, null))}
+						{row(
+							s.eachTool,
+							null,
+							() => editMachine(runners[0] ?? ALL, null),
+							false,
+							false,
+							undefined,
+							machine && machine.runner !== ALL && !tools.some((x) => x.runner === machine.runner)
+								? machineForm
+								: null,
+						)}
 						<ul aria-label={f.budget} className="contents">
 							{only.map((x) => (
 								<li key={x.id} className="contents">
-									{row(x.name, x.budget, () => {
-										setMachine(null);
-										b.edit(x.scope, x.key, String(x.budget ?? ""));
-									})}
+									{row(
+										x.name,
+										x.budget,
+										() => {
+											setMachine(null);
+											b.edit(x.scope, x.key, String(x.budget ?? ""));
+										},
+										false,
+										false,
+										undefined,
+										at(x.scope, x.key),
+									)}
 								</li>
 							))}
 							{tools.map((x) => (
 								<li key={x.runner} className="contents">
-									{row(runnerName(x.runner), x.usd, () => editMachine(x.runner, x.usd))}
+									{row(
+										runnerName(x.runner),
+										x.usd,
+										() => editMachine(x.runner, x.usd),
+										false,
+										false,
+										undefined,
+										atMachine(x.runner),
+									)}
 								</li>
 							))}
 						</ul>
-						{b.editing ? (
-							<div className="flex flex-wrap items-end gap-2 px-6 py-3">
-								<Select
-									caption
-									label={f.budgetScope}
-									className="min-h-control"
-									items={[
-										{ value: "day", label: f.perDay },
-										{ value: "member", label: f.perMember },
-									]}
-									value={b.scope}
-									onValueChange={(v) => b.setScope(v === "member" ? "member" : "day")}
-								/>
-								<Input
-									ref={b.field}
-									caption
-									label={f.budgetKey}
-									className="min-h-control w-48"
-									value={b.key}
-									onChange={(e) => b.setKey(e.target.value)}
-								/>
-								<Input
-									caption
-									label={f.budgetAmount}
-									type="number"
-									min="0"
-									step="any"
-									className="min-h-control w-28"
-									value={b.amount}
-									onChange={(e) => b.setAmount(e.target.value)}
-								/>
-								<RightButton
-									right="project.settings"
-									variant="primary"
-									className="min-h-control"
-									disabled={!b.key.trim()}
-									onClick={b.set}
-								>
-									{f.setBudget}
-								</RightButton>
-							</div>
-						) : null}
-						{machine ? (
-							<div className="flex flex-wrap items-end gap-2 px-6 py-3">
-								<Select
-									caption
-									label={m.budgetFor}
-									className="min-h-control"
-									items={[ALL, ...new Set([...runners, ...tools.map((x) => x.runner)])].map(
-										(r) => ({ value: r, label: r === ALL ? m.allRunners : runnerName(r) }),
-									)}
-									value={machine.runner}
-									onValueChange={(runner) => setMachine({ ...machine, runner })}
-								/>
-								<Input
-									caption
-									label={m.budgetAmount}
-									type="number"
-									min="0"
-									step="any"
-									className="min-h-control w-28"
-									value={machine.amount}
-									onChange={(e) => setMachine({ ...machine, amount: e.target.value })}
-								/>
-								<RightButton
-									right="project.settings"
-									variant="primary"
-									className="min-h-control"
-									onClick={() =>
-										void run(async () => {
-											const { runner, amount } = machine;
-											await writes.budget(runner, amount.trim() === "" ? null : Number(amount));
-											setMachine(null);
-										})
-									}
-								>
-									{m.save}
-								</RightButton>
-							</div>
-						) : null}
+						{b.editing && b.adding ? limitForm : null}
 					</Card>
 					<RowsCard title={s.atLimit}>
 						<Row>

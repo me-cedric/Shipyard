@@ -13,6 +13,7 @@ import { SetupCard, SetupRow, StatePill } from "../parts";
 import { message } from "./keys";
 
 export const wiringKey = ["mcp", "wiring"] as const;
+export const outsideKey = ["mcp", "outside"] as const;
 
 const PILL = { wired: "ready", "out-of-date": "fix" } as const;
 const MARK = { same: " ", add: "+", del: "-" } as const;
@@ -29,6 +30,12 @@ export function McpWiring() {
 		queryKey: wiringKey,
 		queryFn: () => unwrap(commands.mcpWiringList()),
 	});
+	const outside = useQuery({
+		queryKey: outsideKey,
+		queryFn: () => unwrap(commands.mcpOutsideGet()),
+	});
+	// A written file does not mean a server that runs: the pill needs both.
+	const stopped = outside.data?.running === false;
 	const [review, setReview] = useState<{ id: string; r: Review } | null>(null);
 	const [note, setNote] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -58,10 +65,25 @@ export function McpWiring() {
 					{w.state === "not-wired" ? (
 						<span className="sr-only">{state[w.state]}</span>
 					) : (
-						<StatePill state={PILL[w.state]}>
-							{w.state === "wired" ? p.connected : state[w.state]}
+						<StatePill state={w.state === "wired" && stopped ? "off" : PILL[w.state]}>
+							{w.state === "wired" ? (stopped ? o.stopped : p.connected) : state[w.state]}
 						</StatePill>
 					)}
+					{w.state === "wired" && stopped && outside.data ? (
+						<Button
+							variant="primary"
+							onClick={() =>
+								void attempt(async () => {
+									const g = outside.data?.gates;
+									if (!g) return;
+									await unwrap(commands.mcpOutsideSet({ ...g, enabled: true }));
+									await qc.invalidateQueries({ queryKey: outsideKey });
+								})
+							}
+						>
+							{p.turnOn}
+						</Button>
+					) : null}
 					{w.state === "wired" ? null : (
 						<Button
 							variant="secondary"

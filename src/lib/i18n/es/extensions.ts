@@ -75,7 +75,7 @@ export const extensionsEs: typeof extensionsEn = {
 	},
 	catalog: {
 		groups: {
-			devcontainers: "Dev containers",
+			devcontainers: "Contenedores de desarrollo",
 			agents: "Agentes",
 			"devops-security": "DevOps y seguridad",
 		},
@@ -102,6 +102,14 @@ export const extensionsEs: typeof extensionsEn = {
 		accept: "Aceptar {name}",
 		change: { new: "Nuevo", same: "Igual", changed: "Cambiado", removed: "Quitado" },
 		refused: "Rechazado",
+		kinds: {
+			file: "Archivo",
+			setting: "Ajuste",
+			mcp: "Servidor de herramientas",
+			theme: "Tema",
+			language: "Idioma",
+		},
+		refusedCommand: "{kind} {id}: ejecuta un comando en este equipo",
 		mcp: "Servidores MCP añadidos: {names}",
 		mcpFailed: "Servidores MCP fallidos: {names}",
 		themes: "Temas añadidos: {names}",

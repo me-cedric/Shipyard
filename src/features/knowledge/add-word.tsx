@@ -20,7 +20,7 @@ export function AddWord() {
 	if (!open)
 		return (
 			<span>
-				<Button variant="ghost" className="min-h-control" onClick={() => setOpen(true)}>
+				<Button variant="ghost" className="-ml-4.75 min-h-control" onClick={() => setOpen(true)}>
 					{f.addWord}
 				</Button>
 			</span>
@@ -36,6 +36,9 @@ export function AddWord() {
 	return (
 		<form
 			className="flex flex-col gap-2"
+			onKeyDown={(e) => {
+				if (e.key === "Escape") setOpen(false);
+			}}
 			onSubmit={(e) => {
 				e.preventDefault();
 				void save();

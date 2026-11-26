@@ -32,7 +32,7 @@ export const specsEn = {
 	valid: "No problems found",
 	problems: "Problems found: {count}",
 	editor: {
-		copy: "Copy ref",
+		copy: "Copy the reference",
 		dirty: "Unsaved changes",
 		conflict: "The file changed on disk.",
 		reload: "Reload",
@@ -222,7 +222,7 @@ export const specsFr: typeof specsEn = {
 	valid: "Aucun problème trouvé",
 	problems: "Problèmes trouvés : {count}",
 	editor: {
-		copy: "Copier la réf",
+		copy: "Copier la référence",
 		dirty: "Modifications non enregistrées",
 		conflict: "Le fichier a changé sur le disque.",
 		reload: "Recharger",

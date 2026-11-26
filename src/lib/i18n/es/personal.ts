@@ -81,6 +81,7 @@ export const personalEs: typeof personalEn = {
 		connect: "Conectar",
 		connectName: "Conectar {name}",
 		connected: "Conectado",
+		turnOn: "Activar",
 		shareTools: "Herramientas de IA que pueden usar Shipyard",
 		importTheme: "Importar un tema",
 		importLanguage: "Importar un idioma",

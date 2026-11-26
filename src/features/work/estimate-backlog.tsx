@@ -1,4 +1,5 @@
 import { type PointerEvent, useMemo, useRef } from "react";
+import { EstimateAgent } from "@/features/plan/estimate-agent";
 import { useDays } from "@/features/plan/estimate-cards";
 import { Stepper } from "@/features/plan/estimate-stepper";
 import { format, useI18n } from "@/lib/i18n";
@@ -29,6 +30,7 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
 import { CONTROLS } from "./estimate-forms";
 import { useGuard } from "./guard";
+import { roleId } from "./team-rights";
 
 type Line = { feature: Feature; task: Task };
 const LOW = "@@low";
@@ -117,6 +119,7 @@ export function EstimateBacklog({
 	slug,
 	view,
 	tools,
+	onTools,
 	picked,
 	onPicked,
 	onOpen,
@@ -125,6 +128,8 @@ export function EstimateBacklog({
 	slug: string;
 	view: SheetView;
 	tools: boolean;
+	/** Turns the tools on: Ask an agent opens the selection with it. */
+	onTools: () => void;
 	picked: Set<string>;
 	onPicked: (picked: Set<string>) => void;
 	/** Opens the page of a task. */
@@ -204,7 +209,12 @@ export function EstimateBacklog({
 						query={query}
 						onQueryChange={setQuery}
 						filters={[
-							...roles.map((r) => ({ id: r, label: r })),
+							...roles.map((r) => ({
+								id: r,
+								label:
+									(t.rights.role as Record<string, string>)[roleId(r)] ??
+									`${r.charAt(0).toUpperCase()}${r.slice(1)}`,
+							})),
 							{ id: LOW, label: c.filter.lowConfidence },
 							{ id: NO_TICKET, label: c.filter.noTicket },
 						]}
@@ -215,6 +225,9 @@ export function EstimateBacklog({
 					/>
 				</div>
 			) : null}
+			<div className="flex flex-wrap items-center gap-2 pb-3">
+				<EstimateAgent slug={slug} view={view} ids={[...picked]} onPick={onTools} />
+			</div>
 			<ErrorNotice error={failure} />
 			{lines.length === 0 ? <EmptyState title={t.empty.tasks} /> : null}
 			<div className="overflow-x-auto">

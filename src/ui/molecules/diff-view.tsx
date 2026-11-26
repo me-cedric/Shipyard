@@ -117,7 +117,7 @@ const LineRow = memo(function LineRow({
 							{l.new}
 						</span>
 						{actionLabel ? (
-							<span className="relative w-5 shrink-0 text-center">
+							<span className="relative w-11 shrink-0 text-center">
 								{at == null || !showAction ? null : (
 									<button
 										type="button"
@@ -129,7 +129,7 @@ const LineRow = memo(function LineRow({
 										title={actionOff}
 										onFocus={() => onActive(at)}
 										onClick={() => !actionOff && onAct(at)}
-										className="absolute top-1/2 left-1/2 inline-flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-sm text-n-11 opacity-0 transition-opacity duration-(--duration-fast) hover:bg-n-4 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:shadow-glow"
+										className="absolute inset-0 inline-flex items-center justify-center rounded-sm text-n-11 opacity-0 transition-opacity duration-(--duration-fast) hover:bg-n-4 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:shadow-glow"
 									>
 										<PlusIcon size={12} />
 									</button>

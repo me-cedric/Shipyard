@@ -29,7 +29,7 @@ describe("first run", () => {
 		expect(screen.queryByRole("combobox", { name: "Ask or tell Shipyard" })).toBeNull();
 		expect(screen.getByRole("button", { name: "Skip to the content" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { level: 1, name: "What is your job?" })).toBeVisible();
-		expect(screen.getByRole("img", { name: "Step 1 of 3" })).toBeVisible();
+		expect(screen.getByRole("img", { name: "Step 1 of 2" })).toBeVisible();
 		const roles = within(screen.getByRole("group", { name: "What is your job?" })).getAllByRole(
 			"button",
 		);
@@ -65,8 +65,9 @@ describe("first run", () => {
 		const buttons = firstRunButtons();
 		expect(buttons.map((b) => b.textContent)).toEqual([
 			"Open a local folder",
-			"Clone a repository",
+			"Get a project from the code host",
 			"Create a project",
+			"Back",
 		]);
 		// Each start is a tile of the same weight: the step has no primary button.
 		expect(buttons.filter((b) => b.className.includes("bg-primary"))).toHaveLength(0);
@@ -99,7 +100,7 @@ describe("first run", () => {
 		await waitFor(() =>
 			expect(screen.getByRole("heading", { level: 1, name: "How do you start?" })).toHaveFocus(),
 		);
-		expect(screen.getByRole("img", { name: "Step 2 of 3" })).toBeVisible();
+		expect(screen.getByRole("img", { name: "Step 2 of 2" })).toBeVisible();
 	});
 
 	it("opens a local folder and lists it in the switcher", async () => {
@@ -171,7 +172,9 @@ describe("first run", () => {
 		const user = userEvent.setup();
 		mountApp("/home/today");
 		await next(user);
-		await user.click(await screen.findByRole("button", { name: "Clone a repository" }));
+		await user.click(
+			await screen.findByRole("button", { name: "Get a project from the code host" }),
+		);
 		await user.type(
 			screen.getByRole("textbox", { name: "Repository address" }),
 			"git@host:team/shipyard.git",
@@ -245,7 +248,7 @@ describe("project switcher", () => {
 		expect(menu.getAllByRole("menuitem").map((i) => i.textContent)).toEqual([
 			"Projects",
 			"Open a local folder",
-			"Clone a repository",
+			"Get a project from the code host",
 			"Close project",
 			"Remove from list",
 		]);
@@ -283,7 +286,9 @@ describe("project switcher", () => {
 		await open("/mock/alpha");
 		mountApp("/home/today");
 		await user.click(await screen.findByRole("button", { name: /^Project/ }));
-		await user.click(await screen.findByRole("menuitem", { name: "Clone a repository" }));
+		await user.click(
+			await screen.findByRole("menuitem", { name: "Get a project from the code host" }),
+		);
 		const dialog = within(await screen.findByRole("dialog"));
 		await user.type(
 			dialog.getByRole("textbox", { name: "Repository address" }),
@@ -582,7 +587,9 @@ describe("Settings / Health", () => {
 		// A group with no finding has no card.
 		expect(screen.queryByRole("region", { name: "Files that tools generate" })).toBeNull();
 		expect(screen.getAllByText("1 to fix")).toHaveLength(2);
-		expect(screen.getByText("Broken ref adr:0009")).toBeInTheDocument();
+		expect(
+			screen.getByText("A link points to a document that does not exist: Decision 0009"),
+		).toBeInTheDocument();
 		expect(screen.getAllByRole("button", { name: /^(Fix|Recheck)$/ })).toHaveLength(2);
 	});
 
@@ -673,7 +680,9 @@ describe("Settings / Health", () => {
 		expect(
 			await screen.findByRole("region", { name: "Règles et compétences des agents" }),
 		).toBeInTheDocument();
-		expect(screen.getByText("Référence rompue adr:0009")).toBeInTheDocument();
+		expect(
+			screen.getByText("Un lien pointe vers un document qui n’existe pas : Décision 0009"),
+		).toBeInTheDocument();
 	});
 });
 
@@ -699,7 +708,9 @@ describe("Settings / Project, delivery files", () => {
 		const low = await screen.findAllByRole("spinbutton", { name: "Daily cost" });
 		fireEvent.change(low[0] as HTMLElement, { target: { value: "-5" } });
 		await user.click(again().getByRole("button", { name: "Save" }));
-		expect(await again().findByRole("alert")).toHaveTextContent("must be zero or more");
+		expect(await again().findByRole("alert")).toHaveTextContent(
+			"A value is empty or does not fit. Check the fields, then try again.",
+		);
 	}, 20_000);
 
 	it("saves the issue types and the hours of a day, and refuses 0 hours", async () => {

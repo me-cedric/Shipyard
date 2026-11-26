@@ -1,5 +1,5 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useContext, useMemo, useState } from "react";
+import { useContext, useMemo, useRef, useState } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
@@ -27,10 +27,11 @@ import { type AgentRow, useAgentRows } from "./live";
 import { EndedCard, MachineRows, modelName, OrcaCard, SIDE_HEAD } from "./sessions-side";
 import { resumeLine, takeLine, useLiveOutput } from "./take-control";
 
-const live = (r: AgentRow) => r.session.state === "running" || r.session.state === "gate";
+// A session that has not started yet is not ended: it stays in the main list.
+const over = (r: AgentRow) => r.session.state === "done" || r.session.state === "failed";
 /** A button on the dark session panel: dark, like the design. */
-const PANEL_BUTTON = "border-primary-fg/20 bg-primary-fg/15 hover:bg-primary-fg/25";
-const ON_PANEL = `${PANEL_BUTTON} text-primary-fg`;
+const PANEL_BUTTON = "border-terminal-fg/20 bg-terminal-fg/15 hover:bg-terminal-fg/25";
+const ON_PANEL = `${PANEL_BUTTON} text-terminal-fg`;
 /** The Stop button on that panel: light orange, like the design (dark orange on the light panel of the dark theme). */
 const STOP_ON_PANEL = `${PANEL_BUTTON} ${ATTENTION_ON_PANEL}`;
 /** The rows of the list that show before "Show all", as in the design. */
@@ -104,6 +105,7 @@ export function CrewSessions() {
 	const { gate } = useRights();
 	const slot = useContext(PageSwitchContext);
 	const [all, setAll] = useState(false);
+	const panel = useRef<HTMLElement>(null);
 	// The page of the ended sessions has no section switch: it claims the switch and draws none.
 	const day = usePlainDay();
 	const bare = useMemo(() => slot && { ...slot, node: null }, [slot]);
@@ -138,7 +140,7 @@ export function CrewSessions() {
 		});
 
 	if (search.page === "ended") {
-		const ended = rows.filter((r) => !live(r));
+		const ended = rows.filter(over);
 		return (
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 				<PageSwitchContext.Provider value={bare}>
@@ -158,12 +160,12 @@ export function CrewSessions() {
 						{ended.map((r) => (
 							<Row
 								key={r.id}
-								className="min-h-18 py-2"
+								className="min-h-18 w-full py-2"
 								render={(props) => (
 									<button type="button" {...props} onClick={() => open(r.session)} />
 								)}
 							>
-								<Avatar agent name={nameOf(r.session.step)} />
+								<Avatar agent name={nameOf(r.session.step, t.factory.agentNames)} />
 								<span className="flex min-w-0 flex-1 flex-col text-left">
 									<span className="truncate font-semibold">{name(r)}</span>
 									<span className="truncate text-n-11">
@@ -188,7 +190,7 @@ export function CrewSessions() {
 		);
 	}
 
-	const here = rows.filter(live).toSorted((a, b) => a.id.localeCompare(b.id, lang));
+	const here = rows.filter((r) => !over(r)).toSorted((a, b) => a.id.localeCompare(b.id, lang));
 	const shown = here.find((r) => idOf(r.session) === search.session) ?? here[0];
 	const none = here.length === 0 && !sessions.isPending;
 	// The unit of the session shown: it knows the tool, the folder and the session id.
@@ -214,7 +216,7 @@ export function CrewSessions() {
 							action={{ label: f.runs, onClick: () => void navigate({ to: "/flow/flow" }) }}
 						/>
 					) : null}
-					<Card className="py-2">
+					<Card className="overflow-hidden py-2">
 						<section aria-label={s.here}>
 							<h2 className={SIDE_HEAD}>{s.here}</h2>
 							{here.map((r, i) =>
@@ -227,17 +229,19 @@ export function CrewSessions() {
 												type="button"
 												aria-pressed={r === shown}
 												{...props}
-												onClick={() =>
+												onClick={() => {
 													void navigate({
 														to: "/crew/sessions",
 														search: { session: idOf(r.session) } as never,
 														replace: true,
-													})
-												}
+													});
+													// In a small window the output wraps under the list: bring it into view.
+													panel.current?.scrollIntoView?.({ block: "nearest" });
+												}}
 											/>
 										)}
 									>
-										<Avatar agent name={nameOf(r.session.step)} />
+										<Avatar agent name={nameOf(r.session.step, t.factory.agentNames)} />
 										<span className="flex min-w-0 flex-1 flex-col text-left">
 											<span className="truncate font-semibold">{name(r)}</span>
 											<span className="truncate text-n-11">{detail(r)}</span>
@@ -250,6 +254,7 @@ export function CrewSessions() {
 									</Row>
 								) : null,
 							)}
+							<MachineRows />
 							{!all && here.length > FIRST ? (
 								<Row
 									className="min-h-12 w-full py-2 font-semibold"
@@ -260,7 +265,6 @@ export function CrewSessions() {
 									{format(s.showAll, { n: here.length })}
 								</Row>
 							) : null}
-							<MachineRows />
 						</section>
 					</Card>
 					<OrcaCard />
@@ -268,18 +272,19 @@ export function CrewSessions() {
 				</div>
 				{shown ? (
 					<section
+						ref={panel}
 						aria-label={format(s.output, { name: name(shown) })}
-						className="flex min-h-140 min-w-0 flex-[3_1_28rem] flex-col overflow-hidden rounded-xl bg-primary text-primary-fg"
+						className="flex min-h-140 min-w-0 flex-[3_1_28rem] flex-col overflow-hidden rounded-xl border border-terminal-fg/15 bg-terminal text-terminal-fg"
 					>
 						<div className="flex flex-wrap items-center gap-3 px-4 py-3.5">
 							<Avatar
 								agent
-								name={nameOf(shown.session.step)}
-								className="bg-primary-fg text-primary"
+								name={nameOf(shown.session.step, t.factory.agentNames)}
+								className="bg-terminal-fg text-terminal"
 							/>
 							<h2 className="font-semibold">{name(shown)}</h2>
 							<span className="flex-1" />
-							<Badge className="bg-primary-fg/15 text-primary-fg">{s.readOnly}</Badge>
+							<Badge className="bg-terminal-fg/15 text-terminal-fg">{s.readOnly}</Badge>
 							{/* Open shows the page of the work. Taking over the terminal of an agent has no command. */}
 							{opens(shown.session) ? (
 								<Button className={`min-h-control ${ON_PANEL}`} onClick={() => open(shown.session)}>
@@ -293,7 +298,7 @@ export function CrewSessions() {
 							shown.session.state === "running" ? (
 								<RightButton
 									right="runs.start"
-									aria-label={format(f.machine.stop, { name: shown.session.key })}
+									aria-label={format(f.machine.stop, { name: name(shown) })}
 									className={`min-h-control ${STOP_ON_PANEL}`}
 									onClick={() => stop(shown.session)}
 								>
@@ -307,14 +312,14 @@ export function CrewSessions() {
 								<ConfirmButton
 									className={`min-h-control ${STOP_ON_PANEL}`}
 									{...gate("runs.start")}
-									confirm={format(f.machine.confirmStop, { name: shown.session.key })}
+									confirm={format(f.machine.confirmStop, { name: name(shown) })}
 									onConfirm={() => void run(() => act.cancel(shown.session.run))}
 								>
 									{s.stop}
 								</ConfirmButton>
 							) : null}
 						</div>
-						<div className="flex flex-col gap-1 border-t border-primary-fg/20 px-4 py-4.5 font-mono text-primary-fg/80">
+						<div className="flex flex-col gap-1 border-t border-terminal-fg/20 px-4 py-4.5 font-mono text-terminal-fg/80">
 							<p>{format(s.tokens, { count: shown.session.tokens.toLocaleString(lang) })}</p>
 							{shown.session.costUsd === null ? null : (
 								<p>{`$${shown.session.costUsd.toFixed(2)}`}</p>

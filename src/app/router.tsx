@@ -73,7 +73,7 @@ function NoAccess({ space, tab }: { space: SectionSpace; tab: string }) {
 			<EmptyState
 				title={t.rights.noAccess}
 				action={{
-					label: t.tabs.home.today,
+					label: t.doctor.auto.today,
 					onClick: () => void navigate({ to: "/today/today" }),
 				}}
 			/>
@@ -188,8 +188,10 @@ const textSearch =
 			keys.filter((k) => s[k] != null && s[k] !== "").map((k) => [k, String(s[k])]),
 		) as { [P in K]?: string };
 
-const kindSearch = (s: Record<string, unknown>): { kind?: "idea" } =>
-	s.kind === "idea" ? { kind: "idea" } : {};
+const kindSearch = (s: Record<string, unknown>): { kind?: "idea"; spec?: string } => ({
+	...(s.kind === "idea" ? { kind: "idea" as const } : {}),
+	...(typeof s.spec === "string" && s.spec ? { spec: s.spec } : {}),
+});
 
 const pullsSearch = (s: Record<string, unknown>): { q?: string; filter?: "needs" } => ({
 	...(s.q != null && s.q !== "" ? { q: String(s.q) } : {}),

@@ -220,10 +220,13 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 						</SetupRow>
 						<SetupRow label={s.roleView}>
 							<ValueSelect
-								label={t.prefs.role}
+								label={s.roleView}
 								value={role}
 								onValueChange={(v) => setPrefs({ role: v as Role })}
-								items={roles.map((r) => ({ value: r, label: t.role[r] }))}
+								items={roles.map((r) => ({
+									value: r,
+									label: r === "viewer" ? t.home.roles.viewer : t.role[r],
+								}))}
 							/>
 						</SetupRow>
 					</SetupCard>

@@ -79,8 +79,8 @@ describe("top row (ux-declutter REQ-009 to REQ-013)", () => {
 			expect(menu.getByRole("menuitem", { name: n })).toBeVisible();
 		// The language row is a button that shows the current language.
 		expect(menu.getByRole("menuitem", { name: "Language English" })).toHaveTextContent(/^English$/);
-		// The version row is an item that does nothing: the arrow keys reach it.
-		expect(menu.getByRole("menuitem", { name: /^About Shipyard/ })).toHaveAttribute(
+		// The version row opens What is new, so it is not disabled.
+		expect(menu.getByRole("menuitem", { name: /^About Shipyard/ })).not.toHaveAttribute(
 			"aria-disabled",
 			"true",
 		);

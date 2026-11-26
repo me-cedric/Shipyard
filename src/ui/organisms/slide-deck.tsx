@@ -75,7 +75,7 @@ export function SlideDeck({
 			data-present={present ? "" : undefined}
 			className={
 				present
-					? "reveal fixed inset-0 z-50"
+					? "reveal fixed inset-0 z-(--z-popup)"
 					: "reveal relative h-72 w-full overflow-hidden rounded-md border border-n-7"
 			}
 			style={

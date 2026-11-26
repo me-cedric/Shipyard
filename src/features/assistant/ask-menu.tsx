@@ -4,6 +4,7 @@ import { cannedPrompt, type ItemType, itemTypeOf, PROMPT_KINDS } from "@/lib/ass
 import { LANGS, type Lang, useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { useShell } from "@/lib/shell";
+import { MENU_ITEM, MENU_POPUP } from "@/ui/molecules/menu-button";
 
 /** The language of the prompts: the preference, else the language of the interface. */
 function usePromptLang(): Lang {
@@ -11,11 +12,6 @@ function usePromptLang(): Lang {
 	const { promptLang } = usePrefs();
 	return LANGS.find((l) => l === promptLang) ?? lang;
 }
-
-const popup =
-	"min-w-40 origin-(--transform-origin) rounded-lg border border-n-6 bg-surface-3 p-1 text-ui shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 motion-reduce:transition-none";
-const item =
-	"flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5";
 
 /** The canned prompts of a type. A click puts one in the draft of the assistant: the person reads it and sends it. */
 function Items({ type, subject }: { type: ItemType; subject: string | null }) {
@@ -25,7 +21,7 @@ function Items({ type, subject }: { type: ItemType; subject: string | null }) {
 	return PROMPT_KINDS[type].map((kind) => (
 		<Menu.Item
 			key={kind}
-			className={item}
+			className={MENU_ITEM}
 			onClick={() => ask(cannedPrompt(lang, type, kind, subject))}
 		>
 			{t.assistant.ask[kind]}
@@ -68,7 +64,7 @@ export function AskOnItem() {
 		>
 			<Menu.Portal>
 				<Menu.Positioner anchor={target.el} sideOffset={4} className="z-50">
-					<Menu.Popup aria-label={t.assistant.ask.menu} className={popup}>
+					<Menu.Popup aria-label={t.assistant.ask.menu} className={MENU_POPUP}>
 						<Items type={type} subject={target.ref} />
 					</Menu.Popup>
 				</Menu.Positioner>

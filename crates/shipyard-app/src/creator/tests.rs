@@ -50,6 +50,7 @@ fn the_preview_holds_the_files_of_the_answers_and_writes_nothing() {
     let agents = file(&p, "AGENTS.md");
     assert!(agents.contains("docs in French") && agents.contains("comments in English"));
     assert!(agents.contains("`cargo test`, `cargo clippy`"));
+    assert!(agents.contains("before you report") && agents.contains("ask and wait"));
     let team = file(&p, ".shipyard/team.yaml");
     assert!(
         team.contains("handle: ada-lovelace") && team.contains("role: developer"),

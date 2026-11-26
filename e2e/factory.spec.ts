@@ -161,9 +161,9 @@ test("makes a workflow from a preset, changes an effort in the form and saves it
 	await openFactory(page, "Recipes");
 	await page.getByRole("button", { name: "New recipe", exact: true }).click();
 	const dialog = page.getByRole("dialog");
-	await dialog.getByRole("combobox", { name: "Preset" }).click();
+	await dialog.getByRole("combobox", { name: "Start from" }).click();
 	await page.getByRole("option", { name: "bug" }).click();
-	await dialog.getByRole("textbox", { name: "New id" }).fill("hotfix");
+	await dialog.getByRole("textbox", { name: "Name" }).fill("hotfix");
 	await dialog.getByRole("button", { name: "Create" }).click();
 	// A step is a page of its own: the chain links to it.
 	await page.getByRole("link", { name: "Triage", exact: true }).click();
@@ -180,7 +180,8 @@ test("lists every AI session on the computer and stops a running one", async ({ 
 	await openFactory(page, "Sessions");
 	const machine = page.getByRole("region", { name: "On this machine" });
 	await expect(machine.getByText("Fix the login")).toBeVisible();
-	await page.getByRole("button", { name: "Stop claude alpha" }).click();
+	await page.getByRole("button", { name: "Stop Fix the login" }).click();
+	await page.getByRole("button", { name: "Stop Fix the login?" }).click();
 	await expect(machine.getByText("Fix the login")).toHaveCount(0);
 });
 

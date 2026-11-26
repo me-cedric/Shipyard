@@ -1,9 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { Button } from "../atoms/button";
 import { CodeEditor } from "../molecules/code-editor";
-import { AdrDecision } from "../organisms/adr-decision";
 import { BpmnViewer } from "../organisms/bpmn-viewer";
-import { DbmlView } from "../organisms/dbml-view";
 import { DrawioViewer } from "../organisms/drawio-viewer";
 import { EditorFrame, type SaveState } from "../organisms/editor-frame";
 import type { EditorError } from "../organisms/error-line";
@@ -12,7 +10,6 @@ import { FlowMatrix } from "../organisms/flow-matrix";
 import type { FlowRow } from "../organisms/flow-rows";
 import { LikeC4View } from "../organisms/likec4-view";
 import { MermaidView } from "../organisms/mermaid-view";
-import { OpenApiView } from "../organisms/openapi-view";
 import { TryPanel } from "../organisms/try-panel";
 
 // The demo texts are English literals: the gallery is a developer page, not a product screen.
@@ -31,18 +28,6 @@ views {
     include *
   }
 }`;
-const DBML =
-	"Table users {\n  id int [pk]\n  email varchar [not null]\n}\nTable orders {\n  id int [pk]\n  user_id int\n}\nRef: orders.user_id > users.id";
-const OPENAPI = `openapi: 3.0.0
-info: { title: Shop, version: "1" }
-servers: [{ url: https://api.example.com }]
-paths:
-  /orders/{id}:
-    get:
-      tags: [orders]
-      summary: One order
-      parameters: [{ name: id, in: path, schema: { type: string } }]
-      responses: { "200": { description: OK }, "404": { description: Not found } }`;
 const BPMN = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="d" targetNamespace="urn:demo">
   <bpmn:process id="p"><bpmn:startEvent id="s"/><bpmn:task id="t" name="Review"/><bpmn:sequenceFlow id="f" sourceRef="s" targetRef="t"/></bpmn:process>
@@ -83,13 +68,6 @@ const LABELS = {
 		reload: "Reload",
 		keepMine: "Keep mine",
 		line: "Line",
-	},
-	dbml: { pk: "PK", notNull: "Not null", relations: "Relations" },
-	api: {
-		parameters: "Parameters",
-		responses: "Responses",
-		required: "Required",
-		untagged: "Other",
 	},
 	try: {
 		server: "Server",
@@ -204,34 +182,14 @@ export function DesignParts() {
 					view={(s, e) => <LikeC4View source={s} label="LikeC4" onError={e} />}
 				/>
 			</Demo>
-			<Demo name="DbmlView">
-				<TextDemo
-					title="DBML"
-					initial={DBML}
-					view={(s, e) => <DbmlView source={s} labels={LABELS.dbml} onError={e} />}
-				/>
-			</Demo>
-			<Demo name="OpenApiView">
-				<TextDemo
-					title="OpenAPI"
-					initial={OPENAPI}
-					view={(s, e) => (
-						<OpenApiView
-							source={s}
-							labels={LABELS.api}
-							onError={e}
-							tryPanel={(op, doc) => (
-								<TryPanel
-									servers={doc.servers}
-									method={op.method}
-									path={op.path}
-									params={op.parameters}
-									labels={LABELS.try}
-									onSend={async (r) => ({ status: 200, body: JSON.stringify(r, null, 2) })}
-								/>
-							)}
-						/>
-					)}
+			<Demo name="TryPanel">
+				<TryPanel
+					servers={["https://api.example.com"]}
+					method="get"
+					path="/orders/{id}"
+					params={[{ name: "id", in: "path", required: true, type: "string" }]}
+					labels={LABELS.try}
+					onSend={async (r) => ({ status: 200, body: JSON.stringify(r, null, 2) })}
 				/>
 			</Demo>
 			<Demo name="ExcalidrawBoard">
@@ -256,13 +214,6 @@ export function DesignParts() {
 					onAdd={(d) => setFlows([...flows, { ...d, id: String(flows.length + 1) }])}
 					onEdit={(id, d) => setFlows(flows.map((f) => (f.id === id ? { ...d, id } : f)))}
 					onRemove={(id) => setFlows(flows.filter((f) => f.id !== id))}
-				/>
-			</Demo>
-			<Demo name="AdrDecision">
-				<AdrDecision
-					onAccept={() => {}}
-					onReject={() => {}}
-					labels={{ accept: "Accept", reject: "Reject", comment: "Comment" }}
 				/>
 			</Demo>
 		</>

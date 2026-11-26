@@ -23,6 +23,7 @@ import { Card } from "@/ui/molecules/card";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
+import { TILE, TILE_ON } from "@/ui/molecules/tile";
 import { lineDiff } from "../factory/workflows/line-diff";
 import { ChangeDialog, IdDialog, type Pick, RecipeFile, type RecipeSearch } from "./recipe-file";
 import { RecipePermissions } from "./recipes-permissions";
@@ -168,10 +169,7 @@ export function Recipes() {
 											data-nav=""
 											aria-current={on ? "true" : undefined}
 											onClick={() => setPick({ kind: "workflow", id: r.id })}
-											className={cn(
-												"flex min-h-control w-full cursor-pointer flex-col gap-3 rounded-lg bg-surface-2 p-4.5 text-left shadow-2 focus-visible:outline-offset-2",
-												on && "bg-accent-tint outline-2 outline-accent",
-											)}
+											className={cn(TILE, "w-full", on && TILE_ON)}
 										>
 											<span className="flex items-center gap-2 text-17 font-semibold text-n-12">
 												<span className="flex-1">{nameOf(r.id)}</span>

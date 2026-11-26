@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
-import { RightButton } from "@/lib/rights";
+import { useRights } from "@/lib/rights";
 import { useWorkItems } from "@/lib/sync";
 import { addDays, memberName, useSheet, useTeam, useWorkActions } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
@@ -9,6 +9,7 @@ import { buttonVariants } from "@/ui/atoms/button";
 import { CalendarDaysIcon } from "@/ui/icons";
 import { ATTENTION_TINT } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
+import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { ATTENTION_FRAME, usePlainDay, usePlanSheet, useProposals } from "./capacity";
 import { DatesPage } from "./dates-page";
@@ -37,6 +38,7 @@ export function Timeline() {
 	const bars = usePlanBars(slug);
 	const title = usePlanTitle(slug ?? "");
 	const proposed = useProposals(plan);
+	const rebalance = useRights().gate("work.edit");
 
 	if (blank || !slug || !plan) return blank;
 	if (search.page === "dates")
@@ -127,14 +129,15 @@ export function Timeline() {
 						<Link to="/plan/people" className={buttonVariants()}>
 							{t.planPlace.show}
 						</Link>
-						<RightButton
-							right="work.edit"
+						<ConfirmButton
 							variant="primary"
-							disabled={proposed.list.length === 0}
-							onClick={() => proposed.apply(proposed.list)}
+							reason={rebalance.reason}
+							disabled={proposed.list.length === 0 || rebalance.disabled}
+							confirm={t.planPlace.confirmRebalance}
+							onConfirm={() => proposed.apply(proposed.list)}
 						>
 							{t.planPlace.rebalance}
-						</RightButton>
+						</ConfirmButton>
 					</Card>
 				) : null}
 				<Card className="shrink-0 px-6 pt-3 pb-6">

@@ -537,10 +537,12 @@ const slugOf = (title: string) =>
 		.slice(0, 40)
 		.replace(/-+$/, "");
 
-/** The first heading of `proposal.md` when it is not the id, else the id (strict OpenSpec has no `title` key). */
+/** The first heading of `proposal.md` when it is not the id, else the id as words: `add-auth` gives "Add auth". */
 function titleOf(s: MockSpecs, id: string): string {
 	const heading = s.files[`${CH}/${id}/proposal.md`]?.text.match(/^# (.+)$/m)?.[1]?.trim();
-	return heading && heading !== id ? heading : id;
+	if (heading && heading !== id) return heading;
+	const words = id.replace(/-/g, " ");
+	return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 const view = (s: MockSpecs, id: string): ChangeView_Serialize => ({

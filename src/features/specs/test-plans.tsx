@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { type ReactNode, useRef, useState } from "react";
-import { LibraryPage, LinkedCard, PageColumns, SideCards } from "@/features/library/page-parts";
 import { WithProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { copyText } from "@/lib/menus";
@@ -25,6 +24,7 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { Row } from "@/ui/molecules/row";
+import { LibraryPage, LinkedCard, PageColumns, SideCards } from "@/ui/templates/library-page";
 import { caretToEnd } from "./constitution";
 import { FileEditor } from "./file-editor";
 import { useGuard } from "./guard";

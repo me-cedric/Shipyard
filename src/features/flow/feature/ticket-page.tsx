@@ -10,6 +10,7 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Textarea } from "@/ui/atoms/textarea";
 import { Card } from "@/ui/molecules/card";
+import { LeaveGuard } from "@/ui/organisms/leave-guard";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 
 /** "Edit the title" of the ticket page: the button swaps for a field. Enter saves, Escape cancels. */
@@ -28,7 +29,7 @@ export function EditTitle({ item }: { item: WorkItemView_Serialize }) {
 		);
 	return (
 		<form
-			className="flex flex-[1_1_100%] flex-wrap items-center gap-2.5"
+			className="flex flex-[1_1_20rem] flex-wrap items-center gap-2.5"
 			onKeyDown={(e) => {
 				if (e.key !== "Escape") return;
 				e.stopPropagation();
@@ -71,6 +72,10 @@ function TicketText({ item }: { item: WorkItemView_Serialize }) {
 	const url = webUrl(item.url);
 	return (
 		<Card pad className="flex flex-col gap-3">
+			<LeaveGuard
+				dirty={text !== null && text !== item.description}
+				onSave={() => act.editTicket(item.key, null, text)}
+			/>
 			<div className="flex flex-wrap items-center gap-2.5">
 				<h2 className="mr-auto text-20 font-semibold text-n-12">{t.flow.look.page.ticket.title}</h2>
 				{edit?.description && text === null ? (
@@ -166,7 +171,9 @@ export function TicketThread({ itemKey }: { itemKey: string }) {
 							value={body}
 							onChange={(e) => setBody(e.target.value)}
 						/>
-						<Button type="submit">{t.flow.look.page.stop.send}</Button>
+						<Button type="submit" disabled={body.trim() === ""}>
+							{t.flow.look.page.stop.send}
+						</Button>
 					</form>
 				</>
 			) : (

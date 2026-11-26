@@ -25,17 +25,20 @@ import { Segmented } from "@/ui/atoms/segmented";
 import { Card } from "@/ui/molecules/card";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { ContextMenu } from "@/ui/molecules/context-menu";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuList } from "@/ui/molecules/menu-button";
 import { SideSwitch, useSides } from "@/ui/molecules/pane-toggle";
 import { Row } from "@/ui/molecules/row";
 import { mermaid } from "@/ui/molecules/syntax";
+import { TILE, TILE_ON } from "@/ui/molecules/tile";
 import { BpmnViewer } from "@/ui/organisms/bpmn-viewer";
 import { drawioSvg, svgDataUri } from "@/ui/organisms/drawio";
 import { DrawioEditor } from "@/ui/organisms/drawio-editor";
 import { DrawioViewer } from "@/ui/organisms/drawio-viewer";
 import { ExcalidrawBoard } from "@/ui/organisms/excalidraw-board";
 import { MermaidView, renderMermaid } from "@/ui/organisms/mermaid-view";
-import { LibraryPage, PageColumns, SideCards } from "../library/page-parts";
+import { useDark } from "@/ui/organisms/use-dark";
+import { LibraryPage, NoMatch, PageColumns, SideCards } from "@/ui/templates/library-page";
 import { FileFrame, type Frame } from "./frame";
 import { useOpenOutside } from "./open";
 import {
@@ -110,6 +113,7 @@ function fitSvg(svg: string): string {
 
 /** The face of a diagram in the grid: the real picture when the app renders the file, else the ghost. */
 function Face({ a }: { a: Artifact | undefined }) {
+	const dark = useDark();
 	const format = a?.format ?? "";
 	const path = a?.path ?? "";
 	const drawn = !!a && !a.issue && ["mermaid", "bpmn", "excalidraw", "drawio"].includes(format);
@@ -144,7 +148,14 @@ function Face({ a }: { a: Artifact | undefined }) {
 		);
 	const svg = format === "excalidraw" || format === "drawio" || format === "mermaid" ? scene : text;
 	if (!svg) return <Thumb format={format} />;
-	return <img alt="" src={svgDataUri(svg)} className="h-28 w-full object-contain px-2" />;
+	// Strokes of a board are dark: in a dark theme the picture is inverted, as Excalidraw does.
+	const invert =
+		dark && (format === "excalidraw" || format === "drawio")
+			? "[filter:invert(93%)_hue-rotate(180deg)]"
+			: "";
+	return (
+		<img alt="" src={svgDataUri(svg)} className={`h-28 w-full object-contain px-2 ${invert}`} />
+	);
 }
 
 /** The open diagram on the canvas. Mermaid has its text beside the picture; a board edits in place. */
@@ -255,7 +266,7 @@ function Picked({
 	const p = t.design.page;
 	const outside = useOpenOutside();
 	const act = useDesignActions();
-	const [convertError, setConvertError] = useState<string | null>(null);
+	const [convertError, setConvertError] = useState<unknown>(null);
 	const format = a.format ?? "";
 	const name = (t.design.formats as Record<string, string>)[format] ?? format;
 	// Every format edits. draw.io and BPMN also open in another app (ADR 0015).
@@ -271,7 +282,7 @@ function Picked({
 			const w = await act.create(target, convertBoard(from as BoardFormat, to, source.text));
 			if (w.conflict) setConvertError(fill(t.design.convertExists, { name: target }));
 		} catch (e) {
-			setConvertError(e instanceof Error ? e.message : String(e));
+			setConvertError(e);
 		}
 	};
 	const notice = outside.error ?? convertError;
@@ -288,11 +299,7 @@ function Picked({
 						{p.edit}
 					</RightButton>
 				</div>
-				{notice ? (
-					<p role="alert" className="text-danger-text">
-						{notice}
-					</p>
-				) : null}
+				<ErrorNotice error={notice} />
 			</Card>
 			<Card className="py-2">
 				<section aria-label={p.actions}>
@@ -477,6 +484,8 @@ export function Diagrams() {
 											)}
 										</FileFrame>
 									</>
+								) : q && found.length === 0 ? (
+									<NoMatch onClear={() => setQuery("")} />
 								) : view === "list" ? (
 									<ItemList
 										label={title}
@@ -499,11 +508,12 @@ export function Diagrams() {
 														aria-pressed={i.ref === page.selected}
 														onClick={() => page.pick(i.ref)}
 														className={cn(
-															"flex w-full cursor-pointer flex-col items-start gap-3 rounded-lg bg-surface-2 p-4.5 text-left text-n-12 shadow-2 focus-visible:outline-offset-2",
-															i.ref === page.selected && "bg-accent-tint outline-2 outline-accent",
+															TILE,
+															"w-full items-start",
+															i.ref === page.selected && TILE_ON,
 														)}
 													>
-														<span className="flex h-[150px] w-full items-center justify-center overflow-hidden rounded-[14px] border border-dashed border-n-8 bg-n-2">
+														<span className="flex h-[150px] w-full items-center justify-center overflow-hidden rounded-field border border-dashed border-n-8 bg-n-2">
 															<Face a={arts.find((x) => x.reference === i.ref)} />
 														</span>
 														<span className="max-w-full text-17 font-semibold break-words">
@@ -522,7 +532,7 @@ export function Diagrams() {
 									</ul>
 								)}
 							</div>
-							{a ? (
+							{a && !(q && found.length === 0) ? (
 								<SideCards className="flex-[2_1_300px]">
 									<Picked
 										key={a.path}

@@ -18,6 +18,7 @@ export function Splitter({
 	invert = false,
 	onChange,
 	onReset,
+	scale = 1,
 	className,
 }: {
 	label: string;
@@ -29,6 +30,8 @@ export function Splitter({
 	invert?: boolean;
 	onChange: (size: number, persist: boolean) => void;
 	onReset: () => void;
+	/** Pixels per unit of `value`: 1.25 when `value` counts in 16 px units and the root is 20 px. */
+	scale?: number;
 	className?: string;
 }) {
 	const start = useRef<{ at: number; size: number } | null>(null);
@@ -67,7 +70,7 @@ export function Splitter({
 			}}
 			onPointerMove={(e) => {
 				if (start.current)
-					onChange(clamp(start.current.size + (at(e) - start.current.at) * sign), false);
+					onChange(clamp(start.current.size + ((at(e) - start.current.at) / scale) * sign), false);
 			}}
 			onPointerUp={end}
 			// A cancel or a lost capture ends the drag too. The guard stops a second save after a pointer up.

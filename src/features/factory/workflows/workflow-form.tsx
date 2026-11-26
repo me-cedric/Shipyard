@@ -15,6 +15,7 @@ import { Select, type SelectItem } from "@/ui/atoms/select";
 import { Switch } from "@/ui/atoms/switch";
 import { Card } from "@/ui/molecules/card";
 import { MenuButton } from "@/ui/molecules/menu-button";
+import { STEPPER, STEPPER_SIDE } from "@/ui/molecules/stepper";
 
 const EFFORTS: Effort[] = ["low", "medium", "high", "xhigh", "max"];
 /** The value of a Select item that stands for no value. */
@@ -135,8 +136,11 @@ function NumberField({
 	label,
 	value,
 	onChange,
+	placeholder,
 }: {
 	label: string;
+	/** What an empty field means, in place of its label. */
+	placeholder?: string;
 	value: number | null | undefined;
 	onChange: (v: number | undefined) => void;
 }) {
@@ -147,6 +151,7 @@ function NumberField({
 				type="number"
 				min="0"
 				step="any"
+				placeholder={placeholder}
 				value={value ?? ""}
 				onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
 			/>
@@ -171,20 +176,15 @@ function Stepper({
 }) {
 	const { t } = useI18n();
 	const p = t.factory.recipePage;
-	const side = "min-h-control min-w-(--control-h) font-semibold disabled:opacity-50";
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
-		<span
-			role="group"
-			aria-label={label}
-			className="inline-flex items-center rounded-md border border-n-7 bg-surface-1"
-		>
+		<span role="group" aria-label={label} className={STEPPER}>
 			<button
 				type="button"
 				aria-label={format(p.less, { name: label })}
 				disabled={value === undefined}
 				onClick={() => onChange(value !== undefined && value > min ? value - 1 : undefined)}
-				className={side}
+				className={STEPPER_SIDE}
 			>
 				−
 			</button>
@@ -194,7 +194,7 @@ function Stepper({
 				aria-label={format(p.more, { name: label })}
 				disabled={max !== undefined && value !== undefined && value >= max}
 				onClick={() => onChange((value ?? min - 1) + 1)}
-				className={side}
+				className={STEPPER_SIDE}
 			>
 				+
 			</button>
@@ -234,8 +234,10 @@ function Minutes({
 	label,
 	value,
 	onChange,
+	placeholder,
 }: {
 	label: string;
+	placeholder?: string;
 	value: number | undefined;
 	onChange: (seconds: number | undefined) => void;
 }) {
@@ -244,6 +246,7 @@ function Minutes({
 		<Fr label={label}>
 			<NumberField
 				label={label}
+				placeholder={placeholder}
 				value={value === undefined ? value : value / 60}
 				onChange={(v) => onChange(v === undefined ? v : Math.round(v * 60))}
 			/>
@@ -388,7 +391,7 @@ export function StepCards({
 					<span className="font-semibold">{r.kind[stepKind(step)]}</span>
 				</Fr>
 				<Fr label={p.does}>
-					<div className={WIDE}>
+					<div className="w-125 max-w-full">
 						<Segmented
 							label={p.does}
 							value={step.action ?? step.mode}
@@ -451,11 +454,17 @@ export function StepCards({
 				<Fr label={w.retry}>
 					<Stepper label={w.retry} value={step.retry} onChange={(v) => set({ retry: v ?? 0 })} />
 				</Fr>
-				<Minutes label={w.timeout} value={step.timeout} onChange={(v) => set({ timeout: v })} />
+				<Minutes
+					label={w.timeout}
+					placeholder={t.factory.spendPage.noLimit}
+					value={step.timeout}
+					onChange={(v) => set({ timeout: v })}
+				/>
 				<Fr label={w.stepBudget}>
 					$
 					<NumberField
 						label={w.stepBudget}
+						placeholder={t.factory.spendPage.noLimit}
 						value={step.budget}
 						onChange={(v) => set({ budget: v ?? null })}
 					/>

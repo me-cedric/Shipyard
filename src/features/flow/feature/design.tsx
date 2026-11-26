@@ -13,7 +13,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { useBacklinks } from "@/lib/refs";
 import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
-import { useChanges, useSpecsActions } from "@/lib/specs";
+import { useChanges, useFile, useSpecsActions } from "@/lib/specs";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -22,6 +22,7 @@ import { ChevronRightIcon, ShareIcon } from "@/ui/icons";
 import { ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { Row } from "@/ui/molecules/row";
+import { DESIGN_REF, DIAGRAMS, LinkDesign, proposalPath } from "./link-design";
 import type { Parts } from "./use-feature";
 
 export type Cited = { kind: string; ref: string; title: string };
@@ -30,11 +31,9 @@ export type Cited = { kind: string; ref: string; title: string };
 export const CARD_LABEL = "text-13 font-semibold text-n-11";
 /** The dashed box that stands for a screen. */
 export const SCREEN_BOX =
-	"flex items-center justify-center rounded-[14px] border border-dashed border-n-8 bg-n-2 p-4 text-center font-medium text-n-11";
+	"flex items-center justify-center rounded-field border border-dashed border-n-8 bg-n-2 p-4 text-center font-medium text-n-11";
 
 const COLOR = /^(#|rgb|hsl|hwb|lab|lch|oklab|oklch|color\()/i;
-/** The kinds that the Diagrams card lists. */
-const DIAGRAMS = ["diagram", "model", "api", "data", "flow"];
 
 /** A token name in plain words: "--accent-text" is "Accent text". */
 const plain = (name: string) => {
@@ -42,8 +41,16 @@ const plain = (name: string) => {
 	return w.charAt(0).toUpperCase() + w.slice(1);
 };
 
-/** Each thing that cites a part of the feature, once. */
+/** Each thing that cites a part of the feature, once, and each design item that its proposal names. */
 export function useCited(parts: Parts): Cited[] {
+	const change = useChanges().data?.find((c) => `change:${c.id}` === parts.change);
+	const written = useFile(change ? proposalPath(change) : null).data?.text ?? "";
+	const known = useDesignList().data?.artifacts ?? [];
+	// Only a ref that the Library knows counts: other text can look like a ref ("data:image").
+	const named = [...new Set(written.match(DESIGN_REF) ?? [])].flatMap((ref) => {
+		const a = known.find((k) => k.reference === ref);
+		return a ? [{ kind: ref.slice(0, ref.indexOf(":")), ref, title: a.title || ref }] : [];
+	});
 	const found = [
 		useBacklinks(parts.ticket ?? null).data,
 		useBacklinks(parts.change ?? null).data,
@@ -55,7 +62,7 @@ export function useCited(parts: Parts): Cited[] {
 			g.items.map((i) => ({ kind: g.kind, ref: i.source, title: i.title || i.source })),
 		),
 	);
-	return [...new Map(all.map((c) => [c.ref, c])).values()];
+	return [...new Map([...named, ...all].map((c) => [c.ref, c])).values()];
 }
 
 /**
@@ -112,15 +119,17 @@ export const forDesign = (q: QuestionItem) => !!q.question.spec?.startsWith("scr
 
 /** The decision of the agent about a screen: each option answers it with one click. */
 function DesignAsk({ item }: { item: QuestionItem }) {
+	const { t } = useI18n();
 	const act = useInboxActions();
 	const { error, run } = useGuard();
 	const scope = useRunScope();
 	const q = item.question;
+	const agent = scope ? agentOf(scope.run, t.factory.agentNames) : item.title;
 	return (
 		<Card pad className={`flex flex-col gap-3.5 ${ATTENTION_FRAME}`}>
 			<div className="flex items-center gap-3">
-				<Avatar agent name={scope ? agentOf(scope.run) : item.title} />
-				<span className="font-semibold">{scope ? agentOf(scope.run) : item.title}</span>
+				<Avatar agent name={agent} />
+				<span className="font-semibold">{agent}</span>
 			</div>
 			<h2 className="text-20 font-semibold text-n-12">{q.question}</h2>
 			<div className="flex flex-wrap gap-2.5">
@@ -160,6 +169,7 @@ export function Design({ parts }: { parts: Parts }) {
 	const navigate = useNavigate();
 	const { openRef } = useShell();
 	const cited = useCited(parts);
+	const change = useChanges().data?.find((c) => `change:${c.id}` === parts.change);
 	const screens = cited.filter((c) => c.kind === "screen");
 	const diagrams = cited.filter((c) => DIAGRAMS.includes(c.kind));
 	const decisions = cited.filter((c) => c.kind === "adr");
@@ -183,8 +193,9 @@ export function Design({ parts }: { parts: Parts }) {
 					<section aria-label={b.screens} className="flex flex-col gap-4">
 						<Head title={b.screens}>
 							<Button onClick={() => void navigate({ to: "/library/screens" })}>
-								{b.linkFigma}
+								{b.openScreens}
 							</Button>
+							{change ? <LinkDesign kind="screen" change={change} /> : null}
 							{first ? <DesignToCode screen={first} primary /> : null}
 						</Head>
 						{screens.length ? (
@@ -209,8 +220,9 @@ export function Design({ parts }: { parts: Parts }) {
 					<section aria-label={b.diagrams} className="flex flex-col gap-4">
 						<Head title={b.diagrams}>
 							<Button onClick={() => void navigate({ to: "/library/diagrams" })}>
-								{b.addDiagram}
+								{b.openDiagrams}
 							</Button>
+							{change ? <LinkDesign kind="diagram" change={change} /> : null}
 						</Head>
 						{diagrams.length ? (
 							diagrams.map((d) => (
@@ -218,7 +230,7 @@ export function Design({ parts }: { parts: Parts }) {
 									key={d.ref}
 									type="button"
 									onClick={() => openRef(d.ref)}
-									className="flex min-h-15 items-center gap-3.5 rounded-[14px] bg-n-2 px-4 text-left text-n-12 hover:bg-n-3"
+									className="flex min-h-15 items-center gap-3.5 rounded-field bg-n-2 px-4 text-left text-n-12 hover:bg-n-3"
 								>
 									<ShareIcon size={20} />
 									<span className="min-w-0 flex-1 font-semibold">{d.title}</span>

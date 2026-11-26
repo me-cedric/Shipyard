@@ -80,10 +80,12 @@ export function RefDetail({ refId, onOpen }: { refId: string; onOpen: (ref: stri
 					{backlinks.flatMap((g) =>
 						g.items.map((i) => (
 							<li key={i.source}>
-								{/* One line: the kind and the title. The ref and the state stay in the name. */}
+								{/* One line: the kind and the title. The name adds the state. */}
 								<button
 									type="button"
-									aria-label={[i.source, i.title, t.ref.resolved].filter(Boolean).join(", ")}
+									aria-label={[kindName(g.kind), i.title, t.ref.resolved]
+										.filter(Boolean)
+										.join(", ")}
 									onClick={() => onOpen(i.source)}
 									className="flex min-h-control w-full min-w-0 cursor-pointer items-center gap-3 text-left"
 								>

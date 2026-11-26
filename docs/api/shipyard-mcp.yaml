@@ -22,7 +22,7 @@ info:
       (proxy and relay). Each server has an allow list (all tools, the tools that it marks
       `annotations.readOnlyHint`, or a pick): a tool that is not on it is left out of `tools/list`
       and refused on `tools/call`.
-    - The 24 tools for an agent that Shipyard did not start. Each group is a switch that a person
+    - The 25 tools for an agent that Shipyard did not start. Each group is a switch that a person
       turns on in Settings. All are off by default. Each write tool also needs a right of the
       person in the team file (`team-rights` REQ-007): `project_write_file` needs `code.write`;
       `run_check`, `qa_run_check` and `qa_run_scanner` need `runs.start`; `ticket_comment` needs
@@ -32,8 +32,8 @@ info:
       A read tool of an area at the level `none` for the person (`team-rights` REQ-018) is
       refused with the error `the area <area> is hidden for this person`: the file, git and
       review tools are `code`, the ticket tools `work`, the ADR tools `design`, `spec_validate`
-      `specs`, `docs_stale` `knowledge`, the workflow tools `runs`. `read_ticket` and `read_ref`
-      of a run refuse the area of the ref in the same way for the member of the run.
+      `specs`, `docs_stale` `knowledge`, the workflow tools `runs`, and `ref_read` the area of its ref.
+      `read_ticket` and `read_ref` of a run refuse the area of the ref in the same way for the member of the run.
 
     Limits of one call, by default: 60 calls a minute for each token, 64 KiB of arguments,
     256 KiB of answer, 32 KiB for a report.
@@ -60,7 +60,7 @@ paths:
 
         Methods: `initialize`, `ping`, `tools/list`, `tools/call`, `prompts/list`, `prompts/get`,
         `resources/list`, `resources/templates/list` and `resources/read`. The resource templates
-        are `shipyard://ref/{ref}` (a percent-encoded ref such as `spec:auth#REQ-003`) and
+        are `shipyard://ref/{ref}` (a percent-encoded ref such as `spec:auth#REQ-003`), listed when the session may read refs (`read_ref` of a run, or `ref_read` of the outside server), and
         `shipyard://file/{path}` (a percent-encoded path of a project file). The prompts are the
         project skills (`.claude/skills/<name>/SKILL.md`, `.agents/skills/<name>/SKILL.md`). The
         prompts and the file resources need the read tools on for the outside server, and follow
@@ -185,12 +185,12 @@ components:
           properties:
             code:
               type: integer
-              description: -32700 parse error, -32001 token not valid, -32601 method not found, -32602 invalid params.
+              description: -32700 parse error, -32001 token not valid (the text names SHIPYARD_MCP_TOKEN), -32601 method not found, -32602 invalid params.
             message:
               type: string
     AskQuestionInput:
       type: object
-      description: Tool `ask_question`. The run waits until a person answers. A spec question also gets a RAID file.
+      description: 'Tool `ask_question`. The run waits until a person answers. The tool answer is `{question, next}`: the agent ends its turn and does not call `report`. The answer comes in the next turn of the agent, under `Answers:`. A spec question also gets a RAID file.'
       additionalProperties: false
       required: [question, options, recommended]
       properties:
@@ -306,7 +306,7 @@ components:
         timeout_secs: { type: integer, minimum: 10, maximum: 3600 }
     ScannerInput:
       type: object
-      description: Tool `qa_run_scanner`. Runs one scanner and keeps the report. It needs `runs.start`.
+      description: Tool `qa_run_scanner`. Runs one scanner and keeps the report. It needs `runs.start` and the exec switch (Run checks).
       additionalProperties: false
       required: [name]
       properties:
@@ -320,10 +320,11 @@ components:
         id: { type: string }
     BaseInput:
       type: object
-      description: Tool `delivery_diff`.
+      description: 'Tool `delivery_diff`, and `git_diff` with `path` only. Both give at most 131072 characters; a longer answer ends with a `[cut: ...]` line.'
       additionalProperties: false
       properties:
-        base: { type: string }
+        base: { type: string, description: The base branch. Default main. }
+        path: { type: string, description: Only this path, relative to the project folder. }
     TicketKeyInput:
       type: object
       description: Tool `ticket_read`.
@@ -374,5 +375,20 @@ components:
         text: { type: string }
     NoInput:
       type: object
-      description: Tools `git_status`, `git_diff`, `forge_remote`, `adr_list`, `qa_read_report`, `workflow_list` and `docs_stale` (the docs of the branch that did not follow the code).
+      description: Tools `git_status`, `forge_remote`, `adr_list`, `qa_read_report`, `workflow_list` and `docs_stale` (the docs of the branch that did not follow the code).
       additionalProperties: false
+    RefReadInput:
+      type: object
+      description: >-
+        Tool `ref_read` (`refs` REQ-015), in the read files group. It gives the answer of
+        `read_ref`: the title, the state, the location and the backlinks of a ref, and no file text.
+        A ref of a hidden area is refused with `the area <area> is hidden for this person`, and a
+        backlink of a hidden area is left out. A ref whose source has a switch of its own needs that
+        switch too (`wi` Tickets, `pr` Code host address, `commit` Version history, `run` and
+        `wf` Recipes): it is refused with `<tool> is off`, and its backlinks are left out.
+        Text that is not a ref gives `not a ref: <text>.` with an example. A long answer is cut
+        and ends with a request for a narrower ref.
+      additionalProperties: false
+      required: [ref]
+      properties:
+        ref: { type: string, description: A ref such as spec:auth#REQ-003. }

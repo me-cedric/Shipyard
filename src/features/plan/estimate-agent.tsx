@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
@@ -31,7 +31,6 @@ export function EstimateAgent({
 	view,
 	ids,
 	onPick,
-	children,
 }: {
 	slug: string;
 	view: SheetView;
@@ -39,11 +38,9 @@ export function EstimateAgent({
 	ids: string[];
 	/**
 	 * Lets a person choose tasks. With it, the action looks on while no task is selected: a press
-	 * opens the choice and says what to do. Without it, no task selected turns the action off.
+	 * opens the choice. Without it, no task selected turns the action off.
 	 */
 	onPick?: () => void;
-	/** Buttons that sit after the action in the same row. */
-	children?: ReactNode;
 }) {
 	const { t, lang } = useI18n();
 	const a = t.costing.agent;
@@ -53,7 +50,6 @@ export function EstimateAgent({
 	const asking = useGuard();
 	const saving = useGuard();
 	const [proposals, setProposals] = useState<EstimateProposal[]>([]);
-	const [hint, setHint] = useState(false);
 	const sheet = view.sheet;
 	const tasks = new Map(sheet.features.flatMap((f) => f.tasks.map((x) => [x.id, x] as const)));
 	const off = seal?.sealed
@@ -66,10 +62,11 @@ export function EstimateAgent({
 	const drop = (id: string) => setProposals((all) => all.filter((p) => p.task !== id));
 	const ask = () => {
 		if (ids.length === 0) {
-			setHint(true);
-			return onPick?.();
+			onPick?.();
+			// The choice shows its boxes after this press: the focus goes to the first one.
+			setTimeout(() => document.querySelector<HTMLElement>('[role="checkbox"]')?.focus(), 0);
+			return;
 		}
-		setHint(false);
 		return asking.run(async () => {
 			const next = await unwrap(commands.estimateAgentStart(slug, ids, true));
 			setProposals((all) => [...all.filter((p) => !ids.includes(p.task)), ...next]);
@@ -114,12 +111,6 @@ export function EstimateAgent({
 					</Button>
 				) : null}
 			</div>
-			{children}
-			{hint && ids.length === 0 && off === undefined ? (
-				<p role="status" className="w-full text-ui text-n-11">
-					{a.select}
-				</p>
-			) : null}
 			<ErrorNotice error={asking.failure ?? saving.failure} className="w-full" />
 			{shown.length > 0 ? (
 				<section aria-label={a.proposals} className="w-full rounded-lg bg-surface-2 shadow-2">

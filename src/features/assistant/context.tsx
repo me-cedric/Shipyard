@@ -48,10 +48,8 @@ export function ContextBar({
 							</Chip>
 						) : (
 							<>
-								<Badge>
-									{t.assistant.view} {a.view}
-								</Badge>
-								{remove(a.view, () => a.dropContext("view"))}
+								<Badge title={a.view}>{t.assistant.page.thisScreen}</Badge>
+								{remove(t.assistant.page.thisScreen, () => a.dropContext("view"))}
 							</>
 						)}
 					</li>

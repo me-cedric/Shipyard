@@ -58,13 +58,12 @@ describe("Code / Now", () => {
 		const user = userEvent.setup();
 		const { router, files } = await now();
 		const box = within(files).getByRole("form", { name: "Commit" });
-		await user.type(within(box).getByRole("textbox", { name: "Commit message" }), "nonsense");
+		// An empty message is refused: the box keeps the reason.
 		await user.click(within(box).getByRole("button", { name: "Commit" }));
-		// A refused commit keeps the text and shows the reason.
 		expect(await within(box).findByRole("alert")).toBeInTheDocument();
+		// Plain words are accepted: the chosen kind goes in front.
 		const summary = within(box).getByRole("textbox", { name: "Commit message" });
-		await user.clear(summary);
-		await user.type(summary, "feat(app): add the page");
+		await user.type(summary, "add the page");
 		await user.click(within(box).getByRole("button", { name: "Commit" }));
 		await waitFor(() =>
 			expect(screen.getByRole("textbox", { name: "Commit message" })).toHaveValue(""),

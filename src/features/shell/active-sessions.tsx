@@ -5,10 +5,10 @@ import { useMachineSessions, useMachineWrites } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { useRights } from "@/lib/rights";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { Leave } from "@/ui/atoms/leave";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { StopIcon } from "@/ui/icons";
+import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { hiddenSection } from "./places";
 
@@ -30,6 +30,7 @@ export function SessionsPart() {
 	const [error, setError] = useState<unknown>(null);
 	// The link shows with Crew / Sessions (`spec:app-redesign#REQ-006`).
 	const seesAll = !hiddenSection(useRights().level, "crew", "sessions");
+	const money = new Intl.NumberFormat(lang, { style: "currency", currency: "USD" });
 	const compact = new Intl.NumberFormat(lang, { notation: "compact" });
 	const stop = (pid: number) => {
 		setError(null);
@@ -78,12 +79,17 @@ export function SessionsPart() {
 								</span>
 								<span className="flex shrink-0 flex-col items-end font-mono text-11 text-n-11">
 									<span>{format(p.tokens, { count: compact.format(s.tokens ?? 0) })}</span>
-									<span className="text-n-12">${(s.costUsd ?? 0).toFixed(2)}</span>
+									<span className="text-n-12">{money.format(s.costUsd ?? 0)}</span>
 								</span>
 								{pid == null ? null : (
-									<IconButton label={format(m.stop, { name })} onClick={() => stop(pid)}>
+									<ConfirmButton
+										variant="ghost"
+										aria-label={format(m.stop, { name })}
+										confirm={format(m.confirmStop, { name })}
+										onConfirm={() => stop(pid)}
+									>
 										<StopIcon size={14} />
-									</IconButton>
+									</ConfirmButton>
 								)}
 							</Leave>
 						);

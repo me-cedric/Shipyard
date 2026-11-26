@@ -195,10 +195,14 @@ export function FirstRun() {
 	const [chosen, setStep] = useState<Step | null>(null);
 	const step: Step | null =
 		chosen ?? (loaded && projects ? (role !== "none" || projects.length ? "start" : "role") : null);
-	// The role counts as a step only when the role step showed.
+	// The role counts as a step only when the role step showed. Clone counts only once picked.
 	const sawRole = useRef(false);
 	if (step === "role") sawRole.current = true;
-	const steps: Step[] = sawRole.current ? ["role", "start", "clone"] : ["start", "clone"];
+	const steps: Step[] = [
+		...(sawRole.current ? (["role"] as const) : []),
+		"start",
+		...(step === "clone" ? (["clone"] as const) : []),
+	];
 	// A click on a tile picks the role, from the saved one. Continue saves it.
 	const [picked, setPick] = useState<Role | null>(null);
 	const pick = picked ?? role;
@@ -302,6 +306,11 @@ export function FirstRun() {
 								))}
 							</ul>
 						</section>
+					) : null}
+					{sawRole.current ? (
+						<Button variant="ghost" onClick={() => setStep("role")}>
+							{t.projects.back}
+						</Button>
 					) : null}
 				</>
 			) : (

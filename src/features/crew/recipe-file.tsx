@@ -52,6 +52,14 @@ const to = (patch: RecipeSearch): object => ({
 const STEP = "flex flex-wrap items-center gap-3 rounded-lg bg-n-3 px-4 py-3.5";
 const STEP_NAME = "flex min-h-control flex-[1_1_180px] items-center text-17 font-semibold";
 /** A value of a step row, with the look of a button. */
+/** The id as typed, in lower case: the backend accepts `_` and refuses a bad id. */
+const clean = (id: string) =>
+	id
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9_]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+
 const PILL = cn(buttonVariants(), "cursor-default hover:bg-surface-1");
 
 /** One id, and a preset when `presets` is given. A refusal shows in the dialog. */
@@ -83,8 +91,8 @@ export function IdDialog({
 				<RightButton
 					right="project.settings"
 					variant="primary"
-					disabled={id.trim() === ""}
-					onClick={() => void run(() => onSubmit(id.trim(), preset)).then((ok) => ok && onClose())}
+					disabled={clean(id) === ""}
+					onClick={() => void run(() => onSubmit(clean(id), preset)).then((ok) => ok && onClose())}
 				>
 					{action}
 				</RightButton>

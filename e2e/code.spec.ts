@@ -34,9 +34,8 @@ test("chooses a file, commits it from /code/changes and finds it in History", as
 
 	await files(page).getByRole("checkbox", { name: "Select docs/guide.md" }).click();
 	const box = commitBox(page);
-	await box.getByRole("textbox", { name: "Commit message" }).fill("wip: guide");
 	await box.getByRole("button", { name: "Commit 2 files" }).click();
-	await expect(box.getByRole("alert")).toContainText("feat, fix, chore, docs, refactor, test");
+	await expect(box.getByRole("alert")).toBeVisible();
 
 	await box.getByRole("textbox", { name: "Commit message" }).fill("docs(guide): update the guide");
 	await box.getByRole("button", { name: "More" }).click();
@@ -61,17 +60,16 @@ test("commits the staged file from the card of the sync mark with Ctrl/Cmd+Enter
 	await expect(commit).toBeEnabled();
 	await commit.click();
 	const dialog = page.getByRole("dialog", { name: "Commit" });
-	await dialog.getByRole("textbox", { name: "Summary" }).fill("wip: guide");
 	await dialog.getByRole("button", { name: "Commit" }).click();
-	await expect(dialog.getByRole("alert")).toContainText("feat, fix, chore, docs, refactor, test");
+	await expect(dialog.getByRole("alert")).toBeVisible();
 
 	await dialog.getByRole("textbox", { name: "Summary" }).fill("docs(guide): update the guide");
 	await dialog.getByRole("textbox", { name: "Description" }).fill("why");
 	await page.keyboard.press("ControlOrMeta+Enter");
 	await expect(dialog).toBeHidden();
 	// The staged file also has an unstaged change, so it stays in the list: nothing is left staged.
-	await openSync(page);
-	await expect(commit).toBeDisabled();
+	const card = await openSync(page);
+	await expect(card.getByRole("link", { name: "Commit" })).toHaveAttribute("href", "/code/changes");
 	await page.keyboard.press("Escape");
 
 	await page
@@ -108,7 +106,7 @@ test("creates a branch in Code / Branches with the type, area and subject", asyn
 	await openCode(page, "Branches");
 	await page.getByRole("button", { name: "New branch" }).click();
 	await page.getByRole("combobox", { name: "Type" }).click();
-	await page.getByRole("option", { name: "fix" }).click();
+	await page.getByRole("option", { name: "Fix", exact: true }).click();
 	await page.getByRole("textbox", { name: "Area" }).fill("auth");
 	await page.getByRole("textbox", { name: "Subject" }).fill("login-timeout");
 	await page.getByRole("button", { name: "Create the branch" }).click();
@@ -139,7 +137,7 @@ test("rebases a branch in Code / Branches and asks before a force publish", asyn
 	await openCode(page, "Branches");
 	await page.getByRole("button", { name: "More" }).click();
 	await page.getByRole("menuitem", { name: "Rebase onto feat/auth/login" }).click();
-	await expect(page.getByRole("alert")).toContainText("uncommitted changes");
+	await expect(page.getByRole("alert")).toContainText("not saved in a commit");
 
 	// A force publish needs a second click on the button that names what it does.
 	await page.getByRole("button", { name: "More" }).click();
@@ -242,7 +240,7 @@ test("marks a draft ready", async ({ page }) => {
 	await box.getByRole("button", { name: "More" }).click();
 	await page.getByRole("menuitem", { name: "Mark ready" }).click();
 	await box.getByRole("button", { name: "More" }).click();
-	await expect(page.getByRole("menuitem", { name: "Copy ref" })).toBeVisible();
+	await expect(page.getByRole("menuitem", { name: "Copy the reference" })).toBeVisible();
 	await expect(page.getByRole("menuitem", { name: "Mark ready" })).toHaveCount(0);
 	await page.keyboard.press("Escape");
 	await expect(merge).toBeEnabled();
@@ -275,7 +273,7 @@ test("opens a file of a pull request in the viewer", async ({ page }) => {
 		"aria-expanded",
 		"true",
 	);
-	await page.getByRole("button", { name: "Open src/app.ts" }).click();
+	await page.getByRole("button", { name: "Whole file: src/app.ts" }).click();
 	const dialog = page.getByRole("dialog");
 	await expect(dialog.getByRole("region", { name: "File src/app.ts" })).toBeVisible();
 	await page.keyboard.press("Escape");

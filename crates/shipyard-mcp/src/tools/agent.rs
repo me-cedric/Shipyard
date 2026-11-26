@@ -144,12 +144,16 @@ fn text(max: u32) -> Value {
     json!({ "type": "string", "minLength": 1, "maxLength": max })
 }
 
+fn role() -> Value {
+    json!({ "type": "string", "minLength": 1, "maxLength": 64, "description": "The role of the recipe, such as worker or reviewer." })
+}
+
 /// The description (Simplified Technical English) and the input schema of a tool.
 fn def(name: &str) -> (&'static str, Value) {
     let object = |required: &[&str], props: Value| json!({ "type": "object", "properties": props, "required": required, "additionalProperties": false });
     match name {
         "ask_question" => (
-            "Ask the person one question when a decision belongs to a person. Give 2 to 4 options and the number of the recommended option. The run waits until a person answers. Do not ask when you can decide.",
+            "Ask the person one question when a decision belongs to a person. Give 2 to 4 options and the number of the recommended option. The run waits until a person answers. Then end your turn. Do not call report. The answer comes in your next turn under Answers. Do not ask when you can decide.",
             object(
                 &["question", "options", "recommended"],
                 json!({
@@ -170,21 +174,21 @@ fn def(name: &str) -> (&'static str, Value) {
             "Pass the work to another role in the same run. Write the summary that the other role needs to continue.",
             object(
                 &["role", "summary"],
-                json!({ "role": text(64), "summary": text(4000), "step": text(64) }),
+                json!({ "role": role(), "summary": text(4000), "step": text(64) }),
             ),
         ),
         "message" => (
-            "Send a text to a step of this run, or to the person with the target person. The step reads the text at its next turn. Send facts, not chat.",
+            "Send a text to a step of this run, or to the person with the target `person`. The step reads the text at its next turn. Send facts, not chat.",
             object(
                 &["to", "text"],
-                json!({ "to": text(64), "text": text(2000) }),
+                json!({ "to": { "type": "string", "minLength": 1, "maxLength": 64, "description": "A step id of this run, or person." }, "text": text(2000) }),
             ),
         ),
         "spawn_subtask" => (
             "Start a child task with its own role. Write a title and a full brief. The engine refuses the call when the limits of your step are reached.",
             object(
                 &["title", "brief", "role"],
-                json!({ "title": text(200), "brief": text(8000), "role": text(64) }),
+                json!({ "title": text(200), "brief": text(8000), "role": role() }),
             ),
         ),
         "report" => (

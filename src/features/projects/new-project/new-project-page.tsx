@@ -355,6 +355,15 @@ export function NewProject() {
 				preview={preview.data}
 				start={start}
 				setStart={setChosen}
+				onTools={() =>
+					all
+						? (() => {
+								const card = document.getElementById("creator-remote");
+								card?.scrollIntoView({ block: "start" });
+								card?.focus();
+							})()
+						: go(GUIDED.indexOf("tools"))
+				}
 				issues={first}
 				removeIssue={(reference) => setDropped([...dropped, reference])}
 			/>
@@ -406,6 +415,7 @@ export function NewProject() {
 						<Card key={s} role="region" aria-labelledby={`creator-${s}`} className={ROWS}>
 							<h2
 								id={`creator-${s}`}
+								tabIndex={-1}
 								className="flex items-center gap-3 px-6 pt-4 pb-2 text-20 font-semibold text-n-12"
 							>
 								<span

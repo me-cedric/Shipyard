@@ -12,9 +12,10 @@ import {
 	unwrap,
 } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
+import { usePrefs } from "@/lib/prefs";
 import { useBacklinks } from "@/lib/refs";
 import { RightButton } from "@/lib/rights";
-import { askForm, useFormIntent, useShell } from "@/lib/shell";
+import { askForm, takeFormKind, useFormIntent, useShell } from "@/lib/shell";
 import { clock, syncKeys, useSyncState } from "@/lib/sync";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -183,7 +184,11 @@ function RemovePanel({ id, onDone }: { id: string; onDone: () => void }) {
 			<BacklinkList
 				groups={uses.map((g) => ({
 					kind: g.kind,
-					items: g.items.map((i) => ({ ref: i.source, title: i.title })),
+					items: g.items.map((i) => ({
+						ref: i.source,
+						title: i.title,
+						label: i.title ?? undefined,
+					})),
 				}))}
 				onOpen={openRef}
 			/>
@@ -309,7 +314,11 @@ function Row({
 			{sync ? (
 				<SyncStatus
 					status={sync.status === "idle" && sync.lastOk === null ? "idle" : SYNC_SHAPE[sync.status]}
-					label={t.sync.state[sync.status]}
+					label={
+						sync.status === "idle" && sync.lastOk !== null
+							? t.sync.lastCheck
+							: t.sync.state[sync.status]
+					}
 					time={sync.lastOk === null ? undefined : clock(sync.lastOk, lang)}
 					dateTime={sync.lastOk === null ? undefined : new Date(sync.lastOk * 1000).toISOString()}
 					detail={
@@ -350,10 +359,12 @@ function Row({
 /** The form of a tracker or a forge, or of a type that has its own form. Runners need none. */
 function AddForm({
 	initial,
+	initialKind,
 	types,
 	onDone,
 }: {
 	initial: AddType;
+	initialKind?: string;
 	/** The types that the scope holds. */
 	types: readonly AddType[];
 	onDone: () => void;
@@ -361,7 +372,15 @@ function AddForm({
 	const { t } = useI18n();
 	const [type, setType] = useState<AddType>(initial);
 	if (type === "tracker" || type === "forge")
-		return <ConnectionForm initialGroup={type} types={types} onType={setType} onDone={onDone} />;
+		return (
+			<ConnectionForm
+				initialGroup={type}
+				initialKind={initialKind}
+				types={types}
+				onType={setType}
+				onDone={onDone}
+			/>
+		);
 	return (
 		<div>
 			<SettingsRow label={t.connections.field.type}>
@@ -404,21 +423,27 @@ function Scoped({ scope }: { scope: "project" | "computer" }) {
 	// A link from Code / Pull requests opens the form on the code host.
 	const start: AddType = scope === "computer" ? "provider" : "tracker";
 	const [first, setFirst] = useState<AddType>(start);
+	// The product that a Setup / Start tile picked.
+	const [firstKind, setFirstKind] = useState<string>();
 	// The form of an issue tracker or a code host is under This project: a link of before that
 	// lands on This computer goes there with its question.
 	const intent = (form: string, open: () => void) => () => {
 		if (ofProject) return open();
-		askForm(form);
+		askForm(form, takeFormKind());
 		router.history.replace("/setup/project?page=connections");
 	};
 	useFormIntent(
 		"connection",
-		intent("connection", () => setAdding(true)),
+		intent("connection", () => {
+			setFirstKind(takeFormKind());
+			setAdding(true);
+		}),
 	);
 	useFormIntent(
 		"connection:forge",
 		intent("connection:forge", () => {
 			setFirst("forge");
+			setFirstKind(takeFormKind());
 			setAdding(true);
 		}),
 	);
@@ -492,7 +517,7 @@ function Scoped({ scope }: { scope: "project" | "computer" }) {
 						count={(conns ?? []).length + mcpCount + providerCount}
 						action={addButton}
 					/>
-					<SectionNav label={t.ui.sections} items={sections} />
+					{sections.length > 1 ? <SectionNav label={t.ui.sections} items={sections} /> : null}
 				</>
 			)}
 			<div className={SETTINGS_PAGE}>
@@ -511,6 +536,7 @@ function Scoped({ scope }: { scope: "project" | "computer" }) {
 					<div className="rounded-lg border bg-surface-1 shadow-1">
 						<AddForm
 							initial={first}
+							initialKind={firstKind}
 							types={types}
 							onDone={() => {
 								setAdding(false);
@@ -570,6 +596,16 @@ function Computer() {
 	};
 	useFormIntent("connection", toProject("connection"));
 	useFormIntent("connection:forge", toProject("connection:forge"));
+	// The expert groups sit behind Advanced for the roles that do not write code.
+	const { role } = usePrefs();
+	const calm = role === "viewer" || role === "po" || role === "pm" || role === "ba";
+	const expert = (
+		<>
+			<McpGroup formOpen={editing} onForm={setEditing} />
+			<OutsideCard />
+			<CertsGroup />
+		</>
+	);
 	return (
 		<>
 			<Columns>
@@ -577,17 +613,14 @@ function Computer() {
 					<RunnersGroup />
 					<ProvidersGroup formOpen={editing} onForm={setEditing} />
 				</Column>
-				<Column>
-					<McpGroup formOpen={editing} onForm={setEditing} />
-					<OutsideCard />
-					<CertsGroup />
-				</Column>
+				{calm ? null : <Column>{expert}</Column>}
 			</Columns>
 			<div className="-mt-6 px-4 pb-10">
 				<SetupCard title={t.ui.more}>
 					<Fold label={t.connections.advanced}>
 						<RunnersMore />
 						<McpMore />
+						{calm ? expert : null}
 					</Fold>
 				</SetupCard>
 			</div>

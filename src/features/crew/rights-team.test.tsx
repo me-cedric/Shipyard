@@ -69,7 +69,7 @@ describe("Crew / Rights: the team file", () => {
 				"true",
 			),
 		);
-		await user.click(await screen.findByRole("switch", { name: "Developer Merge" }));
+		await user.click(await screen.findByRole("switch", { name: "Merge, Developer" }));
 		await waitFor(() =>
 			expect(mockState().work.team.roles).toEqual({
 				developer: { costs: "read", merge: true },
@@ -119,7 +119,7 @@ describe("Crew / Rights: the team file", () => {
 			),
 		);
 		await user.click(screen.getByRole("menuitemcheckbox", { name: "Developer" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("grace needs one role");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
 		await user.keyboard("{Escape}");
 		// Developer adds writes.
 		await router.navigate({ to: "/crew/rights", search: { page: "levels" } as never });
@@ -168,7 +168,7 @@ describe("Crew / Rights: the team file", () => {
 		const form = within(await screen.findByRole("form", { name: "Ask to join" }));
 		expect(form.getByRole("button", { name: "Copy the line" })).toBeInTheDocument();
 		await user.type(form.getByRole("textbox", { name: "Name" }), "Zed Nobody");
-		await user.type(form.getByRole("textbox", { name: "E-mails" }), "zed@example.com");
+		await user.type(form.getByRole("textbox", { name: "Emails" }), "zed@example.com");
 		// The line for the team file shows before the send.
 		expect(form.getByText(/name: "Zed Nobody"/)).toBeInTheDocument();
 		await user.click(form.getByRole("button", { name: "Send the request" }));

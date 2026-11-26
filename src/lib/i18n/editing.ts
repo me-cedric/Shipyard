@@ -8,7 +8,7 @@ export const editingEn = {
 	openFigma: "Open in Figma",
 	next: {
 		plan: "Write plan",
-		split: "Split into work items",
+		split: "Split into tickets",
 		assign: "Assign to me",
 		start: "Start run",
 		answer: "Answer",

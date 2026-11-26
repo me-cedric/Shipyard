@@ -39,4 +39,24 @@ describe("Segmented", () => {
 			.querySelector("[data-segmented-thumb]");
 		expect(thumb).toHaveStyle({ transform: "translateX(200%)" });
 	});
+
+	it("fits each choice to its label with no thumb, and keeps the reason of a choice that is off", () => {
+		renderApp(
+			<Segmented
+				fit
+				label="Pick"
+				value="a"
+				onValueChange={() => {}}
+				items={[...items, { value: "d", label: "D", disabled: true, reason: "Needs a code host" }]}
+			/>,
+		);
+		const group = screen.getByRole("group", { name: "Pick" });
+		expect(group.querySelector("[data-segmented-thumb]")).toBeNull();
+		expect(screen.getByRole("button", { name: "A", pressed: true }).className).toContain(
+			"data-[pressed]:bg-surface-1",
+		);
+		const off = screen.getByRole("button", { name: "D" });
+		expect(off).toBeDisabled();
+		expect(off).toHaveAttribute("aria-description", "Needs a code host");
+	});
 });

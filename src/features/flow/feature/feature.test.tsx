@@ -128,7 +128,7 @@ describe("Feature page (REQ-012)", () => {
 		await idle(router);
 	});
 
-	it("shows the stage line on Story, Brief and Changes, and not on Design, Checks and Chat", async () => {
+	it("shows the stage line on every section, so that the section switch keeps its place", async () => {
 		const user = userEvent.setup();
 		await setup();
 		const router = mountApp("/flow/feature/wi%3AACME-2");
@@ -136,10 +136,10 @@ describe("Feature page (REQ-012)", () => {
 		for (const [name, shown] of [
 			["Story", true],
 			["Brief", true],
-			["Design", false],
+			["Design", true],
 			["Changes", true],
-			["Checks", false],
-			["Chat", false],
+			["Checks", true],
+			["Chat", true],
 		] as const) {
 			await user.click((await switcher()).getByRole("button", { name }));
 			await pressed(name);
@@ -216,7 +216,7 @@ describe("Feature page (REQ-012)", () => {
 	it("scrolls to a session that the address names and moves the focus there", async () => {
 		await setup();
 		const router = mountApp("/flow/feature/wi%3AACME-2?unit=t1");
-		const first = await screen.findByRole("listitem", { name: "Build 1" });
+		const first = await screen.findByRole("listitem", { name: "Builder 1" });
 		await waitFor(() => expect(first).toHaveFocus());
 		await idle(router);
 	});
@@ -225,8 +225,8 @@ describe("Feature page (REQ-012)", () => {
 		const user = userEvent.setup();
 		await setup();
 		const router = mountApp("/flow/feature/wi%3ANOPE-1");
-		expect(await screen.findByText("Nothing here")).toBeInTheDocument();
-		await user.click(screen.getByRole("button", { name: "Flow" }));
+		expect(await screen.findByText("No such feature")).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Open the flow" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/flow"));
 		await idle(router);
 	});
@@ -294,8 +294,8 @@ describe("Feature page events (REQ-015)", () => {
 			ts: new Date(2026, 0, 5, 15, 7).getTime(),
 		});
 		const router = mountApp("/flow/feature/wi%3AACME-2");
-		const actor = await screen.findByText("Build", { selector: "b" });
-		expect(actor.parentElement).toHaveTextContent("Build reviewed the change");
+		const actor = await screen.findByText("Builder", { selector: "b" });
+		expect(actor.parentElement).toHaveTextContent("Builder reviewed the change");
 		expect(screen.getByText("15:07")).toBeVisible();
 		await idle(router);
 	});
@@ -315,7 +315,7 @@ describe("Feature page events (REQ-015)", () => {
 			});
 		const router = mountApp("/flow/feature/wi%3AACME-2");
 		// A plain sentence, newest first, with no log open yet.
-		await screen.findByText("The work moved to Paused", { selector: "li" });
+		await screen.findByText("The work is paused", { selector: "li" });
 		expect(screen.queryByRole("region", { name: /^Events/ })).toBeNull();
 		await user.click(await screen.findByRole("button", { name: "All 10 events" }));
 		const events = await screen.findByRole("region", { name: /^Events/ });
@@ -331,7 +331,7 @@ describe("Feature page events (REQ-015)", () => {
 		});
 		const router = mountApp("/flow/feature/wi%3AACME-2");
 		const people = await screen.findByRole("region", { name: "People" });
-		expect(within(people).getByText("Build")).toBeInTheDocument();
+		expect(within(people).getByText("Builder")).toBeInTheDocument();
 		expect(people.querySelector("[data-avatar], .rounded-full")).toBeNull();
 		await idle(router);
 	});

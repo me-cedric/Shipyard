@@ -166,8 +166,8 @@ export function TileChart({
 		<ul data-chart="bars" aria-label={barsName} className="flex flex-col gap-2 text-13">
 			{rows.map(([label, n]) => (
 				<li key={label} className="flex items-center gap-2">
-					<span className="w-28 shrink-0 truncate text-n-10">{label}</span>
-					<span aria-hidden="true" className="h-2 flex-1 rounded-full bg-n-4">
+					<span className="w-2/5 min-w-0 truncate text-n-10">{label}</span>
+					<span aria-hidden="true" className="h-2 min-w-16 flex-1 rounded-full bg-n-4">
 						<span
 							className="block h-2 rounded-full bg-accent"
 							style={{ width: `${(num(n) / max) * 100}%` }}

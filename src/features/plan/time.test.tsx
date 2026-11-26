@@ -143,7 +143,7 @@ describe("Plan / Time", () => {
 		const alert = await screen.findByRole("alert");
 		expect(alert).toHaveTextContent("No account is signed in.");
 		expect(alert).not.toHaveTextContent("no signed-in account");
-		expect(within(alert).getByRole("button", { name: "Open settings" })).toBeInTheDocument();
+		expect(within(alert).getByRole("button", { name: "Open Setup" })).toBeInTheDocument();
 	});
 
 	it("refuses the entry when it cannot resolve the member and names the reason", async () => {

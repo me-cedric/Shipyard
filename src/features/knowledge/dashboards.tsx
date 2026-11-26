@@ -1,7 +1,6 @@
 import { Link, useParams } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { DEFAULT_BUDGET } from "@/features/flow/stop-action";
-import { LibraryPage, LinkedCard, LinkedRow } from "@/features/library/page-parts";
 import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
@@ -18,6 +17,7 @@ import {
 } from "@/lib/knowledge";
 import { usePinnedDashboards } from "@/lib/knowledge/pinned-dashboards";
 import { useReleases } from "@/lib/knowledge/releases";
+import { useNotifications } from "@/lib/notifications";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
@@ -36,6 +36,7 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
 import { TileCard } from "@/ui/organisms/tile-card";
 import { CHARTS, type Chart, defaultChart } from "@/ui/organisms/tile-chart";
+import { LibraryPage, LinkedCard, LinkedRow } from "@/ui/templates/library-page";
 import { isTrackerTile, layout, TEMPLATES, useTrackerTile } from "./dashboards-tracker";
 import { PinnedTiles } from "./pinned";
 import { useTileLabels, useTileName } from "./tile-labels";
@@ -81,9 +82,15 @@ export function Tile({
 	const raw = useTileData(kind, person, keys);
 	// The runs tile counts states: the engine names them with codes, the person reads the plain words.
 	const states = t.factory.state as Record<string, string>;
+	const words =
+		kind === "runs"
+			? states
+			: kind === "questions"
+				? (t.specs.page.state as Record<string, string>)
+				: null;
 	const data =
-		raw && kind === "runs"
-			? { ...raw, rows: raw.rows.map(([state = "", ...rest]) => [states[state] ?? state, ...rest]) }
+		raw && words
+			? { ...raw, rows: raw.rows.map(([state = "", ...rest]) => [words[state] ?? state, ...rest]) }
 			: raw;
 	const { pinned, toggle } = usePins();
 	const name = useTileName(kind);
@@ -114,6 +121,23 @@ const cell = (x: Dashboard["tiles"][number]) => ({
 });
 const shift = (tiles: Dashboard["tiles"], id: string, dx: number) =>
 	tiles.map((x) => (x.id === id ? { ...x, x: Math.min(COLUMNS - x.w, Math.max(0, x.x + dx)) } : x));
+
+/** Moves each tile up as far as it goes, so a removed tile leaves no hole. */
+const compact = (tiles: Dashboard["tiles"]) => {
+	const placed: Dashboard["tiles"] = [];
+	for (const x of [...tiles].sort((a, b) => a.y - b.y || a.x - b.x)) {
+		let y = x.y;
+		while (
+			y > 0 &&
+			!placed.some(
+				(o) => o.x < x.x + x.w && x.x < o.x + o.w && o.y < y - 1 + x.h && y - 1 < o.y + o.h,
+			)
+		)
+			y--;
+		placed.push({ ...x, y });
+	}
+	return tiles.map((x) => placed.find((o) => o.id === x.id) ?? x);
+};
 
 /** The name, the size and the place of one tile, in the inspector. */
 function TileSettings({ slug, id }: { slug: string; id: string }) {
@@ -499,6 +523,7 @@ export function DashboardEdit() {
 	const active = useActiveProject().data;
 	const { view, error, save } = useDashboard(slug);
 	const { openDetail } = useShell();
+	const { push } = useNotifications();
 	const kindName = k.kind as Record<string, string>;
 	const [failure, setFailure] = useState<string | null>(null);
 	const [building, setBuilding] = useState(false);
@@ -507,6 +532,8 @@ export function DashboardEdit() {
 	const onToday = usePinnedDashboards();
 	// The tile in the air and the column of the tile that the pointer holds.
 	const drag = useRef<{ id: string; grab: number } | null>(null);
+	// Undo runs later: it must save with the stamp of the file as it is then.
+	const latest = useRef<(tiles: Dashboard["tiles"]) => Promise<boolean>>(async () => false);
 	if (active === undefined) return <Loading title={k.title} icon={<Squares2X2Icon size={16} />} />;
 	if (active === null) return <NoProject title={k.title} icon={<Squares2X2Icon size={16} />} />;
 	const back = (
@@ -538,6 +565,17 @@ export function DashboardEdit() {
 		}
 	};
 	const write = (tiles: Dashboard["tiles"]) => put({ ...dash, tiles });
+	latest.current = write;
+	const remove = async (id: string, name: string) => {
+		const before = dash.tiles;
+		if (!(await write(compact(before.filter((o) => o.id !== id))))) return;
+		void push({
+			id: `tile-removed:${slug}:${id}`,
+			kind: "info",
+			title: format(k.tileRemoved, { name }),
+			action: { label: k.tileUndo, run: () => void latest.current(before) },
+		});
+	};
 	const add = (kind: string, size: { w: number; h: number; title?: string } = { w: 4, h: 3 }) => {
 		let id = kind;
 		for (let n = 2; dash.tiles.some((x) => x.id === id); n++) id = `${kind}-${n}`;
@@ -703,7 +741,7 @@ export function DashboardEdit() {
 												right="knowledge.edit"
 												className="min-h-control px-2.5"
 												aria-label={`${k.remove} ${title}`}
-												onClick={() => void write(dash.tiles.filter((o) => o.id !== x.id))}
+												onClick={() => void remove(x.id, title)}
 											>
 												{k.tileRemove}
 											</RightButton>

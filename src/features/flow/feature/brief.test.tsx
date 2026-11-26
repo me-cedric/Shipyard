@@ -170,7 +170,7 @@ describe("Feature page / Design", () => {
 		const router = mountApp(`${AUTH}?section=design`);
 		const screens = within(await screen.findByRole("region", { name: "Screens" }));
 		expect(await screens.findByRole("button", { name: "Home" })).toBeVisible();
-		expect(screens.getByRole("button", { name: "Link a Figma screen" })).toBeVisible();
+		expect(screens.getByRole("button", { name: "Open the screens" })).toBeVisible();
 		expect(screens.getByRole("button", { name: "Design to code" })).toBeVisible();
 		const diagrams = within(screen.getByRole("region", { name: "Diagrams" }));
 		expect(diagrams.getByRole("button", { name: "Context" })).toBeVisible();
@@ -183,7 +183,7 @@ describe("Feature page / Design", () => {
 		expect(tokens.getByText("Accent")).toBeVisible();
 		expect(tokens.getByText("#2450d8")).toBeVisible();
 		expect(tokens.getByText("Text")).toBeVisible();
-		await user.click(diagrams.getByRole("button", { name: "Add a diagram" }));
+		await user.click(diagrams.getByRole("button", { name: "Open the diagrams" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/library/diagrams"));
 		await idle(router);
 	});

@@ -413,7 +413,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 														}
 											}
 										>
-											<Badge>{i.kind}</Badge>
+											<Badge>{x.plugin.kinds[i.kind]}</Badge>
 											{i.preview ? (
 												<details className="text-12 text-n-11">
 													<summary className="cursor-pointer">
@@ -432,9 +432,18 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 			{review?.refused.length ? (
 				<GroupSection name={x.plugin.refused} count={review.refused.length}>
 					<ul className="px-3">
-						{review.refused.map((r) => (
-							<EntryRow key={r} name={r} status="danger" statusLabel={x.plugin.refused} />
-						))}
+						{review.refused.map((r) => {
+							// "kind:id: reason" from the core: the one known reason gets a plain sentence.
+							const m = /^(\w+):([^:]+): a local command$/.exec(r);
+							const kind = m?.[1] as keyof typeof x.plugin.kinds | undefined;
+							const name =
+								m && kind && kind in x.plugin.kinds
+									? format(x.plugin.refusedCommand, { kind: x.plugin.kinds[kind], id: m[2] ?? "" })
+									: r;
+							return (
+								<EntryRow key={r} name={name} status="danger" statusLabel={x.plugin.refused} />
+							);
+						})}
 					</ul>
 				</GroupSection>
 			) : null}

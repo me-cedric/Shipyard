@@ -96,7 +96,9 @@ export function RunUnits({
 	// A step with several units numbers them: the id is for the title only.
 	const nameFor = (u: (typeof units)[number]) => {
 		const same = units.filter((x) => x.step === u.step);
-		return same.length > 1 ? `${nameOf(u.step)} ${same.indexOf(u) + 1}` : nameOf(u.step);
+		return same.length > 1
+			? `${nameOf(u.step, t.factory.agentNames)} ${same.indexOf(u) + 1}`
+			: nameOf(u.step, t.factory.agentNames);
 	};
 	return (
 		<Panel title={t.factory.sessions} count={units.length} flush>

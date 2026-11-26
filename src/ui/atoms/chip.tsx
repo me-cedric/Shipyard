@@ -13,7 +13,7 @@ export function Chip({
 			aria-pressed={selected}
 			className={cn(
 				"inline-flex min-h-control items-center gap-2 rounded-sm px-3.5 font-medium transition-colors duration-(--duration-fast) disabled:pointer-events-none disabled:opacity-50",
-				selected ? "bg-accent text-accent-fg" : "bg-n-3 text-n-12",
+				selected ? "bg-accent text-accent-fg" : "bg-n-3 text-n-12 hover:bg-n-4",
 				className,
 			)}
 			{...props}

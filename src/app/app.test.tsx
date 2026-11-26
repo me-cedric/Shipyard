@@ -103,7 +103,7 @@ describe("router", () => {
 
 	it("shows the not-found view for an unknown path", async () => {
 		mount("/nope");
-		expect(await screen.findByRole("heading", { name: "Not found" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "No such page" })).toBeInTheDocument();
 	});
 });
 

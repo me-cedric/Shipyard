@@ -1,11 +1,4 @@
 import { Fragment, type ReactNode, useState } from "react";
-import {
-	DetailColumn,
-	LibraryPage,
-	ListCard,
-	ListColumn,
-	PageColumns,
-} from "@/features/library/page-parts";
 import { NoProject } from "@/features/shell/no-project";
 import { useI18n } from "@/lib/i18n";
 import type { PageEntry } from "@/lib/ipc";
@@ -25,7 +18,16 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import type { PageMenuItem } from "@/ui/molecules/page-header";
+import { TILE, TILE_ON } from "@/ui/molecules/tile";
 import { Dialog } from "@/ui/organisms/dialog";
+import {
+	DetailColumn,
+	LibraryPage,
+	ListCard,
+	ListColumn,
+	NoMatch,
+	PageColumns,
+} from "@/ui/templates/library-page";
 
 function NewDialog({
 	noun,
@@ -252,7 +254,9 @@ export function ListTab({
 			) : (
 				<PageColumns>
 					<ListColumn>
-						{tree ? (
+						{filter.text.trim() && shown.length === 0 ? (
+							<NoMatch onClear={() => filter.setText("")} />
+						) : tree ? (
 							<Card className="p-2.5">
 								<nav aria-label={title} className="flex flex-col gap-0.5">
 									{[...groups].map(([dir, list]) => (
@@ -287,10 +291,7 @@ export function ListTab({
 													title={r.path}
 													aria-pressed={r.path === selected}
 													onClick={() => pick(r.path)}
-													className={cn(
-														"flex w-full cursor-pointer flex-col gap-3 rounded-lg bg-surface-2 p-4.5 text-left text-n-12 shadow-2 focus-visible:outline-offset-2",
-														r.path === selected && "bg-accent-tint outline-2 outline-accent",
-													)}
+													className={cn(TILE, "w-full", r.path === selected && TILE_ON)}
 												>
 													<span aria-hidden="true" className="block w-full">
 														{thumb(r)}

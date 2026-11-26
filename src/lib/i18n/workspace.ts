@@ -25,7 +25,7 @@ export const workspaceEn = {
 	},
 	pr: {
 		group: "Assistant",
-		describe: "Write description",
+		describe: "Write the description",
 		review: "Review",
 		reply: "Reply",
 		prompt: {
@@ -38,14 +38,14 @@ export const workspaceEn = {
 		},
 	},
 	gate: {
-		stale: "{from} changed, {to} did not: {paths}",
+		stale: "{from} changed and {to} did not",
 		cannotPush: "The account cannot push to {remote}",
-		onDefault: "{branch} is the default branch of {remote}",
+		onDefault: "You work on {branch}, the shared branch. Make a new branch first.",
 	},
 	conflict: {
 		agent: "Hand to agent",
 		factory: "Send to Flow",
-		sent: "Work item {key} created",
+		sent: "Ticket {key} created",
 		prompt:
 			"Resolve the merge conflicts in {files}. Keep the intent of both sides. Leave no marker.",
 	},
@@ -139,7 +139,7 @@ export const workspaceEn = {
 		profile: "Profile",
 		mode: { editable: "Editable", "read-only": "Read only", hidden: "Hidden" },
 		people: "People",
-		email: "E-mail",
+		email: "Email",
 		assign: "Assign",
 		unassign: "Remove {email}",
 	},
@@ -184,14 +184,15 @@ export const workspaceFr: typeof workspaceEn = {
 		},
 	},
 	gate: {
-		stale: "{from} a changé, pas {to} : {paths}",
+		stale: "{from} a changé et {to} non",
 		cannotPush: "Le compte ne peut pas pousser vers {remote}",
-		onDefault: "{branch} est la branche par défaut de {remote}",
+		onDefault:
+			"Vous travaillez sur {branch}, la branche partagée. Créez d'abord une nouvelle branche.",
 	},
 	conflict: {
 		agent: "Confier à un agent",
 		factory: "Envoyer vers Flux",
-		sent: "Élément {key} créé",
+		sent: "Ticket {key} créé",
 		prompt:
 			"Résous les conflits de fusion dans {files}. Garde l'intention des deux côtés. Ne laisse aucun marqueur.",
 	},

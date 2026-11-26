@@ -59,6 +59,7 @@ export function QuestionDialog({
 }) {
 	const { t } = useI18n();
 	const s = t.specs.question;
+	const p = t.specs.page;
 	const act = useSpecsActions();
 	const qc = useQueryClient();
 	const members = useTeam().data?.team.members ?? [];
@@ -93,7 +94,7 @@ export function QuestionDialog({
 			}}
 			items={(values.includes(q[key]) ? values : [...values, q[key]]).map((v) => ({
 				value: v,
-				label: v,
+				label: ((key === "kind" ? p.kindOne : p.state) as Record<string, string>)[v] ?? v,
 			}))}
 		/>
 	);
@@ -126,7 +127,7 @@ export function QuestionDialog({
 		<Dialog
 			open
 			onOpenChange={(o) => !o && onClose()}
-			title={entry ? entry.question.id : s.new}
+			title={entry ? entry.question.title : s.new}
 			actions={
 				<RightButton
 					right="specs.edit"
@@ -142,8 +143,8 @@ export function QuestionDialog({
 			}
 		>
 			<div className="grid grid-cols-2 gap-2">
-				{field(s.id, "id")}
 				{field(s.title, "title")}
+				{field(s.id, "id")}
 				{menu(s.kind, "kind", KINDS)}
 				{menu(s.status, "status", STATUSES)}
 				<Select

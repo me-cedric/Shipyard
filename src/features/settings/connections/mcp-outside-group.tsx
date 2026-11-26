@@ -15,7 +15,7 @@ import { ValueSelect } from "../me/value-select";
 import { SetupCard, SetupRow, StatePill, Toggle } from "../parts";
 import { Fold } from "./fold";
 import { message } from "./keys";
-import { McpWiring, wiringKey } from "./mcp-wiring";
+import { McpWiring, outsideKey, wiringKey } from "./mcp-wiring";
 
 const GROUPS = [
 	"reads",
@@ -29,7 +29,6 @@ const GROUPS = [
 	"qa",
 	"workflows",
 ] as const;
-const outsideKey = ["mcp", "outside"] as const;
 const elsewhereKey = ["mcp", "elsewhere"] as const;
 
 const useOutside = () =>
@@ -126,7 +125,12 @@ export function McpOutsideGroup() {
 	};
 	const save = () =>
 		attempt(async () => {
-			await unwrap(commands.mcpOutsideSet({ ...g, port: Number(port ?? g.port) }));
+			// A group that the person turns on now needs a server that runs.
+			const enabled =
+				g.enabled || (g.enabled === s.gates.enabled && GROUPS.some((n) => g[n] && !s.gates[n]));
+			const next = Number(port ?? g.port);
+			if (!(next >= 1024 && next <= 65535)) throw new Error(o.portRange);
+			await unwrap(commands.mcpOutsideSet({ ...g, enabled, port: next }));
 			setDraft(null);
 			setPort(null);
 			await qc.invalidateQueries({ queryKey: outsideKey });
@@ -139,6 +143,8 @@ export function McpOutsideGroup() {
 	const source = sources.find((x) => x === pick) ?? sources[0];
 	const fromSource = others.filter((e) => e.source === source);
 	const dirty = draft !== null || port !== null;
+	// One Apply button: beside the switch when the switch changed.
+	const onSwitch = g.enabled !== s.gates.enabled;
 	const apply = dirty ? (
 		<Button variant="secondary" onClick={() => void save()}>
 			{o.save}
@@ -165,7 +171,9 @@ export function McpOutsideGroup() {
 								</Chip>
 							))}
 						</div>
-						{apply ? <div className="flex flex-wrap items-center gap-2 pt-3">{apply}</div> : null}
+						{apply && !onSwitch ? (
+							<div className="flex flex-wrap items-center gap-2 pt-3">{apply}</div>
+						) : null}
 						{note ? (
 							<p role="status" className="pt-2 text-ui text-success-text">
 								{note}
@@ -181,6 +189,35 @@ export function McpOutsideGroup() {
 				<div className="flex min-w-0 flex-[2_1_320px] flex-col gap-4">
 					<SetupCard title={p.address}>
 						<Address url={s.url || `http://127.0.0.1:${s.gates.port}/mcp`} />
+						<SetupRow label={o.enabled}>
+							<StatePill state={s.running ? "ready" : "off"}>
+								{s.running ? o.running : o.stopped}
+							</StatePill>
+							<Toggle
+								label={o.enabled}
+								checked={g.enabled}
+								onCheckedChange={(on) => setDraft({ ...g, enabled: on })}
+							/>
+						</SetupRow>
+						<div className="flex flex-wrap gap-2 px-6 py-2">
+							<Button variant="secondary" onClick={() => void status.refetch()}>
+								{o.check}
+							</Button>
+							{apply && onSwitch ? apply : null}
+							<Button
+								variant="secondary"
+								disabled={!s.running}
+								onClick={() =>
+									void attempt(async () => {
+										await navigator.clipboard.writeText(await unwrap(commands.mcpOutsideToken()));
+										return o.copied;
+									})
+								}
+							>
+								<ClipboardIcon size={14} />
+								{o.token}
+							</Button>
+						</div>
 					</SetupCard>
 					{source ? (
 						<SetupCard>
@@ -214,17 +251,7 @@ export function McpOutsideGroup() {
 			</div>
 			<div className="px-4 pb-10">
 				<SetupCard title={t.ui.more}>
-					<Fold label={p.mayUse}>
-						<SetupRow label={o.enabled}>
-							<StatePill state={s.running ? "ready" : "off"}>
-								{s.running ? o.running : o.stopped}
-							</StatePill>
-							<Toggle
-								label={o.enabled}
-								checked={g.enabled}
-								onCheckedChange={(on) => setDraft({ ...g, enabled: on })}
-							/>
-						</SetupRow>
+					<Fold label={o.allowList}>
 						<SettingsRow label={o.port}>
 							<Input
 								label={o.port}
@@ -260,21 +287,6 @@ export function McpOutsideGroup() {
 								))}
 							</span>
 						</SettingsRow>
-						<div className="flex flex-wrap gap-2 px-6 py-2">
-							<Button
-								variant="secondary"
-								disabled={!s.running}
-								onClick={() =>
-									void attempt(async () => {
-										await navigator.clipboard.writeText(await unwrap(commands.mcpOutsideToken()));
-										return o.copied;
-									})
-								}
-							>
-								<ClipboardIcon size={14} />
-								{o.token}
-							</Button>
-						</div>
 					</Fold>
 				</SetupCard>
 			</div>

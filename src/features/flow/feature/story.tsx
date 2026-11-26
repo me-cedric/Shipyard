@@ -3,7 +3,7 @@ import type { RunScopeData } from "@/features/factory/runs/run-detail";
 import { EventRows, isImportant, LiveLine, nameOf } from "@/features/factory/runs/run-live";
 import { RunNeeds } from "@/features/factory/runs/run-needs";
 import { RunUnits } from "@/features/factory/runs/run-units";
-import { eventSentence } from "@/features/home/event-sentence";
+import { eventSentence, payloadOf } from "@/features/home/event-sentence";
 import { format, useI18n } from "@/lib/i18n";
 import { Button } from "@/ui/atoms/button";
 import { LinkButton } from "@/ui/atoms/link-button";
@@ -69,14 +69,14 @@ export function EventLog({ scope }: { scope: RunScopeData }) {
 
 /** The requests of the run with their cost, the workflow graph and the sessions: Chat shows them for a link that names a session. */
 export function Requests({ scope, unit }: { scope: RunScopeData; unit?: string }) {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const f = t.factory;
 	const { run, workflow, events } = scope;
 	return (
 		<section aria-label={t.flow.feature.requests} className="flex flex-col gap-4">
 			<StatStrip
 				items={[
-					{ label: f.tokens, value: run.tokens.toLocaleString(), tone: "accent" },
+					{ label: f.tokens, value: run.tokens.toLocaleString(lang), tone: "accent" },
 					{ label: f.turns, value: String(run.turns), tone: "accent" },
 					...(run.costUsd === null
 						? []
@@ -92,7 +92,7 @@ export function Requests({ scope, unit }: { scope: RunScopeData; unit?: string }
 							const live = run.steps.find((x) => x.id === s.id);
 							return {
 								id: s.id,
-								name: nameOf(s.id),
+								name: nameOf(s.id, f.agentNames),
 								needs: s.needs ?? [],
 								state: live?.state ?? "pending",
 								units: s.for_each ? live?.units.length : undefined,
@@ -146,7 +146,12 @@ export function Story({
 	});
 	// The actor of an event is the agent of its step, in bold; an event with no step names "the agent".
 	const sentence = (e: (typeof events)[number]) => {
-		const actor = e.step ? nameOf(e.step.split(".")[0] ?? "") : t.flow.look.page.theAgent;
+		const actor = e.step
+			? nameOf(e.step.split(".")[0] ?? "", t.factory.agentNames)
+			: t.flow.look.page.theAgent;
+		// A state change says what happens, not the name of the state.
+		const to = e.kind === "state" ? payloadOf(e.payload).to : undefined;
+		if (typeof to === "string" && own.states[to]) return own.states[to];
 		const text = eventSentence(said, f.state, { ...e, key: actor });
 		return text.startsWith(actor) ? (
 			<span className="min-w-0">

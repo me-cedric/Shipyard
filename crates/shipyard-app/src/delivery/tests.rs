@@ -385,7 +385,7 @@ fn an_approval_names_the_exact_write() {
     });
     assert_eq!(
         (kind, summary.as_str(), detail.as_str()),
-        ("transition", "Move SHIP-1 to In Progress", "")
+        ("transition", "Move SHIP-1 to In Progress", "In Progress")
     );
     let (_, summary, detail, _) = describe(&Write::Comment {
         key: "SHIP-1".into(),

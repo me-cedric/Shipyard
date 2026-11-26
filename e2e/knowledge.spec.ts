@@ -21,7 +21,7 @@ test("filters the graph by kind and explains an entity from the inspector", asyn
 	await page.getByRole("main").getByRole("button", { name: "More", exact: true }).click();
 	await page.getByRole("menuitem", { name: "Graph" }).click();
 	// The clusters come first: a click opens one in place, a second click closes it.
-	const adr = page.getByRole("button", { name: /^ADR adr:0001/ });
+	const adr = page.getByRole("button", { name: /^Decision adr:0001/ });
 	const cluster = page.locator('button[data-node="cluster/adr"]');
 	await expect(cluster).toHaveAttribute("aria-expanded", "false");
 	await expect(adr).toHaveCount(0);
@@ -32,7 +32,7 @@ test("filters the graph by kind and explains an entity from the inspector", asyn
 	const spec = page.getByRole("button", { name: /^Spec spec:auth/ });
 
 	// A kind toggle hides its cluster and shows it again.
-	const toggle = page.getByRole("button", { name: /^ADR \d+$/ });
+	const toggle = page.getByRole("button", { name: /^Decision \d+$/ });
 	await toggle.click();
 	await expect(cluster).toHaveCount(0);
 	await toggle.click();
@@ -122,9 +122,9 @@ test("lists the learning path and the glossary", async ({ page }) => {
 
 test("pins a dashboard tile to the top of Dashboards, not to Home", async ({ page }) => {
 	await openKnowledge(page, "Dashboards");
-	const tile = page.getByRole("region", { name: "Work items" });
+	const tile = page.getByRole("region", { name: "Tickets" });
 	await expect(tile).toBeVisible();
-	await tile.getByRole("button", { name: "More Work items" }).click();
+	await tile.getByRole("button", { name: "More Tickets" }).click();
 	await page.getByRole("menuitem", { name: "Pin to Today" }).click();
 	await expect(page.getByRole("region", { name: "Pinned" })).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Today" }).click();

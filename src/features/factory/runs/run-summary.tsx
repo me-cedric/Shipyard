@@ -24,7 +24,7 @@ export function primaryOf(state: RunState, hasPr: boolean): Primary | null {
 }
 
 /** The step as n of m, and the name of the step that works, waits or failed. */
-export function stepperOf(run: Pick<RunView, "steps">) {
+export function stepperOf(run: Pick<RunView, "steps">, names?: Record<string, string>) {
 	const done = run.steps.filter((s) => s.state === "done").length;
 	const now =
 		run.steps.find((s) => s.state === "running") ??
@@ -33,13 +33,13 @@ export function stepperOf(run: Pick<RunView, "steps">) {
 	return {
 		n: Math.min(run.steps.length, done + (now ? 1 : 0)),
 		total: run.steps.length,
-		name: now ? nameOf(now.id) : undefined,
+		name: now ? nameOf(now.id, names) : undefined,
 	};
 }
 
 /** The name of the agent of a run: the step that works, waits or failed, else the recipe. */
-export const agentOf = (run: Pick<RunView, "steps" | "workflow">) =>
-	stepperOf(run).name ?? nameOf(run.workflow);
+export const agentOf = (run: Pick<RunView, "steps" | "workflow">, names?: Record<string, string>) =>
+	stepperOf(run, names).name ?? nameOf(run.workflow);
 
 /** Milliseconds as days and hours above 48 hours, as hours and minutes, or as minutes and seconds under one hour. The day and hour units follow `lang`. */
 export function duration(ms: number, lang = "en"): string {

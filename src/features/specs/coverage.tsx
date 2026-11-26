@@ -1,10 +1,10 @@
 import { useQueries } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { LibraryPage, LinkedCard } from "@/features/library/page-parts";
 import { WithProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
+import { useDay } from "@/lib/prefs/dates";
 import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import {
@@ -24,6 +24,7 @@ import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
+import { LibraryPage, LinkedCard } from "@/ui/templates/library-page";
 import { useGuard } from "./guard";
 import { missingTests, ROW_BUTTON, type Verdict, worst } from "./parts";
 import { openPlanAt } from "./test-plans";
@@ -99,7 +100,8 @@ export function Coverage() {
 }
 
 function CoveragePage() {
-	const { t, code } = useI18n();
+	const { t } = useI18n();
+	const day = useDay();
 	const s = t.specs;
 	const p = s.page;
 	const { ask, openRef } = useShell();
@@ -141,7 +143,7 @@ function CoveragePage() {
 					{last ? (
 						<span className="text-n-11">
 							{format(s.lastRun, {
-								date: new Date(last).toLocaleDateString(code, { dateStyle: "long" }),
+								date: day(last),
 							})}
 						</span>
 					) : null}

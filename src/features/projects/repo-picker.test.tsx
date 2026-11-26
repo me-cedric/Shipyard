@@ -21,7 +21,9 @@ it("does not clone while the parent folder is empty", async () => {
 	);
 	mountApp("/home/today");
 	await user.click(await screen.findByRole("button", { name: /^Project/ }));
-	await user.click(await screen.findByRole("menuitem", { name: "Clone a repository" }));
+	await user.click(
+		await screen.findByRole("menuitem", { name: "Get a project from the code host" }),
+	);
 	const dialog = within(await screen.findByRole("dialog"));
 	const row = await dialog.findByRole("button", { name: "Clone acme/web" });
 	expect(row).toBeDisabled();

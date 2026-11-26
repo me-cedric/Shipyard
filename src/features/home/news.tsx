@@ -5,6 +5,7 @@ import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import { type Notice, useNotifications, useOpenNotice } from "@/lib/notifications";
+import { dateLocale } from "@/lib/prefs";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -199,12 +200,12 @@ export function News() {
 		[
 			t.home.newsToday,
 			items.filter((i) => i.time >= midnight),
-			new Intl.DateTimeFormat(lang, { timeStyle: "short" }),
+			new Intl.DateTimeFormat(dateLocale(lang), { timeStyle: "short" }),
 		],
 		[
 			t.home.newsEarlier,
 			older ? earlier : earlier.slice(0, EARLIER),
-			new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" }),
+			new Intl.DateTimeFormat(dateLocale(lang), { dateStyle: "medium", timeStyle: "short" }),
 		],
 	];
 	return (

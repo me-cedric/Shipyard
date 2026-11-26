@@ -226,7 +226,7 @@ export function ThemeCard() {
 				<button
 					type="button"
 					onClick={() => importTheme().catch(logError)}
-					className="flex min-h-control cursor-pointer flex-col gap-3 rounded-lg border-2 border-transparent bg-surface-1 p-4 text-left font-semibold whitespace-nowrap text-n-12 shadow-1"
+					className="flex min-h-control cursor-pointer flex-col gap-3 rounded-lg border-2 border-transparent bg-surface-1 p-4 text-left font-semibold break-words text-n-12 shadow-1"
 				>
 					<span
 						aria-hidden="true"

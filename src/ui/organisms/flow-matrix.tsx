@@ -69,6 +69,7 @@ export function FlowMatrix({
 	labels,
 	bricks,
 	startAdd,
+	noMatch,
 	addSignal,
 	chipLabels,
 	missing,
@@ -88,6 +89,8 @@ export function FlowMatrix({
 	addSignal?: number;
 	/** The names of the filter chips by action value, when they differ from the names in a row. */
 	chipLabels?: Record<string, string>;
+	/** Shown in place of the rows when the filters leave none. `clear` removes the filters. */
+	noMatch?: (clear: () => void) => ReactNode;
 	/** The editor of a new row is open at the start. */
 	startAdd?: boolean;
 	rows: FlowRow[];
@@ -308,6 +311,16 @@ export function FlowMatrix({
 					</thead>
 					<tbody>
 						{editing === "" ? editor("") : null}
+						{noMatch && shown.length === 0 && rows.length > 0 && editing === null ? (
+							<tr>
+								<td colSpan={cols + 1}>
+									{noMatch(() => {
+										setFilter(NO_FILTER);
+										setOnlyMissing(false);
+									})}
+								</td>
+							</tr>
+						) : null}
 						{shown.map((r) =>
 							editing === r.id ? (
 								editor(r.id)

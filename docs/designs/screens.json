@@ -75,7 +75,7 @@
     {
       "id": "SCR-007",
       "slug": "agents-map",
-      "title": "Crew, Live: one row for each agent at work with the agent, the feature and its state, and the files and specs that it reads and changes; the filter At work, Ended, Files and Specs; the ref is the tooltip and Copy ref is in the menu of the agent; it replaces the Agents map, and the old address opens it (design picture 030, /crew/crew?view=live)",
+      "title": "Crew, Live: one row for each agent at work with the agent, the feature and its state, and the files and specs that it reads and changes; the filter At work, Ended, Files and Specs; the ref is the tooltip and Copy the reference is in the menu of the agent; it replaces the Agents map, and the old address opens it (design picture 030, /crew/crew?view=live)",
       "artifacts": [
         "spec:factory",
         "spec:ux-declutter",
@@ -244,7 +244,7 @@
     {
       "id": "SCR-021",
       "slug": "new-project",
-      "title": "New project, a page at /projects/new: one question for each of five steps (Name, Kind of product, Tools, Team, Ready), Back, All steps and Continue; the project is made at the end with Create the project",
+      "title": "New project, a page at /projects/new: one question for each of five steps (Name, Technology, Tools, Team, Ready), Back, All steps and Continue; the project is made at the end with Create the project",
       "artifacts": [
         "spec:project-creator",
         "spec:projects",
@@ -325,7 +325,7 @@
     {
       "id": "SCR-029",
       "slug": "no-project",
-      "title": "No project is open: a bare page without the rail and the top row, with one card that holds New project and Open a project (a menu with the recent projects, Projects, Open a folder and Clone a repository)",
+      "title": "No project is open: a bare page without the rail and the top row, with one card that holds New project and Open a project (a menu with the recent projects, Projects, Open a folder and Get a project from the code host)",
       "artifacts": [
         "spec:shell",
         "spec:ux-declutter",
@@ -847,7 +847,7 @@
     {
       "id": "SCR-093",
       "slug": "setup-outside-agents",
-      "title": "Setup / This computer, Share Shipyard with other tools: the AI tools that can use Shipyard, what they may use, the address of Shipyard with Copy, and Import of servers from another tool",
+      "title": "Setup / This computer, Share Shipyard with other tools: the AI tools that can use Shipyard, what they may use, the address of Shipyard with Copy, the switch Server on, Check and Copy access token, and Import of servers from another tool",
       "artifacts": [
         "spec:connections",
         "spec:app-redesign",

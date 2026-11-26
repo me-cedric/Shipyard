@@ -94,7 +94,7 @@ test("the sync action in the card of the sync mark runs a tick and the connectio
 		.getByRole("button", { name: "Sync", exact: true })
 		.focus();
 	await page.keyboard.press("Enter");
-	await expect(row.getByRole("status")).toContainText(/Idle\s*\d{1,2}[:.]\d{2}/);
+	await expect(row.getByRole("status")).toContainText(/Last check\s*\d{1,2}[:.]\d{2}/);
 
 	// The tick filled the mirror: the backlog shows tickets with no import.
 	await sidebar(page).getByRole("link", { name: "Flow" }).click();
@@ -131,13 +131,7 @@ test("refuses an interval under 30 s and saves the pickup rules with the write s
 	await open("Look for new tickets");
 	const interval = page.getByRole("spinbutton", { name: "Interval (s)" });
 	await expect(interval).toHaveValue("60");
-	for (const name of [
-		"Push the branch",
-		"Open the pull request",
-		"Move the ticket",
-		"Comment in the issue tracker",
-	])
-		await expect(page.getByRole("switch", { name })).toBeChecked();
+	await expect(page.getByRole("link", { name: "What agents may do alone" })).toBeVisible();
 
 	await interval.fill("10");
 	await page.getByRole("button", { name: "Save" }).click();

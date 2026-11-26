@@ -74,9 +74,7 @@ export const doctorDe: typeof doctorEn = {
 		shows: "Was das Ticketsystem für jeden Schritt zeigt",
 		states: "Jeder Zustand",
 		state: "Zustand: {name}",
-		write: "Agenten dürfen schreiben",
 		today: "Heute öffnen",
-		offMeans: "Aus heißt: Der Agent fragt in Heute",
 		mark: "Ein Ticket für Agenten markieren",
 		spend: "Ausgabengrenzen",
 		pickup: {

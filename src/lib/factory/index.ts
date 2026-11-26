@@ -101,6 +101,7 @@ export function useRunActions() {
 				await Promise.all([
 					qc.invalidateQueries({ queryKey: factoryKeys.all }),
 					qc.invalidateQueries({ queryKey: ["home"] }),
+					qc.invalidateQueries({ queryKey: ["features"] }),
 				]);
 			}
 		};

@@ -62,7 +62,7 @@ describe("Crew / Rights: Code and merge", () => {
 		const user = userEvent.setup();
 		await withTracker();
 		const router = mountApp("/crew/rights?role=architect");
-		const merge = await screen.findByRole("switch", { name: "Architect Merge" });
+		const merge = await screen.findByRole("switch", { name: "Merge, Architect" });
 		expect(merge).toBeChecked();
 		expect(screen.queryByRole("listitem", { name: "Merge" })).toBeNull();
 		await user.click(await pressed("Code and merge", "See"));
@@ -71,7 +71,7 @@ describe("Crew / Rights: Code and merge", () => {
 		);
 		await waitFor(() =>
 			expect(
-				screen.getByRole("switch", { name: "Architect Merge" }).closest("fieldset"),
+				screen.getByRole("switch", { name: "Merge, Architect" }).closest("fieldset"),
 			).toBeDisabled(),
 		);
 		await idle(router);

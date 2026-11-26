@@ -76,7 +76,8 @@ function Colour() {
 				data-accent-swatch={accent ?? undefined}
 				className={cn(
 					"size-11 cursor-pointer rounded-full border border-n-7 outline-offset-3",
-					accent ? "bg-accent" : "bg-n-12",
+					// The theme swatch stays neutral: the accent swatches show each accent.
+					accent ? "bg-accent" : "bg-n-9",
 					on && "outline-3 outline-n-12",
 				)}
 			/>
@@ -153,7 +154,11 @@ function Layout() {
 				/>
 			</SetupRow>
 			<SetupRow id="tray" label={s.trayIcon}>
-				<Toggle label={l.tray} checked={p.tray} onCheckedChange={(c) => p.setPrefs({ tray: c })} />
+				<Toggle
+					label={s.trayIcon}
+					checked={p.tray}
+					onCheckedChange={(c) => p.setPrefs({ tray: c })}
+				/>
 			</SetupRow>
 		</SetupCard>
 	);
@@ -175,7 +180,7 @@ function MotionAndFocus() {
 			</SetupRow>
 			<SetupRow id="focus-ring" label={s.ring}>
 				<Toggle
-					label={l.focusRing}
+					label={s.ring}
 					checked={p.focusRing === "always"}
 					onCheckedChange={(c) =>
 						p.setPrefs({ focusRing: (c ? "always" : "keyboard") as FocusRing })
@@ -184,7 +189,7 @@ function MotionAndFocus() {
 			</SetupRow>
 			<SetupRow id="focus-width" label={s.ringWidth}>
 				<Stepper
-					label={l.focusWidth}
+					label={s.ringWidth}
 					value={p.focusWidth}
 					min={2}
 					max={3}
@@ -210,7 +215,7 @@ function Text() {
 		<SetupCard title={s.text}>
 			<SetupRow id="ui-font" label={s.fontApp}>
 				<ValueSelect
-					label={f.uiFont}
+					label={s.fontApp}
 					value={p.uiFont || "system"}
 					onValueChange={(v) => p.setPrefs({ uiFont: v })}
 					items={keys(UI_FONTS)}
@@ -218,7 +223,7 @@ function Text() {
 			</SetupRow>
 			<SetupRow id="code-font" label={s.fontCode}>
 				<ValueSelect
-					label={f.codeFont}
+					label={s.fontCode}
 					value={p.codeFont || "system"}
 					onValueChange={(v) => p.setPrefs({ codeFont: v })}
 					items={keys(CODE_FONTS)}
@@ -226,7 +231,7 @@ function Text() {
 			</SetupRow>
 			<SetupRow label={s.fontTerminal}>
 				<TextPref
-					label={f.terminalFont}
+					label={s.fontTerminal}
 					placeholder="MesloLGS NF"
 					value={p.terminalFont}
 					onSave={(v) => p.setPrefs({ terminalFont: v })}
@@ -234,7 +239,7 @@ function Text() {
 			</SetupRow>
 			<SetupRow label={s.terminalSize}>
 				<Stepper
-					label={f.terminalSize}
+					label={s.terminalSize}
 					value={p.terminalFontSize}
 					min={8}
 					max={24}
@@ -243,7 +248,7 @@ function Text() {
 			</SetupRow>
 			<SetupRow id="date-format" label={s.dates}>
 				<ValueSelect
-					label={l.dateFormat}
+					label={s.dates}
 					value={p.dateFormat || "follow"}
 					onValueChange={(v) => p.setPrefs({ dateFormat: v === "follow" ? "" : v })}
 					items={[

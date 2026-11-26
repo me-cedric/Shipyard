@@ -26,9 +26,9 @@ describe("Factory / run sessions", () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const run = (await unwrap(commands.runsList())).find((r) => r.key === "ACME-2");
 		mountApp(`/factory/runs/${run?.id}?unit=t1`);
-		const done = await screen.findByRole("listitem", { name: "Build 1" });
+		const done = await screen.findByRole("listitem", { name: "Builder 1" });
 		expect(within(done).getByRole("button", { name: "Open in terminal" })).toBeEnabled();
-		const live = screen.getByRole("listitem", { name: "Build 2" });
+		const live = screen.getByRole("listitem", { name: "Builder 2" });
 		expect(within(live).getByRole("button", { name: "Open in terminal" })).toBeDisabled();
 		const follow = within(live).getByRole("button", { name: "Follow" });
 		expect(follow).toHaveAttribute("aria-pressed", "false");
@@ -41,12 +41,12 @@ describe("Factory / run sessions", () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const run = (await unwrap(commands.runsList())).find((r) => r.key === "ACME-2");
 		const router = mountApp(`/factory/runs/${run?.id}?unit=t1`);
-		const first = await screen.findByRole("listitem", { name: "Build 1" });
-		expect(within(first).getByTitle("t1")).toHaveTextContent("Build 1");
+		const first = await screen.findByRole("listitem", { name: "Builder 1" });
+		expect(within(first).getByTitle("t1")).toHaveTextContent("Builder 1");
 		await waitFor(() => expect(first).toHaveFocus());
 		// A second link to the same run opens the Workflow tab and focuses the second session.
 		await router.navigate(runHref(run?.id ?? "", "t2"));
-		const second = await screen.findByRole("listitem", { name: "Build 2" });
+		const second = await screen.findByRole("listitem", { name: "Builder 2" });
 		await waitFor(() => expect(second).toHaveFocus());
 		// A link to a session opens Chat, with the requests and the sessions.
 		expect(

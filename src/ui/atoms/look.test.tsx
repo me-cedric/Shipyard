@@ -12,7 +12,6 @@ import { Input } from "./input";
 import { Kbd } from "./kbd";
 import { LinkButton, linkClass } from "./link-button";
 import { Progress } from "./progress";
-import { Ring } from "./ring";
 import { Segmented } from "./segmented";
 import { Select } from "./select";
 import { Skeleton } from "./skeleton";
@@ -169,19 +168,9 @@ describe("atoms, look pass 1", () => {
 		expect(screen.getByText("F")).not.toHaveClass("h-9");
 	});
 
-	it("Skeleton and Ring use the track token, and the ring has no gradient", () => {
-		const { container } = renderApp(
-			<>
-				<Skeleton />
-				<Ring value={1} max={4} label="Done">
-					1
-				</Ring>
-			</>,
-		);
+	it("Skeleton uses the track token", () => {
+		const { container } = renderApp(<Skeleton />);
 		expect(container.firstElementChild).toHaveClass("bg-n-5");
-		const ring = screen.getByRole("meter", { name: "Done" });
-		expect(ring.querySelector("linearGradient")).toBeNull();
-		expect(ring.querySelectorAll("circle")[1]).toHaveAttribute("stroke", "var(--accent)");
 	});
 
 	it("LinkButton is a button with the look of a link", async () => {

@@ -256,10 +256,12 @@ fn agents_md(p: &NewProject, gates: &[String]) -> String {
     if !gates.is_empty() {
         let list: Vec<_> = gates.iter().map(|g| format!("`{g}`")).collect();
         out += &format!(
-            "- Run these checks before each commit: {}.\n",
+            "- Run these checks before you report: {}.\n",
             list.join(", ")
         );
     }
+    out += "- When a decision belongs to a person, ask and wait. Do not guess.\n\
+            - Do not edit `.shipyard/`. Do not commit or push unless a person asks.\n";
     out
 }
 

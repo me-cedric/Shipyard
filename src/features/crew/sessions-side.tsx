@@ -9,9 +9,9 @@ import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { runnerName } from "@/ui/atoms/brand-icon";
 import { Button } from "@/ui/atoms/button";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { ChevronRightIcon, StopIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
+import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { Row } from "@/ui/molecules/row";
 import { resumeLine, useTakeMachine } from "./take-control";
 
@@ -52,20 +52,21 @@ export function MachineRows() {
 					{s.pid !== null && resumeLine(s.runner, s.session) ? (
 						<Button
 							className="min-h-control"
-							aria-label={format(t.shellFn.sessions.takeOf, { name: `${s.runner} ${s.project}` })}
+							aria-label={format(t.shellFn.sessions.takeOf, { name: s.title || s.project })}
 							onClick={() => void run(() => take(s))}
 						>
 							{t.shellFn.sessions.take}
 						</Button>
 					) : null}
 					{s.pid === null ? null : (
-						<IconButton
-							label={format(m.stop, { name: `${s.runner} ${s.project}` })}
+						<ConfirmButton
+							aria-label={format(m.stop, { name: s.title || s.project })}
 							className="min-h-control min-w-11"
-							onClick={() => void run(() => writes.stop(s.pid as number))}
+							confirm={format(m.confirmStop, { name: s.title || s.project })}
+							onConfirm={() => void run(() => writes.stop(s.pid as number))}
 						>
 							<StopIcon size={14} />
-						</IconButton>
+						</ConfirmButton>
 					)}
 				</Row>
 			))}

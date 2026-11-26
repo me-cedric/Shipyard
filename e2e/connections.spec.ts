@@ -114,12 +114,10 @@ test("turns on the server for outside agents and imports a server of another too
 }) => {
 	await page.goto("/setup/computer?page=share");
 	const region = (name: string) => page.getByRole("region", { name });
-	// The switch is behind More, in the row "What they may use".
-	await region("More").locator("summary", { hasText: "What they may use" }).click();
-	await region("More").getByRole("switch", { name: "Server on" }).click();
+	await region("Address of Shipyard").getByRole("switch", { name: "Server on" }).click();
 	await region("What they may use").getByRole("button", { name: "Read files" }).click();
-	await region("What they may use").getByRole("button", { name: "Apply" }).click();
-	await expect(region("More").getByText("Running")).toBeVisible();
+	await region("Address of Shipyard").getByRole("button", { name: "Apply" }).click();
+	await expect(region("Address of Shipyard").getByText("Running")).toBeVisible();
 	// The card of the import has a heading, not a region name.
 	await expect(
 		page.getByRole("heading", { name: "Bring servers from another tool" }),

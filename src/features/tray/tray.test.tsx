@@ -139,8 +139,7 @@ describe("Menu bar panel", () => {
 		expect(await screen.findByRole("heading", { name: "3 things need you" })).toBeInTheDocument();
 		const rows = within(screen.getByRole("region", { name: "Needs you" })).getAllByRole("listitem");
 		// Plain words: the text of each thing, with no ticket key.
-		// A question shows as its action: the text of the question is in the inspector.
-		const texts = ["Answer a question", approval.summary, plan.title];
+		const texts = [question.question.question, approval.summary, plan.title];
 		expect(rows).toHaveLength(texts.length);
 		for (const [i, text] of texts.entries())
 			expect(within(rows[i] as HTMLElement).getByText(text)).toBeInTheDocument();

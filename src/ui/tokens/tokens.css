@@ -49,6 +49,12 @@
 	--font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
 
 	--duration-fast: 120ms;
+	/* Layers: sticky bars, dims, the rail above a dim, backdrops, popups. */
+	--z-sticky: 20;
+	--z-dim: 30;
+	--z-rail: 31;
+	--z-backdrop: 40;
+	--z-popup: 50;
 	--duration-base: 200ms;
 	/* The thumb of a segmented control. */
 	--duration-thumb: 180ms;
@@ -95,6 +101,8 @@
 	--color-project-name: var(--project-name);
 	--color-primary: var(--primary);
 	--color-primary-fg: var(--primary-fg);
+	--color-terminal: var(--terminal);
+	--color-terminal-fg: var(--terminal-fg);
 
 	--color-attention: var(--attention);
 	--color-attention-strong: var(--attention-strong);
@@ -175,6 +183,9 @@
 	/* Primary: the main button, the avatar of an agent, a done step. It follows the text colour. */
 	--primary: var(--n-12);
 	--primary-fg: light-dark(#ffffff, #0f1115);
+	/* A panel that stays dark in every theme: the output of a session. */
+	--terminal: #0f1115;
+	--terminal-fg: #eceef2;
 
 	/* Attention: the one colour for "a person must act". Only the attention card uses it. */
 	--attention: light-dark(#e8833a, #e8833a);
@@ -222,8 +233,8 @@
 	--danger-soft: color-mix(in oklch, var(--danger) 14%, transparent);
 	--info-soft: color-mix(in oklch, var(--info) 14%, transparent);
 	--attention-soft: color-mix(in oklch, var(--attention) 16%, transparent);
-	/* The attention text on the inverted panel (the dark session panel of Light, the light one of Dark). */
-	--attention-on-panel: light-dark(#ffc79a, #843505);
+	/* The attention text on the session panel, which stays dark in each theme. */
+	--attention-on-panel: #ffc79a;
 }
 
 :root[data-theme="light"] {

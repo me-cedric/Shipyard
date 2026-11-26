@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
+import { toFailure } from "@/lib/ipc";
 
-export const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+/** The plain sentence of an error: a raw text gets the sentence of its error code. */
+export const message = (e: unknown) => toFailure(e).message;
 
 /**
  * Runs a write. The reason of a failure shows in `error`, and the next run clears it. `failure` is
@@ -19,8 +21,9 @@ export function useGuard() {
 			await job();
 			return true;
 		} catch (e) {
-			setError(message(e));
-			setFailure(e);
+			const f = toFailure(e);
+			setError(f.message);
+			setFailure(f);
 			return false;
 		} finally {
 			setPending((n) => n - 1);

@@ -17,6 +17,17 @@ describe("Switch", () => {
 		expect(thumb).toHaveAttribute("data-checked");
 	});
 
+	it("draws a small track at size sm, in a 44 px target", () => {
+		render(<Switch size="sm" label="Auto-commit" />);
+		const sw = screen.getByRole("switch", { name: "Auto-commit" });
+		expect(sw.className.split(" ")).toEqual(expect.arrayContaining(["h-6", "w-10"]));
+		const thumb = sw.querySelector("span") as HTMLElement;
+		expect(thumb.className.split(" ")).toEqual(
+			expect.arrayContaining(["size-[18px]", "data-[checked]:translate-x-[19px]"]),
+		);
+		expect(sw.closest("label")).toHaveClass("min-h-control");
+	});
+
 	it("gives the reason of an off switch as its tooltip and its description", () => {
 		render(<Switch label="Auto commit" disabled reason="Needs code.write" />);
 		const sw = screen.getByRole("switch", { name: "Auto commit" });

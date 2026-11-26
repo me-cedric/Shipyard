@@ -27,7 +27,7 @@ export function PrAi({ d }: { d: PullDetail }) {
 	return (
 		<section aria-label={p.group} className="flex flex-wrap items-center gap-2">
 			{(["describe", "review", "reply"] as const).map((k) => (
-				<Button key={k} variant="ghost" onClick={() => ask(format(p.prompt[k], base))}>
+				<Button key={k} onClick={() => ask(format(p.prompt[k], base))}>
 					<ChatBubbleIcon size={14} />
 					{p[k]}
 				</Button>

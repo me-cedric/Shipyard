@@ -38,8 +38,8 @@ function waitOf(f: Feature): { focus: string; anchor?: string } | undefined {
 	if (f.runState === "WaitingForAnswer")
 		return { focus: '[id^="question-"] input, [id^="question-"] button' };
 	if (f.runState === "PlanReview") return { focus: "#plan", anchor: "plan" };
-	if (f.runState === "Blocked" || f.runState === "Paused") return { focus: "form input" };
-	if (f.approvals > 0) return { focus: '[id^="approval-"] button' };
+	if (f.runState === "Blocked" || f.runState === "Paused") return { focus: "main form input" };
+	if (f.approvals > 0) return { focus: "#decision-send" };
 }
 
 /** Opens a feature at the address of `featureHref`, and moves the focus to what its run waits for. */

@@ -124,7 +124,9 @@ export function PlainDiff({
 							{l.new ?? l.old}
 						</span>
 						<span className="sr-only">{l.kind === "add" ? "+" : l.kind === "del" ? "−" : ""}</span>
-						<CodeLine text={l.text} lang={path} />
+						<span>
+							<CodeLine text={l.text} lang={path} />
+						</span>
 					</div>
 				),
 			)}

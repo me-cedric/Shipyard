@@ -54,6 +54,7 @@ export const extrasDe: typeof extrasEn = {
 	assistant: {
 		unread: "Ungelesen",
 		filesTouched: "{count} Dateien",
+		filesTouchedOne: "{count} Datei",
 		quote: "Zitieren",
 		redo: "Wiederholen",
 		live: "Bisherige Schritte",

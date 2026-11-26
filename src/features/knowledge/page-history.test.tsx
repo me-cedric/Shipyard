@@ -64,7 +64,7 @@ describe("Earlier versions and History", () => {
 		const page = k.files[PAGE];
 		if (page) page.text = "unsaved\n";
 		await expect(unwrap(commands.pageRestore(PAGE, old?.sha ?? "", true))).rejects.toMatchObject({
-			message: expect.stringMatching(/not saved/),
+			details: expect.stringMatching(/not saved/),
 		});
 		expect(k.files[PAGE]?.text).toBe("unsaved\n");
 	});

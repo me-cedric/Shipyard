@@ -86,16 +86,24 @@ describe("mock outside server groups", () => {
 			expect.arrayContaining(["ticket_comment", "adr_propose", "qa_run_check"]),
 		);
 		expect(off.active).toEqual([]);
+		expect(off.tools).toContain("qa_run_check");
 		const on = await unwrap(commands.mcpOutsideSet({ ...off.gates, tickets: true, qa: true }));
 		expect(on.active).toEqual([
 			"ticket_list",
 			"ticket_read",
 			"ticket_comment",
-			"qa_run_check",
 			"qa_read_report",
 			"docs_stale",
 			"spec_validate",
-			"qa_run_scanner",
 		]);
+		expect(on.active).not.toContain("qa_run_check");
+	});
+
+	it("puts ref_read in the read files group and the read-only preset", async () => {
+		const off = await unwrap(commands.mcpOutsideGet());
+		expect(off.tools).toContain("ref_read");
+		expect(off.readOnly).toContain("ref_read");
+		const on = await unwrap(commands.mcpOutsideSet({ ...off.gates, reads: true }));
+		expect(on.active).toEqual(["project_list_files", "project_read_file", "ref_read"]);
 	});
 });

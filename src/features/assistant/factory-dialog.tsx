@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type DiffRow, type FactorySend, unwrap, type WorkflowItem } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
+import { IconButton } from "@/ui/atoms/icon-button";
 import { Select } from "@/ui/atoms/select";
 import { ArrowUpTrayIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Dialog } from "@/ui/organisms/dialog";
 import type { Assistant } from "./use-assistant";
 
@@ -16,9 +18,12 @@ const NONE = "none";
 export function SendToFactory({
 	a,
 	variant = "ghost",
+	compact = false,
 }: {
 	a: Assistant;
 	variant?: "ghost" | "secondary";
+	/** Icon only: the panel header is narrow. */
+	compact?: boolean;
 }) {
 	const { t } = useI18n();
 	const [open, setOpen] = useState(false);
@@ -26,7 +31,7 @@ export function SendToFactory({
 	const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
 	const [workflow, setWorkflow] = useState(NONE);
 	const [sent, setSent] = useState<FactorySend | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const id = a.current?.thread.id;
 	const empty = !a.current?.thread.messages.length;
 
@@ -43,21 +48,31 @@ export function SendToFactory({
 				setPreview(row);
 				setWorkflows(list.filter((w) => !w.issue));
 			})
-			.catch((e) => setError(e instanceof Error ? e.message : String(e)));
+			.catch(setError);
 	}, [open, id]);
 
 	const send = () => {
 		if (!id) return;
 		unwrap(commands.assistantToFactory(id, workflow === NONE ? null : workflow, true))
 			.then((r) => (r.item.error ? setError(r.item.error) : setSent(r)))
-			.catch((e) => setError(e instanceof Error ? e.message : String(e)));
+			.catch(setError);
 	};
 	return (
 		<>
-			<Button variant={variant} disabled={empty || a.busy} onClick={() => setOpen(true)}>
-				<ArrowUpTrayIcon size={14} />
-				{t.assistant.factory.send}
-			</Button>
+			{compact ? (
+				<IconButton
+					label={t.assistant.factory.send}
+					disabled={empty || a.busy}
+					onClick={() => setOpen(true)}
+				>
+					<ArrowUpTrayIcon size={14} />
+				</IconButton>
+			) : (
+				<Button variant={variant} disabled={empty || a.busy} onClick={() => setOpen(true)}>
+					<ArrowUpTrayIcon size={14} />
+					{t.assistant.factory.send}
+				</Button>
+			)}
 			<Dialog
 				open={open}
 				onOpenChange={setOpen}
@@ -94,11 +109,7 @@ export function SendToFactory({
 						{sent.label ? ` · ${sent.label}` : ""}
 					</p>
 				) : null}
-				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				<ErrorNotice error={error} />
 			</Dialog>
 		</>
 	);

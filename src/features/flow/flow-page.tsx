@@ -454,7 +454,7 @@ function FlowPage({ view }: { view: "flow" | "list" | "done" }) {
 					) : null
 				) : null}
 				{view === "flow" ? (
-					<div className="shrink-0 overflow-x-auto p-0.5">
+					<div className="min-h-0 flex-1 overflow-auto p-0.5">
 						<div className="grid min-w-[65rem] grid-cols-5 items-start gap-3.5">
 							{STAGES.map((stage) => {
 								const cards = shown.filter((f) => f.stage === stage);
@@ -522,6 +522,12 @@ function FlowPage({ view }: { view: "flow" | "list" | "done" }) {
 						rows={doneRows()}
 						columns={columns}
 						onBoard={() => void navigate({ to: "/flow/flow" })}
+						filtered={text !== "" || end !== "all" || filter !== "all"}
+						onClear={() => {
+							set({ filter: undefined }, true);
+							find("");
+							setEnd("all");
+						}}
 					/>
 				)}
 			</div>

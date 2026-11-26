@@ -33,7 +33,7 @@ export const specsEs: typeof specsEn = {
 	valid: "No se encontraron problemas",
 	problems: "Problemas encontrados: {count}",
 	editor: {
-		copy: "Copiar ref",
+		copy: "Copiar la referencia",
 		dirty: "Cambios sin guardar",
 		conflict: "El archivo cambió en el disco.",
 		reload: "Recargar",

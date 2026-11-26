@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Input } from "@/ui/atoms/input";
 import { dbml } from "@/ui/molecules/syntax";
-import { ZoomFrame } from "@/ui/molecules/zoom-frame";
 import { parseDbml } from "@/ui/organisms/dbml";
 import { useRender } from "@/ui/organisms/use-render";
-import { ListCard, ListColumn } from "../library/page-parts";
+import { ZoomFrame } from "@/ui/organisms/zoom-frame";
+import { ListCard, ListColumn, NoMatch } from "@/ui/templates/library-page";
 import { Canvas } from "./parts";
 import { ReaderPage, type ReaderView } from "./text-tab";
 
@@ -43,6 +43,9 @@ function Tables({ frame, shown, files }: ReaderView) {
 					value={query}
 					onChange={(e) => setQuery(e.target.value)}
 				/>
+				{q && !tables.some((x) => x.name.toLowerCase().includes(q)) ? (
+					<NoMatch onClear={() => setQuery("")} />
+				) : null}
 				<ul aria-label={t.design.data.view} className="flex flex-col gap-2.5">
 					{tables
 						.filter((x) => x.name.toLowerCase().includes(q))
@@ -72,7 +75,7 @@ function Tables({ frame, shown, files }: ReaderView) {
 									key={x.name}
 									aria-label={x.name}
 									className={cn(
-										"overflow-hidden rounded-[16px] bg-surface-2 shadow-2",
+										"overflow-hidden rounded-lg bg-surface-2 shadow-2",
 										x.name === picked && "outline-2 outline-accent",
 									)}
 								>

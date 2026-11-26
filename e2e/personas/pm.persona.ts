@@ -18,11 +18,11 @@ test("project manager", async ({ page }) => {
 
 	await w.step("Filter the board by person", "the Owner pill", async () => {
 		await w.go("Flow", "List");
-		await w.click(page.getByRole("button", { name: "Owner: all" }));
+		await w.click(page.getByRole("button", { name: "Assignee: all" }));
 		await w.click(page.getByRole("menuitemradio", { name: "Grace Hopper" }));
 		await page.keyboard.press("Escape");
 		await w.see(page.getByText("Fix the French menu"), "the filter hides the person's card");
-		await w.click(page.getByRole("button", { name: "Owner: Grace Hopper" }));
+		await w.click(page.getByRole("button", { name: "Assignee: Grace Hopper" }));
 		await w.click(page.getByRole("menuitemradio", { name: "All assignees" }));
 		await page.keyboard.press("Escape");
 	});
@@ -84,7 +84,7 @@ test("project manager", async ({ page }) => {
 			"a capacity warning does not open the member in Crew",
 		);
 		await w.see(
-			page.getByRole("button", { name: "Days in a week, less" }),
+			page.getByRole("button", { name: "Less: Days in a week" }),
 			"the member does not open with its capacity",
 		);
 	});
@@ -199,7 +199,7 @@ test("project manager", async ({ page }) => {
 			const more = page.getByRole("button", { name: /^\d+ more$/ });
 			if ((await more.count()) > 0) await w.click(more);
 			await w.click(
-				page.getByRole("button", { name: /^feature Review the plan Write the onboarding guide/ }),
+				page.getByRole("button", { name: /^Planner Review the plan Write the onboarding guide/ }),
 			);
 			await w.click(page.getByRole("button", { name: "Approve plan" }));
 			await w.see(

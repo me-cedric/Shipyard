@@ -29,10 +29,19 @@ export const MENU_POPUP =
 	"min-w-48 origin-(--transform-origin) rounded-lg border border-n-6 bg-surface-3 p-2 text-ui shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 motion-reduce:transition-none";
 
 /** The popup of a menu: the items of the list. Put it inside a `Menu.Root` with a trigger. */
-export function MenuList({ items, value }: { items: MenuButtonItem[]; value?: string }) {
+export function MenuList({
+	items,
+	value,
+	align = "end",
+}: {
+	items: MenuButtonItem[];
+	value?: string;
+	/** The side of the trigger that the list lines up with. */
+	align?: "start" | "end";
+}) {
 	return (
 		<Menu.Portal>
-			<Menu.Positioner align="end" sideOffset={4} className="z-50">
+			<Menu.Positioner align={align} sideOffset={4} className="z-(--z-popup)">
 				<Menu.Popup className={MENU_POPUP}>
 					<Menu.RadioGroup value={value}>
 						{items.map((x) => {
@@ -114,12 +123,14 @@ export function MenuButton({
 	items,
 	iconOnly,
 	disabled,
+	align,
 }: {
 	label: string;
 	icon?: ReactNode;
 	items: MenuButtonItem[];
 	iconOnly?: boolean;
 	disabled?: boolean;
+	align?: "start" | "end";
 }) {
 	return (
 		<Menu.Root>
@@ -135,7 +146,7 @@ export function MenuButton({
 				{icon}
 				{iconOnly ? null : label}
 			</Menu.Trigger>
-			<MenuList items={items} />
+			<MenuList items={items} align={align} />
 		</Menu.Root>
 	);
 }

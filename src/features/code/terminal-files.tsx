@@ -13,6 +13,7 @@ import { Input } from "@/ui/atoms/input";
 import { ChevronDownIcon, ChevronRightIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { indent } from "@/ui/molecules/file-row";
 import { type FileAction, FileActionDialog } from "./file-actions";
 import { fileRows, findFiles } from "./file-drawer";
 import { flatRows } from "./tree";
@@ -90,7 +91,7 @@ export function TerminalFiles() {
 								aria-pressed={chosen?.path === r.path}
 								aria-expanded={r.folder ? open.has(r.path) : undefined}
 								title={r.path}
-								style={{ paddingLeft: 16 + r.depth * 24 + (r.folder ? 0 : 6) }}
+								style={{ paddingLeft: indent(r.depth) }}
 								className={ROW}
 								onClick={() => {
 									setChosen({ path: r.path, folder: r.folder });

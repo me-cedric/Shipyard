@@ -27,7 +27,7 @@ Cuando no hay nada que mostrar, una acción abre Flujo / Lista.
 - Paneles de mi rol abre los paneles de tu rol como tarjetas pequeñas, cada una con Abrir. Un panel de un lugar que no puedes ver queda oculto.
 - En la página de los paneles, un chip por rol muestra los paneles de ese rol, y los paneles de los otros roles se listan debajo. El chip del lector dice «Solo miro». Todas las vistas por rol abre Configuración / Vistas por rol.
 - La misma página contiene Mi trabajo, los tickets que el gestor de tickets te asigna, agrupados en En curso, Por hacer y Hecho en 7 días, cada uno con su estado e Iniciar ejecución, y Desde tu ausencia, lo que pasó en tus tickets y ejecuciones desde la última vez que abriste Hoy, lo más reciente primero.
-- Un Product owner ve las tarjetas del plan en Hoy mismo, encima de En curso.
+- Un Propietario del producto ve las tarjetas del plan en Hoy mismo, encima de En curso.
 
 El panel de la barra de menús muestra las mismas cosas que te esperan.
 

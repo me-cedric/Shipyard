@@ -2,10 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { useFeature } from "@/features/flow/feature/use-feature";
-import { useForgeActions, useImpactRefs, useImpacts, useImpactText } from "@/lib/code";
+import { useForgeActions, useImpactRefs, useImpacts, useImpactText, usePull } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { RightButton, useRights } from "@/lib/rights";
+import { pullNumberOf } from "@/lib/shell";
 import { buttonVariants } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
 import { ChartBarIcon } from "@/ui/icons";
@@ -73,10 +74,13 @@ export function ImpactsPage({
 	title,
 	back,
 	report,
+	files: pullFiles,
 }: {
 	title: string;
 	back: ReactNode;
 	report: ReactNode;
+	/** The paths of one feature. Without it, the page lists the local changes. */
+	files?: string[];
 }) {
 	const { t } = useI18n();
 	const i = t.flow.look.impact;
@@ -105,9 +109,9 @@ export function ImpactsPage({
 			</section>
 		);
 	const s = status.data;
-	const files = s
-		? [...s.staged, ...s.unstaged, ...s.untracked, ...s.conflicted].map((f) => f.path)
-		: [];
+	const files =
+		pullFiles ??
+		(s ? [...s.staged, ...s.unstaged, ...s.untracked, ...s.conflicted].map((f) => f.path) : []);
 	const more = files.length - 3;
 	const stale = plan ? parsePlan(plan).stale : [];
 	const name = (k: string) => t.projects.path[k as "specs"] ?? k;
@@ -169,13 +173,7 @@ export function ImpactsPage({
 				<h2 className="text-30 font-semibold text-n-12">{i.touches}</h2>
 				<div className="flex flex-wrap items-center gap-3">
 					<span className="text-n-11">{i.compare}</span>
-					<Select
-						label={i.mine}
-						items={[{ value: "mine", label: i.mine }]}
-						value="mine"
-						onValueChange={() => {}}
-						className="font-semibold"
-					/>
+					<span className="font-semibold">{i.mine}</span>
 					<span className="text-n-11">{i.withBase}</span>
 					<Select
 						label={t.forge.impacts.base}
@@ -251,13 +249,16 @@ export function ImpactsPage({
 function FeatureImpactsView() {
 	const { t } = useI18n();
 	const { featureId } = useParams({ from: "/flow/feature/$featureId/impacts" });
-	const { feature, pending } = useFeature(featureId);
+	const { feature, parts, pending } = useFeature(featureId);
+	const pullId = parts.pr?.replace(/^pr:/, "").replace(/:(\d+)$/, "-$1");
+	const pull = usePull(pullId ? pullNumberOf(pullId) : null);
 	if (pending) return <Loading />;
 	if (!feature)
 		return <EmptyState icon={<ChartBarIcon size={28} />} title={t.flow.look.impact.touches} />;
 	return (
 		<ImpactsPage
 			title={feature.title}
+			files={parts.pr ? (pull.data?.files.map((f) => f.path) ?? []) : undefined}
 			back={
 				<BackLink
 					label={t.flow.look.impact.checks}

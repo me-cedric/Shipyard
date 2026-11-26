@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { RunItem } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import type { RunState } from "@/lib/ipc/bindings";
+import { dateLocale } from "@/lib/prefs";
 import { RightButton } from "@/lib/rights";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
@@ -55,11 +56,16 @@ export function RunHistory({
 	rows,
 	columns,
 	onBoard,
+	filtered,
+	onClear,
 }: {
 	rows: HistoryRow[];
 	/** The extra columns that show. */
 	columns: readonly ExtraColumn[];
 	onBoard: () => void;
+	/** A search or an end filter is set. */
+	filtered: boolean;
+	onClear: () => void;
 }) {
 	const { t, lang } = useI18n();
 	const f = t.factory;
@@ -68,12 +74,19 @@ export function RunHistory({
 	if (rows.length === 0)
 		return (
 			<EmptyState
-				title={t.empty.runs}
+				title={filtered ? b.noMatch : b.nothingFinished}
 				icon={<CpuChipIcon size={28} />}
-				action={{ label: l.board, onClick: onBoard }}
+				action={
+					filtered
+						? { label: b.clearSearch, onClick: onClear }
+						: { label: l.board, onClick: onBoard }
+				}
 			/>
 		);
-	const when = new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" });
+	const when = new Intl.DateTimeFormat(dateLocale(lang), {
+		dateStyle: "medium",
+		timeStyle: "short",
+	});
 	const extra = EXTRA_COLUMNS.filter((c) => columns.includes(c));
 	const head: Record<ExtraColumn, string> = {
 		workflow: l.workflow,
@@ -85,7 +98,7 @@ export function RunHistory({
 		if (!run) return null;
 		if (c === "workflow") return nameOf(run.workflow);
 		if (c === "steps") {
-			const s = stepperOf(run);
+			const s = stepperOf(run, f.agentNames);
 			return s.total ? format(f.nOf, { n: s.n, total: s.total }) : "";
 		}
 		if (c === "ended") {
@@ -125,7 +138,11 @@ export function RunHistory({
 				</Row>
 				<ul aria-label={l.history}>
 					{rows.map((r) => {
-						const who = r.who ? (r.who.agent ? nameOf(r.who.name) : r.who.name) : null;
+						const who = r.who
+							? r.who.agent
+								? nameOf(r.who.name, f.agentNames)
+								: r.who.name
+							: null;
 						return (
 							<li key={r.id}>
 								<ContextMenu items={r.menu}>

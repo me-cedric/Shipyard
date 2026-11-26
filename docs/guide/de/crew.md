@@ -29,7 +29,7 @@ Ein Rezept öffnet sich in einem Formular. Nutzen Sie Formular und Text, um zwis
 
 ## Sitzungen
 
-Sitzungen listet die Sitzungen der Agenten: einen Lauf, eine Prüfung eines Pull Requests, eine Schätzung und den Bau einer Kachel. Klicken Sie auf eine Sitzung, um sie mit Öffnen und Stoppen zu zeigen. Stoppen eines Laufs fragt nach einer Bestätigung. Stoppen einer Prüfung beendet die Prüfung. Stoppen einer Schätzung beendet den Agenten, und das Blatt behält seine Werte. Stoppen des Baus einer Kachel beendet ihn, und das Dashboard ändert sich nicht. Beendete Sitzungen stehen auf einer eigenen Seite.
+Sitzungen listet die Sitzungen der Agenten: einen Lauf, eine Prüfung eines Pull Requests, eine Schätzung und den Bau einer Kachel. Klicken Sie auf eine Sitzung, um sie mit Öffnen und Stoppen zu zeigen. Das Stoppen einer Sitzung, eines Agenten und aller Agenten fragt zuerst nach einer Bestätigung. Stoppen einer Prüfung beendet die Prüfung. Stoppen einer Schätzung beendet den Agenten, und das Blatt behält seine Werte. Stoppen des Baus einer Kachel beendet ihn, und das Dashboard ändert sich nicht. Beendete Sitzungen stehen auf einer eigenen Seite.
 
 Nur lesen zeigt die Live-Ausgabe einer Sitzung, wenn ihr Tool eine Verlaufsdatei schreibt, die Shipyard lesen kann (Claude Code und Codex tun das). Ohne Verlaufsdatei zeigt der Bereich keine Ausgabe. Übernehmen stoppt die Sitzung nach Ihrer Bestätigung und führt den Fortsetzungsbefehl ihres Tools im Shipyard-Terminal aus.
 

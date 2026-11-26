@@ -47,7 +47,12 @@ test("opens a context menu from the keyboard and Escape returns the focus to the
 	await test_.focus();
 	await page.keyboard.press("ContextMenu");
 	const menu = page.getByRole("menu");
-	await expect(menu.getByRole("menuitem")).toHaveText(["Test", "Edit", "Remove", "Copy ref"]);
+	await expect(menu.getByRole("menuitem")).toHaveText([
+		"Test",
+		"Edit",
+		"Remove",
+		"Copy the reference",
+	]);
 	await page.keyboard.press("Escape");
 	await expect(menu).toHaveCount(0);
 	await expect(test_).toBeFocused();

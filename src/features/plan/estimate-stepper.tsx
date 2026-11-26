@@ -1,6 +1,5 @@
 import { format, useI18n } from "@/lib/i18n";
-
-const SIDE = "min-h-control min-w-(--control-h) text-20 text-n-12 disabled:opacity-50";
+import { STEPPER, STEPPER_SIDE } from "@/ui/molecules/stepper";
 
 /**
  * Less, the value, more. With `onType` the value is a number field that a person can type in.
@@ -31,19 +30,14 @@ export function Stepper({
 			aria-description={disabled ? reason : undefined}
 			disabled={disabled}
 			onClick={() => onStep(by)}
-			className={SIDE}
+			className={STEPPER_SIDE}
 		>
 			{by < 0 ? "−" : "+"}
 		</button>
 	);
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
-		<span
-			role="group"
-			aria-label={label}
-			title={disabled ? reason : undefined}
-			className="inline-flex shrink-0 items-center rounded-md border border-n-7 bg-surface-1"
-		>
+		<span role="group" aria-label={label} title={disabled ? reason : undefined} className={STEPPER}>
 			{side(-1)}
 			{onType ? (
 				<input

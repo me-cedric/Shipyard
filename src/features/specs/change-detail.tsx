@@ -2,7 +2,7 @@ import { useQueries } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, unwrap } from "@/lib/ipc";
+import { commands, toFailure, unwrap } from "@/lib/ipc";
 import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import {
@@ -135,7 +135,7 @@ export function ChangeDetail({
 				await act.archive(change.id, confirmed);
 				onBack();
 			} catch (e) {
-				const items = openItems(e instanceof Error ? e.message : String(e));
+				const items = openItems(toFailure(e).details);
 				if (!items) throw e;
 				setPending(items);
 			}
@@ -180,24 +180,25 @@ export function ChangeDetail({
 						</button>
 					))}
 				</fieldset>
-				<span className="flex-1" />
-				<Button
-					onClick={() =>
-						void run(async () => {
-							const list = await act.validate(change.id);
-							setChecked(list);
-							// The text opens on the first file that has a problem.
-							const hit = list.find((f) => f.path);
-							if (hit) show(hit.path, "text", hit.line);
-						})
-					}
-				>
-					{b.check}
-				</Button>
-				<Button onClick={() => void archive(false)}>{s.archive.open}</Button>
-				<Button variant="primary" onClick={() => setSplitting(true)}>
-					{b.nextSplit}
-				</Button>
+				<div className="ml-auto flex items-center gap-4">
+					<Button
+						onClick={() =>
+							void run(async () => {
+								const list = await act.validate(change.id);
+								setChecked(list);
+								// The text opens on the first file that has a problem.
+								const hit = list.find((f) => f.path);
+								if (hit) show(hit.path, "text", hit.line);
+							})
+						}
+					>
+						{b.check}
+					</Button>
+					<Button onClick={() => void archive(false)}>{s.archive.open}</Button>
+					<Button variant="primary" onClick={() => setSplitting(true)}>
+						{b.nextSplit}
+					</Button>
+				</div>
 			</div>
 			{error ? (
 				<p role="alert" className="text-ui text-danger-text">
@@ -213,23 +214,15 @@ export function ChangeDetail({
 							<span className="ml-auto">
 								<Segmented
 									label={b.view}
-									// The form is the editor too: Edit marks it.
-									value={open.view === "read" ? "read" : "text"}
+									value={open.view}
 									onValueChange={(v) => show(current.path, v as FileView)}
 									items={[
 										{ value: "read", label: b.read },
+										...(md ? [{ value: "form", label: t.editing.view.form }] : []),
 										{ value: "text", label: b.text },
 									]}
 								/>
 							</span>
-							{md ? (
-								<Button
-									aria-pressed={open.view === "form"}
-									onClick={() => show(current.path, "form")}
-								>
-									{b.edit}
-								</Button>
-							) : null}
 						</Row>
 						{open.view === "read" ? (
 							<div className="border-t border-n-6 px-6 py-5">
@@ -255,7 +248,7 @@ export function ChangeDetail({
 									refId={`change:${change.id}`}
 									missing={current.status === "missing"}
 									line={open.line}
-									form={md && open.view === "form"}
+									view={open.view === "form" && md ? "form" : "text"}
 								/>
 							</div>
 						) : null}

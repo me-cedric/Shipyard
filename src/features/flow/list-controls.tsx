@@ -9,7 +9,7 @@ import { ALL, type Filters, NONE } from "@/features/work/filters";
 import { useGuard } from "@/features/work/guard";
 import { useOpenSetting } from "@/lib/errors";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, unwrap } from "@/lib/ipc";
+import { commands, toFailure, unwrap } from "@/lib/ipc";
 import { projectKeys } from "@/lib/projects";
 import { RightButton, useRights } from "@/lib/rights";
 import { askForm, useFormIntent } from "@/lib/shell";
@@ -205,7 +205,12 @@ export function useListControls({
 						e.preventDefault();
 						if (!key.trim()) return;
 						void run(async () => {
-							await adopt(key.trim());
+							const k = key.trim();
+							await adopt(k).catch((e: unknown) => {
+								// The backend says "not found: <key>": a person reads a plain sentence.
+								const said = toFailure(e).details;
+								throw /^not found/i.test(said) ? new Error(format(b.noTicket, { key: k })) : e;
+							});
 							await qc.invalidateQueries({ queryKey: ["features"] });
 							setKey("");
 						});

@@ -85,5 +85,5 @@ for (const [option, sidebar, home, lang] of [
 
 test("shows the not-found view in the release build for the gallery path", async ({ page }) => {
 	await page.goto("/dev/gallery");
-	await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "No such page" })).toBeVisible();
 });

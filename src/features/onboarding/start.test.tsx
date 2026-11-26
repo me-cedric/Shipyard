@@ -69,6 +69,18 @@ describe("Setup / Start", () => {
 		);
 	});
 
+	it("opens the form on the product that the person picked", async () => {
+		const user = userEvent.setup();
+		await noTracker();
+		const router = mountApp("/setup/start");
+		const kinds = within(await screen.findByRole("group", { name: "Product" }));
+		await user.click(kinds.getByRole("button", { name: "Linear" }));
+		await user.click(screen.getByRole("button", { name: s.action.connect }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
+		expect(await screen.findByRole("combobox", { name: "Product" })).toHaveTextContent("Linear");
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
 	it("skips to the next step that is to do, and a click on an item opens it", async () => {
 		const user = userEvent.setup();
 		await noTracker();

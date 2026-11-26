@@ -44,7 +44,7 @@ export const missingTests = (reqs: Requirement[]) => [
 ];
 
 /** The row of a card as a button. */
-export const ROW_BUTTON = "w-full cursor-pointer text-left hover:bg-n-2";
+export const ROW_BUTTON = "w-[calc(100%-1rem)] cursor-pointer text-left hover:bg-n-2";
 
 /** The small chevron at the end of a link row: lighter than the default one. */
 export const SmallChevron = () => <ChevronRightIcon size={14} />;

@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
 	type MergeMethod,
 	useBranches,
 	useForgeActions,
+	useLog,
 	usePullLabels,
 	useReviewers,
 } from "@/lib/code";
@@ -20,6 +21,7 @@ import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuButton } from "@/ui/molecules/menu-button";
+import { LeaveGuard } from "@/ui/organisms/leave-guard";
 import { defaultMergeMethod, saveMergeMethod } from "./merge-default";
 import { OpenPullCards } from "./open-pull-cards";
 import { withProject } from "./project-gate";
@@ -41,7 +43,16 @@ export const NewPullPage = withProject(function NewPullView() {
 	const people = useReviewers().data ?? [];
 	const branches = useBranches().data ?? [];
 	const { failure, run } = useRun();
-	const [title, setTitle] = useState("");
+	// The title starts as the summary of the last commit, until the person types one.
+	// A branch with no commit of its own would show the last commit of its base: leave the title empty.
+	const ahead = branches.find((b) => b.is_head)?.base_ahead ?? 0;
+	const first = useLog().data?.pages[0]?.commits[0]?.summary ?? "";
+	const last = ahead > 0 ? first : "";
+	const [typed, setTyped] = useState<string | null>(null);
+	const title = typed ?? last;
+	const setTitle = setTyped;
+	const [tried, setTried] = useState(false);
+	const titleBox = useRef<HTMLInputElement>(null);
 	const [body, setBody] = useState("");
 	const [base, setBase] = useState(DEFAULT);
 	const [draft, setDraft] = useState(false);
@@ -73,7 +84,12 @@ export const NewPullPage = withProject(function NewPullView() {
 				setWriting(false);
 			}
 		});
-	const submit = () =>
+	const submit = () => {
+		if (title.trim() === "") {
+			setTried(true);
+			titleBox.current?.focus();
+			return;
+		}
 		void run(async () => {
 			const out = await openPull({ title, body, base: baseOf, draft, labels, reviewers });
 			setCreated(true);
@@ -81,6 +97,7 @@ export const NewPullPage = withProject(function NewPullView() {
 			setMissing(out.missingLabels);
 			setLabelError(out.labelError ?? out.reviewerError);
 		});
+	};
 	const markReady = () =>
 		void run(async () => {
 			if (!opened) return;
@@ -95,6 +112,7 @@ export const NewPullPage = withProject(function NewPullView() {
 		});
 	return (
 		<section aria-label={t.forge.newPull} className="flex w-full flex-col gap-6 px-4 pb-10">
+			<LeaveGuard dirty={!created && ((typed ?? "").trim() !== "" || body.trim() !== "")} />
 			<div className="flex flex-col">
 				<BackLink
 					label={t.forge.now.pulls}
@@ -109,8 +127,15 @@ export const NewPullPage = withProject(function NewPullView() {
 							caption
 							label={t.forge.title}
 							value={title}
+							ref={titleBox}
+							aria-invalid={(tried && title.trim() === "") || undefined}
 							onChange={(e) => setTitle(e.target.value)}
 						/>
+						{tried && title.trim() === "" ? (
+							<p role="alert" className="text-ui text-danger-text">
+								{t.forge.titleNeeded}
+							</p>
+						) : null}
 						<div className="flex items-center gap-3">
 							<span aria-hidden="true" className="mr-auto text-12 text-n-11">
 								{t.forge.description}

@@ -34,6 +34,12 @@ describe("Gallery", () => {
 			"BackLink",
 			"SpendMeter",
 			"GroupSection",
+			"ErrorNotice",
+			"Loading",
+			"MenuButton",
+			"ConfirmButton",
+			"Fold",
+			"DateButton",
 		])
 			expect(screen.getByRole("heading", { level: 2, name })).toBeInTheDocument();
 		expect(screen.getAllByRole("meter", { name: "Spend today" })).toHaveLength(3);
@@ -42,5 +48,11 @@ describe("Gallery", () => {
 			"aria-pressed",
 			"true",
 		);
+	});
+
+	it("shows the most-used organisms", async () => {
+		renderApp(<Gallery />);
+		await userEvent.click(screen.getByRole("button", { name: "Organisms" }));
+		expect(screen.getByRole("heading", { level: 2, name: "MarkdownView" })).toBeInTheDocument();
 	});
 });

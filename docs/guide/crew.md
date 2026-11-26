@@ -29,7 +29,7 @@ A recipe opens in a form. Use Form and Text to switch between the form and the Y
 
 ## Sessions
 
-Sessions lists the sessions of the agents: a run, a review of a pull request, an estimate and a tile build. Click a session to show it with Open and Stop. Stop of a run asks you to confirm. Stop of a review ends the review. Stop of an estimate ends the agent, and the sheet keeps its values. Stop of a tile build ends the build, and the dashboard does not change. Ended sessions are on their own page.
+Sessions lists the sessions of the agents: a run, a review of a pull request, an estimate and a tile build. Click a session to show it with Open and Stop. Stop of a session, of an agent and of all agents asks you to confirm first. Stop of a review ends the review. Stop of an estimate ends the agent, and the sheet keeps its values. Stop of a tile build ends the build, and the dashboard does not change. Ended sessions are on their own page.
 
 Read only shows the live output of a session when its tool writes a history file that Shipyard can read (Claude Code and Codex do). With no history file, the pane shows no output. Take control stops the session after you confirm, and runs the resume command of its tool in the Shipyard terminal.
 

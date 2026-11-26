@@ -110,12 +110,14 @@ describe("Code / Branches", () => {
 		await user.click(screen.getByRole("button", { name: "New branch" }));
 		const create = await screen.findByRole("button", { name: "Create the branch" });
 		expect(primary()).toContain(create);
-		// An empty area and subject give `feat//`: the same rule refuses it and shows the types.
-		await user.click(create);
-		expect(await screen.findByRole("alert")).toHaveTextContent(
-			"feat, fix, chore, docs, refactor, test",
-		);
+		// An empty area and subject cannot make a name: the button stays off.
+		expect(create).toBeDisabled();
 		expect(mockState().code?.branch).toBe("main");
+		// Plain words become a valid name.
+		await user.type(screen.getByRole("textbox", { name: "Area" }), "Login page");
+		await user.type(screen.getByRole("textbox", { name: "Subject" }), "Fix the Typo!");
+		await user.click(create);
+		await waitFor(() => expect(mockState().code?.branch).toBe("feat/login-page/fix-the-typo"));
 	});
 
 	it("creates a branch from the current head and makes it the working branch", async () => {
@@ -124,7 +126,7 @@ describe("Code / Branches", () => {
 		mountApp("/code/branches");
 		await user.click(await screen.findByRole("button", { name: "New branch" }));
 		await user.click(await screen.findByRole("combobox", { name: "Type" }));
-		await user.click(await screen.findByRole("option", { name: "fix" }));
+		await user.click(await screen.findByRole("option", { name: "Fix" }));
 		await user.type(screen.getByRole("textbox", { name: "Area" }), "auth");
 		await user.type(screen.getByRole("textbox", { name: "Subject" }), "login-timeout");
 		await user.click(screen.getByRole("button", { name: "Create the branch" }));
@@ -144,8 +146,10 @@ describe("Code / Branches", () => {
 		mountApp("/code/branches");
 		const row = await screen.findByRole("group", { name: "feat/auth/login" });
 		await user.click(within(row).getByRole("button", { name: "Switch" }));
-		// `src/app.ts` has an unstaged change and the target branch changes it.
-		expect(await screen.findByRole("alert")).toHaveTextContent("src/app.ts");
+		// `src/app.ts` has an unstaged change and the target branch changes it: the notice says so in plain words.
+		const dirty = await screen.findByRole("alert");
+		expect(dirty).toHaveTextContent("not saved in a commit");
+		expect(dirty).toHaveTextContent("src/app.ts");
 		expect(mockState().code?.branch).toBe("main");
 		await unwrap(commands.codeDiscard(["src/app.ts"], false));
 		await user.click(within(row).getByRole("button", { name: "Switch" }));
@@ -190,7 +194,9 @@ describe("Code / Branches", () => {
 		const row = await screen.findByRole("group", { name: "feat/auth/login" });
 		// The seed working copy has changes: the merge names the file and stops.
 		await user.click(within(row).getByRole("button", { name: "Merge feat/auth/login" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("uncommitted changes");
+		const dirty = await screen.findByRole("alert");
+		expect(dirty).toHaveTextContent("not saved in a commit");
+		expect(dirty).toHaveTextContent("src/app.ts");
 		await unwrap(commands.codeUnstage(["src"]));
 		await unwrap(commands.codeDiscard(["src", "docs"], false));
 		// The remote branch of main holds nothing new: the merge reports it.

@@ -26,7 +26,7 @@ export function ChangeFilesPage() {
 		return (
 			<EmptyState
 				title={t.flow.feature.noSpec}
-				action={{ label: t.flow.look.brief.back, onClick: toBrief }}
+				action={{ label: t.flow.feature.openBrief, onClick: toBrief }}
 			/>
 		);
 	return (

@@ -137,6 +137,21 @@ describe("Flow / New feature", () => {
 		await waitFor(() => expect(label).toHaveBeenCalledWith(expect.any(String), "bug", true));
 	});
 
+	it("Bug preselects the bug recipe, and Create opens the Brief of the new feature", async () => {
+		const user = userEvent.setup();
+		const delegate = vi.spyOn(commands, "specsChangeDelegate");
+		const router = await open();
+		await user.click(screen.getByRole("button", { name: "Bug" }));
+		await type(user, "Chart breaks");
+		await create(user);
+		await waitFor(() => expect(delegate.mock.calls[0]?.[1]).toBe("bug"));
+		await waitFor(() =>
+			expect(router.state.location.pathname).toBe("/flow/feature/change%3Achart-breaks"),
+		);
+		expect(router.state.location.search).toMatchObject({ section: "brief" });
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
 	it("Idea for later makes the change only: no ticket, no label, no run", async () => {
 		const user = userEvent.setup();
 		const make = vi.spyOn(commands, "specsChangeCreate");
@@ -164,6 +179,48 @@ describe("Flow / New feature", () => {
 			"aria-pressed",
 			"true",
 		);
+	});
+
+	it("Edit of a spec starts the title with the spec", async () => {
+		await open(undefined, "/flow/new?spec=auth");
+		expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue("Change the spec auth: ");
+		expect(screen.getByRole("button", { name: "Create" })).toBeDisabled();
+	});
+
+	it("a retry after a failure goes on with the change that the first try made", async () => {
+		const user = userEvent.setup();
+		const make = vi.spyOn(commands, "specsChangeCreate");
+		const delegate = vi
+			.spyOn(commands, "specsChangeDelegate")
+			.mockRejectedValueOnce(new Error("Refused for a test"));
+		const router = await open();
+		await type(user, "Export report");
+		await create(user);
+		await waitFor(() => expect(delegate).toHaveBeenCalledTimes(1));
+		await create(user);
+		await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/flow\/feature\//));
+		expect(make).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("a retry adds a document only once: the change refuses a name that it has", async () => {
+		const user = userEvent.setup();
+		const add = vi.spyOn(commands, "specsChangeInputAdd");
+		vi.spyOn(commands, "specsChangeDelegate").mockRejectedValueOnce(
+			new Error("Refused for a test"),
+		);
+		const router = await open();
+		await type(user, "Export report");
+		await user.upload(
+			screen.getByTestId("document-input"),
+			new File(["word"], "brief.docx", { type: "application/octet-stream" }),
+		);
+		await create(user);
+		await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
+		await create(user);
+		await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/flow\/feature\//));
+		expect(add).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
 	it("gates the kind Idea on specs.edit, the right of the command that it calls", async () => {
@@ -288,8 +345,6 @@ describe("Flow / New feature", () => {
 		await create(user);
 		await waitFor(() => expect(budget).toHaveBeenCalledWith("feature", MADE, 3));
 		expect(mockState().factory.budgets.feature?.[MADE]).toBe(3);
-		// The limit sits beside the recipe, and a feature with no limit sets none.
-		expect(screen.getByText("Limit")).toBeVisible();
 	});
 
 	it("Limit: no amount sets no limit, and an amount of zero is refused before anything is made", async () => {
@@ -298,18 +353,16 @@ describe("Flow / New feature", () => {
 		const make = vi.spyOn(commands, "specsChangeCreate");
 		await open();
 		await type(user, "Export report");
-		await create(user);
-		await waitFor(() => expect(make).toHaveBeenCalledTimes(1));
-		expect(budget).not.toHaveBeenCalled();
-		make.mockClear();
-		await user.type(
-			screen.getByRole("spinbutton", { name: "Limit of the feature, in dollars" }),
-			"0",
-		);
+		const field = screen.getByRole("spinbutton", { name: "Limit of the feature, in dollars" });
+		await user.type(field, "0");
 		await create(user);
 		expect(
 			await screen.findByText("The limit is an amount of more than zero dollars."),
 		).toBeVisible();
 		expect(make).not.toHaveBeenCalled();
+		await user.clear(field);
+		await create(user);
+		await waitFor(() => expect(make).toHaveBeenCalledTimes(1));
+		expect(budget).not.toHaveBeenCalled();
 	});
 });

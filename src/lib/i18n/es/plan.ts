@@ -2,7 +2,9 @@ import type { planEn } from "../plan";
 
 export const planEs: typeof planEn = {
 	views: { timeline: "Cronograma", people: "Personas", estimates: "Estimaciones", time: "Tiempo" },
+	openEstimates: "Abrir las estimaciones",
 	ends: "{name} termina el {day}",
+	late: "{name} vencía el {day}",
 	calendar: "Fechas y días libres",
 	send: "Enviar al gestor de tickets",
 	tooMuch: "{count} personas tienen demasiado trabajo",
@@ -11,6 +13,7 @@ export const planEs: typeof planEn = {
 	show: "Mostrar",
 	apply: "Aplicar",
 	rebalance: "Reequilibrar",
+	confirmRebalance: "¿Mover las tareas propuestas?",
 	moveTo: "de {from} a {to}",
 	startsOn: "empieza el {day}",
 	noOwner: "Tareas sin responsable",
@@ -63,7 +66,7 @@ export const planEs: typeof planEn = {
 		timeOf: "Tiempo de {name}",
 		readMonth: "Leer el mes del gestor de tickets",
 		receipt: "Guardar un recibo",
-		lower: "Reducir lo que queda",
+		lower: "Reducir el tiempo restante del ticket",
 		addTicket: "Añadir un ticket",
 		total: "Horas",
 		noteFor: "Nota para {ticket}",

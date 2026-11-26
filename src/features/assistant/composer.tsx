@@ -11,6 +11,7 @@ import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
 import { PaperAirplaneIcon, PlusIcon, StopIcon, XMarkIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { CodexTrust } from "./codex-trust";
 import { ComposerMenu, type MenuItem } from "./composer-menu";
 import { ContextBar } from "./context";
@@ -59,7 +60,7 @@ export function Composer({
 	}, [stuck, setSettings]);
 	// Files and images join the next turn as quotes: data, never an instruction.
 	const [files, setFiles] = useState<Attachment[]>([]);
-	const [attachError, setAttachError] = useState<string | null>(null);
+	const [attachError, setAttachError] = useState<unknown>(null);
 	const picker = useRef<HTMLInputElement>(null);
 	const thread = a.current?.thread.id;
 	const attach = async (list: FileList | File[]) => {
@@ -71,7 +72,7 @@ export function Composer({
 				const done = await unwrap(commands.assistantAttach(thread, f.name, bytes));
 				setFiles((x) => [...x, done]);
 			} catch (e) {
-				setAttachError(e instanceof Error ? e.message : String(e));
+				setAttachError(e);
 			}
 		}
 	};
@@ -248,7 +249,7 @@ export function Composer({
 					}}
 				/>
 			</div>
-			{files.length > 0 || attachError ? (
+			{files.length > 0 || attachError != null ? (
 				<div className="flex flex-wrap items-center gap-1">
 					{files.map((f) => (
 						<Badge key={f.name} variant="accent" className="gap-1">
@@ -261,11 +262,7 @@ export function Composer({
 							</IconButton>
 						</Badge>
 					))}
-					{attachError ? (
-						<span role="alert" className="text-12 text-danger-text">
-							{attachError}
-						</span>
-					) : null}
+					<ErrorNotice error={attachError} />
 				</div>
 			) : null}
 			<input

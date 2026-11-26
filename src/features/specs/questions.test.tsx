@@ -98,7 +98,7 @@ describe("Specs / Questions", () => {
 		const dialog = within(await screen.findByRole("dialog"));
 		expect(dialog.queryByLabelText("Answer")).toBeNull();
 		await waitFor(() => expect(dialog.getByRole("button", { name: "Save" })).toBeEnabled());
-		await pick(user, "Status", "answered");
+		await pick(user, "Status", "Answered");
 		const answer = await dialog.findByLabelText("Answer");
 		await waitFor(() => expect(answer).toHaveFocus());
 		expect(dialog.getByRole("button", { name: "Save" })).toBeDisabled();

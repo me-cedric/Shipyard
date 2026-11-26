@@ -11,12 +11,14 @@ import { Row } from "@/ui/molecules/row";
 import { needsPerson, stateText, useOpenFeature } from "./feature";
 
 /** The name of who works on a feature: an agent by the name of its step. */
-const whoName = (who: NonNullable<Feature["who"]>) => (who.agent ? nameOf(who.name) : who.name);
+const whoName = (who: NonNullable<Feature["who"]>, names: Record<string, string>) =>
+	who.agent ? nameOf(who.name, names) : who.name;
 
 /** Who works on a feature: the black letter tile of an agent, or the round initials of a person. */
 function Who({ who, named }: { who: Feature["who"]; named?: boolean }) {
+	const { t } = useI18n();
 	if (!who) return null;
-	const name = whoName(who);
+	const name = whoName(who, t.factory.agentNames);
 	return (
 		<span className="flex min-w-0 items-center gap-2">
 			<Avatar name={name} size="s" agent={who.agent} />

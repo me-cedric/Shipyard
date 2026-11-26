@@ -1,4 +1,5 @@
 import { mockIPC } from "@tauri-apps/api/mocks";
+import { classify } from "@/lib/i18n/errors";
 import { seedNotices } from "@/lib/notifications/seed";
 import { writeView } from "@/lib/shell/view-state";
 import type {
@@ -1852,7 +1853,26 @@ const handlers: Handlers = {
 	syncImportConfirm: () => needTracker(() => importConfirm(state.sync)),
 	syncAdopt: (key) =>
 		needTracker(() => {
-			const t = syncAdopt(state.sync, key);
+			const made = Object.values(state.work.written).map(({ key: k, row }) => ({
+				key: k,
+				title: row.title,
+				description: row.description,
+				kind: "task",
+				status: "To Do",
+				category: "todo" as const,
+				assignee: null,
+				member: null,
+				labels: [],
+				parent: null,
+				url: `https://tracker.example.com/browse/${k}`,
+				updated: state.work.today,
+				linked: null,
+				claimed: false,
+				estimateMinutes: null,
+				spentMinutes: null,
+				release: null,
+			}));
+			const t = syncAdopt(state.sync, key, made);
 			return { ...t, member: work.handleOf(state.work, t.assignee) };
 		}),
 	syncLink: (local, key) => {
@@ -2915,10 +2935,18 @@ export function installMockIpc(options: { demo?: boolean } = {}) {
 		];
 		if (!handler) throw new Error(`No mock handler for command: ${cmd}`);
 		// The generated code sends `{ a, b }` in the order of the parameters.
-		const out = handler(...Object.values((args ?? {}) as Record<string, unknown>));
+		// A real command fails with a typed error: the raw text of a handler gets its code here, as Rust does.
+		const fail = (e: unknown): never => {
+			throw typeof e === "string" ? { ...classify(e), details: e } : e;
+		};
 		// A real command sends a copy. A shared object would hide a change from the query cache.
 		// A handler can be async (an MCP start): wait for it, then copy.
 		const copy = (v: unknown) => (v === undefined ? v : structuredClone(v));
-		return out instanceof Promise ? out.then(copy) : copy(out);
+		try {
+			const out = handler(...Object.values((args ?? {}) as Record<string, unknown>));
+			return out instanceof Promise ? out.then(copy, fail) : copy(out);
+		} catch (e) {
+			return fail(e);
+		}
 	});
 }

@@ -1,6 +1,5 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { LibraryPage } from "@/features/library/page-parts";
 import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
@@ -16,6 +15,7 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
 import { Loading } from "@/ui/molecules/loading";
 import { type CanvasNode, GraphCanvas, KindMark } from "@/ui/organisms/graph-canvas";
+import { LibraryPage } from "@/ui/templates/library-page";
 import {
 	boxOf,
 	cellOf,

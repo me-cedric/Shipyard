@@ -155,7 +155,7 @@ export function UnitTranscript({
 	/** A line under the last message of the agent, inside its bubble (Chat). */
 	after?: ReactNode;
 }) {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const x = t.factory.transcript;
 	const { items, turns, tokens } = transcript(events);
 	// The last message of the agent: `after` goes inside it.
@@ -170,7 +170,7 @@ export function UnitTranscript({
 		<div className={cn("relative", !agent && "border-t")}>
 			{turns + tokens > 0 ? (
 				<p className="px-3 py-1 text-12 text-n-11">
-					{format(x.counter, { turns: String(turns), tokens: tokens.toLocaleString() })}
+					{format(x.counter, { turns: String(turns), tokens: tokens.toLocaleString(lang) })}
 				</p>
 			) : null}
 			<div

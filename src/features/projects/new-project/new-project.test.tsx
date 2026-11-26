@@ -33,7 +33,7 @@ describe("new project", () => {
 		const steps = within(screen.getByRole("navigation", { name: "Steps" })).getAllByRole("button");
 		expect(steps.map((b) => b.textContent)).toEqual([
 			"1Name",
-			"2Kind of product",
+			"2Technology",
 			"3Tools",
 			"4Team",
 			"5Ready",
@@ -43,12 +43,13 @@ describe("new project", () => {
 		const go = screen.getByRole("button", { name: "Continue" });
 		expect(go).toHaveClass("min-h-13", "min-w-55", "bg-primary");
 		await user.click(go);
-		const question = screen.getByRole("heading", { level: 1, name: "What do you build?" });
+		const question = screen.getByRole("heading", {
+			level: 1,
+			name: "Which technology do you use?",
+		});
 		await waitFor(() => expect(question).toHaveFocus());
 		// The stacks of the app and Something else, as tiles. The first stack is the choice.
-		const kinds = within(screen.getByRole("group", { name: "Kind of product" })).getAllByRole(
-			"button",
-		);
+		const kinds = within(screen.getByRole("group", { name: "Technology" })).getAllByRole("button");
 		expect(kinds.map((b) => b.textContent)).toEqual([
 			"Node",
 			"Rust",
@@ -74,7 +75,7 @@ describe("new project", () => {
 		expect(await screen.findByRole("button", { name: "Continue" })).toBeDisabled();
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Demo{Enter}");
 		expect(
-			await screen.findByRole("heading", { level: 1, name: "What do you build?" }),
+			await screen.findByRole("heading", { level: 1, name: "Which technology do you use?" }),
 		).toBeVisible();
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
@@ -97,9 +98,9 @@ describe("new project", () => {
 		expect(screen.queryByRole("button", { name: CREATE })).toBeNull();
 		await stepTo(user, "Ready");
 		await waitFor(() => expect(screen.getByRole("button", { name: CREATE })).toBeEnabled());
-		expect(screen.getByRole("radio", { name: "Start an agent" })).toBeDisabled();
-		expect(screen.getByRole("radio", { name: "Create the tickets" })).toBeDisabled();
-		expect(screen.getByRole("radio", { name: "Later" })).toBeChecked();
+		expect(screen.getByRole("button", { name: "Start an agent" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Create the tickets" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Later", pressed: true })).toBeInTheDocument();
 		// The files open on demand: the row gives their count.
 		expect(screen.queryByRole("button", { name: "docs/brief.md" })).toBeNull();
 		const files = screen.getByRole("group", { name: "Files that Shipyard writes" });
@@ -110,6 +111,24 @@ describe("new project", () => {
 		expect(screen.getByRole("textbox", { name: "Text of docs/brief.md" })).toHaveDisplayValue(
 			/## Scope/,
 		);
+	});
+
+	it("the Tools button under Needs a code host goes to the Tools step, or to its card in All steps", async () => {
+		const { user } = await openCreator();
+		await stepTo(user, "Ready");
+		await user.click((await screen.findAllByRole("button", { name: "Tools" }))[0] as HTMLElement);
+		expect(
+			within(screen.getByRole("navigation", { name: "Steps" })).getByRole("button", {
+				name: "Tools",
+			}),
+		).toHaveAttribute("aria-current", "step");
+		await user.click(screen.getByRole("button", { name: "All steps" }));
+		await screen.findByRole("region", { name: "Where the code lives" });
+		const scroll = vi.fn();
+		(document.getElementById("creator-remote") as HTMLElement).scrollIntoView = scroll;
+		await user.click((await screen.findAllByRole("button", { name: "Tools" }))[0] as HTMLElement);
+		expect(scroll).toHaveBeenCalled();
+		expect(document.getElementById("creator-remote")).toHaveFocus();
 	});
 
 	it("shows the five steps on one page with All steps, and one step again after Back", async () => {
@@ -136,14 +155,15 @@ describe("new project", () => {
 		expect(screen.getByRole("combobox", { name: "Language of pull requests" })).toBeInTheDocument();
 		expect(screen.getByRole("textbox", { name: "Member 1" })).toBeInTheDocument();
 		expect(screen.getByRole("combobox", { name: "Issue tracker" })).toBeInTheDocument();
-		expect(screen.getByRole("radio", { name: "Later" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Later" })).toBeInTheDocument();
 		// No code host is connected: the repository has two choices, and the row says what is missing.
 		expect(
-			within(screen.getByRole("radiogroup", { name: "Repository" }))
-				.getAllByRole("radio")
-				.map((r) => r.parentElement?.textContent),
+			// The row and its choice share the name: the choice is the inner group.
+			within(screen.getAllByRole("group", { name: "Repository" }).at(-1) as HTMLElement)
+				.getAllByRole("button")
+				.map((r) => r.textContent),
 		).toEqual(["Only on this computer", "Existing"]);
-		expect(screen.getByText("Needs a code host")).toBeInTheDocument();
+		expect(screen.getAllByText("Needs a code host").length).toBeGreaterThan(0);
 		expect(screen.getByRole("button", { name: "Add a code host" })).toHaveClass("min-h-control");
 		await waitFor(() => expect(screen.getByRole("button", { name: CREATE })).toBeEnabled());
 		await user.click(screen.getByRole("button", { name: "Back" }));
@@ -203,7 +223,9 @@ describe("new project", () => {
 		await user.click(await screen.findByRole("option", { name: "Acme" }));
 		await stepTo(user, "Ready");
 		await waitFor(() =>
-			expect(screen.getByRole("radio", { name: "Create the tickets" })).toBeChecked(),
+			expect(
+				screen.getByRole("button", { name: "Create the tickets", pressed: true }),
+			).toBeInTheDocument(),
 		);
 		// The first tickets show before Create: a removed one is not made.
 		expect(

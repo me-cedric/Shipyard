@@ -138,9 +138,9 @@ describe("Factory / Runs", () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		mountApp("/factory/runs?view=history&q=zzzz");
-		await screen.findByText("No runs");
-		await user.click(screen.getByRole("button", { name: "Board" }));
-		expect(await screen.findByRole("region", { name: "Build" })).toBeInTheDocument();
+		await screen.findByText("No match");
+		await user.click(screen.getByRole("button", { name: "Clear the search" }));
+		await waitFor(() => expect(screen.queryByText("No match")).toBeNull());
 	});
 
 	it("shows the plan and its tasks on a run in plan review", async () => {
@@ -290,6 +290,7 @@ describe("Factory / Runs", () => {
 			await user.click(await screen.findByRole("button", { name: new RegExp(key) }));
 			const panel = await screen.findByRole("region", { name: key });
 			const needs = await within(panel).findByRole("region", { name: "Needs you" });
+			// The note of Unblock is optional: the button works with it empty.
 			await user.click(within(needs).getByRole("button", { name: button }));
 			await waitFor(async () => expect((await find(key)).state).toBe(to));
 			await router.navigate({ to: "/factory/runs" });
@@ -353,7 +354,7 @@ describe("Factory / Runs", () => {
 		await user.click(await screen.findByRole("button", { name: /ACME-9/ }));
 		const panel = await screen.findByRole("region", { name: "ACME-9" });
 		await user.type(
-			await within(panel).findByRole("textbox", { name: "Answer to Fix" }),
+			await within(panel).findByRole("textbox", { name: "Answer to Fixer" }),
 			"Keep both lines.{Enter}",
 		);
 		// The whole suite runs in parallel: the panel can take more than one second to send.

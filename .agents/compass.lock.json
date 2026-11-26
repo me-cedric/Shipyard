@@ -34,7 +34,6 @@
     "slide-deck",
     "soft-skill",
     "spec-flow",
-    "stack-react",
     "stitch-skill",
     "task-flow",
     "taste-skill",
@@ -101,10 +100,6 @@
     ".agents/skills/design-taste-skills/SKILL.md": {
       "owner": "compass",
       "sha": "24ec5de3546d07df"
-    },
-    ".agents/skills/e2e/SKILL.md": {
-      "owner": "compass",
-      "sha": "f2fa72d54e043687"
     },
     ".agents/skills/grill-me/LICENSE": {
       "owner": "compass",
@@ -281,10 +276,6 @@
     ".agents/skills/spec-flow/references/openspec.md": {
       "owner": "compass",
       "sha": "ce700bb9ab28c883"
-    },
-    ".agents/skills/stack-react/SKILL.md": {
-      "owner": "compass",
-      "sha": "6172e69546561a67"
     },
     ".agents/skills/stitch-skill/DESIGN.md": {
       "owner": "compass",
@@ -494,10 +485,6 @@
       "owner": "compass",
       "sha": "609cb34642ffad2c"
     },
-    ".claude/rules/stack-react.md": {
-      "owner": "compass",
-      "sha": "86eb14f25ad471f8"
-    },
     ".claude/skills/adr/SKILL.md": {
       "owner": "compass",
       "sha": "0bba13a7bfc5059c"
@@ -549,10 +536,6 @@
     ".claude/skills/design-taste-skills/SKILL.md": {
       "owner": "compass",
       "sha": "24ec5de3546d07df"
-    },
-    ".claude/skills/e2e/SKILL.md": {
-      "owner": "compass",
-      "sha": "f2fa72d54e043687"
     },
     ".claude/skills/grill-me/LICENSE": {
       "owner": "compass",

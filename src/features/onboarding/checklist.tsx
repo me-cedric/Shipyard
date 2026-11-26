@@ -276,9 +276,12 @@ export function ChecklistControl({
 	state,
 	pick = true,
 	pane,
+	kind,
 }: {
 	id: ItemId;
 	state: Checklist;
+	/** The product that the person picked on the tiles of an issue tracker or a code host step. */
+	kind?: string;
 	/** The step pane of Setup / Start: no status text and no select, only the actions. */
 	pane?: boolean;
 	/** Show the AI tool select. Settings / Me has it on the page already. */
@@ -291,16 +294,23 @@ export function ChecklistControl({
 	const done = state.done[id];
 	// A step that leaves the tour ends it: the tour marks itself as seen.
 	// The address is text: a scope sub-page is a search value, which the typed links do not know.
-	const go = (to: string, hash?: string, form?: string) => () => {
-		if (form) askForm(form);
+	const go = (to: string, hash?: string, form?: string, kind?: string) => () => {
+		if (form) askForm(form, kind);
 		closeTour();
 		router.history.push(hash ? `${to}#${hash}` : to);
 	};
-	const open = (label: string, to: string, hash?: string, form?: string, primary = true) => (
+	const open = (
+		label: string,
+		to: string,
+		hash?: string,
+		form?: string,
+		primary = true,
+		picked?: string,
+	) => (
 		<Button
 			variant={primary ? "primary" : undefined}
 			className="min-h-control"
-			onClick={go(to, hash, form)}
+			onClick={go(to, hash, form, picked)}
 		>
 			{label}
 		</Button>
@@ -308,24 +318,29 @@ export function ChecklistControl({
 	const connect = (group: "tracker" | "forge") => {
 		const has = state.hasAccount[group];
 		const target = connectTarget(group, has);
-		return open(has ? s.action.choose : s.action.connect, target.to, target.hash, target.form);
+		return open(
+			has ? s.action.choose : s.action.connect,
+			target.to,
+			target.hash,
+			target.form,
+			true,
+			kind,
+		);
 	};
 	const { tool, file, linked, login, missing } = state;
 	// The select is the choice in place. Settings / Me has the select on the page: a button points to it.
 	const ai = () => {
 		// No default tool, or a missing one: what the old Install an agent step offered.
 		const gone = tool ? (tool.state === "missing" ? tool : undefined) : missing;
-		// The step pane of Setup / Start has one main action: install, else choose, else sign in.
-		// The other doors are on Setup / This computer.
+		// The step pane of Setup / Start has one main action, after a tile is picked: install, else
+		// sign in. With no tile picked, the tiles are the only choice. The other doors are on Setup / This computer.
 		if (pane)
-			return gone ? (
+			return !tool ? null : gone ? (
 				<OneClick
 					label={format(s.action.install, { name: gone.label })}
 					confirm={format(s.action.installConfirm, { name: gone.label, command: gone.install })}
 					run={() => unwrap(commands.runnerInstall(gone.id, true))}
 				/>
-			) : !tool ? (
-				open(s.action.choose, "/setup/me", "section-agent")
 			) : (
 				open(s.action.signIn, MODELS, "tools")
 			);
@@ -523,7 +538,7 @@ export function SetupCard() {
 				/>
 			</svg>
 			<div className="flex min-w-0 flex-col">
-				<span className="font-semibold text-n-12">{s.item[next]}</span>
+				<span className="font-semibold text-n-12">{s.next[next]}</span>
 				<span className="text-n-11">{text}</span>
 			</div>
 			<Link to="/setup/start" className={cn(buttonVariants(), "ml-auto min-h-control")}>

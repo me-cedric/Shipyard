@@ -10,11 +10,12 @@ import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button, buttonVariants } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { Segmented } from "@/ui/atoms/segmented";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { ContextMenu } from "@/ui/molecules/context-menu";
+import { EmptyState } from "@/ui/molecules/empty-state";
 import { PageSwitchContext } from "@/ui/molecules/page-header";
-import { FitSegmented } from "./fit-segmented";
 import { NoPulls } from "./no-pulls";
 import { withProject } from "./project-gate";
 import { PullReviewPanel } from "./pulls-review";
@@ -188,7 +189,8 @@ export const PullRequestsPage = withProject(function PullRequestsView() {
 						<Link to="/code/pull-requests/new" className={buttonVariants({ variant: "primary" })}>
 							{t.forge.newPull}
 						</Link>
-						<FitSegmented
+						<Segmented
+							fit
 							label={p.filter}
 							value={filter}
 							onValueChange={(v) => go({ filter: v === "all" ? undefined : v })}
@@ -198,44 +200,61 @@ export const PullRequestsPage = withProject(function PullRequestsView() {
 							]}
 						/>
 					</div>
-					<div className="flex flex-wrap items-start gap-6">
-						<div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
-							<StateCard
-								title={format(x.openCount, { count: open.length })}
-								rows={open}
-								picked={selected?.reference}
-								onPick={(r) => setPicked(r.reference)}
-							/>
-							<StateCard
-								title={t.forge.state.merged}
-								rows={allMerged || text.trim() ? merged : merged.slice(0, MERGED_SHOWN)}
-								picked={selected?.reference}
-								onPick={(r) => setPicked(r.reference)}
-							>
-								{merged.length > MERGED_SHOWN && !text.trim() ? (
-									<div className="px-6">
-										<Button
-											variant="ghost"
-											className="text-accent"
-											aria-expanded={allMerged}
-											onClick={() => setAllMerged(!allMerged)}
-										>
-											{x.allMerged}
-										</Button>
-									</div>
-								) : null}
-							</StateCard>
-							<StateCard
-								title={t.forge.state.closed}
-								rows={closed}
-								picked={selected?.reference}
-								onPick={(r) => setPicked(r.reference)}
-							/>
+					{shown.length === 0 ? (
+						<EmptyState
+							title={p.noneFound}
+							action={
+								text.trim()
+									? {
+											label: t.forge.history.clearSearch,
+											onClick: () => {
+												setText("");
+												go({ q: undefined }, true);
+											},
+										}
+									: undefined
+							}
+						/>
+					) : (
+						<div className="flex flex-wrap items-start gap-6">
+							<div className="flex min-w-0 flex-[3_1_480px] flex-col gap-4">
+								<StateCard
+									title={format(x.openCount, { count: open.length })}
+									rows={open}
+									picked={selected?.reference}
+									onPick={(r) => setPicked(r.reference)}
+								/>
+								<StateCard
+									title={t.forge.state.merged}
+									rows={allMerged || text.trim() ? merged : merged.slice(0, MERGED_SHOWN)}
+									picked={selected?.reference}
+									onPick={(r) => setPicked(r.reference)}
+								>
+									{merged.length > MERGED_SHOWN && !text.trim() ? (
+										<div className="px-6">
+											<Button
+												variant="ghost"
+												className="text-accent"
+												aria-expanded={allMerged}
+												onClick={() => setAllMerged(!allMerged)}
+											>
+												{x.allMerged}
+											</Button>
+										</div>
+									) : null}
+								</StateCard>
+								<StateCard
+									title={t.forge.state.closed}
+									rows={closed}
+									picked={selected?.reference}
+									onPick={(r) => setPicked(r.reference)}
+								/>
+							</div>
+							<div className="flex min-w-0 flex-[2_1_320px] flex-col">
+								{selected ? <PullReviewPanel key={selected.reference} r={selected} /> : null}
+							</div>
 						</div>
-						<div className="flex min-w-0 flex-[2_1_320px] flex-col">
-							{selected ? <PullReviewPanel key={selected.reference} r={selected} /> : null}
-						</div>
-					</div>
+					)}
 				</>
 			) : null}
 		</section>

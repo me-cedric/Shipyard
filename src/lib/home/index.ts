@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useRef } from "react";
-import { stopReason } from "@/features/factory/runs/run-live";
+import { nameOf, stopReason } from "@/features/factory/runs/run-live";
 import { routeInbox } from "@/features/home/inbox/routing";
-import { format, type Messages } from "@/lib/i18n";
+import { format, type Messages, useI18n } from "@/lib/i18n";
 import {
 	type ApprovalView,
 	commands,
@@ -196,6 +196,7 @@ function approvalsByRun(list: ApprovalItem[]): [ApprovalItem, ...ApprovalItem[]]
  * Today, the count of the menu and the menu bar panel read this list.
  */
 export function useNeedsYou(everyone = false) {
+	const { t } = useI18n();
 	const raw = useInbox();
 	const { can, role, person } = useRights();
 	const me = useWorkContext().data?.me ?? null;
@@ -212,21 +213,32 @@ export function useNeedsYou(everyone = false) {
 		queryKey: homeKeys.runs,
 		queryFn: () => unwrap(commands.runsList()),
 	}).data;
-	const named = (run: string) => runs?.find((r) => r.id === run)?.workflow ?? "";
+	// The agent is the one of the step that works now; with no such step the card says "Agent".
+	const named = (run: string) => {
+		const step = runs
+			?.find((r) => r.id === run)
+			?.steps.find((s) => s.state !== "pending" && s.state !== "done");
+		return step ? nameOf(step.id.split(".")[0] ?? "", t.factory.agentNames) : "";
+	};
 	const items: NeedsYouItem[] = [
-		...inbox.questions.map(
-			(item): NeedsYouItem => ({
-				id: `question:${item.run}:${item.question.id}`,
-				kind: "question",
-				who: "agent",
-				by: named(item.run),
-				key: item.key,
-				title: item.title,
-				text: item.question.question,
-				ref: `run:${item.run}`,
-				item,
-			}),
-		),
+		...inbox.questions
+			// An answered spec question stays: its fold into the spec is still open.
+			.filter(
+				(q) => q.question.state === "open" || (q.question.state === "answered" && q.question.spec),
+			)
+			.map(
+				(item): NeedsYouItem => ({
+					id: `question:${item.run}:${item.question.id}`,
+					kind: "question",
+					who: "agent",
+					by: named(item.run),
+					key: item.key,
+					title: item.title,
+					text: item.question.question,
+					ref: `run:${item.run}`,
+					item,
+				}),
+			),
 		...approvalsByRun(inbox.approvals).map(
 			(items): NeedsYouItem => ({
 				id: `approvals:${items[0].run}`,
@@ -246,7 +258,7 @@ export function useNeedsYou(everyone = false) {
 				id: `plan:${item.id}`,
 				kind: "plan",
 				who: "agent",
-				by: item.workflow,
+				by: named(item.id),
 				key: item.key,
 				title: item.title,
 				text: item.title,

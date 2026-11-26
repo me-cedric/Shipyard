@@ -80,7 +80,7 @@ export function VirtualList<T>({
 				move(Number(at.dataset.index), e.key === "ArrowDown" ? 1 : -1);
 			}}
 		>
-			{header ? <div className="sticky top-0 z-20 bg-n-1">{header}</div> : null}
+			{header ? <div className="sticky top-0 z-(--z-sticky) bg-n-1">{header}</div> : null}
 			<div
 				className="relative"
 				style={{ height: v.getTotalSize(), minWidth: width, width: width ? undefined : "100%" }}

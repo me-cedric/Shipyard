@@ -209,10 +209,15 @@ export function importConfirm(sync: MockSync): number {
 	return open().length;
 }
 
-export function adopt(sync: MockSync, key: string): WorkItemView_Serialize {
+/** `made` holds the tickets that the Work mock wrote: the fake tracker knows them too. */
+export function adopt(
+	sync: MockSync,
+	key: string,
+	made: WorkItemView_Serialize[] = [],
+): WorkItemView_Serialize {
 	const k = key.trim();
 	if (!k) throw "the key is empty";
-	const t = FAKE_TICKETS.find((x) => x.key.toLowerCase() === k.toLowerCase());
+	const t = [...FAKE_TICKETS, ...made].find((x) => x.key.toLowerCase() === k.toLowerCase());
 	if (!t) throw `not found: ${k}`;
 	put(sync, [t]);
 	return t;

@@ -4,6 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { AttentionCard } from "@/ui/molecules/attention-card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 
 /**
  * The Codex trust step. Codex treats a folder that is not in its
@@ -13,7 +14,7 @@ import { AttentionCard } from "@/ui/molecules/attention-card";
 export function CodexTrust({ card }: { card?: boolean } = {}): ReactNode {
 	const { t } = useI18n();
 	const qc = useQueryClient();
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	// Not now hides the card for this visit; the side panel keeps its notice.
 	const [later, setLater] = useState(false);
 	const q = useQuery({
@@ -28,14 +29,10 @@ export function CodexTrust({ card }: { card?: boolean } = {}): ReactNode {
 			await unwrap(commands.codexTrust(true));
 			await qc.invalidateQueries({ queryKey: ["codex", "trust"] });
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		}
 	};
-	const failure = error ? (
-		<p role="alert" className="text-danger-text">
-			{error}
-		</p>
-	) : null;
+	const failure = <ErrorNotice error={error} />;
 	if (card)
 		return (
 			<AttentionCard title={t.assistant.codexTrust.title}>
@@ -46,11 +43,11 @@ export function CodexTrust({ card }: { card?: boolean } = {}): ReactNode {
 					</summary>
 					<p>{t.assistant.codexTrust.body}</p>
 				</details>
-				<div className="flex gap-2.5">
-					<Button className="flex-1 px-5" onClick={() => setLater(true)}>
+				<div className="flex flex-wrap gap-2.5">
+					<Button className="flex-[1_1_auto] px-5" onClick={() => setLater(true)}>
 						{t.assistant.codexTrust.notNow}
 					</Button>
-					<Button variant="primary" className="flex-1 px-5" onClick={() => void trust()}>
+					<Button variant="primary" className="flex-[1_1_auto] px-5" onClick={() => void trust()}>
 						{t.assistant.codexTrust.button}
 					</Button>
 				</div>
@@ -59,7 +56,13 @@ export function CodexTrust({ card }: { card?: boolean } = {}): ReactNode {
 		);
 	return (
 		<div className="flex flex-col gap-1 rounded-md border border-warning bg-warning-subtle p-2 text-ui text-n-12">
-			<p>{t.assistant.codexTrust.body}</p>
+			<p>{t.assistant.codexTrust.title}</p>
+			<details className="text-13 text-n-11">
+				<summary className="flex min-h-control cursor-pointer items-center font-semibold">
+					{t.assistant.codexTrust.writes}
+				</summary>
+				<p>{t.assistant.codexTrust.body}</p>
+			</details>
 			<Button className="self-start" onClick={() => void trust()}>
 				{t.assistant.codexTrust.button}
 			</Button>

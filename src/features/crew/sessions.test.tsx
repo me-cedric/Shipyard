@@ -34,8 +34,10 @@ describe("Crew / Sessions: an estimate of an agent", () => {
 		expect(await estimates()).toHaveLength(1);
 		const router = mountApp("/crew/sessions");
 		await pick(user);
-		await user.click(await screen.findByRole("button", { name: "Stop mvp-1" }));
-		await waitFor(() => expect(screen.queryByRole("button", { name: "Stop mvp-1" })).toBeNull());
+		await user.click(await screen.findByRole("button", { name: "Stop Estimates mvp-1" }));
+		await waitFor(() =>
+			expect(screen.queryByRole("button", { name: "Stop Estimates mvp-1" })).toBeNull(),
+		);
 		await turn;
 		expect(await estimates()).toEqual([]);
 		expect(sheet()).toBe(before);
@@ -74,7 +76,7 @@ describe("Crew / Sessions: an estimate of an agent", () => {
 		const turn = hold();
 		const router = mountApp("/crew/sessions");
 		await pick(user);
-		const stop = await screen.findByRole("button", { name: "Stop mvp-1" });
+		const stop = await screen.findByRole("button", { name: "Stop Estimates mvp-1" });
 		await waitFor(() => expect(stop).toBeDisabled());
 		await unwrap(commands.estimateAgentStop("mvp-1"));
 		await turn;
@@ -120,7 +122,7 @@ describe("Crew / Sessions: a tile build", () => {
 		const build = unwrap(commands.dashboardTileBuild("team", "Runs", 1)).catch((e) => e);
 		const router = mountApp("/crew/sessions");
 		await pick(user, /Dashboard tile team/);
-		await user.click(await screen.findByRole("button", { name: "Stop team" }));
+		await user.click(await screen.findByRole("button", { name: "Stop Dashboard tile team" }));
 		expect(await build).toMatchObject({ code: "stopped" });
 		await waitFor(() =>
 			expect(screen.queryByRole("button", { name: /Dashboard tile team/ })).toBeNull(),
@@ -147,5 +149,33 @@ describe("Crew / Sessions: the list", () => {
 		expect(await here()).toHaveLength(count);
 		expect(screen.queryByRole("button", { name: /^Show all/ })).toBeNull();
 		await idle(router);
+	});
+
+	it("keeps a pending session in the main list and out of the ended list", async () => {
+		await withTracker();
+		const run = (await unwrap(commands.runsList())).find((r) => r.key === "ACME-2");
+		if (!run) throw new Error("no run");
+		vi.spyOn(commands, "sessionsList").mockResolvedValue({
+			status: "ok",
+			data: [
+				{
+					run: run.id,
+					key: run.key,
+					step: "build",
+					runner: "claude",
+					model: null,
+					state: "pending",
+					tokens: 0,
+					costUsd: null,
+					started: null,
+					pull: null,
+				},
+			],
+		});
+		const router = mountApp("/crew/sessions");
+		const here = await screen.findByRole("region", { name: "On this machine" });
+		expect(await within(here).findByText(run.title)).toBeVisible();
+		await idle(router);
+		vi.restoreAllMocks();
 	});
 });

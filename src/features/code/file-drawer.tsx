@@ -24,6 +24,7 @@ import {
 	XMarkIcon,
 } from "@/ui/icons";
 import { ContextMenu } from "@/ui/molecules/context-menu";
+import { indent } from "@/ui/molecules/file-row";
 import { Splitter } from "@/ui/molecules/splitter";
 import { type FileAction, FileActionDialog } from "./file-actions";
 import { FileDialog } from "./viewer";
@@ -239,8 +240,8 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 					data-folder="false"
 					tabIndex={tab(path)}
 					onClick={() => setViewing(path)}
-					style={{ paddingLeft: 8 + depth * 12 }}
-					className="flex h-7 w-full items-center gap-1.5 rounded-md pr-2 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3"
+					style={{ paddingLeft: indent(depth) }}
+					className="flex h-row w-full items-center gap-1.5 rounded-md pr-2 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3"
 				>
 					<span className="flex shrink-0 text-n-10">
 						<DocumentTextIcon size={14} />
@@ -357,8 +358,8 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 											data-folder="true"
 											tabIndex={tab(r.path)}
 											onClick={() => toggle(r.path)}
-											style={{ paddingLeft: 4 + r.depth * 12 }}
-											className="flex h-7 w-full items-center gap-1 rounded-md pr-2 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3"
+											style={{ paddingLeft: indent(r.depth) }}
+											className="flex h-row w-full items-center gap-1 rounded-md pr-2 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3"
 										>
 											{open.has(r.path) ? (
 												<span className="flex shrink-0 text-n-10">

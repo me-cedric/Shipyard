@@ -179,3 +179,39 @@ Feature: refs
     Given a run with the `read_ref` tool
     When the agent asks for a ref with no target
     Then it gets an unresolved result
+
+  @spec:refs#REQ-015
+  Scenario: Outside agent read access: Off by default
+    Given the outside server with the default switches
+    When an outside agent lists the tools and calls `ref_read`
+    Then `ref_read` is not in the list and the call says which switch turns it on
+
+  @spec:refs#REQ-015
+  Scenario: Outside agent read access: Resolved ref
+    Given the Read files switch is on and `adr:0011` is in the index
+    When an outside agent calls `ref_read` with `adr:0011`
+    Then it gets the title, the state, the location and the backlinks, as `read_ref` gives them
+
+  @spec:refs#REQ-015
+  Scenario: Outside agent read access: Ref of a hidden area
+    Given the Design area is hidden for the person
+    When an outside agent calls `ref_read` with `adr:0011`
+    Then the call is refused with the text of the other read tools of the Design area
+
+  @spec:refs#REQ-015
+  Scenario: Outside agent read access: Backlink of a hidden area
+    Given the Work area is hidden for the person and `wi:ACME-1` cites `adr:0011`
+    When an outside agent calls `ref_read` with `adr:0011`
+    Then the answer does not hold `wi:ACME-1`
+
+  @spec:refs#REQ-015
+  Scenario: Outside agent read access: Source switch off
+    Given the Read files switch is on, the Tickets switch is off and `wi:ACME-1` cites `adr:0011`
+    When an outside agent calls `ref_read` with `wi:ACME-1` and with `adr:0011`
+    Then the first call is refused with `ticket_read is off` and the second answer does not hold `wi:ACME-1`
+
+  @spec:refs#REQ-015
+  Scenario: Outside agent read access: Text that is not a ref
+    Given the Read files switch is on
+    When an outside agent calls `ref_read` with `nope`
+    Then it gets the error `not a ref: nope.` and an example of a ref

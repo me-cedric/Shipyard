@@ -49,9 +49,9 @@ export function AgentAsk({
 			<div className="flex flex-wrap items-start gap-4">
 				<div className="flex min-w-0 flex-[1_1_280px] flex-col gap-2.5">
 					{/* tabIndex -1: the focus lands here when the card changes. */}
-					<h3 tabIndex={-1} className="text-30 font-semibold text-n-12 outline-none">
+					<h2 tabIndex={-1} className="text-30 font-semibold text-n-12 outline-none">
 						{title}
-					</h3>
+					</h2>
 					{lead}
 				</div>
 				{actions}

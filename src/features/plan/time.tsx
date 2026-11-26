@@ -7,7 +7,6 @@ import { TicketField } from "@/features/work/ticket-field";
 import { weekStart } from "@/features/work/week-focus";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog, type TimeState } from "@/lib/ipc";
-import { useDay } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton, RightIconButton } from "@/lib/rights";
 import { useWorkItems } from "@/lib/sync";
@@ -30,8 +29,8 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
+import { Switch } from "@/ui/atoms/switch";
 import {
-	CheckIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	ClockIcon,
@@ -98,7 +97,6 @@ function toLine(r: TimeRow, ticket: string): Line {
 /** Plan / Time: the entries of one member and month. A send is one click on one entry (REQ-020 to REQ-024). */
 export function PlanTime() {
 	const { t, lang } = useI18n();
-	const day = useDay();
 	const plain = usePlainDay();
 	const navigate = useNavigate();
 	const search: { page?: unknown; member?: unknown } = useSearch({ strict: false });
@@ -191,9 +189,7 @@ export function PlanTime() {
 				id: "day",
 				header: e.day,
 				meta: { width: "6.5rem" },
-				cell: ({ row }) => (
-					<span className="font-mono text-11">{row.original.day && day(row.original.day)}</span>
-				),
+				cell: ({ row }) => <span>{row.original.day && plain(row.original.day)}</span>,
 			},
 			{
 				id: "ticket",
@@ -349,7 +345,7 @@ export function PlanTime() {
 				},
 			},
 		],
-		[e, t, data?.canSend, handle, reduce, act, run, sending, day, editId, setError],
+		[e, t, data?.canSend, handle, reduce, act, run, sending, plain, editId, setError],
 	);
 
 	if (active === undefined)
@@ -512,12 +508,7 @@ export function PlanTime() {
 			{p.time.readMonth}
 		</RightButton>
 	);
-	const lower = (
-		<Button aria-pressed={reduce} onClick={() => setReduce(!reduce)}>
-			{reduce ? <CheckIcon size={16} /> : null}
-			{p.time.lower}
-		</Button>
-	);
+	const lower = <Switch label={p.time.lower} checked={reduce} onCheckedChange={setReduce} />;
 	const stepper = (label: string, before: string, after: string, step: (by: number) => void) => (
 		<>
 			<IconButton variant="outline" label={before} onClick={() => step(-1)}>
@@ -716,7 +707,7 @@ export function PlanTime() {
 									<i
 										key={d}
 										title={format(p.time.dayHours, { day: plain(d), hours: formatMinutes(m) })}
-										className={`size-5 rounded-[5px] ${m >= 360 ? "bg-accent" : m > 0 ? "bg-accent/45" : "bg-n-5"}`}
+										className={`size-5 rounded-[calc(var(--radius-sm)/2)] ${m >= 360 ? "bg-accent" : m > 0 ? "bg-accent/45" : "bg-n-5"}`}
 									/>
 								);
 							})}

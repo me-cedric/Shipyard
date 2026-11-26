@@ -35,7 +35,7 @@ Dokument hinzufügen steht neben den Arten. Es nimmt eine Markdown-, PDF- oder W
 
 Oder beginnen Sie mit einem Ticket, unter den drei Wegen: Suchen Sie ein Ticket ohne Lauf, dann klicken Sie auf Agent starten. Von einem Ticket starten, unter Mehr bei Ablauf, öffnet sie.
 
-Jeder Weg legt zuerst eine Spezifikationsänderung mit Ihrem Text als Titel an. Ein Weg ist aus, wenn Ihnen das nötige Recht fehlt.
+Jeder Weg legt zuerst eine Spezifikationsänderung mit Ihrem Text als Titel an. Ein Weg ist aus, wenn Ihnen das nötige Recht fehlt. Ein Formular mit getipptem Text (neues Feature, Ticket-Text, Pull Request) fragt, bevor Sie die Seite verlassen.
 
 ## Liste
 

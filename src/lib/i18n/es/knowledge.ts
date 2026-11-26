@@ -107,7 +107,7 @@ export const knowledgeEs: typeof knowledgeEn = {
 		reload: "Recargar",
 		keepMine: "Conservar el mío",
 		dirty: "Sin guardar",
-		copy: "Copiar ref",
+		copy: "Copiar la referencia",
 		line: "Línea",
 	},
 	slides: {
@@ -204,7 +204,7 @@ export const knowledgeEs: typeof knowledgeEn = {
 		right: "Mover a la derecha",
 		pinned: "Fijado",
 		kind: {
-			work: "Elementos de trabajo",
+			work: "Tickets",
 			runs: "Ejecuciones",
 			questions: "Preguntas",
 			specs: "Especificaciones",
@@ -223,6 +223,8 @@ export const knowledgeEs: typeof knowledgeEn = {
 		switch: "Panel",
 		tileSettings: "Ajustes",
 		tileRemove: "Quitar",
+		tileRemoved: "Mosaico quitado: {name}",
+		tileUndo: "Deshacer",
 		more: "Más cifras",
 		spend: "Gasto de los agentes",
 		gates: "Controles de calidad",

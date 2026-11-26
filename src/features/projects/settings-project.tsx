@@ -6,6 +6,7 @@ import { AutoReview } from "@/features/settings/project/auto-review";
 import { ButtonLink, Fold } from "@/features/settings/project/fold";
 import { AgentsAlone } from "@/features/sync/automation";
 import { HolidayCountry } from "@/features/work/holiday-country";
+import { useWorkflows } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import {
 	type Accent,
@@ -75,6 +76,7 @@ function Form({
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const [draft, setDraft] = useState<Draft>(() => draftOf(file));
+	const recipes = useWorkflows().data;
 	// The same query as Settings / Connections: one cache.
 	const connections = useQuery({
 		queryKey: ["connections", "list"],
@@ -342,11 +344,21 @@ function Form({
 									/>
 								))}
 							</Fold>
-							<Fold id="workflow" label={p.recipe} value={draft.workflow || "-"}>
-								<Input
+							<Fold
+								id="workflow"
+								label={p.recipe}
+								value={draft.workflow || t.projects.noConnection}
+							>
+								<Select
 									label={t.projects.workflow}
-									value={draft.workflow}
-									onChange={(e) => setDraft({ ...draft, workflow: e.target.value })}
+									value={draft.workflow || NONE}
+									onValueChange={(v) => setDraft({ ...draft, workflow: v === NONE ? "" : v })}
+									items={[
+										{ value: NONE, label: t.projects.noConnection },
+										...[...new Set([...(recipes ?? []).map((w) => w.id), draft.workflow])]
+											.filter(Boolean)
+											.map((id) => ({ value: id, label: id })),
+									]}
 								/>
 							</Fold>
 						</SetupCard>

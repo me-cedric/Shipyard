@@ -15,8 +15,9 @@ export function pretty(payload: string): string {
 	}
 }
 
-/** The name of a step or a workflow from its id: "self-review" gives "Self review". */
-export const nameOf = (id: string) => {
+/** The name of a step or a workflow from its id: "self-review" gives "Self review". `names` holds the agent names of the known steps. */
+export const nameOf = (id: string, names?: Record<string, string>) => {
+	if (names?.[id]) return names[id];
 	const text = id.replace(/[-_.]+/g, " ").trim();
 	return text.charAt(0).toUpperCase() + text.slice(1);
 };

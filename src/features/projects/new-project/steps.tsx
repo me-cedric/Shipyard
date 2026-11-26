@@ -13,6 +13,7 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Chip } from "@/ui/atoms/chip";
 import { Input } from "@/ui/atoms/input";
+import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
 import {
@@ -36,49 +37,6 @@ const NONE = "none";
  * starts with `wide-` takes the width of its control. Drop it when the row has a width prop.
  */
 export const ROWS = "py-2 [&>[id^=wide-]>div:last-child]:flex-none";
-
-/** One choice of a short list, as radio buttons in a grey track. A choice with a reason is off. */
-function Choice({
-	label,
-	name,
-	value,
-	onChange,
-	items,
-}: {
-	label: string;
-	name: string;
-	value: string;
-	onChange: (value: string) => void;
-	items: { value: string; label: string; reason?: string }[];
-}) {
-	return (
-		<div
-			role="radiogroup"
-			aria-label={label}
-			className="inline-flex max-w-full flex-wrap rounded-md bg-n-4 p-1"
-		>
-			{items.map((i) => (
-				<label
-					key={i.value}
-					title={i.reason}
-					className="flex min-h-control cursor-pointer items-center rounded-sm px-3.5 font-medium text-n-10 transition-colors duration-(--duration-fast) hover:text-n-12 has-checked:bg-surface-1 has-checked:text-n-12 has-checked:shadow-1 has-disabled:cursor-not-allowed has-disabled:opacity-50 has-focus-visible:outline-[length:var(--focus-width,2px)] has-focus-visible:outline-accent"
-				>
-					<input
-						type="radio"
-						name={name}
-						value={i.value}
-						checked={value === i.value}
-						disabled={i.reason !== undefined}
-						aria-description={i.reason}
-						onChange={() => onChange(i.value)}
-						className="sr-only"
-					/>
-					{i.label}
-				</label>
-			))}
-		</div>
-	);
-}
 
 type IconProps = { size?: number };
 const STACK_ICON: Record<string, ComponentType<IconProps>> = {
@@ -207,8 +165,8 @@ export function BriefStep(p: {
 						label={t.creator[f]}
 						value={p.brief[f]}
 						onChange={(e) => p.setField(f, e.target.value)}
-						rows={1}
-						className="min-h-control"
+						rows={3}
+						className="min-h-control [field-sizing:content]"
 					/>
 				</SettingsRow>
 			))}
@@ -331,11 +289,11 @@ export function RemoteStep(p: {
 	return (
 		<>
 			<SettingsRow id="wide-repository" label={t.creator.repository}>
-				<Choice
+				<Segmented
+					fit
 					label={t.creator.repository}
-					name="remote"
 					value={p.kind}
-					onChange={(v) => p.setKind(v as RemoteKind)}
+					onValueChange={p.setKind}
 					items={kinds}
 				/>
 			</SettingsRow>
@@ -396,7 +354,10 @@ export function StartStep({
 	setStart,
 	issues,
 	removeIssue,
+	onTools,
 }: {
+	/** Go to the Tools step: the reason of an option that is off is there to fix. */
+	onTools: () => void;
 	preview: CreatorPreview_Serialize | undefined;
 	start: string;
 	setStart: (s: string) => void;
@@ -413,20 +374,33 @@ export function StartStep({
 		run: t.creator.needCodeHost,
 		issues: t.creator.needTracker,
 	};
+	const off = (["run", "issues"] as const).filter((s) => preview && !preview.starts.includes(s));
 	return (
 		<>
 			<SettingsRow id="wide-start" label={t.creator.firstMove}>
-				<Choice
+				<Segmented
+					fit
 					label={t.creator.firstMove}
-					name="start"
 					value={start}
-					onChange={setStart}
-					items={(["run", "issues", "later"] as const).map((s) => ({
-						value: s,
-						label: t.creator.starts[s],
-						reason: preview && !preview.starts.includes(s) ? reason[s] : undefined,
-					}))}
+					onValueChange={setStart}
+					items={(["run", "issues", "later"] as const).map((s) => {
+						const off = preview && !preview.starts.includes(s) ? reason[s] : undefined;
+						return {
+							value: s,
+							label: t.creator.starts[s],
+							disabled: off !== undefined,
+							reason: off,
+						};
+					})}
 				/>
+				{off.map((s) => (
+					<span key={s} className="text-n-11">
+						{reason[s]}{" "}
+						<Button className="min-h-control" onClick={onTools}>
+							{t.creator.guided.tools}
+						</Button>
+					</span>
+				))}
 			</SettingsRow>
 			{start === "issues"
 				? issues.map((r) => (

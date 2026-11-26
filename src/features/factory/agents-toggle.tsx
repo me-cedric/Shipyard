@@ -1,14 +1,21 @@
 import { useGuard } from "@/features/work/guard";
 import { useFactoryWrites, useKillSwitch } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
+import { confirmDialog } from "@/lib/ipc";
 import { Switch } from "@/ui/atoms/switch";
 
 /** The global kill switch: its state, the write and the failure of the last write (factory REQ-031). */
 export function useAgentsSwitch() {
 	const kill = useKillSwitch().data;
 	const writes = useFactoryWrites();
+	const { t } = useI18n();
 	const { error, failure, run } = useGuard();
-	return { kill, error, failure, set: (on: boolean) => void run(() => writes.killSwitch(!on)) };
+	// Stopping every agent asks first; starting them again does not.
+	const set = async (on: boolean) => {
+		if (!on && !(await confirmDialog(t.factory.spendPage.confirmStopAll))) return;
+		await run(() => writes.killSwitch(!on));
+	};
+	return { kill, error, failure, set: (on: boolean) => void set(on) };
 }
 
 /**

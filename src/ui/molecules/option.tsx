@@ -14,7 +14,7 @@ export function Option({
 			type="button"
 			aria-pressed={selected}
 			className={cn(
-				"flex min-h-15 w-full cursor-pointer items-center gap-3.5 rounded-field border border-n-7 bg-surface-2 px-5 text-left text-17 font-medium text-n-12 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+				"flex min-h-15 w-full cursor-pointer items-center gap-3.5 rounded-field border border-n-7 bg-surface-2 px-5 text-left text-17 font-medium text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
 				selected && "border-2 border-accent bg-accent-tint",
 				className,
 			)}

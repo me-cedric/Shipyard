@@ -33,6 +33,7 @@ export const assistantDe: typeof assistantEn = {
 	},
 	trace: "So habe ich es gefunden",
 	tools: "{count} Werkzeuge",
+	toolsOne: "{count} Werkzeug",
 	copy: "Kopieren",
 	copyCode: "Code kopieren",
 	insert: "Einfügen",
@@ -50,7 +51,7 @@ export const assistantDe: typeof assistantEn = {
 	factory: {
 		send: "An einen Agenten senden",
 		workflow: "Rezept",
-		none: "Arbeitselement",
+		none: "Ticket",
 		create: "Senden",
 		sent: "{key} gesendet",
 	},
@@ -69,7 +70,7 @@ export const assistantDe: typeof assistantEn = {
 		factory: "An einen Agenten senden",
 		promptExplain: "Erkläre das:",
 		promptFix: "Behebe das:",
-		promptFactory: "Schreibe aus diesem Text ein Arbeitselement:",
+		promptFactory: "Schreibe aus diesem Text ein Ticket:",
 	},
 	noCli: {
 		title: "Kein KI-Tool gefunden",
@@ -81,12 +82,12 @@ export const assistantDe: typeof assistantEn = {
 	moreModels: "Weitere Modelle",
 	bypassWarn: {
 		title: "Berechtigungen umgehen",
-		body: "Das KI-Tool überspringt jede Freigabe und seine Sandbox. Es kann jeden Befehl ausführen und jede Datei ändern, die Ihr Konto erreicht, nicht nur den Worktree dieses Threads. Nutzen Sie es in einem Projekt, dem Sie vertrauen.",
+		body: "Das KI-Tool fragt nach keiner Freigabe. Es kann jeden Befehl ausführen und jede Datei ändern, die Ihr Konto erreicht, auch außerhalb dieses Projekts. Nutzen Sie es nur in einem Projekt, dem Sie vertrauen.",
 		accept: "Berechtigungen umgehen",
 	},
 	autoWarn: {
 		title: "Änderungen ohne Freigabe erlauben",
-		body: "Der Assistent ändert Dateien im Worktree dieses Threads mit Edit, Write und MultiEdit und wartet nicht auf Sie. Er führt nie Shell-Befehle aus. Ihre Arbeitskopie bleibt unverändert, bis Sie die Änderungen anwenden.",
+		body: "Der Assistent ändert Dateien in seiner eigenen Kopie des Projekts und wartet nicht auf Sie. Er führt nie Befehle aus. Ihre Dateien bleiben unverändert, bis Sie die Änderungen anwenden.",
 		accept: "Auto-Änderungen erlauben",
 	},
 	ask: {

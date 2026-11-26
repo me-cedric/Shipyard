@@ -47,7 +47,7 @@ export function SectionNav({
 			ref={nav}
 			hidden={shown.length === 0}
 			aria-label={label}
-			className="sticky top-0 z-10 border-b bg-surface-1"
+			className="sticky top-0 z-(--z-sticky) border-b bg-surface-1"
 		>
 			<ul className="flex gap-1 overflow-x-auto px-4 py-1">
 				{shown.map((i) => (

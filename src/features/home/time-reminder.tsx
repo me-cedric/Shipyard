@@ -16,6 +16,7 @@ export function TimeReminder({ alert }: { alert?: boolean }) {
 	if (!useInbox().timesheet) return null;
 	return alert ? (
 		<AttentionCard
+			heading="h2"
 			icon={<ClockIcon size={20} />}
 			title={t.rights.today.noTime}
 			action={

@@ -17,7 +17,11 @@ test("creates a local project from the first run", async ({ page }) => {
 	await expect(page).toHaveURL(/\/projects\/new$/);
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme Web");
 	await expect(page.getByRole("button", { name: "Create the project" })).toHaveCount(0);
-	for (const question of ["What do you build?", "Which tools do you use?", "Who is in the team?"]) {
+	for (const question of [
+		"Which technology do you use?",
+		"Which tools do you use?",
+		"Who is in the team?",
+	]) {
 		await page.getByRole("button", { name: "Continue" }).click();
 		await expect(page.getByRole("heading", { level: 1, name: question })).toBeVisible();
 	}
@@ -56,15 +60,15 @@ test("creates a project with a new repository and starter issues", async ({ page
 	await dialog.getByRole("textbox", { name: "Name" }).fill("Acme Web");
 	const steps = dialog.getByRole("navigation", { name: "Steps" });
 	await steps.getByRole("button", { name: "Tools" }).click();
-	await dialog.getByRole("radio", { name: "New repository" }).check({ force: true });
+	await dialog.getByRole("button", { name: "New repository" }).click();
 	await expect(dialog.getByRole("textbox", { name: "Owner and name" })).toHaveValue(
 		"owner/acme-web",
 	);
 	await dialog.getByRole("combobox", { name: "Issue tracker" }).click();
 	await page.getByRole("option", { name: "Acme tracker" }).click();
 	await steps.getByRole("button", { name: "Ready" }).click();
-	await expect(dialog.getByRole("radio", { name: "Start an agent" })).toBeEnabled();
-	await dialog.getByRole("radio", { name: "Create the tickets" }).check({ force: true });
+	await expect(dialog.getByRole("button", { name: "Start an agent" })).toBeEnabled();
+	await dialog.getByRole("button", { name: "Create the tickets" }).click();
 	// The files open on demand.
 	await dialog.getByRole("button", { name: "Read them" }).click();
 	await expect(dialog.getByRole("button", { name: "docs/brief.md" })).toBeVisible();
@@ -72,7 +76,10 @@ test("creates a project with a new repository and starter issues", async ({ page
 		"aria-current",
 		"step",
 	);
-	await expect(dialog.getByRole("radio", { name: "Create the tickets" })).toBeChecked();
+	await expect(dialog.getByRole("button", { name: "Create the tickets" })).toHaveAttribute(
+		"aria-pressed",
+		"true",
+	);
 	await dialog.getByRole("button", { name: ".shipyard/project.yaml" }).click();
 	await expect(dialog.getByRole("textbox", { name: /Text of/ })).toHaveValue(/connections:/);
 	if (process.env.SCREENSHOTS) {

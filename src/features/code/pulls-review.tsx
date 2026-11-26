@@ -16,11 +16,11 @@ import { cn } from "@/lib/utils";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
+import { Segmented } from "@/ui/atoms/segmented";
 import { Textarea } from "@/ui/atoms/textarea";
 import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { AgentReview } from "./agent-review";
-import { FitSegmented } from "./fit-segmented";
 import { usePullAsk } from "./pull-ask";
 import { useRun } from "./use-run";
 
@@ -62,7 +62,8 @@ function ReviewForm({ d }: { d: PullDetail }) {
 	};
 	return (
 		<>
-			<FitSegmented
+			<Segmented
+				fit
 				label={r.verdict}
 				value={verdict}
 				onValueChange={(v) => {

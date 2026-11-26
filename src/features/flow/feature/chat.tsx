@@ -7,7 +7,7 @@ import { agentOf } from "@/features/factory/runs/run-summary";
 import { UnitTranscript } from "@/features/factory/runs/unit-chat";
 import { transcript } from "@/features/factory/runs/unit-transcript";
 import { QuestionRow } from "@/features/home/inbox/inbox";
-import { useGuard } from "@/features/work/guard";
+import { message, useGuard } from "@/features/work/guard";
 import { type ApprovalItem, useInboxActions } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { useRights } from "@/lib/rights";
@@ -19,10 +19,11 @@ import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { LinkButton } from "@/ui/atoms/link-button";
 import { PlusIcon } from "@/ui/icons";
-import { approvalSentence } from "@/ui/molecules/approval-bar";
+import { approvalSentence, isMove } from "@/ui/molecules/approval-bar";
 import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { stopAction } from "../stop-action";
 import { Developers, DevPanel, type Open } from "./chat-developers";
@@ -69,12 +70,12 @@ function ApprovalMessage({ approval: a }: { approval: ApprovalItem }) {
 	const { t } = useI18n();
 	const act = useInboxActions();
 	const { reason } = useRights().gate(a.right);
-	const { error, run } = useGuard();
-	const sentence = approvalSentence(t.home.approval, a);
+	const { failure, run } = useGuard();
+	const sentence = approvalSentence(t.home, a);
 	return (
 		<section aria-label={sentence} className="flex flex-col gap-3">
 			<p className={cn("font-medium", a.force && "text-danger-text")}>{sentence}</p>
-			{a.detail && !LONG.includes(a.kind) ? (
+			{a.detail && !isMove(a.kind) && !LONG.includes(a.kind) ? (
 				<MarkdownView source={a.detail} label={t.home.details} refs={false} />
 			) : null}
 			{/* The command of a push and the text of a pull request stay behind Details: they are not a message. */}
@@ -101,11 +102,7 @@ function ApprovalMessage({ approval: a }: { approval: ApprovalItem }) {
 					{t.home.approve}
 				</Button>
 			</div>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</section>
 	);
 }
@@ -144,7 +141,7 @@ function Composer({ scope, agent }: { scope: RunScopeData; agent: string }) {
 				setFiles((x) => [...x, done.name]);
 			} catch (e) {
 				// The limits of the file are the words of the refusal: it names its size.
-				setRefused(e instanceof Error ? e.message : String(e));
+				setRefused(message(e));
 			}
 		}
 	};
@@ -259,7 +256,7 @@ function Recipe({ run }: { run: RunScopeData["run"] }) {
 					>
 						<Mark kind={MARK[s.state]} label={t.factory.step[s.state]} small />
 						<span className="min-w-0 flex-1 truncate">
-							{s.id === "pr" ? t.refKind.pr : nameOf(s.id)}
+							{s.id === "pr" ? t.refKind.pr : nameOf(s.id, t.factory.agentNames)}
 						</span>
 					</li>
 				))}
@@ -293,7 +290,7 @@ export function Chat({ parts }: { parts: Parts }) {
 	const waits = scope ? scope.waits.questions.length + scope.waits.approvals.length : 0;
 	if (!(scope || parts.pr || key))
 		return <EmptyState title={t.flow.feature.noChat} extra={<StartAgent parts={parts} />} />;
-	const agent = scope ? agentOf(scope.run) : "";
+	const agent = scope ? agentOf(scope.run, t.factory.agentNames) : "";
 	const showChange = () =>
 		void navigate({
 			to: ".",

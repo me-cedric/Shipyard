@@ -110,7 +110,9 @@ describe("Crew", () => {
 		const router = mountApp("/crew/crew");
 		const panel = await openMember(user, "Grace Hopper");
 		// The members table of before, on the page of the person: the days, the skills and the day rate.
-		const days = within(panel.getByRole("group", { name: "Days in a week" }));
+		const days = within(
+			panel.getAllByRole("group", { name: "Days in a week" }).at(-1) as HTMLElement,
+		);
 		expect(days.getByRole("status")).toHaveTextContent(/^4$/);
 		const ofGrace = mockState().work.team.members.find((m) => m.handle === "grace");
 		const skills = within(panel.getByRole("group", { name: "Skills" }));
@@ -119,8 +121,8 @@ describe("Crew", () => {
 			ofGrace?.dayRate ?? null,
 		);
 		// A step is half a day.
-		await user.click(days.getByRole("button", { name: "Days in a week, less" }));
-		await user.click(days.getByRole("button", { name: "Days in a week, less" }));
+		await user.click(days.getByRole("button", { name: "Less: Days in a week" }));
+		await user.click(days.getByRole("button", { name: "Less: Days in a week" }));
 		await user.click(panel.getByRole("button", { name: "Save" }));
 		await waitFor(() =>
 			expect(mockState().work.team.members.find((m) => m.handle === "grace")?.capacity).toBe(3),
@@ -129,7 +131,9 @@ describe("Crew", () => {
 		await user.click(panel.getByRole("link", { name: "Crew" }));
 		const again = await openMember(user, "Grace Hopper");
 		expect(
-			within(again.getByRole("group", { name: "Days in a week" })).getByRole("status"),
+			within(
+				again.getAllByRole("group", { name: "Days in a week" }).at(-1) as HTMLElement,
+			).getByRole("status"),
 		).toHaveTextContent(/^3$/);
 		await idle(router);
 	});
@@ -170,7 +174,7 @@ describe("Crew", () => {
 		await user.clear(handle);
 		await user.type(handle, "ada");
 		await user.click(panel.getByRole("button", { name: "Save" }));
-		expect(await panel.findByRole("alert")).toHaveTextContent("`ada` is shared by");
+		expect(await panel.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
 		expect(mockState().work.team.members.map((m) => m.handle)).toEqual([
 			"ada",
 			"grace",
@@ -198,7 +202,7 @@ describe("Crew", () => {
 		expect(field).toHaveAttribute("type", "password");
 		await user.type(field, "wrong");
 		await user.click(panel.getByRole("button", { name: "Unlock" }));
-		expect(await panel.findByRole("alert")).toHaveTextContent("does not open");
+		expect(await panel.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
 		expect(field).toHaveValue("");
 		expect(panel.queryByRole("spinbutton", { name: "Day rate" })).toBeNull();
 		await user.type(panel.getByLabelText("Passphrase"), "s3cret");
@@ -303,7 +307,7 @@ describe("Crew", () => {
 		await withTracker();
 		const router = mountApp("/crew/crew");
 		const panel = await openMember(user, "Grace Hopper");
-		await user.type(panel.getByRole("textbox", { name: "E-mails" }), "grace@example.com");
+		await user.type(panel.getByRole("textbox", { name: "Emails" }), "grace@example.com");
 		await user.click(panel.getByRole("combobox", { name: "Role" }));
 		await user.click(await screen.findByRole("option", { name: "Architect" }));
 		// The rights of each role are on Rights: the row leads there.

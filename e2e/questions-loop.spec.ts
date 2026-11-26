@@ -24,9 +24,9 @@ test("answers Q-101 with the keyboard, and the run leaves Needs you", async ({ p
 	await design.getByRole("button").first().focus();
 	await page.keyboard.press("2");
 	await page.keyboard.press("Enter");
-	// The question row leaves its region once answered: the card of Today keeps the answer.
-	await expect(card.getByText("Answered")).toBeVisible();
+	// An answered question with no spec leaves the queue: the answer groups are gone.
 	await expect(answers).toHaveCount(0);
+	await expect(design).toHaveCount(0);
 
 	await page
 		.getByRole("navigation", { name: "Sidebar" })

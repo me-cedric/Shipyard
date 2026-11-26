@@ -134,7 +134,7 @@ export function LiveRows({ rows, ready }: { rows: AgentRow[]; ready: boolean }) 
 		return (
 			<EmptyState
 				title={t.empty.runs}
-				action={{ label: t.ui.place.flow, onClick: () => void navigate({ to: "/flow/flow" }) }}
+				action={{ label: t.home.openFlow, onClick: () => void navigate({ to: "/flow/flow" }) }}
 			/>
 		);
 	const filters: { value: Filter; label: string }[] = [
@@ -172,7 +172,7 @@ export function LiveRows({ rows, ready }: { rows: AgentRow[]; ready: boolean }) 
 						</thead>
 						<tbody>
 							{shown.map((r) => {
-								const name = nameOf(r.role ?? r.session.step);
+								const name = nameOf(r.role ?? r.session.step, t.factory.agentNames);
 								const wait = r.feature && needsPerson(r.feature);
 								const on = r.session.state === "running" && !wait;
 								// shortcut: the first six refs show; the feature page lists each changed file.

@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { useRef } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { EarlierVersions } from "@/features/knowledge/page-history";
-import { LibraryPage, LinkedCard, PageColumns, SideCards } from "@/features/library/page-parts";
 import { WithProject } from "@/features/shell/no-project";
 import { useRoles } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
@@ -14,6 +13,7 @@ import { Button } from "@/ui/atoms/button";
 import { linkClass } from "@/ui/atoms/link-button";
 import { Card } from "@/ui/molecules/card";
 import { Row } from "@/ui/molecules/row";
+import { LibraryPage, LinkedCard, PageColumns, SideCards } from "@/ui/templates/library-page";
 import { FileEditor } from "./file-editor";
 
 const PATH = "docs/openspec/constitution.md";

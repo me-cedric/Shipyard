@@ -54,7 +54,7 @@ test("reviews a plugin, accepts some items and applies them", async ({ page }) =
 		.getByRole("textbox", { name: "Plugin archive path" })
 		.fill("/mock/plugins/team-kit.zip");
 	await page.getByRole("button", { name: "Review" }).click();
-	await expect(page.getByText("mcp:shell: a local command")).toBeVisible();
+	await expect(page.getByText("Tool server shell: runs a command on this computer")).toBeVisible();
 	const apply = page.getByRole("button", { name: /^Apply plugin/ });
 	await expect(apply).toHaveText("Apply plugin (4)");
 

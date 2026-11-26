@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { CodeEditor } from "../molecules/code-editor";
-import { ZoomFrame } from "../molecules/zoom-frame";
 import { drawioSvg, isDrawioXml, svgDataUri, xmlFromDrawioSvg } from "./drawio";
 import type { EditorError } from "./error-line";
+import { ZoomFrame } from "./zoom-frame";
 
 /**
  * A read-only draw.io view (Q-040, option 1). A `.drawio.svg` shows as an image: it is a picture

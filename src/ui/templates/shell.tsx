@@ -51,12 +51,14 @@ export function Shell({
 	const panel = usePanelSize("sidebar-width", 216);
 	const [resizing, setResizing] = useState(false);
 	const still = useReducedMotionPref();
+	// The rail width is in rem: the pointer delta in px needs the root scale.
+	const scale = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) / 16 || 1;
 	const nav = (
 		<motion.nav
 			aria-label={t.nav.sidebar}
 			data-open={sidebarOpen}
 			initial={false}
-			animate={{ width: sidebarOpen ? panel.size : 72 }}
+			animate={{ width: sidebarOpen ? `${panel.size / 16}rem` : "4.5rem" }}
 			// A drag follows the pointer at once.
 			transition={resizing || still ? { duration: 0 } : SPRING.smooth}
 			onPointerDown={(e) => {
@@ -66,7 +68,7 @@ export function Shell({
 			onPointerCancel={() => setResizing(false)}
 			onLostPointerCapture={() => setResizing(false)}
 			// Above the dim of the link card (z-30): the rail stays clear.
-			className="relative z-[31] max-w-[40vw] shrink-0 overflow-hidden"
+			className="relative z-(--z-rail) max-w-[40vw] shrink-0 overflow-hidden"
 		>
 			{sidebarOpen ? (
 				<Splitter
@@ -77,7 +79,13 @@ export function Shell({
 					invert={navSide === "right"}
 					onChange={panel.set}
 					onReset={panel.reset}
-					className={navSide === "right" ? "left-0" : "right-0"}
+					scale={scale}
+					// The hit area grows 6 px inward, inside the padding of the rail.
+					className={
+						navSide === "right"
+							? "left-0 before:absolute before:inset-y-0 before:left-0 before:-right-1.5"
+							: "right-0 before:absolute before:inset-y-0 before:right-0 before:-left-1.5"
+					}
 				/>
 			) : null}
 			{sidebar}

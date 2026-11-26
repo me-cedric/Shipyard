@@ -43,6 +43,15 @@ import { useRun } from "./use-run";
 
 const DANGER = "text-danger-text";
 
+/** Plain words to a name part: lower case, a-z and 0-9, joined by a dash. */
+const slug = (s: string) =>
+	s
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-|-$/g, "");
+
 /** Create a branch as `<type>/<area>/<kebab>` from the current head (REQ-012). */
 function CreateBranch({
 	run,
@@ -59,7 +68,7 @@ function CreateBranch({
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
 		run(async () => {
-			await createBranch(`${type}/${area.trim()}/${subject.trim()}`);
+			await createBranch(`${type}/${slug(area)}/${slug(subject)}`);
 			setArea("");
 			setSubject("");
 			onDone();
@@ -70,7 +79,7 @@ function CreateBranch({
 			<form onSubmit={submit} className="flex flex-wrap items-center gap-2.5">
 				<Select
 					label={t.code.type}
-					items={COMMIT_TYPES.map((c) => ({ value: c, label: c }))}
+					items={COMMIT_TYPES.map((c) => ({ value: c, label: t.code.kinds[c] }))}
 					value={type}
 					onValueChange={setType}
 					className="min-w-28"
@@ -87,7 +96,17 @@ function CreateBranch({
 					value={subject}
 					onChange={(e) => setSubject(e.target.value)}
 				/>
-				<RightButton right="code.write" type="submit" variant="primary">
+				<RightButton
+					right="code.write"
+					type="submit"
+					variant="primary"
+					disabled={slug(area) === "" || slug(subject) === ""}
+					reason={
+						(area.trim() && slug(area) === "") || (subject.trim() && slug(subject) === "")
+							? t.forge.branches.branchNeedsLatin
+							: undefined
+					}
+				>
 					{t.forge.branches.createBranch}
 				</RightButton>
 			</form>

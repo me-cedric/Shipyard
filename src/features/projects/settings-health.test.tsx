@@ -17,14 +17,18 @@ describe("Setup / Health", () => {
 		const before = Number(/^\d+/.exec(title.textContent ?? "")?.[0]);
 		expect(before).toBeGreaterThan(0);
 		expect(screen.queryByText("Nothing to fix")).not.toBeInTheDocument();
-		const banner = await screen.findByRole("region", { name: "pnpm is missing on this machine" });
+		const banner = await screen.findByRole("region", {
+			name: "pnpm is not installed on this computer",
+		});
 		expect(within(banner).getByRole("link", { name: "Details" })).toBeInTheDocument();
 		await user.click(within(banner).getByRole("button", { name: "Fix it" }));
 		await waitFor(() =>
 			expect(mockState().doctor.tools.find((t) => t.id === "pnpm")?.installed).toBe(true),
 		);
 		await waitFor(() =>
-			expect(screen.queryByRole("region", { name: "pnpm is missing on this machine" })).toBeNull(),
+			expect(
+				screen.queryByRole("region", { name: "pnpm is not installed on this computer" }),
+			).toBeNull(),
 		);
 		// The install takes one problem away from the title.
 		const after = before - 1;

@@ -1,18 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-	DetailColumn,
-	LibraryPage,
-	LinkedCard,
-	LinkedRow,
-	ListCard,
-	ListColumn,
-	PageColumns,
-} from "@/features/library/page-parts";
 import { WithProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, unwrap } from "@/lib/ipc";
+import { commands, toFailure, unwrap } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
 import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
@@ -44,6 +35,15 @@ import { markdown } from "@/ui/molecules/syntax";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { Dialog } from "@/ui/organisms/dialog";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
+import {
+	DetailColumn,
+	LibraryPage,
+	LinkedCard,
+	LinkedRow,
+	ListCard,
+	ListColumn,
+	PageColumns,
+} from "@/ui/templates/library-page";
 import { useGuard } from "./guard";
 import { SmallChevron, STATE_TONE, VerdictBadge, worst } from "./parts";
 
@@ -84,17 +84,18 @@ function useSpecs() {
 	};
 }
 
-/** The tick of a requirement: full when a scenario passes, an empty ring else. */
-const Tick = ({ done }: { done: boolean }) => (
+/** The tick of a requirement: full when a scenario passes, a cross when it fails, an empty ring else. */
+const Tick = ({ done, failed }: { done: boolean; failed?: boolean }) => (
 	<svg
 		aria-hidden="true"
 		viewBox="0 0 24 24"
-		className={`size-5 shrink-0 fill-none stroke-current stroke-[1.8] ${done ? "text-success-text" : "text-n-10"}`}
+		className={`size-5 shrink-0 fill-none stroke-current stroke-[1.8] ${done ? "text-success-text" : failed ? "text-danger-text" : "text-n-10"}`}
 		strokeLinecap="round"
 		strokeLinejoin="round"
 	>
 		<circle cx="12" cy="12" r="9" />
 		{done ? <path d="M8 12.5l2.5 2.5L16 9.5" /> : null}
+		{failed ? <path d="M9 9l6 6M15 9l-6 6" /> : null}
 	</svg>
 );
 
@@ -143,7 +144,7 @@ function SpecCard({ spec }: { spec: Spec }) {
 									to: "/flow/feature/$featureId",
 									params: { featureId: `change:${change.id}` },
 								})
-							: navigate({ to: "/flow/new" }))
+							: navigate({ to: "/flow/new", search: { spec: spec.capability } }))
 					}
 				>
 					{t.knowledge.handbook.edit}
@@ -160,9 +161,9 @@ function SpecCard({ spec }: { spec: Spec }) {
 								<button
 									type="button"
 									onClick={() => openRef(ref)}
-									className="flex min-h-control w-full cursor-pointer flex-wrap items-center gap-3 rounded-[14px] bg-surface-0 p-4 text-left text-17 text-n-12 hover:bg-n-3"
+									className="flex min-h-control w-full cursor-pointer flex-wrap items-center gap-3 rounded-field bg-surface-0 p-4 text-left text-17 text-n-12 hover:bg-n-3"
 								>
-									<Tick done={verdict === "pass"} />
+									<Tick done={verdict === "pass"} failed={verdict === "fail"} />
 									<span className="min-w-0 flex-[1_1_240px]">{r.title}</span>
 									{verdict === "pass" ? (
 										<Badge variant="success">{p.tested}</Badge>
@@ -285,7 +286,7 @@ function InProgressCard({ changes }: { changes: Change[] }) {
 				await act.archive(id, confirmed);
 				setPending(null);
 			} catch (e) {
-				const items = openItems(e instanceof Error ? e.message : String(e));
+				const items = openItems(toFailure(e).details);
 				if (!items) throw e;
 				setPending({ id, items });
 			}

@@ -84,7 +84,7 @@ export function Sidebar() {
 	return (
 		<div className="flex h-full flex-col gap-5 px-3.5 py-5">
 			<ProjectSwitch compact={!sidebarOpen} />
-			<div className="flex min-h-0 flex-1 flex-col gap-1">
+			<div className="-m-1 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1">
 				<PlaceMenu
 					items={items}
 					end={setup}

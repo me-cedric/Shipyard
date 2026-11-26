@@ -7,7 +7,6 @@ import { GroupSection } from "./group-section";
 import { QuestionCard } from "./question-card";
 import { RefChip } from "./ref-chip";
 import { SpendMeter } from "./spend-meter";
-import { Stat } from "./stat";
 
 const question: AskedQuestion_Serialize = {
 	id: "Q-101",
@@ -111,18 +110,5 @@ describe("SpendMeter", () => {
 		// No budget: no meter.
 		expect(screen.queryByRole("meter", { name: "None" })).toBeNull();
 		expect(container.querySelectorAll('[role="meter"]')).toHaveLength(2);
-	});
-});
-
-describe("Stat", () => {
-	it("shows the figure as the definition of its name", () => {
-		renderApp(
-			<dl>
-				<Stat label="Days" value="34.5" />
-			</dl>,
-		);
-		expect(screen.getByRole("term")).toHaveTextContent("Days");
-		expect(screen.getByRole("definition")).toHaveTextContent("34.5");
-		expect(screen.getByRole("definition")).toHaveClass("text-20", "text-n-12");
 	});
 });

@@ -11,6 +11,7 @@ import { Card } from "@/ui/molecules/card";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { DocsUpdate } from "./docs-update";
 import { OriginPanel } from "./origin-panel";
+import { flatRows } from "./tree";
 import { useRun } from "./use-run";
 
 const BOX = "flex flex-wrap items-center gap-2.5 rounded-md bg-n-2 p-3.5";
@@ -30,12 +31,7 @@ function BeforePush() {
 		queryFn: () => unwrap(commands.codePushTarget()),
 		retry: false,
 	}).data;
-	const files = changes
-		? changes.staged.length +
-			changes.unstaged.length +
-			changes.untracked.length +
-			changes.conflicted.length
-		: 0;
+	const files = changes ? flatRows(changes).length : 0;
 	const behind = changes?.behind ?? 0;
 	const warnings = [
 		...(target?.canPush === false ? [format(w.cannotPush, { remote: target.remote })] : []),

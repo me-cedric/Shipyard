@@ -33,7 +33,6 @@ import { Loading } from "@/ui/molecules/loading";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { PageHeader, PageSwitchContext } from "@/ui/molecules/page-header";
 import { CostingView } from "./costing-cards";
-import { EstimateAgent } from "./estimate-agent";
 import { PersonCard, SheetsView, SplitCard } from "./estimate-cards";
 import { ExcelImport } from "./excel-page";
 
@@ -241,12 +240,9 @@ export function PlanEstimates() {
 	// The seal buttons wait for the sheet, so they keep their place once the page shows them.
 	const seals =
 		view === "costing" || !sheet ? null : (
-			<span className="flex items-center gap-2">
-				<Button onClick={() => go({ tab: "costing" })}>{p.openSeal}</Button>
-				<Button variant="primary" onClick={() => go({ tab: "costing" })}>
-					{t.work.seal.seal}
-				</Button>
-			</span>
+			<Button onClick={() => go({ tab: "costing" })}>
+				{seal?.sealed ? p.openSeal : t.work.seal.seal}
+			</Button>
 		);
 	const lots = list.map((s) => ({
 		id: s.slug,
@@ -319,27 +315,15 @@ export function PlanEstimates() {
 						]}
 					/>
 				</span>
-				{view === "costing" ? null : (
-					<>
-						<MenuButton label={format(p.lot, { name: names.get(slug ?? "") ?? "" })} items={lots} />
-						<RightButton right="work.edit" onClick={newSheet}>
-							{e.newSheet}
-						</RightButton>
-						<RightButton right="work.edit" onClick={() => void importExcel()}>
-							{p.importExcel}
-						</RightButton>
-					</>
-				)}
-				{view === "tasks" ? null : (
-					<PageExport page="costing" disabled={!sheet} extra={sheetExport} />
-				)}
-				{view === "tasks" && slug && sheet ? (
-					<EstimateAgent slug={slug} view={sheet} ids={[...picked]} onPick={() => setTools(true)}>
-						{seals}
-					</EstimateAgent>
-				) : (
-					seals
-				)}
+				<MenuButton label={format(p.lot, { name: names.get(slug ?? "") ?? "" })} items={lots} />
+				<RightButton right="work.edit" onClick={newSheet}>
+					{e.newSheet}
+				</RightButton>
+				<RightButton right="work.edit" onClick={() => void importExcel()}>
+					{p.importExcel}
+				</RightButton>
+				<PageExport page="costing" disabled={!sheet} extra={sheetExport} />
+				{seals}
 			</div>
 			<div className="flex flex-wrap items-center gap-2 px-4 empty:hidden">{exportRun.status}</div>
 			<ErrorNotice error={failure} className="px-4 py-1" />
@@ -361,6 +345,7 @@ export function PlanEstimates() {
 								slug={slug}
 								view={sheet}
 								tools={tools}
+								onTools={() => setTools(true)}
 								picked={picked}
 								onPicked={setPicked}
 								onOpen={(id) => go({ task: id })}

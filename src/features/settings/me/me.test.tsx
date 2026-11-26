@@ -29,7 +29,7 @@ describe("Settings / Me (shell REQ-010)", () => {
 	it("saves the role", async () => {
 		const user = userEvent.setup();
 		mountApp("/setup/me");
-		await choose(user, "Role", "Developer");
+		await choose(user, "My role view", "Developer");
 		await waitFor(() => expect(mockState().prefs.role).toBe("developer"));
 	});
 });
@@ -39,8 +39,8 @@ describe("Settings / Me fonts, terminal and agent", () => {
 		const user = userEvent.setup();
 		// The fonts are a part of the look: they sit behind the door Look and layout.
 		const router = mountApp("/setup/me?page=look");
-		await choose(user, "Interface font", "Serif");
-		await choose(user, "Code font", "Menlo");
+		await choose(user, "Font of the app", "Serif");
+		await choose(user, "Font of code", "Menlo");
 		await waitFor(() => expect(mockState().prefs.uiFont).toBe("serif"));
 		expect(mockState().prefs.codeFont).toBe("menlo");
 		expect(document.documentElement.style.getPropertyValue("--font-sans")).toContain("Charter");
@@ -49,7 +49,7 @@ describe("Settings / Me fonts, terminal and agent", () => {
 		await user.type(shell, "/bin/zsh");
 		await user.tab();
 		await waitFor(() => expect(mockState().prefs.terminalShell).toBe("/bin/zsh"));
-		const more = screen.getByRole("button", { name: "More: Terminal font size" });
+		const more = screen.getByRole("button", { name: "More: Text size of the terminal" });
 		for (let i = 0; i < 12; i++) await user.click(more);
 		await waitFor(() => expect(mockState().prefs.terminalFontSize).toBe(24));
 		expect(more).toBeDisabled();

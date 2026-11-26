@@ -249,7 +249,7 @@ describe("Flow / Flow (REQ-010, REQ-011)", () => {
 	it("opens at 960 by 600 with the columns in one scroll area", async () => {
 		await open();
 		const grid = (await column("Idea")).parentElement;
-		expect(grid?.parentElement).toHaveClass("overflow-x-auto");
+		expect(grid?.parentElement).toHaveClass("overflow-auto");
 		// A column ends after its last card.
 		expect(grid).toHaveClass("items-start");
 	});
@@ -278,7 +278,7 @@ describe("Flow / List, Done and Health", () => {
 		expect(await screen.findByRole("textbox", { name: "Bring a ticket by its key" })).toBeVisible();
 		expect(screen.getByRole("button", { name: "Bring" })).toBeVisible();
 		expect(screen.queryByRole("button", { name: "Adopt" })).toBeNull();
-		for (const name of ["Owner: all", "Label: all", "Agent: all"])
+		for (const name of ["Assignee: all", "Label: all", "Agent: all"])
 			expect(screen.getByRole("button", { name })).toBeVisible();
 		await userEvent.click(screen.getByRole("button", { name: "More" }));
 		for (const name of [

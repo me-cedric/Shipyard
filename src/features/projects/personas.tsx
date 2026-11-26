@@ -62,6 +62,7 @@ function Editor({ saved }: { saved: Persona[] }) {
 				>
 					<Input
 						label={p.tjm}
+						caption
 						type="number"
 						min={0}
 						value={r.tjm ?? 0}
@@ -70,6 +71,7 @@ function Editor({ saved }: { saved: Persona[] }) {
 					/>
 					<Input
 						label={p.cjm}
+						caption
 						type="number"
 						min={0}
 						value={r.cjm ?? 0}

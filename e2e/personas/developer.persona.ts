@@ -73,15 +73,11 @@ test("developer", async ({ page }) => {
 			"no question",
 		);
 		await w.click(page.getByRole("button", { name: "Send" }).first());
-		// Today moves on to the next thing: the answered question waits in the queue and shows Answered.
-		await w.click(
-			page
-				.getByRole("list", { name: "Needs you" })
-				.getByRole("button", { name: /Where should the user land after the session expires\?/ }),
-		);
-		await w.see(
-			page.getByText("Answered").first(),
-			"the question does not turn to Answered after Send",
+		// The answered question leaves Needs you.
+		await w.until(
+			() => page.getByText("Where should the user land after the session expires?").count(),
+			0,
+			"the question stays in Needs you after Send",
 		);
 	});
 
@@ -93,7 +89,7 @@ test("developer", async ({ page }) => {
 		const more = queue.getByRole("button", { name: /^\d+ more$/ });
 		if ((await more.count()) > 0) await w.click(more);
 		await w.click(queue.getByRole("button", { name: /Add export endpoint/ }));
-		const effect = page.getByText(/Change the status of ACME-2/);
+		const effect = page.getByText(/Move ACME-2 to In Progress/);
 		await w.see(effect, "no approval of the agent on the card");
 		await w.click(page.getByRole("button", { name: /^Approve( all)?$/ }));
 		await w.until(() => effect.count(), 0, "the approval stays in the list after Approve");
@@ -107,7 +103,7 @@ test("developer", async ({ page }) => {
 			await w.click(page.getByRole("link", { name: /\d+ more files?/ }));
 			// The demo copy has a file in conflict: a commit waits for it. Take ours.
 			await w.click(page.getByRole("button", { name: "Solve it myself" }));
-			await w.click(page.getByRole("button", { name: "Take ours" }));
+			await w.click(page.getByRole("button", { name: "Keep my version" }));
 			await w.until(
 				() => page.getByRole("region", { name: /conflict/ }).count(),
 				0,

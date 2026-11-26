@@ -110,9 +110,9 @@ test("opens an entity from the palette and shows its backlinks", async ({ page }
 	await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
 	await page.keyboard.press("ControlOrMeta+k");
 	await page.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("polling");
-	await page.getByRole("option", { name: /adr:0004/ }).click();
+	await page.getByRole("option", { name: /Polling sync/ }).click();
 	const inspector = page.getByLabel("Inspector", { exact: true });
 	const linked = inspector.getByRole("region", { name: "Linked to" });
-	await expect(linked.getByRole("button", { name: /^spec:/ })).toHaveCount(2);
-	await expect(linked.getByRole("button", { name: /^change:/ })).toHaveCount(1);
+	await expect(linked.getByRole("button", { name: /^Spec,/ })).toHaveCount(2);
+	await expect(linked.getByRole("button", { name: /^Change,/ })).toHaveCount(1);
 });

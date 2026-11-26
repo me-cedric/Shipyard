@@ -17,7 +17,11 @@
     ".claude/skills/spec-flow/references/delta-section.md",
     ".claude/skills/spec-flow/references/drift-triage.md",
     ".claude/skills/task-flow/SKILL.md",
-    ".github/workflows/compass-migrations.yml"
+    ".github/workflows/compass-migrations.yml",
+    ".agents/skills/e2e/SKILL.md",
+    ".agents/skills/stack-react/SKILL.md",
+    ".claude/rules/stack-react.md",
+    ".claude/skills/e2e/SKILL.md"
   ],
   "upstream": [
     "taste",

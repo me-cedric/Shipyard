@@ -82,16 +82,23 @@ function Tiles({
 }
 
 /** The products that a step of the issue tracker or the code host offers. */
-function Kinds({ group }: { group: ConnectionGroup }) {
+function Kinds({
+	group,
+	kind = KINDS[group][0] ?? "",
+	onPick,
+}: {
+	group: ConnectionGroup;
+	kind?: string;
+	onPick: (kind: string) => void;
+}) {
 	const { t } = useI18n();
-	const [kind, setKind] = useState<string>(KINDS[group][0] ?? "");
 	const names = t.connections.kind[group] as Record<string, string>;
 	return (
 		<Tiles
 			label={t.connections.field.kind}
 			items={KINDS[group].map((k) => ({ id: k, label: names[k] ?? k }))}
 			value={kind}
-			onPick={setKind}
+			onPick={onPick}
 		/>
 	);
 }
@@ -118,6 +125,8 @@ export function SetupStart() {
 		queryFn: () => unwrap(commands.runnersList()),
 	}).data;
 	const [chosen, setChosen] = useState<ItemId | null>(null);
+	// The product that was picked for each group: the form opens on it.
+	const [picked, setPicked] = useState<Partial<Record<ConnectionGroup, string>>>({});
 	const todo = ITEMS.filter((i) => state.done[i] === false);
 	const open = chosen ?? todo[0] ?? ITEMS[0];
 	// Skip goes to the next step that is to do, and starts again at the top after the last one.
@@ -170,7 +179,13 @@ export function SetupStart() {
 					<h2 id="setup-step" className="text-30 leading-tight font-semibold text-n-12">
 						{s.question[open]}
 					</h2>
-					{open === "tracker" || open === "forge" ? <Kinds group={open} /> : null}
+					{open === "tracker" || open === "forge" ? (
+						<Kinds
+							group={open}
+							kind={picked[open]}
+							onPick={(k) => setPicked((p) => ({ ...p, [open]: k }))}
+						/>
+					) : null}
 					{open === "ai" && runners?.length ? (
 						<Tiles
 							label={t.personal.prefs.defaultAgent}
@@ -185,7 +200,13 @@ export function SetupStart() {
 								{s.skip}
 							</Button>
 						) : null}
-						<ChecklistControl id={open} state={state} pick={false} pane />
+						<ChecklistControl
+							id={open}
+							state={state}
+							pick={false}
+							pane
+							kind={open === "tracker" || open === "forge" ? picked[open] : undefined}
+						/>
 					</div>
 				</section>
 			</div>

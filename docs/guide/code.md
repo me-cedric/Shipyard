@@ -9,7 +9,7 @@ Now is a short summary: the files to commit and the open pull requests, a row to
 The card of the files to commit shows the first three files with the lines added and removed, a link to the other files, one commit message, Write it for me and Commit. The link opens the page of the local changes.
 
 1. Tick the files to keep in one flat list. Choose all and Choose none tick the whole list. Or discard a change.
-2. Write the commit message, add a description if you want one, then click Commit. A commit takes the ticked files only. The Commit button in the card of the sync mark does the same from any page.
+2. Write the commit message, add a description if you want one, then click Commit. A commit takes the ticked files only. The Commit button in the card of the sync mark does the same from any page. A commit message in plain words is accepted: pick the Kind in a list and Shipyard adds the prefix.
 
 - Write it for me asks the assistant for a message from the staged files. Nothing is sent until you send it.
 - A group with no files shows one muted line, such as "Nothing staged".
@@ -30,7 +30,7 @@ History lists the commits, newest first. Select a commit to see its files and it
 
 Branches lists the branches on this computer and on the server. Create, switch to, merge or delete a branch. The app never deletes the branch that you work on.
 
-The branch selector, in the card of the sync mark and on Code / Now, has a filter box. Type to narrow the list, move with the arrow keys and press Enter. A remote branch checks out as a new local branch that follows it. The New branch row makes a branch from the branch that you work on.
+The branch selector, in the card of the sync mark and on Code / Now, has a filter box. Type to narrow the list, move with the arrow keys and press Enter. A remote branch checks out as a new local branch that follows it. The New branch row makes a branch from the branch that you work on. A branch name in plain words becomes a valid name.
 
 ## Terminal
 

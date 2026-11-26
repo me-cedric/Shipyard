@@ -69,8 +69,9 @@ describe("Plan / Estimates", () => {
 		const router = mountApp("/plan/estimates?tab=sheets");
 		for (const name of ["Summary", "Spread", "Portfolio"])
 			expect(await screen.findByRole("heading", { name })).toBeInTheDocument();
-		for (const name of ["Export", "Open the seal", "Seal"])
+		for (const name of ["Export", "Seal"])
 			expect(screen.getByRole("button", { name })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Open the seal" })).toBeNull();
 		expect(screen.queryByRole("button", { name: "Add a task" })).toBeNull();
 		await idle(router);
 	});
@@ -257,7 +258,7 @@ describe("Plan / Estimates", () => {
 		expect(screen.queryByText(/days/)).toBeNull();
 		await user.type(screen.getByLabelText("Passphrase"), "nope");
 		await user.click(screen.getByRole("button", { name: "Unlock" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("does not open");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
 		expect(screen.queryByRole("row")).toBeNull();
 		await user.type(screen.getByLabelText("Passphrase"), "s3cret");
 		await user.click(screen.getByRole("button", { name: "Unlock" }));
@@ -437,9 +438,9 @@ describe("Plan / Estimates", () => {
 		await waitFor(() => expect(screen.queryByText("Login form")).toBeNull());
 		expect(screen.getByText("Token API")).toBeInTheDocument();
 		await user.clear(screen.getByRole("textbox", { name: "Search" }));
-		await user.click(screen.getByRole("button", { name: "qa" }));
+		await user.click(screen.getByRole("button", { name: "Tester" }));
 		await waitFor(() => expect(screen.queryByText("Token API")).toBeNull());
-		await user.click(screen.getByRole("button", { name: "qa" }));
+		await user.click(screen.getByRole("button", { name: "Tester" }));
 
 		await user.click(await screen.findByRole("checkbox", { name: "Select Token API" }));
 		await user.click(screen.getByRole("checkbox", { name: "Select Login form" }));

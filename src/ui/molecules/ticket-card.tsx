@@ -67,6 +67,7 @@ export function TicketCard({
 					type="button"
 					draggable
 					aria-current={selected ? "true" : undefined}
+					aria-keyshortcuts="Shift+ArrowLeft Shift+ArrowRight"
 					onClick={onOpen}
 					onDragStart={(e) => {
 						e.dataTransfer.setData("text/plain", itemKey);

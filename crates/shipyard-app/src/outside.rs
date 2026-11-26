@@ -13,10 +13,11 @@ use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use shipyard_mcp::outside::{self, Outside, RightsPort, Switches, TicketPort};
+use shipyard_mcp::outside::{self, Outside, RefPort, RightsPort, Switches, TicketPort};
 use shipyard_mcp::server::Server;
 use shipyard_mcp::session::Binding;
 use shipyard_mcp::tools::agent::{AgentEvent, AgentEvents};
+use shipyard_mcp::tools::read_ref::{self, ReadRef};
 use shipyard_mcp::transport::Http;
 use shipyard_store::project::write_atomic;
 use specta::Type;
@@ -214,6 +215,27 @@ fn ticket_tool(name: &str, args: &Value) -> Result<String, String> {
     }
 }
 
+/// `ref_read` reads the ref index of the active project, as `read_ref` of a run does (`refs`
+/// REQ-015). The area check and the backlink filter run in the server.
+fn ref_tool(text: &str) -> Result<ReadRef, String> {
+    use tauri::Manager;
+    let app = APP
+        .get()
+        .ok_or("Shipyard is not open. Open the Shipyard app and call again.")?;
+    ref_in(&app.state::<AppState>(), text)
+}
+
+fn ref_in(s: &AppState, text: &str) -> Result<ReadRef, String> {
+    let id = s
+        .registry()?
+        .active()
+        .map(|e| e.id.clone())
+        .ok_or("No project is open. Open a project in Shipyard and call again.")?;
+    let shared = s.index_of(&id)?;
+    let index = shared.lock().unwrap_or_else(|e| e.into_inner());
+    read_ref::read_ref(&index, text)
+}
+
 fn scan_text(found: Vec<shipyard_store::code::ScanFinding>, none: &str) -> String {
     if found.is_empty() {
         return none.into();
@@ -307,6 +329,7 @@ fn start(dir: &Path, g: &McpGates) -> Result<(), String> {
             only: only.clone(),
             rights: Some(RightsPort(Arc::new(rights_tool))),
             tickets: Some(TicketPort(Arc::new(ticket_tool))),
+            refs: Some(RefPort(Arc::new(ref_tool))),
             hidden: hidden_areas(),
         })
     });
@@ -345,6 +368,7 @@ pub fn status(s: &AppState) -> McpOutside {
         only: g.allowed_tools.clone(),
         rights: None,
         tickets: None,
+        refs: None,
         hidden: Vec::new(),
     };
     McpOutside {
@@ -548,6 +572,31 @@ mod tests {
         let mode = std::fs::metadata(&path).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o600);
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "secret");
+    }
+
+    #[test]
+    fn the_ref_port_reads_the_index_of_the_active_project() {
+        use shipyard_store::ref_index::Entity;
+        let dir = tempfile::tempdir().unwrap();
+        let s = AppState::new(dir.path().join("data"));
+        let err = ref_in(&s, "adr:0011").err().unwrap();
+        assert!(err.contains("Open a project"), "{err}");
+        let root = dir.path().join("p");
+        shipyard_git::project::init(&root).unwrap();
+        crate::commands::projects::open(&s, root.to_str().unwrap()).unwrap();
+        let id = s.registry().unwrap().active().unwrap().id.clone();
+        let adr = Entity::new("adr:0011", "Use SQLite", Some("accepted"), None);
+        s.index_of(&id)
+            .unwrap()
+            .lock()
+            .unwrap()
+            .set_source("file:a", "1", &[adr], &[])
+            .unwrap();
+        assert_eq!(
+            ref_in(&s, "adr:0011").unwrap().resolved.title.as_deref(),
+            Some("Use SQLite")
+        );
+        assert!(ref_in(&s, "nope").err().unwrap().starts_with("not a ref"));
     }
 
     #[test]

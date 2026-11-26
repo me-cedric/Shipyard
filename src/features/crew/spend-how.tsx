@@ -13,6 +13,7 @@ import { ATTENTION_FILL } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
+import { percent } from "./spend-const";
 import { BackToSpend, toSpend, usePrices } from "./spend-parts";
 import { useSuccess } from "./spend-usage";
 
@@ -66,7 +67,7 @@ function LoadBars() {
  * `run`) and the use of this machine. The tiles and the usage tables are on `page=usage`, from More.
  */
 export function SpendHow({ run }: { run: string | null }) {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const s = t.factory.spendPage;
 	const navigate = useNavigate();
 	const { price, menu } = usePrices();
@@ -88,7 +89,7 @@ export function SpendHow({ run }: { run: string | null }) {
 				<Card pad className="flex flex-[1_1_18rem] flex-col gap-3.5">
 					<h2 className="text-13 font-semibold text-n-11">{t.factory.successRate}</h2>
 					<span className="text-44 leading-none font-semibold text-n-12">
-						{ended.length ? `${Math.round((won / ended.length) * 100)} %` : "-"}
+						{ended.length ? percent(Math.round((won / ended.length) * 100), lang) : "-"}
 					</span>
 					<div
 						role="img"

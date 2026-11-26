@@ -5,6 +5,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { ArrowDownTrayIcon, ArrowPathIcon } from "@/ui/icons";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 
 // The cache key of Settings / Connections, so a detect there shows here.
 const key = ["runners", "list"] as const;
@@ -30,7 +31,7 @@ export function NoCli({
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const [busy, setBusy] = useState<string | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const detect = () => qc.invalidateQueries({ queryKey: key });
 	const install = async (id: string) => {
 		setBusy(id);
@@ -39,7 +40,7 @@ export function NoCli({
 			await unwrap(commands.runnerInstall(id, true));
 			await detect();
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		} finally {
 			setBusy(null);
 		}
@@ -74,11 +75,7 @@ export function NoCli({
 					</li>
 				))}
 			</ul>
-			{error ? (
-				<p role="alert" className="text-12 text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={error} />
 			<Button variant="ghost" onClick={() => void detect()}>
 				<ArrowPathIcon size={14} />
 				{t.assistant.noCli.detect}

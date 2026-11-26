@@ -25,7 +25,7 @@ export const onboardingDe: typeof onboardingEn = {
 		},
 		ai: {
 			title: "KI-Tool wählen",
-			body: "Claude Code oder Codex erledigt die Arbeit, im Rahmen des Budgets und der Limits, die Sie festlegen.",
+			body: "Ein KI-Tool erledigt die Arbeit, im Rahmen des Budgets und der Limits, die Sie festlegen.",
 		},
 		permissions: {
 			title: "Erlauben, was Shipyard braucht",
@@ -52,6 +52,19 @@ export const onboardingDe: typeof onboardingEn = {
 			spec: "Erste Spezifikation",
 			assign: "Erstes Ticket für eine Person",
 			run: "Erste Arbeit eines Agenten",
+		},
+		next: {
+			project: "Ein Projekt öffnen",
+			ai: "Das KI-Tool wählen",
+			models: "Die Modelle wählen",
+			tracker: "Das Ticketsystem verbinden",
+			forge: "Die Code-Plattform verbinden",
+			team: "Das Team einrichten",
+			permissions: "Die Berechtigungen prüfen",
+			decision: "Die erste Entscheidung schreiben",
+			spec: "Die erste Spezifikation schreiben",
+			assign: "Ein Ticket an eine Person geben",
+			run: "Die erste Arbeit eines Agenten starten",
 		},
 		action: {
 			project: "Neues Projekt",

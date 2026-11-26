@@ -134,7 +134,7 @@ describe("Crew / Sessions: Take control of a session of this computer", () => {
 		const write = vi.spyOn(commands, "terminalWrite");
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/crew/sessions");
-		await user.click(await screen.findByRole("button", { name: "Take control of codex beta" }));
+		await user.click(await screen.findByRole("button", { name: "Take control of Add the export" }));
 		await waitFor(() =>
 			expect(mockState().machine.sessions.some((x) => x.pid === 4188)).toBe(false),
 		);
@@ -152,7 +152,7 @@ describe("Crew / Sessions: Take control of a session of this computer", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mockState().confirm = false;
 		mountApp("/crew/sessions");
-		await user.click(await screen.findByRole("button", { name: "Take control of claude alpha" }));
+		await user.click(await screen.findByRole("button", { name: "Take control of Fix the login" }));
 		expect(mockState().machine.sessions.some((x) => x.pid === 4101)).toBe(true);
 		expect(screen.getAllByRole("button", { name: /^Take control of / })).toHaveLength(2);
 	});

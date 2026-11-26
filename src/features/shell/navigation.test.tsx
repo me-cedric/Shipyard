@@ -21,10 +21,39 @@ describe("navigation (W15 M8)", () => {
 		mountApp("/design/architecture");
 		await waitFor(() => expect(document.title).toBe(`${en.tabs.design.architecture} · Shipyard`));
 		expect(
-			screen.getByText(en.tabs.design.architecture, { selector: "[aria-live]" }),
+			await screen.findByText(new RegExp(en.tabs.design.architecture), { selector: "[aria-live]" }),
 		).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Skip to the content" }));
 		expect(screen.getByRole("main")).toHaveFocus();
+	});
+
+	it("puts the h1 of the page that is drawn in the title", async () => {
+		mountApp("/design/architecture");
+		await waitFor(() => expect(document.title).toContain("Shipyard"));
+		const main = await screen.findByRole("main");
+		const h1 = await waitFor(() => {
+			const found = main.querySelector("h1");
+			if (!found) throw new Error("no h1");
+			return found;
+		});
+		h1.textContent = "Late title";
+		await waitFor(() =>
+			expect(document.title).toBe(`Late title · ${en.tabs.design.architecture} · Shipyard`),
+		);
+	});
+
+	it("does not announce again when the h1 changes without a move", async () => {
+		mountApp("/design/architecture");
+		const live = await waitFor(() => {
+			const found = document.querySelector<HTMLElement>("[aria-live]");
+			if (!found?.textContent) throw new Error("not announced");
+			return found;
+		});
+		const said = live.textContent;
+		const h1 = screen.getByRole("main").querySelector("h1") as HTMLElement;
+		h1.textContent = "Late title";
+		await waitFor(() => expect(document.title).toContain("Late title"));
+		expect(live.textContent).toBe(said);
 	});
 
 	it("goes back and forward with the buttons and with Mod plus brackets", async () => {

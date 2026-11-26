@@ -141,7 +141,7 @@ fn the_other_workflows_match_the_spec() {
 }
 
 #[test]
-fn every_role_states_its_tier_the_report_limit_and_the_style_contract() {
+fn every_role_states_its_tier_the_report_limit_and_the_report_style() {
     let tier = |n: &str| match n {
         "planner" | "reviewer" => ("top", Effort::High),
         "worker" | "tester" | "docs" => ("mid", Effort::Medium),
@@ -153,13 +153,7 @@ fn every_role_states_its_tier_the_report_limit_and_the_style_contract() {
         assert_eq!(r.model.as_deref(), Some(model), "{name}");
         assert_eq!(r.effort, Some(effort), "{name}");
         assert!(!r.description.is_empty(), "{name}");
-        for needle in [
-            "400 words",
-            "`ponytail`",
-            "`i-have-adhd`",
-            "`caveman`",
-            "`asd-ste100`",
-        ] {
+        for needle in ["400 words", "plain, short sentences"] {
             assert!(r.prompt.contains(needle), "{name}: {needle}");
         }
     }

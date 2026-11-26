@@ -14,6 +14,7 @@ import { Button } from "@/ui/atoms/button";
 import { linkClass } from "@/ui/atoms/link-button";
 import { ArrowPathIcon } from "@/ui/icons";
 import { BranchSelector } from "./branch-selector";
+import { flatRows } from "./tree";
 
 type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 
@@ -26,11 +27,7 @@ export function syncState(
 	changes: Changes,
 	failed: boolean,
 ): { text: string; tone: Tone } {
-	const changed =
-		changes.staged.length +
-		changes.unstaged.length +
-		changes.untracked.length +
-		changes.conflicted.length;
+	const changed = flatRows(changes).length;
 	if (failed) return { text: t.forge.mark.error, tone: "danger" };
 	if (changed)
 		return {
@@ -61,22 +58,18 @@ export function SyncMark({
 	push: Action;
 	commit: Action;
 }) {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const [open, setOpen] = useState(false);
 	const changes = useChanges().data;
 	const { syncing, syncFailure } = useShell();
 	const failed = useErrorNotice(syncFailure);
 	const watch = useWatchNotice().data?.changes[0];
 	// The links to the changes show with Code / Now (`spec:app-redesign#REQ-006`).
-	const seesCode = !hiddenSection(useRights().level, "code", "now");
+	const { can, level } = useRights();
+	const seesCode = !hiddenSection(level, "code", "now");
 	const state = changes ? syncState(t, changes, !!syncFailure) : null;
-	const changed = changes
-		? changes.staged.length +
-			changes.unstaged.length +
-			changes.untracked.length +
-			changes.conflicted.length
-		: 0;
-	const n = (v: number) => v.toLocaleString();
+	const changed = changes ? flatRows(changes).length : 0;
+	const n = (v: number) => v.toLocaleString(lang);
 	// "Changes: {added} lines added, {removed} removed": the text around the two numbers.
 	const lines = t.shell.lines.split(/\{added\}|\{removed\}/);
 	const notice = watch
@@ -162,16 +155,27 @@ export function SyncMark({
 									{a.label}
 								</Button>
 							))}
-							<Button
-								disabled={commit.disabled}
-								onClick={() => {
-									// The commit dialog takes the place of the card.
-									setOpen(false);
-									commit.run();
-								}}
-							>
-								{commit.label}
-							</Button>
+							{seesCode && commit.disabled && changed > 0 && can("code.write") ? (
+								// Nothing is chosen yet: the page of the changes is where the files are picked.
+								<Link
+									to="/code/changes"
+									className={`${linkClass} inline-flex min-h-control items-center`}
+									onClick={() => setOpen(false)}
+								>
+									{commit.label}
+								</Link>
+							) : (
+								<Button
+									disabled={commit.disabled}
+									onClick={() => {
+										// The commit dialog takes the place of the card.
+										setOpen(false);
+										commit.run();
+									}}
+								>
+									{commit.label}
+								</Button>
+							)}
 						</div>
 						{notice ? <p>{notice}</p> : null}
 						{failed ? <p className="text-danger-text">{failed.message}</p> : null}

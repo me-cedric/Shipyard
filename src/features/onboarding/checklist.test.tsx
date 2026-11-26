@@ -82,7 +82,7 @@ describe("Get started checklist", () => {
 		await allButTeam();
 		const router = mountApp("/home/today");
 		const today = await card();
-		expect(await today.findByText(s.item.team)).toBeInTheDocument();
+		expect(await today.findByText(s.next.team)).toBeInTheDocument();
 		await user.click(today.getByRole("link", { name: o.continue }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/start"));
 		expect((await steps()).getAllByRole("button")).toHaveLength(ITEMS.length);
@@ -173,19 +173,17 @@ describe("Get started checklist", () => {
 		expect(await screen.findByRole("textbox", { name: "Handle" })).toBeInTheDocument();
 	});
 
-	it("offers Install and the runner page when no AI tool is set", async () => {
+	it("offers no Install when no AI tool is picked, and the runner page is a scope", async () => {
 		const user = userEvent.setup();
 		await allButTeam();
 		mockState().prefs.defaultAgent = "";
 		const router = mountApp("/setup/start");
 		await pick(user, "ai");
-		expect(
-			await screen.findByRole("button", { name: "Install GitHub Copilot" }),
-		).toBeInTheDocument();
-		// The step has one main action; the door to the AI tools is the scope This computer.
 		const [computer] = await screen.findAllByRole("link", {
 			name: new RegExp(`^${s.scope.computer}`),
 		});
+		// No tile is picked: the tiles are the only choice, with no main action.
+		expect(screen.queryByRole("button", { name: /^Install / })).not.toBeInTheDocument();
 		await user.click(computer as HTMLElement);
 		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/computer"));
 		expect(await screen.findByRole("region", { name: en.connections.group.runner })).toBeVisible();

@@ -10,9 +10,9 @@ const exportFrom = async (user: ReturnType<typeof userEvent.setup>, name: string
 	await user.click(await screen.findByRole("button", { name: "More" }));
 	await user.click(await screen.findByRole("menuitem", { name }));
 };
-/** Rename and Delete are in the "More" menu of the card of the document. */
+/** Rename and Delete are in the "More" menu of the page. */
 const cardAction = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
-	await user.click(await screen.findByRole("button", { name: "More Client brief" }));
+	await user.click((await screen.findAllByRole("button", { name: "More" }))[0] as HTMLElement);
 	await user.click(await screen.findByRole("menuitem", { name }));
 };
 
@@ -121,9 +121,11 @@ describe("Knowledge / Documents", () => {
 		await cardAction(user, "Rename");
 		const dialog = within(await screen.findByRole("dialog"));
 		const name = dialog.getByRole("textbox", { name: "Name" });
+		// The dialog keeps the extension: the name holds the stem only.
 		await user.clear(name);
-		await user.type(name, "brief.md");
-		await user.click(dialog.getByRole("button", { name: "Save" }));
+		await user.type(name, "brief");
+		await user.click(dialog.getByRole("button", { name: "Review" }));
+		await user.click(await dialog.findByRole("button", { name: "Rename" }));
 		const files = () => mockState().knowledge.files;
 		await waitFor(() => expect(files()["docs/documents/brief.md"]).toBeDefined());
 		expect(files()["docs/documents/client-brief.md"]).toBeUndefined();
@@ -137,14 +139,10 @@ describe("Knowledge / Documents", () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
 		await user.click(await screen.findByRole("button", { name: /^Client brief/ }));
-		await cardAction(user, "Delete");
-		const dialog = within(
-			await screen.findByRole("dialog", {
-				name: /Move docs\/documents\/client-brief\.md to the trash/,
-			}),
-		);
 		expect(mockState().knowledge.files["docs/documents/client-brief.md"]).toBeDefined();
-		await user.click(dialog.getByRole("button", { name: "Move to trash" }));
+		await cardAction(user, "Delete");
+		// The file stays until the person confirms; the mock confirms at once and keeps the question.
+		expect(mockState().asked.join("\n")).toContain("docs/documents/client-brief.md");
 		await waitFor(() =>
 			expect(mockState().knowledge.files["docs/documents/client-brief.md"]).toBeUndefined(),
 		);

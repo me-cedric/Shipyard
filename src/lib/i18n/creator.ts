@@ -62,14 +62,14 @@ export const creatorEn = {
 	issuesCreated: "{count} issues created",
 	guided: {
 		name: "Name",
-		kind: "Kind of product",
+		kind: "Technology",
 		tools: "Tools",
 		team: "Team",
 		ready: "Ready",
 	},
 	ask: {
 		name: "What is the name of the project?",
-		kind: "What do you build?",
+		kind: "Which technology do you use?",
 		tools: "Which tools do you use?",
 		team: "Who is in the team?",
 	},
@@ -144,14 +144,14 @@ export const creatorFr: typeof creatorEn = {
 	issuesCreated: "{count} tickets créés",
 	guided: {
 		name: "Nom",
-		kind: "Type de produit",
+		kind: "Technologie",
 		tools: "Outils",
 		team: "Équipe",
 		ready: "Prêt",
 	},
 	ask: {
 		name: "Quel est le nom du projet ?",
-		kind: "Que construisez-vous ?",
+		kind: "Quelle technologie utilisez-vous ?",
 		tools: "Quels outils utilisez-vous ?",
 		team: "Qui est dans l'équipe ?",
 	},

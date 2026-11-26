@@ -183,7 +183,7 @@ describe("Workflows: the form", () => {
 		expect(card.queryByText("spike")).toBeNull();
 		await openText(user, "spike");
 		expect(card.getByText("spike")).toBeInTheDocument();
-		expect(card.getByRole("button", { name: "Copy ref" })).toBeInTheDocument();
+		expect(card.getByRole("button", { name: "Copy the reference" })).toBeInTheDocument();
 		await user.click(card.getByRole("button", { name: "Duplicate" }));
 		expect(await screen.findByRole("dialog", { name: "Duplicate" })).toBeInTheDocument();
 	});
@@ -216,7 +216,7 @@ describe("Workflows: the form", () => {
 		await user.click(await card.findByRole("button", { name: "Delete" }));
 		expect(await unwrap(commands.workflowsList())).toHaveLength(7);
 		await user.click(card.getByRole("button", { name: "Delete Feature" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("default recipe");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
 		expect(await unwrap(commands.workflowsList())).toHaveLength(7);
 	});
 

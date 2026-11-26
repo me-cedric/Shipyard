@@ -28,6 +28,9 @@ export const FILE_MARK: Record<
 	conflicted: { letter: "!", variant: "warning" },
 };
 
+/** The inset of a row of a file tree: each folder level adds the same step. */
+export const indent = (depth: number) => `${0.5 + depth}rem`;
+
 /**
  * One changed file, or one folder when `state` is absent. The row selects the file for its diff.
  * The checkbox adds it to a selection.
@@ -65,7 +68,7 @@ export function FileRow({
 			<div
 				data-selected={selected || undefined}
 				className="flex min-h-row items-center gap-2 pr-2 data-[selected]:bg-n-4 hover:bg-n-3"
-				style={{ paddingLeft: `${0.5 + depth}rem` }}
+				style={{ paddingLeft: indent(depth) }}
 			>
 				{check ? (
 					<Checkbox

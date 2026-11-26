@@ -9,7 +9,7 @@ const DOC = "docs/designs/design.md";
 const row = async (name: string | RegExp) =>
 	within(await screen.findByRole("list", { name: "Screens" })).findByRole("button", { name });
 const openTokens = async (user: ReturnType<typeof userEvent.setup>) =>
-	user.click(await screen.findByRole("button", { name: "Tokens" }));
+	user.click(await screen.findByRole("button", { name: "Design tokens" }));
 const main = async () => within(await screen.findByRole("main"));
 
 describe("Design / Screens", () => {
@@ -19,7 +19,7 @@ describe("Design / Screens", () => {
 		expect(within(list).getAllByRole("listitem")).toHaveLength(2);
 		expect(within(list).getByRole("button", { name: /Home/ })).toHaveTextContent("Built");
 		expect(within(list).getByRole("button", { name: /Checkout/ })).toHaveTextContent("Broken link");
-		expect(screen.getByRole("button", { name: "Tokens" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Design tokens" })).toBeInTheDocument();
 	});
 
 	it("shows the artifacts of a screen and opens its design link outside the app", async () => {
@@ -134,14 +134,14 @@ describe("Design / Screens", () => {
 		files()["src/tokens.css"] = { text: ":root { --brand: #123456; --gap: 4px; }", stamp: "1" };
 		await mountDesign(<Screens />);
 		await openTokens(user);
-		const region = await screen.findByRole("region", { name: "Tokens" });
+		const region = await screen.findByRole("region", { name: "Design tokens" });
 		// It scrolls, so the keyboard reaches it.
 		expect(region).toHaveAttribute("tabindex", "0");
 		const tokens = within(region);
 		expect(await tokens.findByRole("heading", { name: "src/tokens.css (2)" })).toBeInTheDocument();
 		expect(tokens.getByText("--brand").closest("li")).toHaveTextContent("#123456");
 		expect(tokens.queryByText("--accent")).toBeNull();
-		expect(tokens.queryByText("No tokens yet")).toBeNull();
+		expect(tokens.queryByText("No design tokens")).toBeNull();
 		// The view reads: the design doc stays as it was.
 		await showText(user);
 		expect(await screen.findByRole("textbox", { name: "Design doc text" })).toHaveValue(
@@ -155,8 +155,8 @@ describe("Design / Screens", () => {
 		files()[DOC] = { text: "# Design\n", stamp: "1" };
 		await mountDesign(<Screens />);
 		await openTokens(user);
-		const region = within(await screen.findByRole("region", { name: "Tokens" }));
-		expect(await region.findByText("No tokens yet")).toBeInTheDocument();
+		const region = within(await screen.findByRole("region", { name: "Design tokens" }));
+		expect(await region.findByText("No design tokens")).toBeInTheDocument();
 		// The doc opens on the tokens alone; the starter block goes in the text, so the text shows.
 		expect(screen.queryByRole("textbox", { name: "Design doc text" })).toBeNull();
 		await user.click(region.getByRole("button", { name: "Add tokens to the design doc" }));

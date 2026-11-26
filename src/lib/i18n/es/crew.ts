@@ -34,8 +34,6 @@ export const crewEs: typeof crewEn = {
 	atWorkOne: "1 agente trabajando",
 	addPerson: "Añadir una persona",
 	daysInWeek: "Días por semana",
-	stepLess: "{label}, menos",
-	stepMore: "{label}, más",
 	add: "Añadir",
 	change: "Cambiar",
 	extra: "Derechos de más",

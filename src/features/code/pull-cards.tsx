@@ -145,7 +145,7 @@ export function FocusThread({
 					setBody("");
 				});
 			}}
-			className={cn("flex flex-col gap-3 rounded-[14px] bg-n-2 p-4", className)}
+			className={cn("flex flex-col gap-3 rounded-field bg-n-2 p-4", className)}
 		>
 			{th.commentsTotal > th.comments.length ? (
 				<p className="text-13 text-n-11">

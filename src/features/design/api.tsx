@@ -36,8 +36,9 @@ import {
 	LibraryPage,
 	ListCard,
 	ListColumn,
+	NoMatch,
 	PageColumns,
-} from "../library/page-parts";
+} from "@/ui/templates/library-page";
 import { FileFrame, type Frame } from "./frame";
 import {
 	DesignGate,
@@ -59,6 +60,12 @@ type Endpoint = { id: string; a: Artifact; doc: ApiDoc; op: ApiOp };
  * The try panel of one operation. A GET goes out at once. Any other method waits for one click
  * on the dialog that names the server (Q-039, option 1).
  */
+/** A slug as words with a capital: `add-export` gives "Add export". */
+const words = (slug: string) => {
+	const w = slug.replace(/[-_]+/g, " ");
+	return w.charAt(0).toUpperCase() + w.slice(1);
+};
+
 function Try({ a, op, doc }: { a: Artifact; op: ApiOp; doc: ApiDoc }) {
 	const { t } = useI18n();
 	const act = useDesignActions();
@@ -130,7 +137,7 @@ function EndpointCard({ op, refId }: { op: ApiOp; refId: string }) {
 	const changes = (useBacklinks(refId).data ?? [])
 		.filter((g) => g.kind === "change")
 		.flatMap((g) => g.items);
-	const block = "flex flex-col gap-2 rounded-[14px] bg-n-3 p-4";
+	const block = "flex flex-col gap-2 rounded-field bg-n-3 p-4";
 	return (
 		<Card pad className="flex flex-col gap-3.5">
 			<section aria-label={`${op.method} ${op.path}`} className="contents">
@@ -144,12 +151,10 @@ function EndpointCard({ op, refId }: { op: ApiOp; refId: string }) {
 						{op.parameters.map((p) => (
 							<li
 								key={`${p.in}.${p.name}`}
-								className="flex flex-wrap items-center gap-3 rounded-[14px] bg-n-3 px-4 py-3"
+								className="flex flex-wrap items-center gap-3 rounded-field bg-n-3 px-4 py-3"
 							>
 								<span className="font-mono font-semibold">{p.name}</span>
-								<span className="min-w-0 flex-1 text-n-11">
-									{p.description || `${p.in} ${p.type}`}
-								</span>
+								<span className="min-w-0 flex-1 text-n-11">{p.description}</span>
 								{(p.options ?? []).map((o) => (
 									<Badge key={o}>{o}</Badge>
 								))}
@@ -176,7 +181,7 @@ function EndpointCard({ op, refId }: { op: ApiOp; refId: string }) {
 							return to ? (
 								<li key={b.source}>
 									<Link {...to} className={cn(linkClass, "min-h-control")}>
-										{b.title || b.source.slice(b.source.indexOf(":") + 1)}
+										{b.title || words(b.source.slice(b.source.indexOf(":") + 1))}
 									</Link>
 								</li>
 							) : null;
@@ -324,6 +329,12 @@ export function Api() {
 								value={query}
 								onChange={(e) => setQuery(e.target.value)}
 							/>
+							{q &&
+							!endpoints.some((e) =>
+								`${e.op.method} ${e.op.path} ${e.op.summary}`.toLowerCase().includes(q),
+							) ? (
+								<NoMatch onClear={() => setQuery("")} />
+							) : null}
 							<ul aria-label={p.endpoints} className="flex flex-col gap-2.5">
 								{endpoints
 									.filter((e) =>

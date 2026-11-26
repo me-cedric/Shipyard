@@ -2,6 +2,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
+import { dateLocale } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import {
 	isDay,
@@ -57,7 +58,7 @@ export function usePlanSheet(title: string) {
 					<EmptyState
 						title={t.empty.sprint}
 						action={{
-							label: t.planPlace.views.estimates,
+							label: t.planPlace.openEstimates,
 							onClick: () => void navigate({ to: "/plan/estimates" }),
 						}}
 					/>
@@ -81,7 +82,7 @@ export function usePlainDay() {
 	// The English of the app puts the day first, as the design does.
 	return (day: string) =>
 		isDay(day)
-			? new Date(`${day}T00:00:00Z`).toLocaleDateString(lang === "en" ? "en-GB" : lang, {
+			? new Date(`${day}T00:00:00Z`).toLocaleDateString(dateLocale(lang), {
 					day: "numeric",
 					month: "short",
 					timeZone: "UTC",

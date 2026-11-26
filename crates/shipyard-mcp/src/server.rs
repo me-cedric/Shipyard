@@ -123,7 +123,11 @@ impl Server {
     pub fn handle(&self, token: &str, request: &Value) -> Option<Value> {
         let id = request.get("id").cloned()?;
         let Some(session) = self.sessions.resolve(token) else {
-            return Some(error(id, -32001, "unauthorized: the token is not valid"));
+            return Some(error(
+                id,
+                -32001,
+                "unauthorized: the token is not valid. An outside agent sets SHIPYARD_MCP_TOKEN to the token of Setup / This computer / Share (Copy access token), then starts again. A run agent stops.",
+            ));
         };
         let method = request.get("method").and_then(Value::as_str).unwrap_or("");
         let params = request.get("params").unwrap_or(&Value::Null);
@@ -136,7 +140,11 @@ impl Server {
                     "resources": { "subscribe": false, "listChanged": false }
                 },
                 "serverInfo": { "name": "shipyard", "version": env!("CARGO_PKG_VERSION") },
-                "instructions": "Shipyard run tools. Call report when your step ends. Call ask_question when a person must decide."
+                "instructions": if session.allows("report") {
+                    "Shipyard run tools. Call report when your step ends. Call ask_question when a person must decide."
+                } else {
+                    "Shipyard project tools. Read with project_read_file, and read a ref with ref_read. Each group is a switch in Setup / This computer / Share."
+                }
             }),
             "ping" => json!({}),
             "tools/list" => {
@@ -159,12 +167,12 @@ impl Server {
             }
             "tools/call" => self.call(&session, params),
             "prompts/list" => {
-                json!({ "prompts": self.readable(&session).map(|o| outside::prompts(&o)).unwrap_or_default() })
+                json!({ "prompts": self.readable(&session, "project_read_file").map(|o| outside::prompts(&o)).unwrap_or_default() })
             }
             "prompts/get" => {
                 let name = params.get("name").and_then(Value::as_str).unwrap_or("");
                 let got = self
-                    .readable(&session)
+                    .readable(&session, "project_read_file")
                     .ok_or_else(|| {
                         "no prompts: the read tools are off or no project is open".to_string()
                     })
@@ -175,16 +183,19 @@ impl Server {
                 }
             }
             "resources/list" => {
-                json!({ "resources": self.readable(&session).map(|o| outside::resources(&o)).unwrap_or_default() })
+                json!({ "resources": self.readable(&session, "project_read_file").map(|o| outside::resources(&o)).unwrap_or_default() })
             }
             "resources/templates/list" => {
-                let mut templates = vec![json!({
-                    "uriTemplate": format!("{REF_URI}{{ref}}"),
-                    "name": "ref",
-                    "description": "A ref such as spec:auth#REQ-003, percent-encoded.",
-                    "mimeType": "application/json"
-                })];
-                if self.readable(&session).is_some() {
+                let mut templates = Vec::new();
+                if session.allows("read_ref") || self.readable(&session, "ref_read").is_some() {
+                    templates.push(json!({
+                        "uriTemplate": format!("{REF_URI}{{ref}}"),
+                        "name": "ref",
+                        "description": "A ref such as spec:auth#REQ-003, percent-encoded.",
+                        "mimeType": "application/json"
+                    }));
+                }
+                if self.readable(&session, "project_read_file").is_some() {
                     templates.push(json!({
                         "uriTemplate": format!("{}{{path}}", outside::FILE_URI),
                         "name": "file",
@@ -248,10 +259,7 @@ impl Server {
         }
         if outside::NAMES.contains(&name) {
             if !session.allows(name) {
-                return tool_error(format!(
-                    "the step {} may not call {name}",
-                    session.binding.step
-                ));
+                return tool_error(format!("this session may not call {name}"));
             }
             if let Err(why) = self.admit(session, size) {
                 return tool_error(why);
@@ -302,21 +310,21 @@ impl Server {
     }
 
     /// The open project, when this session may call the read tool and the settings allow it.
-    fn readable(&self, session: &Session) -> Option<Outside> {
-        if !session.allows("project_read_file") {
+    fn readable(&self, session: &Session, tool: &str) -> Option<Outside> {
+        if !session.allows(tool) {
             return None;
         }
         self.outside
             .as_ref()
             .and_then(|f| f())
-            .filter(|o| o.allows("project_read_file"))
+            .filter(|o| o.allows(tool))
     }
 
     fn read(&self, session: &Session, params: &Value) -> Result<Value, String> {
         let uri = params.get("uri").and_then(Value::as_str).unwrap_or("");
         if let Some(path) = uri.strip_prefix(outside::FILE_URI).and_then(decode) {
             let o = self
-                .readable(session)
+                .readable(session, "project_read_file")
                 .ok_or("the read tools are off, or no project is open")?;
             self.admit(session, path.len())?;
             return outside::read_resource(&o, uri, &path);
@@ -326,10 +334,24 @@ impl Server {
             .and_then(decode)
             .ok_or_else(|| format!("unknown resource: {uri}"))?;
         if !session.allows("read_ref") {
-            return Err(format!(
-                "the step {} may not read refs",
-                session.binding.step
-            ));
+            // An outside agent reads a ref through `ref_read`: the same switch and area rules.
+            if !session.allows("ref_read") {
+                return Err(format!(
+                    "the step {} may not read refs",
+                    session.binding.step
+                ));
+            }
+            let o = self
+                .outside
+                .as_ref()
+                .and_then(|f| f())
+                .ok_or("No project is open. Open a project in Shipyard and call again.")?;
+            self.admit(session, reference.len())?;
+            let got = outside::call(&o, "ref_read", &json!({ "ref": reference }))?;
+            let text = got["content"][0]["text"].as_str().unwrap_or_default();
+            return Ok(
+                json!({ "contents": [{ "uri": uri, "mimeType": "application/json", "text": text }] }),
+            );
         }
         self.admit(session, reference.len())?;
         let event = agent::parse("read_ref", &json!({ "ref": reference }), 0)?;

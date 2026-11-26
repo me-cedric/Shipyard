@@ -43,7 +43,7 @@ export function ContextMenu({ items, children }: { items?: MenuItem[]; children:
 				{children}
 			</BaseContextMenu.Trigger>
 			<BaseContextMenu.Portal>
-				<BaseContextMenu.Positioner className="z-50">
+				<BaseContextMenu.Positioner className="z-(--z-popup)">
 					<BaseContextMenu.Popup className={MENU_POPUP}>
 						{items.map((item) => (
 							<Fragment key={item.id}>

@@ -74,7 +74,7 @@ describe("Code / Terminal", () => {
 
 	it("shows the refusal for a folder outside the project", async () => {
 		view("../x");
-		expect(await screen.findByRole("alert")).toHaveTextContent("not a folder of the project");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
 	});
 
 	it("ends the shell when the panel closes", async () => {
@@ -88,6 +88,6 @@ describe("Code / Terminal", () => {
 		off();
 		await waitFor(() => expect(fake.disposed).toBe(true));
 		const out = await commands.terminalWrite(id, "x");
-		expect(out).toMatchObject({ status: "error", error: "that terminal is closed" });
+		expect(out).toMatchObject({ status: "error", error: { details: "that terminal is closed" } });
 	});
 });

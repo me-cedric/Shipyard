@@ -73,9 +73,7 @@ export const doctorEn = {
 		shows: "What the issue tracker shows for each step",
 		states: "Every state",
 		state: "State: {name}",
-		write: "Agents may write",
 		today: "Open Today",
-		offMeans: "Off means: the agent asks in Today",
 		mark: "Mark one ticket for agents",
 		spend: "Limits of spend",
 		pickup: {
@@ -152,7 +150,7 @@ export const doctorEn = {
 		problems: "{count} problems",
 		problemOne: "1 problem",
 		problemNone: "No problem",
-		toolMissing: "{name} is missing on this machine",
+		toolMissing: "{name} is not installed on this computer",
 		details: "Details",
 		fixIt: "Fix it",
 		tools: "Tools",
@@ -307,9 +305,7 @@ export const doctorFr: typeof doctorEn = {
 		shows: "Ce que l'outil de suivi montre pour chaque étape",
 		states: "Chaque état",
 		state: "État : {name}",
-		write: "Les agents peuvent écrire",
 		today: "Ouvrir Aujourd'hui",
-		offMeans: "Désactivé : l'agent demande dans Aujourd'hui",
 		mark: "Marquer un ticket pour les agents",
 		spend: "Limites de dépense",
 		pickup: {

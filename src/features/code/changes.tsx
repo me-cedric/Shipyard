@@ -4,6 +4,7 @@ import { AutoCommit } from "@/features/settings/project/auto-commit";
 import { AutoReview } from "@/features/settings/project/auto-review";
 import {
 	type Changes as ChangesData,
+	COMMIT_TYPES,
 	type ConflictFile,
 	canCommit,
 	type DiffSide,
@@ -26,6 +27,7 @@ import { Button } from "@/ui/atoms/button";
 import { Checkbox } from "@/ui/atoms/checkbox";
 import { Input } from "@/ui/atoms/input";
 import { LinkButton, linkClass } from "@/ui/atoms/link-button";
+import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
 import { Card } from "@/ui/molecules/card";
 import { ConflictBlock, type ConflictChoice } from "@/ui/molecules/conflict-block";
@@ -112,6 +114,18 @@ export function FilesCard() {
 				<Row className="min-h-14">
 					<Link to="/code/changes" className={linkClass}>
 						{more === 1 ? t.forge.now.moreOne : format(t.forge.now.more, { count: more })}
+					</Link>
+				</Row>
+			) : null}
+			{changes.conflicted.length > 0 ? (
+				<Row className="min-h-14">
+					<span className="mr-auto">
+						{changes.conflicted.length === 1
+							? t.forge.now.conflictOne
+							: format(t.forge.now.conflicts, { count: changes.conflicted.length })}
+					</span>
+					<Link to="/code/changes" className={linkClass}>
+						{t.forge.now.solveSelf}
 					</Link>
 				</Row>
 			) : null}
@@ -257,7 +271,7 @@ export function ConflictPane({
 			<div className="flex items-center gap-2 px-3 py-1">
 				<h2 className="flex-1 truncate text-ui font-medium">{file.path}</h2>
 				{blocks.length ? (
-					<span className="font-mono text-12 text-n-11">
+					<span className="font-mono text-12 whitespace-nowrap text-n-11">
 						{format(t.code.blocksChosen, { done: chosen, total: blocks.length })}
 					</span>
 				) : null}
@@ -361,6 +375,7 @@ export function CommitBox({ changes, compact }: { changes: ChangesData; compact?
 	const { profile } = usePrefs();
 	const { failure, busy, run } = useRun();
 	const [summary, setSummary] = useState("");
+	const [kind, setKind] = useState<string>("fix");
 	const [description, setDescription] = useState("");
 	const [more, setMore] = useState(false);
 	const count = changes.staged.length;
@@ -393,12 +408,21 @@ export function CommitBox({ changes, compact }: { changes: ChangesData; compact?
 		</RightButton>
 	);
 	const message = (
-		<Input
-			label={n.message}
-			className={compact ? "flex-[1_1_200px]" : undefined}
-			value={summary}
-			onChange={(e) => setSummary(e.target.value)}
-		/>
+		<>
+			<Select
+				label={t.code.kind}
+				items={COMMIT_TYPES.map((c) => ({ value: c, label: t.code.kinds[c] }))}
+				value={kind}
+				onValueChange={setKind}
+				className="min-w-36"
+			/>
+			<Input
+				label={n.message}
+				className={compact ? "flex-[1_1_200px]" : undefined}
+				value={summary}
+				onChange={(e) => setSummary(e.target.value)}
+			/>
+		</>
 	);
 	return (
 		<form
@@ -407,7 +431,13 @@ export function CommitBox({ changes, compact }: { changes: ChangesData; compact?
 			onSubmit={(e) => {
 				e.preventDefault();
 				void run(async () => {
-					await commit(summary, description);
+					// A message with no `<type>:` start gets the chosen kind, so plain words are accepted.
+					const typed = new RegExp(`^(${COMMIT_TYPES.join("|")})(\\([^)]*\\))?:`).test(
+						summary.trim(),
+					);
+					// An empty message goes as it is: the core refuses it.
+					const plain = summary.trim() !== "" && !typed;
+					await commit(plain ? `${kind}: ${summary.trim()}` : summary, description);
 					setSummary("");
 					setDescription("");
 				});
@@ -606,7 +636,7 @@ export function WorkingCopy({ changes }: { changes: ChangesData }) {
 					) : (
 						<EmptyState
 							title={t.empty.file}
-							action={{ label: t.panels.files.toggle, onClick: () => setFilesOpen(true) }}
+							action={{ label: t.empty.showFiles, onClick: () => setFilesOpen(true) }}
 						/>
 					)}
 				</Card>

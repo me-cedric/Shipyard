@@ -117,7 +117,7 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		);
 		expect(card.getByText("Cache the project list")).toBeVisible();
 		// The step shows its display name, as the run page does (not the raw id `fix`).
-		expect(card.getByRole("img", { name: "Fix" })).toBeVisible();
+		expect(card.getByRole("img", { name: "Fixer" })).toBeVisible();
 		expect(card.getByText("Budget reached")).toBeVisible();
 		expect(card.queryByText(/^Feature · /)).toBeNull();
 		expect(card.queryByText(/\$/)).toBeNull();
@@ -181,6 +181,29 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		await user.click(card.getByRole("button", { name: exact("Write the onboarding guide") }));
 		const plan = await screen.findByRole("region", { name: "Plan" });
 		await waitFor(() => expect(plan).toHaveFocus());
+	});
+
+	it("moves the focus to the answer field of a blocked run and to Send of an approval", async () => {
+		const user = userEvent.setup();
+		const router = await renderRuns();
+		for (const [key, focused] of [
+			["ACME-9", () => document.querySelector("main form input")],
+			["ACME-2", () => document.getElementById("decision-send")],
+		] as const) {
+			const { title } = await find(key);
+			const heading = await screen.findByRole("heading", { name: exact(title) });
+			await user.click(
+				within(heading.closest("article") as HTMLElement).getByRole("button", {
+					name: exact(title),
+				}),
+			);
+			await waitFor(() => {
+				const el = focused();
+				expect(el).not.toBeNull();
+				expect(el).toHaveFocus();
+			});
+			await router.navigate({ to: "/flow/flow" });
+		}
 	});
 
 	it("shows the reason on Stop and Start run in the card menu for a viewer", async () => {

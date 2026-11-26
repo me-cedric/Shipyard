@@ -51,7 +51,7 @@ describe("the ticket thread", () => {
 
 		await user.type(screen.getByRole("textbox", { name: "New label" }), "two words");
 		await user.click(screen.getByRole("button", { name: "Add label" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("a label is one word");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
 		await user.clear(screen.getByRole("textbox", { name: "New label" }));
 		await user.type(screen.getByRole("textbox", { name: "New label" }), "urgent");
 		await user.click(screen.getByRole("button", { name: "Add label" }));

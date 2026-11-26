@@ -43,14 +43,16 @@ describe("the remote watch notice and the sync action", () => {
 		expect((await top()).getAllByRole("status")).toHaveLength(1);
 	});
 
-	it("keeps a dirty working copy, names the files and keeps the notice", async () => {
+	it("keeps a dirty working copy, says so in plain words and keeps the notice", async () => {
 		const user = userEvent.setup();
 		await withNotice();
 		mountApp("/code/now");
 		await (await top()).findByRole("status");
 		const card = await openSync(user);
 		await user.click(card.getByRole("button", { name: "Sync" }));
-		expect(await (await top()).findByRole("alert")).toHaveTextContent("src/app.ts");
+		const alert = await (await top()).findByRole("alert");
+		expect(alert).toHaveTextContent("not saved in a commit");
+		expect(alert).toHaveTextContent("src/app.ts");
 		expect(card.getByText(/src\/app\.ts/)).toBeVisible();
 		expect(screen.getAllByRole("alert")).toHaveLength(1);
 		expect(card.getByText("2 new on origin/main, Ada: feat: x")).toBeVisible();

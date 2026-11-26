@@ -21,7 +21,7 @@ function StopButton({
 	run,
 	guard,
 }: {
-	run: { id: string; key: string; stop: RunView_Serialize["stop"] };
+	run: { id: string; key: string; title?: string; stop: RunView_Serialize["stop"] };
 	guard: ReturnType<typeof useGuard>["run"];
 }) {
 	const { t } = useI18n();
@@ -42,7 +42,7 @@ function StopButton({
 			right="runs.start"
 			variant="ghost"
 			className="ml-auto min-h-control text-accent"
-			aria-label={`${label[action]} ${run.key}`}
+			aria-label={`${label[action]} ${run.title || run.key}`}
 			onClick={() =>
 				void guard(() => doStop(act, run, action, { open: (id) => openRef(`run:${id}`) }))
 			}
@@ -105,8 +105,8 @@ export function WorkingNow() {
 							variant="ghost"
 							className="px-0"
 							{...stopGate}
-							aria-label={format(t.factory.machine.stop, { name: r.key })}
-							confirm={format(t.factory.machine.confirmStop, { name: r.key })}
+							aria-label={format(t.factory.machine.stop, { name: r.title || r.key })}
+							confirm={format(t.factory.machine.confirmStop, { name: r.title || r.key })}
 							onConfirm={() => void run(() => cancel(r.id))}
 						>
 							<span className="inline-flex [&_svg]:fill-current">

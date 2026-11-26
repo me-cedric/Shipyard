@@ -125,11 +125,11 @@ test("opens the form of a report on its own page and asks for each field", async
 	await expect(page.getByRole("heading", { level: 1, name: "Change request" })).toBeVisible();
 	// An empty required field gives an error line and writes nothing.
 	await page.getByRole("button", { name: "Write the report" }).click();
-	await expect(page.getByText("Fill in each field before you write the report.")).toBeVisible();
+	await expect(page.getByText("Fill in: Title.")).toBeVisible();
 	await expect(page.getByText("Written", { exact: true })).toHaveCount(0);
 	await page.getByRole("textbox", { name: "Title" }).fill("Add billing");
 	await page.getByRole("button", { name: "Write the report" }).click();
-	await expect(page.getByText("Fill in each field before you write the report.")).toHaveCount(0);
+	await expect(page.getByText("Fill in: Title.")).toHaveCount(0);
 	await expect(page.getByText("Written", { exact: true }).first()).toBeVisible();
 	// The back link returns to Reports.
 	await page.getByRole("main").getByRole("link", { name: "Reports", exact: true }).click();
