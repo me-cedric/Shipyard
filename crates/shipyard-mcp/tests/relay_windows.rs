@@ -63,3 +63,70 @@ fn a_relay_without_the_app_answers_with_an_error_and_does_not_hang() {
     assert_eq!(answer["id"], 1);
     assert_eq!(answer["error"]["code"], -32603);
 }
+
+/// Another user of the machine cannot open the pipe: its access list is protected and holds one
+/// entry, for the owner. A test cannot sign in as a second user, so it reads the list.
+#[test]
+fn the_pipe_gives_access_to_its_owner_only() {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Foundation::LocalFree;
+    use windows_sys::Win32::Security::Authorization::{
+        ConvertSecurityDescriptorToStringSecurityDescriptorW, GetSecurityInfo, SDDL_REVISION_1,
+        SE_KERNEL_OBJECT,
+    };
+    use windows_sys::Win32::Security::DACL_SECURITY_INFORMATION;
+
+    let dir = tempfile::tempdir().unwrap();
+    let socket = socket_path(dir.path());
+    let _relay = Relay::listen(proxy(), &socket).unwrap();
+    let pipe = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(pipe_name(&socket))
+        .unwrap();
+    let mut descriptor = std::ptr::null_mut();
+    // SAFETY: the handle is open, and each out pointer is valid or null as the call allows.
+    let code = unsafe {
+        GetSecurityInfo(
+            pipe.as_raw_handle(),
+            SE_KERNEL_OBJECT,
+            DACL_SECURITY_INFORMATION,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            &mut descriptor,
+        )
+    };
+    assert_eq!(code, 0, "GetSecurityInfo");
+    let mut text = std::ptr::null_mut();
+    let mut len = 0u32;
+    // SAFETY: the descriptor comes from the call above, and both out pointers are valid.
+    let ok = unsafe {
+        ConvertSecurityDescriptorToStringSecurityDescriptorW(
+            descriptor,
+            SDDL_REVISION_1,
+            DACL_SECURITY_INFORMATION,
+            &mut text,
+            &mut len,
+        )
+    };
+    assert_ne!(
+        ok, 0,
+        "ConvertSecurityDescriptorToStringSecurityDescriptorW"
+    );
+    // SAFETY: the call gave `len` UTF-16 units at `text`.
+    let sddl = String::from_utf16_lossy(unsafe { std::slice::from_raw_parts(text, len as usize) });
+    let sddl = sddl.trim_end_matches('\0').to_string();
+    // SAFETY: both blocks come from the system and are freed once.
+    unsafe {
+        LocalFree(text.cast());
+        LocalFree(descriptor);
+    }
+    assert!(sddl.starts_with("D:P"), "the list is protected: {sddl}");
+    assert_eq!(sddl.matches("(A;").count(), 1, "one entry: {sddl}");
+    assert!(
+        sddl.contains(";;;OW)"),
+        "the entry is for the owner: {sddl}"
+    );
+}
