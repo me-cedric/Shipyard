@@ -17,13 +17,15 @@ import { Segmented } from "@/ui/atoms/segmented";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ChevronRightIcon } from "@/ui/icons";
 import { Row } from "@/ui/molecules/row";
+import { Column, Columns, SetupCard, SetupRow } from "@/ui/molecules/setup-card";
+import { Toggle } from "@/ui/molecules/setup-controls";
+import { Stepper } from "@/ui/molecules/stepper";
+import { PictureField, usePicture } from "@/ui/organisms/picture-field";
 import { Fold } from "./connections/fold";
 import { LanguageFiles, LanguageRows } from "./languages";
 import { textSizeShown } from "./look-rows";
 import { DefaultAgentSelect, DefaultModelSelect, TerminalAppSelect } from "./me/personal";
 import { ValueSelect } from "./me/value-select";
-import { Column, Columns, SetupCard, SetupRow, Stepper, Toggle } from "./parts";
-import { PictureField, usePicture } from "./picture-field";
 import { ThemeCard, ThemeFiles } from "./themes";
 
 /** Where the update check reads the latest release. It saves when the field loses focus. */

@@ -585,7 +585,7 @@ What changed:
 - Setup keeps the title "Setup". Each scope has pills for its sub-pages and two columns of cards. No door replaces the page, and no anchor bar shows.
 - New pages: `/setup/project?page=automation` and `/setup/project?page=plugins` (screen 88). The old page id `connections` of This project goes to the card on Details.
 - The health of this computer counts a missing required tool as a problem, with "Fix it". Before, it said "Nothing to fix".
-- The Setup parts are in `src/features/settings/parts/`: `Columns`, `SetupCard`, `SetupRow`, `ValueButton`, `Stepper`, `Toggle`, `StatePill`, `SetupPills`.
+- The Setup parts are in `src/ui/molecules/` (`setup-card.tsx`, `setup-controls.tsx`, `setup-pills.tsx`, `stepper.tsx`): `Columns`, `SetupCard`, `SetupRow`, `ValueButton`, `Stepper`, `Toggle`, `StatePill`, `SetupPills`.
 
 Picture check: an agent in a fresh context compared each capture with its design picture at the same size.
 

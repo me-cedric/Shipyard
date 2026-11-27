@@ -1,6 +1,5 @@
 import { Menu } from "@base-ui/react/menu";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { usePicture } from "@/features/settings/picture-field";
 import { format, LANGS, useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { useHealth, worstStatus } from "@/lib/projects";
@@ -12,6 +11,7 @@ import { Avatar } from "@/ui/atoms/avatar";
 import { Kbd } from "@/ui/atoms/kbd";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import { MENU_ITEM, MENU_POPUP } from "@/ui/molecules/menu-button";
+import { usePicture } from "@/ui/organisms/picture-field";
 import { useActions } from "./actions";
 import { useSignOut } from "./sign-out";
 

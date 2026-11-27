@@ -1,7 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { SetupRow } from "@/features/settings/parts";
-import { PictureField } from "@/features/settings/picture-field";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type ProjectCard, unwrap } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
@@ -10,6 +8,8 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
 import { ClipboardIcon } from "@/ui/icons";
+import { SetupRow } from "@/ui/molecules/setup-card";
+import { PictureField } from "@/ui/organisms/picture-field";
 
 const EVERY = [5, 15, 30, 60, 360, 1440];
 

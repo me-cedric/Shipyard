@@ -1,14 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useState } from "react";
 import { DoctorBootstrap } from "@/features/projects/doctor-bootstrap";
-import {
-	Column,
-	Columns,
-	SetupCard,
-	SetupRow,
-	Toggle,
-	ValueButton,
-} from "@/features/settings/parts";
 import { ButtonLink, Fold } from "@/features/settings/project/fold";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
@@ -47,6 +39,8 @@ import {
 import { EntryRow } from "@/ui/molecules/entry-row";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { GroupSection } from "@/ui/molecules/group-section";
+import { Column, Columns, SetupCard, SetupRow } from "@/ui/molecules/setup-card";
+import { Toggle, ValueButton } from "@/ui/molecules/setup-controls";
 import { WriteReportView } from "@/ui/molecules/write-report";
 import { CompassSetup } from "./compass-setup";
 import { PluginSettings } from "./plugin-settings";

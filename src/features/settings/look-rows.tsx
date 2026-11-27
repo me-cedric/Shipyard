@@ -19,11 +19,13 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Segmented } from "@/ui/atoms/segmented";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Column, Columns, SetupCard, SetupRow } from "@/ui/molecules/setup-card";
+import { Toggle } from "@/ui/molecules/setup-controls";
+import { Stepper } from "@/ui/molecules/stepper";
 import { SPRING, useReducedMotionPref } from "@/ui/motion";
 import { Fold } from "./connections/fold";
 import { TextPref } from "./me/personal";
 import { ValueSelect } from "./me/value-select";
-import { Column, Columns, SetupCard, SetupRow, Stepper, Toggle } from "./parts";
 
 const SAMPLE = "2026-10-31";
 

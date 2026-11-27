@@ -7,7 +7,15 @@ use std::path::{Path, PathBuf};
 /// Write an executable `sh` script called `name` into `dir`.
 pub fn program(dir: &Path, name: &str, body: &str) -> PathBuf {
     let path = dir.join(name);
-    std::fs::write(&path, format!("#!/bin/sh\n{body}\n")).expect("write the fake program");
+    // A shell writes the file. A write handle in this process leaks into the fork of another test
+    // thread, and the start of the program then fails with "Text file busy" on Linux.
+    let written = std::process::Command::new("sh")
+        .args(["-c", "printf '%s\\n' \"$1\" > \"$2\"", "sh"])
+        .arg(format!("#!/bin/sh\n{body}"))
+        .arg(&path)
+        .status()
+        .expect("write the fake program");
+    assert!(written.success(), "write the fake program");
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))
         .expect("make the fake program executable");
     path

@@ -92,6 +92,13 @@ import { ListDetail } from "../templates/list-detail";
 import { Settings } from "../templates/settings";
 import { Shell } from "../templates/shell";
 import { DesignParts } from "./design-gallery";
+import {
+	Row,
+	SharedAtoms,
+	SharedMolecules,
+	SharedOrganisms,
+	SharedTemplates,
+} from "./shared-gallery";
 import { SpecsParts } from "./specs-gallery";
 
 const LAYERS = ["tokens", "atoms", "molecules", "organisms", "templates"] as const;
@@ -147,15 +154,6 @@ const SIZES = [
 ];
 // The page header claims the switch; the gallery has no shell to tell.
 const SWITCH_CLAIM = () => () => {};
-
-function Row({ name, children }: { name: string; children: ReactNode }) {
-	return (
-		<div className="flex flex-wrap items-center gap-3 border-b py-3">
-			<h2 className="w-32 font-mono text-11 text-n-10">{name}</h2>
-			{children}
-		</div>
-	);
-}
 
 function Tokens() {
 	return (
@@ -332,6 +330,7 @@ function Atoms() {
 					{t.shell.sync}
 				</Button>
 			</Row>
+			<SharedAtoms />
 		</div>
 	);
 }
@@ -825,6 +824,7 @@ function Molecules() {
 					</Card>
 				</Panel>
 			</Row>
+			<SharedMolecules />
 		</div>
 	);
 }
@@ -1006,6 +1006,7 @@ function Organisms() {
 			</Row>
 			<DesignParts />
 			<SpecsParts />
+			<SharedOrganisms />
 		</div>
 	);
 }
@@ -1065,6 +1066,7 @@ function Templates() {
 					]}
 				/>
 			</Row>
+			<SharedTemplates />
 		</div>
 	);
 }

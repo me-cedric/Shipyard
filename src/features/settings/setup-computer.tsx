@@ -9,11 +9,12 @@ import { PersonasCard } from "@/features/projects/settings-project";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/ui/atoms/button";
 import { PageSwitchContext } from "@/ui/molecules/page-header";
+import { Column, Columns, SetupCard } from "@/ui/molecules/setup-card";
+import { SetupPills } from "@/ui/molecules/setup-pills";
 import { AgentsRules } from "./agents-rules";
 import { Connections } from "./connections";
 import { McpOutsideGroup } from "./connections/mcp-outside-group";
 import { Compass } from "./extensions/compass";
-import { Column, Columns, SetupCard, SetupPills } from "./parts";
 import { SetupScope } from "./setup-scope";
 
 const HEALTH = "/setup/computer?page=health";

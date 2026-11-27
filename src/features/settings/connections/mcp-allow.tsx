@@ -4,8 +4,8 @@ import { useI18n } from "@/lib/i18n";
 import { commands, type McpServer, type ToolFilter, unwrap } from "@/lib/ipc";
 import { Checkbox } from "@/ui/atoms/checkbox";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { SetupRow } from "@/ui/molecules/setup-card";
 import { ValueSelect } from "../me/value-select";
-import { SetupRow } from "../parts";
 import { mcpKeys } from "./keys";
 
 /**

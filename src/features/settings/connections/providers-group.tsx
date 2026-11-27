@@ -13,7 +13,8 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { SettingsRow } from "@/ui/molecules/settings-row";
-import { SetupCard, StatePill } from "../parts";
+import { SetupCard } from "@/ui/molecules/setup-card";
+import { StatePill } from "@/ui/molecules/setup-controls";
 import { LINE } from "./fold";
 import { providerKeys, useProviders } from "./keys";
 

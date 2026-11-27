@@ -1,6 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Column, Columns, SetupCard, SetupRow } from "@/features/settings/parts";
 import { AutoCommit } from "@/features/settings/project/auto-commit";
 import { AutoReview } from "@/features/settings/project/auto-review";
 import { ButtonLink, Fold } from "@/features/settings/project/fold";
@@ -29,6 +28,7 @@ import { FolderOpenIcon } from "@/ui/icons";
 import { ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Column, Columns, SetupCard, SetupRow } from "@/ui/molecules/setup-card";
 import { PersonasEditor } from "./personas";
 
 /** The personas editor, for the page Logs and feedback (writer D mounts it). */

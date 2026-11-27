@@ -21,6 +21,6 @@ Plan: [plan.md](./plan.md)
 
 ## Completion Check
 
-- [ ] All acceptance criteria are met.
-- [ ] Required validation passed or failures are marked pre-existing.
-- [ ] Specs, docs, and code agree.
+- [x] All acceptance criteria are met.
+- [x] Required validation passed or failures are marked pre-existing.
+- [x] Specs, docs, and code agree.

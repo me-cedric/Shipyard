@@ -14,9 +14,10 @@ import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Segmented } from "@/ui/atoms/segmented";
 import { ArrowDownTrayIcon, TrashIcon } from "@/ui/icons";
+import { SetupRow } from "@/ui/molecules/setup-card";
+import { Toggle } from "@/ui/molecules/setup-controls";
 import { Dialog } from "@/ui/organisms/dialog";
 import { Fold } from "./connections/fold";
-import { SetupRow, Toggle } from "./parts";
 
 const PACK = "pack:";
 

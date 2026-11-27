@@ -1,7 +1,6 @@
 import { type QueryClient, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Fold } from "@/features/settings/connections/fold";
-import { SetupCard, SetupRow, StatePill } from "@/features/settings/parts";
 import { hiddenSection } from "@/features/shell/places";
 import { useI18n } from "@/lib/i18n";
 import { commands, type OsPermission, type PermissionState, unwrap } from "@/lib/ipc";
@@ -11,6 +10,8 @@ import { Button } from "@/ui/atoms/button";
 import { BellIcon, FolderOpenIcon } from "@/ui/icons";
 import { Loading } from "@/ui/molecules/loading";
 import { Row } from "@/ui/molecules/row";
+import { SetupCard, SetupRow } from "@/ui/molecules/setup-card";
+import { StatePill } from "@/ui/molecules/setup-controls";
 import { TourRow } from "./tour-row";
 import { openTour } from "./tour-store";
 

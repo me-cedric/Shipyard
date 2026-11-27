@@ -3,8 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { KINDS } from "@/features/settings/connections/connection-form";
 import { runnerKeys } from "@/features/settings/connections/keys";
-import { StatePill } from "@/features/settings/parts";
-import { usePicture } from "@/features/settings/picture-field";
 import { hiddenSection } from "@/features/shell/places";
 import { format, useI18n } from "@/lib/i18n";
 import { type ConnectionGroup, commands, unwrap } from "@/lib/ipc";
@@ -16,6 +14,8 @@ import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
 import { CheckIcon, Cog6ToothIcon, ComputerDesktopIcon, FolderOpenIcon } from "@/ui/icons";
 import { PageHeader } from "@/ui/molecules/page-header";
+import { StatePill } from "@/ui/molecules/setup-controls";
+import { usePicture } from "@/ui/organisms/picture-field";
 import { ChecklistControl, ITEMS, type ItemId, useChecklist } from "./checklist";
 
 /** The card of a scope of Setup: an outline icon, the name and its state as a pill. */

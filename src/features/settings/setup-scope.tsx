@@ -3,8 +3,8 @@ import { type ReactNode, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { BackLink } from "@/ui/molecules/back-link";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { SetupCard, SetupRow } from "./parts";
-import { type Pill, SetupPills } from "./parts/setup-pills";
+import { SetupCard, SetupRow } from "@/ui/molecules/setup-card";
+import { type Pill, SetupPills } from "@/ui/molecules/setup-pills";
 import { oldPageAnchor } from "./setup-address";
 
 type Scope = "project" | "computer" | "me";

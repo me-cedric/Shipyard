@@ -1,6 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
-import { Columns, SetupCard, SetupRow, Stepper, Toggle } from "@/features/settings/parts";
 import { Fold } from "@/features/settings/project/fold";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
@@ -11,6 +10,9 @@ import { type AutomationView, syncKeys, useAutomation } from "@/lib/sync";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Columns, SetupCard, SetupRow } from "@/ui/molecules/setup-card";
+import { Toggle } from "@/ui/molecules/setup-controls";
+import { Stepper } from "@/ui/molecules/stepper";
 import { type Draft, fromDraft, RUN_STATES, STAGES, STEPS, toDraft } from "./automation-draft";
 
 const WRITES = ["push", "pull_request", "tracker_transition", "tracker_comment"] as const;

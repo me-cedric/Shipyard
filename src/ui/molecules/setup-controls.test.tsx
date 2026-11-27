@@ -5,7 +5,8 @@ import { vi } from "vitest";
 import { Providers } from "@/app/providers";
 import { commands, unwrap } from "@/lib/ipc";
 import { mountApp } from "@/test/mount";
-import { StatePill, Stepper, Toggle, ValueButton } from "./controls";
+import { StatePill, Toggle, ValueButton } from "./setup-controls";
+import { Stepper } from "./stepper";
 
 /** A stepper that keeps its value, from 1 to 3. */
 function Field({ seen }: { seen: (value: number) => void }) {

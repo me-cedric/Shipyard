@@ -6,7 +6,8 @@ import { Button } from "@/ui/atoms/button";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
-import { SetupCard, SetupRow, StatePill } from "../parts";
+import { SetupCard, SetupRow } from "@/ui/molecules/setup-card";
+import { StatePill } from "@/ui/molecules/setup-controls";
 import { runnerKeys } from "./keys";
 
 /**

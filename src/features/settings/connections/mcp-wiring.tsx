@@ -10,7 +10,8 @@ import {
 } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { SetupCard, SetupRow, StatePill } from "../parts";
+import { SetupCard, SetupRow } from "@/ui/molecules/setup-card";
+import { StatePill } from "@/ui/molecules/setup-controls";
 
 export const wiringKey = ["mcp", "wiring"] as const;
 export const outsideKey = ["mcp", "outside"] as const;

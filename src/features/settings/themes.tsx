@@ -18,9 +18,9 @@ import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowDownTrayIcon, PlusIcon, TrashIcon } from "@/ui/icons";
+import { SetupRow } from "@/ui/molecules/setup-card";
 import { Dialog } from "@/ui/organisms/dialog";
 import { Fold } from "./connections/fold";
-import { SetupRow } from "./parts";
 
 const BUILT_IN: Theme[] = ["light", "dark", "oled", "system", "system-oled"];
 

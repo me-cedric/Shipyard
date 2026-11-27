@@ -6,7 +6,8 @@ import { type Automation, syncKeys, useAutomation } from "@/lib/sync";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Switch } from "@/ui/atoms/switch";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { SetupRow, Toggle } from "../parts";
+import { SetupRow } from "@/ui/molecules/setup-card";
+import { Toggle } from "@/ui/molecules/setup-controls";
 
 type Choice = "off" | "draft" | "post";
 

@@ -55,4 +55,10 @@ describe("Gallery", () => {
 		await userEvent.click(screen.getByRole("button", { name: "Organisms" }));
 		expect(screen.getByRole("heading", { level: 2, name: "MarkdownView" })).toBeInTheDocument();
 	});
+
+	it("shows the shared parts of the templates", async () => {
+		renderApp(<Gallery />);
+		await userEvent.click(screen.getByRole("button", { name: "Templates" }));
+		expect(screen.getByRole("heading", { level: 1, name: "Library page" })).toBeInTheDocument();
+	});
 });

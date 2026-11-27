@@ -5,7 +5,8 @@ import { commands, unwrap } from "@/lib/ipc";
 import { useRights } from "@/lib/rights";
 import { Switch } from "@/ui/atoms/switch";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { SetupRow, Toggle } from "../parts";
+import { SetupRow } from "@/ui/molecules/setup-card";
+import { Toggle } from "@/ui/molecules/setup-controls";
 
 const key = ["auto-commit"] as const;
 

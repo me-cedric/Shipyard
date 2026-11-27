@@ -5,7 +5,7 @@ import { logError } from "@/lib/log";
 import { usePrefs } from "@/lib/prefs";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Input } from "@/ui/atoms/input";
-import { ValueButton } from "../parts";
+import { ValueButton } from "@/ui/molecules/setup-controls";
 import { ValueSelect } from "./value-select";
 
 const DEFAULT = "default";

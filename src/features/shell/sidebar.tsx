@@ -1,7 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { CloneDialog } from "@/features/projects/clone-dialog";
-import { usePicture } from "@/features/settings/picture-field";
 import { format, useI18n } from "@/lib/i18n";
 import { errorDialog } from "@/lib/ipc";
 import { useNotifications } from "@/lib/notifications";
@@ -11,6 +10,7 @@ import { useRights } from "@/lib/rights";
 import { Tooltip } from "@/ui/atoms/tooltip";
 import { type Place, PlaceMenu } from "@/ui/molecules/place-menu";
 import { ProjectSwitcher } from "@/ui/molecules/project-switcher";
+import { usePicture } from "@/ui/organisms/picture-field";
 import { AccountMenu } from "./account-menu";
 import { shortcutText } from "./actions";
 import { useLiveSessions } from "./active-sessions";

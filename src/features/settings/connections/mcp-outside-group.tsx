@@ -12,8 +12,9 @@ import { ClipboardIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { SettingsRow } from "@/ui/molecules/settings-row";
+import { SetupCard, SetupRow } from "@/ui/molecules/setup-card";
+import { StatePill, Toggle } from "@/ui/molecules/setup-controls";
 import { ValueSelect } from "../me/value-select";
-import { SetupCard, SetupRow, StatePill, Toggle } from "../parts";
 import { Fold } from "./fold";
 import { McpWiring, outsideKey, wiringKey } from "./mcp-wiring";
 

@@ -1,6 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Column, Columns, SetupCard, SetupRow, Stepper } from "@/features/settings/parts";
 import { ButtonLink, Fold, valueClass } from "@/features/settings/project/fold";
 import { STEPS, toDraft } from "@/features/sync/automation-draft";
 import { format, useI18n } from "@/lib/i18n";
@@ -15,6 +14,8 @@ import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Column, Columns, SetupCard, SetupRow } from "@/ui/molecules/setup-card";
+import { Stepper } from "@/ui/molecules/stepper";
 
 const MODES = ["timetracking", "points", "none"] as const;
 const modeLabel = (v: (typeof MODES)[number], d: { days: string; points: string }, none: string) =>

@@ -16,8 +16,6 @@ export function ValueButton({ mono, className, ...props }: ButtonProps & { mono?
 	);
 }
 
-export { Stepper } from "@/ui/molecules/stepper";
-
 /** The switch of the design with no visible words: the row shows the words; `label` is the name. */
 export function Toggle(props: Omit<SwitchProps, "iconOnly" | "size">) {
 	return <Switch iconOnly {...props} />;

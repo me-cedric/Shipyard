@@ -1,5 +1,4 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Toggle } from "@/features/settings/parts";
 import { HIDEABLE_PLACES, type PlaceId } from "@/features/shell/places";
 import { useGuard } from "@/features/work/guard";
 import { useRolesSave } from "@/features/work/team-rights";
@@ -9,6 +8,7 @@ import { useRights } from "@/lib/rights";
 import { Chip } from "@/ui/atoms/chip";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Card } from "@/ui/molecules/card";
+import { Toggle } from "@/ui/molecules/setup-controls";
 
 const LEVELS: Level[] = ["none", "read", "write"];
 type Area = Exclude<keyof Access, "merge" | "approve">;

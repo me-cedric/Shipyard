@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { SetupCard } from "@/features/settings/parts";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { dateLocale, formatDay, usePrefs } from "@/lib/prefs";
 import { useHealth } from "@/lib/projects";
 import { Badge } from "@/ui/atoms/badge";
 import { Row } from "@/ui/molecules/row";
+import { SetupCard } from "@/ui/molecules/setup-card";
 
 /**
  * Setup / Logs and feedback: one row each time the findings changed, newest first. Reading it

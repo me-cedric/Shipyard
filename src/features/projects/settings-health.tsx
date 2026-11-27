@@ -3,7 +3,6 @@ import { useRouter } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { openManualFor } from "@/features/knowledge/manual-target";
 import { useChecklist } from "@/features/onboarding/checklist";
-import { Column, Columns, SetupCard, SetupRow } from "@/features/settings/parts";
 import { ButtonLink, Fold } from "@/features/settings/project/fold";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type Finding_Serialize, type Group, unwrap } from "@/lib/ipc";
@@ -19,6 +18,7 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { Column, Columns, SetupCard, SetupRow } from "@/ui/molecules/setup-card";
 import { DoctorCompliance, HealthActions } from "./doctor-compliance";
 import { DoctorTools, useToolchain } from "./doctor-tools";
 

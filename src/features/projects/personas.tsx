@@ -1,12 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { SetupCard, SetupRow, Toggle } from "@/features/settings/parts";
 import { useI18n } from "@/lib/i18n";
 import { commands, type Persona, unwrap } from "@/lib/ipc";
 import { projectKeys, usePersonas } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
 import { Input } from "@/ui/atoms/input";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { SetupCard, SetupRow } from "@/ui/molecules/setup-card";
+import { Toggle } from "@/ui/molecules/setup-controls";
 
 const rate = (v: string) => (v.trim() === "" ? 0 : Number(v));
 

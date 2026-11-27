@@ -31,9 +31,9 @@ Without the pipe, each turn on Windows starts the server again. That is slow, an
 
 ### Acceptance Criteria
 
-- [ ] On Windows, a second turn reuses the open server.
-- [ ] On Windows with the app closed, a headless run still gets its tools.
-- [ ] Another user of the machine cannot open the pipe.
+- [x] On Windows, a second turn reuses the open server.
+- [x] On Windows with the app closed, a headless run still gets its tools.
+- [x] Another user of the machine cannot open the pipe.
 
 ## ADDED Requirements
 

@@ -16,10 +16,11 @@ import { Select } from "@/ui/atoms/select";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { SettingsRow } from "@/ui/molecules/settings-row";
+import { Column, Columns, SetupCard, SetupRow } from "@/ui/molecules/setup-card";
+import { StatePill, Toggle } from "@/ui/molecules/setup-controls";
 import { Fold } from "./connections/fold";
 import { runnerKeys } from "./connections/keys";
 import { ValueSelect } from "./me/value-select";
-import { Column, Columns, SetupCard, SetupRow, StatePill, Toggle } from "./parts";
 import { ProviderRows } from "./provider-rows";
 
 const TIERS = ["top", "mid", "small"] as const;

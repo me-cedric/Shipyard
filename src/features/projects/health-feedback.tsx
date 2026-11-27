@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Fold } from "@/features/settings/connections/fold";
-import { SetupCard } from "@/features/settings/parts";
 import { useI18n } from "@/lib/i18n";
 import { commands, type FeedbackKind, pickFile, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
@@ -8,6 +7,7 @@ import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Textarea } from "@/ui/atoms/textarea";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { SetupCard } from "@/ui/molecules/setup-card";
 
 const KINDS: FeedbackKind[] = ["bug", "idea"];
 
