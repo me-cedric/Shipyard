@@ -117,9 +117,9 @@ A full review of each screen and each state of the app after the redesign. The a
 
 ## Next session (stopped on 2026-11-27: weekly usage at 85 %, context of the session full)
 
-State: `main` is at `94396470`, CI green on five jobs, the build of that commit is installed.
+State: the code of `main` is at `3cb8949f`, CI green on five jobs, the build of that commit is installed. A later commit changes this note only.
 
-1. Walk the pages of a feature (Story, Brief, Design, Changes, Checks, Chat) and of a run in the real window. Use the portable copy in the session scratch folder pattern: a copy of the built app beside a file `portable` and its own data folder, started as a background task. `screencapture -l <window id>` gives the picture, a small `CGEvent` click helper gives the clicks (Accessibility and Screen Recording are granted). A run page needs a run: start one only on a throwaway project with the owner's yes, because it spends money.
+1. The six pages of a feature (Story, Brief, Design, Changes, Checks, Chat) are walked in the real window of the build of `3cb8949f` (2026-11-27, portable copy, feature "Windows relay pipe" of an older clone): each page fits the window, the tabs do not move, each empty page has one action. No defect. Still open: the pages of a run in the real window. Use the portable copy in the session scratch folder pattern: a copy of the built app beside a file `portable` and its own data folder, started as a background task. `screencapture -l <window id>` gives the picture, a small `CGEvent` click helper gives the clicks (Accessibility and Screen Recording are granted). A run page needs a run: start one only on a throwaway project with the owner's yes, because it spends money.
 2. Wording proposals of the screen review, each with a verdict (30 entries, 2026-11-27). Applied: `Checks running` (two keys had `Checks run`). Kept as they are, with the reason:
    - Product words and names of the app: Recipe, `Limit`, `Handle`, `Other` (the role of a person who picks none), `Keep a receipt`, `Source off: {name}` (the French form needs no gender), `Set up`.
    - A text that a test fixes by decision: `Unrated`, `This item is in the project.`, `Open` (also the name of the list of open projects).
