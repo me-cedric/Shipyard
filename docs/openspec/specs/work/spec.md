@@ -29,7 +29,7 @@ The costing Plan tab, the Gantt page and the tickets Generate tab do the same jo
 
 - REQ-001: Work / Backlog SHALL list the work items of the mirror. Each row SHALL show the key, title, status, assignee and the run state of the item. The view SHALL filter by assignee, status, label, component, priority and run state. Group headings SHALL show a count. The view MUST NOT call the tracker for a read. Until the tracker adapters fill components and priority, the view filters by assignee, status, label and run state, and the run state is the claim of this machine.
 - REQ-002: Work / Board SHALL show one column for each tracker status. A card SHALL show the key, title, assignee and run state. A person's move of a card, by drag or with Shift and Left or Right, SHALL send the transition to the tracker. The card SHALL return to its column when the tracker refuses the move.
-- REQ-003: The system SHALL read the team from `.shipyard/team.yaml`. Each member SHALL have a name, a handle, tracker accounts, a role, a capacity in days a week, skills, a day rate and an availability. The system SHALL expose each member as `member:<handle>`. The system SHALL refuse a file in which two members share a handle or a tracker account.
+- REQ-003: Each member of `.shipyard/team.yaml` SHALL also have e-mails, a typed role, an admin flag and optional rights overrides. The system SHALL refuse a file where two members share an e-mail.
 - REQ-004: Work / Team SHALL list the members and SHALL edit the same file as REQ-003. A change SHALL appear in the file as text. Work / Team SHALL be the one place that edits the team.
 - REQ-005: When the project seal is on, the day rate of a member SHALL be stored as sealed text. The seal SHALL use the same passphrase as the estimate sheets. Seal the day rate field with the project passphrase when the seal is on.
 - REQ-006: The PM SHALL assign a work item to a member. The assignment SHALL send the assignee to the tracker. The system MUST NOT assign by itself. The system SHALL disable the action when the connection lacks the assignee capability, and SHALL name the reason.
@@ -153,12 +153,17 @@ Work / Board SHALL show one column for each tracker status. A card SHALL show th
 
 ### Requirement: REQ-003 Team file
 
-The system SHALL read the team from `.shipyard/team.yaml`. Each member SHALL have a name, a handle, tracker accounts, a role, a capacity in days a week, skills, a day rate and an availability. The system SHALL expose each member as `member:<handle>`. The system SHALL refuse a file in which two members share a handle or a tracker account.
+The system SHALL read the team from `.shipyard/team.yaml`. Each member SHALL have a name, a handle, e-mails, the accounts of the issue tracker and the code host (`trackers`), a role and an admin flag (`team-rights` REQ-001), optional rights overrides, a capacity in days a week, skills, a day rate and an availability. The system SHALL expose each member as `member:<handle>`. The system SHALL refuse a file in which two members share a handle, an account or an e-mail.
 
 #### Scenario: Duplicate
 - GIVEN a team file where two members share a handle
 - WHEN the system loads it
 - THEN the system names the duplicate and keeps the last valid team
+
+#### Scenario: Shared e-mail
+- GIVEN a team file where two members share the e-mail `ana@example.com`
+- WHEN the system loads it
+- THEN the system names the duplicate e-mail and keeps the last valid team
 
 ### Requirement: REQ-004 Team view
 

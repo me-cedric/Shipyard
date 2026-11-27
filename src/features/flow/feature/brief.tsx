@@ -330,7 +330,7 @@ export function Brief({ parts }: { parts: Parts; onBack?: () => void }) {
 												type="button"
 												onClick={() => openRef(`wi:${k}`)}
 												{...p}
-												className={cn(p.className, "w-full text-left")}
+												className={cn(p.className, "text-left")}
 											/>
 										)}
 									>

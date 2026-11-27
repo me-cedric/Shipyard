@@ -383,7 +383,7 @@ export function Api() {
 															aria-pressed={x === a}
 															onClick={() => page.pick(x.reference)}
 															{...r}
-															className={`${r.className} w-full cursor-pointer text-left`}
+															className={`${r.className} cursor-pointer text-left`}
 														/>
 													)}
 												>

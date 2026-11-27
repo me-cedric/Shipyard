@@ -220,7 +220,7 @@ describe("Flow board, from the demo project (the lanes of Factory / Runs before)
 		const rec = mockState().factory.runs.find((r) => r.id === failed.id);
 		if (rec) rec.state = "Failed";
 		mountApp("/factory/runs");
-		const reason = "Needs the right runs.start (your role: Viewer)";
+		const reason = "Your role, Viewer, cannot start agents.";
 		const build = await column("Build");
 		fireEvent.contextMenu(await build.findByRole("button", { name: /Bump dependencies/ }));
 		const start = await screen.findByRole("menuitem", { name: "Start run" });

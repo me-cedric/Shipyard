@@ -142,7 +142,7 @@ describe("Crew / Rights: the team file", () => {
 			rights: ["work.edit"],
 		};
 		const router = mountApp("/crew/rights");
-		const reason = "Needs the right project.settings (your role: Developer)";
+		const reason = "Your role, Developer, cannot change the project settings.";
 		const change = (await row("Specs")).getByRole("button", { name: "Change" });
 		await waitFor(() => expect(change).toBeDisabled());
 		expect(change.closest("fieldset")).toHaveAttribute("title", reason);

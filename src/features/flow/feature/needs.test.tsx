@@ -232,7 +232,7 @@ describe("One question for the approvals of one run (REQ-013)", () => {
 		const needs = await needsOf(run.id);
 		const main = await needs.findByRole("button", { name: "Send for review" });
 		expect(main).toBeDisabled();
-		expect(main).toHaveAccessibleDescription(/^Needs the right/);
+		expect(main).toHaveAccessibleDescription(/^Your role, .+, cannot /);
 		expect(needs.getByRole("checkbox", { name: /Do not ask again/ })).toHaveAttribute(
 			"aria-disabled",
 			"true",

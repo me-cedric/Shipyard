@@ -44,8 +44,8 @@ The earlier tool has these features, but commit sits in 11 pages and pull sits i
 - REQ-015: In the background, the system SHALL fetch the remote heads of each project that has a remote.
 - REQ-016: The remote watch MUST move only the remote tracking references.
 - REQ-017: The system SHALL notify only when the remote heads change between two fetches.
-- REQ-018: Code / Pull requests SHALL list the mirror pull requests of every forge in one layout.
-- REQ-019: Selecting a pull request SHALL open its description, files with their diff, commits, CI checks, conversation and verdicts.
+- REQ-018: Code / Pull requests SHALL list the mirror pull requests of every forge in one full-width layout, with a search and the filters All and Needs review, and SHALL open a pull request as its own page. The list SHALL show no stat strip: the group counts carry the numbers.
+- REQ-019: A pull request page SHALL show its description, a conversation, its commits, its CI checks and its files, in the tabs Overview, Commits, Checks and Files changed. The files SHALL be collapsed by default.
 - REQ-020: The system SHALL open a pull request from the working branch.
 - REQ-021: The system SHALL post a comment, approve, and request changes as a person's click.
 - REQ-022: The system SHALL merge a pull request with a method that the forge offers: merge, squash or rebase.
@@ -328,21 +328,51 @@ The system SHALL notify only when the remote heads change between two fetches. T
 
 ### Requirement: REQ-018 Pull request list
 
-Code / Pull requests SHALL list the mirror pull requests of every forge in one layout. Each row SHALL show the `pr:` ref, title, author, draft state, CI state and review state. The list SHALL filter by state, author and label. The list MUST NOT call the forge for a read.
+Code / Pull requests SHALL list the mirror pull requests of every forge in one full-width layout. Each row SHALL show `#number`, title, draft state, CI state and review state; the `pr:` ref stays in the row menu and in the address. The list SHALL group by state (open, merged, closed) and SHALL have a search and the filters All and Needs review. The list MUST NOT call the forge for a read. A pull request SHALL open as its own page.
 
 #### Scenario: Offline
+
 - GIVEN the network is off
 - WHEN a person opens Code / Pull requests
 - THEN the list shows the mirror
 
+#### Scenario: Search
+
+- GIVEN eight pull requests
+- WHEN a person types a word of a title
+- THEN only the pull requests that match show
+
+#### Scenario: No stat strip
+
+- GIVEN pull requests in three states
+- WHEN a person opens Code / Pull requests
+- THEN the list shows no stat strip, and each state group shows its count
+
+#### Scenario: No author
+- GIVEN a pull request in the mirror
+- WHEN a person opens Code / Pull requests
+- THEN its row shows no author, because the mirror keeps none
+
+#### Scenario: Needs review
+- GIVEN open pull requests, one a draft and one with a request for changes
+- WHEN a person picks the filter Needs review
+- THEN only the open pull requests that are not a draft, have no request for changes and sit in the in-review lane show
+
 ### Requirement: REQ-019 Pull request detail
 
-Selecting a pull request SHALL open its description, files with their diff, commits, CI checks, conversation and verdicts. Each CI check SHALL show its name and state.
+A pull request page SHALL show its description as Markdown, its conversation, its commits, its CI checks and its files with their diff, in the tabs Overview, Commits, Checks and Files changed. Each CI check SHALL show its name and state. The files SHALL be collapsed by default and SHALL expand one by one.
 
 #### Scenario: Open a pull request
+
 - GIVEN a pull request with two failed checks
 - WHEN a person opens it
-- THEN the CI tab names the two failed checks
+- THEN the Checks tab names the two failed checks
+
+#### Scenario: Files collapsed
+
+- GIVEN a pull request with forty files
+- WHEN a person opens the Files changed tab
+- THEN all forty files show collapsed with their counts
 
 ### Requirement: REQ-020 Open a pull request
 
@@ -382,12 +412,22 @@ A draft pull request SHALL show a Mark ready action in Code / Pull requests. It 
 
 ### Requirement: REQ-024 Pull request links
 
-A pull request SHALL show its linked `wi:` and `run:` refs and its commits as `commit:` refs. The inspector SHALL show the backlinks of the pull request. The pull request itself belongs to `add-delivery` (REQ-028).
+A pull request page SHALL show its linked `wi:` and `run:` refs in the sidebar and its commits as `commit:` refs in the Commits tab. The sidebar SHALL show the backlinks of the pull request under Cited by. A ref of a pull request SHALL open its page, not the inspector. The pull request itself belongs to `add-delivery` (REQ-028).
 
 #### Scenario: Run pull request
 - GIVEN a pull request that a run opened for `wi:SHIP-42`
 - WHEN a person opens it
-- THEN the `wi:SHIP-42` chip and the `run:` chip show
+- THEN the sidebar shows the `wi:SHIP-42` chip and the `run:` chip
+
+#### Scenario: Cited by
+- GIVEN a pull request that another item cites
+- WHEN a person opens its page
+- THEN the sidebar lists the citing item under Cited by
+
+#### Scenario: Open by ref
+- GIVEN a `pr:` ref in a ticket
+- WHEN a person opens the ref
+- THEN the pull request page opens
 
 ### Requirement: REQ-025 Forge write failure
 

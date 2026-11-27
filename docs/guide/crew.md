@@ -68,7 +68,7 @@ A right turns a control off. The control stays visible, and its tooltip names th
 - `project.settings`: Setup / This project, automation, recipes, connections, the team file.
 - `costs.view`: amounts of money.
 
-The admin flag gives every right. A member can have changes: `+code.merge` adds a right, `-runs.approve` removes one. Your personal role in Setup / Me and the read-only profile of a project can only remove rights.
+The admin flag gives every right. A member can have changes: `+code.merge` adds a right, `-runs.approve` removes one. Your personal role in Setup / Me and the read-only profile of a project can only remove rights. Your personal role does not remove the rights of an admin, or of a person who works alone.
 
 Code and merge is one row: the Code level and a Merge switch, which set `code.write` and `code.merge`. The Plan level of a role follows its Work level until you change it. Each role has a Places setting: a place that you switch off is hidden for that role. By default, Product owner and Project manager do not see Code, Business analyst and Viewer do not see Crew and Code, Architect does not see Plan, Tester does not see Plan and Crew, and Designer does not see Plan, Crew and Code. The default rights do not change.
 

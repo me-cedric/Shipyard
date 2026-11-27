@@ -501,14 +501,18 @@ impl Prefs {
         if let Some(f) = p.terminal_font {
             self.terminal_font = clean_font(&f);
         }
-        // An id is lower case letters, digits and `-`. The launcher refuses an id that it does not know.
+        // An id is lower case letters, digits and `-`; an app that a person chose is an absolute path.
+        // The launcher refuses an id that it does not know and a path that it does not accept.
         if let Some(v) = p.terminal_app {
-            self.terminal_app = v
-                .trim()
-                .chars()
-                .filter(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '-')
-                .take(40)
-                .collect();
+            let v = v.trim();
+            self.terminal_app = if std::path::Path::new(v).is_absolute() {
+                v.chars().filter(|c| !c.is_control()).take(1024).collect()
+            } else {
+                v.chars()
+                    .filter(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '-')
+                    .take(40)
+                    .collect()
+            };
         }
         if let Some(n) = p.terminal_font_size {
             self.terminal_font_size =
@@ -1071,6 +1075,11 @@ mod tests {
         assert_eq!(p.terminal_font_size, 24);
         assert_eq!(p.terminal_shell, "/bin/zsh");
         assert_eq!(p.terminal_app, "iterm2rm", "only a-z, 0-9 and `-` stay");
+        p.apply(PrefsPatch {
+            terminal_app: Some(" /Applications/My Term.app ".into()),
+            ..Default::default()
+        });
+        assert_eq!(p.terminal_app, "/Applications/My Term.app", "a path stays");
         let dir = tempfile::tempdir().unwrap();
         p.save(dir.path()).unwrap();
         let q = Prefs::load(dir.path());

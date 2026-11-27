@@ -33,7 +33,7 @@ A person follows a feature, not a run (`spec:app-redesign#REQ-010`). The agents 
 
 ### Existing References
 
-- Supersedes or extends: `spec:factory#REQ-027`, `spec:factory#REQ-030`, `spec:factory#REQ-038`, and the delta of `change:update-ux-declutter` on the same three requirements.
+- Supersedes or extends: `spec:factory#REQ-027`, `spec:factory#REQ-030`, `spec:factory#REQ-038`, and the delta of `docs/openspec/changes/archive/2026-11-26-update-ux-declutter/` on the same three requirements.
 - Existing code: `crates/shipyard-core/src/feature.rs` (`stage_of`), `src/features/flow/`, `src/features/crew/`.
 
 ## MODIFIED Requirements

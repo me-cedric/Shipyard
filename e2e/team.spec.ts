@@ -70,7 +70,7 @@ test("a solo project gets two members with an admin, then an unknown person read
 	const save = page.getByRole("button", { name: "Save", exact: true });
 	await expect(save).toBeDisabled();
 	await expect(save).toHaveAccessibleDescription(
-		"Needs the right project.settings (your role: Viewer)",
+		"Your role, Viewer, cannot change the project settings.",
 	);
 });
 

@@ -44,6 +44,12 @@ describe("mock ipc", () => {
 		expect((await unwrap(commands.rightsGet())).person.hidden).toEqual([]);
 	});
 
+	it("keeps each right of a solo person with a personal role", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await unwrap(commands.prefsSet({ role: "developer" }));
+		expect((await unwrap(commands.rightsGet())).person.rights).toContain("project.settings");
+	});
+
 	it("serves the rights of the person: solo gives each right, read only keeps the read right", async () => {
 		await expect(unwrap(commands.rightsGet())).rejects.toBeTruthy();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));

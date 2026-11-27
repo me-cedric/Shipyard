@@ -11,7 +11,7 @@ import { FileDrawer } from "@/features/code/file-drawer";
 import { TerminalDrawer } from "@/features/code/terminal-drawer";
 import { PermissionsMoment, Tour } from "@/features/onboarding";
 import { useCodeActions } from "@/lib/code";
-import { useAnchorArrival } from "@/lib/errors/anchor";
+import { useAnchorArrival, useTopOnPageMove } from "@/lib/errors/anchor";
 import { useI18n } from "@/lib/i18n";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
 import { usePrefs } from "@/lib/prefs";
@@ -106,6 +106,7 @@ function Frame() {
 	useDropFolder();
 	useCloseGuardEvent();
 	useAnchorArrival();
+	useTopOnPageMove();
 	const { toasts, dismiss, hold } = useNotifications();
 	// A detail belongs to the view that opened it: leaving the view closes it.
 	const path = useRouterState({ select: (s) => s.location.pathname });

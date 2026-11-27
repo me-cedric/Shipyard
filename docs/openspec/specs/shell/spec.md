@@ -35,14 +35,14 @@ The earlier tool has 40 routes, 12 sidebar groups and four stacked filters that 
 - REQ-006: The inspector shows the selected entity and its backlinks.
 - REQ-007: The status bar has one commit action, one sync action, the project health and the active runs.
 - REQ-008: One source list of events feeds the notification centre and the system notifications.
-- REQ-009: Each role has a home view and a sidebar order. No role loses a view.
+- REQ-009: Each role of `team-rights` SHALL have a home view, a first tab and a sidebar order. A role MAY hide an area with the level `none` of `team-rights` REQ-018, except Settings for an admin. A role SHALL change the order, the home view, the Today panels and the rights. A right SHALL turn a control off, never hide a view.
 - REQ-010: Settings / Me holds the settings that follow the person.
 - REQ-011: The app ships in French and English, and the person switches the language.
 - REQ-012: The native menu offers the global actions.
 - REQ-013: Context menus offer the actions of the entity under the pointer.
 - REQ-014: The app checks for updates and tells the person. After an update, the app shows the changelog sections of the new version.
 - REQ-015: The app reopens the last view of each project.
-- REQ-016: The app has no tour and no per-project hidden tab.
+- REQ-016: No tour and no help text. A project or a right MUST NOT hide a tab or a space. Only the level `none` of a role hides an area (`team-rights` REQ-018). A person MAY hide a tab for themselves on this machine. The palette SHALL still open it, and Settings / Me SHALL never hide.
 - REQ-017: Every shell action has a keyboard path, a focus ring and an assistive label.
 
 ### Non-Goals
@@ -205,12 +205,18 @@ One list of event sources SHALL feed both the notification centre and the system
 
 ### Requirement: REQ-009 Role home
 
-Each role (PM, architect, developer, QA, BA, functional lead, junior) SHALL have a default home view and a sidebar order. The defaults are: PM opens Work, architect opens Design, developer opens Factory, QA, BA and functional lead open Specs, junior opens Knowledge. No role SHALL lose access to a view. A role SHALL change the order and the home view only.
+Each role of `team-rights` (PO, PM, architect, tech lead, BA, developer, QA, designer, viewer) SHALL have a home view, a first tab and a sidebar order, as `team-rights` REQ-013 lists. A role MAY hide an area with the level `none` of `team-rights` REQ-018, except Settings for an admin. A role SHALL change the order, the home view, the Today panels and the rights of `team-rights`. A right SHALL turn a control off, never hide a view.
 
 #### Scenario: Junior sidebar
-- GIVEN the person has the role junior
+- GIVEN the migration of `team-rights` REQ-015 gave a former junior the role `developer` with `-code.merge`
 - WHEN the app opens
-- THEN the main area shows Knowledge
+- THEN the main area shows Factory / Runs
+- AND the sidebar still lists all seven spaces and Settings
+
+#### Scenario: Viewer sidebar
+- GIVEN the person has the role `viewer`
+- WHEN the app opens
+- THEN the main area shows Home / Today
 - AND the sidebar still lists all seven spaces and Settings
 
 ### Requirement: REQ-010 Settings / Me
@@ -224,12 +230,17 @@ Settings / Me SHALL hold theme, contrast, density, fonts, reduced motion, langua
 
 ### Requirement: REQ-011 Language
 
-The app SHALL ship in French and English. The person SHALL switch the language in Settings / Me. The switch SHALL apply without a restart.
+The app SHALL ship in English, French, German and Spanish. The person SHALL switch the language in Settings / Me. The switch SHALL apply without a restart. A language pack MAY add a language (spec `languages`).
 
 #### Scenario: Switch to French
 - GIVEN the language is English
 - WHEN the person chooses French
 - THEN the sidebar, the palette and the menus show French
+
+#### Scenario: Switch to German
+- GIVEN the language is English
+- WHEN the person chooses German
+- THEN the sidebar, the palette and the menus show German
 
 ### Requirement: REQ-012 Native menu
 
@@ -285,13 +296,18 @@ The app SHALL store the last view of each project on the machine. On open, the a
 
 ### Requirement: REQ-016 No tour, no hidden tab
 
-The app SHALL NOT show a tour, a help bubble or an onboarding text. The app MUST NOT let a project hide a tab or a space. The first run SHALL be the first-run view of `add-projects` (REQ-001), which owns the role choice and the primary action (working assumption: Q-008, option 1). Drop both. First run shows the project picker and the role choice only.
+The app SHALL NOT show a tour, a help bubble or an onboarding text. A project or a right MUST NOT hide a tab or a space from a person. Only the level `none` of a role hides an area (`team-rights` REQ-018). A person MAY hide a tab or a space for themselves, on this machine. The palette SHALL still open a tab that the person hid, and Settings / Me SHALL never hide. The first run SHALL be the first-run view of `projects` REQ-001, which owns the role choice (Q-008, option 1).
 
 #### Scenario: First run
 - GIVEN the app starts for the first time
 - WHEN the first screen renders
 - THEN it shows the first-run view of `add-projects`
 - AND it shows no tour or help text
+
+#### Scenario: Personal hidden tab
+- GIVEN the person hid Code / Terminal for themselves
+- WHEN the person runs Open Code / Terminal from the palette
+- THEN the main area shows Code / Terminal
 
 ### Requirement: REQ-017 Shell accessibility
 

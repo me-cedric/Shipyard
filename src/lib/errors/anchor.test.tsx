@@ -1,5 +1,13 @@
-import { act, render, screen } from "@testing-library/react";
-import { arriveAt } from "./anchor";
+import {
+	createMemoryHistory,
+	createRootRoute,
+	createRoute,
+	createRouter,
+	Outlet,
+	RouterProvider,
+} from "@tanstack/react-router";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { arriveAt, useTopOnPageMove } from "./anchor";
 
 const mount = () =>
 	render(
@@ -59,5 +67,45 @@ describe("arriveAt", () => {
 
 	it("returns false for an id that is not in the page", () => {
 		expect(arriveAt("nothing")).toBe(false);
+	});
+});
+
+describe("useTopOnPageMove", () => {
+	it("scrolls the page area to the top on a new path or page, not on an anchor", async () => {
+		const root = createRootRoute({
+			component: () => {
+				useTopOnPageMove();
+				return (
+					<div data-page-area>
+						<main>
+							<Outlet />
+						</main>
+					</div>
+				);
+			},
+		});
+		const route = createRoute({
+			getParentRoute: () => root,
+			path: "/setup",
+			validateSearch: (s: Record<string, unknown>) => ({ page: s.page as string | undefined }),
+			component: () => null,
+		});
+		const history = createMemoryHistory({ initialEntries: ["/setup"] });
+		const router = createRouter({ routeTree: root.addChildren([route]), history });
+		const main = () => document.querySelector("main") as HTMLElement;
+		render(<RouterProvider router={router} />);
+		await waitFor(() => expect(main()).toBeTruthy());
+		// The page area scrolls, and a pane inside it scrolls on its own.
+		const pane = document.createElement("div");
+		main().append(pane);
+		main().scrollTop = 300;
+		pane.scrollTop = 120;
+		await act(() => router.navigate({ to: "/setup", search: { page: "look" } }));
+		await waitFor(() => expect(main().scrollTop).toBe(0));
+		expect(pane.scrollTop).toBe(0);
+		main().scrollTop = 300;
+		await act(() => router.navigate({ to: "/setup", search: { page: "look" }, hash: "row" }));
+		await act(() => router.navigate({ to: "/setup", search: { page: "keys" }, hash: "row" }));
+		expect(main().scrollTop).toBe(300);
 	});
 });

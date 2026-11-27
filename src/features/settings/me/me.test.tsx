@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 
@@ -31,6 +32,32 @@ describe("Settings / Me (shell REQ-010)", () => {
 		mountApp("/setup/me");
 		await choose(user, "My role view", "Developer");
 		await waitFor(() => expect(mockState().prefs.role).toBe("developer"));
+	});
+});
+
+const PERSON: NonNullable<ReturnType<typeof mockState>["person"]> = {
+	member: "eve",
+	found: "email",
+	role: "pm",
+	admin: false,
+	readOnly: false,
+	rights: [],
+};
+
+describe("Settings / Me admin status", () => {
+	it("shows an Admin badge for an admin", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mockState().person = { ...PERSON, admin: true };
+		mountApp("/setup/me");
+		expect(await screen.findByText("Admin")).toBeVisible();
+	});
+
+	it("shows no badge for another person", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mockState().person = { ...PERSON, admin: false };
+		mountApp("/setup/me");
+		await screen.findByRole("combobox", { name: "My role view" });
+		expect(screen.queryByText("Admin")).toBeNull();
 	});
 });
 

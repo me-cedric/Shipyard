@@ -39,7 +39,7 @@ export function NotificationRow({
 	unread?: boolean;
 	/** The dismiss button of a toast. */
 	action?: ReactNode;
-	/** The centre shows the whole body. A toast cuts it to one line. */
+	/** The centre shows the whole body. A toast shows three lines at most. */
 	wrap?: boolean;
 	/** A toast: one row, centred, with its buttons beside the text and no line under it. */
 	toast?: boolean;
@@ -56,7 +56,7 @@ export function NotificationRow({
 	const [open, setOpen] = useState(false);
 	// shortcut: a text over 3 lines or 200 characters counts as long, measure the box if this is wrong.
 	const long = !!detail && (detail.length > 200 || detail.split("\n").length > 3);
-	const clip = wrap || toast ? "break-words" : "truncate";
+	const clip = toast ? "line-clamp-3 break-words" : wrap ? "break-words" : "truncate";
 	const text = (
 		<>
 			<span className={cn("block", clip, unread ? "font-medium text-n-12" : "text-n-11")}>

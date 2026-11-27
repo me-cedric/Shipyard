@@ -10,6 +10,7 @@ import { useRightsView } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useTeam } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
@@ -160,7 +161,7 @@ function ActionRow({ label, onClick }: { label: string; onClick: () => void }) {
 					type="button"
 					onClick={onClick}
 					{...row}
-					className={`${row.className} w-full cursor-pointer text-left hover:bg-n-3`}
+					className={`${row.className} cursor-pointer text-left hover:bg-n-3`}
 				/>
 			)}
 		>
@@ -185,7 +186,8 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 		prefs;
 	const roles: Role[] = ["none", ...ROLES];
 	const avatar = usePicture("avatar").data;
-	const handle = useRightsView().data?.person.member;
+	const me = useRightsView().data?.person;
+	const handle = me?.member;
 	const person = useTeam().data?.team.members.find((m) => m.handle === handle)?.name;
 	const name = person ?? t.shell.account;
 	const { setShortcutsOpen } = useShell();
@@ -219,6 +221,7 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 							</Button>
 						</SetupRow>
 						<SetupRow label={s.roleView}>
+							{me?.admin ? <Badge variant="info">{t.rights.team.admin}</Badge> : null}
 							<ValueSelect
 								label={s.roleView}
 								value={role}

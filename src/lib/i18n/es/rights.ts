@@ -1,8 +1,22 @@
 import type { rightsEn } from "../rights";
 
 export const rightsEs: typeof rightsEn = {
-	needs: "Necesita el derecho {right} (tu rol: {role})",
-	noRole: "sin rol",
+	needs: "Tu rol, {role}, no puede {action}.",
+	needsNoRole: "Sin rol, no puedes {action}.",
+	needsReadOnly: "Este proyecto es de solo lectura: no puedes {action}.",
+	cannot: {
+		"work.edit": "cambiar los tickets",
+		"specs.edit": "cambiar las specs",
+		"design.edit": "cambiar los diseños",
+		"knowledge.edit": "cambiar la biblioteca",
+		"code.write": "cambiar el código",
+		"code.merge": "fusionar código",
+		"runs.start": "iniciar agentes",
+		"runs.approve": "aprobar acciones de agentes",
+		"project.settings": "cambiar los ajustes del proyecto",
+		"costs.view": "ver los presupuestos y costes",
+		"plan.edit": "cambiar el plan y las estimaciones",
+	},
 	noAccess: "Sin acceso",
 	yes: "sí",
 	no: "no",

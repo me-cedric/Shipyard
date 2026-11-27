@@ -1,7 +1,21 @@
 /** The strings of the team rights: the reasons of an off control, the roles, Work / Team and the role panels. */
 export const rightsEn = {
-	needs: "Needs the right {right} (your role: {role})",
-	noRole: "no role",
+	needs: "Your role, {role}, cannot {action}.",
+	needsNoRole: "Without a role, you cannot {action}.",
+	needsReadOnly: "This project is read only: you cannot {action}.",
+	cannot: {
+		"work.edit": "change tickets",
+		"specs.edit": "change specs",
+		"design.edit": "change designs",
+		"knowledge.edit": "change the library",
+		"code.write": "change the code",
+		"code.merge": "merge code",
+		"runs.start": "start agents",
+		"runs.approve": "approve agent actions",
+		"project.settings": "change the project settings",
+		"costs.view": "see budgets and costs",
+		"plan.edit": "change the plan and estimates",
+	},
 	noAccess: "No access",
 	yes: "yes",
 	no: "no",
@@ -109,8 +123,22 @@ export const rightsEn = {
 };
 
 export const rightsFr: typeof rightsEn = {
-	needs: "Demande le droit {right} (votre rôle : {role})",
-	noRole: "aucun rôle",
+	needs: "Votre rôle, {role}, ne peut pas {action}.",
+	needsNoRole: "Sans rôle, vous ne pouvez pas {action}.",
+	needsReadOnly: "Ce projet est en lecture seule : vous ne pouvez pas {action}.",
+	cannot: {
+		"work.edit": "modifier les tickets",
+		"specs.edit": "modifier les specs",
+		"design.edit": "modifier les designs",
+		"knowledge.edit": "modifier la bibliothèque",
+		"code.write": "modifier le code",
+		"code.merge": "fusionner le code",
+		"runs.start": "lancer des agents",
+		"runs.approve": "approuver les actions des agents",
+		"project.settings": "modifier les réglages du projet",
+		"costs.view": "voir les budgets et les coûts",
+		"plan.edit": "modifier le plan et les estimations",
+	},
 	noAccess: "Pas d'accès",
 	yes: "oui",
 	no: "non",

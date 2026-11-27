@@ -789,7 +789,7 @@ function Molecules() {
 					</CardRow>
 					<CardRow
 						render={(props) => (
-							<button type="button" {...props} className={`${props.className} w-full text-left`} />
+							<button type="button" {...props} className={`${props.className} text-left`} />
 						)}
 					>
 						<span className="font-semibold">{t.common.open}</span>

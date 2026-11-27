@@ -1,6 +1,9 @@
 # Changelog
 
 ## [0.2.0]
+- A row of a card stays inside its card: the hover fill of Change the shortcuts and of a row that opens no longer passes the round corner; a page or a sub-page opens at the top; a control that your role may not use says so in plain words, for example Your role, Architect, cannot change the project settings; Setup / Me shows an Admin badge when you are an admin.
+- Setup / Me lists more terminal apps that are installed on a Mac (Wave, Hyper, Tabby and Rio too), and Terminal app has a Choose an app item: pick any app by hand and Shipyard keeps it; an app that is gone goes back to Automatic.
+- A personal role in Setup / Me no longer lowers the rights of an admin or of a person who works alone: it still chooses the first page and the hidden places.
 - Active sessions lists every AI session of this computer: a session whose process number is short was left out before.
 - A new project names its admins: the person who creates it, each project manager and each architect; the Story of a feature says that the agent exited with code 1 in plain words; the German and Spanish texts of the interface and of the manual were reviewed, with one word for each thing.
 - Code / History draws the commit graph with one line for each branch, a curve where a merge takes a branch in and a curve where a branch starts, and each row shows its branch and tag labels; a selected or hovered row keeps its round corners inside its card on History, Changes, Pull requests, the test plans and the menu bar panel.

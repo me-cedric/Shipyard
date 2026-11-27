@@ -44,7 +44,8 @@ export function SpendChart({ prices }: { prices: boolean }) {
 			: group(rows, by).slice(0, BARS);
 	// One period for every view: the 30 days.
 	const total = rows.reduce((n, r) => n + (r.costUsd ?? 0), 0);
-	const ticks = niceTicks(Math.max(...lines.map((l) => l.usd), 0.01));
+	// 0.04 at least: with no spend, each of the five ticks still shows its own cent.
+	const ticks = niceTicks(Math.max(...lines.map((l) => l.usd), 0.04));
 	const top = ticks[TICKS] ?? 1;
 	const label = (name: string) =>
 		by === "day" ? plain(name) : by === "runner" ? runnerName(name) : name;
@@ -76,11 +77,8 @@ export function SpendChart({ prices }: { prices: boolean }) {
 						</span>
 					))}
 				</div>
-				<fieldset
-					aria-label={s.spendBy}
-					className="relative m-0 flex min-w-0 flex-1 gap-3 border-0 p-0"
-				>
-					<div aria-hidden="true" className="pointer-events-none absolute inset-0">
+				<ul aria-label={s.spendBy} className="relative m-0 flex min-w-0 flex-1 list-none gap-3 p-0">
+					<li aria-hidden="true" className="pointer-events-none absolute inset-0">
 						{ticks.map((v) => (
 							<div
 								key={v}
@@ -88,25 +86,30 @@ export function SpendChart({ prices }: { prices: boolean }) {
 								className="absolute inset-x-0 border-t border-n-5"
 							/>
 						))}
-					</div>
+					</li>
 					{lines.map((l) => {
 						const text = `${label(l.name)}: ${amount(l.usd)}`;
 						return (
-							<Tooltip key={l.name} label={text}>
-								<button
-									type="button"
-									aria-label={text}
-									className="relative flex min-w-11 flex-1 items-end rounded-t-md outline-none focus-visible:ring-2 focus-visible:ring-accent"
-								>
+							<li key={l.name} className="relative flex min-w-11 flex-1">
+								<Tooltip label={text}>
+									{/* A bar has no action: it takes the focus only so that the keyboard shows its amount. */}
 									<span
-										style={{ height: `${Math.max(2, (l.usd / top) * 100)}%` }}
-										className="w-full rounded-t-md bg-accent/45"
-									/>
-								</button>
-							</Tooltip>
+										role="img"
+										aria-label={text}
+										// biome-ignore lint/a11y/noNoninteractiveTabindex: the tooltip of a bar needs the focus
+										tabIndex={0}
+										className="flex flex-1 items-end rounded-t-md"
+									>
+										<span
+											style={{ height: `${Math.max(2, (l.usd / top) * 100)}%` }}
+											className="w-full rounded-t-md bg-accent/45"
+										/>
+									</span>
+								</Tooltip>
+							</li>
 						);
 					})}
-				</fieldset>
+				</ul>
 			</div>
 			<div
 				aria-hidden="true"

@@ -11,7 +11,7 @@ The constitution (section 5, rule 5) says: each run has a budget, a stall timeou
 
 The owner chose that Go on has no hard cap (`q:Q-174`).
 
-Spec: `docs/openspec/changes/add-redesign-functions/` (`runs-recipes`, REQ-006).
+Spec: `docs/openspec/changes/archive/2026-11-26-add-redesign-functions/` (`runs-recipes`, REQ-006).
 ## Decision drivers
 - A person decides how strict each budget is.
 - A run never loses its kill switch or its stall timeout.

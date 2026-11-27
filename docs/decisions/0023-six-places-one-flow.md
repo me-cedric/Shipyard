@@ -27,7 +27,7 @@ Spec: `docs/openspec/changes/update-app-redesign/` (`app-redesign`).
 - The engine, the stores, the refs and the rights of today stay.
 ## Considered options
 - A. Six places by task, five stages for a feature, one feature page.
-- B. Keep the seven spaces and remove more duplicates (the path of `change:update-ux-declutter`).
+- B. Keep the seven spaces and remove more duplicates (the path of `spec:ux-declutter`).
 - C. The new model behind a switch "New interface", with both interfaces until the end.
 - D. The new model on a long branch that reaches main only when it is complete.
 ## Decision outcome

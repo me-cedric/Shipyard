@@ -72,6 +72,19 @@ describe("Exports and the terminal (W11)", () => {
 		expect(await screen.findByText("/mock/work-done.xlsx")).toBeInTheDocument();
 	});
 
+	it("lists Wave and saves an app that a person chooses by hand", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/settings/me");
+		await user.click(await screen.findByRole("combobox", { name: "Terminal app" }));
+		expect(await screen.findByRole("option", { name: "Wave" })).toBeInTheDocument();
+		await user.click(await screen.findByRole("option", { name: "Choose an app" }));
+		await waitFor(() => expect(mockState().prefs.terminalApp).toBe("/Applications/Fake Term.app"));
+		expect(await screen.findByRole("combobox", { name: "Terminal app" })).toHaveTextContent(
+			"Fake Term",
+		);
+	});
+
 	it("picks the terminal app in Settings / Me and opens a terminal from the terminal drawer", async () => {
 		const user = userEvent.setup();
 		await open();

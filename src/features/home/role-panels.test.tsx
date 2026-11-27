@@ -152,9 +152,7 @@ describe("Inbox routing (team-rights REQ-014)", () => {
 			"true",
 		);
 		expect(approve).toBeDisabled();
-		expect(approve).toHaveAccessibleDescription(
-			/^Needs the right .+ \(your role: Project manager\)$/,
-		);
+		expect(approve).toHaveAccessibleDescription(/^Your role, Project manager, cannot /);
 	});
 });
 

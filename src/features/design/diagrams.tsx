@@ -341,7 +341,7 @@ function Picked({
 								type="button"
 								onClick={onAsk}
 								{...r}
-								className={cn(r.className, "w-full cursor-pointer text-left font-semibold")}
+								className={cn(r.className, "cursor-pointer text-left font-semibold")}
 							/>
 						)}
 					>

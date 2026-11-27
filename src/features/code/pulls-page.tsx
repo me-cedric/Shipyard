@@ -57,7 +57,7 @@ function Row({ r, on, onSelect }: { r: PrRowView; on: boolean; onSelect: () => v
 	return (
 		<div
 			className={cn(
-				"mx-2 flex min-h-17 items-center gap-3 rounded-md border-b border-n-4 last:border-b-0",
+				"mx-2 flex min-h-17 items-center gap-3 rounded-md [&+&]:border-t [&+&]:border-n-4",
 				on && "bg-accent-tint",
 			)}
 		>

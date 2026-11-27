@@ -67,7 +67,7 @@ The shell is a rail and a page area. The rail shows the project switch, the six 
 
 - Supersedes or extends: `spec:shell#REQ-001`, `spec:shell#REQ-005`, `spec:shell#REQ-009`, `spec:shell#REQ-012`, `spec:shell#REQ-017`.
 - Removes: REQ-007 of `shell` (the status bar). `spec:shell#REQ-021` replaces it.
-- Supersedes the top bar and status bar requirements of `change:update-ux-declutter` (its REQ-009 to REQ-013).
+- Supersedes the top bar and status bar requirements of `spec:ux-declutter` (its REQ-009 to REQ-013).
 - Decision: `adr:0023`.
 
 ## MODIFIED Requirements

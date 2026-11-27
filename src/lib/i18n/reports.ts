@@ -51,7 +51,13 @@ export const reportsEn = {
 		from: "From",
 		to: "To",
 	},
-	terminal: { app: "Terminal app", auto: "Automatic", open: "Open in terminal", opened: "Opened" },
+	terminal: {
+		app: "Terminal app",
+		auto: "Automatic",
+		choose: "Choose an app",
+		open: "Open in terminal",
+		opened: "Opened",
+	},
 	flame: {
 		title: "Spend flame graph",
 		tokens: "{name}: {count} tokens",
@@ -127,6 +133,7 @@ export const reportsFr: typeof reportsEn = {
 	terminal: {
 		app: "Application de terminal",
 		auto: "Automatique",
+		choose: "Choisir une application",
 		open: "Ouvrir dans le terminal",
 		opened: "Ouvert",
 	},

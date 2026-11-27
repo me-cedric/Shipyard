@@ -121,7 +121,9 @@ describe("Code / Pull requests: agent actions", () => {
 		// The control is off with the reason: the click never reaches the backend.
 		const review = await screen.findByRole("button", { name: "Review with an agent" });
 		await waitFor(() => expect(review).toBeDisabled());
-		expect(review).toHaveAccessibleDescription(/runs\.start/);
+		expect(review).toHaveAccessibleDescription(
+			"This project is read only: you cannot start agents.",
+		);
 		expect(mockState().agentPr?.runs ?? 0).toBe(0);
 		await expect(unwrap(commands.prWriteText(null, true))).rejects.toMatchObject({
 			code: "read_only",

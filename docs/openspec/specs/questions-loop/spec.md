@@ -45,9 +45,10 @@ An agent that guesses a decision that belongs to a person produces wrong work. T
 - REQ-016: With `tracker_comment` or `tracker_transition` off, the comment and the ticket move SHALL be approvals in the Inbox. An answer in the Inbox SHALL still resume the run, and it SHALL also appear on the ticket: the click on the answer is the consent for one comment, so the system SHALL post at once a comment with the marker `<!-- shipyard:a Q-NNN -->` and the chosen option or text, whatever the switch says. The system SHALL store the id of that comment, so that it is never read as a human reply. A question comment that is still an approval SHALL be replaced by one comment that holds the question and the answer. A tracker with no comments SHALL get none, and the run log SHALL say so. All off. Each write waits for one click in Home / Inbox. An admin turns each one on per project.
 - REQ-017: The run SHALL return to its return state with the answer in its context. It SHALL resume the CLI session when the runner supports it. Otherwise it SHALL re-brief the agent from the run log. The ticket SHALL move to the status of the return state.
 - REQ-018: When the ticket of a question becomes terminal, the system SHALL close each ticket-level question of that run as withdrawn. It SHALL post no comment. A spec-level question SHALL stay open until a person answers it or withdraws it.
-- REQ-019: A question that nobody answers SHALL keep its run in `WaitingForAnswer`. The system SHALL remind the person once. One reminder after 24 h. No timeout. The person can cancel the run.
+- REQ-019: One reminder on the ticket after 24 h, an escalation after 72 h. Both in `.shipyard/automation.yaml`.
 - REQ-020: A question SHALL be open, answered or withdrawn. The system SHALL show the state and the answer in the card, the inspector and the run log.
 - REQ-021: The QuestionCard and the fold preview SHALL follow the interface rules of the constitution. They SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. They SHALL have one primary action, a keyboard path and a focus ring. They SHALL have assistive labels, enough contrast and reduced motion. They SHALL show French and English text.
+- REQ-022: The first reply of a team member after a stop report unblocks its run with the reply as the message. A reply of a person who is not a member does not unblock it.
 
 ### Non-Goals
 
@@ -382,12 +383,22 @@ When the ticket of a question becomes terminal, the system SHALL close each tick
 
 ### Requirement: REQ-019 Unanswered question
 
-A question that nobody answers SHALL keep its run in `WaitingForAnswer`. The system SHALL remind the person once. One reminder after 24 h. No timeout. The person can cancel the run.
+A question that nobody answers SHALL keep its run in `WaitingForAnswer` with the clocks stopped. After `remind_after_h` (default 24), the system SHALL remind once: one notification, and one ticket comment under the `tracker_comment` switch. After `escalate_after_h` (default 72), the run SHALL escalate with the cause no answer (`factory` REQ-053), and the question SHALL stay open. Both values SHALL come from the `questions` block of `.shipyard/automation.yaml`.
 
 #### Scenario: Reminder
-- GIVEN a question open for 24 h
+- GIVEN a question open for 24 h and `tracker_comment` on
 - WHEN the time passes
-- THEN one notification reminds the person and the run keeps waiting
+- THEN one notification and one ticket comment remind the person, and the run keeps waiting
+
+#### Scenario: Escalation
+- GIVEN a question open for 72 h
+- WHEN the time passes
+- THEN the run moves to `Blocked` with the cause no answer, and the question stays open
+
+#### Scenario: Late answer
+- GIVEN a run blocked with the cause no answer
+- WHEN the person answers the question
+- THEN the run returns to its return state with the answer
 
 ### Requirement: REQ-020 Question states
 
@@ -406,3 +417,27 @@ The QuestionCard and the fold preview SHALL follow the interface rules of the co
 - GIVEN a QuestionCard
 - WHEN the person uses only the keyboard
 - THEN they choose, send and see the focus ring
+
+### Requirement: REQ-022 Reply to a stop report
+
+The first reply of a team member after a stop report marker (`factory` REQ-058) SHALL unblock its run, with the reply as the message of the person. A member is a person that `team-rights` finds, or any person while the team names no admin. A reply SHALL follow the rule of REQ-009. The reply SHALL reach the agents in an `<untrusted-data>` block (`factory` REQ-043). A reply SHALL NOT resume a run in `Paused`.
+
+#### Scenario: Reply unblocks
+- GIVEN a run blocked with a stop report on the ticket
+- WHEN a person replies "Use the v2 endpoint" and a tick runs
+- THEN the run leaves `Blocked`, and the next brief holds the reply in an `<untrusted-data>` block
+
+#### Scenario: Not a member
+- GIVEN a team with an admin and a stop report on a public issue
+- WHEN a person who is not a member replies
+- THEN the run stays in `Blocked` and the run log notes the reply
+
+#### Scenario: Own comment
+- GIVEN a stop report and a later comment with an id that the system stored at a post
+- WHEN a tick runs
+- THEN the run stays in `Blocked`
+
+#### Scenario: Paused run
+- GIVEN a run in `Paused` for the member budget with a stop report on the ticket
+- WHEN a person replies on the ticket
+- THEN the run stays in `Paused` and the run log notes the reply

@@ -68,7 +68,7 @@ Un derecho desactiva un control. El control sigue visible, y su ayuda emergente 
 - `project.settings`: Configuración / Este proyecto, automatización, recetas, conexiones, el archivo del equipo.
 - `costs.view`: los importes de dinero.
 
-La marca admin da todos los derechos. Un miembro puede tener cambios: `+code.merge` añade un derecho, `-runs.approve` quita uno. Tu rol personal en Configuración / Yo y el perfil de solo lectura de un proyecto solo pueden quitar derechos.
+La marca admin da todos los derechos. Un miembro puede tener cambios: `+code.merge` añade un derecho, `-runs.approve` quita uno. Tu rol personal en Configuración / Yo y el perfil de solo lectura de un proyecto solo pueden quitar derechos. Tu rol personal no quita los derechos de un admin ni de una persona que trabaja sola.
 
 Código y fusión es una sola fila: el nivel de Código y un interruptor Fusión, que fijan `code.write` y `code.merge`. El nivel de Plan de un rol sigue su nivel de Flujo y tickets hasta que lo cambies. Cada rol tiene un ajuste Lugares: un lugar que desactivas queda oculto para ese rol. Por defecto, Propietario del producto y Jefe de proyecto no ven Código, Analista de negocio y Lector no ven Equipo ni Código, Arquitecto no ve Plan, Tester no ve Plan ni Equipo, y Diseñador no ve Plan, Equipo ni Código. Los derechos por defecto no cambian.
 

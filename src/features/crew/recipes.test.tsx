@@ -204,7 +204,7 @@ describe("Workflows: the form", () => {
 			const button = card.getByRole("button", { name });
 			await waitFor(() => expect(button).toBeDisabled());
 			expect(button).toHaveAccessibleDescription(
-				"Needs the right project.settings (your role: Viewer)",
+				"Your role, Viewer, cannot change the project settings.",
 			);
 		}
 	});
@@ -316,7 +316,7 @@ describe("Workflows: the form", () => {
 		const remove = await screen.findByRole("button", { name: "Remove Push for Feature" });
 		await waitFor(() => expect(remove).toBeDisabled());
 		expect(remove).toHaveAccessibleDescription(
-			"Needs the right project.settings (your role: Viewer)",
+			"Your role, Viewer, cannot change the project settings.",
 		);
 	});
 });

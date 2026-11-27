@@ -99,7 +99,7 @@ describe("Checks (REQ-023)", () => {
 		const panel = await screen.findByRole("tabpanel", { name: "Checks" });
 		const button = await within(panel).findByRole("button", { name: "Run again" });
 		expect(button).toBeDisabled();
-		expect(button).toHaveAccessibleDescription(/right|access|permission/i);
+		expect(button).toHaveAccessibleDescription("Your role, Viewer, cannot change the code.");
 		expect(rerun).not.toHaveBeenCalled();
 		await idle(router);
 	});

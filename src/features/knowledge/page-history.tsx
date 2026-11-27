@@ -121,7 +121,7 @@ export function EarlierVersions({ path }: { path: string }) {
 						type="button"
 						onClick={() => setOpen(true)}
 						{...p}
-						className={`${p.className} w-full text-left`}
+						className={`${p.className} text-left`}
 					/>
 				)}
 			>

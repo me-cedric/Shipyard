@@ -30,29 +30,29 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - REQ-001: After the build steps end, the run SHALL be in `SelfReview` (`add-factory` REQ-036). The `reviewer` role SHALL review in a fresh context with the compass `review` skill. The reviewer SHALL get the base, the head, the criteria and the standards sources. The reviewer MUST NOT get the reasoning of the builder.
 - REQ-002: The review SHALL check the spec axis and the standards axis. The system SHALL take the criteria from the ticket and from the specs at the base commit. The reviewer SHALL mark each criterion OK, KO or not verified.
 - REQ-003: Each finding SHALL cite a path and a line. The system SHALL open the cited line before it accepts the finding. The system SHALL drop a finding whose citation does not exist.
-- REQ-004: A P0 or P1 finding SHALL send the run back to `Working` for a fix round. A P2 finding SHALL NOT block the pull request, and the run log SHALL keep it. The system SHALL allow two fix rounds at most. When a P0 or P1 finding remains after the second round, the run SHALL move to `Blocked`. Home / Inbox SHALL then show a card that lists the findings (`RunInfo.findings`). An unblock SHALL then start one more fix round with the findings and the message of the person.
+- REQ-004: Fix rounds start with no click and go on while the blocking findings get fewer, up to the run cap.
 - REQ-005: `SelfReview` SHALL post nothing to the forge and nothing to the tracker. The review report SHALL stay in the run log.
 - REQ-006: A pull request SHALL open only when `SelfReview` has no P0 or P1 finding and the gate is green. The gate SHALL run the gate commands of the project and the system SHALL keep the exact counts. A red gate SHALL count as a P1 finding. In .shipyard/project.yaml, as a list of commands.
 - REQ-007: The system SHALL name the branch `<type>/<area>/<kebab>`. The system SHALL rename a branch that a tool named, such as `claude/…` or `codex/…`, before the first push. The system SHALL rebase the branch onto the base before the push.
 - REQ-008: The system SHALL commit only the files of the change. The message SHALL follow `<type>(<scope>): <subject>`. The message MUST NOT hold an AI attribution line.
 - REQ-009: The base SHALL be the base that the project declares. Else it SHALL be `develop` when that branch exists. Else it SHALL be the default branch. The system MUST NOT open a feature pull request onto a release branch.
-- REQ-010: The title SHALL follow the commit. The body SHALL start with an opening paragraph, then the gate result, then one item for each ticket. The body MUST NOT hold a count or a verdict that the run log does not hold. No title, body or comment SHALL hold an AI attribution line.
+- REQ-010: The body holds `Closes #N` for each GitHub or GitLab issue of the run.
 - REQ-011: The system SHALL read the labels of the forge first and SHALL use only labels that exist. It SHALL add one type label and each area label that the diff touches. It MUST NOT add a label that states a judgement. It MUST NOT remove a label that a person set.
 - REQ-012: The assignee of the pull request SHALL be the member who owns the ticket. The pull request SHALL name at least one reviewer. A reviewer list in .shipyard/automation.yaml. An empty list gives an Inbox card that asks for a name. A person edits them in Settings / Project, group Automation (`add-factory` REQ-025).
 - REQ-013: The pull request SHALL open as a draft. Marking it ready SHALL be a person's action in `add-code`.
-- REQ-014: The `push` and `pull_request` switches SHALL be off by default (`add-factory` REQ-025). All off. Each write waits for one click in Home / Inbox. An admin turns each one on per project. A write without its switch SHALL become an approval in Home / Inbox that names the exact write. One click SHALL send it. A rejection SHALL drop the write and move the run to `Blocked` (`add-factory` REQ-026).
+- REQ-014: A rejected push or pull request escalates the run.
 - REQ-015: A push that rewrites history SHALL use force with lease. It MUST NOT use a plain force. It SHALL always wait as an approval, also when `push` is on.
 - REQ-016: Before it opens a pull request, the system SHALL look for a pull request of the same branch. The system MUST NOT open a second pull request or post a second summary for one run. A retry or a repeated tick SHALL find the first one.
 - REQ-017: When the pull request exists, the run SHALL move to `PROpen`. The system SHALL record `pr:<forge>:<number>` on the run. The pull request SHALL link back to the run and to each ticket.
 - REQ-018: When `sync` hands a CI failure to delivery (`add-sync` REQ-012), a `PROpen` run SHALL move to `ChangesRequested`. It SHALL then move to `Working` in the same worktree (`add-factory` REQ-002). The run SHALL get the name and the URL of each failed check, and the tail of its log when the forge gives it.
 - REQ-019: A review that asks for changes SHALL move a `PROpen` run to `ChangesRequested`. A new review comment SHALL do the same. The run SHALL then move to `Working` in the same worktree and SHALL get each thread. After the fix and the push, the system SHALL reply on each thread with the fixing commit. Then it SHALL resolve the thread. These replies are one `pull_request` write for all threads of the round: one approval when the switch is off. The run does not wait for it.
-- REQ-020: A loop between `PROpen`, `ChangesRequested` and `Working` SHALL count against the budget of the run. The run SHALL stop at that limit (`add-factory` REQ-022). No turn count stops the loop (`adr:0025`). Each feedback round gets its own count of review fix rounds (REQ-004).
+- REQ-020: Feedback rounds have a run-wide cap and take all the feedback of a tick in one round.
 - REQ-021: For each `PROpen` run, the system SHALL give the CI state (passing, failing or pending). It SHALL also say whether a change request is open and whether the pull request is a draft. Factory / Runs SHALL use all three to place the run (`add-factory` REQ-038). A draft SHALL sit in In review, whatever its CI state.
-- REQ-022: When `sync` hands a merge event to delivery, the run SHALL move to `Merged` and then to `Done`. Delivery SHALL handle the event before `sync` stops runs for a terminal ticket (`add-sync` REQ-003, REQ-004). The run SHALL reach `Done` in the same step, also when a write of REQ-023 or REQ-024 waits for a click: that write goes out after the click.
+- REQ-022: A merge applies from any state that is not final.
 - REQ-023: After the merge, the system SHALL move each ticket of the run to the terminal status of the mapping. The move SHALL follow the `tracker_transition` switch. Without the switch it SHALL be an approval in Home / Inbox. The system MUST NOT move a ticket that the forge already closed.
 - REQ-024: After the merge, the system SHALL post the run summary on each ticket once. The summary SHALL hold the outcome, the `pr:` ref, the gate result, the review rounds and the cost. It SHALL follow the `tracker_comment` switch. It MUST NOT hold a secret or an AI attribution line.
 - REQ-025: After the merge, the system SHALL remove the worktree of the run. The system MUST NOT remove a worktree that holds uncommitted files. It SHALL keep the run log after the removal.
-- REQ-026: When a pull request closes without a merge, the run SHALL move to `Blocked`, also while it works on a fix. The reason SHALL be pull request closed. The worktree and the ticket SHALL stay as they are. The run moves to Blocked. A person chooses to reopen or to cancel. An unblock SHALL remove the closed pull request from the run, and the pull request step SHALL open a new one. An unblock with a message SHALL first start a feedback round with the message. A cancel SHALL stay the other choice.
+- REQ-026: A pull request closed without a merge cancels the run with one stop report.
 - REQ-027: When `add-code` gives an impacts digest, the pull request body SHALL include it as one section.
 - REQ-028: The system SHALL expose each pull request as a `pr:<forge>:<number>` entity. The entity SHALL show state, CI state and review state. The mirror of `sync` SHALL stay the source for reads.
 - REQ-029: The run cards in In review and Ready to merge SHALL show the `pr:` ref, CI state and review state. Status SHALL use shape and colour together. Delivery SHALL add no primary action to Factory / Runs. Each delivery view SHALL follow the interface rules of the constitution. It SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. It SHALL have a keyboard path, a focus ring, assistive labels, contrast and reduced motion. It SHALL show French and English text.
@@ -61,8 +61,8 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - REQ-032: The lookup of the pull request of a branch SHALL return an open pull request or none. A merged or a closed pull request SHALL NOT be a target for a push or a thread reply.
 - REQ-033: A gate command SHALL run in its own process group. A timeout and the exit of the app SHALL kill the command and its children.
 - REQ-034: A write that opens a pull request SHALL name the branch of the run folder. The system SHALL refuse it when the run folder is on another branch, or when the branch is the base.
-- REQ-035: When the run branch has no change against the base, the pull request step SHALL move the run to `Blocked` with the reason nothing to deliver. An unblock SHALL start one fix round: the builder steps SHALL get the note "The pull request step found no change to deliver." and the message of the person. A person SHALL be able to close the run as `Done` from the run view (Close as done). The run log SHALL keep the reason.
-- REQ-036: When the rebase onto the base conflicts, the pull request step SHALL move the run to `Blocked` with the files. An unblock SHALL start one fix round: one builder step SHALL rebase the run branch onto the base in the run worktree, not in a child worktree. It SHALL resolve the conflicts, keep the intent of both sides, run the checks and report. The pull request step SHALL then run again.
+- REQ-035: An empty branch starts one fixer round, then escalates.
+- REQ-036: A rebase conflict starts one fixer round with no click, then escalates.
 
 ### Non-Goals
 
@@ -163,7 +163,7 @@ Each finding SHALL cite a path and a line. The system SHALL open the cited line 
 
 ### Requirement: REQ-004 Fix rounds
 
-A P0 or P1 finding SHALL send the run back to `Working` for a fix round. A P2 finding SHALL NOT block the pull request, and the run log SHALL keep it. The system SHALL allow two fix rounds at most. When a P0 or P1 finding remains after the second round, the run SHALL move to `Blocked`. Home / Inbox SHALL then show a card that lists the findings (`RunInfo.findings`). An unblock SHALL then start one more fix round with the findings and the message of the person.
+A P0 or P1 finding SHALL send the run back to `Working` for a fix round with no click, with all the blocking findings in one brief. A P2 finding SHALL NOT block the pull request, and the run log SHALL keep it. Rounds SHALL go on while the blocking findings get fewer, up to `review_rounds` (`factory` REQ-054, REQ-055). When the cap or the progress rule stops the rounds, the run SHALL escalate with the findings. An unblock SHALL start one more fix round with the findings and the message.
 
 #### Scenario: One round
 - GIVEN a review finds one defect
@@ -176,14 +176,19 @@ A P0 or P1 finding SHALL send the run back to `Working` for a fix round. A P2 fi
 - THEN the run goes on to the pull request
 - AND the run log keeps the P2 finding
 
+#### Scenario: Batched findings
+- GIVEN a review with three P1 findings
+- WHEN the fix round starts
+- THEN one builder brief holds the three findings
+
 #### Scenario: Rounds spent
-- GIVEN two fix rounds are spent and a P0 or P1 finding remains
-- WHEN the second re-review ends
-- THEN the run moves to `Blocked`
-- AND the Inbox shows a card with the findings
+- GIVEN four fix rounds are spent and a P0 or P1 finding remains
+- WHEN the fourth re-review ends
+- THEN the run moves to `Blocked` with the cause review rounds spent
+- AND the stop report lists the findings
 
 #### Scenario: Unblock after the rounds
-- GIVEN a run in `Blocked` after two fix rounds
+- GIVEN a run in `Blocked` after its review rounds are spent
 - WHEN a person unblocks it with a message
 - THEN the builder runs one more fix round with the findings and the message
 
@@ -249,7 +254,7 @@ The base SHALL be the base that the project declares. Else it SHALL be `develop`
 
 ### Requirement: REQ-010 Title and body
 
-The title SHALL follow the commit. The body SHALL start with an opening paragraph, then the gate result, then one item for each ticket. The body MUST NOT hold a count or a verdict that the run log does not hold. No title, body or comment SHALL hold an AI attribution line.
+The title SHALL follow the commit. The body SHALL start with an opening paragraph, then the gate result, then one item for each ticket. For each GitHub or GitLab issue of the run, the body SHALL hold the line `Closes #<number>`, or `Closes <repository>#<number>` for an issue of another repository. The body MUST NOT hold a count or a verdict that the run log does not hold. No title, body or comment SHALL hold an AI attribution line.
 
 #### Scenario: Body parts
 - GIVEN a run that delivers two tickets
@@ -257,6 +262,16 @@ The title SHALL follow the commit. The body SHALL start with an opening paragrap
 - THEN the body opens with one paragraph
 - AND the body shows the gate result with its exact counts
 - AND the body has one item for each of the two tickets
+
+#### Scenario: Closes line
+- GIVEN a run on the GitHub issue 42 of the same repository
+- WHEN the system writes the body
+- THEN the body holds the line `Closes #42`
+
+#### Scenario: Jira ticket
+- GIVEN a run on a Jira ticket
+- WHEN the system writes the body
+- THEN the body holds no `Closes` line
 
 ### Requirement: REQ-011 Labels
 
@@ -297,7 +312,7 @@ The pull request SHALL open as a draft. Marking it ready SHALL be a person's act
 
 ### Requirement: REQ-014 Push and pull request switches
 
-The `push` and `pull_request` switches SHALL be off by default (`add-factory` REQ-025). All off. Each write waits for one click in Home / Inbox. An admin turns each one on per project. A write without its switch SHALL become an approval in Home / Inbox that names the exact write. One click SHALL send it. A rejection SHALL drop the write and move the run to `Blocked` (`add-factory` REQ-026).
+The `push` and `pull_request` switches SHALL be off by default (`factory` REQ-025). An admin turns each one on per project. A write without its switch SHALL become an approval in Home / Inbox that names the exact write. One click SHALL send it. A rejection SHALL drop the write and escalate the run (`factory` REQ-026, REQ-053).
 
 #### Scenario: Switch off
 - GIVEN `push` off and a run ready to push
@@ -313,6 +328,11 @@ The `push` and `pull_request` switches SHALL be off by default (`add-factory` RE
 - GIVEN `pull_request` on
 - WHEN the run reaches the pull request step
 - THEN the system opens it with no approval
+
+#### Scenario: Rejected push
+- GIVEN an approval for a push
+- WHEN the person rejects it
+- THEN nothing is pushed, the run moves to `Blocked` with the cause push rejected, and one stop report goes out
 
 ### Requirement: REQ-015 Force push
 
@@ -363,7 +383,17 @@ A review that asks for changes SHALL move a `PROpen` run to `ChangesRequested`. 
 
 ### Requirement: REQ-020 Feedback limits
 
-A loop between `PROpen`, `ChangesRequested` and `Working` SHALL count against the budget of the run. The run SHALL stop at that limit (`add-factory` REQ-022). No turn count stops the loop (`adr:0025`). Each feedback round gets its own count of review fix rounds (REQ-004).
+Each move from `PROpen` to `ChangesRequested` SHALL be one feedback round. One round SHALL take all the failed checks and open threads that the tick found. The feedback rounds SHALL count against `feedback_rounds`, and their fix and review rounds against the run caps (`factory` REQ-054). No feedback round SHALL reset a count. A feedback round above the cap SHALL escalate. The budget SHALL still apply (`factory` REQ-022). No turn count SHALL stop the loop (`adr:0025`).
+
+#### Scenario: Feedback cap
+- GIVEN a run with `feedback_rounds` 3 and three feedback rounds spent
+- WHEN a new CI failure arrives
+- THEN the run moves to `Blocked` with the cause feedback rounds spent, and the Inbox shows it
+
+#### Scenario: One round for one tick
+- GIVEN a tick that finds one failed check and two new threads
+- WHEN the feedback round starts
+- THEN one builder brief holds the check and the two threads, and the feedback count goes up by one
 
 #### Scenario: Loop goes on
 - GIVEN a run whose agent has used 200 turns
@@ -396,7 +426,7 @@ For each `PROpen` run, the system SHALL give the CI state (passing, failing or p
 
 ### Requirement: REQ-022 Merge detection
 
-When `sync` hands a merge event to delivery, the run SHALL move to `Merged` and then to `Done`. Delivery SHALL handle the event before `sync` stops runs for a terminal ticket (`add-sync` REQ-003, REQ-004). The run SHALL reach `Done` in the same step, also when a write of REQ-023 or REQ-024 waits for a click: that write goes out after the click.
+When `sync` hands a merge event to delivery, the run SHALL move to `Merged` and then to `Done`, from any state that is not final, side states included. Delivery SHALL handle the event before `sync` stops runs for a terminal ticket (`sync` REQ-003, REQ-004). The run SHALL reach `Done` in the same step, also when a write of REQ-023 or REQ-024 waits for a click: that write goes out after the click.
 
 #### Scenario: Merge
 - GIVEN a `PROpen` run and a merged pull request
@@ -408,6 +438,11 @@ When `sync` hands a merge event to delivery, the run SHALL move to `Merged` and 
 - GIVEN a run in a feedback round (`Working` or `SelfReview`) with its agents running and a push that waits for a click
 - WHEN the pull request merges
 - THEN the agents stop, the run moves to `Merged` and then `Done`, and the push approval is dropped
+
+#### Scenario: Merge while blocked
+- GIVEN a run in `Blocked` with an open pull request
+- WHEN a person merges the pull request
+- THEN the next tick moves the run to `Merged` and then `Done`
 
 ### Requirement: REQ-023 Ticket move
 
@@ -454,19 +489,23 @@ After the merge, the system SHALL remove the worktree of the run. The system MUS
 
 ### Requirement: REQ-026 Closed without merge
 
-When a pull request closes without a merge, the run SHALL move to `Blocked`, also while it works on a fix. The reason SHALL be pull request closed. The worktree and the ticket SHALL stay as they are. The run moves to Blocked. A person chooses to reopen or to cancel. An unblock SHALL remove the closed pull request from the run, and the pull request step SHALL open a new one. An unblock with a message SHALL first start a feedback round with the message. A cancel SHALL stay the other choice.
+When a pull request closes without a merge, in any state that is not final, the system SHALL stop the agents and move the run to `Cancelled` with the reason pull request closed. The worktree and the ticket SHALL stay as they are. The run SHALL post one stop report (`factory` REQ-058). The pickup SHALL NOT start a new run on the ticket before the ticket changes (`sync` REQ-018).
 
 #### Scenario: Closed
 - GIVEN a `PROpen` run
 - WHEN a person closes the pull request
-- THEN the run moves to `Blocked`
-- AND the Inbox shows the run with the reopen and cancel choices
+- THEN the run moves to `Cancelled` with the reason pull request closed
+- AND the ticket gets one comment that names the closed pull request
 
 #### Scenario: Unblock after the close
-- GIVEN a run blocked because its pull request closed
-- WHEN a person unblocks it with no message
-- THEN the run removes the closed pull request
-- AND the pull request step opens a new pull request
+- GIVEN a run cancelled because its pull request closed
+- WHEN a person comments on the ticket and a tick runs
+- THEN a new run starts on the ticket and opens a new pull request
+
+#### Scenario: Closed during a retry
+- GIVEN a run in `RetryQueued` with an open pull request
+- WHEN a person closes the pull request
+- THEN the run moves to `Cancelled` and no retry starts
 
 ### Requirement: REQ-027 Impacts digest
 
@@ -557,10 +596,20 @@ A write that opens a pull request SHALL name the branch of the run folder. The s
 
 ### Requirement: REQ-035 Nothing to deliver
 
-When the run branch has no change against the base, the pull request step SHALL move the run to `Blocked` with the reason nothing to deliver. An unblock SHALL start one fix round: the builder steps SHALL get the note "The pull request step found no change to deliver." and the message of the person. A person SHALL be able to close the run as `Done` from the run view (Close as done). The run log SHALL keep the reason.
+When the run branch has no change against the base, the pull request step SHALL start one fixer round (`factory` REQ-057) with the note "The pull request step found no change to deliver." When the branch still has no change, the run SHALL escalate with the reason nothing to deliver. A person SHALL be able to close the run as `Done` from the run view (Close as done). The run log SHALL keep the reason.
+
+#### Scenario: Fixer round
+- GIVEN a run branch with no change against the base
+- WHEN the pull request step runs
+- THEN a builder step gets the note with no click, and the review and the pull request step run again
+
+#### Scenario: Still nothing
+- GIVEN a fixer round for an empty branch that ended with no change
+- WHEN the pull request step runs again
+- THEN the run moves to `Blocked` with the reason nothing to deliver
 
 #### Scenario: Unblock with nothing to deliver
-- GIVEN a run blocked because the run branch has no change against the base
+- GIVEN a run blocked because the run branch still has no change after its fixer round
 - WHEN a person unblocks it with a message
 - THEN the builder steps get the note and the message, and the review and the pull request step run again
 
@@ -572,10 +621,15 @@ When the run branch has no change against the base, the pull request step SHALL 
 
 ### Requirement: REQ-036 Rebase conflict
 
-When the rebase onto the base conflicts, the pull request step SHALL move the run to `Blocked` with the files. An unblock SHALL start one fix round: one builder step SHALL rebase the run branch onto the base in the run worktree, not in a child worktree. It SHALL resolve the conflicts, keep the intent of both sides, run the checks and report. The pull request step SHALL then run again.
+When the rebase onto the base conflicts, the pull request step SHALL start one fixer round (`factory` REQ-057) with the files, with no click. The fixer SHALL rebase the run branch onto the base in the run worktree, resolve the conflicts, keep the intent of both sides, run the checks and report. After the review, the pull request step SHALL run again. A second conflict SHALL escalate the run with the files.
 
 #### Scenario: Rebase conflict
-- GIVEN a run blocked by a rebase conflict in `src/a.rs`
-- WHEN a person unblocks it
-- THEN a builder step gets a note that names `src/a.rs` and asks for the rebase in the run worktree
+- GIVEN a rebase conflict in `src/a.rs`
+- WHEN the pull request step finds it
+- THEN a builder step gets a note that names `src/a.rs` and asks for the rebase in the run worktree, with no click
 - AND after the review the pull request step runs again
+
+#### Scenario: Second conflict
+- GIVEN a fixer round for a rebase conflict that ended
+- WHEN the rebase conflicts again
+- THEN the run moves to `Blocked` with the files

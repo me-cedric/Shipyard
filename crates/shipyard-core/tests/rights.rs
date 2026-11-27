@@ -309,9 +309,9 @@ fn settings_stays_visible_for_an_admin_and_the_last_admin_stays() {
     let mut root = member("root", "techlead");
     root.admin = true;
     t.members = vec![root, member("dee", "pm")];
-    // An admin with the personal role `pm` keeps Settings visible.
+    // An admin with the personal role `pm` keeps the settings write.
     let p = person(&t, &["root-gh".into()], None, Some("pm"), false);
-    assert_eq!(p.level(Area::Settings), Level::Read);
+    assert_eq!(p.level(Area::Settings), Level::Write);
     let p = person(&t, &["dee-gh".into()], None, None, false);
     assert_eq!(p.access.hidden(), [Area::Settings]);
     let mut gone = t.clone();
@@ -484,6 +484,25 @@ fn an_empty_hide_cell_shows_every_place_and_is_kept() {
     let yaml = serde_norway::to_string(&t).unwrap();
     let back: Team = serde_norway::from_str(&yaml).unwrap();
     assert!(role_hidden(&back, Role::Designer).is_empty());
+}
+
+#[test]
+fn a_personal_role_does_not_lower_an_admin_or_a_solo_person() {
+    let mut ada = member("ada", "developer");
+    ada.admin = true;
+    let t = team(vec![ada, member("dee", "pm")]);
+    let p = person(&t, &["ada-gh".into()], None, Some("architect"), false);
+    assert!(p.has(Right::ProjectSettings));
+    assert_eq!(p.rights.len(), Right::ALL.len());
+    let solo = person(&team(vec![]), &[], None, Some("developer"), false);
+    assert!(solo.has(Right::ProjectSettings));
+    // No widening: a member who is not an admin is still lowered.
+    let dee = person(&t, &["dee-gh".into()], None, Some("techlead"), false);
+    assert!(!dee.has(Right::CodeMerge));
+    // The read-only profile still lowers an admin.
+    let ro = person(&t, &["ada-gh".into()], None, Some("architect"), true);
+    assert!(!ro.has(Right::ProjectSettings));
+    assert_eq!(ro.level(Area::Settings), Level::Read);
 }
 
 #[test]

@@ -1,5 +1,5 @@
 import { isTauri } from "@tauri-apps/api/core";
-import { confirmMock, pickFileMock, pickMock, saveMock } from "./mock";
+import { confirmMock, pickAppMock, pickFileMock, pickMock, saveMock } from "./mock";
 
 /** The native folder picker. Returns null when the person cancels. */
 export async function pickFolder(): Promise<string | null> {
@@ -14,6 +14,22 @@ export async function pickFile(): Promise<string | null> {
 	if (!isTauri()) return pickFileMock();
 	const { open } = await import("@tauri-apps/plugin-dialog");
 	const path = await open({ multiple: false });
+	return typeof path === "string" ? path : null;
+}
+
+/** The native picker for an app: a `.app` on macOS, an exe on Windows. Returns null when the person cancels. */
+export async function pickApp(): Promise<string | null> {
+	if (!isTauri()) return pickAppMock();
+	const { open } = await import("@tauri-apps/plugin-dialog");
+	const ext = /Mac/.test(navigator.userAgent)
+		? "app"
+		: /Win/.test(navigator.userAgent)
+			? "exe"
+			: "";
+	const path = await open({
+		multiple: false,
+		filters: ext ? [{ name: "App", extensions: [ext] }] : undefined,
+	});
 	return typeof path === "string" ? path : null;
 }
 

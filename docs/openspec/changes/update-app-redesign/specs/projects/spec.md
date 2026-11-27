@@ -50,6 +50,11 @@ The system SHALL ask the role on first launch, with "I only look" for the viewer
 - WHEN a person starts Shipyard
 - THEN the last active project opens
 
+#### Scenario: Saved role
+- GIVEN a saved role and no active project
+- WHEN the first run shows
+- THEN it shows the three starts at once
+
 ### Requirement: REQ-013 Health dot
 
 The system SHALL show a health dot on the Health item of the account menu. The dot SHALL reflect the worst finding with a shape and a colour. The item SHALL open the Health page of the scope of the worst finding.

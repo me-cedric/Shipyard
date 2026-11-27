@@ -44,3 +44,26 @@ export function useAnchorArrival() {
 		};
 	}, [hash, key]);
 }
+
+/**
+ * A move to another page or sub-page (a new path or a new `page` value) starts at the top of the
+ * page area. An address with an anchor is left to `useAnchorArrival`. The router does not restore
+ * a scroll position, so Back and Forward start at the top too.
+ */
+export function useTopOnPageMove() {
+	const { path, page, hash } = useRouterState({
+		select: (s) => ({
+			path: s.location.pathname,
+			page: (s.location.search as { page?: unknown }).page,
+			hash: s.location.hash,
+		}),
+	});
+	// biome-ignore lint/correctness/useExhaustiveDependencies: only a new path or `page` moves; `hash` is read at that time
+	useEffect(() => {
+		if (hash) return;
+		// The page area and each list or pane inside it that scrolls on its own.
+		const main = document.querySelector("[data-page-area] main");
+		for (const e of [main, ...(main?.querySelectorAll("*") ?? [])])
+			if (e && e.scrollTop > 0) e.scrollTop = 0;
+	}, [path, page]);
+}

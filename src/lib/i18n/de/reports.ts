@@ -55,6 +55,7 @@ export const reportsDe: typeof reportsEn = {
 	terminal: {
 		app: "Terminal-App",
 		auto: "Automatisch",
+		choose: "App wählen",
 		open: "Im Terminal öffnen",
 		opened: "Geöffnet",
 	},

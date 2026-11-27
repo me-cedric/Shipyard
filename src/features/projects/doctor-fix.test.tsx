@@ -266,6 +266,6 @@ describe("Health of the project / Fix all with an agent (spec:app-redesign#REQ-0
 		mount(THREE);
 		const button = await screen.findByRole("button", { name: "Fix all with an agent" });
 		expect(button).toBeDisabled();
-		expect(button).toHaveAccessibleDescription("Needs the right runs.start (your role: Viewer)");
+		expect(button).toHaveAccessibleDescription("Your role, Viewer, cannot start agents.");
 	});
 });

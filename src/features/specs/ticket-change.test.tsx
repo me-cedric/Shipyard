@@ -40,7 +40,9 @@ describe("Flow / List: a change from a ticket", () => {
 		// The control is off with the reason: the click never reaches the backend.
 		const create = within(dialog).getByRole("button", { name: "Create" });
 		await waitFor(() => expect(create).toBeDisabled());
-		expect(create).toHaveAccessibleDescription(/specs\.edit/);
+		expect(create).toHaveAccessibleDescription(
+			"This project is read only: you cannot change specs.",
+		);
 		expect(
 			mockState().specs.files["docs/openspec/changes/add-export-endpoint/proposal.md"],
 		).toBeUndefined();

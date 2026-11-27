@@ -421,8 +421,6 @@ describe("Dashboards / Build a tile for me (spec:app-redesign#REQ-032, #REQ-033)
 		mountApp("/library/dashboards/team/edit");
 		const button = await screen.findByRole("button", { name: "Build a tile for me" });
 		expect(button).toBeDisabled();
-		expect(button).toHaveAccessibleDescription(
-			"Needs the right knowledge.edit (your role: Viewer)",
-		);
+		expect(button).toHaveAccessibleDescription("Your role, Viewer, cannot change the library.");
 	});
 });

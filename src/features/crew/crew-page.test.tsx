@@ -297,7 +297,7 @@ describe("Crew", () => {
 		const save = await main().findByRole("button", { name: "Save" });
 		expect(save).toBeDisabled();
 		expect(save).toHaveAccessibleDescription(
-			"Needs the right project.settings (your role: Developer)",
+			"Your role, Developer, cannot change the project settings.",
 		);
 		await idle(router);
 	});

@@ -4,6 +4,7 @@ export {
 	confirmDialog,
 	errorDialog,
 	pickAnyFile,
+	pickApp,
 	pickCertificate,
 	pickFile,
 	pickFolder,

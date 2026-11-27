@@ -139,13 +139,13 @@ describe("Flow / Health for every role (spec:app-redesign#REQ-023)", () => {
 		);
 		expect(await tile("Lint")).toBeInTheDocument();
 		expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/gates? needs? a fix/);
-		const reason = "Needs the right runs.start (your role: Tester)";
+		const reason = "Your role, Tester, cannot start agents.";
 		const run = within(await tile("Lint")).getByRole("button", { name: "Run Lint" });
 		expect(run).toBeDisabled();
 		expect(run).toHaveAccessibleDescription(reason);
 		expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
 		// The terminal, the installs and the file of a finding need a right on code.
-		const write = "Needs the right code.write (your role: Tester)";
+		const write = "Your role, Tester, cannot change the code.";
 		const off = (name: string, why: string) => {
 			const button = screen.getByRole("button", { name });
 			expect(button).toBeDisabled();

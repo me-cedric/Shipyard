@@ -9,7 +9,7 @@ The owner wants to choose, for each project, the language of the specs, the diag
 
 The interface language and the prompt language of the assistant are personal preferences of each machine. The language of the docs belongs to the project: each member and each agent must use the same one.
 
-Spec: `docs/openspec/changes/add-project-creator/` (`project-creator` REQ-004, REQ-005, REQ-006, REQ-014; `projects` REQ-007).
+Spec: `docs/openspec/changes/archive/2026-11-26-add-project-creator/` (`project-creator` REQ-004, REQ-005, REQ-006, REQ-014; `projects` REQ-007).
 ## Decision drivers
 - One source for the team, reviewed as code (constitution 1.1).
 - One place for each setting (constitution 2.3): the creator sets it, Settings / Project changes it.
@@ -44,5 +44,5 @@ Chosen option: "A", because the language is a fact of the project, and the engin
 - Good: no change of the project file.
 - Bad: two members get two languages in the same repository.
 ## More information
-- Spec: `spec:project-creator`, `change:add-project-creator`.
+- Spec: `spec:project-creator`.
 - Questions: Q-153, Q-157.

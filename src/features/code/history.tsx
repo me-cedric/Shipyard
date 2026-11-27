@@ -124,7 +124,7 @@ function Rail({
 				</svg>
 			) : null}
 			<span
-				className={`absolute top-1/2 size-2.5 -translate-1/2 rounded-full ring-2 ring-surface-2 ${lane(mine)}`}
+				className={`absolute top-1/2 size-2.5 -translate-1/2 rounded-full ${lane(mine)}`}
 				style={{ left: at(mine) }}
 			/>
 		</span>
@@ -219,7 +219,7 @@ function Detail({ sha }: { sha: string }) {
 										aria-expanded={f.path === open}
 										onClick={() => setFile(f.path === open ? null : f.path)}
 										{...props}
-										className={cn(props.className, "w-full text-left hover:bg-n-2")}
+										className={cn(props.className, "text-left hover:bg-n-2")}
 									/>
 								)}
 							>
@@ -411,13 +411,9 @@ function HistoryView() {
 											{c.labels.map((l) => (
 												<Badge
 													key={`${l.kind}:${l.name}`}
-													variant={
-														l.kind === "tag"
-															? "warning"
-															: l.kind === "branch"
-																? "accent"
-																: "neutral"
-													}
+													variant={LABEL[l.kind]}
+													className="max-w-full truncate"
+													title={l.name}
 												>
 													{l.name}
 												</Badge>

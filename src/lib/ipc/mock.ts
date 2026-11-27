@@ -396,6 +396,11 @@ export function pickFileMock(): string | null {
 	return f;
 }
 
+/** The app picker of the mock: a fixed fake app. */
+export function pickAppMock(): string | null {
+	return "/Applications/Fake Term.app";
+}
+
 /** The save dialog of the mock: the path that a test names, `""` for Cancel, or `fallback`. */
 export function saveMock(fallback: string): string | null {
 	const f = state.nextFile ?? fallback;
@@ -1212,8 +1217,10 @@ const handlers: Handlers = {
 		state.prefs.terminalFontSize = Math.min(24, Math.max(9, state.prefs.terminalFontSize));
 		state.prefs.uiScale = Math.min(20, Math.max(14, state.prefs.uiScale));
 		if (![2, 3].includes(state.prefs.focusWidth)) state.prefs.focusWidth = 2;
-		// An app id is a-z, 0-9 and `-`.
-		state.prefs.terminalApp = state.prefs.terminalApp.trim().replace(/[^a-z0-9-]/g, "");
+		// An app id is a-z, 0-9 and `-`; an app that a person chose is an absolute path.
+		state.prefs.terminalApp = state.prefs.terminalApp.trim();
+		if (!state.prefs.terminalApp.startsWith("/"))
+			state.prefs.terminalApp = state.prefs.terminalApp.replace(/[^a-z0-9-]/g, "");
 		if (!["en", "fr", "de", "es"].includes(state.prefs.promptLang)) state.prefs.promptLang = "";
 		if (!["excalidraw", "mermaid", "drawio", "bpmn"].includes(state.prefs.diagramFormat))
 			state.prefs.diagramFormat = "";
@@ -2517,7 +2524,7 @@ const handlers: Handlers = {
 		rp.writtenAdd(reports(), "Ada Lovelace", new Date().toISOString().slice(0, 10), report, click),
 	docDownload: (path, dest, click) =>
 		kw.docDownload(need(state.knowledge), review().docx, path, dest, click),
-	terminalApps: () => rp.terminalApps(state.reports),
+	terminalApps: () => rp.terminalApps(state.reports, state.prefs.terminalApp),
 	terminalLaunch: (folder, click) =>
 		rp.terminalLaunch(state.reports, reportEnv(), state.prefs.terminalApp, folder, click),
 	tiersGet: () => fx.tiersGet(state.factory),

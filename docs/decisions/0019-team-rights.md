@@ -11,7 +11,7 @@ Today the role is a choice on each machine (Q-114, Q-128), and any person can ch
 
 An older comparable app had role presets with page lists, roles in a repository file keyed by the git e-mail, full access for an unknown person, a personal choice that wins over the team, checks in the view only, no home per role, no separate rights to approve, merge or spend, and no audit trail. This decision does better on each point.
 
-Spec: `docs/openspec/changes/add-team-rights/` (`team-rights`, and the deltas of `shell`, `projects`, `work`).
+Spec: `docs/openspec/changes/archive/2026-11-26-add-team-rights/` (`team-rights`, and the deltas of `shell`, `projects`, `work`).
 ## Decision drivers
 - One source of the roles, reviewed as code (constitution 1.1).
 - Fail closed: a person whom Shipyard does not know changes nothing.
@@ -60,6 +60,6 @@ Chosen option: "A", because it keeps one source in the repository, the code host
 - Good: a strong identity and a central audit log.
 - Bad: a server to run, a sign-in to Shipyard and a new point of failure, against a desktop app with no backend. Rejected.
 ## More information
-- Spec: `spec:team-rights`, `change:add-team-rights`.
+- Spec: `spec:team-rights`.
 - Questions: Q-144 to Q-151, Q-165.
 - Earlier decisions that this one changes: Q-114 (the role and the read-only flag stay on the machine, but only remove rights), Q-128 (a person hides a tab for themselves; a role hides an area only with the level `none`, Q-165).

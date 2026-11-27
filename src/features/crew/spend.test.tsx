@@ -113,7 +113,7 @@ describe("Crew / Spend", () => {
 		// The button is drawn again when the reason arrives: ask for it again.
 		await waitFor(() =>
 			expect(screen.getByRole("button", { name: "Stop all agents" })).toHaveAccessibleDescription(
-				"Needs the right runs.start (your role: Viewer)",
+				"Your role, Viewer, cannot start agents.",
 			),
 		);
 		await idle(router);
@@ -197,7 +197,7 @@ describe("Crew / Spend / Budgets", () => {
 		const set = await screen.findByRole("button", { name: "Set budget" });
 		await waitFor(() =>
 			expect(set).toHaveAccessibleDescription(
-				"Needs the right project.settings (your role: Viewer)",
+				"Your role, Viewer, cannot change the project settings.",
 			),
 		);
 		await idle(router);

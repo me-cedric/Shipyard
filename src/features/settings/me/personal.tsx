@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { commands, unwrap } from "@/lib/ipc";
+import { commands, pickApp, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import { usePrefs } from "@/lib/prefs";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
@@ -88,27 +88,39 @@ export function DefaultAgentSelect() {
 }
 
 /** The terminal apps that are installed on this machine. */
-function useTerminalApps() {
+function useTerminalApps(chosen: string) {
 	const [apps, setApps] = useState<{ id: string; label: string }[]>([]);
 	useEffect(() => {
+		// Load again when the saved app changes: a chosen app joins the list.
+		void chosen;
 		unwrap(commands.terminalApps()).then(setApps).catch(logError);
-	}, []);
+	}, [chosen]);
 	return apps;
 }
+
+const CHOOSE = "__choose__";
 
 /** The terminal app that opens a terminal tab outside Shipyard: the apps of this machine. */
 export function TerminalAppSelect() {
 	const { t } = useI18n();
 	const prefs = usePrefs();
-	const apps = useTerminalApps();
+	const apps = useTerminalApps(prefs.terminalApp);
+	// An app that is gone is not in the list: the select shows Automatic.
+	const known = apps.some((a) => a.id === prefs.terminalApp);
+	const pick = async (v: string) => {
+		if (v !== CHOOSE) return prefs.setPrefs({ terminalApp: back(v) });
+		const path = await pickApp().catch(logError);
+		if (path) prefs.setPrefs({ terminalApp: path });
+	};
 	return (
 		<ValueSelect
 			label={t.reports.terminal.app}
-			value={prefs.terminalApp || DEFAULT}
-			onValueChange={(v) => prefs.setPrefs({ terminalApp: back(v) })}
+			value={known ? prefs.terminalApp : DEFAULT}
+			onValueChange={(v) => void pick(v)}
 			items={[
 				{ value: DEFAULT, label: t.reports.terminal.auto },
 				...apps.map((a) => ({ value: a.id, label: a.label })),
+				{ value: CHOOSE, label: t.reports.terminal.choose },
 			]}
 		/>
 	);

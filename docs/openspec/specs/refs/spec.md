@@ -41,6 +41,7 @@ Pages connect only through a staleness graph. A person cannot see which spec cit
 - REQ-012: A hover or focus on a RefChip SHALL show the title and state of the entity.
 - REQ-013: A RefChip SHALL meet the accessibility and language rules of the constitution.
 - REQ-014: The system SHALL expose refs to the factory agents through the `read_ref` tool.
+- REQ-015: The system SHALL give the outside agents the read-only tool `ref_read`, in the Read files switch group, off by default. It SHALL return the title, the state, the location and the backlinks of a ref, as `read_ref` does, and no file text. It MUST refuse a ref of an area that is hidden for the person, and it MUST leave out each backlink of a hidden area. It MUST refuse a ref whose source switch is off, such as Tickets for `wi`, and leave out each backlink of such a source.
 
 ### Non-Goals
 
@@ -291,3 +292,37 @@ The system SHALL return the title, the state, the location and the backlinks of 
 - GIVEN a run with the `read_ref` tool
 - WHEN the agent asks for a ref with no target
 - THEN it gets an unresolved result
+
+### Requirement: REQ-015 Outside agent read access
+
+The system SHALL give the outside agents the read-only tool `ref_read`, in the Read files switch group, off by default. It SHALL return the title, the state, the location and the backlinks of a ref, as `read_ref` does, and no file text. It MUST refuse a ref of an area that is hidden for the person, and it MUST leave out each backlink of a hidden area. It MUST refuse a ref whose source switch is off, such as Tickets for `wi`, and leave out each backlink of such a source.
+
+#### Scenario: Off by default
+- GIVEN the outside server with the default switches
+- WHEN an outside agent lists the tools and calls `ref_read`
+- THEN `ref_read` is not in the list and the call says which switch turns it on
+
+#### Scenario: Resolved ref
+- GIVEN the Read files switch is on and `adr:0011` is in the index
+- WHEN an outside agent calls `ref_read` with `adr:0011`
+- THEN it gets the title, the state, the location and the backlinks, as `read_ref` gives them
+
+#### Scenario: Ref of a hidden area
+- GIVEN the Design area is hidden for the person
+- WHEN an outside agent calls `ref_read` with `adr:0011`
+- THEN the call is refused with the text of the other read tools of the Design area
+
+#### Scenario: Backlink of a hidden area
+- GIVEN the Work area is hidden for the person and `wi:ACME-1` cites `adr:0011`
+- WHEN an outside agent calls `ref_read` with `adr:0011`
+- THEN the answer does not hold `wi:ACME-1`
+
+#### Scenario: Source switch off
+- GIVEN the Read files switch is on, the Tickets switch is off and `wi:ACME-1` cites `adr:0011`
+- WHEN an outside agent calls `ref_read` with `wi:ACME-1` and with `adr:0011`
+- THEN the first call is refused with `ticket_read is off` and the second answer does not hold `wi:ACME-1`
+
+#### Scenario: Text that is not a ref
+- GIVEN the Read files switch is on
+- WHEN an outside agent calls `ref_read` with `nope`
+- THEN it gets the error `not a ref: nope.` and an example of a ref

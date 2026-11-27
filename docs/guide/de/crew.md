@@ -68,7 +68,7 @@ Ein Recht schaltet ein Bedienelement aus. Das Bedienelement bleibt sichtbar, und
 - `project.settings`: Einrichtung / Dieses Projekt, Automatisierung, Rezepte, Verbindungen, die Teamdatei.
 - `costs.view`: Geldbeträge.
 
-Die Markierung Admin gibt jedes Recht. Ein Mitglied kann Abweichungen haben: `+code.merge` fügt ein Recht hinzu, `-runs.approve` entfernt eines. Ihre persönliche Rolle in Einrichtung / Ich und das schreibgeschützte Profil eines Projekts können Rechte nur entfernen.
+Die Markierung Admin gibt jedes Recht. Ein Mitglied kann Abweichungen haben: `+code.merge` fügt ein Recht hinzu, `-runs.approve` entfernt eines. Ihre persönliche Rolle in Einrichtung / Ich und das schreibgeschützte Profil eines Projekts können Rechte nur entfernen. Ihre persönliche Rolle entfernt keine Rechte eines Admins oder einer Person, die allein arbeitet.
 
 Code und Merge ist eine Zeile: die Stufe von Code und ein Schalter Merge, die `code.write` und `code.merge` setzen. Die Stufe von Plan einer Rolle folgt ihrer Stufe von Arbeit, bis Sie sie ändern. Jede Rolle hat eine Einstellung Bereiche: Ein Bereich, den Sie ausschalten, ist für diese Rolle ausgeblendet. Standardmäßig sehen Product Owner und Projektleitung Code nicht, Business-Analyst und Leser sehen Team und Code nicht, Architekt sieht Plan nicht, Tester sieht Plan und Team nicht, und Designer sieht Plan, Team und Code nicht. Die Standardrechte ändern sich nicht.
 

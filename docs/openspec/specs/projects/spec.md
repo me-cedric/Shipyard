@@ -27,16 +27,16 @@ A team works on several repositories. The earlier tool keeps a project registry,
 
 ### Requirement list
 
-- REQ-001: The system SHALL offer the role choice and three starts on first run: open a local folder, clone a remote repository, create a new project. Open a local folder is the one primary action.
+- REQ-001: The first run SHALL offer the role choice with a Continue action, then three starts: open a local folder, clone a remote repository, create a new project. Open a local folder is the one primary action of the starts.
 - REQ-002: The system SHALL open a local folder as a project and prepare `.shipyard/project.yaml` when it is absent.
 - REQ-003: The system SHALL clone a remote repository with the credentials of a connection. No default. The person picks a folder each time.
-- REQ-004: The system SHALL create a new project as a new repository with a project file.
+- REQ-004: The system SHALL create a new project as a new repository with a project file, through the creator of `project-creator`.
 - REQ-005: The system SHALL add OS ignore rules only to a repository that Shipyard creates.
 - REQ-006: The system SHALL show a project switcher in the shell with the state of each working copy.
-- REQ-007: The system SHALL keep the name, the key, the artifact paths, the default workflow, the gate commands, the ids of the tracker and forge connections and the tracker scope in `.shipyard/project.yaml`. The key in `.shipyard/project.yaml`. The key is short and stable.
+- REQ-007: The project file SHALL keep the name, the key, the paths, the default workflow, the gates, the connection ids, the tracker scope and the languages.
 - REQ-008: The system SHALL keep a project registry in the app data folder, and MUST keep machine values out of the repository. The registry holds the project overrides of a personal preference. The registry in the app data folder. The repository stays free of personal values.
-- REQ-009: The system SHALL show Settings / Project with the paths, the default workflow and the overrides.
-- REQ-010: A project override SHALL take the place of the same preference of a person. The registry SHALL hold it. The view SHALL show which settings the project overrides.
+- REQ-009: Settings / Project SHALL show the paths, the default workflow and the overrides, and SHALL NOT hold roles or page modes. A save SHALL need `project.settings`.
+- REQ-010: A project override SHALL take the place of the same preference of a person. The read-only override SHALL only remove rights.
 - REQ-011: The system SHALL show Settings / Health with compliance checks, tool checks, broken refs and stale generated files.
 - REQ-012: The system SHALL offer one fix action for each finding in Settings / Health.
 - REQ-013: The system SHALL show a health dot in the status bar that reflects the worst finding.
@@ -114,15 +114,24 @@ A team works on several repositories. The earlier tool keeps a project registry,
 
 ### Requirement: REQ-001 First run
 
-The system SHALL offer the role choice and three starts on first run: open a local folder, clone a remote repository, create a new project. The view MUST show one primary action, Open a local folder. Clone and create SHALL be secondary actions. The view MUST show no other action and no other text. The `shell` capability defers to this requirement for the first run.
+The system SHALL offer the role choice with a Continue action on first run, then three starts: open a local folder, clone a remote repository, create a new project. The starts MUST show one primary action, Open a local folder. Clone and create SHALL be secondary actions. A person with a saved role or a project in the registry SHALL see the three starts at once. The `shell` capability defers to this requirement for the first run.
 
 #### Scenario: Empty install
-- GIVEN no project in the registry
+
+- GIVEN no project in the registry and no saved role
 - WHEN a person starts Shipyard
-- THEN the first run shows the role choice and the three starts with icon and noun labels
+- THEN the first run shows the role choice and Continue
+- AND after Continue it shows the three starts with icon and noun labels
 - AND only Open a local folder is a primary action
 
+#### Scenario: Saved role
+
+- GIVEN a saved role and no active project
+- WHEN the first run shows
+- THEN it shows the three starts at once
+
 #### Scenario: Return start
+
 - GIVEN at least one project in the registry
 - WHEN a person starts Shipyard
 - THEN the last active project opens
@@ -163,11 +172,11 @@ The system SHALL clone a remote repository into a new folder inside a folder tha
 
 ### Requirement: REQ-004 Create a project
 
-The system SHALL create a new project as a new Git repository with a project file. The person gives a name and a key.
+The system SHALL create a new project as a new Git repository with a project file. The person gives a name and a key in the creator of `project-creator`, which also sets the stack, the brief, the languages, the team and the remote.
 
 #### Scenario: New project
 - GIVEN an empty target folder
-- WHEN a person gives a name and a key
+- WHEN a person gives a name and a key in the creator and clicks Create
 - THEN the system creates the repository, writes the project file and opens the project
 
 #### Scenario: Folder not empty
@@ -210,12 +219,12 @@ The system SHALL show a switcher in the shell that lists the projects of the reg
 
 ### Requirement: REQ-007 Project file
 
-The system SHALL keep the name, the key, the artifact paths of each kind, the default workflow, the gate commands, the connection ids (`q:Q-018`) and the tracker scope in `.shipyard/project.yaml`. The gate commands are the checks that a run must pass before a pull request (`q:Q-030`). The key in `.shipyard/project.yaml`. The key is short and stable. The working assumption is that the key gives the id. The file MUST NOT hold an override of a personal preference.
+The system SHALL keep the name, the key, the artifact paths of each kind, the default workflow, the gate commands, the connection ids (`q:Q-018`), the tracker scope and the languages of the docs and of the pull requests (`project-creator` REQ-004) in `.shipyard/project.yaml`. The gate commands are the checks that a run must pass before a pull request (`q:Q-030`). The key is short and stable and gives the id (working assumption). The file MUST NOT hold an override of a personal preference.
 
 #### Scenario: Read
 - GIVEN a valid project file
 - WHEN the project opens
-- THEN the name, the key, the paths and the gate commands load
+- THEN the name, the key, the paths, the gate commands and the languages load
 
 #### Scenario: Invalid file
 - GIVEN a project file with a bad value
@@ -227,6 +236,11 @@ The system SHALL keep the name, the key, the artifact paths of each kind, the de
 - WHEN the person saves
 - THEN `.shipyard/project.yaml` holds the two ids under `connections`
 - AND it holds no address and no secret
+
+#### Scenario: Unknown language
+- GIVEN a project file with `docs: klingon` under `languages`
+- WHEN the project opens
+- THEN Settings / Health shows a finding for `languages.docs`
 
 ### Requirement: REQ-008 Project registry
 
@@ -244,7 +258,7 @@ The system SHALL keep a registry of projects in the app data folder. The registr
 
 ### Requirement: REQ-009 Settings / Project
 
-The system SHALL show Settings / Project with the paths of each artifact kind, the default workflow and the overrides. Settings / Project SHALL write paths, the default workflow and the connection ids to `.shipyard/project.yaml`, and overrides to the registry.
+The system SHALL show Settings / Project with the paths of each artifact kind, the default workflow and the overrides. Settings / Project SHALL write paths, the default workflow and the connection ids to `.shipyard/project.yaml`, and overrides to the registry. It SHALL NOT hold roles, page modes or an e-mail to role map: the team file of `team-rights` holds them. A save SHALL need the right `project.settings`.
 
 #### Scenario: Change a path
 - GIVEN Settings / Project
@@ -256,15 +270,25 @@ The system SHALL show Settings / Project with the paths of each artifact kind, t
 - WHEN a person views the page
 - THEN one primary action, Save, shows
 
+#### Scenario: No settings right
+- GIVEN the person has the role `developer`
+- WHEN the person opens Settings / Project
+- THEN Save is off and names `project.settings`
+
 ### Requirement: REQ-010 Overrides
 
-A project override SHALL take the place of the same preference of a person. The registry SHALL hold each override. Settings / Project SHALL mark each overridden setting. Settings / Me SHALL show the same mark. The override MUST NOT reach the repository.
+A project override SHALL take the place of the same preference of a person. The registry SHALL hold each override. Settings / Project SHALL mark each overridden setting. Settings / Me SHALL show the same mark. The override MUST NOT reach the repository. The read-only override SHALL only remove rights (`team-rights` REQ-006): off, it SHALL NOT give a right that the team file does not give.
 
 #### Scenario: Override
 - GIVEN a person who prefers one value and a project override of another value in the registry
 - WHEN the project is active
 - THEN the project value applies and the mark shows in Settings / Me
 - AND `.shipyard/project.yaml` holds no override
+
+#### Scenario: Read only off
+- GIVEN the person has the role `viewer` and turns off the read-only override
+- WHEN the person saves a ticket
+- THEN the backend refuses the save and names `work.edit`
 
 ### Requirement: REQ-011 Settings / Health
 

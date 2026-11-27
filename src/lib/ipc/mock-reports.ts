@@ -39,6 +39,7 @@ export const seedReports = (): MockReports => ({
 		{ id: "apple-terminal", label: "Terminal" },
 		{ id: "iterm2", label: "iTerm2" },
 		{ id: "kitty", label: "kitty" },
+		{ id: "wave", label: "Wave" },
 	],
 	written: [{ report: "dossier", who: "Ada Lovelace", date: "2026-11-18" }],
 });
@@ -54,6 +55,11 @@ const KNOWN = [
 	"alacritty",
 	"windows-terminal",
 	"powershell",
+	"wave",
+	"wave-terminal",
+	"hyper",
+	"tabby",
+	"rio",
 ];
 
 export type Env = {
@@ -203,7 +209,11 @@ export function writtenAdd(
 	return null;
 }
 
-export const terminalApps = (r: MockReports) => r.installed;
+/** The installed apps, then the app that the person chose by hand: its id is its path. */
+export const terminalApps = (r: MockReports, chosen = ""): TerminalApp[] =>
+	chosen.startsWith("/") && chosen.endsWith(".app")
+		? [...r.installed, { id: chosen, label: chosen.split("/").pop()?.slice(0, -4) ?? chosen }]
+		: r.installed;
 
 /** The path is resolved: `..` cannot leave the project. */
 function inside(root: string, folder: string) {
@@ -230,6 +240,10 @@ export function terminalLaunch(
 	needClick(click);
 	inside(env.root, folder);
 	const id = chosen || r.installed[0]?.id;
+	if (id?.startsWith("/")) {
+		r.launched.push({ id, folder });
+		return null;
+	}
 	if (!id) throw "no terminal app was found on this machine";
 	if (!KNOWN.includes(id)) throw `unknown terminal app: ${id}`;
 	const app = r.installed.find((a) => a.id === id);

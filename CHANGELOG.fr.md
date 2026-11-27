@@ -1,6 +1,9 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Une ligne d'une carte reste dans sa carte : le survol de Modifier les raccourcis et d'une ligne qui s'ouvre ne dépasse plus le coin arrondi ; une page ou une sous-page s'ouvre en haut ; un contrôle que votre rôle ne peut pas utiliser le dit en mots simples, par exemple Votre rôle, Architecte, ne peut pas modifier les réglages du projet ; Configuration / Moi montre un badge Admin quand vous êtes admin.
+- Configuration / Moi liste plus d'applications de terminal installées sur un Mac (Wave, Hyper, Tabby et Rio aussi), et Application de terminal a un choix Choisir une application : choisissez une application à la main et Shipyard la garde ; une application disparue revient à Automatique.
+- Un rôle personnel dans Configuration / Moi ne réduit plus les droits d'un admin ou d'une personne qui travaille seule : il choisit toujours la première page et les emplacements masqués.
 - Les sessions actives listent chaque session d'IA de cet ordinateur : une session dont le numéro de processus est court était oubliée.
 - Un nouveau projet nomme ses admins : la personne qui le crée, chaque chef de projet et chaque architecte ; l'histoire d'une fonctionnalité dit en mots simples que l'agent s'est arrêté avec le code 1 ; les textes allemands et espagnols de l'interface et du manuel ont été relus, avec un seul mot pour chaque chose.
 - Code / Historique dessine le graphe des commits avec une ligne par branche, une courbe là où une fusion reprend une branche et une courbe là où une branche démarre, et chaque ligne montre ses étiquettes de branche et de tag ; une ligne sélectionnée ou survolée garde ses coins arrondis dans sa carte sur Historique, Modifications, Pull requests, les plans de test et le panneau de la barre de menus.

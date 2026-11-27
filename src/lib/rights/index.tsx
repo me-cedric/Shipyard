@@ -40,10 +40,18 @@ export function useRights() {
 			? {}
 			: {
 					disabled: true,
-					reason: format(t.rights.needs, {
-						right,
-						role: role ? t.rights.role[role as TeamRole] : t.rights.noRole,
-					}),
+					// A read-only project is the cause, whatever the role.
+					reason: format(
+						person?.readOnly
+							? t.rights.needsReadOnly
+							: role
+								? t.rights.needs
+								: t.rights.needsNoRole,
+						{
+							action: t.rights.cannot[right],
+							role: role ? t.rights.role[role as TeamRole] : "",
+						},
+					),
 				};
 	return { can, gate, level, person, view, role };
 }

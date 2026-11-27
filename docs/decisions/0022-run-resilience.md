@@ -17,7 +17,7 @@ An audit of the engine found these problems:
 
 A comparable tool uses a circuit breaker of 3 failures for each task across retries, a fixed transition table, one report for each stop with the reason and the last output, attempt ids that fence a late result, guards that do not use a retry, a state for "needs a person", findings in one batch for each fix round, and the cancel of a run that a new run replaces.
 
-Spec: `docs/openspec/changes/update-run-resilience/` (`factory`, `delivery`, `sync`, `questions-loop`).
+Spec: `docs/openspec/changes/archive/2026-11-26-update-run-resilience/` (`factory`, `delivery`, `sync`, `questions-loop`).
 ## Decision drivers
 - No run stays stuck with no report, and no run loops with no end.
 - The code keeps the caps. An agent or a prompt cannot change them.
@@ -59,6 +59,6 @@ Chosen option: "A", because `Blocked` already means "a person must act" in the l
 - Good: a small change.
 - Bad: no report on the ticket, and the loops and the waits with no end stay. Rejected.
 ## More information
-- Spec: `change:update-run-resilience`, `spec:factory`, `spec:delivery`, `spec:sync`, `spec:questions-loop`.
+- Spec: `spec:factory`, `spec:delivery`, `spec:sync`, `spec:questions-loop`.
 - Questions: Q-166, Q-167. Earlier answers that this decision changes: Q-025, Q-028, Q-031.
 - Diagram: `docs/diagrams/run-state-machine.mmd`.

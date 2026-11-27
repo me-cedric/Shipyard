@@ -1,4 +1,4 @@
-/** The strings of the controls of runs and recipes (`change:add-redesign-functions`, `runs-recipes`). */
+/** The strings of the controls of runs and recipes (spec `runs-recipes`). */
 export const runsRecipesEn = {
 	pause: "Pause",
 	takeOver: "Take it over",

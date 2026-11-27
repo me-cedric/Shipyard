@@ -738,7 +738,8 @@ impl Person {
 
 /// The person and the levels (REQ-003 to REQ-006). `personal` is the personal role of this
 /// machine. It and `read_only` only lower levels: the read-only profile leaves `read` at most.
-/// Settings is never `none` for an admin.
+/// The personal role does not lower an admin or a solo person. Settings is never `none` for an
+/// admin.
 pub fn person(
     team: &Team,
     accounts: &[String],
@@ -752,7 +753,11 @@ pub fn person(
         (Some(m), _) => (roles_of(m), m.admin, member_access(team, m)),
         (None, _) => (vec![Role::Viewer], false, role_access(team, Role::Viewer)),
     };
-    if let Some(keep) = personal.and_then(|p| personal_access(team, p)) {
+    // The personal role never lowers an admin or a solo person (owner decision, 2026-11-26).
+    if let Some(keep) = personal
+        .filter(|_| !admin)
+        .and_then(|p| personal_access(team, p))
+    {
         access = access.min(keep);
     }
     if read_only {

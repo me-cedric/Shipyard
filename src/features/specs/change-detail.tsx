@@ -326,7 +326,7 @@ export function ChangeDetail({
 												type="button"
 												onClick={() => show(f.path, "text", f.line)}
 												{...p}
-												className={cn(p.className, "w-full text-left")}
+												className={cn(p.className, "text-left")}
 											/>
 										)}
 									>

@@ -122,6 +122,7 @@ describe("mock terminal launcher", () => {
 			"apple-terminal",
 			"iterm2",
 			"kitty",
+			"wave",
 		]);
 		const p = await unwrap(commands.prefsSet({ terminalApp: " iterm2;rm " }));
 		expect(p.terminalApp).toBe("iterm2rm");

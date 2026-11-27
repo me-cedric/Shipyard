@@ -55,6 +55,7 @@ export const reportsEs: typeof reportsEn = {
 	terminal: {
 		app: "App de terminal",
 		auto: "Automática",
+		choose: "Elegir una app",
 		open: "Abrir en el terminal",
 		opened: "Abierto",
 	},

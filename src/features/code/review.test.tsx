@@ -155,7 +155,7 @@ describe("the review bar and Submit review", () => {
 		await toSection(user, "Chat");
 		const button = await screen.findByRole("button", { name: "Submit review" });
 		expect(button).toBeDisabled();
-		expect(button).toHaveAccessibleDescription("Needs the right code.write (your role: Viewer)");
+		expect(button).toHaveAccessibleDescription("Your role, Viewer, cannot change the code.");
 		await idle(router);
 	});
 });

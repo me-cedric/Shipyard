@@ -249,10 +249,36 @@ fn read_only_and_the_personal_role_narrow_and_their_undo_still_saves() {
         ..Overrides::default()
     };
     projects::save_overrides(&f.s, pm).unwrap();
+    // The personal role does not lower a solo person.
+    require(&f.s, Right::CodeWrite, "test", "").unwrap();
+    // It lowers a member who is not an admin.
+    team_file(&f.root, vec![member("bo", "developer")]);
     require(&f.s, Right::WorkEdit, "test", "").unwrap();
     assert!(require(&f.s, Right::CodeWrite, "test", "").is_err());
     projects::save_overrides(&f.s, Overrides::default()).unwrap();
     require(&f.s, Right::CodeWrite, "test", "").unwrap();
+}
+
+#[test]
+fn an_admin_with_a_personal_role_keeps_the_settings_write() {
+    let f = fx();
+    let mut bo = member("bo", "developer");
+    bo.admin = true;
+    team_file(&f.root, vec![bo]);
+    let architect = Overrides {
+        profile_role: Some("architect".into()),
+        ..Overrides::default()
+    };
+    projects::save_overrides(&f.s, architect).unwrap();
+    require(&f.s, Right::ProjectSettings, "test", "").unwrap();
+    // The read-only profile still lowers the admin.
+    let ro = Overrides {
+        profile_role: Some("architect".into()),
+        read_only: Some(true),
+        ..Overrides::default()
+    };
+    projects::save_overrides(&f.s, ro).unwrap();
+    assert!(!allows(&f.s, Right::ProjectSettings));
 }
 
 #[test]
@@ -430,6 +456,8 @@ fn a_junior_keeps_its_narrowing() {
         ..Overrides::default()
     };
     projects::save_overrides(&f.s, junior).unwrap();
+    // The personal role lowers only a member who is not an admin.
+    team_file(&f.root, vec![member("bo", "developer")]);
     assert!(allows(&f.s, Right::CodeWrite));
     assert!(!allows(&f.s, Right::CodeMerge) && !allows(&f.s, Right::RunsApprove));
     // A later save of a look override keeps it.

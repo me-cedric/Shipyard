@@ -29,7 +29,7 @@ describe("SpendChart", () => {
 
 	it("gives each bar a name and shows it in a tooltip on focus", async () => {
 		renderApp(<SpendChart prices />);
-		const bars = screen.getAllByRole("button", { name: /: \$/ });
+		const bars = screen.getAllByRole("img", { name: /: \$/ });
 		expect(bars).toHaveLength(7);
 		const last = bars[6] as HTMLElement;
 		expect(last).toHaveAccessibleName(/: \$3\.20$/);

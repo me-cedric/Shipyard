@@ -64,6 +64,18 @@ Feature: team-rights
     When `dee` chooses the personal role `techlead` in Settings / Me
     Then `dee` still has no `code.merge`
 
+  @spec:team-rights#REQ-006
+  Scenario: Personal narrowing: Admin keeps the settings write
+    Given the member `ana` is an admin and chooses the personal role `architect` in Settings / Me
+    When `ana` saves the budgets of the project
+    Then the backend saves the budgets
+
+  @spec:team-rights#REQ-006
+  Scenario: Personal narrowing: Read only lowers an admin
+    Given the member `ana` is an admin with the personal role `architect` and turns on the read-only profile of the project
+    When `ana` saves the budgets of the project
+    Then the backend refuses the save
+
   @spec:team-rights#REQ-007
   Scenario: Backend check: MCP tool refused
     Given the person is `viewer` and an outside agent runs with the Shipyard MCP server

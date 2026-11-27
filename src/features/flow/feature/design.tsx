@@ -285,7 +285,7 @@ export function Design({ parts }: { parts: Parts }) {
 												type="button"
 												onClick={() => openRef(d.ref)}
 												{...p}
-												className={`${p.className} w-full text-left`}
+												className={`${p.className} text-left`}
 											/>
 										)}
 									>

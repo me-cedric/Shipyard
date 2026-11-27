@@ -113,7 +113,7 @@ describe("Factory / Runs", () => {
 		const panel = within(await screen.findByRole("region", { name: "ACME-2" }));
 		// Stop is a button of the agent card of the page.
 		expect(await panel.findByRole("button", { name: "Stop" })).toHaveAccessibleDescription(
-			"Needs the right runs.start (your role: Viewer)",
+			"Your role, Viewer, cannot start agents.",
 		);
 	});
 

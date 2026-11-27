@@ -68,7 +68,7 @@ Un droit désactive une commande. La commande reste visible, et son infobulle no
 - `project.settings` : Configuration / Ce projet, automatisation, recettes, connexions, le fichier d'équipe.
 - `costs.view` : les montants d'argent.
 
-Le statut admin donne tous les droits. Un membre peut avoir des droits en plus ou en moins : `+code.merge` ajoute un droit, `-runs.approve` en retire un. Votre rôle personnel dans Configuration / Moi et le profil en lecture seule d'un projet ne peuvent que retirer des droits.
+Le statut admin donne tous les droits. Un membre peut avoir des droits en plus ou en moins : `+code.merge` ajoute un droit, `-runs.approve` en retire un. Votre rôle personnel dans Configuration / Moi et le profil en lecture seule d'un projet ne peuvent que retirer des droits. Votre rôle personnel ne retire pas les droits d'un admin, ni d'une personne qui travaille seule.
 
 Code et fusion est une seule ligne : le niveau de Code et un interrupteur Fusion, qui règlent `code.write` et `code.merge`. Le niveau de Plan d'un rôle suit son niveau de Travail tant que vous ne le changez pas. Chaque rôle a un réglage Lieux : un lieu que vous désactivez est masqué pour ce rôle. Par défaut, Responsable produit et Chef de projet ne voient pas Code, Analyste métier et Lecteur ne voient pas Équipe et Code, Architecte ne voit pas Plan, Testeur ne voit pas Plan et Équipe, et Designer ne voit pas Plan, Équipe et Code. Les droits par défaut ne changent pas.
 

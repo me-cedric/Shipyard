@@ -17,7 +17,16 @@ const viewer = async () => {
 	};
 };
 
-const needs = (right: string) => `Needs the right ${right} (your role: Viewer)`;
+const ACTIONS: Record<string, string> = {
+	"code.write": "change the code",
+	"code.merge": "merge code",
+	"knowledge.edit": "change the library",
+	"design.edit": "change designs",
+	"runs.start": "start agents",
+	"specs.edit": "change specs",
+	"work.edit": "change tickets",
+};
+const needs = (right: string) => `Your role, Viewer, cannot ${ACTIONS[right]}.`;
 
 /** Each case: a route, the name of one write control and the right that the backend asks for. */
 const CASES = [

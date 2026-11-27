@@ -64,10 +64,19 @@ A full review of each screen and each state of the app after the redesign. The a
 - Semgrep with the five rule packs of CI: 0 findings. Its own download fails on this network (strict certificate check of Python); the rule packs were fetched with curl, with certificate checks on.
 - Worktrees: only `main` and this session's worktree are left.
 
+## 2026-11-27
+
+- An admin, and a person who works alone, keeps all rights whatever the personal role (`spec:team-rights#REQ-006`, decision of the owner). The read-only profile still lowers each person.
+- 14 built spec changes are archived by hand, as commit `abdf273a` did: 15 new capability folders in `docs/openspec/specs`, and merges into `factory`, `projects`, `shell`, `code`, `delivery`, `refs`, `work`, `sync` and `questions-loop`. Open changes: `add-azure-sign-in`, `add-windows-relay-pipe`, `update-app-redesign`.
+- Terminal apps: Wave, Hyper, Tabby and Rio are found, and "Choose an app" keeps a hand-picked app.
+- A row never leaves its card: the shared row has a width that a caller class cannot widen, and a guard test scans the source. A measure of 58 pages and 1044 rows in a browser build found 0 rows outside their card.
+- A move to another page or sub-page starts at the top. A missing right shows as a plain sentence. Setup / Me shows an Admin badge.
+- A check of the atomic structure and of the design skills on the later commits found 8 defects; all are fixed.
+
 ## Open
 
 1. `adr:0017` stays proposed: Azure sign-in is not built (it needs a Microsoft app registration).
-2. 13 spec changes are built and not archived, so Flow shows them as "Not started". Archive them when the owner says so.
-3. A personal role lowers the rights of an admin (`spec:team-rights#REQ-006`). The owner can change this rule.
-4. About 120 places show an error as a string, not through `ErrorNotice`.
-5. The comment button of a diff line is 24 px, by decision (see Decisions).
+2. About 120 places show an error as a string, not through `ErrorNotice`.
+3. The comment button of a diff line is 24 px, by decision (see Decisions).
+4. The browser mock does not lower the rights of a member who is not an admin from a personal role.
+5. Not checked: whether Wave opens a new terminal in the folder when it starts with `open -a Wave <folder>`.
