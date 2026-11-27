@@ -6,6 +6,7 @@ use serde_json::{Value, json};
 use std::io::{BufRead, Write};
 
 fn main() {
+    // nosemgrep: rust.lang.security.args.args - a test program reads the path of its own file
     let starts = std::env::args().nth(1).expect("the file of the starts");
     let mut file = std::fs::OpenOptions::new()
         .create(true)
