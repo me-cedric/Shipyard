@@ -66,8 +66,8 @@ openspec validate update-app-redesign --strict
 
 ## Docs And Spec Sync
 
-- [ ] Spec still matches intended behavior.
-- [ ] `docs/designs/screens.json` and `docs/assets/screenshots/` hold each new screen.
+- [x] Spec still matches intended behavior.
+- [x] `docs/designs/screens.json` and `docs/assets/screenshots/` hold each new screen.
 - [x] `docs/guide/` is updated in the four languages.
 - [x] `docs/delivery/test-plans/app-redesign.feature` matches the scenarios of the spec.
 - [x] The specs of the touched capabilities are updated, and each moved requirement ref is searched and fixed.

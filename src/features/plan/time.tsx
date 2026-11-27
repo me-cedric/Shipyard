@@ -520,13 +520,13 @@ export function PlanTime() {
 			</IconButton>
 		</>
 	);
+	// The issue tracker takes no hours: the send row and the send page say so.
+	const missing =
+		data && !data.canSend
+			? format(t.work.missing, { name: t.connections.flag.timeTracking })
+			: null;
 	const notices = (
 		<>
-			{data && !data.canSend ? (
-				<p className="text-n-10">
-					{format(t.work.missing, { name: t.connections.flag.timeTracking })}
-				</p>
-			) : null}
 			{error && !failure ? (
 				<p role="alert" className="text-ui text-danger-text">
 					{error}
@@ -621,6 +621,7 @@ export function PlanTime() {
 						{readMonth}
 						{lower}
 					</div>
+					{missing ? <p className="text-n-10">{missing}</p> : null}
 					{notices}
 					{data ? (
 						<div className="flex shrink-0 flex-wrap gap-3.5">
@@ -699,7 +700,8 @@ export function PlanTime() {
 						<div
 							role="img"
 							aria-label={t.work.heatmap}
-							className="flex flex-[1_1_20rem] flex-wrap gap-1"
+							// One row for the longest month: the squares get smaller, they do not wrap.
+							className="flex flex-[1_1_20rem] gap-1"
 						>
 							{monthDays.map((d) => {
 								const m = total.get(d) ?? 0;
@@ -707,7 +709,7 @@ export function PlanTime() {
 									<i
 										key={d}
 										title={format(p.time.dayHours, { day: plain(d), hours: formatMinutes(m) })}
-										className={`size-5 rounded-[calc(var(--radius-sm)/2)] ${m >= 360 ? "bg-accent" : m > 0 ? "bg-accent/45" : "bg-n-5"}`}
+										className={`aspect-square max-w-5 min-w-0 flex-1 rounded-[calc(var(--radius-sm)/2)] ${m >= 360 ? "bg-accent" : m > 0 ? "bg-accent/45" : "bg-n-5"}`}
 									/>
 								);
 							})}
@@ -757,7 +759,7 @@ export function PlanTime() {
 						)}
 					>
 						<span className="flex-1 font-semibold">{p.time.sendHours}</span>
-						<Badge>{p.time.asksFirst}</Badge>
+						<Badge>{missing ?? p.time.asksFirst}</Badge>
 					</Row>
 				</Card>
 			</div>

@@ -35,7 +35,8 @@ function Scope({
 			to={to}
 			className="flex min-w-0 flex-col gap-3 rounded-lg bg-surface-2 p-6 text-n-12 shadow-2 hover:bg-n-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
 		>
-			<span aria-hidden="true" className="flex">
+			{/* One height for an icon and for the picture of the person: the three names sit on one line. */}
+			<span aria-hidden="true" className="flex h-8 items-center">
 				{icon}
 			</span>
 			<span className="text-20 font-semibold">{label}</span>
@@ -61,7 +62,7 @@ function Tiles({
 		<div
 			role="group"
 			aria-label={label}
-			className="grid grid-cols-[repeat(4,minmax(0,180px))] gap-3"
+			className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3"
 		>
 			{items.map((k) => (
 				<button
@@ -194,7 +195,8 @@ export function SetupStart() {
 							onPick={(id) => setPrefs({ defaultAgent: id, defaultModel: "" })}
 						/>
 					) : null}
-					<div className="flex flex-wrap items-center justify-end gap-2.5">
+					{/* The actions of the step are the foot of the panel. */}
+					<div className="mt-auto flex flex-wrap items-end justify-end gap-2.5">
 						{next ? (
 							<Button className="min-h-control" onClick={() => setChosen(next)}>
 								{s.skip}
@@ -210,7 +212,7 @@ export function SetupStart() {
 					</div>
 				</section>
 			</div>
-			<div className="mx-4 grid grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-4">
+			<div className="mx-4 grid grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-4">
 				{sees("project") ? (
 					<Scope
 						to="/setup/project"

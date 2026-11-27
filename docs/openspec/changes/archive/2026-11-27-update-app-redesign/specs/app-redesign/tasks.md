@@ -94,6 +94,6 @@ Look pass 2, Library
 
 ## Completion Check
 
-- [ ] All acceptance criteria are met.
+- [x] All acceptance criteria are met.
 - [x] Required validation passed or failures are marked pre-existing.
-- [ ] Specs, docs, and code agree.
+- [x] Specs, docs, and code agree.

@@ -1,6 +1,8 @@
 # Changelog
 
 ## [0.2.0]
+- A pass on each screen fixed these layouts: the Commit button of Code stays on the row of the message; the fifth figure of Crew / Spend / Usage is on the row of the others; the month of My time is one row of days; Skip is at the foot of a step of Setup / Start, and its three cards fill the row.
+- An empty tile of a dashboard says Nothing here, and a long name beside a bar takes two lines; the answer box of Library / API has the dark surface in the dark look; the level controls of Crew / Rights end on one edge; the buttons of a link card have one height.
 - The border of a text field, a select, a text area and a checkbox is darker: it reaches the 3:1 contrast that the accessibility rules ask for, in light and in dark. The Narrow top bar switch of Setup / Me is gone: the app has no top bar.
 - The folder of a run holds the files of each git submodule of the project: a check that builds from a submodule no longer fails in a run.
 - The card of a stopped feature names the agent that stopped, not the recipe, and its cause line is the fact, such as the check that failed; the Recipe row of a ticket shows the recipe of its run by name, and Start run is off with its reason while a run works on the ticket.

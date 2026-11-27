@@ -91,6 +91,10 @@ A full review of each screen and each state of the app after the redesign. The a
 
 - `update-app-redesign` is archived by hand (`docs/openspec/changes/archive/2026-11-27-update-app-redesign`): the new capability `app-redesign` with 37 requirements, and merges into `code`, `design-system`, `factory`, `projects`, `shell` and `sync`. One spec change is open: `add-windows-relay-pipe`. In the archived copy, 29 acceptance boxes stay open: no single test proves each of them.
 
+- Acceptance proof: each of the 28 open acceptance boxes of the redesign has a test (15 new test cases in 7 new `acceptance.test.*` files, the others existed). The table is in `docs/openspec/changes/archive/2026-11-27-update-app-redesign/acceptance-proof.md`.
+- Screen pass: three reviewers read the 131 screen pictures of the current build and reported 93 findings. Checked against the pictures and the code: 11 layout defects are fixed (commit row, stat cards, month strip, Skip, scope cards, empty tile, bar names, answer box, rights rows, link card buttons, plugin cards). The other findings are false (the fold of the window, a popover, text that the screenshot script types), a house rule (`80 %`, product words) or a wording proposal with no decision: the list is in the journal of workflow `wf_8bf81d14-1ea`.
+- CI on `6115f472`: the five jobs passed, the Windows relay job included.
+
 ## Open
 
 1. `add-windows-relay-pipe` T005: three tests that run on Windows only. They need a fake MCP server that runs on Windows. The read timeout (T006) is done.

@@ -28,8 +28,8 @@ A person follows a feature, not a run (`spec:app-redesign#REQ-010`). The agents 
 
 ### Acceptance Criteria
 
-- [ ] Each of the 16 run states shows in one stage of Flow, with the right mark.
-- [ ] The live view shows one row for each agent at work, with no raw ref.
+- [x] Each of the 16 run states shows in one stage of Flow, with the right mark.
+- [x] The live view shows one row for each agent at work, with no raw ref.
 
 ### Existing References
 

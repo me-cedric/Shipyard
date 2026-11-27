@@ -107,23 +107,23 @@ Look pass 2, Library
 
 ### Acceptance Criteria
 
-- [ ] The menu shows the six places and Setup, and no page shows two section switches.
+- [x] The menu shows the six places and Setup, and no page shows two section switches.
 - [x] The inventory test passes: each route and each palette action of today opens or runs.
-- [ ] The Ask bar answers "what blocks MVP 1" with the blocked features and one action for each.
+- [x] The Ask bar answers "what blocks MVP 1" with the blocked features and one action for each.
 - [x] A viewer sees no Code place. A tester opens Flow / Health.
-- [ ] Today shows one question with its answer controls, and the count in its title.
-- [ ] Each of the 16 run states shows in one stage of Flow, with the right mark.
-- [ ] One approval sends a feature for review, and names the pull request and the ticket move.
+- [x] Today shows one question with its answer controls, and the count in its title.
+- [x] Each of the 16 run states shows in one stage of Flow, with the right mark.
+- [x] One approval sends a feature for review, and names the pull request and the ticket move.
 - [x] Each stop state shows its one action.
-- [ ] Crew shows people and agents, and the live work has no crossing lines.
-- [ ] Plan shows the end date in its title and one card for the capacity problems.
-- [ ] Each view of Design and Knowledge opens from a Library door.
-- [ ] Health shows the gates to a role with no code right.
-- [ ] Setup shows the three scopes, and a search of the settings finds no setting in two places.
-- [ ] The accessibility run finds no control under 44 px and no sideways scroll at 960 by 600.
-- [ ] The four languages are complete, and no text says "tracker" or "forge" alone.
-- [ ] An agent proposes an estimate, a fix feature and a dashboard tile, and nothing changes before the person accepts.
-- [ ] Each Library sub-page of REQ-034 opens at its own address with a back link, and each control that moved is in the More menu, a sub-page or the Ask bar.
+- [x] Crew shows people and agents, and the live work has no crossing lines.
+- [x] Plan shows the end date in its title and one card for the capacity problems.
+- [x] Each view of Design and Knowledge opens from a Library door.
+- [x] Health shows the gates to a role with no code right.
+- [x] Setup shows the three scopes, and a search of the settings finds no setting in two places.
+- [x] The accessibility run finds no control under 44 px and no sideways scroll at 960 by 600.
+- [x] The four languages are complete, and no text says "tracker" or "forge" alone.
+- [x] An agent proposes an estimate, a fix feature and a dashboard tile, and nothing changes before the person accepts.
+- [x] Each Library sub-page of REQ-034 opens at its own address with a back link, and each control that moved is in the More menu, a sub-page or the Ask bar.
 
 ### Existing References
 

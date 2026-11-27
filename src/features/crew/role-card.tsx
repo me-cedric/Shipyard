@@ -57,7 +57,8 @@ export function RoleCard({ role, onRole }: { role: TeamRole; onRole: (role: Team
 				await qc.invalidateQueries();
 			}
 		});
-	const fieldset = "w-64 shrink-0 disabled:opacity-60";
+	// The control sits at the right of its slot: a two-choice control ends on the same edge as the others.
+	const fieldset = "flex w-64 shrink-0 justify-end disabled:opacity-60";
 	return (
 		<Card pad className="flex flex-[3_1_30rem] flex-col gap-3.5">
 			{/* biome-ignore lint/a11y/useSemanticElements: a group of toggles, not a form part */}
@@ -80,6 +81,25 @@ export function RoleCard({ role, onRole }: { role: TeamRole; onRole: (role: Team
 							className="flex min-h-14 flex-wrap items-center gap-3 py-1 [&+&]:border-t [&+&]:border-n-6"
 						>
 							<span className="flex-[1_1_12.5rem] font-medium text-n-12">{row}</span>
+							{/* The merge switch comes first: each level control ends on the same right edge. */}
+							{k === "code" ? (
+								<fieldset
+									disabled={off.disabled || mine.access.code !== "write"}
+									title={off.reason}
+									className="flex shrink-0 items-center gap-2 disabled:opacity-60"
+								>
+									<span aria-hidden="true" className="text-ui text-n-11">
+										{r.merge}
+									</span>
+									<Toggle
+										label={`${r.merge}, ${name}`}
+										checked={mine.access.merge}
+										onCheckedChange={(on) =>
+											void roles.setAccess(role, { ...mine.access, merge: on })
+										}
+									/>
+								</fieldset>
+							) : null}
 							{/* The fieldset turns the switch off without the right, with the reason. */}
 							<fieldset disabled={off.disabled} title={off.reason} className={fieldset}>
 								{k === "approve" ? (
@@ -110,24 +130,6 @@ export function RoleCard({ role, onRole }: { role: TeamRole; onRole: (role: Team
 									/>
 								)}
 							</fieldset>
-							{k === "code" ? (
-								<fieldset
-									disabled={off.disabled || mine.access.code !== "write"}
-									title={off.reason}
-									className="flex shrink-0 items-center gap-2 disabled:opacity-60"
-								>
-									<span aria-hidden="true" className="text-ui text-n-11">
-										{r.merge}
-									</span>
-									<Toggle
-										label={`${r.merge}, ${name}`}
-										checked={mine.access.merge}
-										onCheckedChange={(on) =>
-											void roles.setAccess(role, { ...mine.access, merge: on })
-										}
-									/>
-								</fieldset>
-							) : null}
 						</li>
 					);
 				})}

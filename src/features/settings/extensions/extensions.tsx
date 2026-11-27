@@ -672,7 +672,8 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 	// The rule packs that the project does not hold yet: one tile each, with one Add.
 	const offered = (catalog.data ?? []).filter((c) => c.state === "absent").slice(0, 3);
 	const compassSet = (compass.data?.entries ?? []).some((e) => e.state === "current");
-	const grid = "grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-6 px-4";
+	const grid =
+		"grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] items-start gap-6 px-4";
 	return (
 		<div className="flex flex-col gap-4 pb-10">
 			{errorLine}

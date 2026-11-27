@@ -418,7 +418,8 @@ export function CommitBox({ changes, compact }: { changes: ChangesData; compact?
 			/>
 			<Input
 				label={n.message}
-				className={compact ? "flex-[1_1_200px]" : undefined}
+				// The message gives way first: the four controls of Code / Now stay on one row.
+				className={compact ? "min-w-0 flex-[1_1_8rem]" : undefined}
 				value={summary}
 				onChange={(e) => setSummary(e.target.value)}
 			/>

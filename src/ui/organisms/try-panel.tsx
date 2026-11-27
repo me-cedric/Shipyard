@@ -113,7 +113,7 @@ export function TryPanel({
 					<ErrorNotice error={result.failure} className="min-w-0 flex-1" />
 				</div>
 			) : null}
-			<output className="flex min-h-30 flex-col gap-1 rounded-field bg-n-12 p-4 text-n-5">
+			<output className="flex flex-col gap-1 rounded-field bg-n-3 p-4 text-n-12 empty:hidden">
 				{result?.response ? (
 					<>
 						<span className="flex items-center gap-2 text-12">

@@ -1,6 +1,8 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Une passe sur chaque écran a corrigé ces mises en page : le bouton Commit de Code reste sur la ligne du message ; le cinquième chiffre d'Équipe / Dépenses / Utilisation est sur la ligne des autres ; le mois de Mon temps tient sur une ligne de jours ; Passer est au pied d'une étape de Configuration / Démarrer, et ses trois cartes remplissent la ligne.
+- Une tuile vide d'un tableau de bord dit Rien ici, et un nom long à côté d'une barre prend deux lignes ; la zone de réponse de Bibliothèque / API a la surface sombre en mode sombre ; les choix de niveau d'Équipe / Droits finissent sur un même bord ; les boutons d'une carte de lien ont une seule hauteur.
 - La bordure d'un champ de texte, d'une liste, d'une zone de texte et d'une case à cocher est plus foncée : elle atteint le contraste de 3:1 que demandent les règles d'accessibilité, en clair et en sombre. Le choix Barre du haut étroite de Configuration / Moi a disparu : l'application n'a plus de barre du haut.
 - Le dossier d'une exécution contient les fichiers de chaque sous-module git du projet : une vérification qui compile à partir d'un sous-module n'échoue plus dans une exécution.
 - La carte d'une fonctionnalité arrêtée nomme l'agent qui s'est arrêté, et non la recette, et sa ligne de cause est le fait, par exemple la vérification en échec ; la ligne Recette d'un ticket montre la recette de son exécution par son nom, et Lancer une exécution est désactivé avec sa raison tant qu'une exécution travaille sur le ticket.

@@ -11,6 +11,8 @@ export type TileLabels = {
 	pin: string;
 	unpin: string;
 	cut: string;
+	/** The words of a tile whose source gives no row. */
+	empty: string;
 	/** The name of the menu of a tile, before its title. */
 	more: string;
 	/** The name of each chart kind, for the accessible name of a chart. */
@@ -130,6 +132,10 @@ export function TileCard({
 					"flex min-h-0 flex-1 flex-col overflow-y-auto rounded-md border border-n-7 border-dashed bg-n-2 p-3",
 				)}
 			>
+				{/* A box with no words looks broken: an empty source says so. The empty chart stays for its name. */}
+				{!off && data && data.rows.length === 0 ? (
+					<p className="text-ui text-n-11">{labels.empty}</p>
+				) : null}
 				{off ? (
 					<p className="text-ui text-n-11">{offText}</p>
 				) : table || data?.columns.length !== 2 ? (

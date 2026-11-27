@@ -30,9 +30,9 @@ The health of the product is not only for a person with a right on code (`spec:a
 
 ### Acceptance Criteria
 
-- [ ] Health shows the gates to a role with no code right, with Run off.
-- [ ] The card of the sync mark names the reason when a sync cannot update the working branch.
-- [ ] The impacts open from the Checks of a feature, and the old address opens them.
+- [x] Health shows the gates to a role with no code right, with Run off.
+- [x] The card of the sync mark names the reason when a sync cannot update the working branch.
+- [x] The impacts open from the Checks of a feature, and the old address opens them.
 
 ### Existing References
 

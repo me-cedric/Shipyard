@@ -10,6 +10,7 @@ export function useTileLabels(): TileLabels {
 		pin: k.pin,
 		unpin: k.unpin,
 		cut: k.cut,
+		empty: t.empty.nothing,
 		more: t.ui.more,
 		charts: t.library.fn.charts,
 	};

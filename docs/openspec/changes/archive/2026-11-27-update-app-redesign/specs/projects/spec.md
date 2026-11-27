@@ -27,7 +27,7 @@ Look pass 1 removed the status bar (`spec:shell#REQ-021`). The project health mo
 ### Acceptance Criteria
 
 - [x] The first run shows the role question, then the three starts and the recent projects.
-- [ ] The dot of the Health item changes colour and shape with the worst finding.
+- [x] The dot of the Health item changes colour and shape with the worst finding.
 
 ### Existing References
 

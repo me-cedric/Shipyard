@@ -55,12 +55,12 @@ The shell is a rail and a page area. The rail shows the project switch, the six 
 
 ### Acceptance Criteria
 
-- [ ] The rail lists the six places and Setup, with the project switch at its top and the account row at its foot.
-- [ ] The shell has no top bar and no status bar, and the page area starts with the top row.
-- [ ] The sync mark opens a card with what waits and the sync actions.
-- [ ] The palette shortcut moves the focus to the Ask bar, and an action runs from it.
-- [ ] A role opens on its first page, and the menu order is the same for every role.
-- [ ] The first run and "No project is open" show without the rail and the top row.
+- [x] The rail lists the six places and Setup, with the project switch at its top and the account row at its foot.
+- [x] The shell has no top bar and no status bar, and the page area starts with the top row.
+- [x] The sync mark opens a card with what waits and the sync actions.
+- [x] The palette shortcut moves the focus to the Ask bar, and an action runs from it.
+- [x] A role opens on its first page, and the menu order is the same for every role.
+- [x] The first run and "No project is open" show without the rail and the top row.
 - [x] The inventory test finds each control of the old top bar and of the old status bar. Test: `src/features/shell/inventory.test.tsx`.
 
 ### Existing References

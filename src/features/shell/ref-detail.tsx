@@ -97,13 +97,11 @@ export function RefDetail({ refId, onOpen }: { refId: string; onOpen: (ref: stri
 					)}
 				</ul>
 			</section>
-			<div className="flex gap-2">
-				<div className="flex min-w-0 flex-1 *:flex-1">
+			<div className="flex flex-wrap items-start gap-2">
+				<div className="flex min-w-0 flex-wrap items-start gap-2">
 					<OpenActions refId={refId} />
 				</div>
-				<Button className="flex-1" onClick={() => explain(refId)}>
-					{t.inspector.explain}
-				</Button>
+				<Button onClick={() => explain(refId)}>{t.inspector.explain}</Button>
 			</div>
 			<div className="flex flex-wrap items-center gap-3 rounded-field bg-n-3 py-2.5 pr-2.5 pl-4">
 				<code className="mr-auto min-w-0 flex-1 truncate text-12 text-n-12" title={refId}>

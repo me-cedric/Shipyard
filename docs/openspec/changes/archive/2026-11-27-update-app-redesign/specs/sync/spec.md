@@ -26,7 +26,7 @@ Look pass 1 removed the status bar and the top bar (`spec:shell#REQ-021`). The s
 
 ### Acceptance Criteria
 
-- [ ] One sync action in the card of the sync mark starts one tick. Only the card and the Ask bar offer it.
+- [x] One sync action in the card of the sync mark starts one tick. Only the card and the Ask bar offer it.
 
 ### Existing References
 

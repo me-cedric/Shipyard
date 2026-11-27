@@ -35,7 +35,8 @@ export function StatStrip({ items, className }: { items: StatItem[]; className?:
 			variants={LIST}
 			initial={useEnter()}
 			animate="shown"
-			className={cn("grid grid-cols-2 gap-4 lg:grid-cols-4", className)}
+			// The columns follow the count of the cards: a fifth card does not sit alone on a second row.
+			className={cn("grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-4", className)}
 		>
 			{items.map((s) => {
 				const tone = TONE[s.tone ?? "accent"];
