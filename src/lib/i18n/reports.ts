@@ -57,6 +57,8 @@ export const reportsEn = {
 		choose: "Choose an app",
 		open: "Open in terminal",
 		opened: "Opened",
+		paste:
+			"This app does not take a folder from Shipyard. The command for the folder is in the clipboard: paste it in the app.",
 	},
 	flame: {
 		title: "Spend flame graph",
@@ -136,6 +138,8 @@ export const reportsFr: typeof reportsEn = {
 		choose: "Choisir une application",
 		open: "Ouvrir dans le terminal",
 		opened: "Ouvert",
+		paste:
+			"Cette application ne reçoit pas de dossier de Shipyard. La commande du dossier est dans le presse-papiers : collez-la dans l'application.",
 	},
 	flame: {
 		title: "Flamegraph des dépenses",

@@ -1,6 +1,8 @@
 # Changelog
 
 ## [0.2.0]
+- Wave takes no folder from another app: Open in the terminal app opens Wave, puts the command for the folder in the clipboard and says so.
+- Today / Working now shows only the newest run of each feature: an old failed run no longer shows beside a newer run.
 - A row of a card stays inside its card: the hover fill of Change the shortcuts and of a row that opens no longer passes the round corner; a page or a sub-page opens at the top; a control that your role may not use says so in plain words, for example Your role, Architect, cannot change the project settings; Setup / Me shows an Admin badge when you are an admin.
 - Setup / Me lists more terminal apps that are installed on a Mac (Wave, Hyper, Tabby and Rio too), and Terminal app has a Choose an app item: pick any app by hand and Shipyard keeps it; an app that is gone goes back to Automatic.
 - A personal role in Setup / Me no longer lowers the rights of an admin or of a person who works alone: it still chooses the first page and the hidden places.

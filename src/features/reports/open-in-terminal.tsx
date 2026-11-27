@@ -1,5 +1,5 @@
+import { launchTerminal } from "@/features/shell/terminal-app";
 import { useI18n } from "@/lib/i18n";
-import { commands, errorDialog, toFailure, unwrap } from "@/lib/ipc";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { CommandLineIcon } from "@/ui/icons";
 
@@ -9,11 +9,7 @@ export function OpenInTerminal({ folder = "" }: { folder?: string }) {
 	return (
 		<IconButton
 			label={t.reports.terminal.open}
-			onClick={() =>
-				void unwrap(commands.terminalLaunch(folder, true)).catch((e) =>
-					errorDialog(toFailure(e).message),
-				)
-			}
+			onClick={() => void launchTerminal(folder, t.reports.terminal.paste)}
 		>
 			<CommandLineIcon size={16} />
 		</IconButton>

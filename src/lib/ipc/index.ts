@@ -3,6 +3,7 @@ export * from "./bindings";
 export {
 	confirmDialog,
 	errorDialog,
+	infoDialog,
 	pickAnyFile,
 	pickApp,
 	pickCertificate,

@@ -1,8 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, errorDialog, toFailure, unwrap } from "@/lib/ipc";
+import { commands, errorDialog, infoDialog, toFailure, unwrap } from "@/lib/ipc";
+import { copyText } from "@/lib/menus";
 import { usePrefs } from "@/lib/prefs";
+
+/** The folder as a `cd` command for a shell: single quotes keep each character as it is. */
+export const cdCommand = (folder: string) => `cd '${folder.replaceAll("'", "'\\''")}'`;
+
+/**
+ * Opens the terminal app in a folder of the project (empty: the project folder). An app that takes
+ * no folder only opens: the command for the folder goes to the clipboard, and `note` says so.
+ */
+export async function launchTerminal(folder: string, note: string) {
+	try {
+		const left = await unwrap(commands.terminalLaunch(folder, true));
+		if (left && (await copyText(cdCommand(left)))) await infoDialog(note);
+	} catch (e) {
+		await errorDialog(toFailure(e).message);
+	}
+}
 
 /** "Open in the terminal app": the label names the app of Settings / Me when one is set. */
 export function useOpenInTerminalApp() {
@@ -18,11 +35,8 @@ export function useOpenInTerminalApp() {
 	return useMemo(
 		() => ({
 			label,
-			run: () =>
-				void unwrap(commands.terminalLaunch("", true)).catch((e) =>
-					errorDialog(toFailure(e).message),
-				),
+			run: () => void launchTerminal("", t.reports.terminal.paste),
 		}),
-		[label],
+		[label, t],
 	);
 }

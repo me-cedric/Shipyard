@@ -58,6 +58,8 @@ export const reportsEs: typeof reportsEn = {
 		choose: "Elegir una app",
 		open: "Abrir en el terminal",
 		opened: "Abierto",
+		paste:
+			"Esta app no recibe una carpeta de Shipyard. El comando de la carpeta está en el portapapeles: pégalo en la app.",
 	},
 	flame: {
 		title: "Gráfico de llama del gasto",

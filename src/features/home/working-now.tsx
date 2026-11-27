@@ -4,6 +4,7 @@ import { STAGES, stateText, useFeatures } from "@/features/flow/feature";
 import { doStop, type StopAction, stopAction } from "@/features/flow/stop-action";
 import { useGuard } from "@/features/work/guard";
 import { useDailySpend, useRunActions, useRuns } from "@/lib/factory";
+import { latestPerTicket } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import type { RunView_Serialize } from "@/lib/ipc";
 import { RightButton, useRights } from "@/lib/rights";
@@ -61,7 +62,8 @@ export function WorkingNow() {
 	const { t, lang } = useI18n();
 	const stopGate = useRights().gate("runs.start");
 	const keys = new Set(useMyItems().map((i) => i.key));
-	const live = (useRuns().data ?? []).filter(
+	// A failed run of a ticket that has a newer run is history: it is not at work and needs nobody.
+	const live = latestPerTicket(useRuns().data ?? []).filter(
 		(r) => keys.has(r.key) && (r.lane === "working" || r.lane === "needs_you"),
 	);
 	const features = useFeatures().data ?? [];

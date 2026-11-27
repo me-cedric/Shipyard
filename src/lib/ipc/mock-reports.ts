@@ -249,5 +249,6 @@ export function terminalLaunch(
 	const app = r.installed.find((a) => a.id === id);
 	if (!app) throw `the terminal app is not installed: ${id}`;
 	r.launched.push({ id, folder });
-	return null;
+	// Wave takes no folder from another app: the answer is the folder, for the clipboard.
+	return id === "wave" ? `${env.root}${folder ? `/${folder.replace(/^\//, "")}` : ""}` : null;
 }

@@ -13,6 +13,7 @@ import { tabLabel } from "@/features/shell/spaces";
 import { usePulls, useQuality } from "@/lib/code/forge";
 import { useDesignList } from "@/lib/design";
 import { useDailySpend, useRuns } from "@/lib/factory";
+import { latestPerTicket } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import type { TeamRole } from "@/lib/ipc";
 import { useDashboard } from "@/lib/knowledge";
@@ -200,7 +201,9 @@ const PANELS: Record<string, () => ReactNode> = {
 	},
 	runs: function RunsPanel() {
 		const { t } = useI18n();
-		const x = (useRuns().data ?? []).filter((r) => r.lane === "working" || r.lane === "needs_you");
+		const x = latestPerTicket(useRuns().data ?? []).filter(
+			(r) => r.lane === "working" || r.lane === "needs_you",
+		);
 		return (
 			<Card
 				title={t.rights.panel.runs}

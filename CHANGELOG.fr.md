@@ -1,6 +1,8 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Wave ne prend pas de dossier d'une autre application : Ouvrir dans l'application de terminal ouvre Wave, met la commande du dossier dans le presse-papiers et le dit.
+- Aujourd'hui / En cours ne montre que la dernière exécution de chaque fonctionnalité : une ancienne exécution en échec ne s'affiche plus à côté d'une plus récente.
 - Une ligne d'une carte reste dans sa carte : le survol de Modifier les raccourcis et d'une ligne qui s'ouvre ne dépasse plus le coin arrondi ; une page ou une sous-page s'ouvre en haut ; un contrôle que votre rôle ne peut pas utiliser le dit en mots simples, par exemple Votre rôle, Architecte, ne peut pas modifier les réglages du projet ; Configuration / Moi montre un badge Admin quand vous êtes admin.
 - Configuration / Moi liste plus d'applications de terminal installées sur un Mac (Wave, Hyper, Tabby et Rio aussi), et Application de terminal a un choix Choisir une application : choisissez une application à la main et Shipyard la garde ; une application disparue revient à Automatique.
 - Un rôle personnel dans Configuration / Moi ne réduit plus les droits d'un admin ou d'une personne qui travaille seule : il choisit toujours la première page et les emplacements masqués.

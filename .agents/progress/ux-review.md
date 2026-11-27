@@ -72,6 +72,9 @@ A full review of each screen and each state of the app after the redesign. The a
 - A row never leaves its card: the shared row has a width that a caller class cannot widen, and a guard test scans the source. A measure of 58 pages and 1044 rows in a browser build found 0 rows outside their card.
 - A move to another page or sub-page starts at the top. A missing right shows as a plain sentence. Setup / Me shows an Admin badge.
 - A check of the atomic structure and of the design skills on the later commits found 8 defects; all are fixed.
+- Wave takes no folder from another app (it declares no document type and no URL scheme, and its `wsh` helper works only inside Wave). Shipyard opens Wave, puts `cd '<folder>'` in the clipboard and shows a notice. `terminal_launch` returns the folder that the app did not take.
+- Today / Working now and the runs panel of a role show the newest run of each ticket only: an old failed run showed beside a newer run before.
+- The built app was checked through its outside server in a portable copy with its own data folder: sign-in, 13 tools, `ref_read`, and the refusals for a path outside the project, a switched-off tool and a call with no token.
 
 ## Open
 
@@ -79,4 +82,4 @@ A full review of each screen and each state of the app after the redesign. The a
 2. About 120 places show an error as a string, not through `ErrorNotice`.
 3. The comment button of a diff line is 24 px, by decision (see Decisions).
 4. The browser mock does not lower the rights of a member who is not an admin from a personal role.
-5. Not checked: whether Wave opens a new terminal in the folder when it starts with `open -a Wave <folder>`.
+5. The windows of the installed app are not driven by a tool: there is no WebDriver for a Tauri app on macOS. The checks ran on the browser build and on the outside server of the built app.

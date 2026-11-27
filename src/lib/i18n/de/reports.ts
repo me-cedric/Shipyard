@@ -58,6 +58,8 @@ export const reportsDe: typeof reportsEn = {
 		choose: "App wählen",
 		open: "Im Terminal öffnen",
 		opened: "Geöffnet",
+		paste:
+			"Diese App nimmt keinen Ordner von Shipyard an. Der Befehl für den Ordner liegt in der Zwischenablage: Fügen Sie ihn in der App ein.",
 	},
 	flame: {
 		title: "Flammendiagramm der Ausgaben",

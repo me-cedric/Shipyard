@@ -300,6 +300,24 @@ describe("Home / Today", () => {
 		vi.restoreAllMocks();
 	});
 
+	it("leaves out a failed run when its ticket has a newer run", async () => {
+		await withTracker();
+		await importAll();
+		const { keys } = await mine();
+		const base = (await unwrap(commands.runsList())).find((r) => keys.has(r.key));
+		if (!base) throw new Error("seed");
+		vi.spyOn(commands, "runsList").mockResolvedValue(
+			ok([
+				{ ...base, id: "01A", reference: "run:01A", state: "Failed", lane: "needs_you" },
+				{ ...base, id: "02B", reference: "run:02B", state: "Cancelled", lane: "done" },
+			]),
+		);
+		mountApp("/home/today");
+		const agents = within(await screen.findByRole("region", { name: /^Working now/ }));
+		expect(await agents.findByText("No active run")).toBeInTheDocument();
+		vi.restoreAllMocks();
+	});
+
 	it("shows one row for each live run on my tickets, with the stage of its feature", async () => {
 		await withTracker();
 		await importAll();

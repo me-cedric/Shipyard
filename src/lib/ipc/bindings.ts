@@ -212,7 +212,7 @@ export const commands = {
 	terminalCloseAll: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("terminal_close_all")),
 	terminalApps: () => typedError<TerminalApp[], AppError_Serialize>(__TAURI_INVOKE("terminal_apps")),
 	/**  Opens the terminal app of the preferences in a folder of the open project. */
-	terminalLaunch: (folder: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("terminal_launch", { folder, click })),
+	terminalLaunch: (folder: string, click: boolean) => typedError<string | null, AppError_Serialize>(__TAURI_INVOKE("terminal_launch", { folder, click })),
 	runnersList: () => typedError<Runner_Serialize[], AppError_Serialize>(__TAURI_INVOKE("runners_list")),
 	/**
 	 *  The models and the reasoning levels that one agent tool accepts. It asks the tool, and the

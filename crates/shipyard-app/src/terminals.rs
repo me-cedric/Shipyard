@@ -120,6 +120,12 @@ const DEFS: &[Def] = &[
     },
 ];
 
+/// False for an app that takes no folder from another app: it only opens, and the person pastes
+/// the folder. Wave is one: its `wsh term` works only inside Wave.
+fn takes_folder(id: &str) -> bool {
+    !matches!(id, "wave" | "wave-terminal")
+}
+
 /// How to start an app that was found.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Found {
@@ -232,7 +238,8 @@ fn plan(id: &str, found: &Found, dir: &Path) -> Launch {
                 "wezterm" => args.extend(pair("--cwd")),
                 "kitty" => args.extend(pair("--directory")),
                 "alacritty" => args.extend(pair("--working-directory")),
-                _ => args.push(d),
+                _ if takes_folder(id) => args.push(d),
+                _ => {}
             }
             Launch {
                 program: "open".into(),
@@ -289,7 +296,8 @@ fn plain(p: PathBuf) -> PathBuf {
 
 /// Open the app of the preferences in `folder` (empty is the project folder). It needs the click
 /// of a person. An unknown or missing app is an error: no other app opens in its place.
-pub fn launch(s: &AppState, folder: &str, click: bool) -> Res<()> {
+/// The answer is the folder when the app could not take it: the interface gives it to the person.
+pub fn launch(s: &AppState, folder: &str, click: bool) -> Res<Option<String>> {
     if !click {
         return Err("this change needs the click of a person".into());
     }
@@ -344,7 +352,7 @@ pub fn launch(s: &AppState, folder: &str, click: bool) -> Res<()> {
     std::thread::spawn(move || {
         let _ = child.wait();
     });
-    Ok(())
+    Ok((!takes_folder(id)).then(|| dir.to_string_lossy().into_owned()))
 }
 
 #[tauri::command]
@@ -356,7 +364,7 @@ pub async fn terminal_apps(app: AppHandle) -> Api<Vec<TerminalApp>> {
 /// Opens the terminal app of the preferences in a folder of the open project.
 #[tauri::command]
 #[specta::specta]
-pub async fn terminal_launch(app: AppHandle, folder: String, click: bool) -> Api<()> {
+pub async fn terminal_launch(app: AppHandle, folder: String, click: bool) -> Api<Option<String>> {
     blocking(app, move |s| launch(s, &folder, click)).await
 }
 
@@ -402,6 +410,20 @@ mod tests {
             ["-na", "WezTerm", "--args", "start", "--cwd", "/p/a b;rm"]
         );
         assert_eq!(run("warp", "Warp").program, PathBuf::from("open"));
+    }
+
+    #[test]
+    fn an_app_that_takes_no_folder_only_opens() {
+        let dir = Path::new("/p/x");
+        let wave = plan("wave", &Found::MacApp("Wave"), dir);
+        assert_eq!(wave.program, std::ffi::OsString::from("open"));
+        assert_eq!(wave.args, ["-a", "Wave"].map(std::ffi::OsString::from));
+        assert!(!takes_folder("wave") && !takes_folder("wave-terminal"));
+        let hyper = plan("hyper", &Found::MacApp("Hyper"), dir);
+        assert_eq!(
+            hyper.args,
+            ["-a", "Hyper", "/p/x"].map(std::ffi::OsString::from)
+        );
     }
 
     #[test]

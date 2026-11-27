@@ -115,6 +115,13 @@ export async function confirmDialog(message: string): Promise<boolean> {
 	return ask(message, { kind: "info" });
 }
 
+/** A plain notice with one button. */
+export async function infoDialog(message: string): Promise<void> {
+	if (!isTauri()) return;
+	const { message: show } = await import("@tauri-apps/plugin-dialog");
+	await show(message, { kind: "info" });
+}
+
 export async function errorDialog(message: string): Promise<void> {
 	if (!isTauri()) return;
 	const { message: show } = await import("@tauri-apps/plugin-dialog");
