@@ -11,6 +11,7 @@ import {
 	useLog,
 } from "@/lib/code";
 import { type GraphRow, graph } from "@/lib/code/graph";
+import { unwrapLines } from "@/lib/code/unwrap";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
@@ -197,7 +198,7 @@ function Detail({ sha }: { sha: string }) {
 				</div>
 				<h2 className="text-20 font-semibold text-n-12">{info.summary}</h2>
 				{info.description ? (
-					<p className="whitespace-pre-wrap text-n-12">{info.description}</p>
+					<p className="whitespace-pre-wrap text-n-12">{unwrapLines(info.description)}</p>
 				) : null}
 				{feature ? (
 					<Link {...featureHref(feature)} className={linkClass}>
@@ -399,7 +400,8 @@ function HistoryView() {
 												name={c.author_name}
 												src={avatars[c.author_email.trim().toLowerCase()]}
 											/>
-											<span className="flex min-w-0 flex-[1_1_200px] flex-col">
+											{/* The message takes the room first: a long branch name is cut, not the message. */}
+											<span className="flex min-w-0 flex-[3_1_16rem] flex-col">
 												<span className="truncate font-semibold">{c.summary}</span>
 												<span className="truncate text-n-11">
 													{format(h.by, {
@@ -412,7 +414,7 @@ function HistoryView() {
 												<Badge
 													key={`${l.kind}:${l.name}`}
 													variant={LABEL[l.kind]}
-													className="max-w-full truncate"
+													className="max-w-48 truncate"
 													title={l.name}
 												>
 													{l.name}

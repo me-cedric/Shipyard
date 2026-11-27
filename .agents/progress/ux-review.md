@@ -101,6 +101,9 @@ A full review of each screen and each state of the app after the redesign. The a
 - Atomic layers: `src/ui/layers.test.ts` checks that no layer imports a higher layer or a feature (130 files, 0 faults).
 - CI on `b9a2d616`: passed.
 
+- The owner gave Screen Recording access. A picture of the real window of the built app (a portable copy with its own data) showed two defects of Code / History that the browser pictures do not show: both are fixed. Accessibility access is still off, so no tool clicks in the window.
+- Windows relay tests (T005): two tests prove the relay with a real server process on each system, through the example `fake_mcp`; a third reads the access list of the pipe. They are in two local commits. The push is refused by the company proxy (Zscaler, HTTP 403 on the upload), so the Windows job has not run them.
+
 ## Open
 
 1. `add-windows-relay-pipe` T005: three tests that run on Windows only. They need a fake MCP server that runs on Windows. The read timeout (T006) is done.
