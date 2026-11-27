@@ -16,7 +16,7 @@ Plan: [plan.md](./plan.md)
 - [x] T003 Implement the named pipe in `crates/shipyard-mcp/src/relay.rs` and listen on it in `crates/shipyard-app/src/lib.rs` under `cfg(windows)`. Covers REQ-001, REQ-002.
 - [x] T004 Add one EN and one FR changelog line.
 
-- [ ] T005 Add the Windows tests that T002 names but the first build lacks: a second turn reuses the open server, a closed app starts the server, another user is refused. They need a fake MCP server that runs on Windows. Covers REQ-001, REQ-002.
+- [x] T005 Add the Windows tests that T002 names but the first build lacks. `crates/shipyard-mcp/tests/relay_real_server.rs` proves with the example server `fake_mcp` that a second turn reuses the open server and that a closed app starts the server. `crates/shipyard-mcp/tests/relay_windows.rs` reads the access list of the pipe: one entry, for the owner. Covers REQ-001, REQ-002.
 - [x] T006 Give the Windows `ask` in `crates/shipyard-mcp/src/relay.rs` the read timeout of Unix (120 s), with a test of the wait in the same file. Covers REQ-001.
 
 ## Completion Check

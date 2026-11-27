@@ -195,8 +195,8 @@ export function SetupStart() {
 							onPick={(id) => setPrefs({ defaultAgent: id, defaultModel: "" })}
 						/>
 					) : null}
-					{/* The actions of the step are the foot of the panel. */}
-					<div className="mt-auto flex flex-wrap items-end justify-end gap-2.5">
+					{/* The actions sit under the choices, not at the foot: a short window still shows them. */}
+					<div className="flex flex-wrap items-start justify-end gap-2.5">
 						{next ? (
 							<Button className="min-h-control" onClick={() => setChosen(next)}>
 								{s.skip}

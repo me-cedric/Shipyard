@@ -104,10 +104,13 @@ A full review of each screen and each state of the app after the redesign. The a
 - The owner gave Screen Recording access. A picture of the real window of the built app (a portable copy with its own data) showed two defects of Code / History that the browser pictures do not show: both are fixed. Accessibility access is still off, so no tool clicks in the window.
 - Windows relay tests (T005): two tests prove the relay with a real server process on each system, through the example `fake_mcp`; a third reads the access list of the pipe. They are in two local commits. The push is refused by the company proxy (Zscaler, HTTP 403 on the upload), so the Windows job has not run them.
 
+- The owner gave Accessibility access. A walk of the real window of the built app (portable copy, real clicks, 21 pictures of the seven places and their section tabs) found five defects that the browser checks do not show at the default window size: the fifth stage of Flow was cut, the section tabs moved sideways between the pages of a place, Crew / Sessions said No sessions above four sessions, a session showed `<synthetic>` as its model, and the actions of a Setup step sat at the fold. All are fixed and seen fixed in the real window.
+- Windows relay tests: the Windows job ran them on the temporary branch `ci/windows-relay-tests` and passed. Task T005 of `add-windows-relay-pipe` is done.
+
 ## Open
 
-1. `add-windows-relay-pipe` T005: three tests that run on Windows only. They need a fake MCP server that runs on Windows. The read timeout (T006) is done.
+1. `add-windows-relay-pipe`: each task is done. The change waits for its archive.
 2. An agent of a run starts with each MCP server of the person's own Claude Code set-up. The owner keeps it so (2026-11-27).
 3. The comment button of a diff line is 24 px, by decision (see Decisions).
 4. The browser mock does not lower the rights of a member who is not an admin from a personal role.
-5. The windows of the installed app are not driven by a tool: macOS gives this session no accessibility access and no screen recording access. The checks ran on the browser build, on the outside server of the built app and on the run log of a real run.
+5. The walk of the real window covered the seven places and their section tabs on a project with no ticket and no run. The pages of a feature and of a run were checked in the browser build only.

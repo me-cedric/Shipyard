@@ -22,7 +22,9 @@ describe("PageHeader", () => {
 		expect(back.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
-	it("draws the section switch of the place before the action, and claims it until it goes", () => {
+	// The switch is the last part of the row: it stays at the right edge, so its tabs do not move
+	// when the actions of a page change.
+	it("draws the section switch of the place after the action, and claims it until it goes", () => {
 		const release = vi.fn();
 		const claim = vi.fn(() => release);
 		const { unmount } = renderApp(
@@ -32,7 +34,7 @@ describe("PageHeader", () => {
 		);
 		const nav = screen.getByRole("navigation", { name: "Scope" });
 		const action = screen.getByRole("button", { name: "Connect" });
-		expect(nav.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(action.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 		expect(claim).toHaveBeenCalledOnce();
 		expect(release).not.toHaveBeenCalled();
 		unmount();

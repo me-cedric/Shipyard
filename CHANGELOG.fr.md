@@ -1,6 +1,8 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Le sélecteur de section d'une page reste au bord droit de la ligne du titre : ses onglets ne bougent plus quand les actions d'une page changent. Les cinq étapes de Flux tiennent dans la fenêtre par défaut.
+- Équipe / Sessions ne dit plus Aucune session au-dessus d'une liste de sessions de cet ordinateur, et une session n'affiche plus un texte de remplacement comme modèle. Les actions d'une étape de Configuration / Démarrer sont sous ses choix.
 - Code / Historique : le message d'un commit garde sa place à côté d'un long nom de branche, et le texte d'un commit se lit en paragraphes, sans lignes courtes coupées.
 - Une deuxième passe a tranché chacun des 93 constats de la revue des écrans et corrigé 43 mises en page en tout : lignes et boutons alignés dans Équipe, Code, Plan, Bibliothèque et Configuration, états vides avec des mots, une seule hauteur pour les contrôles d'une ligne, texte lisible dans la visite, et le mot Arrêter sur les lignes de session.
 - Une passe sur chaque écran a corrigé ces mises en page : le bouton Commit de Code reste sur la ligne du message ; le cinquième chiffre d'Équipe / Dépenses / Utilisation est sur la ligne des autres ; le mois de Mon temps tient sur une ligne de jours ; Passer est au pied d'une étape de Configuration / Démarrer, et ses trois cartes remplissent la ligne.

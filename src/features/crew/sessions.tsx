@@ -3,7 +3,13 @@ import { useContext, useMemo, useRef, useState } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
-import { useFactoryWrites, useRunActions, useRuns, useSessions } from "@/lib/factory";
+import {
+	useFactoryWrites,
+	useMachineSessions,
+	useRunActions,
+	useRuns,
+	useSessions,
+} from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type SessionView, type UnitView, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
@@ -98,6 +104,7 @@ export function CrewSessions() {
 	const search = useSearch({ strict: false }) as { session?: string; page?: string };
 	const active = useActiveProject().data;
 	const sessions = useSessions();
+	const machine = useMachineSessions().data ?? [];
 	const { rows } = useAgentRows();
 	const writes = useFactoryWrites();
 	const { failure, run } = useGuard();
@@ -193,7 +200,8 @@ export function CrewSessions() {
 
 	const here = rows.filter((r) => !over(r)).toSorted((a, b) => a.id.localeCompare(b.id, lang));
 	const shown = here.find((r) => idOf(r.session) === search.session) ?? here[0];
-	const none = here.length === 0 && !sessions.isPending;
+	// "No sessions" shows only when the card of this machine lists none either.
+	const none = here.length === 0 && machine.length === 0 && !sessions.isPending;
 	// The unit of the session shown: it knows the tool, the folder and the session id.
 	const unit = shown
 		? runs

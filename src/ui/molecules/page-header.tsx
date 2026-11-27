@@ -50,8 +50,8 @@ export function PageHeader({
 					{chips ? <div className="flex flex-wrap items-center gap-1.5">{chips}</div> : null}
 				</div>
 				{/* The actions go below the title when the space is small; they never cover it. */}
+				{/* The section switch is the last part: it stays at the right edge when the actions of a page change, so its tabs do not move under the pointer. */}
 				<div className="ml-auto flex flex-wrap items-center justify-end gap-4">
-					{slot?.node}
 					{action}
 					{menu?.length ? (
 						<MenuButton
@@ -67,6 +67,7 @@ export function PageHeader({
 							items={menu.map((m) => ({ ...m, id: m.label, onSelect: m.onClick }))}
 						/>
 					) : null}
+					{slot?.node}
 				</div>
 			</div>
 		</div>
