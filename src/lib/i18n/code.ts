@@ -316,7 +316,7 @@ export const forgeEn = {
 		remove: "Delete",
 		checksPass: "Checks pass",
 		checksFail: "Checks fail",
-		checksRun: "Checks run",
+		checksRun: "Checks running",
 		changesAsked: "Changes asked",
 		reviewer: "Reviewer",
 		comment: "Review comment on line {line}",

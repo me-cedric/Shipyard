@@ -52,7 +52,7 @@ export function FeatureCard({ feature: f, menu }: { feature: Feature; menu: Menu
 	// A feature that did not start shows the name of its person: the column says the rest.
 	const idle = stateText(t, f) === t.flow.state.idle && !!f.who && !needsPerson(f);
 	const line = (
-		<span className="flex flex-wrap items-center gap-2">
+		<span className="flex min-h-7 flex-wrap items-center gap-2">
 			<Who who={f.who} named={idle} />
 			{idle ? null : <State feature={f} />}
 		</span>

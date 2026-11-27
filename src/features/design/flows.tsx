@@ -388,7 +388,7 @@ function List({
 													)}
 												/>
 											</td>
-											<td className="py-2.5">
+											<td className="py-2.5 pl-3">
 												{r.action === "deny" ? (
 													<Badge variant="danger" className="mr-2">
 														{p.denied}

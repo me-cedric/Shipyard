@@ -98,8 +98,9 @@ function Day({
 	const { lang } = useI18n();
 	const { dateFormat } = usePrefs();
 	const [y, m, d] = value.split("-").map(Number);
+	// An empty day shows a dash: the row already names it.
 	const text = !(y && m && d)
-		? label
+		? "-"
 		: dateFormat
 			? formatDay(value, dateFormat, lang)
 			: new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(lang, {
@@ -417,7 +418,7 @@ export function MemberForm({
 									</Button>
 								</SettingsRow>
 							))}
-							<Row className="justify-end">
+							<SettingsRow label={c.away}>
 								<Button
 									onClick={() =>
 										set({
@@ -427,7 +428,7 @@ export function MemberForm({
 								>
 									{c.addAway}
 								</Button>
-							</Row>
+							</SettingsRow>
 						</section>
 					</div>
 				</div>

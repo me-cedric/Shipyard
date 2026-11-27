@@ -120,7 +120,7 @@ export function Tour() {
 								))}
 							</ul>
 						) : null}
-						<p className="text-14 text-n-11">
+						<p className="text-17 text-n-12">
 							<Terms>{o.steps[id].body}</Terms>
 						</p>
 						{id === "permissions" ? <PermissionList /> : null}

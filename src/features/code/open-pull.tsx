@@ -136,20 +136,16 @@ export const NewPullPage = withProject(function NewPullView() {
 								{t.forge.titleNeeded}
 							</p>
 						) : null}
-						<div className="flex items-center gap-3">
-							<span aria-hidden="true" className="mr-auto text-12 text-n-11">
-								{t.forge.description}
-							</span>
-							<Button disabled={writing || created} onClick={write}>
-								{writing ? t.forge.agent.writing : t.forge.now.write}
-							</Button>
-						</div>
 						<Textarea
+							caption
 							label={t.forge.description}
 							rows={4}
 							value={body}
 							onChange={(e) => setBody(e.target.value)}
 						/>
+						<Button className="self-end" disabled={writing || created} onClick={write}>
+							{writing ? t.forge.agent.writing : t.forge.now.write}
+						</Button>
 					</Card>
 					<Card className="py-2">
 						<div className={FIELD}>

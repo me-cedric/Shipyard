@@ -417,10 +417,13 @@ function RolesCard() {
 				? tiers.map((r) => {
 						const name = r.id.charAt(0).toUpperCase() + r.id.slice(1);
 						return (
-							<Row key={r.id}>
+							<Row key={r.id} className="py-3">
 								<Avatar agent name={name} />
 								<span className="min-w-0 flex-1 font-semibold">
-									{r.description ? `${name}, ${r.description}` : name}
+									{name}
+									{r.description ? (
+										<span className="font-normal text-n-11">{`, ${r.description}`}</span>
+									) : null}
 								</span>
 								<fieldset disabled={gate.disabled} title={gate.reason} className="shrink-0">
 									<ValueSelect

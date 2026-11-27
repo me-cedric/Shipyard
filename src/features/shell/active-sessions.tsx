@@ -7,7 +7,6 @@ import { useRights } from "@/lib/rights";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Leave } from "@/ui/atoms/leave";
 import { LiveDot } from "@/ui/atoms/live-dot";
-import { StopIcon } from "@/ui/icons";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { hiddenSection } from "./places";
@@ -93,7 +92,7 @@ export function SessionsPart() {
 										confirm={format(m.confirmStop, { name })}
 										onConfirm={() => stop(pid)}
 									>
-										<StopIcon size={14} />
+										{t.assistant.stop}
 									</ConfirmButton>
 								)}
 							</Leave>

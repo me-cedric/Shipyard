@@ -1,7 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useState } from "react";
 import { DoctorBootstrap } from "@/features/projects/doctor-bootstrap";
-import { Columns, SetupCard, SetupRow, Toggle, ValueButton } from "@/features/settings/parts";
+import {
+	Column,
+	Columns,
+	SetupCard,
+	SetupRow,
+	Toggle,
+	ValueButton,
+} from "@/features/settings/parts";
 import { ButtonLink, Fold } from "@/features/settings/project/fold";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
@@ -672,8 +679,6 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 	// The rule packs that the project does not hold yet: one tile each, with one Add.
 	const offered = (catalog.data ?? []).filter((c) => c.state === "absent").slice(0, 3);
 	const compassSet = (compass.data?.entries ?? []).some((e) => e.state === "current");
-	const grid =
-		"grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] items-start gap-6 px-4";
 	return (
 		<div className="flex flex-col gap-4 pb-10">
 			{errorLine}
@@ -706,181 +711,190 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 					<SetupCard>{reviewBody}</SetupCard>
 				</div>
 			) : null}
-			<div className={grid}>
-				<SetupCard id="extensions-installed" title={d.installed}>
-					{(plugins.data ?? []).map((p) => (
-						<div key={p.name}>
-							<SetupRow
-								label={
-									<>
-										{p.name} <span className="font-mono font-normal text-n-11">{p.version}</span>
-									</>
-								}
-							>
-								<Toggle
-									label={format(x.plugin.enable, { name: p.name })}
-									{...gate("project.settings")}
-									checked={p.enabled}
-									onCheckedChange={(on) =>
-										void run(async () => {
-											await unwrap(commands.pluginSetEnabled(p.name, on, true));
-											await qc.invalidateQueries({ queryKey: ["plugins"] });
-											await refresh();
-										})
+			{/* Two columns of stacked cards: a card that wraps to a new row of a grid leaves a hole under its neighbours. */}
+			<Columns className="pb-0">
+				<Column>
+					<SetupCard id="extensions-installed" title={d.installed}>
+						{(plugins.data ?? []).map((p) => (
+							<div key={p.name}>
+								<SetupRow
+									label={
+										<>
+											{p.name} <span className="font-mono font-normal text-n-11">{p.version}</span>
+										</>
 									}
-								/>
-							</SetupRow>
-							<Fold label={x.plugin.settings} value={t.ui.more}>
-								<div className="flex flex-wrap items-center gap-2">
-									{p.settings.length ? (
-										<Button
-											variant="ghost"
-											aria-expanded={editing === p.name}
-											aria-label={format(x.plugin.settingsName, { name: p.name })}
-											onClick={() => setEditing(editing === p.name ? null : p.name)}
-										>
-											<Cog6ToothIcon size={14} />
-											{x.plugin.settings}
-										</Button>
-									) : null}
-									<Button
-										variant="ghost"
-										disabled={!p.enabled || !deployTo(p.name).length}
-										reason={p.enabled ? x.plugin.deployNone : x.plugin.deployOff}
-										aria-label={format(x.plugin.deployName, { name: p.name })}
-										onClick={() =>
+								>
+									<Toggle
+										label={format(x.plugin.enable, { name: p.name })}
+										{...gate("project.settings")}
+										checked={p.enabled}
+										onCheckedChange={(on) =>
 											void run(async () => {
-												const key = `plugin:${p.name}`;
-												setResults(await unwrap(commands.childDeploy(deployTo(p.name), [key])));
-												await refresh();
-											})
-										}
-									>
-										<ArrowUpTrayIcon size={14} />
-										{x.plugin.deploy}
-									</Button>
-									<RightButton
-										right="project.settings"
-										variant="ghost"
-										aria-label={format(x.plugin.removeName, { name: p.name })}
-										onClick={() =>
-											void run(async () => {
-												await unwrap(commands.pluginRemove(p.name, true));
+												await unwrap(commands.pluginSetEnabled(p.name, on, true));
 												await qc.invalidateQueries({ queryKey: ["plugins"] });
 												await refresh();
-												await qc.invalidateQueries({ queryKey: ["catalog"] });
+											})
+										}
+									/>
+								</SetupRow>
+								<Fold label={x.plugin.settings} value={t.ui.more}>
+									<div className="flex flex-wrap items-center gap-2">
+										{p.settings.length ? (
+											<Button
+												variant="ghost"
+												aria-expanded={editing === p.name}
+												aria-label={format(x.plugin.settingsName, { name: p.name })}
+												onClick={() => setEditing(editing === p.name ? null : p.name)}
+											>
+												<Cog6ToothIcon size={14} />
+												{x.plugin.settings}
+											</Button>
+										) : null}
+										<Button
+											variant="ghost"
+											disabled={!p.enabled || !deployTo(p.name).length}
+											reason={p.enabled ? x.plugin.deployNone : x.plugin.deployOff}
+											aria-label={format(x.plugin.deployName, { name: p.name })}
+											onClick={() =>
+												void run(async () => {
+													const key = `plugin:${p.name}`;
+													setResults(await unwrap(commands.childDeploy(deployTo(p.name), [key])));
+													await refresh();
+												})
+											}
+										>
+											<ArrowUpTrayIcon size={14} />
+											{x.plugin.deploy}
+										</Button>
+										<RightButton
+											right="project.settings"
+											variant="ghost"
+											aria-label={format(x.plugin.removeName, { name: p.name })}
+											onClick={() =>
+												void run(async () => {
+													await unwrap(commands.pluginRemove(p.name, true));
+													await qc.invalidateQueries({ queryKey: ["plugins"] });
+													await refresh();
+													await qc.invalidateQueries({ queryKey: ["catalog"] });
+												})
+											}
+										>
+											<TrashIcon size={14} />
+											{x.plugin.remove}
+										</RightButton>
+									</div>
+								</Fold>
+								{editing === p.name ? (
+									<PluginSettings
+										name={p.name}
+										// The files that the new values change show in the same review.
+										onSaved={() => {
+											const src = p.source;
+											if (!src) return;
+											setPath(src);
+											void run(() => look(src));
+										}}
+									/>
+								) : null}
+							</div>
+						))}
+						{sent}
+					</SetupCard>
+					<SetupCard id="extensions-children" title={d.children}>
+						{(children.data ?? []).map((c) => (
+							<div key={c.id}>
+								<SetupRow label={c.name}>
+									<ValueButton
+										onClick={() => openDetail(c.name, <ChildDetail key={c.id} id={c.id} />)}
+										aria-label={format(d.openChild, { name: c.name })}
+									>
+										{d.openChild}
+									</ValueButton>
+								</SetupRow>
+							</div>
+						))}
+						<details id="child-add" className="border-n-6 border-t">
+							<summary className="flex min-h-15 cursor-pointer list-none items-center px-6 font-semibold text-accent-text [&::-webkit-details-marker]:hidden">
+								{d.addChild}
+							</summary>
+							<div className="flex flex-col gap-3 px-6 pt-1 pb-5">
+								<Input
+									label={x.children.nameField}
+									value={name}
+									onChange={(e) => setName(e.target.value)}
+								/>
+								<Input
+									label={x.children.url}
+									value={url}
+									onChange={(e) => setUrl(e.target.value)}
+								/>
+								<div>
+									<Button
+										disabled={!name.trim() || !url.trim()}
+										onClick={() =>
+											void run(async () => {
+												await unwrap(commands.childAdd(name, url));
+												setName("");
+												setUrl("");
+												await refresh();
 											})
 										}
 									>
-										<TrashIcon size={14} />
-										{x.plugin.remove}
-									</RightButton>
+										<PlusIcon size={14} />
+										{x.children.add}
+									</Button>
 								</div>
-							</Fold>
-							{editing === p.name ? (
-								<PluginSettings
-									name={p.name}
-									// The files that the new values change show in the same review.
-									onSaved={() => {
-										const src = p.source;
-										if (!src) return;
-										setPath(src);
-										void run(() => look(src));
-									}}
-								/>
-							) : null}
-						</div>
-					))}
-					{sent}
-				</SetupCard>
-				<SetupCard id="extensions-children" title={d.children}>
-					{(children.data ?? []).map((c) => (
-						<div key={c.id}>
-							<SetupRow label={c.name}>
-								<ValueButton
-									onClick={() => openDetail(c.name, <ChildDetail key={c.id} id={c.id} />)}
-									aria-label={format(d.openChild, { name: c.name })}
-								>
-									{d.openChild}
-								</ValueButton>
-							</SetupRow>
-						</div>
-					))}
-					<details id="child-add" className="border-n-6 border-t">
-						<summary className="flex min-h-15 cursor-pointer list-none items-center px-6 font-semibold text-accent-text [&::-webkit-details-marker]:hidden">
-							{d.addChild}
-						</summary>
-						<div className="flex flex-col gap-3 px-6 pt-1 pb-5">
-							<Input
-								label={x.children.nameField}
-								value={name}
-								onChange={(e) => setName(e.target.value)}
-							/>
-							<Input label={x.children.url} value={url} onChange={(e) => setUrl(e.target.value)} />
-							<div>
-								<Button
-									disabled={!name.trim() || !url.trim()}
-									onClick={() =>
-										void run(async () => {
-											await unwrap(commands.childAdd(name, url));
-											setName("");
-											setUrl("");
-											await refresh();
-										})
-									}
-								>
-									<PlusIcon size={14} />
-									{x.children.add}
-								</Button>
 							</div>
-						</div>
-					</details>
-				</SetupCard>
-				{skills.length ? (
-					<SetupCard id="extensions-skills" title={d.skills}>
-						{skills.slice(0, 3).map((e) => (
-							<SetupRow key={e.id} label={e.title}>
-								<Toggle
-									label={e.title}
-									{...gate("project.settings")}
-									checked={e.state === "current"}
-									onCheckedChange={(on) =>
-										void run(async () => {
-											if (on) await unwrap(commands.compassApply([entryKey(e)]));
-											else await unwrap(commands.compassRemove(e.kind, e.id, true));
-											await qc.invalidateQueries({ queryKey: ["compass"] });
-										})
-									}
-								/>
-							</SetupRow>
-						))}
-						<div className="flex min-h-15 items-center justify-start border-n-6 border-t px-6">
-							<ButtonLink
-								href="/setup/computer?page=rules"
-								className="border-0 bg-transparent px-0 text-accent-text hover:bg-transparent"
-							>
-								{d.allSkills}
-							</ButtonLink>
-						</div>
+						</details>
 					</SetupCard>
-				) : null}
-				<SetupCard id="rules-setup" title={d.rules}>
-					<Fold
-						id="rules-here"
-						label={d.rulesHere}
-						value={compassSet ? <Badge variant="success">{d.setUp}</Badge> : d.setUp}
-						plain={compassSet}
-					>
-						<CompassSetup />
-					</Fold>
-					<Fold id="rules-copy" label={d.rulesCopy} value={d.setUp}>
-						<DoctorBootstrap />
-					</Fold>
-					<SetupRow label={d.rulesUpdate}>
-						<ButtonLink href="/setup/computer?page=rules">{d.check}</ButtonLink>
-					</SetupRow>
-				</SetupCard>
-			</div>
+				</Column>
+				<Column>
+					{skills.length ? (
+						<SetupCard id="extensions-skills" title={d.skills}>
+							{skills.slice(0, 3).map((e) => (
+								<SetupRow key={e.id} label={e.title}>
+									<Toggle
+										label={e.title}
+										{...gate("project.settings")}
+										checked={e.state === "current"}
+										onCheckedChange={(on) =>
+											void run(async () => {
+												if (on) await unwrap(commands.compassApply([entryKey(e)]));
+												else await unwrap(commands.compassRemove(e.kind, e.id, true));
+												await qc.invalidateQueries({ queryKey: ["compass"] });
+											})
+										}
+									/>
+								</SetupRow>
+							))}
+							<div className="flex min-h-15 items-center justify-start border-n-6 border-t px-6">
+								<ButtonLink
+									href="/setup/computer?page=rules"
+									className="border-0 bg-transparent px-0 text-accent-text hover:bg-transparent"
+								>
+									{d.allSkills}
+								</ButtonLink>
+							</div>
+						</SetupCard>
+					) : null}
+					<SetupCard id="rules-setup" title={d.rules}>
+						<Fold
+							id="rules-here"
+							label={d.rulesHere}
+							value={compassSet ? <Badge variant="success">{d.setUp}</Badge> : d.setUp}
+							plain={compassSet}
+						>
+							<CompassSetup />
+						</Fold>
+						<Fold id="rules-copy" label={d.rulesCopy} value={d.setUp}>
+							<DoctorBootstrap />
+						</Fold>
+						<SetupRow label={d.rulesUpdate}>
+							<ButtonLink href="/setup/computer?page=rules">{d.check}</ButtonLink>
+						</SetupRow>
+					</SetupCard>
+				</Column>
+			</Columns>
 			<div className="px-4">
 				<SetupCard>
 					<SetupRow label={d.packs} href="/setup/project?page=plugins" />

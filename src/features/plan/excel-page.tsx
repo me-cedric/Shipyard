@@ -170,7 +170,10 @@ export function ExcelImport({
 							) : null}
 						</div>
 					) : null}
-					<Button onClick={onCancel}>{t.sync.backlog.cancel}</Button>
+					{/* Alone in its card (no file yet) it keeps its own width: it does not stretch across the card. */}
+					<Button className={preview ? undefined : "self-start"} onClick={onCancel}>
+						{t.sync.backlog.cancel}
+					</Button>
 					<ErrorNotice error={failure} />
 				</Card>
 			</div>

@@ -216,12 +216,13 @@ export function Me({ permissions = false }: { permissions?: boolean }) {
 								</span>
 							}
 						>
+							{/* The badge names the rights of the account, so it sits with the account, not with the view. */}
+							{me?.admin ? <Badge variant="info">{t.rights.team.admin}</Badge> : null}
 							<Button className="min-h-control text-danger-text" onClick={() => void signOut()}>
 								{t.shellFn.signOut.label}
 							</Button>
 						</SetupRow>
 						<SetupRow label={s.roleView}>
-							{me?.admin ? <Badge variant="info">{t.rights.team.admin}</Badge> : null}
 							<ValueSelect
 								label={s.roleView}
 								value={role}

@@ -113,12 +113,7 @@ export function RefDetail({ refId, onOpen }: { refId: string; onOpen: (ref: stri
 				</Button>
 			</div>
 			<div className="flex flex-col gap-2">
-				<Button
-					variant="ghost"
-					className="self-start"
-					aria-expanded={more}
-					onClick={() => setMore(!more)}
-				>
+				<Button className="self-start" aria-expanded={more} onClick={() => setMore(!more)}>
 					{t.ui.more}
 				</Button>
 				{more ? (

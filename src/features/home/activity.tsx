@@ -15,7 +15,7 @@ export function ActivityView() {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
 			<PageHeader icon={<InboxIcon size={16} />} title={t.tabs.home.activity} />
-			<div className="grid gap-4 px-4 lg:grid-cols-2">
+			<div className="grid items-start gap-4 px-4 lg:grid-cols-2">
 				<div className="rounded-lg border bg-surface-2">
 					<RunsPart live={live} />
 				</div>

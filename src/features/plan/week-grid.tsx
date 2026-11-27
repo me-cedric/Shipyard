@@ -142,7 +142,8 @@ export function WeekGrid({
 												<StatusDot
 													status="warning"
 													label={t.work.time.state["to-send"]}
-													className="absolute top-3 right-0 size-2"
+													// Inside the corner of the field (it is 44 px high in a 68 px row): the dot never crosses the border.
+													className="absolute top-4 right-2 size-2"
 												/>
 											) : null}
 										</td>

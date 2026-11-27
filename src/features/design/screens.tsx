@@ -165,11 +165,12 @@ function ScreenTile({
 			onClick={onPick}
 			className={cn(TILE, "w-full items-start", selected && TILE_ON)}
 		>
-			<span className="flex h-[170px] w-full items-center justify-center overflow-hidden rounded-field border border-dashed border-n-8 bg-n-2">
-				{screen.file && /\.(png|jpe?g|gif|webp|svg)$/i.test(screen.file) ? (
+			{/* No picture, no box: an empty dashed frame with no words looks broken. */}
+			{screen.file && /\.(png|jpe?g|gif|webp|svg)$/i.test(screen.file) ? (
+				<span className="flex h-[170px] w-full items-center justify-center overflow-hidden rounded-field border border-dashed border-n-8 bg-n-2">
 					<Preview path={screen.file} label={screen.title} plain />
-				) : null}
-			</span>
+				</span>
+			) : null}
 			<span className="max-w-full break-words text-17 font-semibold">{screen.title}</span>
 			<span className="flex flex-wrap gap-1.5">
 				<Badge

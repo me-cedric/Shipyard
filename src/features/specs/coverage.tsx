@@ -180,7 +180,7 @@ function CoveragePage() {
 				))}
 			</fieldset>
 			<ErrorNotice error={failure} />
-			<div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-3">
+			<div className="grid grid-cols-1 items-start gap-6 md:grid-cols-3">
 				{STATES.filter((v) => filter === "all" || filter === v).map((v) => {
 					const rows = reqs.filter((r) => stateOf(r) === v);
 					return (

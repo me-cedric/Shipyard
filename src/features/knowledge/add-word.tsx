@@ -20,7 +20,7 @@ export function AddWord() {
 	if (!open)
 		return (
 			<span>
-				<Button variant="ghost" className="-ml-4.75 min-h-control" onClick={() => setOpen(true)}>
+				<Button className="min-h-control" onClick={() => setOpen(true)}>
 					{f.addWord}
 				</Button>
 			</span>

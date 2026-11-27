@@ -112,7 +112,7 @@ export function RunHistory({
 		gridTemplateColumns: [
 			"minmax(12rem, 1fr)",
 			"7.5rem",
-			"8rem",
+			"10rem",
 			"5rem",
 			...extra.map((c) => WIDTH[c]),
 			"8rem",
@@ -121,7 +121,7 @@ export function RunHistory({
 	const ROW = "relative grid gap-4";
 	return (
 		<Card className="overflow-x-auto py-2">
-			<div className="min-w-[51rem]">
+			<div className="min-w-[53rem]">
 				{/* The column names are for the eye: each row says its own facts. */}
 				<Row
 					className={`${ROW} min-h-control text-13 font-semibold text-n-11`}

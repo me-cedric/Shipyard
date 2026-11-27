@@ -653,8 +653,10 @@ export function PlanTime() {
 						/>
 					) : null}
 					{data && lines.length > 0 ? (
-						<Card className="flex min-h-64 flex-1 flex-col overflow-hidden">
+						// The card is as high as its rows and the page scrolls: a fixed slot per heading left a gap, and the card an empty end.
+						<Card className="flex shrink-0 flex-col overflow-hidden">
 							<DataTable
+								flow
 								label={t.tabs.work.time}
 								data={lines}
 								columns={columns}

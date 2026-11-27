@@ -52,7 +52,7 @@ export function Fold({
 			<summary className="mx-2 flex max-w-[calc(100%-1rem)] min-h-15 cursor-pointer list-none flex-wrap items-center gap-3 rounded-md px-4 py-2 text-n-12 select-none hover:bg-n-3 [&::-webkit-details-marker]:hidden">
 				<span className="min-w-0 flex-[1_1_10rem] font-semibold">{label}</span>
 				{hint ? (
-					<span className="min-w-0 flex-[1_1_0%] truncate text-right font-mono text-ui text-n-11">
+					<span className="min-w-0 flex-[0_1_auto] truncate text-right font-mono text-ui text-n-11">
 						{hint}
 					</span>
 				) : null}

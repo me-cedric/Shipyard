@@ -13,6 +13,7 @@ import { Leave } from "@/ui/atoms/leave";
 import { LinkButton, linkClass } from "@/ui/atoms/link-button";
 import { Switch } from "@/ui/atoms/switch";
 import { ArrowPathIcon, XMarkIcon } from "@/ui/icons";
+import { EmptyState } from "@/ui/molecules/empty-state";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 
@@ -248,7 +249,7 @@ export function News() {
 							</section>
 						) : null,
 					)}
-					{items.length === 0 ? <p className="text-n-11">{n.empty}</p> : null}
+					{items.length === 0 ? <EmptyState title={n.empty} /> : null}
 				</div>
 				<div className="flex min-w-0 flex-[2_1_300px] flex-col gap-4">
 					<TellMe />

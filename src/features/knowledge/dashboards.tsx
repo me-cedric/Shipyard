@@ -99,7 +99,13 @@ export function Tile({
 		<TileCard
 			title={title || name}
 			data={data}
-			offText={format(t.knowledge.dashboards.off, { name: data?.off ?? kind })}
+			offText={format(t.knowledge.dashboards.off, {
+				// The engine names a source by its id (quality): show the tile name, not the id.
+				name:
+					(data?.off && (t.knowledge.dashboards.kind as Record<string, string>)[data.off]) ||
+					data?.off ||
+					name,
+			})}
 			labels={useTileLabels()}
 			pinned={p ? pinned(p) : undefined}
 			onPin={p ? () => toggle(p) : undefined}

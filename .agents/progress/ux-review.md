@@ -95,6 +95,12 @@ A full review of each screen and each state of the app after the redesign. The a
 - Screen pass: three reviewers read the 131 screen pictures of the current build and reported 93 findings. Checked against the pictures and the code: 11 layout defects are fixed (commit row, stat cards, month strip, Skip, scope cards, empty tile, bar names, answer box, rights rows, link card buttons, plugin cards). The other findings are false (the fold of the window, a popover, text that the screenshot script types), a house rule (`80 %`, product words) or a wording proposal with no decision: the list is in the journal of workflow `wf_8bf81d14-1ea`.
 - CI on `6115f472`: the five jobs passed, the Windows relay job included.
 
+- Second pass on the screen findings: six writers gave each of the 93 findings a verdict with evidence. 37 fixed, 6 more fixed by the lead (they were outside the writers' folders), 3 fixed before, 31 false or by rule, 3 demo data, 13 wording only. The accessibility tests then caught two of the new changes (a title button under 44 px, a slide name that did not hold its text): both are undone.
+- Wording: two English texts changed (`Checks running`). 28 other proposals are not applied: they change product words or a text that a test fixes. The list is in the journal of workflow `wf_b996dddf-73e`.
+- Design census on the browser build, 58 routes in the dark and the light look (116 page views, 7052 text nodes): two font families (Geist, Geist Mono; 4 nodes in the system font), each text size and each radius on the token scale, no sideways scroll. The script is not in the repository.
+- Atomic layers: `src/ui/layers.test.ts` checks that no layer imports a higher layer or a feature (130 files, 0 faults).
+- CI on `b9a2d616`: passed.
+
 ## Open
 
 1. `add-windows-relay-pipe` T005: three tests that run on Windows only. They need a fake MCP server that runs on Windows. The read timeout (T006) is done.

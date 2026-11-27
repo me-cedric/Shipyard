@@ -277,7 +277,6 @@ export function NewFeature() {
 				) : null}
 				<Button
 					variant="primary"
-					size="lg"
 					className="ml-auto min-w-40 disabled:opacity-100"
 					disabled={title.trim() === "" || title.trim() === start0.trim() || off !== undefined}
 					reason={off?.reason}

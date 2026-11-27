@@ -66,10 +66,16 @@ function ProjectCardView({
 			className="flex min-w-0 flex-col gap-3 rounded-lg bg-surface-2 p-4.5 shadow-2 aria-[current=true]:bg-accent-tint aria-[current=true]:outline-2 aria-[current=true]:outline-accent"
 		>
 			<div className="flex items-start justify-between">
+				{/* The first letter of the name: a plain colour square would be an empty box. */}
 				<span
 					aria-hidden="true"
-					className={cn("size-12 rounded-field", open ? "bg-accent" : "bg-n-8")}
-				/>
+					className={cn(
+						"flex size-12 items-center justify-center rounded-field text-20 font-semibold",
+						open ? "bg-accent text-accent-fg" : "bg-n-8 text-n-12",
+					)}
+				>
+					{[...p.name][0]?.toUpperCase()}
+				</span>
 				{/* The folder, the code host, the branch and the last commit stay behind this one control. */}
 				<IconButton
 					label={`${w.details} ${p.name}`}

@@ -42,7 +42,7 @@ describe("Knowledge / Dashboards", () => {
 		await mountKnowledge("dashboards");
 		const quality = await screen.findByRole("region", { name: "Quality" });
 		await waitFor(() => expect(quality).toHaveAttribute("aria-disabled", "true"));
-		expect(quality).toHaveTextContent("Source off: quality");
+		expect(quality).toHaveTextContent("Source off: Quality");
 	});
 
 	it("names the issue tracker on a tile whose issue tracker is not linked", async () => {

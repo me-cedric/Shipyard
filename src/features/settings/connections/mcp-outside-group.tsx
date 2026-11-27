@@ -203,6 +203,7 @@ export function McpOutsideGroup() {
 							<Button
 								variant="secondary"
 								disabled={!s.running}
+								reason={o.stopped}
 								onClick={() =>
 									void attempt(async () => {
 										await navigator.clipboard.writeText(await unwrap(commands.mcpOutsideToken()));

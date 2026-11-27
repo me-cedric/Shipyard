@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.2.0]
+- A second pass settled each of the 93 findings of the screen review and fixed 43 layouts in all: aligned rows and buttons in Crew, Code, Plan, Library and Setup, empty states with words, one height for the controls of a row, readable text in the tour, and a Stop word on the session rows.
 - A pass on each screen fixed these layouts: the Commit button of Code stays on the row of the message; the fifth figure of Crew / Spend / Usage is on the row of the others; the month of My time is one row of days; Skip is at the foot of a step of Setup / Start, and its three cards fill the row.
 - An empty tile of a dashboard says Nothing here, and a long name beside a bar takes two lines; the answer box of Library / API has the dark surface in the dark look; the level controls of Crew / Rights end on one edge; the buttons of a link card have one height.
 - The border of a text field, a select, a text area and a checkbox is darker: it reaches the 3:1 contrast that the accessibility rules ask for, in light and in dark. The Narrow top bar switch of Setup / Me is gone: the app has no top bar.

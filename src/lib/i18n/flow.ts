@@ -49,7 +49,7 @@ export const flowEn = {
 		changes: "Changes asked",
 		checksFail: "Checks fail",
 		ready: "Ready to merge",
-		checksRun: "Checks run",
+		checksRun: "Checks running",
 		open: "Pull request open",
 		done: "Done",
 		idle: "Not started",

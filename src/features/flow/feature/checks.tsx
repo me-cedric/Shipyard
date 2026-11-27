@@ -318,8 +318,9 @@ export function Checks({ parts, ci }: { parts: Parts; ci?: string | null }) {
 												<Pill state={x.state} />
 											</span>
 										</div>
+										{/* The row is 60 px high: pull the log link up under the name. */}
 										{x.state === "failing" ? (
-											<div className="flex flex-col gap-1 px-6">
+											<div className="-mt-3 flex flex-col gap-1 px-6">
 												{x.line ? (
 													<p className="truncate rounded-xl bg-n-3 px-4 py-3 font-mono text-13 text-n-12">
 														{x.line}

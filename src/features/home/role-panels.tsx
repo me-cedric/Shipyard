@@ -505,9 +505,9 @@ function PinnedDashboard({ slug }: { slug: string }) {
 	return (
 		<section aria-label={title} className={cn(SURFACE, "flex flex-col gap-3.5 px-6 py-5.5")}>
 			<h2 className="text-17 font-semibold text-n-12">{title}</h2>
-			<ul className="grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-3">
+			<ul className="grid grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-3">
 				{view.value.tiles.map((x) => (
-					<li key={x.id} className="h-48 min-w-0">
+					<li key={x.id} className="min-h-48 min-w-0">
 						<Tile kind={x.kind} title={x.title} chart={x.chart} />
 					</li>
 				))}

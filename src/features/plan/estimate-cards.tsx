@@ -173,10 +173,12 @@ export function SheetsView({
 					>
 						{view.spread.map((m) => (
 							<div key={m.month} className="flex h-full flex-col gap-1.5 text-center">
-								<span className="flex min-h-0 flex-1 items-end">
+								{/* The days of the month sit on the bar: a bar with no figure says nothing. */}
+								<span className="flex min-h-0 flex-1 flex-col justify-end">
+									<span className="text-12 text-n-11">{days(m.days)}</span>
 									<span
 										className="block w-full rounded-t-sm bg-accent/40"
-										style={{ height: `${((m.days ?? 0) / top) * 100}%` }}
+										style={{ height: `calc(${(m.days ?? 0) / top} * (100% - 1.25rem))` }}
 									/>
 								</span>
 								<span className={TITLE}>{monthLabel(m.month, lang)}</span>

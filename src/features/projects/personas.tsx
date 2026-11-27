@@ -39,25 +39,28 @@ function Editor({ saved }: { saved: Persona[] }) {
 				<SetupRow
 					key={r.id}
 					label={
-						editing === r.id ? (
-							<Input
-								label={p.name}
-								value={r.name}
-								autoFocus
-								onChange={(e) => set(i, { name: e.target.value })}
-								onBlur={() => setEditing(null)}
-								onKeyDown={(e) => e.key === "Enter" && setEditing(null)}
-							/>
-						) : (
-							<button
-								type="button"
-								aria-label={`${p.name}: ${r.name || r.id}`}
-								onClick={() => setEditing(r.id)}
-								className="min-h-control min-w-0 truncate text-left font-semibold"
-							>
-								{r.name || r.id}
-							</button>
-						)
+						// The name lines up with the fields, which have a caption above them.
+						<span className="block pt-5.5">
+							{editing === r.id ? (
+								<Input
+									label={p.name}
+									value={r.name}
+									autoFocus
+									onChange={(e) => set(i, { name: e.target.value })}
+									onBlur={() => setEditing(null)}
+									onKeyDown={(e) => e.key === "Enter" && setEditing(null)}
+								/>
+							) : (
+								<button
+									type="button"
+									aria-label={`${p.name}: ${r.name || r.id}`}
+									onClick={() => setEditing(r.id)}
+									className="min-h-control min-w-0 truncate text-left font-semibold"
+								>
+									{r.name || r.id}
+								</button>
+							)}
+						</span>
 					}
 				>
 					<Input
@@ -78,11 +81,14 @@ function Editor({ saved }: { saved: Persona[] }) {
 						onChange={(e) => set(i, { cjm: rate(e.target.value) })}
 						className="w-28"
 					/>
-					<Toggle
-						label={p.active}
-						checked={r.active}
-						onCheckedChange={(v) => set(i, { active: v })}
-					/>
+					{/* The two fields have a caption: the switch sits at the height of the field, not of the caption and the field. */}
+					<span className="flex min-h-control items-center self-end">
+						<Toggle
+							label={p.active}
+							checked={r.active}
+							onCheckedChange={(v) => set(i, { active: v })}
+						/>
+					</span>
 				</SetupRow>
 			))}
 			<div className="flex items-center justify-end gap-2 border-n-6 border-t px-6 pt-3 pb-1">

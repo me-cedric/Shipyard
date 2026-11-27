@@ -220,7 +220,10 @@ export function CostingView({
 					</Row>
 					<Row>
 						<span className={NAME}>{e.price}</span>
-						<span className="text-30 font-semibold">{priced(totals.price)}</span>
+						{/* A word ("Unrated") stays at the size of the other rows: only a sum is big. */}
+						<span className={unrated ? "text-17 font-semibold" : "text-30 font-semibold"}>
+							{priced(totals.price)}
+						</span>
 					</Row>
 					<Row>
 						<span className={NAME}>{e.currency}</span>

@@ -262,7 +262,7 @@ export function BudgetsPage() {
 				{then ? (
 					<Select
 						label={format(f.runsRecipes.thenFor, { name: name.toLowerCase() })}
-						className="min-h-control"
+						className="min-h-control w-40"
 						items={THEN.map((v) => ({ value: v, label: f.runsRecipes.choice[v] }))}
 						value={rules.choice(then)}
 						// The save needs the right to change the project: the control is off without it.
@@ -270,7 +270,10 @@ export function BudgetsPage() {
 						reason={gate.reason}
 						onValueChange={(v) => void rules.setThen(then, v as Then)}
 					/>
-				) : null}
+				) : (
+					// An empty slot keeps the limits of all rows in one column.
+					<span aria-hidden="true" className="w-40" />
+				)}
 				{onEdit ? (
 					<Button
 						className="min-h-control"

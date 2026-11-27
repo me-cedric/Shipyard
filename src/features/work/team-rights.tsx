@@ -460,7 +460,8 @@ export function MemberLevels() {
 		}),
 	];
 	return (
-		<Card className="py-2">
+		// The last row of the table keeps clear of the round corner of the card.
+		<Card className="pt-2 pb-4">
 			<section>
 				<h2 className={HEAD}>{r.each}</h2>
 				<Frame label={r.each}>

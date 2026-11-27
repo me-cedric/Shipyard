@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.2.0]
+- Une deuxième passe a tranché chacun des 93 constats de la revue des écrans et corrigé 43 mises en page en tout : lignes et boutons alignés dans Équipe, Code, Plan, Bibliothèque et Configuration, états vides avec des mots, une seule hauteur pour les contrôles d'une ligne, texte lisible dans la visite, et le mot Arrêter sur les lignes de session.
 - Une passe sur chaque écran a corrigé ces mises en page : le bouton Commit de Code reste sur la ligne du message ; le cinquième chiffre d'Équipe / Dépenses / Utilisation est sur la ligne des autres ; le mois de Mon temps tient sur une ligne de jours ; Passer est au pied d'une étape de Configuration / Démarrer, et ses trois cartes remplissent la ligne.
 - Une tuile vide d'un tableau de bord dit Rien ici, et un nom long à côté d'une barre prend deux lignes ; la zone de réponse de Bibliothèque / API a la surface sombre en mode sombre ; les choix de niveau d'Équipe / Droits finissent sur un même bord ; les boutons d'une carte de lien ont une seule hauteur.
 - La bordure d'un champ de texte, d'une liste, d'une zone de texte et d'une case à cocher est plus foncée : elle atteint le contraste de 3:1 que demandent les règles d'accessibilité, en clair et en sombre. Le choix Barre du haut étroite de Configuration / Moi a disparu : l'application n'a plus de barre du haut.

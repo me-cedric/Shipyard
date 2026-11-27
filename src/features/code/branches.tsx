@@ -186,7 +186,7 @@ function BranchCard({
 				value={behindOf(branch)}
 				max={max}
 			/>
-			<div className="mt-auto flex flex-wrap gap-2.5">{children}</div>
+			<div className="flex flex-wrap gap-2.5">{children}</div>
 		</Card>
 	);
 }
@@ -376,7 +376,7 @@ function BranchesView() {
 				</p>
 			) : null}
 			{busy ? conflicts.map((c) => <ConflictPane key={c.path} file={c} run={run} />) : null}
-			<div className="grid grid-cols-[repeat(auto-fill,minmax(min(320px,100%),1fr))] gap-3.5 px-4 pb-6">
+			<div className="grid grid-cols-[repeat(auto-fill,minmax(min(320px,100%),1fr))] items-start gap-3.5 px-4 pb-6">
 				{locals.map((b) => {
 					const feature = featureOf(b.name, features);
 					const done = !b.is_head && history.has(b.tip);

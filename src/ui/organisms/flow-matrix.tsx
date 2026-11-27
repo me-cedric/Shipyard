@@ -228,10 +228,11 @@ export function FlowMatrix({
 	const end = (name: string | undefined, address: string, tag?: ReactNode) => (
 		<td className={CELL}>
 			{name ? <span className="block font-semibold">{name}</span> : null}
-			<span className={cn("block", name ? "font-mono text-13 text-n-11" : "font-semibold")}>
-				{address}
+			{/* The tag sits beside the address: a row with a tag keeps the height of a row without one. */}
+			<span className="flex flex-wrap items-center gap-x-2">
+				<span className={name ? "font-mono text-13 text-n-11" : "font-semibold"}>{address}</span>
+				{tag}
 			</span>
-			{tag}
 		</td>
 	);
 	const heads = [
@@ -336,9 +337,7 @@ export function FlowMatrix({
 										r.destinationName,
 										r.destination,
 										missing?.ids.has(r.id) ? (
-											<Badge variant="neutral" className="mt-1 self-start">
-												{missing.label}
-											</Badge>
+											<Badge variant="neutral">{missing.label}</Badge>
 										) : null,
 									)}
 									<td className={CELL}>

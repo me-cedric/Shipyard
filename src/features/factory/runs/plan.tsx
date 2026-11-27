@@ -88,7 +88,7 @@ export function PlanBlock({
 								{i + 1}
 							</span>
 							<span className="min-w-0 flex-1">
-								<span className={onEdit ? undefined : "font-semibold"}>{x.title}</span>
+								<span className="font-semibold">{x.title}</span>
 								{x.text ? ` ${x.text}` : null}
 							</span>
 							{onEdit ? (

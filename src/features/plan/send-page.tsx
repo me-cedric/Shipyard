@@ -230,7 +230,8 @@ export function SendPage({ slug }: { slug: string }) {
 									? p.sendPage.writesOne
 									: format(p.sendPage.writes, { count: approved.length })}
 							</h2>
-							<div className="flex flex-wrap gap-2.5 [&>*]:flex-[1_1_6rem]">
+							{/* Send has a wrapper (its reason), so the buttons fill their own cell: both halves stay equal. */}
+							<div className="flex flex-wrap gap-2.5 [&>*]:flex-[1_1_6rem] [&_button]:w-full">
 								<Link to="/plan/people" className={buttonVariants()}>
 									{t.sync.backlog.cancel}
 								</Link>

@@ -17,6 +17,7 @@ import { useBacklinks } from "@/lib/refs";
 import { RightButton } from "@/lib/rights";
 import { askForm, takeFormKind, useFormIntent, useShell } from "@/lib/shell";
 import { clock, syncKeys, useSyncState } from "@/lib/sync";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -515,7 +516,8 @@ function Scoped({ scope }: { scope: "project" | "computer" }) {
 					{sections.length > 1 ? <SectionNav label={t.ui.sections} items={sections} /> : null}
 				</>
 			)}
-			<div className={SETTINGS_PAGE}>
+			{/* The empty state spans the page, so it sits in the middle and not in the 3xl column. */}
+			<div className={cn(SETTINGS_PAGE, empty && "max-w-none")}>
 				{scope === "computer" && addButton ? <div>{addButton}</div> : null}
 				<ErrorNotice error={list.error} />
 				{empty ? (

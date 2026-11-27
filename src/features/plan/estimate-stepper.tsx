@@ -51,7 +51,7 @@ export function Stepper({
 					className="min-h-control w-10 [appearance:textfield] bg-transparent text-center font-semibold text-n-12 [&::-webkit-inner-spin-button]:appearance-none"
 				/>
 			) : (
-				<output className="min-w-7 text-center font-semibold whitespace-nowrap">{value}</output>
+				<output className="min-w-10 text-center font-semibold whitespace-nowrap">{value}</output>
 			)}
 			{side(1)}
 		</span>

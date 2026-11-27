@@ -67,7 +67,8 @@ export function TileCard({
 			className={cn(
 				"flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-lg bg-surface-2 px-6 py-5.5 shadow-2",
 				edit && "outline-2 outline-n-8 outline-dashed",
-				off && "opacity-60",
+				// The title is greyed; the off message keeps full contrast.
+				off && "[&>header]:opacity-60",
 			)}
 		>
 			<header className="flex shrink-0 items-center gap-2">

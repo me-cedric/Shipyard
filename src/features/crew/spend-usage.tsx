@@ -5,7 +5,6 @@ import { useRuns, useUsage } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { useShell } from "@/lib/shell";
 import { CountUp } from "@/ui/atoms/count-up";
-import { CheckIcon, CurrencyIcon } from "@/ui/icons";
 import { Loading } from "@/ui/molecules/loading";
 import { SpendMeter, spendStatus } from "@/ui/molecules/spend-meter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
@@ -169,7 +168,6 @@ export function UsageCard({
 						) : (
 							<CountUp value={days.find((d) => d.key === today)?.tokens ?? 0} />
 						),
-						icon: <CurrencyIcon size={12} />,
 						tone: "info",
 						trend: days
 							.slice(0, 14)
@@ -194,7 +192,6 @@ export function UsageCard({
 					{
 						label: f.successRate,
 						value: ended.length ? percent(Math.round((won / ended.length) * 100), lang) : "-",
-						icon: <CheckIcon size={12} />,
 						tone: "success",
 						delta: `${won}/${ended.length}`,
 					},

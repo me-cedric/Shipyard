@@ -78,7 +78,7 @@ export function TerminalFiles() {
 						label={tp.find}
 						placeholder={tp.find}
 						type="search"
-						className="flex-[1_1_120px]"
+						className="grow"
 						value={query}
 						onChange={(e) => setQuery(e.target.value)}
 					/>
@@ -129,7 +129,7 @@ export function TerminalFiles() {
 				<ErrorNotice error={error ?? files.error} className="px-4 py-2 text-danger-text" />
 				<div className="mt-auto flex flex-wrap gap-2.5 px-4 py-3">
 					<Button
-						className="flex-[1_1_120px]"
+						className="grow"
 						disabled={!(editor && file)}
 						onClick={() => {
 							if (!(editor && file)) return;
@@ -140,7 +140,7 @@ export function TerminalFiles() {
 						{t.forge.history.openEditor}
 					</Button>
 					<Button
-						className="flex-[1_1_120px]"
+						className="grow"
 						disabled={!chosen}
 						onClick={() => chosen && revealPath(chosen.path)}
 					>
@@ -148,7 +148,7 @@ export function TerminalFiles() {
 					</Button>
 					<RightButton
 						right="code.write"
-						className="flex-[1_1_80px]"
+						className="grow"
 						disabled={!writes}
 						onClick={() => setAction({ kind: "file", path: here })}
 					>
@@ -156,7 +156,7 @@ export function TerminalFiles() {
 					</RightButton>
 					<RightButton
 						right="code.write"
-						className="flex-[1_1_80px]"
+						className="grow"
 						disabled={!(writes && chosen)}
 						onClick={() =>
 							chosen && setAction({ kind: "rename", path: chosen.path, folder: chosen.folder })
@@ -166,7 +166,7 @@ export function TerminalFiles() {
 					</RightButton>
 					<RightButton
 						right="code.write"
-						className="flex-[1_1_80px] text-danger-text"
+						className="grow text-danger-text"
 						disabled={!(writes && chosen)}
 						onClick={() =>
 							chosen && setAction({ kind: "delete", path: chosen.path, folder: chosen.folder })

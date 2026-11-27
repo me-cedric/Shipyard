@@ -207,6 +207,8 @@ function Chain({
 											{(t.rights.role as Record<string, string>)[s.approver] ?? s.approver}
 										</span>
 									) : null}
+									{/* The slot of the Remove button of a step: the pills of each row end on one edge. */}
+									<span aria-hidden="true" className="size-(--control-h) shrink-0" />
 								</div>
 							</>
 						) : null}
