@@ -114,3 +114,14 @@ A full review of each screen and each state of the app after the redesign. The a
 3. The comment button of a diff line is 24 px, by decision (see Decisions).
 4. The browser mock does not lower the rights of a member who is not an admin from a personal role.
 5. The walk of the real window covered the seven places and their section tabs on a project with no ticket and no run. The pages of a feature and of a run were checked in the browser build only.
+
+## Next session (stopped on 2026-11-27: weekly usage at 85 %, context of the session full)
+
+State: `main` is at `94396470`, CI green on five jobs, the build of that commit is installed.
+
+1. Walk the pages of a feature (Story, Brief, Design, Changes, Checks, Chat) and of a run in the real window. Use the portable copy in the session scratch folder pattern: a copy of the built app beside a file `portable` and its own data folder, started as a background task. `screencapture -l <window id>` gives the picture, a small `CGEvent` click helper gives the clicks (Accessibility and Screen Recording are granted). A run page needs a run: start one only on a throwaway project with the owner's yes, because it spends money.
+2. Give each of the 28 wording proposals a verdict (journal of workflow `wf_b996dddf-73e`, field `wording`). The lead's first read: apply `Agents today` in the tray, keep the others (product words, expert pages, texts that a test fixes, grammar in French).
+3. Archive `add-windows-relay-pipe` by hand, as `update-app-redesign` was: the new capability `windows-relay` in `docs/openspec/specs`, then the folder to `changes/archive/<date>-add-windows-relay-pipe`.
+4. Atomic audit past the import direction (`src/ui/layers.test.ts`): each shared part has a gallery row and a test; no component of a feature is used by three or more other features; no colour or size in `src/features` and `src/ui` is outside the tokens.
+5. Tell the owner again: stop the blocked run "Security scan findings" and start a new one (its folder has no submodule files).
+
