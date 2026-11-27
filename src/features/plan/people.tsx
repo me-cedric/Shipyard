@@ -11,6 +11,7 @@ import { Select } from "@/ui/atoms/select";
 import { CalendarDaysIcon, ChevronRightIcon } from "@/ui/icons";
 import { ATTENTION_FILL, ATTENTION_TINT, AttentionCard } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { firstName, usePlainDay, usePlanSheet, useProposals, type Zoom } from "./capacity";
@@ -221,11 +222,7 @@ export function People() {
 									{proposed.list.length === 2 ? p.people.applyBoth : p.people.applyAll}
 								</RightButton>
 							) : null}
-							{proposed.error ? (
-								<p role="alert" className="text-ui text-danger-text">
-									{proposed.error}
-								</p>
-							) : null}
+							<ErrorNotice error={proposed.failure} />
 						</AttentionCard>
 					) : null}
 					<Card className="py-2">

@@ -201,7 +201,8 @@ describe("Design / API", () => {
 		await user.clear(screen.getByRole("textbox", { name: "Path" }));
 		await user.type(screen.getByRole("textbox", { name: "Path" }), "no-slash");
 		await user.click(screen.getByRole("button", { name: "Send" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("Failed");
+		expect(await screen.findByRole("alert")).toHaveTextContent("the route must start");
+		expect(screen.getByText("Failed:")).toBeInTheDocument();
 		// The answer box stays empty until a response comes.
 		expect(screen.getByRole("status")).toBeEmptyDOMElement();
 	});

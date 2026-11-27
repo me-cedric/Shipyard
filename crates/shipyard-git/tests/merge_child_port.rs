@@ -69,7 +69,7 @@ impl Git for TempGit {
     fn changes(&self, _: &str, _: &str) -> PortResult<Changes> {
         Err("outside this contract".into())
     }
-    fn review_input(&self, _: &str, _: &str) -> PortResult<ReviewInput> {
+    fn review_input(&self, _: &str, _: &str, _: &str) -> PortResult<ReviewInput> {
         Err("outside this contract".into())
     }
     fn line(&self, _: &str, _: &str, _: u32) -> PortResult<Option<String>> {

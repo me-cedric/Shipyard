@@ -24,6 +24,25 @@ describe("eventSentence", () => {
 		expect(say("unknown", {})).toBe("ACME-1 changed");
 	});
 
+	it("says the report of a step with the first sentence of the agent, and marks its outcome", () => {
+		const report = {
+			tool: "report",
+			outcome: "partial",
+			summary:
+				"T2 is partial. I added one ignore entry (chrono).\n\nChanged file: `.osv-scanner.toml`.",
+		};
+		expect(say("tool", report)).toBe("T2 is partial.");
+		const tone = (outcome: string) =>
+			eventTone({ kind: "tool", payload: JSON.stringify({ ...report, outcome }), key: "A-1" });
+		expect([tone("done"), tone("partial"), tone("failed")]).toEqual([
+			"success",
+			"warning",
+			"danger",
+		]);
+		// A report with no summary keeps the name of the tool.
+		expect(say("tool", { tool: "report", outcome: "done" })).toBe("The agent used report");
+	});
+
 	it("says a write in words, for each state of its approval", () => {
 		const move = { kind: "transition", key: "ACME-1", status: "In Progress" };
 		expect(say("write", { state: "pending", write: move })).toBe(

@@ -94,11 +94,7 @@ function ScreenView({ screen }: { screen: Screen }) {
 	return (
 		<Card className="flex flex-col gap-4 p-6">
 			<h2 className="text-20 font-semibold">{screen.title}</h2>
-			{outside.error ? (
-				<p role="alert" className="text-danger-text">
-					{outside.error}
-				</p>
-			) : null}
+			<ErrorNotice error={outside.error} />
 			<section aria-label={s.artifacts} className="flex flex-col gap-1">
 				<h3 className="text-13 font-semibold text-n-11">{s.artifacts}</h3>
 				<ul className="flex flex-wrap gap-1">

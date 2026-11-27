@@ -2,6 +2,7 @@ import { useBlocker, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "../atoms/button";
+import { ErrorNotice } from "../molecules/error-notice";
 import { Dialog } from "./dialog";
 
 type Props = {
@@ -20,14 +21,14 @@ function Ask({ dirty, file, onSave }: Props) {
 		enableBeforeUnload: dirty,
 		withResolver: true,
 	});
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const l = t.ui.leave;
 	const saveAndLeave = async () => {
 		try {
 			await onSave?.();
 			block.proceed?.();
 		} catch (e) {
-			setError(String(e));
+			setError(e);
 		}
 	};
 	return (
@@ -55,11 +56,7 @@ function Ask({ dirty, file, onSave }: Props) {
 			}
 		>
 			{file ? <p className="font-mono text-ui">{file}</p> : <p className="text-ui">{l.body}</p>}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={error} />
 		</Dialog>
 	);
 }

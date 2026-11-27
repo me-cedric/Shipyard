@@ -13,6 +13,7 @@ import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import { ChartBarIcon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
@@ -68,7 +69,7 @@ function ReportPage({ title, back }: { title: string; back: ReactNode }) {
 	const plan = useImpactText(entry?.plan ?? null).data;
 	const digest = useImpactText(entry?.digest ?? null).data;
 	const { analyze } = useForgeActions();
-	const { error, busy, run } = useRun();
+	const { failure, busy, run } = useRun();
 	const base = refs?.default ?? "";
 	const rows = useChain(base);
 	const parsed = plan ? parsePlan(plan) : null;
@@ -105,11 +106,7 @@ function ReportPage({ title, back }: { title: string; back: ReactNode }) {
 				menu={[{ label: i.details, onClick: () => setDetails(!details) }]}
 			/>
 			<div className="flex flex-col gap-6 px-4 pb-10">
-				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				<ErrorNotice error={failure} />
 				{past ? (
 					<Panel title={i.pastReports} count={list.length} flush bodyClassName="py-1">
 						{list.map((e) => (

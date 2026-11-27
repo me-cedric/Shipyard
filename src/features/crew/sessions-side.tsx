@@ -12,6 +12,7 @@ import { Button } from "@/ui/atoms/button";
 import { ChevronRightIcon, StopIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { resumeLine, useTakeMachine } from "./take-control";
 
@@ -29,14 +30,10 @@ export function MachineRows() {
 	const rows = useMachineSessions().data ?? [];
 	const writes = useMachineWrites();
 	const take = useTakeMachine();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	return (
 		<>
-			{error ? (
-				<p role="alert" className="px-6 py-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-6 py-2" />
 			{rows.map((s) => (
 				<Row key={s.key} className="min-h-18 py-2">
 					<Avatar agent name={runnerName(s.runner)} />
@@ -78,7 +75,7 @@ export function MachineRows() {
 export function OrcaCard() {
 	const { t } = useI18n();
 	const o = t.personal.orca;
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const status = useQuery({
 		queryKey: ["factory", "orca"],
 		queryFn: () => unwrap(commands.orcaStatus()),
@@ -110,11 +107,7 @@ export function OrcaCard() {
 		<Card className="py-2">
 			<section aria-label={o.title}>
 				<h2 className={HEAD}>{o.title}</h2>
-				{error ? (
-					<p role="alert" className="px-6 py-2 text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				<ErrorNotice error={failure} className="px-6 py-2" />
 				{!status.installed ? (
 					<Row>
 						<span className="flex-1 text-n-11">{o.missing}</span>

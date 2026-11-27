@@ -18,7 +18,7 @@ use shipyard_agents::runners::{self, ModelProvider, Runner};
 use shipyard_http::{Client, Http, TestOutcome};
 use shipyard_mcp::proxy::Proxy;
 use shipyard_mcp::relay::CONFIG_FILE;
-use shipyard_secrets::{Keychain, Secret, SecretStore, conn_account};
+use shipyard_secrets::{Secret, SecretStore, conn_account};
 use shipyard_store::project::write_atomic;
 use specta::Type;
 
@@ -205,7 +205,12 @@ impl Agents {
 
     /// The OS keychain and the real HTTP client.
     pub fn system(dir: &Path) -> Self {
-        Self::new(dir, Arc::new(Keychain), Arc::new(Client), |c| c)
+        Self::new(
+            dir,
+            crate::connections::system_store(),
+            Arc::new(Client),
+            |c| c,
+        )
     }
 
     fn read(path: &Path) -> Res<File> {

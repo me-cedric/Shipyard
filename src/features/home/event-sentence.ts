@@ -57,6 +57,11 @@ export function eventSentence(said: Said, states: Record<string, string>, e: Eve
 		const state = WRITE_STATE[str(p.state)];
 		if (what && state) return format(said.writeState[state], { what });
 	} else if (e.kind === "tool") {
+		// The report of a step ends it: its first sentence says what the agent did.
+		const first = str(p.summary)
+			.split(/(?<=[.!?])\s|\n/)[0]
+			?.trim();
+		if (first) return first;
 		const tool = (str(p.tool) || str(p.name)).replaceAll("_", " ");
 		if (tool) return format(said.toolNamed, { tool });
 	} else if (e.kind === "runner") {
@@ -94,6 +99,8 @@ export function eventTone(e: Event): Status {
 					: "info";
 	}
 	if (e.kind === "runner" && str(p.error)) return "danger";
+	if (e.kind === "tool" && str(p.outcome))
+		return p.outcome === "done" ? "success" : p.outcome === "partial" ? "warning" : "danger";
 	if (e.kind === "question") return str(obj(p.question).question) ? "warning" : "success";
 	if (e.kind === "pr") return "success";
 	return e.kind === "review" ? "info" : "idle";

@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 date: 2026-11-05
 decision-makers: [Cédric Meyer]
 ---
@@ -25,5 +25,5 @@ Shipyard never reads or copies the credential store of a tool, and never uses a 
 - The state of Gemini, `agy` and Copilot is "Unknown" until Q-134 gives a better signal.
 - The sign-in of a tool happens in the tool: its browser page, its prompts. Q-133 decides where the person sees them.
 - OpenAI, Anthropic, Mistral and Google AI Studio have no OAuth for a third party: the person pastes a key.
-- Azure needs an application registration (Q-132).
+- Azure needs an application registration (Q-132). The owner set the Azure device sign-in aside on 2026-11-27 (`docs/openspec/deferred/add-azure-sign-in`): Azure uses a pasted key until a registration exists.
 - Two flows are new: OpenRouter and Microsoft login. Local runtimes are probed on localhost only.

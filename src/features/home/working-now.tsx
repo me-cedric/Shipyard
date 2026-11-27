@@ -14,6 +14,7 @@ import { linkClass } from "@/ui/atoms/link-button";
 import { StepBar } from "@/ui/atoms/step-bar";
 import { StopIcon } from "@/ui/icons";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { useMyItems } from "./stats";
 
@@ -68,7 +69,7 @@ export function WorkingNow() {
 	);
 	const features = useFeatures().data ?? [];
 	const { cancel } = useRunActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	// Every AI tool on this computer, as the menu bar panel shows it.
 	const spend = useDailySpend(14);
 	const title = useId();
@@ -131,11 +132,7 @@ export function WorkingNow() {
 					</span>
 				</p>
 			</div>
-			{error ? (
-				<p role="alert" className="px-5 pb-2 text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-5 pb-2" />
 		</section>
 	);
 }

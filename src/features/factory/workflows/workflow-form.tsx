@@ -21,7 +21,7 @@ const EFFORTS: Effort[] = ["low", "medium", "high", "xhigh", "max"];
 /** The value of a Select item that stands for no value. */
 const NONE = "-";
 /** USD when a person turns the budget on. */
-const BUDGET = 5;
+export const BUDGET = 5;
 
 /** A row of a card of the step page (picture 080): the label, then its control at its natural width on the right. */
 export function Fr({ label, children }: { label: ReactNode; children: ReactNode }) {
@@ -203,7 +203,7 @@ function Stepper({
 }
 
 /** A row with a switch and a number: off is `null`, and on starts at `initial`. */
-function OptionalNumber({
+export function OptionalNumber({
 	label,
 	value,
 	initial,

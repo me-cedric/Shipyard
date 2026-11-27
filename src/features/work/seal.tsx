@@ -7,6 +7,7 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { LockClosedIcon, LockOpenIcon, XMarkIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { useGuard } from "./guard";
 
@@ -22,7 +23,7 @@ export function SealBar({ state }: { state: Seal }) {
 	const { t } = useI18n();
 	const s = t.work.seal;
 	const act = useWorkActions();
-	const { error, run, setError } = useGuard();
+	const { error, failure, run, setError } = useGuard();
 	const [pass, setPass] = useState("");
 	const [again, setAgain] = useState("");
 	const [asking, setAsking] = useState<Mode | null>(null);
@@ -38,14 +39,14 @@ export function SealBar({ state }: { state: Seal }) {
 				<RightIconButton right="work.edit" label={s.unseal} onClick={() => setAsking("unseal")}>
 					<LockOpenIcon size={14} />
 				</RightIconButton>
-				{error ? <Alert text={error} /> : null}
+				<ErrorNotice error={failure ?? error} />
 			</>
 		) : (
 			<>
 				<RightIconButton right="work.edit" label={s.seal} onClick={() => setAsking("seal")}>
 					<LockClosedIcon size={14} />
 				</RightIconButton>
-				{error ? <Alert text={error} /> : null}
+				<ErrorNotice error={failure ?? error} />
 			</>
 		);
 
@@ -95,16 +96,8 @@ export function SealBar({ state }: { state: Seal }) {
 					</IconButton>
 				) : null}
 			</form>
-			{error ? <Alert text={error} /> : null}
+			<ErrorNotice error={failure ?? error} />
 		</>
-	);
-}
-
-function Alert({ text }: { text: string }) {
-	return (
-		<p role="alert" className="text-ui text-danger-text">
-			{text}
-		</p>
 	);
 }
 
@@ -118,7 +111,7 @@ export function SealCard({ state }: { state: Seal }) {
 	const s = t.work.seal;
 	const p = t.costing.estimate;
 	const act = useWorkActions();
-	const { error, run, setError } = useGuard();
+	const { error, failure, run, setError } = useGuard();
 	const [pass, setPass] = useState("");
 	/** The first entry of a new seal, while the card asks for the second one. */
 	const [first, setFirst] = useState<string | null>(null);
@@ -171,7 +164,7 @@ export function SealCard({ state }: { state: Seal }) {
 						{mode === "unseal" ? p.openSeal : s[mode]}
 					</RightButton>
 				</div>
-				{error ? <Alert text={error} /> : null}
+				<ErrorNotice error={failure ?? error} />
 				<Badge variant="success" className="self-start">
 					{p.sealNote}
 				</Badge>

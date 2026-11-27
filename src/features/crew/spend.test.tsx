@@ -132,6 +132,15 @@ describe("Crew / Spend / Budgets", () => {
 		// One Edit for each kind with a command, and a person's own limit under them.
 		expect(await limits.findByText("Ada Lovelace")).toBeInTheDocument();
 		expect(limits.queryByRole("button", { name: "Edit the limit of each feature" })).toBeNull();
+		// The limit of a feature is the budget of its recipe: Edit opens that row of that recipe.
+		const top = (await unwrap(commands.workflowsList())).reduce((a, w) =>
+			(w.budget ?? -1) > (a.budget ?? -1) ? w : a,
+		);
+		expect(top.budget).not.toBeNull();
+		expect(limits.getByRole("link", { name: "Edit the limit of each feature" })).toHaveAttribute(
+			"href",
+			`/crew/recipes?recipe=${top.id}#budget`,
+		);
 		expect(limits.getByRole("button", { name: "Edit the limit of each day" })).toBeInTheDocument();
 		// The section tab and the way back.
 		expect(screen.getAllByRole("link", { name: "Spend" })).toHaveLength(2);

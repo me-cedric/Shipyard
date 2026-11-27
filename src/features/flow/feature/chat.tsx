@@ -7,7 +7,7 @@ import { agentOf } from "@/features/factory/runs/run-summary";
 import { UnitTranscript } from "@/features/factory/runs/unit-chat";
 import { transcript } from "@/features/factory/runs/unit-transcript";
 import { QuestionRow } from "@/features/home/inbox/inbox";
-import { message, useGuard } from "@/features/work/guard";
+import { useGuard } from "@/features/work/guard";
 import { type ApprovalItem, useInboxActions } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { useRights } from "@/lib/rights";
@@ -122,8 +122,10 @@ function Composer({ scope, agent }: { scope: RunScopeData; agent: string }) {
 	const picker = useRef<HTMLInputElement>(null);
 	const [files, setFiles] = useState<string[]>([]);
 	const [refused, setRefused] = useState<string | null>(null);
+	const [attachFailure, setAttachFailure] = useState<unknown>(null);
 	const attach = async (list: FileList) => {
 		setRefused(null);
+		setAttachFailure(null);
 		for (const f of Array.from(list)) {
 			const image = IMAGE.test(f.name);
 			if (f.size > (image ? MAX_IMAGE : MAX_TEXT)) {
@@ -140,8 +142,7 @@ function Composer({ scope, agent }: { scope: RunScopeData; agent: string }) {
 				const done = await act.attach(run.id, f.name, bytes);
 				setFiles((x) => [...x, done.name]);
 			} catch (e) {
-				// The limits of the file are the words of the refusal: it names its size.
-				setRefused(message(e));
+				setAttachFailure(e);
 			}
 		}
 	};
@@ -220,6 +221,7 @@ function Composer({ scope, agent }: { scope: RunScopeData; agent: string }) {
 					{refused}
 				</p>
 			) : null}
+			<ErrorNotice error={attachFailure} className="w-full px-3" />
 			{blocked ? (
 				<p role="alert" className="w-full px-3 text-ui text-n-11">
 					{c.busy}

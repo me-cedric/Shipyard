@@ -33,14 +33,14 @@ The earlier tool has these features, but commit sits in 11 pages and pull sits i
 - REQ-004: The system SHALL discard changes only after a confirmation.
 - REQ-005: When a merge or a stash stops on a conflict, the Conflicts group SHALL list each conflicted file.
 - REQ-006: The system SHALL save the working copy as a stash, untracked files included.
-- REQ-007: The status bar of the shell SHALL hold the one commit action (`add-shell` REQ-007).
+- REQ-007: The card of the sync mark SHALL hold the commit action of the shell (`spec:shell#REQ-021`), and Code / Now SHALL keep its commit box. The action SHALL commit the staged files only.
 - REQ-008: The summary SHALL follow `<type>(<scope>): <subject>`.
 - REQ-009: The system SHALL expose each commit as a `commit:<sha>` entity.
 - REQ-010: Code / History SHALL list the commits of the working branch with branch and tag labels.
 - REQ-011: The Code header SHALL show the working branch in one selector.
 - REQ-012: The system SHALL create a branch from the current head and SHALL switch to it.
 - REQ-013: The system SHALL delete a branch after two clicks. The second click SHALL be a confirmation that names the branch.
-- REQ-014: The system SHALL publish the working branch with a person's click and MUST NOT use a force push.
+- REQ-014: The sync action of the card of the sync mark SHALL fetch. It SHALL then bring the working branch up to date when the working copy is clean.
 - REQ-015: In the background, the system SHALL fetch the remote heads of each project that has a remote.
 - REQ-016: The remote watch MUST move only the remote tracking references.
 - REQ-017: The system SHALL notify only when the remote heads change between two fetches.
@@ -52,10 +52,10 @@ The earlier tool has these features, but commit sits in 11 pages and pull sits i
 - REQ-023: A draft pull request SHALL show a Mark ready action in Code / Pull requests.
 - REQ-024: A pull request SHALL show its linked `wi:` and `run:` refs and its commits as `commit:` refs.
 - REQ-025: When a forge write fails, the system SHALL show the forge message.
-- REQ-026: Code / Quality SHALL list the check scripts that the project declares.
-- REQ-027: Code / Quality SHALL run the security scanners and show their results.
+- REQ-026: Flow / Health SHALL list the check scripts that the project declares, for every role. The system MUST NOT run a check that the project does not declare. A run SHALL need a confirmation that names the check, and SHALL be off without the right. Each result SHALL show pass or fail, the duration and the output tail.
+- REQ-027: Flow / Health SHALL run the security scanners and show their results. The scans cover vulnerable dependencies, leaked secrets, flaws in the code and risks in agent skills. Each finding SHALL show a severity and a path. Shipyard downloads each program into the app data folder after one click that names it.
 - REQ-028: The system SHALL keep the last report of each check and scanner as a repository text file.
-- REQ-029: Code / Impacts SHALL compare the working copy with a branch, a tag or a revision.
+- REQ-029: The impacts of a change SHALL open from the Checks of its feature. They SHALL compare the working copy with a branch, a tag or a revision. The person chooses it. The comparison SHALL include uncommitted work. The default ref SHALL be the base branch.
 - REQ-030: The Analyze action SHALL write a developer action plan for the comparison.
 - REQ-031: Analyze SHALL also write a digest for the PM in plain language.
 - REQ-032: The system SHALL give the digest of a run's diff to `add-delivery`.
@@ -204,7 +204,7 @@ The system SHALL save the working copy as a stash, untracked files included. The
 
 ### Requirement: REQ-007 Commit action
 
-The status bar of the shell SHALL hold the one commit action (`add-shell` REQ-007). It SHALL open a form with two fields: the summary and the description. The action SHALL commit the staged files only. The action SHALL stay off when no file is staged or when a conflict remains.
+The card of the sync mark SHALL hold the commit action of the shell (`spec:shell#REQ-021`), and Code / Now SHALL keep its commit box. The action SHALL take two fields: the summary and the description. The action SHALL commit the staged files only. The action SHALL stay off when no file is staged or when a conflict remains.
 
 #### Scenario: Commit staged files
 - GIVEN two staged files and one unstaged file
@@ -282,17 +282,17 @@ The system SHALL delete a branch after two clicks. The second click SHALL be a c
 
 ### Requirement: REQ-014 Publish and sync
 
-The system SHALL publish the working branch with a person's click and MUST NOT use a force push. The sync action of the status bar SHALL fetch. It SHALL then bring the working branch up to date when the working copy is clean. One tick, then fetch and fast-forward the working branch when the working copy is clean. Publish stays a separate click in Code / Branches.
+The system SHALL publish the working branch with a person's click and MUST NOT use a force push. The sync action of the card of the sync mark SHALL fetch. It SHALL then bring the working branch up to date when the working copy is clean. One tick, then fetch and fast-forward the working branch when the working copy is clean. Publish stays a separate click in Code / Branches.
 
 #### Scenario: Dirty sync
 - GIVEN a working copy with uncommitted changes and a newer remote head
 - WHEN a person runs the sync action
-- THEN the fetch runs, the working copy stays as it is and the status bar names the reason
+- THEN the fetch runs, the working copy stays as it is and the card of the sync mark names the reason
 
 #### Scenario: Rebase conflict
 - GIVEN a clean working copy with a local commit that conflicts with a newer remote commit
 - WHEN a person runs the sync action
-- THEN the working branch stays as it was and the status bar names the conflicted files
+- THEN the working branch stays as it was and the card of the sync mark names the conflicted files
 
 ### Requirement: REQ-015 Remote watch
 
@@ -440,16 +440,25 @@ When a forge write fails, the system SHALL show the forge message. The view SHAL
 
 ### Requirement: REQ-026 QA checks
 
-Code / Quality SHALL list the check scripts that the project declares. The system MUST NOT run a check that the project does not declare. A run SHALL need a confirmation that names the check. Each result SHALL show pass or fail, the duration and the output tail.
+Flow / Health SHALL list the check scripts that the project declares, for every role. The system MUST NOT run a check that the project does not declare. A run SHALL need a confirmation that names the check, and SHALL be off without the right. Each result SHALL show pass or fail, the duration and the output tail.
+
+Screen: SCR-065
 
 #### Scenario: Run a check
 - GIVEN a declared check `test`
 - WHEN a person confirms the run
 - THEN the result shows its state, duration and output tail
 
+#### Scenario: A role with no right on code
+- GIVEN a tester with no right on code
+- WHEN the tester opens Flow / Health
+- THEN the checks show with their state and Run is off
+
 ### Requirement: REQ-027 Security scanners
 
-Code / Quality SHALL run the security scanners and show their results. The scans cover vulnerable dependencies, leaked secrets, flaws in the code and risks in agent skills. Each finding SHALL show a severity and a path. The four scans. Shipyard downloads each program into the app data folder after one click that names it.
+Flow / Health SHALL run the security scanners and show their results. The scans cover vulnerable dependencies, leaked secrets, flaws in the code and risks in agent skills. Each finding SHALL show a severity and a path. Shipyard downloads each program into the app data folder after one click that names it.
+
+Screen: SCR-065
 
 #### Scenario: Leaked secret
 - GIVEN a working copy with a secret in a file
@@ -467,7 +476,9 @@ The system SHALL keep the last report of each check and scanner as a repository 
 
 ### Requirement: REQ-029 Impacts compare
 
-Code / Impacts SHALL compare the working copy with a branch, a tag or a revision. The person chooses it. The comparison SHALL include uncommitted work. The default ref SHALL be the base branch.
+The impacts of a change SHALL open from the Checks of its feature. They SHALL compare the working copy with a branch, a tag or a revision. The person chooses it. The comparison SHALL include uncommitted work. The default ref SHALL be the base branch.
+
+Screen: SCR-066
 
 #### Scenario: Compare with a tag
 - GIVEN a tag `v1.0` and two uncommitted files

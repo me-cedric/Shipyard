@@ -158,6 +158,19 @@ fn is_custom(chosen: &str) -> bool {
     Path::new(chosen).is_absolute()
 }
 
+/// The id of an app that the person chose by hand: the id of the table when the file is a known
+/// macOS app (`Wave.app` is `wave`), so that it starts as the same app found by Shipyard does.
+fn custom_id(p: &Path) -> &'static str {
+    let known = |d: &&Def| {
+        p.file_stem()
+            .is_some_and(|n| n.eq_ignore_ascii_case(d.mac_app))
+    };
+    match DEFS.iter().find(known) {
+        Some(d) if !takes_folder(d.id) => d.id,
+        _ => "custom",
+    }
+}
+
 /// The app that the person chose by hand. `Ok(None)`: it is gone, so the choice is Automatic.
 /// A path with `..`, or a non-`.app` path on macOS, is refused.
 fn custom_app(chosen: &str, mac: bool) -> Res<Option<PathBuf>> {
@@ -247,11 +260,17 @@ fn plan(id: &str, found: &Found, dir: &Path) -> Launch {
                 cwd: None,
             }
         }
-        Found::MacPath(app) => Launch {
-            program: "open".into(),
-            args: vec!["-a".into(), app.as_os_str().to_owned(), d],
-            cwd: None,
-        },
+        Found::MacPath(app) => {
+            let mut args = vec!["-a".into(), app.as_os_str().to_owned()];
+            if takes_folder(id) {
+                args.push(d);
+            }
+            Launch {
+                program: "open".into(),
+                args,
+                cwd: None,
+            }
+        }
         Found::Exe(exe) => Launch {
             program: exe.clone(),
             args: match id {
@@ -317,7 +336,7 @@ pub fn launch(s: &AppState, folder: &str, click: bool) -> Res<Option<String>> {
         } else {
             Found::Exe(p.clone())
         };
-        ("custom", p.to_string_lossy().into_owned(), found)
+        (custom_id(&p), p.to_string_lossy().into_owned(), found)
     } else {
         let def = if chosen.is_empty() {
             DEFS.iter()
@@ -410,6 +429,17 @@ mod tests {
             ["-na", "WezTerm", "--args", "start", "--cwd", "/p/a b;rm"]
         );
         assert_eq!(run("warp", "Warp").program, PathBuf::from("open"));
+    }
+
+    #[test]
+    fn a_hand_picked_app_that_takes_no_folder_only_opens() {
+        let dir = Path::new("/p/x");
+        let wave = PathBuf::from("/Applications/Wave.app");
+        assert_eq!(custom_id(&wave), "wave");
+        assert_eq!(custom_id(Path::new("/Applications/Other.app")), "custom");
+        assert_eq!(custom_id(Path::new("/Applications/Ghostty.app")), "custom");
+        let l = plan(custom_id(&wave), &Found::MacPath(wave.clone()), dir);
+        assert_eq!(l.args, [OsString::from("-a"), wave.into_os_string()]);
     }
 
     #[test]

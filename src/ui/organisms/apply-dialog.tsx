@@ -6,6 +6,7 @@ import { Button } from "../atoms/button";
 import { Checkbox } from "../atoms/checkbox";
 import { Input } from "../atoms/input";
 import { type Status, StatusDot } from "../atoms/status-dot";
+import { ErrorNotice } from "../molecules/error-notice";
 import { DataTable } from "./data-table";
 import { Dialog } from "./dialog";
 
@@ -78,7 +79,8 @@ export function ApplyDialog({
 	rows: ApplyPreviewRow[];
 	results?: ApplyResult[];
 	busy?: boolean;
-	error?: string | null;
+	/** The thrown value of a failed command, or a sentence that the interface wrote. */
+	error?: unknown;
 	review?: boolean;
 	/** Plain names for the lists of the preview, in place of Create, Update and Unchanged. */
 	names?: Partial<Record<ApplyAction, string>>;
@@ -261,11 +263,7 @@ export function ApplyDialog({
 					groupLabel={(g) => groupName(g as Group)}
 				/>
 			</div>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={error} />
 		</Dialog>
 	);
 }

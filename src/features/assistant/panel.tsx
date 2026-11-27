@@ -9,6 +9,7 @@ import {
 	ViewColumnsIcon,
 	XMarkIcon,
 } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Splitter } from "@/ui/molecules/splitter";
 import { Composer } from "./composer";
 import { ContextBar } from "./context";
@@ -132,14 +133,7 @@ export function AssistantPanel({
 					{format(t.assistant.alert, { name: a.alert })}
 				</p>
 			) : null}
-			{a.error ? (
-				<p
-					role="alert"
-					className="mx-2 mb-2 rounded-md bg-danger-soft px-2 py-1 text-12 text-danger-text"
-				>
-					{a.error}
-				</p>
-			) : null}
+			<ErrorNotice error={a.error} className="mx-2 mb-2 px-2 py-1" />
 			<ContextBar a={a} onOpenRef={onOpenRef} />
 			{missing.none ? <NoCli runners={missing.runners} /> : <Composer a={a} inputRef={input} />}
 		</aside>

@@ -89,7 +89,7 @@ export function ImpactsPage({
 	const latest = useImpacts().data?.[0];
 	const plan = useImpactText(latest?.plan ?? null).data;
 	const { analyze } = useForgeActions();
-	const { error, busy, run } = useRun();
+	const { failure, busy, run } = useRun();
 	const { can } = useRights();
 	const [base, setBase] = useState<string | null>(null);
 	const [since, setSince] = useState(0);
@@ -184,11 +184,7 @@ export function ImpactsPage({
 					/>
 					{busy ? <Elapsed since={since} /> : null}
 				</div>
-				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				<ErrorNotice error={failure} />
 				{rows.length > 0 ? (
 					<AttentionCard who={t.factory.agent} title={heading}>
 						<div className="flex flex-wrap gap-3">{actions}</div>

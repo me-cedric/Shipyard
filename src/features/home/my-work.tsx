@@ -9,6 +9,7 @@ import { useShell } from "@/lib/shell";
 import { useWorkItems } from "@/lib/sync";
 import { memberName, useTeam, useWorkActions, useWorkContext } from "@/lib/work";
 import { Select } from "@/ui/atoms/select";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { TicketRow, type WorkCategory } from "@/ui/molecules/ticket-row";
 import { useMyItems } from "./stats";
 
@@ -24,7 +25,7 @@ function MyTicket({ itemKey, statuses }: { itemKey: string; statuses: string[] }
 	const caps = useWorkContext().data?.capabilities;
 	const act = useWorkActions();
 	const runs = useRunActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const edit = useRights().gate("work.edit");
 	if (!item) return null;
 	const open = () => openDetail(item.key, <TicketDetail key={item.key} itemKey={item.key} />);
@@ -69,11 +70,7 @@ function MyTicket({ itemKey, statuses }: { itemKey: string; statuses: string[] }
 					{t.factory.start}
 				</RightButton>
 			</div>
-			{error ? (
-				<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-3 pb-2" />
 		</div>
 	);
 }

@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n";
 import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useSpecsActions } from "@/lib/specs";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import type { Parts } from "./use-feature";
 
 export const keyOf = (ref?: string) => ref?.replace(/^wi:/, "");
@@ -19,7 +20,7 @@ export function StartAgent({ parts }: { parts: Parts }) {
 	const navigate = useNavigate();
 	const act = useRunActions();
 	const { openRef } = useShell();
-	const { error, run: guard } = useGuard();
+	const { failure, run: guard } = useGuard();
 	const key = keyOf(parts.ticket);
 	// A feature with no ticket starts at `/flow/new`, which shows with the List.
 	const noList = hiddenSection(useRights().level, "flow", "list");
@@ -38,11 +39,7 @@ export function StartAgent({ parts }: { parts: Parts }) {
 			>
 				{t.flow.feature.startAgent}
 			</RightButton>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</>
 	);
 }
@@ -53,7 +50,7 @@ export function WriteSpec({ parts }: { parts: Parts }) {
 	const qc = useQueryClient();
 	const navigate = useNavigate();
 	const act = useSpecsActions();
-	const { error, run: guard } = useGuard();
+	const { failure, run: guard } = useGuard();
 	const [naming, setNaming] = useState(false);
 	const key = keyOf(parts.ticket);
 	const done = async () => {
@@ -76,11 +73,7 @@ export function WriteSpec({ parts }: { parts: Parts }) {
 			>
 				{t.flow.feature.writeSpec}
 			</RightButton>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 			{naming ? (
 				<NameDialog
 					title={t.specs.newChange}

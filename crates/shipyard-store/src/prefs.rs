@@ -256,9 +256,6 @@ pub struct Prefs {
     /// When the window closes, push the commit that the auto-commit made.
     #[serde(default)]
     pub close_push: bool,
-    /// A lower bar on top of the window.
-    #[serde(default)]
-    pub narrow_bar: bool,
     /// Where the terminal drawer docks.
     #[serde(default = "bottom")]
     pub terminal_dock: TerminalDock,
@@ -373,7 +370,6 @@ impl Default for Prefs {
             show_all_pages: false,
             date_format: String::new(),
             close_push: false,
-            narrow_bar: false,
             terminal_dock: TerminalDock::Bottom,
             panel_sizes: BTreeMap::new(),
             today_seen: 0,
@@ -426,7 +422,6 @@ pub struct PrefsPatch {
     pub show_all_pages: Option<bool>,
     pub date_format: Option<String>,
     pub close_push: Option<bool>,
-    pub narrow_bar: Option<bool>,
     pub terminal_dock: Option<TerminalDock>,
     /// Replaces the whole map, so a missing key goes back to its default size.
     pub panel_sizes: Option<BTreeMap<String, u32>>,
@@ -561,7 +556,6 @@ impl Prefs {
             };
         }
         self.close_push = p.close_push.unwrap_or(self.close_push);
-        self.narrow_bar = p.narrow_bar.unwrap_or(self.narrow_bar);
         self.terminal_dock = p.terminal_dock.unwrap_or(self.terminal_dock);
         self.tray = p.tray.unwrap_or(self.tray);
         self.motion = p.motion.unwrap_or(self.motion);
@@ -751,7 +745,6 @@ mod tests {
             show_all_pages: Some(true),
             date_format: Some("dmy".into()),
             close_push: Some(true),
-            narrow_bar: Some(true),
             ..Default::default()
         });
         p.save(dir.path()).unwrap();
@@ -761,7 +754,7 @@ mod tests {
             (q.nav_side, q.drawer_side),
             (PanelSide::Right, PanelSide::Right)
         );
-        assert!(q.show_all_pages && q.close_push && q.narrow_bar);
+        assert!(q.show_all_pages && q.close_push);
         assert_eq!(q.date_format, "dmy");
         p.apply(PrefsPatch {
             clear_accent: Some(true),

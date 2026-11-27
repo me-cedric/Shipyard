@@ -53,10 +53,10 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - REQ-024: The system SHALL offer a kill switch per run and one global kill switch. The run switch SHALL move the run to `Cancelled`. The global switch SHALL cancel every active run on this machine and stop pickup until a person turns it off.
 - REQ-025: The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pull_request`, `tracker_transition` and `tracker_comment`. All four SHALL be on by default, and a project admin SHALL turn each one off in Settings / Project, group Automation. That group SHALL be the one editor of `.shipyard/automation.yaml`. All on. A force push and a merge still wait for a person. An admin turns a switch off per project, and each write of that switch then waits for one click in Home / Inbox. A person with `project.settings` SHALL also be able to allow exactly the kinds of the effects of one approval question (`transition`, `labels`, `comment`, `push`, `open_pr`, `resolve_threads`) for the runs of one workflow only (`recipe_writes`, `spec:app-redesign#REQ-013`), and to remove each kind of it in that group. A write that already waits SHALL keep its question: a permission applies to the writes that come later. Remove SHALL take effect with Save. A save of that group SHALL never add a kind or a workflow to `recipe_writes`. A push with force with lease SHALL get no such permission.
 - REQ-026: A rejected tracker write is skipped. A rejected push or pull request escalates.
-- REQ-027: Factory / Runs SHALL show five lanes, each with a count, and a History view. The view SHALL have one primary action. Each run that is not ended, and the latest failed run of a ticket, SHALL sit in the lane that REQ-038 gives. History SHALL list every ended run.
+- REQ-027: Flow SHALL show each feature once in one of the stages Idea, Spec, Build, Review and Ready, each with a count, and SHALL have the views Flow, List, Done and Health. The view SHALL have one primary action. Each feature SHALL sit in the stage that REQ-038 gives. Done SHALL list every ended feature, newest end first.
 - REQ-028: The run view SHALL show the workflow DAG with the live state of each step. It SHALL also show the event tail, the diff of the worktree and the cost. It SHALL offer the kill switch of the run.
 - REQ-029: Factory / Workflows SHALL list the workflows with their steps and SHALL edit the same files as REQ-010. It SHALL show a validation error with its line.
-- REQ-030: Factory / Agents map SHALL show a live graph of agents, tickets, files and refs. A click on a node SHALL open its entity in the inspector.
+- REQ-030: Crew SHALL show the live work as rows. A row SHALL show the agent, the feature and its state, and the files and specs that the agent reads and changes, never a raw ref. The raw ref SHALL be the tooltip and the item Copy ref of the menu of the agent. The address of the agents map SHALL open this view.
 - REQ-031: Factory / Sessions SHALL list the agent sessions. Each row SHALL show runner, model, run, state and tokens. The view SHALL offer the global kill switch as its primary action. The list SHALL include the AI tool sessions of the run units (Active, Previous, start time), and a click SHALL open the run page at the unit. The run page SHALL list its started units with Follow and, for a Claude Code unit with a session id, Open in terminal, which SHALL be off while the unit runs.
 - REQ-032: Factory / Usage SHALL show tokens and money per run, per day and per member against their budgets. It SHALL let an admin set a budget.
 - REQ-033: Each Factory view SHALL follow the interface rules of the constitution. It SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. It SHALL have one primary action, a keyboard path and a focus ring. It SHALL have assistive labels, enough contrast and reduced motion. It SHALL show French and English text.
@@ -64,7 +64,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - REQ-035: The `limits` block holds the caps `review_rounds`, `feedback_rounds` and `fix_rounds`.
 - REQ-036: Review rounds count for the whole run, default 4. The last round uses the top model tier.
 - REQ-037: The system SHALL serve the agent tools over two transports, stdio and HTTP. Both transports SHALL offer the same eight tools with the same inputs. The HTTP transport SHALL accept only calls from this machine (assumption `q:Q-053`): it SHALL listen on the loopback address, SHALL check the Host and Origin headers, and SHALL need the bearer token of a step. The token SHALL name the run and the step, and an input SHALL NOT name another run. The agent SHALL get the token in its MCP config file and never in an argument.
-- REQ-038: The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The lane Working SHALL hold `Planning`, `Working`, `SelfReview` and `ChangesRequested`. The lane Needs you SHALL hold `PlanReview`, `WaitingForAnswer`, `Blocked`, `Paused` and `Failed`. The lane Ready to merge SHALL hold a `PROpen` run with passing CI, no change request and no draft. The lane In review SHALL hold each other `PROpen` run. A run in `Merged`, `Done` or `Cancelled` SHALL sit in no lane: History lists it.
+- REQ-038: Each run state SHALL map to one stage and, when it applies, to one mark: needs you, blocked or stopped. `Queued`, `Claimed`, `Planning` and `PlanReview` SHALL be Spec. `Working` and `SelfReview` SHALL be Build. `PROpen` and `ChangesRequested` SHALL be Review. `Merged` and `Done` SHALL be Ready. `Failed` and `Cancelled` SHALL be Build with the mark stopped. A side state SHALL take the stage of its return state.
 - REQ-039: After a restart, the system SHALL take back the runs, the approval queue, the open questions and the global kill switch from the run log file. A step that ran SHALL start again, on its CLI session when it has one, else with a new brief. The system MUST NOT send a write a second time when the log shows that it went out before the restart.
 - REQ-040: The files that hold a secret (the MCP config and the brief) SHALL be in a scratch folder under the app data, outside the worktree. Each unit SHALL have its own scratch folder. A start with a scratch folder inside the workspace SHALL fail.
 - REQ-041: A step in `plan` mode SHALL NOT write. Claude Code SHALL get the read tools only, Codex SHALL run with the read-only sandbox and OpenCode SHALL run its `plan` agent. The default workflows SHALL set `mode: plan` on each `triager`, `scout`, `reviewer` and `planner` step.
@@ -670,29 +670,35 @@ A write without its switch SHALL become an approval in Home / Inbox that names t
 
 ### Requirement: REQ-027 Runs view
 
-Factory / Runs SHALL show five lanes, each with a count, and a History view. The view SHALL have one primary action. Each run that is not ended, and the latest failed run of a ticket, SHALL sit in the lane that REQ-038 gives. History SHALL list every ended run.
+Flow SHALL show each feature once in one of the stages Idea, Spec, Build, Review and Ready, each with a count, and SHALL have the views Flow, List, Done and Health. The view SHALL have one primary action. Each feature SHALL sit in the stage that REQ-038 gives. Done SHALL list every ended feature, newest end first.
+
+Screen: SCR-006
 
 #### Scenario: Needs you lane
-- GIVEN a run in `WaitingForAnswer`
-- WHEN the person opens Runs
-- THEN the run shows in the lane Needs you
+- GIVEN a feature whose run is in `WaitingForAnswer`
+- WHEN the person opens Flow
+- THEN the feature shows once, in its stage, with the mark needs you
 
 #### Scenario: Empty lane
-- GIVEN no run in Queued
-- WHEN the person opens Runs
-- THEN the lane shows the empty pattern, an icon with no ghost rows
+- GIVEN a filter that hides every card of a stage
+- WHEN the person opens Flow
+- THEN the stage shows as an empty column with the count 0
+
+#### Scenario: One card for one feature
+- GIVEN a feature with a ticket, a spec change and a run in `Working`
+- WHEN the person opens Flow
+- THEN the feature shows once, in Build
 
 #### Scenario: Ended run
-- GIVEN a run in `Done`
-- WHEN the person opens Runs
-- THEN the board has no lane Done
-- AND the run shows in History
+- GIVEN a feature whose run is in `Done`
+- WHEN the person opens the view Done
+- THEN the feature shows in the list
 
 #### Scenario: Failed run
 - GIVEN the latest run of a ticket is in `Failed`
-- WHEN the person opens Runs
-- THEN the run shows in the lane Needs you with the action Start again
-- AND the run shows in History
+- WHEN the person opens Flow
+- THEN the feature shows in Build with the mark stopped, and its menu starts the run again
+- AND the run shows in Done
 
 ### Requirement: REQ-028 Run view
 
@@ -724,27 +730,34 @@ Factory / Workflows SHALL list the workflows with their steps and SHALL edit the
 
 ### Requirement: REQ-030 Agents map
 
-Factory / Agents map SHALL show a live graph of agents, tickets, files and refs. A node SHALL show the ticket key and title, the step name or the file name, never a raw ref. The raw ref SHALL be the tooltip of the node and the item Copy ref of its menu. A click on an agent node or a run node SHALL open the run page. A click on another node SHALL open its entity in the inspector.
+Crew SHALL show the live work as rows. A row SHALL show the agent, the feature and its state, and the files and specs that the agent reads and changes, never a raw ref. The raw ref SHALL be the tooltip and the item Copy ref of the menu of the agent. The address of the agents map SHALL open this view.
+
+Screen: SCR-007
 
 #### Scenario: Live node
 - GIVEN a running agent
 - WHEN it reads a file
-- THEN a link from the agent to the file shows
+- THEN the row of the agent names the file
 
 #### Scenario: Open entity
-- GIVEN a ticket node
-- WHEN the person clicks it
-- THEN the inspector shows the ticket
+- GIVEN a row that names a file or a spec
+- WHEN the person clicks that ref
+- THEN the inspector shows the entity
 
 #### Scenario: Open run
-- GIVEN an agent node of a run
-- WHEN the person clicks it
-- THEN the run page opens on the Workflow tab at that step
+- GIVEN the row of an agent of a run
+- WHEN the person clicks the agent
+- THEN the feature page opens at the unit of that agent
 
 #### Scenario: Plain label
-- GIVEN a run node
-- WHEN the map shows
-- THEN the node shows the ticket key and title and no `run:` ref
+- GIVEN the row of an agent of a run
+- WHEN the live view shows
+- THEN the row shows the ticket key and title and no `run:` ref
+
+#### Scenario: Old address
+- GIVEN the address of the agents map of before this change
+- WHEN the person opens it
+- THEN the live view of Crew opens
 
 ### Requirement: REQ-031 Sessions view
 
@@ -915,23 +928,34 @@ The system SHALL serve the agent tools over two transports, stdio and HTTP. Both
 
 ### Requirement: REQ-038 Run lanes
 
-The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The lane Working SHALL hold `Planning`, `Working`, `SelfReview` and `ChangesRequested`. The lane Needs you SHALL hold `PlanReview`, `WaitingForAnswer`, `Blocked`, `Paused` and `Failed`. The lane Ready to merge SHALL hold a `PROpen` run with passing CI, no change request and no draft. The lane In review SHALL hold each other `PROpen` run. A run in `Merged`, `Done` or `Cancelled` SHALL sit in no lane: History lists it.
+Each run state SHALL map to one stage and, when it applies, to one mark: needs you, blocked or stopped. `Queued`, `Claimed`, `Planning` and `PlanReview` SHALL be Spec. `Working` and `SelfReview` SHALL be Build. `PROpen` and `ChangesRequested` SHALL be Review. `Merged` and `Done` SHALL be Ready. `Failed` and `Cancelled` SHALL be Build with the mark stopped. A side state SHALL take the stage of its return state.
+
+Screen: SCR-006
 
 #### Scenario: Ready to merge
 - GIVEN a run in `PROpen` with passing CI, no change request and no draft
-- WHEN the person opens Runs
-- THEN the run shows in the lane Ready to merge
+- WHEN the person opens Flow
+- THEN the feature shows in Review and its card says Ready to merge
 
 #### Scenario: Draft
 - GIVEN a run in `PROpen` with passing CI and a draft pull request
-- WHEN the person opens Runs
-- THEN the run shows in the lane In review
+- WHEN the person opens Flow
+- THEN the feature shows in Review
 
 #### Scenario: Cancelled run
-- GIVEN a run in `Cancelled`
-- WHEN the person opens Runs
-- THEN the run shows in no lane
-- AND the run shows in History
+- GIVEN a run that a person stopped
+- WHEN the person opens the view Done
+- THEN the run shows in the list
+
+#### Scenario: A blocked run
+- GIVEN a feature whose run is in `Blocked` and returns to `Working`
+- WHEN the person opens Flow
+- THEN the feature shows in Build with the mark blocked
+
+#### Scenario: A failed run
+- GIVEN a feature whose run is in `Failed`
+- WHEN the person opens Flow
+- THEN the feature shows in Build with the mark stopped
 
 ### Requirement: REQ-039 Restart
 

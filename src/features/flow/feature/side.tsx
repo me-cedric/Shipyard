@@ -165,7 +165,10 @@ export function Side({
 		<aside className="flex flex-col gap-4">
 			{agent}
 			<Block title={x.side.brief}>
-				{parts.change ? null : <p className="text-n-11">{x.noSpec}</p>}
+				{/* A feature that is past Spec works from its ticket: "not yet" is false for it. */}
+				{parts.change || !["idea", "spec"].includes(feature.stage) ? null : (
+					<p className="text-n-11">{x.noSpec}</p>
+				)}
 				<LinkButton onClick={() => onSection("brief")}>
 					{parts.change ? nameOf(parts.change.replace(/^change:/, "")) : x.side.open}
 				</LinkButton>

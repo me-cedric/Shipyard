@@ -108,13 +108,13 @@ Look pass 2, Library
 ### Acceptance Criteria
 
 - [ ] The menu shows the six places and Setup, and no page shows two section switches.
-- [ ] The inventory test passes: each route and each palette action of today opens or runs.
+- [x] The inventory test passes: each route and each palette action of today opens or runs.
 - [ ] The Ask bar answers "what blocks MVP 1" with the blocked features and one action for each.
-- [ ] A viewer sees no Code place. A tester opens Flow / Health.
+- [x] A viewer sees no Code place. A tester opens Flow / Health.
 - [ ] Today shows one question with its answer controls, and the count in its title.
 - [ ] Each of the 16 run states shows in one stage of Flow, with the right mark.
 - [ ] One approval sends a feature for review, and names the pull request and the ticket move.
-- [ ] Each stop state shows its one action.
+- [x] Each stop state shows its one action.
 - [ ] Crew shows people and agents, and the live work has no crossing lines.
 - [ ] Plan shows the end date in its title and one card for the capacity problems.
 - [ ] Each view of Design and Knowledge opens from a Library door.

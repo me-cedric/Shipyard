@@ -42,7 +42,6 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 				},
 			),
 		);
-		await user.click(screen.getByRole("switch", { name: "Narrow top bar" }));
 		await user.click(screen.getByRole("switch", { name: "Show all pages" }));
 		await user.click(
 			screen.getByRole("switch", { name: "Push the saved changes when the window closes" }),
@@ -50,13 +49,14 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 		await choose(user, "Dates", "31/10/2026");
 		await waitFor(() => expect(mockState().prefs.dateFormat).toBe("dmy"));
 		const p = mockState().prefs;
-		expect([p.navSide, p.drawerSide, p.narrowBar, p.showAllPages, p.closePush]).toEqual([
+		expect([p.navSide, p.drawerSide, p.showAllPages, p.closePush]).toEqual([
 			"right",
 			"right",
-			true,
 			true,
 			true,
 		]);
+		// The shell has no top bar: the old Narrow top bar switch is gone.
+		expect(screen.queryByRole("switch", { name: /narrow/i })).toBeNull();
 		// The sidebar now sits after the main view.
 		const main = screen.getByRole("main");
 		const nav = screen.getByRole("navigation", { name: "Sidebar" });

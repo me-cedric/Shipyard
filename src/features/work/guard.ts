@@ -29,5 +29,10 @@ export function useGuard() {
 			setPending((n) => n - 1);
 		}
 	}, []);
-	return { error, failure, setError, busy: pending > 0, run };
+	// A sentence of the interface replaces the last failure.
+	const setSentence = useCallback((m: string | null) => {
+		setError(m);
+		setFailure(null);
+	}, []);
+	return { error, failure, setError: setSentence, busy: pending > 0, run };
 }

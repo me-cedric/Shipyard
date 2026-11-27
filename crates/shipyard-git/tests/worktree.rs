@@ -187,3 +187,49 @@ fn removing_a_run_removes_clean_children_and_names_the_dirty_ones() {
         .unwrap();
     assert_eq!(repo.worktrees().unwrap().len(), 1);
 }
+
+/// A git command for a fixture that libgit2 has no short form for.
+fn git(dir: &Path, args: &[&str]) {
+    let out = std::process::Command::new("git")
+        .args(["-c", "protocol.file.allow=always"])
+        .args([
+            "-c",
+            "user.name=Test User",
+            "-c",
+            "user.email=test@example.com",
+        ])
+        .args(args)
+        .current_dir(dir)
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "git {args:?}: {out:?}");
+}
+
+#[test]
+fn a_new_worktree_holds_the_files_of_a_submodule_and_stays_clean() {
+    let tmp = TempDir::new().unwrap();
+    let sub = tmp.path().join("sub");
+    init(&sub);
+    let root = tmp.path().join("repo");
+    let repo = init(&root);
+    git(
+        &root,
+        &["submodule", "add", "-q", sub.to_str().unwrap(), "docs/sub"],
+    );
+    git(&root, &["commit", "-q", "-m", "chore: add the submodule"]);
+    let data = tmp.path().join("data");
+
+    let wt = repo
+        .child_worktree_add(&data, "web", "RUN1", "one", None)
+        .unwrap();
+    let dir = Path::new(&wt.path);
+    assert_eq!(
+        fs::read_to_string(dir.join("docs/sub/a.txt")).unwrap(),
+        "a\n"
+    );
+    // The copy is at the pinned commit: the worktree has no change, and it is removed with no force.
+    assert!(Repo::open(dir).unwrap().status().unwrap().is_clean());
+    repo.child_worktree_remove(&data, "web", "RUN1", "one", false)
+        .unwrap();
+    assert!(!dir.exists());
+}

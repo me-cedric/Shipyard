@@ -64,7 +64,8 @@ describe("TryPanel", () => {
 		setup(vi.fn().mockRejectedValue(new Error("network down")));
 		await userEvent.type(screen.getByRole("textbox", { name: "id" }), "7");
 		await userEvent.click(screen.getByRole("button", { name: "Send" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("Failed: network down");
+		expect(await screen.findByRole("alert")).toHaveTextContent("network down");
+		expect(screen.getByText("Failed:")).toBeInTheDocument();
 	});
 
 	it("offers a body for a write only", () => {

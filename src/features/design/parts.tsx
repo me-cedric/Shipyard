@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { WithProject } from "@/features/shell/no-project";
 import { refPage } from "@/features/shell/ref-page";
-import { message, useDesignList } from "@/lib/design";
+import { useDesignList } from "@/lib/design";
 import { format, useI18n } from "@/lib/i18n";
 import { copyText, useAsk, useMenus, useRename, useTrash } from "@/lib/menus";
 import { useBacklinks } from "@/lib/refs";
@@ -15,6 +15,7 @@ import { Select } from "@/ui/atoms/select";
 import { Card } from "@/ui/molecules/card";
 import { ContextMenu, type MenuItem } from "@/ui/molecules/context-menu";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import type { PageMenuItem } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
@@ -67,14 +68,14 @@ export function NewDialog({
 	const { t } = useI18n();
 	const [name, setName] = useState("");
 	const [picked, setPicked] = useState(first ?? create.formats?.[0]?.value ?? "");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const submit = async () => {
 		try {
 			setError(null);
 			onCreated(await create.run(name.trim(), picked));
 			onClose();
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		}
 	};
 	return (
@@ -115,11 +116,7 @@ export function NewDialog({
 						onValueChange={setPicked}
 					/>
 				) : null}
-				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				<ErrorNotice error={error} />
 			</form>
 		</Dialog>
 	);
@@ -303,12 +300,7 @@ export function usePage(title: string, items: Item[], create: Create, newTitle: 
 /** The error of the list, or a reason that the list is partial. */
 export function ListNotice({ notice }: { notice?: string | null }) {
 	const list = useDesignList();
-	const text = list.error ? message(list.error) : notice;
-	return text ? (
-		<p role="alert" className="text-danger-text">
-			{text}
-		</p>
-	) : null;
+	return <ErrorNotice error={list.error ?? notice} />;
 }
 
 /** A page with no item: one action that makes the first one. */

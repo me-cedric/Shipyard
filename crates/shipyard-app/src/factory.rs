@@ -622,6 +622,7 @@ pub(crate) fn attach(s: &AppState, a: &Active, plan: &Plan) -> Res<()> {
         runner: RUNNER.into(),
         declared_base: None,
         specs: file.path("specs").to_string(),
+        tracker: Some(plan.tracker_source()),
         secrets: {
             let mut all = s.agents.secret_values();
             all.extend(s.connections.secret_values());
@@ -1231,6 +1232,7 @@ pub(crate) fn run_folders(s: &AppState, run: &str) -> Res<Folders> {
         runner: RUNNER.into(),
         declared_base: None,
         specs: String::new(),
+        tracker: None,
         secrets: Vec::new(),
     })
 }
@@ -1613,6 +1615,8 @@ pub struct WorkflowItem {
     pub id: String,
     pub steps: Vec<String>,
     pub issue: Option<IssueView>,
+    /// The budget of each run of the recipe, in USD. `None`: no limit.
+    pub budget: Option<f64>,
 }
 
 /// The workflow files, from the disk now. A file that broke keeps its last valid version.
@@ -1636,6 +1640,7 @@ pub fn workflows(s: &AppState) -> Res<Vec<WorkflowItem>> {
                 id: id.clone(),
                 steps: wf.steps.iter().map(|st| st.id.clone()).collect(),
                 issue: issue_of(id).as_ref().map(IssueView::from),
+                budget: wf.limits.budget_usd,
             };
             (id.clone(), item)
         })
@@ -1651,6 +1656,7 @@ pub fn workflows(s: &AppState) -> Res<Vec<WorkflowItem>> {
                 id: id.to_string(),
                 steps: Vec::new(),
                 issue: Some(i.into()),
+                budget: None,
             });
         }
     }
@@ -1776,12 +1782,16 @@ pub fn workflow_choices(s: &AppState) -> Res<WorkflowOptions> {
     let roles = role_names(&loaded);
     let presets = default_workflows()
         .iter()
-        .map(|(id, text)| WorkflowItem {
-            id: id.to_string(),
-            steps: parse_workflow(id, text, &roles)
-                .map(|w| w.steps.into_iter().map(|st| st.id).collect())
-                .unwrap_or_default(),
-            issue: None,
+        .map(|(id, text)| {
+            let wf = parse_workflow(id, text, &roles).ok();
+            WorkflowItem {
+                id: id.to_string(),
+                budget: wf.as_ref().and_then(|w| w.limits.budget_usd),
+                steps: wf
+                    .map(|w| w.steps.into_iter().map(|st| st.id).collect())
+                    .unwrap_or_default(),
+                issue: None,
+            }
         })
         .collect();
     let skills = shipyard_store::roles_skills::list(&root)

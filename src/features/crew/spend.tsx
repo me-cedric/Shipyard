@@ -14,12 +14,13 @@ import { ATTENTION_FILL, AttentionCard } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { BudgetsPage, useBudgets, WarnAt } from "./budgets";
 import { SpendHow } from "./spend-how";
-import { LinkRow, RowsCard, toSpend, usePrices } from "./spend-parts";
+import { LinkRow, RowsCard, toSpend, useFeatureLimit, usePrices } from "./spend-parts";
 import { SpendUsage } from "./spend-usage-page";
 
 /** The features that the main card lists before "<n> more". */
@@ -48,7 +49,7 @@ function Alert({ run }: { run: RunView }) {
 	const s = t.factory.spendPage;
 	const act = useRunActions();
 	const { gate } = useRights();
-	const { error, run: guard } = useGuard();
+	const { failure, run: guard } = useGuard();
 	const flow = useWorkflow(run.workflow).data;
 	const step = [...run.steps].reverse().find((x) => x.state !== "pending");
 	const role = flow?.steps.find((x) => x.id === step?.id)?.role;
@@ -79,11 +80,7 @@ function Alert({ run }: { run: RunView }) {
 						{format(s.raiseTo, { amount: `$${to.toFixed(2)}` })}
 					</Button>
 				</div>
-				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				<ErrorNotice error={failure} />
 			</AttentionCard>
 		</>
 	);
@@ -95,7 +92,7 @@ function StopAll() {
 	const s = t.factory.spendPage;
 	const writes = useFactoryWrites();
 	const { gate } = useRights();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	return (
 		<>
 			<ConfirmButton
@@ -106,11 +103,7 @@ function StopAll() {
 			>
 				{s.stopAll}
 			</ConfirmButton>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</>
 	);
 }
@@ -130,6 +123,7 @@ function SpendMain() {
 	const total = rows.reduce((n, r) => n + r.usd, 0);
 	const limits = (usage.data?.runs ?? []).flatMap((r) => (r.budget === null ? [] : [r.budget]));
 	const limit = limits.length ? Math.max(...limits) : null;
+	const featureLimit = useFeatureLimit();
 	// The bars share one scale, with room past the limit tick.
 	const scale = Math.max((limit ?? 0) * 1.2, ...rows.map((r) => r.usd), 0.01);
 	const money = (n: number) => `$${n.toFixed(2)}`;
@@ -225,9 +219,9 @@ function SpendMain() {
 								<Row>
 									<span className="flex-1 font-semibold">{s.eachFeature}</span>
 									<span>{price(money(limit))}</span>
-									{/* The limit of a feature comes from its recipe: Edit opens the recipes. */}
+									{/* The limit of a feature is the budget of its recipe: Edit opens that row. */}
 									<Link
-										to="/crew/recipes"
+										{...featureLimit.link}
 										aria-label={format(s.editLimit, { name: s.eachFeature.toLowerCase() })}
 										className={buttonVariants()}
 									>

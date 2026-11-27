@@ -4338,7 +4338,6 @@ export type PrefsPatch_Deserialize = {
 	showAllPages?: boolean | null,
 	dateFormat?: string | null,
 	closePush?: boolean | null,
-	narrowBar?: boolean | null,
 	terminalDock?: TerminalDock | null,
 	/**  Replaces the whole map, so a missing key goes back to its default size. */
 	panelSizes?: { [key in string]: number } | null,
@@ -4387,7 +4386,6 @@ export type PrefsPatch_Serialize = {
 	showAllPages: boolean | null,
 	dateFormat: string | null,
 	closePush: boolean | null,
-	narrowBar: boolean | null,
 	terminalDock: TerminalDock | null,
 	/**  Replaces the whole map, so a missing key goes back to its default size. */
 	panelSizes: { [key in string]: number } | null,
@@ -4469,8 +4467,6 @@ export type Prefs_Deserialize = {
 	dateFormat?: string,
 	/**  When the window closes, push the commit that the auto-commit made. */
 	closePush?: boolean,
-	/**  A lower bar on top of the window. */
-	narrowBar?: boolean,
 	/**  Where the terminal drawer docks. */
 	terminalDock?: TerminalDock,
 	/**
@@ -4567,8 +4563,6 @@ export type Prefs_Serialize = {
 	dateFormat: string,
 	/**  When the window closes, push the commit that the auto-commit made. */
 	closePush: boolean,
-	/**  A lower bar on top of the window. */
-	narrowBar: boolean,
 	/**  Where the terminal drawer docks. */
 	terminalDock: TerminalDock,
 	/**
@@ -7496,6 +7490,8 @@ export type WorkflowItem_Deserialize = {
 	id: string,
 	steps: string[],
 	issue?: IssueView_Deserialize | null,
+	/**  The budget of each run of the recipe, in USD. `None`: no limit. */
+	budget?: number | null,
 };
 
 /**
@@ -7506,6 +7502,8 @@ export type WorkflowItem_Serialize = {
 	id: string,
 	steps: string[],
 	issue: IssueView_Serialize | null,
+	/**  The budget of each run of the recipe, in USD. `None`: no limit. */
+	budget: number | null,
 };
 
 /**  Limits of each run of the workflow (REQ-035). */

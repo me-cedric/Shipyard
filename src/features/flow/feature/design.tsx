@@ -21,6 +21,7 @@ import { LinkButton } from "@/ui/atoms/link-button";
 import { ChevronRightIcon, ShareIcon } from "@/ui/icons";
 import { ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { DESIGN_REF, DIAGRAMS, LinkDesign, proposalPath } from "./link-design";
 import type { Parts } from "./use-feature";
@@ -81,7 +82,7 @@ export function DesignToCode({
 	const { t } = useI18n();
 	const navigate = useNavigate();
 	const act = useSpecsActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [splitting, setSplitting] = useState<string | null>(null);
 	const plan = useChanges().data?.find((c) => c.title.toLowerCase() === screen.title.toLowerCase());
 	return (
@@ -104,11 +105,7 @@ export function DesignToCode({
 			>
 				{t.flow.look.brief.designToCode}
 			</RightButton>
-			{error ? (
-				<p role="alert" className="w-full text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="w-full" />
 			{splitting ? <SplitFlow change={splitting} onClose={() => setSplitting(null)} /> : null}
 		</>
 	);
@@ -121,7 +118,7 @@ export const forDesign = (q: QuestionItem) => !!q.question.spec?.startsWith("scr
 function DesignAsk({ item }: { item: QuestionItem }) {
 	const { t } = useI18n();
 	const act = useInboxActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const scope = useRunScope();
 	const q = item.question;
 	const agent = scope ? agentOf(scope.run, t.factory.agentNames) : item.title;
@@ -144,11 +141,7 @@ function DesignAsk({ item }: { item: QuestionItem }) {
 					</Button>
 				))}
 			</div>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</Card>
 	);
 }

@@ -489,7 +489,7 @@ export function WorkingCopy({ changes }: { changes: ChangesData }) {
 	const conflicts = useConflicts().data ?? [];
 	const { stage, unstage, discard } = useCodeActions();
 	const menu = useMenus();
-	const { error, run: runJob } = useRun();
+	const { failure, run: runJob } = useRun();
 	const rows = flatRows(changes);
 	// The first changed file opens by default, and the choice stays with the tab.
 	const [path, setPath] = useTabSelection(
@@ -604,11 +604,7 @@ export function WorkingCopy({ changes }: { changes: ChangesData }) {
 						<CommitBox changes={changes} />
 					</Card>
 					<Stashes dirty={free.length > 0} run={run} />
-					{error ? (
-						<p role="alert" className="px-3 py-2 text-ui text-danger-text">
-							{error}
-						</p>
-					) : null}
+					<ErrorNotice error={failure} className="px-3 py-2" />
 				</div>
 				<Card className="flex-[3_1_480px] overflow-hidden">
 					{here ? (

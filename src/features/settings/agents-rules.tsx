@@ -52,7 +52,7 @@ function TierRow({
 }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [draft, setDraft] = useState(row);
 	const catalog = useQuery({
 		queryKey: ["runner-catalog", row.runner],
@@ -139,11 +139,7 @@ function TierRow({
 			</>
 		);
 	};
-	const alert = error ? (
-		<p role="alert" className="px-6 text-ui text-danger-text">
-			{error}
-		</p>
-	) : null;
+	const alert = <ErrorNotice error={failure} className="px-6" />;
 	if (split)
 		return (
 			<>
@@ -393,7 +389,7 @@ function ModelsCard() {
 function RolesCard() {
 	const { t } = useI18n();
 	const qc = useQueryClient();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const gate = useRights().gate("project.settings");
 	const tiers = useRoles().data ?? [];
 	const named = useQuery({
@@ -443,11 +439,7 @@ function RolesCard() {
 							<span className="min-w-0 font-semibold">{r.name}</span>
 						</Row>
 					))}
-			{error ? (
-				<p role="alert" className="px-6 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-6" />
 		</SetupCard>
 	);
 }
@@ -459,7 +451,7 @@ function RolesCard() {
 function RulesCard({ children }: { children: ReactNode }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const gate = useRights().gate("project.settings");
 	const compass = useQuery({ queryKey: compassKey, queryFn: () => unwrap(commands.compassGet()) });
 	const rules = (compass.data?.entries ?? []).filter((e) => e.kind === "pattern");
@@ -482,11 +474,7 @@ function RulesCard({ children }: { children: ReactNode }) {
 					/>
 				</SetupRow>
 			))}
-			{error ? (
-				<p role="alert" className="px-6 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-6" />
 			<Row className="gap-2.5">{children}</Row>
 		</SetupCard>
 	);

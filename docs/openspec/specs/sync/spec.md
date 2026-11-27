@@ -39,11 +39,11 @@ Agents must pick up work from the team tracker. The app must show the tracker st
 - REQ-010: The system SHALL release a claim when its run ends, and SHALL treat a claim as stale when its stamp is not refreshed. 10 minutes without a refresh of the stamp.
 - REQ-011: The system SHALL hand each new ticket comment to `questions-loop` once.
 - REQ-012: The system SHALL hand each pull request, CI and merge event to `delivery` once.
-- REQ-013: The system SHALL show one sync action in the status bar and the sync state of each connection. The action SHALL run one tick at once, then the git fetch and fast-forward of `add-code` REQ-014 (`q:Q-041`).
+- REQ-013: The system SHALL show one sync action in the card of the sync mark. The action SHALL run one tick at once, then the git fetch and fast-forward of `spec:code#REQ-014` (`q:Q-041`). The system SHALL show the sync state of each connection: idle, running, failed, with the time of the last good tick.
 - REQ-014: The system SHALL keep the last good mirror when a poll fails, SHALL show the failed state on the connection and SHALL retry with a longer delay. A poll that reads only part of a list SHALL NOT move the cursor.
 - REQ-015: The system SHALL let a person adopt a ticket, link a ticket to a local item and import the backlog of a tracker. An import SHALL NOT overwrite a newer mirror row.
 - REQ-016: The system SHALL expose the mirror as `wi:` and `pr:` entities, and SHALL send a tick event to the capabilities that listen.
-- REQ-017: Each sync view SHALL follow the interface rules of the constitution.
+- REQ-017: Each sync view SHALL have no tagline, no helper text and no secondary label. It SHALL have one primary action, a keyboard path, a focus ring, assistive labels, enough contrast and no motion under reduced motion.
 - REQ-018: No new run on a ticket whose last run ended, until the ticket changes or a person clicks Run.
 - REQ-019: At `Done`, the pickup label goes from a GitHub or GitLab issue.
 - REQ-020: A run of a project that is not open releases its claim after 10 min and takes it back at the open.
@@ -309,7 +309,7 @@ The system SHALL hand each pull request, CI and merge event to `delivery` once. 
 
 ### Requirement: REQ-013 Sync action and state
 
-The system SHALL show one sync action in the status bar. The action SHALL run one tick at once, then the git fetch and fast-forward of `add-code` REQ-014 (`q:Q-041`). The system SHALL show the sync state of each connection in Settings / Connections: idle, running, failed, with the time of the last good tick.
+The system SHALL show one sync action in the card of the sync mark. The action SHALL run one tick at once, then the git fetch and fast-forward of `add-code` REQ-014 (`q:Q-041`). The system SHALL show the sync state of each connection in Settings / Connections: idle, running, failed, with the time of the last good tick.
 
 #### Scenario: Run at once
 - GIVEN the next tick is in 40 s
@@ -325,7 +325,7 @@ The system SHALL show one sync action in the status bar. The action SHALL run on
 #### Scenario: No second control
 - GIVEN any view of the app
 - WHEN a person looks for a sync control
-- THEN only the status bar and the palette offer it
+- THEN only the card of the sync mark and the Ask bar offer it
 
 ### Requirement: REQ-014 Failed poll
 
@@ -367,7 +367,7 @@ The system SHALL expose the mirror as `wi:<KEY-N>` and `pr:<forge>:<number>` ent
 Each sync view SHALL have no tagline, no helper text and no secondary label. It SHALL have one primary action, a keyboard path, a focus ring, assistive labels, enough contrast and no motion under reduced motion. The state of a connection SHALL use shape and colour together. Its text SHALL exist in French and English.
 
 #### Scenario: Keyboard only
-- GIVEN the status bar
+- GIVEN the open card of the sync mark
 - WHEN a person focuses the sync action and presses Enter
 - THEN a tick runs
 

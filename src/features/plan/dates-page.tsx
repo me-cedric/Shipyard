@@ -22,6 +22,7 @@ import { ChevronRightIcon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { DateButton } from "@/ui/molecules/date-button";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { usePlainDay } from "./capacity";
@@ -42,14 +43,6 @@ export function FieldRow({ label, children }: { label: ReactNode; children: Reac
 			{children}
 		</Row>
 	);
-}
-
-function Alert({ error }: { error: string | null }) {
-	return error ? (
-		<p role="alert" className="px-6 py-2 text-ui text-danger-text">
-			{error}
-		</p>
-	) : null;
 }
 
 /** The tasks of a sheet in the order that the plan gives them capacity: the decisions first. */
@@ -73,7 +66,7 @@ function TaskCard({ slug, task }: { slug: string; task: string }) {
 	const plan = usePlan(slug).data;
 	const members = useTeam().data?.team.members ?? [];
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const plain = usePlainDay();
 	const bar = plan?.gantt.bars.find((b) => b.task === task);
 	if (!plan || !bar) return null;
@@ -160,7 +153,7 @@ function TaskCard({ slug, task }: { slug: string; task: string }) {
 					{p.later}
 				</RightButton>
 			</FieldRow>
-			<Alert error={error} />
+			<ErrorNotice error={failure} className="px-6 py-2" />
 		</Card>
 	);
 }
@@ -174,7 +167,7 @@ function CalendarCards({ slug }: { slug: string }) {
 	const plain = usePlainDay();
 	const plan = usePlan(slug).data;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	if (!plan) return null;
 	const cal = plan.calendar;
 	const save = (next: Calendar) => run(() => act.saveCalendar(next));
@@ -240,7 +233,7 @@ function CalendarCards({ slug }: { slug: string }) {
 						}
 					/>
 				</Row>
-				<Alert error={error} />
+				<ErrorNotice error={failure} className="px-6 py-2" />
 			</Card>
 		</>
 	);

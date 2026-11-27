@@ -76,10 +76,25 @@ A full review of each screen and each state of the app after the redesign. The a
 - Today / Working now and the runs panel of a role show the newest run of each ticket only: an old failed run showed beside a newer run before.
 - The built app was checked through its outside server in a portable copy with its own data folder: sign-in, 13 tools, `ref_read`, and the refusals for a path outside the project, a switched-off tool and a call with no token.
 
+## 2026-11-27, later
+
+- About 100 places that showed a failed command as a string now use `ErrorNotice`: four writer lanes by folder, each with a review in a fresh context, then one pass for the 3 defects and the 12 missed places of the reviews.
+- A check of a real run (`Security scan findings`) found two engine defects. The reviewer got the first 40 spec files of the project as its criteria: it now gets the spec changes of its ticket (`spec:delivery#REQ-002`). A fix round ran each task of the plan again in a new worktree: one builder now fixes the findings in the run worktree (`spec:delivery#REQ-004`).
+- Crew / Recipes: Remove on each step and the budget of the recipe on the chain page. Edit of the limit of each feature opens that budget. `workflows_list` gives the budget of each recipe.
+- The Story line of a report is the first sentence of the agent. The Brief card has no "No spec yet" past Spec.
+- A hand-picked Wave starts as the detected Wave. The Windows `ask` of the relay has the 120 s wait (`add-windows-relay-pipe` T006).
+
+- The same run stopped at its gates: git starts a worktree with empty submodule folders, and `shipyard-app` reads a file of `docs/agent-compass` at build time. A new worktree now gets a local copy of each submodule at the pinned commit, with no network (`crates/shipyard-git/src/worktree.rs`).
+- The stop card: the headline of a stop is the first line of its cause, the agent name is the next step that is not done, and the ticket rows show the recipe of the run and turn Start run off while a run works.
+
+- Owner decisions of 2026-11-27: the border of a form field reaches 3:1 (token `--field-line`); the Narrow top bar switch is gone, with its stored value; the Azure sign-in is set aside (`docs/openspec/deferred/add-azure-sign-in`) and `adr:0017` is accepted; a run agent keeps each MCP server of the person.
+
+- `update-app-redesign` is archived by hand (`docs/openspec/changes/archive/2026-11-27-update-app-redesign`): the new capability `app-redesign` with 37 requirements, and merges into `code`, `design-system`, `factory`, `projects`, `shell` and `sync`. One spec change is open: `add-windows-relay-pipe`. In the archived copy, 29 acceptance boxes stay open: no single test proves each of them.
+
 ## Open
 
-1. `adr:0017` stays proposed: Azure sign-in is not built (it needs a Microsoft app registration).
-2. About 120 places show an error as a string, not through `ErrorNotice`.
+1. `add-windows-relay-pipe` T005: three tests that run on Windows only. They need a fake MCP server that runs on Windows. The read timeout (T006) is done.
+2. An agent of a run starts with each MCP server of the person's own Claude Code set-up. The owner keeps it so (2026-11-27).
 3. The comment button of a diff line is 24 px, by decision (see Decisions).
 4. The browser mock does not lower the rights of a member who is not an admin from a personal role.
-5. The windows of the installed app are not driven by a tool: there is no WebDriver for a Tauri app on macOS. The checks ran on the browser build and on the outside server of the built app.
+5. The windows of the installed app are not driven by a tool: macOS gives this session no accessibility access and no screen recording access. The checks ran on the browser build, on the outside server of the built app and on the run log of a real run.

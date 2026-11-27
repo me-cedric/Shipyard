@@ -463,7 +463,12 @@ fn the_same_finding_at_another_line_escalates_after_the_second_round() {
         findings(&["unchecked unwrap at line 10"]),
     );
     assert_eq!(fx.state(&run), RunState::Working);
-    fx.done(&run, "build-1");
+    // One builder fixes the finding in the run worktree: the tasks of the plan do not run again.
+    let fix = fx.agents.briefs().pop().unwrap();
+    assert_eq!(fix.step, "build");
+    assert_eq!(fix.dir, std::path::PathBuf::from(format!("/wt/{run}")));
+    assert!(fix.prompt.contains("Fix round 1:"));
+    fx.done(&run, "build");
     fx.report(
         &run,
         "review",
@@ -483,10 +488,23 @@ fn a_round_with_no_fewer_findings_escalates_with_no_progress() {
     fx.done(&run, "fix");
     fx.report(&run, "review", Outcome::Partial, findings(&["a", "b"]));
     fx.done(&run, "fix");
-    fx.report(&run, "review", Outcome::Partial, findings(&["c", "d"]));
+    // A finding with a long output: the record keeps the ten last lines.
+    let long = format!(
+        "the gate `make test` failed: 1 error\n{}",
+        "more output\n".repeat(14)
+    );
+    fx.report(&run, "review", Outcome::Partial, findings(&[&long, "d"]));
     assert_eq!(fx.state(&run), RunState::Blocked);
     let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
     assert_eq!(e.cause, Cause::NoProgress);
+    assert_eq!(e.lines.len(), 10);
+    // The headline of the stop is the first line of the cause, not the first of the ten last.
+    let notes = fx.logged(&run, "note");
+    let head = notes.iter().find_map(|n| n["blocked"].as_str()).unwrap();
+    assert!(
+        head.contains("the gate `make test` failed: 1 error"),
+        "{head}"
+    );
 }
 
 #[test]

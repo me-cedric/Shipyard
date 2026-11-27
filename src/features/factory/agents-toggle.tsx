@@ -3,19 +3,20 @@ import { useFactoryWrites, useKillSwitch } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { Switch } from "@/ui/atoms/switch";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 
 /** The global kill switch: its state, the write and the failure of the last write (factory REQ-031). */
 export function useAgentsSwitch() {
 	const kill = useKillSwitch().data;
 	const writes = useFactoryWrites();
 	const { t } = useI18n();
-	const { error, failure, run } = useGuard();
+	const { failure, run } = useGuard();
 	// Stopping every agent asks first; starting them again does not.
 	const set = async (on: boolean) => {
 		if (!on && !(await confirmDialog(t.factory.spendPage.confirmStopAll))) return;
 		await run(() => writes.killSwitch(!on));
 	};
-	return { kill, error, failure, set: (on: boolean) => void set(on) };
+	return { kill, failure, set: (on: boolean) => void set(on) };
 }
 
 /**
@@ -25,7 +26,7 @@ export function useAgentsSwitch() {
 export function AgentsToggle() {
 	const { t } = useI18n();
 	const f = t.factory;
-	const { kill, error, set } = useAgentsSwitch();
+	const { kill, failure, set } = useAgentsSwitch();
 	if (kill === undefined) return null;
 	return (
 		<span className="flex items-center gap-2">
@@ -37,11 +38,7 @@ export function AgentsToggle() {
 					className={kill ? "border-danger bg-danger-soft" : "data-[checked]:bg-success-text"}
 				/>
 			</span>
-			{error ? (
-				<span role="alert" className="text-ui text-danger-text">
-					{error}
-				</span>
-			) : null}
+			<ErrorNotice error={failure} />
 		</span>
 	);
 }

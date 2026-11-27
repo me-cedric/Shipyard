@@ -129,7 +129,6 @@ function Side({
 
 function Layout() {
 	const { t } = useI18n();
-	const l = t.extras.look;
 	const s = t.personal.setup;
 	const p = usePrefs();
 	return (
@@ -146,13 +145,6 @@ function Layout() {
 				value={p.drawerSide}
 				onChange={(v) => p.setPrefs({ drawerSide: v })}
 			/>
-			<SetupRow id="narrow-bar" label={l.narrowBar}>
-				<Toggle
-					label={l.narrowBar}
-					checked={p.narrowBar}
-					onCheckedChange={(c) => p.setPrefs({ narrowBar: c })}
-				/>
-			</SetupRow>
 			<SetupRow id="tray" label={s.trayIcon}>
 				<Toggle
 					label={s.trayIcon}

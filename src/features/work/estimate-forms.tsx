@@ -26,6 +26,7 @@ import { linkClass } from "@/ui/atoms/link-button";
 import { Select } from "@/ui/atoms/select";
 import { XMarkIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { useGuard } from "./guard";
 import { roleId } from "./team-rights";
@@ -44,14 +45,6 @@ function freeId(sheet: Sheet, base: string) {
 	let id = base || "task";
 	for (let n = 2; used.has(id); n++) id = `${base}-${n}`;
 	return id;
-}
-
-function Alert({ text }: { text: string | null }) {
-	return text ? (
-		<p role="alert" className="text-ui text-danger-text">
-			{text}
-		</p>
-	) : null;
 }
 
 const COLS = "flex flex-wrap items-start gap-6";
@@ -97,7 +90,7 @@ export function TaskForm({
 		]),
 	];
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const found = sheet.features
 		.flatMap((f) => f.tasks.map((x) => ({ f, x })))
 		.find((r) => r.x.id === taskId);
@@ -345,7 +338,7 @@ export function TaskForm({
 								/>
 							</div>
 						) : null}
-						<Alert text={error} />
+						<ErrorNotice error={failure} />
 						<RightButton
 							right="work.edit"
 							type="submit"
@@ -473,7 +466,7 @@ export function SheetForm({
 	const e = t.work.estimates;
 	const view = useSheet(slug).data;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [name, setName] = useState(view?.sheet.name ?? "");
 	const [currency, setCurrency] = useState(view?.sheet.currency ?? "EUR");
 	const [margin, setMargin] = useState(
@@ -528,7 +521,7 @@ export function SheetForm({
 					/>
 				</SettingsRow>
 			</Card>
-			<Alert text={error} />
+			<ErrorNotice error={failure} />
 			<RightButton
 				right="work.edit"
 				type="submit"

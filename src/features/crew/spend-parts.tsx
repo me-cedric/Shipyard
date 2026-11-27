@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { useWorkflows } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { useViewState } from "@/lib/shell/view-state";
 import { ChevronRightIcon } from "@/ui/icons";
@@ -76,4 +77,24 @@ export function LinkRow({
 			<ChevronRightIcon size={20} />
 		</Row>
 	);
+}
+
+/**
+ * The limit of a feature is the budget of its recipe. This gives the highest one and where its Edit
+ * goes: the budget row of that recipe, else of the first recipe.
+ */
+export function useFeatureLimit() {
+	const list = useWorkflows().data ?? [];
+	const top = list.reduce<(typeof list)[number] | undefined>(
+		(a, w) => ((w.budget ?? -1) > (a?.budget ?? -1) ? w : a),
+		undefined,
+	);
+	return {
+		usd: top?.budget ?? null,
+		link: {
+			to: "/crew/recipes",
+			search: { recipe: (top ?? list[0])?.id } as never,
+			hash: "budget",
+		} as const,
+	};
 }

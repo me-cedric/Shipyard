@@ -63,7 +63,6 @@ export type Prefs = Pick<
 	| "showAllPages"
 	| "dateFormat"
 	| "closePush"
-	| "narrowBar"
 	| "terminalDock"
 	| "panelSizes"
 	| "todaySeen"
@@ -115,7 +114,6 @@ const DEFAULTS: Prefs = {
 	showAllPages: false,
 	dateFormat: "",
 	closePush: false,
-	narrowBar: false,
 	terminalDock: "bottom",
 	panelSizes: {},
 	todaySeen: 0,

@@ -88,6 +88,7 @@
 	--color-n-7: var(--n-7);
 	--color-n-8: var(--n-8);
 	--color-n-9: var(--n-9);
+	--color-field-line: var(--field-line);
 	--color-n-10: var(--n-10);
 	--color-n-11: var(--n-11);
 	--color-n-12: var(--n-12);
@@ -168,6 +169,9 @@
 	--n-10: light-dark(#4a5060, #a7adbb);
 	--n-11: light-dark(#5b6272, #a7adbb);
 	--n-12: light-dark(#151821, #eceef2);
+	/* The border of a form field: 3:1 or more against the page, a card and a tinted row (WCAG 1.4.11).
+	   It follows the steps of the theme: `n-9` moved 15 % toward the text colour. */
+	--field-line: color-mix(in oklab, var(--n-9) 85%, var(--n-12));
 
 	/* Accent: one blue, deep in light and soft in dark. */
 	--accent: light-dark(#2450d8, #7e9bff);

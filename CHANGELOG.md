@@ -1,6 +1,14 @@
 # Changelog
 
 ## [0.2.0]
+- The border of a text field, a select, a text area and a checkbox is darker: it reaches the 3:1 contrast that the accessibility rules ask for, in light and in dark. The Narrow top bar switch of Setup / Me is gone: the app has no top bar.
+- The folder of a run holds the files of each git submodule of the project: a check that builds from a submodule no longer fails in a run.
+- The card of a stopped feature names the agent that stopped, not the recipe, and its cause line is the fact, such as the check that failed; the Recipe row of a ticket shows the recipe of its run by name, and Start run is off with its reason while a run works on the ticket.
+- Crew / Recipes: each step of a recipe has a Remove button, and the budget of the recipe shows under the steps; in Crew / Spend, Edit of the limit of each feature opens that budget.
+- After a review, one agent fixes the findings: the tasks of the plan no longer all run again. The reviewer gets the spec of its own ticket only, not the first spec files of the project.
+- The Story of a feature says what the agent reported at the end of a step, not "The agent used report"; the Brief card no longer says No spec yet for a feature that is past Spec.
+- About 100 more places show a failed action as one plain sentence with its one action and the technical text behind Details.
+- Wave picked by hand with Choose an app opens as the detected Wave does, with the command for the folder in the clipboard; on Windows, an agent that asks the app for a tool stops its wait after 120 seconds.
 - Wave takes no folder from another app: Open in the terminal app opens Wave, puts the command for the folder in the clipboard and says so.
 - Today / Working now shows only the newest run of each feature: an old failed run no longer shows beside a newer run.
 - A row of a card stays inside its card: the hover fill of Change the shortcuts and of a row that opens no longer passes the round corner; a page or a sub-page opens at the top; a control that your role may not use says so in plain words, for example Your role, Architect, cannot change the project settings; Setup / Me shows an Admin badge when you are an admin.

@@ -2,7 +2,15 @@ import { Link } from "@tanstack/react-router";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
 import { lineDiff } from "@/features/factory/workflows/line-diff";
-import { addStep, Fr, StepCards, stepLabel } from "@/features/factory/workflows/workflow-form";
+import {
+	addStep,
+	BUDGET,
+	Fr,
+	OptionalNumber,
+	removeStep,
+	StepCards,
+	stepLabel,
+} from "@/features/factory/workflows/workflow-form";
 import { useGuard } from "@/features/work/guard";
 import { useFactoryFile, useFactoryWrites, useWorkflowOptions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
@@ -23,7 +31,7 @@ import { Input } from "@/ui/atoms/input";
 import { linkClass } from "@/ui/atoms/link-button";
 import { Select, type SelectItem } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { ClipboardIcon } from "@/ui/icons";
+import { ClipboardIcon, TrashIcon } from "@/ui/icons";
 import { ATTENTION_TINT } from "@/ui/molecules/attention-card";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
@@ -147,7 +155,15 @@ export function ChangeDialog({
 }
 
 /** The recipe as a chain of step rows. A step that waits for a person has a second row. */
-function Chain({ workflow, alone }: { workflow: Workflow; alone: boolean }) {
+function Chain({
+	workflow,
+	alone,
+	onRemove,
+}: {
+	workflow: Workflow;
+	alone: boolean;
+	onRemove: (index: number) => void;
+}) {
 	const { t } = useI18n();
 	const p = t.factory.recipePage;
 	const line = <span aria-hidden="true" className="ml-[31px] h-3.5 w-0.5 bg-n-8" />;
@@ -175,6 +191,9 @@ function Chain({ workflow, alone }: { workflow: Workflow; alone: boolean }) {
 								</span>
 							) : null}
 							{s.action && !alone ? <Badge>{p.asksFirst}</Badge> : null}
+							<IconButton label={format(p.remove, { name })} onClick={() => onRemove(i)}>
+								<TrashIcon size={14} />
+							</IconButton>
 						</div>
 						{s.gate === "human" ? (
 							<>
@@ -470,7 +489,22 @@ export function RecipeFile({
 				) : null}
 			</div>
 			{form ? (
-				<Chain workflow={form} alone={!!writesAlone?.includes("open_pr")} />
+				<>
+					<Chain
+						workflow={form}
+						alone={!!writesAlone?.includes("open_pr")}
+						onRemove={(i) => change(removeStep(form, i))}
+					/>
+					{/* The limit of a feature in Crew / Spend: its Edit opens this row. */}
+					<div id="budget" className="pt-3">
+						<OptionalNumber
+							label={w.budget}
+							value={form.limits.budget_usd ?? null}
+							initial={BUDGET}
+							onChange={(budget_usd) => change({ ...form, limits: { ...form.limits, budget_usd } })}
+						/>
+					</div>
+				</>
 			) : isWf && checked === null ? null : (
 				<>
 					<div className="flex items-center gap-2 pb-2">

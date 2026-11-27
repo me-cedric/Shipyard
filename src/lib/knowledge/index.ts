@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useOnFileChange } from "@/lib/files";
 import {
+	type AppFailure,
 	commands,
 	type Dashboard_Serialize,
 	type DocList,
@@ -115,7 +116,7 @@ export function useDocFile(path: string) {
 	});
 	const [draft, setDraft] = useState<string | null>(null);
 	const [conflict, setConflict] = useState<string | null>(null);
-	const [failure, setFailure] = useState<string | null>(null);
+	const [failure, setFailure] = useState<unknown>(null);
 	// A draft keeps its text; the stamp conflict shows at the save.
 	useOnFileChange(path, () => {
 		if (draft === null) void q.refetch();
@@ -140,7 +141,7 @@ export function useDocFile(path: string) {
 			]);
 			return true;
 		} catch (e) {
-			setFailure(message(e));
+			setFailure(e);
 			return false;
 		}
 	};
@@ -150,7 +151,9 @@ export function useDocFile(path: string) {
 		text: draft ?? saved,
 		dirty: draft !== null && draft !== saved,
 		conflict: conflict !== null,
-		error: failure ?? (q.isError ? message(q.error) : null),
+		error: failure ? message(failure) : q.isError ? message(q.error) : null,
+		/** The thrown value, for `ErrorNotice`. */
+		failure: failure ?? (q.isError ? q.error : null),
 		setText: setDraft,
 		save: () => write(q.data?.stamp ?? null),
 		/** Keep my text: write over the file that changed on disk. */
@@ -193,7 +196,12 @@ export function useDashboard(slugName: string) {
 		await qc.invalidateQueries({ queryKey: key("dashboard", slugName) });
 		return !w.conflict;
 	};
-	return { view: q.data, error: q.isError ? message(q.error) : null, save };
+	return {
+		view: q.data,
+		error: q.isError ? message(q.error) : null,
+		failure: q.isError ? q.error : null,
+		save,
+	};
 }
 
 /**
@@ -206,11 +214,7 @@ export function useTileBuild(slugName: string) {
 	const qc = useQueryClient();
 	const [working, setWorking] = useState(false);
 	const [proposal, setProposal] = useState<TileProposal | null>(null);
-	const [failure, setFailure] = useState<{
-		code: string;
-		message: string;
-		details: string;
-	} | null>(null);
+	const [failure, setFailure] = useState<AppFailure | null>(null);
 	const busy = useRef(false);
 	// Crew reads the sessions again when the turn starts and when it ends.
 	const crew = () => void qc.invalidateQueries({ queryKey: ["factory"] });
@@ -227,8 +231,7 @@ export function useTileBuild(slugName: string) {
 		} catch (e) {
 			const f = toFailure(e);
 			// The person stopped it: no error line.
-			if (f.code !== "stopped")
-				setFailure({ code: f.code, message: f.message, details: f.details });
+			if (f.code !== "stopped") setFailure(f);
 		} finally {
 			busy.current = false;
 			setWorking(false);

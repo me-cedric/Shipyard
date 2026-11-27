@@ -31,6 +31,7 @@ import { Progress } from "@/ui/atoms/progress";
 import { Select } from "@/ui/atoms/select";
 import { Card } from "@/ui/molecules/card";
 import { ContextMenu } from "@/ui/molecules/context-menu";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuList } from "@/ui/molecules/menu-button";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
@@ -226,7 +227,7 @@ function BranchesView() {
 	const [remotes, setRemotes] = useState(false);
 	const conflicts = useConflicts().data ?? [];
 	const [merged, setMerged] = useState<MergeOutcome | null>(null);
-	const { error, run: runJob } = useRun();
+	const { failure, run: runJob } = useRun();
 	const [confirming, setConfirming] = useState<string | null>(null);
 	const run = (job: () => Promise<unknown>) => void runJob(job);
 	const locals = branches.filter((b) => b.kind === "local");
@@ -319,11 +320,7 @@ function BranchesView() {
 					</Button>
 				</div>
 			) : null}
-			{error ? (
-				<p role="alert" className="px-4 py-2 text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-4 py-2" />
 			{merging ? (
 				<div className="flex items-center gap-2 px-4 py-2">
 					<p role="status" className="flex-1">

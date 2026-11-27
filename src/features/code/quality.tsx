@@ -46,7 +46,7 @@ function QualityView() {
 	const q = quality.data;
 	const coverage = useCoverageReport().data;
 	const { check, scan, install, installTool, sbom } = useForgeActions();
-	const { error, run } = useRun();
+	const { failure, run } = useRun();
 	const { runInTerminal, ask } = useShell();
 	// Health shows for every role: a role with no level on code reads the gates, not the files.
 	const noCode = useRights().level("code") === "none";
@@ -146,11 +146,7 @@ function QualityView() {
 				icon={<CheckIcon size={16} />}
 				title={toFix === 0 ? h.clean : toFix === 1 ? h.fixOne : format(h.fixMany, { count: toFix })}
 			/>
-			{error ? (
-				<p role="alert" className="px-4 py-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-4 py-2" />
 			<div className="flex flex-col gap-6 px-4 pt-1 pb-10">
 				{toFix > 0 ? (
 					<section

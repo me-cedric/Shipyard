@@ -34,6 +34,7 @@ import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { ContextMenu } from "@/ui/molecules/context-menu";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SectionSwitch } from "@/ui/molecules/section-switch";
 import { type FlowDraft, type FlowError, FlowMatrix } from "@/ui/organisms/flow-matrix";
 import type { FlowField } from "@/ui/organisms/flow-rows";
@@ -642,11 +643,7 @@ export function FlowMatrixPage() {
 						{(frame) => (
 							<>
 								{frame.alerts}
-								{check.error ? (
-									<p role="alert" className="text-ui text-danger-text">
-										{check.error}
-									</p>
-								) : null}
+								<ErrorNotice error={check.failure} />
 								<Matrix a={a} frame={frame} signal={signal} checked={check.result} />
 							</>
 						)}

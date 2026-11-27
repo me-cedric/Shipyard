@@ -90,7 +90,45 @@ impl Repo {
         let mut opts = WorktreeAddOptions::new();
         opts.reference(Some(&reference));
         let wt = self.repo.worktree(name, path, Some(&opts))?;
+        self.fill_submodules(path);
         Ok(info(&wt))
+    }
+
+    /// Give the new worktree the files of each submodule that the main working copy holds: a
+    /// local copy at the commit that the branch pins. No network. Git starts a worktree with empty
+    /// submodule folders, and a gate that builds from such a folder fails. A submodule that
+    /// cannot be copied stays an empty folder, as git leaves it.
+    fn fill_submodules(&self, path: &Path) {
+        let Ok(wt) = Repository::open(path) else {
+            return;
+        };
+        let Ok(tree) = wt.head().and_then(|h| h.peel_to_tree()) else {
+            return;
+        };
+        for sm in self.repo.submodules().unwrap_or_default() {
+            let (Ok(src), Ok(pin)) = (sm.open(), tree.get_path(sm.path())) else {
+                continue;
+            };
+            let Some(from) = src.workdir().map(|d| d.to_string_lossy().into_owned()) else {
+                continue;
+            };
+            let dest = path.join(sm.path());
+            let copy = || -> std::result::Result<(), git2::Error> {
+                let repo = Repository::init(&dest)?;
+                // Each ref and the detached HEAD: the pin can be on a tag only.
+                repo.remote_anonymous(&from)?.fetch(
+                    &["+refs/*:refs/copy/*", "+HEAD:refs/copy/HEAD"],
+                    None,
+                    None,
+                )?;
+                repo.set_head_detached(pin.id())?;
+                repo.checkout_head(Some(git2::build::CheckoutBuilder::new().force()))
+            };
+            if copy().is_err() {
+                let _ = std::fs::remove_dir_all(&dest);
+                let _ = std::fs::create_dir_all(&dest);
+            }
+        }
     }
 
     /// The linked worktrees.

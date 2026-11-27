@@ -12,9 +12,8 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { ClipboardIcon, LockClosedIcon, PlusIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** The list stops here: a longer list is not loaded. */
 export const REPO_CAP = 1000;
@@ -79,8 +78,8 @@ export function RepoPicker({ folder, onDone }: { folder: string; onDone?: () => 
 	const [adding, setAdding] = useState(false);
 	const [cloning, setCloning] = useState<string | null>(null);
 	const [creating, setCreating] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const fail = (e: unknown) => setError(message(e));
+	const [error, setError] = useState<unknown>(null);
+	const fail = (e: unknown) => setError(e);
 	const all = repos.data?.items ?? [];
 	const owners = [...new Set(all.map((r) => ownerOf(r.slug)))].sort();
 	const needle = query.trim().toLowerCase();
@@ -308,11 +307,7 @@ export function RepoPicker({ folder, onDone }: { folder: string; onDone?: () => 
 					{w.newLocal}
 				</Button>
 			</div>
-			{repos.error || error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error ?? message(repos.error)}
-				</p>
-			) : null}
+			<ErrorNotice error={error ?? repos.error} />
 		</div>
 	);
 }

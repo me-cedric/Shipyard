@@ -10,6 +10,7 @@ import { Input, type InputProps } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
 import { PencilIcon, XMarkIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { TicketBudget } from "./ticket-budget";
 
@@ -20,7 +21,7 @@ export function TicketTitle({ itemKey }: { itemKey: string }) {
 	const item = (useWorkItems({}).data ?? []).find((i) => i.key === itemKey);
 	const edit = useTicketEditCaps().data;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	// `null` when not editing.
 	const [title, setTitle] = useState<string | null>(null);
 	if (!item) return null;
@@ -57,11 +58,7 @@ export function TicketTitle({ itemKey }: { itemKey: string }) {
 				</Button>
 				<Button onClick={() => setTitle(null)}>{d.cancel}</Button>
 			</div>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</form>
 	);
 }
@@ -102,7 +99,7 @@ export function TicketLabels({ itemKey, rows }: { itemKey: string; rows?: boolea
 	const item = (useWorkItems({}).data ?? []).find((i) => i.key === itemKey);
 	const edit = useTicketEditCaps().data;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [label, setLabel] = useState("");
 	if (!(item && edit)) return null;
 	return (
@@ -170,11 +167,7 @@ export function TicketLabels({ itemKey, rows }: { itemKey: string; rows?: boolea
 					</Button>
 				</form>
 			) : null}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</div>
 	);
 }
@@ -239,7 +232,7 @@ export function TicketFields({
 	const x = t.personal.thread;
 	const edit = useTicketEditCaps().data;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [priority, setPriority] = useState("");
 	const [type, setType] = useState("");
 	// `saved` is the last date sent: a blur with the same date writes nothing.
@@ -338,11 +331,7 @@ export function TicketFields({
 					/>
 				</Prop>
 			) : null}
-			{error ? (
-				<p role="alert" className="py-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="py-2" />
 		</>
 	);
 }
@@ -354,7 +343,7 @@ export function TicketDescription({ itemKey }: { itemKey: string }) {
 	const item = (useWorkItems({}).data ?? []).find((i) => i.key === itemKey);
 	const edit = useTicketEditCaps().data;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	// `null` when not editing: the field opens with the description of the tracker.
 	const [description, setDescription] = useState<string | null>(null);
 	const area = useRef<HTMLTextAreaElement>(null);
@@ -415,11 +404,7 @@ export function TicketDescription({ itemKey }: { itemKey: string }) {
 					<Button onClick={() => setDescription("")}>{d.addDescription}</Button>
 				</div>
 			) : null}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</section>
 	);
 }
@@ -431,7 +416,7 @@ export function TicketComments({ itemKey }: { itemKey: string }) {
 	const caps = useWorkContext().data?.capabilities;
 	const comments = useTicketComments(itemKey, caps?.comments === true);
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [body, setBody] = useState("");
 	if (!caps) return null;
 	return (
@@ -448,11 +433,7 @@ export function TicketComments({ itemKey }: { itemKey: string }) {
 							</li>
 						))}
 					</ul>
-					{comments.error ? (
-						<p role="alert" className="text-ui text-danger-text">
-							{String(comments.error)}
-						</p>
-					) : null}
+					<ErrorNotice error={comments.error} />
 					<form
 						className="flex flex-col gap-2"
 						onSubmit={async (e) => {
@@ -471,11 +452,7 @@ export function TicketComments({ itemKey }: { itemKey: string }) {
 			) : (
 				<p className="text-12 text-n-11">{d.noComments}</p>
 			)}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</section>
 	);
 }

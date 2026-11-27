@@ -26,6 +26,7 @@ import {
 	SparklesIcon,
 } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { CommandPalette, type PaletteGroup } from "@/ui/organisms/command-palette";
 import type { Action } from "./actions";
 import { answerOf, headingOf } from "./ask-answer";
@@ -59,7 +60,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 	}).data;
 	const runs = useRuns().data;
 	const act = useRunActions();
-	const { error: stopError, run: guard } = useGuard();
+	const { failure, run: guard } = useGuard();
 	const { level } = useRights();
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -370,11 +371,7 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 					</ul>
 				</div>
 			))}
-			{stopError ? (
-				<p role="alert" className="text-danger-text text-ui">
-					{stopError}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 			{found ? (
 				<form
 					className="flex flex-wrap gap-2.5"

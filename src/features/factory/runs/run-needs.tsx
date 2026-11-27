@@ -13,6 +13,7 @@ import { RightButton } from "@/lib/rights";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { LinkButton } from "@/ui/atoms/link-button";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PlanBlock, planOf } from "./plan";
 import { agentOf, focusRunTitle } from "./run-summary";
 
@@ -41,7 +42,7 @@ export function RunNeeds({
 	const x = t.flow.look.page;
 	const act = useRunActions();
 	const inbox = useInboxActions();
-	const { error, run: guard } = useGuard();
+	const { failure, run: guard } = useGuard();
 	const [note, setNote] = useState("");
 	const changeRow = useRef<HTMLDivElement>(null);
 	const [pick, setPick] = useState<boolean | null>(null);
@@ -144,11 +145,7 @@ export function RunNeeds({
 					onNotYet={() => setPick(true)}
 				/>
 			)}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 			{action && ticket ? <TicketReply run={run} /> : null}
 		</section>
 	);

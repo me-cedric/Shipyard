@@ -1,6 +1,14 @@
 # Journal des modifications
 
 ## [0.2.0]
+- La bordure d'un champ de texte, d'une liste, d'une zone de texte et d'une case à cocher est plus foncée : elle atteint le contraste de 3:1 que demandent les règles d'accessibilité, en clair et en sombre. Le choix Barre du haut étroite de Configuration / Moi a disparu : l'application n'a plus de barre du haut.
+- Le dossier d'une exécution contient les fichiers de chaque sous-module git du projet : une vérification qui compile à partir d'un sous-module n'échoue plus dans une exécution.
+- La carte d'une fonctionnalité arrêtée nomme l'agent qui s'est arrêté, et non la recette, et sa ligne de cause est le fait, par exemple la vérification en échec ; la ligne Recette d'un ticket montre la recette de son exécution par son nom, et Lancer une exécution est désactivé avec sa raison tant qu'une exécution travaille sur le ticket.
+- Équipe / Recettes : chaque étape d'une recette a un bouton Retirer, et le budget de la recette s'affiche sous les étapes ; dans Équipe / Dépenses, Modifier la limite de chaque fonctionnalité ouvre ce budget.
+- Après une revue, un seul agent corrige les constats : les tâches du plan ne sont plus toutes relancées. Le relecteur reçoit la spec de son ticket seulement, et non les premiers fichiers de spec du projet.
+- L'histoire d'une fonctionnalité dit ce que l'agent a rapporté à la fin d'une étape, et non « L'agent a utilisé report » ; la carte Cahier ne dit plus Pas encore de spec pour une fonctionnalité qui a passé l'étape Spec.
+- Environ 100 endroits de plus montrent une action en échec en une phrase simple, avec son action et le texte technique derrière Détails.
+- Wave choisi à la main avec Choisir une application s'ouvre comme le Wave détecté, avec la commande du dossier dans le presse-papiers ; sous Windows, un agent qui demande un outil à l'application arrête son attente après 120 secondes.
 - Wave ne prend pas de dossier d'une autre application : Ouvrir dans l'application de terminal ouvre Wave, met la commande du dossier dans le presse-papiers et le dit.
 - Aujourd'hui / En cours ne montre que la dernière exécution de chaque fonctionnalité : une ancienne exécution en échec ne s'affiche plus à côté d'une plus récente.
 - Une ligne d'une carte reste dans sa carte : le survol de Modifier les raccourcis et d'une ligne qui s'ouvre ne dépasse plus le coin arrondi ; une page ou une sous-page s'ouvre en haut ; un contrôle que votre rôle ne peut pas utiliser le dit en mots simples, par exemple Votre rôle, Architecte, ne peut pas modifier les réglages du projet ; Configuration / Moi montre un badge Admin quand vous êtes admin.

@@ -1502,7 +1502,12 @@ export const workflowsList = (f: MockFactory): WorkflowItem_Serialize[] =>
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([id, text]) => {
 			const { workflow, issue } = checkWorkflow(f, id, text);
-			return { id, steps: workflow?.steps.map((s) => s.id) ?? [], issue };
+			return {
+				id,
+				steps: workflow?.steps.map((s) => s.id) ?? [],
+				issue,
+				budget: workflow?.limits.budget_usd ?? null,
+			};
 		});
 
 export function workflowGet(f: MockFactory, id: string): WorkflowFile_Serialize {
@@ -1578,7 +1583,12 @@ export function workflowRender(
 
 const presetItem = (id: string): WorkflowItem_Serialize => {
 	const { workflow, issue } = parseWorkflow(id, WORKFLOWS[id] ?? "", DEFAULT_ROLES);
-	return { id, steps: workflow?.steps.map((s) => s.id) ?? [], issue };
+	return {
+		id,
+		steps: workflow?.steps.map((s) => s.id) ?? [],
+		issue,
+		budget: workflow?.limits.budget_usd ?? null,
+	};
 };
 
 export const workflowOptions = (f: MockFactory): WorkflowOptions_Serialize => ({

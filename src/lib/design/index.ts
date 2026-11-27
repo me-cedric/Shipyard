@@ -62,10 +62,12 @@ export function useFlowCheck(path: string | undefined) {
 	});
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [failure, setFailure] = useState<unknown>(null);
 	const run = async () => {
 		if (!path) return;
 		setBusy(true);
 		setError(null);
+		setFailure(null);
 		try {
 			qc.setQueryData<FlowsChecked_Serialize | null>(
 				key,
@@ -73,11 +75,12 @@ export function useFlowCheck(path: string | undefined) {
 			);
 		} catch (e) {
 			setError(message(e));
+			setFailure(e);
 		} finally {
 			setBusy(false);
 		}
 	};
-	return { result: stored.data ?? null, run, busy, error };
+	return { result: stored.data ?? null, run, busy, error, failure };
 }
 
 /** The artifacts of one kind, in list order. */

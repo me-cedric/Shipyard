@@ -1878,7 +1878,16 @@ impl Inner {
         let record = self.record(run_id, cause, lines);
         // The reason that the run page shows: `stop` for a pause, `blocked` for a block.
         let what = if cause.pauses() { "stop" } else { "blocked" };
-        let why = record.lines.first().map_or(cause.text(), String::as_str);
+        // The caller puts the fact first (`the gate ... failed`): that line is the headline, not the
+        // first of the ten last lines. A line that holds a secret is no headline.
+        let head = lines
+            .iter()
+            .flat_map(|l| l.lines())
+            .find(|l| !l.trim().is_empty())
+            .filter(|l| shipyard_store::code::scan_text("log", l).is_empty());
+        let why = head
+            .or(record.lines.first().map(String::as_str))
+            .unwrap_or(cause.text());
         let note = json!({what: why, "cause": cause, "escalation": record});
         self.log(run_id, None, kind::NOTE, note);
         self.transition(run_id, event);

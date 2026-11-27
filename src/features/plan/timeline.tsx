@@ -10,6 +10,7 @@ import { CalendarDaysIcon } from "@/ui/icons";
 import { ATTENTION_TINT } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { ATTENTION_FRAME, usePlainDay, usePlanSheet, useProposals } from "./capacity";
 import { DatesPage } from "./dates-page";
@@ -32,7 +33,7 @@ export function Timeline() {
 	const { ready, slug, setChosen, plan, blank } = usePlanSheet(t.ui.place.plan);
 	const members = useTeam().data?.team.members ?? [];
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const tasks = useSheet(slug).data?.sheet;
 	const items = useWorkItems({}).data ?? [];
 	const bars = usePlanBars(slug);
@@ -101,11 +102,7 @@ export function Timeline() {
 				}
 			/>
 			<div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pb-4">
-				{error || proposed.error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error ?? proposed.error}
-					</p>
-				) : null}
+				<ErrorNotice error={failure ?? proposed.failure} />
 				{over.length > 0 ? (
 					<Card
 						className={`flex flex-wrap items-center gap-4 px-6 py-5 ${ATTENTION_FRAME}`}

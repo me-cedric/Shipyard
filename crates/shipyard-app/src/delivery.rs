@@ -75,6 +75,9 @@ pub struct Folders {
     pub declared_base: Option<String>,
     /// The folder of the spec files, from the paths of `project.yaml`.
     pub specs: String,
+    /// The mirror key of the issue tracker of the project: the links of a ticket to its spec
+    /// changes are under it. `None`: no issue tracker.
+    pub tracker: Option<String>,
     /// The secret values that a digest prompt must not carry.
     pub secrets: Vec<String>,
 }
@@ -229,6 +232,61 @@ impl Folders {
     }
 }
 
+/// The spec files of one ticket, `MAX_SPECS` at most. A change (the folder of a `proposal.md`) is
+/// of the ticket when one of its files cites `wi:<key>` or when `linked` holds its id. A file
+/// outside a change stands alone. An archived change is built: it is no criterion.
+fn specs_of(all: Vec<(String, String)>, ticket: &str, linked: &[String]) -> Vec<(String, String)> {
+    if ticket.is_empty() {
+        return Vec::new();
+    }
+    let cite = format!("wi:{ticket}");
+    // `wi:SHIP-1` is not in `wi:SHIP-12`.
+    let cites = |text: &str| {
+        text.match_indices(&cite)
+            .any(|(i, _)| !text[i + cite.len()..].starts_with(|c: char| c.is_ascii_alphanumeric()))
+    };
+    let roots: Vec<&str> = all
+        .iter()
+        .filter_map(|(p, _)| p.strip_suffix("/proposal.md"))
+        .collect();
+    let root_of = |path: &str| -> String {
+        let inside = |r: &&&str| path.strip_prefix(**r).is_some_and(|x| x.starts_with('/'));
+        roots.iter().find(inside).map_or(path, |r| r).to_string()
+    };
+    let live = |path: &str| !path.split('/').any(|c| c == "archive");
+    let mine: BTreeSet<String> = all
+        .iter()
+        .filter(|(p, _)| live(p))
+        .filter_map(|(p, text)| {
+            let root = root_of(p);
+            let id = root.rsplit('/').next().unwrap_or_default();
+            (cites(text) || linked.iter().any(|l| l == id)).then(|| root.clone())
+        })
+        .collect();
+    all.iter()
+        .filter(|(p, _)| live(p) && mine.contains(&root_of(p)))
+        .take(MAX_SPECS)
+        .cloned()
+        .collect()
+}
+
+impl Folders {
+    /// The ids of the spec changes that the mirror links to `ticket`. No mirror: none.
+    fn linked(&self, ticket: &str) -> Vec<String> {
+        let path = self.data.join("mirror.sqlite");
+        let Some(source) = self.tracker.as_deref().filter(|_| path.exists()) else {
+            return Vec::new();
+        };
+        shipyard_store::mirror::Mirror::open(&path)
+            .and_then(|m| m.links(source))
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|(_, key)| key == ticket)
+            .filter_map(|(local, _)| local.strip_prefix("change:").map(String::from))
+            .collect()
+    }
+}
+
 impl Git for Folders {
     fn merge_child(&self, run: &str, child: &str, message: &str) -> PortResult<Merge> {
         self.commit_child(run, child, message)?;
@@ -269,15 +327,16 @@ impl Git for Folders {
         Ok(Changes { uncommitted, files })
     }
 
-    fn review_input(&self, run: &str, base: &str) -> PortResult<ReviewInput> {
+    fn review_input(&self, run: &str, base: &str, ticket: &str) -> PortResult<ReviewInput> {
         let repo = self.run_repo(run)?;
         let rev = Self::rev(&repo, base)?;
+        let all = repo
+            .files_at(&rev, &self.specs, usize::MAX, MAX_SPEC_BYTES)
+            .map_err(e)?;
         Ok(ReviewInput {
             head: repo.head_sha().map_err(e)?,
             diff: repo.diff_since(&rev, MAX_DIFF).map_err(e)?,
-            specs: repo
-                .files_at(&rev, &self.specs, MAX_SPECS, MAX_SPEC_BYTES)
-                .map_err(e)?,
+            specs: specs_of(all, ticket, &self.linked(ticket)),
         })
     }
 

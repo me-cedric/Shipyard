@@ -22,7 +22,6 @@ import { useActiveProject } from "@/lib/projects";
 export const MIN_WIDTH = 280;
 export const MAX_WIDTH = 900;
 const clamp = (w: number) => Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.round(w)));
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export type Assistant = ReturnType<typeof useAssistant>;
 
@@ -54,7 +53,7 @@ export function useAssistant({
 	};
 	const [pending, setPending] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const [alert, setAlert] = useState<string | null>(null);
 	const [changed, setChanged] = useState<FileDiff[]>([]);
 	const [runners, setRunners] = useState<RunnerOptions[]>([]);
@@ -71,7 +70,7 @@ export function useAssistant({
 	const live = useRef({ current, drafts });
 	live.current = { current, drafts };
 
-	const fail = useCallback((e: unknown) => setError(message(e)), []);
+	const fail = useCallback((e: unknown) => setError(e), []);
 
 	useEffect(() => {
 		unwrap(commands.prefsGet())

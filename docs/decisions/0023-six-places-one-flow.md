@@ -18,7 +18,7 @@ A review of the same day found:
 
 Three audits against the code listed the functions of today. A design canvas of 101 screens shows each of them in the new model.
 
-Spec: `docs/openspec/changes/update-app-redesign/` (`app-redesign`).
+Spec: `docs/openspec/changes/archive/2026-11-27-update-app-redesign/` (`app-redesign`).
 ## Decision drivers
 - Easy for a person with little technical knowledge: the screen says what to do next.
 - One feature is one object, from the idea to the release.

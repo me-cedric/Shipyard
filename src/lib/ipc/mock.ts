@@ -310,7 +310,6 @@ const fresh = (): State => ({
 		showAllPages: false,
 		dateFormat: "",
 		closePush: false,
-		narrowBar: false,
 		terminalDock: "bottom",
 		panelSizes: {},
 		todaySeen: 0,

@@ -4,6 +4,7 @@ import { Button } from "../atoms/button";
 import { Input } from "../atoms/input";
 import { Select } from "../atoms/select";
 import { Textarea } from "../atoms/textarea";
+import { ErrorNotice } from "../molecules/error-notice";
 import { type ApiParam, buildRequest, type TryRequest } from "./openapi";
 
 export type TryResponse = { status: number; body: string };
@@ -43,7 +44,7 @@ export function TryPanel({
 	const [values, setValues] = useState<Record<string, string>>({});
 	const [body, setBody] = useState("");
 	const [busy, setBusy] = useState(false);
-	const [result, setResult] = useState<{ response?: TryResponse; failure?: string } | null>(null);
+	const [result, setResult] = useState<{ response?: TryResponse; failure?: unknown } | null>(null);
 
 	const send = async () => {
 		setBusy(true);
@@ -52,7 +53,7 @@ export function TryPanel({
 				response: await onSend(buildRequest(server, method, path, params, values, body), server),
 			});
 		} catch (e) {
-			setResult({ failure: e instanceof Error ? e.message : String(e) });
+			setResult({ failure: e });
 		} finally {
 			setBusy(false);
 		}
@@ -107,9 +108,10 @@ export function TryPanel({
 				/>
 			) : null}
 			{result?.failure ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{labels.failure}: {result.failure}
-				</p>
+				<div className="flex flex-wrap items-center gap-2 text-ui text-danger-text">
+					<span>{labels.failure}:</span>
+					<ErrorNotice error={result.failure} className="min-w-0 flex-1" />
+				</div>
 			) : null}
 			<output className="flex min-h-30 flex-col gap-1 rounded-field bg-n-12 p-4 text-n-5">
 				{result?.response ? (

@@ -27,8 +27,8 @@ The design source of `change:update-app-redesign` uses Geist and Geist Mono. Bot
 
 ### Acceptance Criteria
 
-- [ ] The text font is Geist and the mono font is Geist Mono. Test: `src/ui/tokens/tokens.test.ts`.
-- [ ] The radius tokens are 9 px, 12 px, 14 px and 20 px.
+- [x] The text font is Geist and the mono font is Geist Mono. Test: `src/ui/tokens/tokens.test.ts`.
+- [x] The radius tokens are 9 px, 12 px, 14 px and 20 px.
 - [ ] The build holds the font files, and no font address points to a network host.
 
 ### Existing References

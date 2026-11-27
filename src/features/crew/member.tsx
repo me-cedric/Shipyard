@@ -16,6 +16,7 @@ import { Switch } from "@/ui/atoms/switch";
 import { ChevronRightIcon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
 import { DateButton } from "@/ui/molecules/date-button";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageSwitchContext } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { SettingsRow } from "@/ui/molecules/settings-row";
@@ -135,7 +136,7 @@ export function MemberForm({
 	const id = useId();
 	const view = useTeam().data;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const members = view?.team.members ?? [];
 	const index = members.findIndex((x) => x.handle === handle);
 	const [draft, setDraft] = useState<Member>(() => members[index] ?? blank());
@@ -225,11 +226,7 @@ export function MemberForm({
 				</div>
 			</div>
 			<div className="flex flex-col gap-3 px-4 pb-4">
-				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				<ErrorNotice error={failure} />
 				<form
 					id={id}
 					onSubmit={(e) => {

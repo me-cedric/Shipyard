@@ -322,7 +322,7 @@ export function AgentsAlone() {
 	const a = t.sync.automation;
 	const p = t.doctor.project;
 	const qc = useQueryClient();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const off = useRights().gate("project.settings");
 	const view = useAutomation().data;
 	if (!view) return null;
@@ -359,11 +359,7 @@ export function AgentsAlone() {
 					</fieldset>
 				</SetupRow>
 			))}
-			{error ? (
-				<p role="alert" className="px-6 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-6 pb-2" />
 		</SetupCard>
 	);
 }

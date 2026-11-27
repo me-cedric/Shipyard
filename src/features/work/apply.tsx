@@ -3,6 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { RightButton } from "@/lib/rights";
 import { type ApplyRow, type DiffRow, useWorkActions, useWorkContext } from "@/lib/work";
 import { CpuChipIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { ApplyDialog, type ApplyPreviewRow } from "@/ui/organisms/apply-dialog";
 import { useGuard } from "./guard";
 
@@ -24,7 +25,7 @@ export function CreateWorkItem({ refId, title }: { refId: string; title: string 
 	const { t } = useI18n();
 	const ctx = useWorkContext().data;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [open, setOpen] = useState(false);
 	const [rows, setRows] = useState<DiffRow[]>([]);
 	const [results, setResults] = useState<ApplyRow[] | undefined>();
@@ -53,11 +54,7 @@ export function CreateWorkItem({ refId, title }: { refId: string; title: string 
 				<CpuChipIcon size={14} />
 				{t.work.item.create}
 			</RightButton>
-			{error && !open ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{open ? null : <ErrorNotice error={failure} />}
 			{open ? (
 				<ApplyDialog
 					open
@@ -65,7 +62,7 @@ export function CreateWorkItem({ refId, title }: { refId: string; title: string 
 					title={t.work.item.create}
 					rows={rows.map(toRow)}
 					results={results}
-					error={error}
+					error={failure}
 					onApply={() => void run(async () => setResults([await act.createItem(row)]))}
 				/>
 			) : null}

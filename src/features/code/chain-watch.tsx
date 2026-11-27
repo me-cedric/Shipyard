@@ -39,11 +39,8 @@ export function ChainWatch({ base }: { base: string }) {
 			className="shrink-0"
 			bodyClassName="py-1"
 		>
-			{watch.error ? (
-				<p role="alert" className="px-3 py-2 text-ui text-danger-text">
-					{String(watch.error)}
-				</p>
-			) : rows.length === 0 && watch.data ? (
+			<ErrorNotice error={watch.error} className="px-3 py-2" />
+			{!watch.error && rows.length === 0 && watch.data ? (
 				<p className="px-3 py-2 text-ui text-n-11">{format(w.clean, { base: watch.data.base })}</p>
 			) : null}
 			<ErrorNotice error={failure} className="px-3 py-2" />

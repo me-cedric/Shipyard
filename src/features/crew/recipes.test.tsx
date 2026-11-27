@@ -80,6 +80,18 @@ describe("Workflows: the form", () => {
 		await waitFor(async () => expect(await text("spike")).toContain("id: step-4"));
 	});
 
+	it("removes a step from the chain, and the budget of the recipe is under the steps", async () => {
+		const user = await open("spike");
+		await user.click(await screen.findByRole("button", { name: "Remove Investigate" }));
+		await waitFor(() => expect(stepNames()).toEqual(["Grill", "Report"]));
+		const budget = screen.getByRole("switch", { name: "Budget of the recipe" });
+		expect(budget).not.toBeChecked();
+		await user.click(budget);
+		const editor = await openText(user, "spike");
+		await waitFor(() => expect(editor.value).toContain("budget_usd: 5"));
+		expect(editor.value).not.toContain("id: investigate");
+	});
+
 	it("an unknown need blocks the save", async () => {
 		const user = await open("spike");
 		const editor = await openText(user, "spike");

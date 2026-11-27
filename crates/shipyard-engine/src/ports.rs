@@ -221,8 +221,8 @@ pub struct ReviewInput {
     pub head: String,
     /// The change against the base, uncommitted files included.
     pub diff: String,
-    /// `(path, text)` of the spec files at the base commit. A change that edits its own spec does
-    /// not judge itself.
+    /// `(path, text)` of the spec files of the ticket at the base commit. A change that edits its
+    /// own spec does not judge itself.
     pub specs: Vec<(String, String)>,
 }
 
@@ -241,7 +241,8 @@ pub trait Git: Send + Sync {
 
     fn changes(&self, run: &str, base: &str) -> PortResult<Changes>;
 
-    fn review_input(&self, run: &str, base: &str) -> PortResult<ReviewInput>;
+    /// `ticket` is the key of the ticket of the run: the specs are the ones of that ticket.
+    fn review_input(&self, run: &str, base: &str, ticket: &str) -> PortResult<ReviewInput>;
 
     /// The impacts digest of the run against `base`, for the pull request body (`code` REQ-032,
     /// Q-079). `None`: this port gives no digest. An error is not fatal: the body has no digest.

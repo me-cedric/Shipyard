@@ -28,9 +28,9 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 ### Requirement list
 
 - REQ-001: After the build steps end, the run SHALL be in `SelfReview` (`add-factory` REQ-036). The `reviewer` role SHALL review in a fresh context with the compass `review` skill. The reviewer SHALL get the base, the head, the criteria and the standards sources. The reviewer MUST NOT get the reasoning of the builder.
-- REQ-002: The review SHALL check the spec axis and the standards axis. The system SHALL take the criteria from the ticket and from the specs at the base commit. The reviewer SHALL mark each criterion OK, KO or not verified.
+- REQ-002: The review SHALL check the spec axis and the standards axis. The system SHALL take the criteria from the ticket and from the specs of that ticket at the base commit: the spec changes that cite the ticket or that the ticket links to. An archived change is no criterion. The reviewer SHALL mark each criterion OK, KO or not verified.
 - REQ-003: Each finding SHALL cite a path and a line. The system SHALL open the cited line before it accepts the finding. The system SHALL drop a finding whose citation does not exist.
-- REQ-004: Fix rounds start with no click and go on while the blocking findings get fewer, up to the run cap.
+- REQ-004: Fix rounds start with no click and go on while the blocking findings get fewer, up to the run cap. A fix round SHALL run one builder with all the findings in the run worktree, also when the build step ran one agent for each task of the plan.
 - REQ-005: `SelfReview` SHALL post nothing to the forge and nothing to the tracker. The review report SHALL stay in the run log.
 - REQ-006: A pull request SHALL open only when `SelfReview` has no P0 or P1 finding and the gate is green. The gate SHALL run the gate commands of the project and the system SHALL keep the exact counts. A red gate SHALL count as a P1 finding. In .shipyard/project.yaml, as a list of commands.
 - REQ-007: The system SHALL name the branch `<type>/<area>/<kebab>`. The system SHALL rename a branch that a tool named, such as `claude/…` or `codex/…`, before the first push. The system SHALL rebase the branch onto the base before the push.
@@ -140,7 +140,7 @@ After the build steps end, the run SHALL be in `SelfReview` (`add-factory` REQ-0
 
 ### Requirement: REQ-002 Two review axes
 
-The review SHALL check the spec axis and the standards axis. The system SHALL take the criteria from the ticket and from the specs at the base commit. The reviewer SHALL mark each criterion OK, KO or not verified.
+The review SHALL check the spec axis and the standards axis. The system SHALL take the criteria from the ticket and from the specs of that ticket at the base commit: the spec changes that cite the ticket or that the ticket links to. An archived change is no criterion. The reviewer SHALL mark each criterion OK, KO or not verified.
 
 #### Scenario: Spec edited by the change
 - GIVEN the change edits its own spec
@@ -164,6 +164,12 @@ Each finding SHALL cite a path and a line. The system SHALL open the cited line 
 ### Requirement: REQ-004 Fix rounds
 
 A P0 or P1 finding SHALL send the run back to `Working` for a fix round with no click, with all the blocking findings in one brief. A P2 finding SHALL NOT block the pull request, and the run log SHALL keep it. Rounds SHALL go on while the blocking findings get fewer, up to `review_rounds` (`factory` REQ-054, REQ-055). When the cap or the progress rule stops the rounds, the run SHALL escalate with the findings. An unblock SHALL start one more fix round with the findings and the message.
+
+#### Scenario: One builder after tasks
+- GIVEN a build step that ran one agent for each task of the plan
+- WHEN a review finds a blocking defect
+- THEN one builder fixes it in the run worktree
+- AND the tasks of the plan do not run again
 
 #### Scenario: One round
 - GIVEN a review finds one defect

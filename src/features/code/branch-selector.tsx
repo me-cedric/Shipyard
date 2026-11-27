@@ -7,6 +7,7 @@ import { useRights } from "@/lib/rights";
 import { cn } from "@/lib/utils";
 import { Input } from "@/ui/atoms/input";
 import { PlusIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { useRun } from "./use-run";
 
 type Row = { key: string; label: string; remote: boolean; create: boolean; name: string };
@@ -22,7 +23,7 @@ export function BranchSelector() {
 	const active = useActiveProject().data;
 	const branches = useBranches();
 	const { switchBranch, createBranch } = useCodeActions();
-	const { error, run } = useRun();
+	const { failure, run } = useRun();
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [index, setIndex] = useState(0);
@@ -68,11 +69,7 @@ export function BranchSelector() {
 	const rowId = (i: number) => `${listId}-${i}`;
 	return (
 		<>
-			{error ? (
-				<span role="alert" className="truncate text-ui text-danger-text">
-					{error}
-				</span>
-			) : null}
+			<ErrorNotice error={failure} className="min-w-0 max-w-md" />
 			<Popover.Root
 				open={open}
 				onOpenChange={(next) => {

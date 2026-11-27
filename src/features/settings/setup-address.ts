@@ -33,7 +33,6 @@ const ANCHOR: Record<string, string> = {
 			"accent",
 			"nav-side",
 			"drawer-side",
-			"narrow-bar",
 			"tray",
 			"motion",
 			"focus-ring",

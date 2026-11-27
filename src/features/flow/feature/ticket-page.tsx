@@ -10,6 +10,7 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Textarea } from "@/ui/atoms/textarea";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { LeaveGuard } from "@/ui/organisms/leave-guard";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 
@@ -19,7 +20,7 @@ export function EditTitle({ item }: { item: WorkItemView_Serialize }) {
 	const d = t.work.thread;
 	const edit = useTicketEditCaps().data;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	// `null` when not editing.
 	const [title, setTitle] = useState<string | null>(null);
 	if (!edit?.title) return null;
@@ -51,11 +52,7 @@ export function EditTitle({ item }: { item: WorkItemView_Serialize }) {
 				{d.save}
 			</Button>
 			<Button onClick={() => setTitle(null)}>{d.cancel}</Button>
-			{error ? (
-				<p role="alert" className="flex-[1_1_100%] text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="flex-[1_1_100%]" />
 		</form>
 	);
 }
@@ -66,7 +63,7 @@ function TicketText({ item }: { item: WorkItemView_Serialize }) {
 	const d = t.work.thread;
 	const edit = useTicketEditCaps().data;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	// `null` when not editing.
 	const [text, setText] = useState<string | null>(null);
 	const url = webUrl(item.url);
@@ -117,11 +114,7 @@ function TicketText({ item }: { item: WorkItemView_Serialize }) {
 					<MarkdownView source={item.description} label={d.description} reading />
 				</div>
 			) : null}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</Card>
 	);
 }
@@ -133,7 +126,7 @@ export function TicketThread({ itemKey }: { itemKey: string }) {
 	const caps = useWorkContext().data?.capabilities;
 	const comments = useTicketComments(itemKey, caps?.comments === true);
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [body, setBody] = useState("");
 	return (
 		<Card pad className="flex flex-col gap-3.5">
@@ -150,11 +143,7 @@ export function TicketThread({ itemKey }: { itemKey: string }) {
 							</li>
 						))}
 					</ul>
-					{comments.error ? (
-						<p role="alert" className="text-ui text-danger-text">
-							{String(comments.error)}
-						</p>
-					) : null}
+					<ErrorNotice error={comments.error} />
 					<form
 						className="flex flex-wrap items-center gap-2.5"
 						onSubmit={async (e) => {
@@ -179,11 +168,7 @@ export function TicketThread({ itemKey }: { itemKey: string }) {
 			) : (
 				<p className="text-12 text-n-11">{d.noComments}</p>
 			)}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</Card>
 	);
 }

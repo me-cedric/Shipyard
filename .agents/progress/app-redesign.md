@@ -1,6 +1,6 @@
 # Progress: update-app-redesign
 
-Change: `docs/openspec/changes/update-app-redesign/`. Decision: `adr:0023`. One session per wave.
+Change: `docs/openspec/changes/archive/2026-11-27-update-app-redesign/`. Decision: `adr:0023`. One session per wave.
 
 ## Wave 1, foundation (2026-11-16): T004 to T009 done
 

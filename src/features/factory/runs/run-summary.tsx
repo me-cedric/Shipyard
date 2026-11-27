@@ -37,9 +37,14 @@ export function stepperOf(run: Pick<RunView, "steps">, names?: Record<string, st
 	};
 }
 
-/** The name of the agent of a run: the step that works, waits or failed, else the recipe. */
-export const agentOf = (run: Pick<RunView, "steps" | "workflow">, names?: Record<string, string>) =>
-	stepperOf(run, names).name ?? nameOf(run.workflow);
+/**
+ * The name of the agent of a run: the step that works, waits or failed, else the next step that is
+ * not done (a run that stopped between two steps), else the recipe.
+ */
+export function agentOf(run: Pick<RunView, "steps" | "workflow">, names?: Record<string, string>) {
+	const next = run.steps.find((s) => s.state !== "done");
+	return stepperOf(run, names).name ?? nameOf(next?.id ?? run.workflow, names);
+}
 
 /** Milliseconds as days and hours above 48 hours, as hours and minutes, or as minutes and seconds under one hour. The day and hour units follow `lang`. */
 export function duration(ms: number, lang = "en"): string {

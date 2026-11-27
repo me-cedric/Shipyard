@@ -27,7 +27,7 @@ A team works on several repositories. The earlier tool keeps a project registry,
 
 ### Requirement list
 
-- REQ-001: The first run SHALL offer the role choice with a Continue action, then three starts: open a local folder, clone a remote repository, create a new project. Open a local folder is the one primary action of the starts.
+- REQ-001: The system SHALL ask the role on first launch, with "I only look" for the viewer, and then offer three starts as equal tiles: open a folder, clone a repository and new project, with the recent projects under them. The first run SHALL show at a first launch only. New project SHALL open a page with its own address, `/projects/new`, which makes the project at its end.
 - REQ-002: The system SHALL open a local folder as a project and prepare `.shipyard/project.yaml` when it is absent.
 - REQ-003: The system SHALL clone a remote repository with the credentials of a connection. No default. The person picks a folder each time.
 - REQ-004: The system SHALL create a new project as a new repository with a project file, through the creator of `project-creator`.
@@ -39,7 +39,7 @@ A team works on several repositories. The earlier tool keeps a project registry,
 - REQ-010: A project override SHALL take the place of the same preference of a person. The read-only override SHALL only remove rights.
 - REQ-011: The system SHALL show Settings / Health with compliance checks, tool checks, broken refs and stale generated files.
 - REQ-012: The system SHALL offer one fix action for each finding in Settings / Health.
-- REQ-013: The system SHALL show a health dot in the status bar that reflects the worst finding.
+- REQ-013: The system SHALL show a health dot on the Health item of the account menu. The dot SHALL reflect the worst finding with a shape and a colour. The item SHALL open the Health page of the scope of the worst finding.
 - REQ-014: The system SHALL import project config, team, costing sheets, tickets config, RAID, ADRs and specs. Project config, team, costing sheets, tickets config, RAID, ADRs, specs.
 - REQ-015: The project import SHALL show a report and MUST NOT overwrite an existing file without a person's confirmation.
 - REQ-016: Each projects view SHALL follow the interface rules of the constitution.
@@ -114,27 +114,22 @@ A team works on several repositories. The earlier tool keeps a project registry,
 
 ### Requirement: REQ-001 First run
 
-The system SHALL offer the role choice with a Continue action on first run, then three starts: open a local folder, clone a remote repository, create a new project. The starts MUST show one primary action, Open a local folder. Clone and create SHALL be secondary actions. A person with a saved role or a project in the registry SHALL see the three starts at once. The `shell` capability defers to this requirement for the first run.
+The system SHALL ask the role on first launch, with "I only look" for the viewer, and then offer three starts as equal tiles: open a folder, clone a repository and new project, with the recent projects under them. The first run SHALL show at a first launch only. New project SHALL open a page with its own address, `/projects/new`, which makes the project at its end. The `shell` capability defers to this requirement for the first run.
 
 #### Scenario: Empty install
-
-- GIVEN no project in the registry and no saved role
+- GIVEN no project in the registry
 - WHEN a person starts Shipyard
-- THEN the first run shows the role choice and Continue
-- AND after Continue it shows the three starts with icon and noun labels
-- AND only Open a local folder is a primary action
-
-#### Scenario: Saved role
-
-- GIVEN a saved role and no active project
-- WHEN the first run shows
-- THEN it shows the three starts at once
+- THEN the first run asks the role, then shows the three starts with icon and noun labels
 
 #### Scenario: Return start
-
 - GIVEN at least one project in the registry
 - WHEN a person starts Shipyard
 - THEN the last active project opens
+
+#### Scenario: Saved role
+- GIVEN a saved role and no active project
+- WHEN the first run shows
+- THEN it shows the three starts at once
 
 ### Requirement: REQ-002 Open a local folder
 
@@ -321,12 +316,12 @@ The system SHALL offer one fix action for each finding. A fix that writes a file
 
 ### Requirement: REQ-013 Health dot
 
-The system SHALL show a health dot in the status bar. The dot SHALL reflect the worst finding with a shape and a colour. A click SHALL open Settings / Health.
+The system SHALL show a health dot on the Health item of the account menu. The dot SHALL reflect the worst finding with a shape and a colour. The item SHALL open the Health page of the scope of the worst finding.
 
 #### Scenario: Worst finding
 - GIVEN one warning and one error
-- WHEN the status bar renders
-- THEN the dot shows the error shape and colour
+- WHEN the person opens the account menu
+- THEN the dot of the Health item shows the error shape and colour
 
 #### Scenario: Assistive label
 - GIVEN a screen reader

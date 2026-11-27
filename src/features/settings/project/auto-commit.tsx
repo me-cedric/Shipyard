@@ -4,6 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useRights } from "@/lib/rights";
 import { Switch } from "@/ui/atoms/switch";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SetupRow, Toggle } from "../parts";
 
 const key = ["auto-commit"] as const;
@@ -16,7 +17,7 @@ export function AutoCommit({ inline }: { inline?: boolean }) {
 	const { t } = useI18n();
 	const { gate } = useRights();
 	const qc = useQueryClient();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const on = useQuery({ queryKey: key, queryFn: () => unwrap(commands.autoCommitGet()) });
 	const control = {
 		label: t.ui.autoCommit,
@@ -37,11 +38,7 @@ export function AutoCommit({ inline }: { inline?: boolean }) {
 					<Toggle {...control} />
 				</SetupRow>
 			)}
-			{error ? (
-				<p role="alert" className="px-6 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-6 pb-2" />
 		</>
 	);
 }

@@ -9,8 +9,8 @@ import {
 	type Wiring,
 } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SetupCard, SetupRow, StatePill } from "../parts";
-import { message } from "./keys";
 
 export const wiringKey = ["mcp", "wiring"] as const;
 export const outsideKey = ["mcp", "outside"] as const;
@@ -38,14 +38,14 @@ export function McpWiring() {
 	const stopped = outside.data?.running === false;
 	const [review, setReview] = useState<{ id: string; r: Review } | null>(null);
 	const [note, setNote] = useState<string | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const attempt = async (job: () => Promise<void>) => {
 		setError(null);
 		setNote(null);
 		try {
 			await job();
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		}
 	};
 	const state: Record<WireState, string> = {
@@ -148,11 +148,7 @@ export function McpWiring() {
 					{note}
 				</p>
 			) : null}
-			{error ? (
-				<p role="alert" className="px-6 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={error} className="px-6 pb-2" />
 		</SetupCard>
 	);
 }

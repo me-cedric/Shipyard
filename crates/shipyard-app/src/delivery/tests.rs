@@ -45,7 +45,13 @@ fn fixture() -> (tempfile::TempDir, Folders) {
     git(&root, &["config", "user.email", "test@example.com"]);
     let repo = Repo::open(&root).unwrap();
     for (f, t) in [
+        ("docs/openspec/a/proposal.md", "# A\n\nTicket: wi:SHIP-1.\n"),
         ("docs/openspec/a/spec.md", "# A\n"),
+        (
+            "docs/openspec/b/proposal.md",
+            "# B\n\nTicket: wi:SHIP-12.\n",
+        ),
+        ("docs/openspec/b/spec.md", "# B\n"),
         ("src/lib.rs", "one\ntwo\n"),
     ] {
         write(&root, f, t);
@@ -59,6 +65,7 @@ fn fixture() -> (tempfile::TempDir, Folders) {
         runner: "claude".into(),
         declared_base: None,
         specs: "docs/openspec".into(),
+        tracker: None,
         secrets: Vec::new(),
     };
     (tmp, folders)
@@ -101,12 +108,20 @@ fn changes_review_input_line_commit_and_rename_work_in_the_run_folder() {
             .contains("does not exist")
     );
 
-    let input = f.review_input(RUN, "main").unwrap();
+    let input = f.review_input(RUN, "main", "SHIP-1").unwrap();
     assert_eq!(input.head.len(), 40);
     assert!(input.diff.contains("+TWO") && input.diff.contains("+fn new() {}"));
+    // The specs of the ticket only: the change `b` names another ticket.
+    let paths: Vec<&str> = input.specs.iter().map(|(p, _)| p.as_str()).collect();
     assert_eq!(
-        input.specs,
-        [("docs/openspec/a/spec.md".to_string(), "# A\n".to_string())]
+        paths,
+        ["docs/openspec/a/proposal.md", "docs/openspec/a/spec.md"]
+    );
+    assert!(
+        f.review_input(RUN, "main", "SHIP-9")
+            .unwrap()
+            .specs
+            .is_empty()
     );
     assert_eq!(
         f.line(RUN, "src/lib.rs", 2).unwrap().as_deref(),
@@ -756,4 +771,46 @@ fn a_settings_save_with_the_same_permissions_changes_nothing() {
     let before = file_of(&fx);
     crate::commands::sync::automation_save(&fx.s, &before).unwrap();
     assert_eq!(file_of(&fx), before);
+}
+
+#[test]
+fn the_specs_of_a_ticket_are_its_changes_and_no_archived_one() {
+    let file = |p: &str, t: &str| (p.to_string(), t.to_string());
+    let all = vec![
+        file("s/changes/add-a/proposal.md", "For wi:me/Repo#1."),
+        file("s/changes/add-a/specs/a/spec.md", "# A"),
+        file("s/changes/add-b/proposal.md", "For wi:me/Repo#12."),
+        file("s/changes/add-c/proposal.md", "# C"),
+        file("s/changes/add-c/specs/c/tasks.md", "# Tasks"),
+        file(
+            "s/changes/archive/2026-01-01-old/proposal.md",
+            "For wi:me/Repo#1.",
+        ),
+        file("s/notes.md", "See wi:me/Repo#1, then the rest."),
+    ];
+    let paths = |ticket: &str, linked: &[&str]| -> Vec<String> {
+        let linked: Vec<String> = linked.iter().map(|l| l.to_string()).collect();
+        specs_of(all.clone(), ticket, &linked)
+            .into_iter()
+            .map(|(p, _)| p)
+            .collect()
+    };
+    assert_eq!(
+        paths("me/Repo#1", &[]),
+        [
+            "s/changes/add-a/proposal.md",
+            "s/changes/add-a/specs/a/spec.md",
+            "s/notes.md"
+        ]
+    );
+    // A link of the mirror names the change by its id.
+    assert_eq!(
+        paths("X-7", &["add-c"]),
+        [
+            "s/changes/add-c/proposal.md",
+            "s/changes/add-c/specs/c/tasks.md"
+        ]
+    );
+    assert!(paths("", &["add-c"]).is_empty());
+    assert!(paths("me/Repo#2", &[]).is_empty());
 }

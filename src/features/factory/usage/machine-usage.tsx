@@ -11,6 +11,7 @@ import { CountUp } from "@/ui/atoms/count-up";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { ComputerDesktopIcon, CurrencyIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { SpendMeter } from "@/ui/molecules/spend-meter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
@@ -117,7 +118,7 @@ export function MachineUsage({
 	const [amount, setAmount] = useState("");
 	const spend = useMachineSpend(90);
 	const writes = useMachineWrites();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const fmt = new Intl.NumberFormat(lang, { style: "currency", currency: "USD" });
 	const money = { format: (n: number) => (prices ? fmt.format(n) : t.extras.usage.hidden) };
 	const all = (spend.data ?? spend.partial)?.rows ?? [];
@@ -281,11 +282,7 @@ export function MachineUsage({
 								</Button>
 							</span>
 						))}
-						{error ? (
-							<p role="alert" className="text-ui text-danger-text">
-								{error}
-							</p>
-						) : null}
+						<ErrorNotice error={failure} />
 					</div>
 				</SectionCard>
 			) : null}

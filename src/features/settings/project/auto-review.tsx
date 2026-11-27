@@ -5,6 +5,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { type Automation, syncKeys, useAutomation } from "@/lib/sync";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Switch } from "@/ui/atoms/switch";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SetupRow, Toggle } from "../parts";
 
 type Choice = "off" | "draft" | "post";
@@ -17,7 +18,7 @@ type Choice = "off" | "draft" | "post";
 export function AutoReview({ inline }: { inline?: boolean }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const view = useAutomation().data;
 	const label = t.forge.agent.auto;
 	const value: Choice = view?.automation.auto_review ?? "off";
@@ -60,11 +61,7 @@ export function AutoReview({ inline }: { inline?: boolean }) {
 					<Toggle {...control} />
 				</SetupRow>
 			)}
-			{error ? (
-				<p role="alert" className="px-6 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-6 pb-2" />
 		</>
 	);
 }

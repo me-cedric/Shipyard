@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Fragment, type ReactNode, useRef, useState } from "react";
 import { useGuard } from "@/features/work/guard";
-import { useFactoryWrites, useMachineSpend, useMachineWrites, useUsage } from "@/lib/factory";
+import { useFactoryWrites, useMachineSpend, useMachineWrites } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type Then, unwrap } from "@/lib/ipc";
 import { RightButton, useRights } from "@/lib/rights";
@@ -18,7 +18,7 @@ import { Row } from "@/ui/molecules/row";
 import { SpendMeter } from "@/ui/molecules/spend-meter";
 import { SpendChart } from "./budgets-chart";
 import { percent, WARN_AT } from "./spend-const";
-import { BackToSpend, RowsCard, usePrices } from "./spend-parts";
+import { BackToSpend, RowsCard, useFeatureLimit, usePrices } from "./spend-parts";
 
 type Scope = "day" | "member";
 /** The kinds of budget that have a choice `Then` (`runs-recipes` REQ-006). */
@@ -135,7 +135,7 @@ export function useBudgets() {
 	const f = t.factory;
 	const automation = useAutomation().data?.automation.budgets;
 	const writes = useFactoryWrites();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [editing, setEditing] = useState(false);
 	// A new limit has its form at the end of the list: the typed key must not move it.
 	const [adding, setAdding] = useState(false);
@@ -177,7 +177,7 @@ export function useBudgets() {
 	};
 	return {
 		list,
-		error,
+		failure,
 		editing,
 		adding,
 		row,
@@ -211,15 +211,14 @@ export function BudgetsPage() {
 	const rules = useBudgetRules();
 	const gate = useRights().gate("project.settings");
 	const { prices, price, menu } = usePrices();
-	const usage = useUsage().data;
 	const spend = useMachineSpend(90);
 	const writes = useMachineWrites();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [machine, setMachine] = useState<Machine | null>(null);
 	const machineBudgets = spend.data?.budgets ?? [];
 	const runners = [...new Set((spend.data?.rows ?? []).map((r) => r.runner))];
-	const limits = (usage?.runs ?? []).flatMap((r) => (r.budget === null ? [] : [r.budget]));
-	const feature = limits.length ? Math.max(...limits) : null;
+	const featureLimit = useFeatureLimit();
+	const feature = featureLimit.usd;
 	const money = (usd: number | null) => (usd === null ? s.noLimit : price(`$${usd.toFixed(2)}`));
 	const of = (scope: Scope, key: string) => b.list.find((x) => x.scope === scope && x.key === key);
 	const only = b.list.filter((x) => x.key !== "*");
@@ -281,9 +280,9 @@ export function BudgetsPage() {
 						{f.edit}
 					</Button>
 				) : link ? (
-					// The limit of a feature comes from its recipe: Edit opens the recipes.
+					// The limit of a feature is the budget of its recipe: Edit opens that row.
 					<Link
-						to="/crew/recipes"
+						{...featureLimit.link}
 						aria-label={format(s.editLimit, { name: name.toLowerCase() })}
 						className={buttonVariants()}
 					>
@@ -400,13 +399,7 @@ export function BudgetsPage() {
 			/>
 			<div className="flex flex-wrap items-start gap-5 px-4 pb-4">
 				<div className="flex flex-[2_1_21rem] flex-col gap-5">
-					{b.error || error ? (
-						<p role="alert" className="text-ui text-danger-text">
-							{b.error ?? error}
-						</p>
-					) : rules.failure ? (
-						<ErrorNotice error={rules.failure} />
-					) : null}
+					<ErrorNotice error={b.failure ?? failure ?? rules.failure} />
 					<Card className="py-2" role="region" aria-label={f.budgets}>
 						<h2 className="px-6 pt-3.5 pb-1.5 text-13 font-semibold text-n-11">{s.limits}</h2>
 						{row(s.eachFeature, feature, undefined, true, false, "feature")}

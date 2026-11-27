@@ -7,6 +7,7 @@ import { useRights } from "@/lib/rights";
 import { runHref } from "@/lib/shell";
 import { Leave } from "@/ui/atoms/leave";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { hiddenSection } from "./places";
 
 const heading = "flex min-h-control items-center border-b px-3 text-12 font-medium text-n-11";
@@ -15,7 +16,7 @@ const heading = "flex min-h-control items-center border-b px-3 text-12 font-medi
 export function RunsPart({ live }: { live: { id: string; key: string; title: string }[] }) {
 	const { t } = useI18n();
 	const { cancel } = useRunActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const rights = useRights();
 	const stopGate = rights.gate("runs.start");
 	// The link shows with Flow / Flow (`spec:app-redesign#REQ-006`).
@@ -30,11 +31,7 @@ export function RunsPart({ live }: { live: { id: string; key: string; title: str
 			) : (
 				<h2 className={heading}>{title}</h2>
 			)}
-			{error ? (
-				<p role="alert" className="px-3 py-2 text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-3 py-2" />
 			{/* The list stays mounted so the last row can leave; the empty text sits after it. */}
 			<ul aria-label={t.shell.runs} tabIndex={-1} className="py-1 empty:hidden">
 				<AnimatePresence initial={false}>

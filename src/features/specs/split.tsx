@@ -118,7 +118,7 @@ function Review({
 	const { t } = useI18n();
 	const s = t.specs.split;
 	const act = useSpecsActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [items, setItems] = useState(initial);
 	const set = (id: string, patch: Partial<SplitItem>) =>
 		setItems((xs) => xs.map((i) => (i.rowId === id ? { ...i, ...patch } : i)));
@@ -172,11 +172,7 @@ function Review({
 				))}
 			</ul>
 			<AddItem items={items} onAdd={(item) => setItems((xs) => [...xs, item])} />
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</Dialog>
 	);
 }
@@ -186,11 +182,10 @@ function ApplyStage({ change, onClose }: { change: string; onClose: () => void }
 	const { t } = useI18n();
 	const preview = useSplitPreview(change, true);
 	const act = useSpecsActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [results, setResults] = useState<ApplyResult[] | undefined>();
 	const [busy, setBusy] = useState(false);
 	const problems = preview.data?.problems ?? [];
-	const failed = preview.error instanceof Error ? preview.error.message : null;
 	return (
 		<ApplyDialog
 			open
@@ -199,7 +194,7 @@ function ApplyStage({ change, onClose }: { change: string; onClose: () => void }
 			rows={(preview.data?.rows ?? []).map(toRow)}
 			results={results}
 			busy={busy || preview.isLoading || problems.length > 0}
-			error={error ?? failed ?? (problems.length ? problems.join("; ") : null)}
+			error={failure ?? preview.error ?? (problems.length ? problems.join("; ") : null)}
 			onApply={() => {
 				setBusy(true);
 				void run(async () => setResults(await act.applySplit(change))).finally(() =>

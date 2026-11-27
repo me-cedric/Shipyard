@@ -75,7 +75,7 @@ export function CodeEditor({
 	return (
 		<div
 			className={cn(
-				"relative flex min-h-40 overflow-hidden rounded-md border border-n-7 bg-n-1 font-mono text-12",
+				"relative flex min-h-40 overflow-hidden rounded-md border border-field-line bg-n-1 font-mono text-12",
 				className,
 			)}
 			style={{ lineHeight: LINE }}

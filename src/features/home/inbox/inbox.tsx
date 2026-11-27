@@ -23,6 +23,7 @@ import { Checkbox } from "@/ui/atoms/checkbox";
 import { Input } from "@/ui/atoms/input";
 import { ApprovalBar, approvalSentence } from "@/ui/molecules/approval-bar";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Option } from "@/ui/molecules/option";
 import { QuestionCard } from "@/ui/molecules/question-card";
 import { RefChip } from "@/ui/molecules/ref-chip";
@@ -55,17 +56,10 @@ function RunLink({ run, ticket }: { run: string; ticket: string }) {
 	);
 }
 
-const Failure = ({ error }: { error: string | null }) =>
-	error ? (
-		<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
-			{error}
-		</p>
-	) : null;
-
 /** `noRun` hides the chip of the run: the run page already is that run. */
 export function QuestionRow({ item, noRun }: { item: QuestionItem; noRun?: boolean }) {
 	const act = useInboxActions();
-	const { error, run: guard } = useGuard();
+	const { failure, run: guard } = useGuard();
 	const q = item.question;
 	const props: ComponentProps<typeof QuestionCard> = {
 		question: q,
@@ -79,7 +73,7 @@ export function QuestionRow({ item, noRun }: { item: QuestionItem; noRun?: boole
 			) : (
 				<QuestionCard {...props} />
 			)}
-			<Failure error={error} />
+			<ErrorNotice error={failure} className="px-3 pb-2" />
 		</Card>
 	);
 }
@@ -92,7 +86,7 @@ export function OpenQuestion({ item, onLater }: { item: QuestionItem; onLater?: 
 	const { t } = useI18n();
 	const h = t.home;
 	const act = useInboxActions();
-	const { error, run: guard } = useGuard();
+	const { failure, run: guard } = useGuard();
 	const q = item.question;
 	const [n, setN] = useState<number | null>(q.recommended >= 1 ? q.recommended : null);
 	const [text, setText] = useState("");
@@ -167,7 +161,7 @@ export function OpenQuestion({ item, onLater }: { item: QuestionItem; onLater?: 
 					{h.send}
 				</Button>
 			</div>
-			<Failure error={error} />
+			<ErrorNotice error={failure} className="px-3 pb-2" />
 		</div>
 	);
 }
@@ -177,7 +171,7 @@ function FoldedCard({ spec, ...props }: ComponentProps<typeof QuestionCard> & { 
 	const { t } = useI18n();
 	const { question: q } = props;
 	const fold = useSpecsActions().fold;
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const target = useFoldTargets(q.id, capabilityOf(spec))[0] ?? null;
 	const stamp = useFile(target).data?.stamp;
 	const markers = (useSpecView(target).data?.markers ?? []).filter((m) => m.question === q.id);
@@ -206,7 +200,7 @@ function FoldedCard({ spec, ...props }: ComponentProps<typeof QuestionCard> & { 
 						: undefined
 				}
 			/>
-			<Failure error={error} />
+			<ErrorNotice error={failure} className="px-3 pb-2" />
 		</>
 	);
 }
@@ -222,7 +216,7 @@ export function ApprovalRow({
 	const { t } = useI18n();
 	const act = useInboxActions();
 	const { reason } = useRights().gate(a.right);
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	return (
 		<Card className="*:border-b-0">
 			<ApprovalBar
@@ -233,7 +227,7 @@ export function ApprovalRow({
 				onApprove={() => void run(() => act.approve(a.id))}
 				onReject={() => void run(() => act.reject(a.id))}
 			/>
-			<Failure error={error} />
+			<ErrorNotice error={failure} className="px-3 pb-2" />
 		</Card>
 	);
 }
@@ -259,7 +253,7 @@ export function ApprovalsQuestion({
 	const h = t.home;
 	const act = useInboxActions();
 	const { gate } = useRights();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [steps, setSteps] = useState<boolean | null>(null);
 	const [recipe, setRecipe] = useState(false);
 	const first = approvals[0];
@@ -342,7 +336,7 @@ export function ApprovalsQuestion({
 							</div>
 						))
 					: null}
-				<Failure error={error} />
+				<ErrorNotice error={failure} className="px-3 pb-2" />
 			</div>
 		</Card>
 	);
@@ -351,7 +345,7 @@ export function ApprovalsQuestion({
 export function PlanRow({ run, ticket, title }: { run: string; ticket: string; title: string }) {
 	const { t } = useI18n();
 	const act = useInboxActions();
-	const { error, run: guard } = useGuard();
+	const { failure, run: guard } = useGuard();
 	const { openRef } = useShell();
 	const [note, setNote] = useState("");
 	const { events, hasNextPage, isFetchingNextPage, fetchNextPage } = useRunLog(run);
@@ -399,7 +393,7 @@ export function PlanRow({ run, ticket, title }: { run: string; ticket: string; t
 			{summary ? (
 				<p className="line-clamp-3 px-3 pb-2 text-ui whitespace-pre-line text-n-11">{summary}</p>
 			) : null}
-			<Failure error={error} />
+			<ErrorNotice error={failure} className="px-3 pb-2" />
 		</Card>
 	);
 }
@@ -429,7 +423,7 @@ export function ReviewRow({ review: r }: { review: ReviewItem }) {
 export function MessageRow({ message: m }: { message: MessageItem }) {
 	const { t } = useI18n();
 	const act = useInboxActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	return (
 		<Card>
 			<div className="flex flex-wrap items-center gap-2 px-3 py-2">
@@ -447,7 +441,7 @@ export function MessageRow({ message: m }: { message: MessageItem }) {
 					</Button>
 				)}
 			</div>
-			<Failure error={error} />
+			<ErrorNotice error={failure} className="px-3 pb-2" />
 		</Card>
 	);
 }

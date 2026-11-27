@@ -27,9 +27,9 @@ The earlier tool has 490 titles, 336 hints and 216 descriptions. Each page build
 
 ### Requirement list
 
-- REQ-001: Design tokens define colour, spacing, type scale, radius and borders. The accent takes a per-project value (`add-projects` REQ-019).
+- REQ-001: The type sizes SHALL be 11, 12, 13, 14, 15, 16, 17, 20, 30 and 44. The radii SHALL be 9 px (small), 12 px (control), 14 px (field) and 20 px (card). A shadow SHALL come from one of the three elevation tokens.
 - REQ-002: Motion tokens define two durations, and motion respects the reduced-motion setting.
-- REQ-003: The interface uses one text font and one mono font, with a fallback.
+- REQ-003: The system SHALL use Geist for text and Geist Mono for ids, numbers and code. The app SHALL bundle both fonts and SHALL NOT load a font from the network. Each font SHALL have a system fallback.
 - REQ-004: The atoms exist: Button, IconButton, Input, Select, Checkbox, Switch, Badge, StatusDot, Avatar, Kbd, Tooltip, Skeleton.
 - REQ-005: The molecules and organisms exist for every list, board, run, question, approval, ref and settings view.
 - REQ-006: The templates exist: Shell, Board, List and detail, Editor, Settings.
@@ -94,13 +94,13 @@ The earlier tool has 490 titles, 336 hints and 216 descriptions. Each page build
 
 ### Requirement: REQ-001 Design tokens
 
-The system SHALL define colour tokens: a 12-step neutral scale, one accent and four status colours. The system SHALL define a 4 px spacing grid and the type sizes 11, 12, 13, 14, 16 and 20. The radii SHALL be 4 and 6, and borders SHALL replace shadows. No component SHALL use a value outside the tokens. The accent token SHALL take the per-project value of `add-projects` REQ-019.
+The system SHALL define colour tokens: a 12-step neutral scale, one accent and four status colours. The system SHALL define a 4 px spacing grid and the type sizes 11, 12, 13, 14, 15, 16, 17, 20, 30 and 44. The radii SHALL be 9 px (small), 12 px (control), 14 px (field) and 20 px (card). A shadow SHALL come from one of the three elevation tokens. No component SHALL use a value outside the tokens. The accent token SHALL take the per-project value of `add-projects` REQ-019.
 
 #### Scenario: Component uses tokens only
 - GIVEN a component in the gallery
 - WHEN a reviewer inspects its style
 - THEN each colour, space, size and radius comes from a token
-- AND the component has no shadow
+- AND each shadow comes from an elevation token
 
 #### Scenario: Project accent
 - GIVEN a project with its own accent
@@ -123,13 +123,18 @@ The system SHALL define two motion durations, 120 ms and 200 ms. Motion SHALL ha
 
 ### Requirement: REQ-003 Fonts
 
-The system SHALL use Switzer for text and Departure Mono for ids, numbers and code. Until ITF gives written consent for Switzer, the system SHALL use Inter for text. Ask ITF for written consent, use Inter until it arrives.
+The system SHALL use Geist for text and Geist Mono for ids, numbers and code. The app SHALL bundle both fonts and SHALL NOT load a font from the network. Each font SHALL have a system fallback.
 
 #### Scenario: Switzer not yet licensed
 - GIVEN no written consent from ITF
 - WHEN the app renders text
-- THEN the text font is Inter
-- AND ids, numbers and code use Departure Mono
+- THEN the text font is Geist
+- AND ids, numbers and code use Geist Mono
+
+#### Scenario: Bundled fonts
+- GIVEN the computer has no network
+- WHEN the app renders text
+- THEN the text font is Geist and the mono font is Geist Mono
 
 ### Requirement: REQ-004 Atoms
 

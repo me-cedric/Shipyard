@@ -27,6 +27,7 @@ import { Segmented } from "@/ui/atoms/segmented";
 import { ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { Row } from "@/ui/molecules/row";
 import { Dialog } from "@/ui/organisms/dialog";
@@ -84,7 +85,7 @@ export function ChangeDetail({
 	const act = useSpecsActions();
 	const { openRef } = useShell();
 	const router = useRouter({ warn: false });
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const first = change.artifacts.find((a) => a.artifact === file) ?? change.artifacts[0];
 	const [open, setOpen] = useState<{ path: string; view: FileView; line: number | null }>({
 		path: first?.path ?? "",
@@ -200,11 +201,7 @@ export function ChangeDetail({
 					</Button>
 				</div>
 			</div>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 			<div className="flex flex-wrap items-start gap-6">
 				{current ? (
 					<Card className="flex-[3_1_480px] overflow-hidden">

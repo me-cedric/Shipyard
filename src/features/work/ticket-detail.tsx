@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { nameOf } from "@/features/factory/runs/run-live";
 import {
 	Prop,
 	TicketComments,
@@ -7,7 +8,7 @@ import {
 	TicketLabels,
 	TicketTitle,
 } from "@/features/sync/ticket-thread";
-import { useRunActions, useWorkflows } from "@/lib/factory";
+import { useRunActions, useRuns, useWorkflows } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { useResolvedRef } from "@/lib/refs";
 import { RightButton, RightIconButton } from "@/lib/rights";
@@ -80,6 +81,11 @@ export function TicketDetail({
 	const [local, setLocal] = useState("");
 	const recipes = useWorkflows().data ?? [];
 	const releases = useReleases().data ?? [];
+	// The run of the ticket that works or waits for a person: no second run starts beside it.
+	const live = (useRuns().data ?? [])
+		.filter((r) => r.key === itemKey && (r.lane === "working" || r.lane === "needs_you"))
+		.sort((a, b) => (a.id < b.id ? 1 : -1))[0];
+	const active = live ? format(t.factory.runActive, { key: itemKey }) : undefined;
 
 	if (!item) return null;
 	const caps = ctx?.capabilities;
@@ -163,7 +169,8 @@ export function TicketDetail({
 			<Select
 				label={t.codeHost.recipe}
 				className={fill}
-				value={recipeId}
+				// With no recipe label, the row shows the recipe of the run that works on the ticket.
+				value={recipeId || live?.workflow || ""}
 				disabled={caps ? !caps.labels : true}
 				onValueChange={(id) =>
 					void run(async () => {
@@ -173,8 +180,8 @@ export function TicketDetail({
 					})
 				}
 				items={[
-					...(recipeId ? [] : [{ value: "", label: t.codeHost.noRecipe }]),
-					...recipes.map((w) => ({ value: w.id, label: w.id })),
+					...(recipeId || live ? [] : [{ value: "", label: t.codeHost.noRecipe }]),
+					...recipes.map((w) => ({ value: w.id, label: nameOf(w.id) })),
 				]}
 			/>
 		</Prop>
@@ -200,7 +207,12 @@ export function TicketDetail({
 	const startRow = (
 		<Prop label={d.agent}>
 			<div className="flex justify-end">
-				<RightButton right="runs.start" onClick={() => void run(() => runs.start(item.key))}>
+				<RightButton
+					right="runs.start"
+					disabled={!!live}
+					reason={active}
+					onClick={() => void run(() => runs.start(item.key))}
+				>
 					<PlayIcon size={14} />
 					{t.factory.start}
 				</RightButton>
@@ -245,7 +257,12 @@ export function TicketDetail({
 					<CpuChipIcon size={14} />
 					{d.mark}
 				</RightButton>
-				<RightButton right="runs.start" onClick={() => void run(() => runs.start(item.key))}>
+				<RightButton
+					right="runs.start"
+					disabled={!!live}
+					reason={active}
+					onClick={() => void run(() => runs.start(item.key))}
+				>
 					<PlayIcon size={14} />
 					{t.factory.start}
 				</RightButton>

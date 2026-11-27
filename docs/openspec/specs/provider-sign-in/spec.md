@@ -39,7 +39,7 @@ Today the person must know each tool, its login command and its key page. The ow
 - "Sign in with ChatGPT" for partners (a preview, with no API key).
 - Reuse of the Claude.ai, ChatGPT, Copilot or Antigravity login for a Shipyard call.
 - A new model provider type.
-- The Azure device sign-in (REQ-006 before). It moved to the change `add-azure-sign-in` (Q-132). Azure uses a pasted key (REQ-007).
+- The Azure device sign-in (REQ-006 before). The owner set it aside (Q-132): its spec change is in `docs/openspec/deferred/add-azure-sign-in`. Azure uses a pasted key (REQ-007).
 
 ### Acceptance Criteria
 

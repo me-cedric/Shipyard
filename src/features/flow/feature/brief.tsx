@@ -34,6 +34,7 @@ import { StatusDot } from "@/ui/atoms/status-dot";
 import { ATTENTION_FRAME } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { CARD_LABEL, DesignToCode, forDesign, SCREEN_BOX, useCited } from "./design";
 import { LinkDesign } from "./link-design";
@@ -46,7 +47,7 @@ function QuestionCard({ item }: { item: QuestionItem }) {
 	const b = t.flow.look.brief;
 	const act = useInboxActions();
 	const scope = useRunScope();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [text, setText] = useState("");
 	const q = item.question;
 	const agent = nameOf(scope?.run.workflow ?? "");
@@ -94,11 +95,7 @@ function QuestionCard({ item }: { item: QuestionItem }) {
 					/>
 				) : null}
 			</form>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</Card>
 	);
 }
@@ -118,7 +115,7 @@ function SpecQuestionCard({
 	const { t } = useI18n();
 	const b = t.flow.look.brief;
 	const act = useSpecsActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [text, setText] = useState("");
 	const target = useFoldTargets(id, capability)[0] ?? "";
 	const stamp = useFile(target || null).data?.stamp;
@@ -147,11 +144,7 @@ function SpecQuestionCard({
 			>
 				<Input label={b.anotherAnswer} value={text} onChange={(e) => setText(e.target.value)} />
 			</form>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</Card>
 	);
 }

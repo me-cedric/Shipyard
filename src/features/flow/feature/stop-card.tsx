@@ -25,6 +25,7 @@ import { ChevronRightIcon } from "@/ui/icons";
 import { AttentionCard } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { Row } from "@/ui/molecules/row";
 import { DEFAULT_BUDGET, doStop, type StopAction } from "../stop-action";
@@ -118,7 +119,7 @@ export function StopCard({
 	const act = useRunActions();
 	const { gate } = useRights();
 	const { openRef, runInTerminal } = useShell();
-	const { error, run: guard } = useGuard();
+	const { failure, run: guard } = useGuard();
 	const [note, setNote] = useState("");
 	const [added, setAdded] = useState(DEFAULT_BUDGET);
 	const [kept, setKept] = useState(false);
@@ -352,11 +353,7 @@ export function StopCard({
 					</div>
 				) : null}
 			</form>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</>
 	);
 	// A blocked agent speaks for itself: its tile, and the cause as the heading (picture 026).
@@ -396,7 +393,7 @@ export function TicketReply({ run }: { run: Pick<RunView, "key" | "url"> }) {
 	const x = t.flow.look.page.stop;
 	const caps = useWorkContext().data?.capabilities;
 	const act = useWorkActions();
-	const { error, run: guard } = useGuard();
+	const { failure, run: guard } = useGuard();
 	const [body, setBody] = useState("");
 	if (!(caps?.comments && webUrl(run.url))) return null;
 	return (
@@ -421,11 +418,7 @@ export function TicketReply({ run }: { run: Pick<RunView, "key" | "url"> }) {
 				<Badge>{x.toTracker}</Badge>
 				<Button type="submit">{x.send}</Button>
 			</form>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</Card>
 	);
 }

@@ -15,6 +15,7 @@ import { StatusDot } from "@/ui/atoms/status-dot";
 import { BookOpenIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { CodeEditor } from "@/ui/molecules/code-editor";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuButton, type MenuButtonItem } from "@/ui/molecules/menu-button";
 import { useSides } from "@/ui/molecules/pane-toggle";
 import { Row } from "@/ui/molecules/row";
@@ -241,11 +242,7 @@ export function PageCard({
 					) : null}
 				</div>
 			)}
-			{file.error ? (
-				<p role="alert" className="rounded-md bg-danger-subtle px-4 py-2 text-danger-text">
-					{file.error}
-				</p>
-			) : null}
+			<ErrorNotice error={file.failure} className="rounded-md bg-danger-subtle px-4 py-2" />
 			{footer ? (
 				<div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-n-5 pt-4">
 					{footer}

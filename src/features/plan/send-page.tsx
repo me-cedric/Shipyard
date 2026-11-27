@@ -19,6 +19,7 @@ import { Input } from "@/ui/atoms/input";
 import { PencilIcon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
 import { ATTENTION_FRAME } from "./capacity";
@@ -40,13 +41,12 @@ export function SendPage({ slug }: { slug: string }) {
 	const preview = useApplyPreview(slugs, true);
 	const ctx = useWorkContext().data;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [results, setResults] = useState<ApplyRow[] | undefined>();
 	const [busy, setBusy] = useState(false);
 	const [dropped, setDropped] = useState<string[]>([]);
 	const [edits, setEdits] = useState<Record<string, { title?: string; days?: string }>>({});
 	const [editing, setEditing] = useState<string | null>(null);
-	const failed = preview.error instanceof Error ? preview.error.message : null;
 	const rows = preview.data ?? [];
 	const fields = (list: string[]) =>
 		list.map((f) => a.field[f as keyof typeof a.field] ?? f).join(", ");
@@ -247,11 +247,7 @@ export function SendPage({ slug }: { slug: string }) {
 							</div>
 						</Card>
 					)}
-					{error || failed ? (
-						<p role="alert" className="text-ui text-danger-text">
-							{error ?? failed}
-						</p>
-					) : null}
+					<ErrorNotice error={failure ?? preview.error} />
 					{
 						<Card className="py-2">
 							<h2 className={HEAD}>{p.sendPage.after}</h2>

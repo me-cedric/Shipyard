@@ -32,6 +32,7 @@ import {
 } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { EntryRow } from "@/ui/molecules/entry-row";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { SectionNav } from "@/ui/molecules/section-nav";
@@ -66,7 +67,7 @@ export function Compass({ children }: { children: ReactNode }) {
 	const { t } = useI18n();
 	const x = t.extensions;
 	const qc = useQueryClient();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const compass = useQuery({ queryKey: compassKey, queryFn: () => unwrap(commands.compassGet()) });
 	const roles = useQuery({
 		queryKey: ["roles-skills"],
@@ -159,11 +160,7 @@ export function Compass({ children }: { children: ReactNode }) {
 			/>
 			<SectionNav label={t.ui.sections} items={sections} />
 			<div className={SETTINGS_PAGE}>
-				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				<ErrorNotice error={failure} />
 				{data === undefined ? null : data === null ? (
 					<EmptyState
 						title={t.empty.compass}

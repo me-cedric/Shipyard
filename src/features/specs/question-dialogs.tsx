@@ -22,6 +22,7 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Dialog } from "@/ui/organisms/dialog";
 import { useGuard } from "./guard";
 
@@ -64,7 +65,7 @@ export function QuestionDialog({
 	const qc = useQueryClient();
 	const members = useTeam().data?.team.members ?? [];
 	const [deleting, setDeleting] = useState(false);
-	const { error, setError, run } = useGuard();
+	const { error, failure, setError, run } = useGuard();
 	const file = useFile(entry?.path ?? null);
 	// The fields come from the file that the stamp belongs to; the list entry shows until it loads.
 	const [edits, setEdits] = useState<Partial<Question>>({});
@@ -198,11 +199,7 @@ export function QuestionDialog({
 					}}
 				/>
 			) : null}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure ?? error} />
 		</Dialog>
 	);
 }
@@ -216,7 +213,7 @@ export function FoldDialog({ entry, onClose }: { entry: QuestionEntry; onClose: 
 	const s = t.specs.question;
 	const q = entry.question;
 	const act = useSpecsActions();
-	const { error, run } = useGuard();
+	const { error, failure, run } = useGuard();
 	const target = useFoldTargets(q.id, capabilityOf(q.specRef))[0] ?? null;
 	const stamp = useFile(target).data?.stamp;
 	const markers = (useSpecView(target).data?.markers ?? []).filter((m) => m.question === q.id);
@@ -257,11 +254,7 @@ export function FoldDialog({ entry, onClose }: { entry: QuestionEntry; onClose: 
 					</>
 				) : null}
 			</section>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure ?? error} />
 		</Dialog>
 	);
 }

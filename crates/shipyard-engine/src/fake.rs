@@ -877,7 +877,7 @@ impl Git for FakeGit {
         Ok(s.changes.clone())
     }
 
-    fn review_input(&self, _run: &str, base: &str) -> PortResult<ReviewInput> {
+    fn review_input(&self, _run: &str, base: &str, _ticket: &str) -> PortResult<ReviewInput> {
         let mut s = lock(&self.0);
         s.check("review_input", format!("review_input {base}"))?;
         Ok(s.input.clone())

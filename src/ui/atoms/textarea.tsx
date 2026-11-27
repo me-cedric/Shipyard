@@ -15,7 +15,7 @@ export function Textarea({ label, caption, className, ...props }: TextareaProps)
 			aria-label={label}
 			placeholder={caption ? undefined : label}
 			className={cn(
-				"min-h-16 w-full min-w-0 resize-y rounded-md border border-n-7 bg-surface-1 px-4 py-2.5 text-n-12 placeholder:text-n-11 disabled:opacity-50 aria-invalid:border-2 aria-invalid:border-danger-text",
+				"min-h-16 w-full min-w-0 resize-y rounded-md border border-field-line bg-surface-1 px-4 py-2.5 text-n-12 placeholder:text-n-11 disabled:opacity-50 aria-invalid:border-2 aria-invalid:border-danger-text",
 				className,
 			)}
 			{...props}

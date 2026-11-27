@@ -6,7 +6,6 @@ import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import {
 	type Dashboard,
-	message,
 	TILE_KINDS,
 	type TileProposal,
 	useDashboard,
@@ -33,6 +32,7 @@ import { PlusIcon, Squares2X2Icon } from "@/ui/icons";
 import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { TileCard } from "@/ui/organisms/tile-card";
 import { CHARTS, type Chart, defaultChart } from "@/ui/organisms/tile-chart";
@@ -148,7 +148,7 @@ function TileSettings({ slug, id }: { slug: string; id: string }) {
 	const [w, setW] = useState(String(tile?.w ?? 4));
 	const [h, setH] = useState(String(tile?.h ?? 3));
 	const [chart, setChart] = useState(tile?.chart || (tile ? defaultChart(tile.kind) : "bars"));
-	const [failure, setFailure] = useState<string | null>(null);
+	const [failure, setFailure] = useState<unknown>(null);
 	const f = useI18n().t.library.fn;
 	if (!view || !tile) return null;
 	const move = async (dx: number) => {
@@ -156,7 +156,7 @@ function TileSettings({ slug, id }: { slug: string; id: string }) {
 			setFailure(null);
 			await save({ ...view.value, tiles: shift(view.value.tiles, id, dx) });
 		} catch (e) {
-			setFailure(message(e));
+			setFailure(e);
 		}
 	};
 	const sizes = (n: number[]) => n.map((v) => ({ value: String(v), label: String(v) }));
@@ -185,7 +185,7 @@ function TileSettings({ slug, id }: { slug: string; id: string }) {
 						),
 					});
 				} catch (e) {
-					setFailure(message(e));
+					setFailure(e);
 				}
 			}}
 		>
@@ -205,11 +205,7 @@ function TileSettings({ slug, id }: { slug: string; id: string }) {
 				onValueChange={setChart}
 				items={CHARTS.map((c) => ({ value: c, label: f.charts[c] }))}
 			/>
-			{failure ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{failure}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 			<div className="flex flex-wrap gap-2">
 				<RightButton right="knowledge.edit" type="submit" disabled={view.readOnly}>
 					{k.save}
@@ -321,12 +317,11 @@ function TileBuilder({
 			>
 				{k.buildStart}
 			</RightButton>
-			{build.failure ? (
-				<p role="alert" className="w-full text-ui text-danger-text">
-					{/* A larger tile budget helps only when the tile budget is the one that is spent. */}
-					{build.failure.details.includes("the tile waits") ? k.buildSpent : build.failure.message}
-				</p>
-			) : null}
+			{/* A larger tile budget helps only when the tile budget is the one that is spent. */}
+			<ErrorNotice
+				error={build.failure?.details.includes("the tile waits") ? k.buildSpent : build.failure}
+				className="w-full"
+			/>
 		</form>
 	);
 }
@@ -338,18 +333,13 @@ let last: string | null = null;
 function DashboardView({ slug }: { slug: string }) {
 	const k = useI18n().t.knowledge.dashboards;
 	const { ask } = useShell();
-	const { view, error } = useDashboard(slug);
+	const { view, failure } = useDashboard(slug);
 	const members = useTeam().data?.team.members ?? [];
 	const [person, setPerson] = useState(EVERYONE);
 	const [release, setRelease] = useState(EVERYONE);
 	const releases = useReleases();
 	const f = useI18n().t.library.fn.dashboards;
-	if (!view)
-		return error ? (
-			<p role="alert" className="text-ui text-danger-text">
-				{error}
-			</p>
-		) : null;
+	if (!view) return <ErrorNotice error={failure} />;
 	const dash: Dashboard = view.value;
 	const who = person === EVERYONE ? null : person;
 	const keys = releases.find((r) => r.name === release)?.keys ?? null;
@@ -427,7 +417,7 @@ export function Dashboards() {
 	const active = useActiveProject().data;
 	const list = useDashboards();
 	const [chosen, setChosen] = useState(last);
-	const [failure, setFailure] = useState<string | null>(null);
+	const [failure, setFailure] = useState<unknown>(null);
 	if (active === undefined) return <Loading title={k.title} icon={<Squares2X2Icon size={16} />} />;
 	if (active === null) return <NoProject title={k.title} icon={<Squares2X2Icon size={16} />} />;
 	const entries = list.data ?? [];
@@ -445,7 +435,7 @@ export function Dashboards() {
 			await list.refetch();
 			choose(file);
 		} catch (e) {
-			setFailure(message(e));
+			setFailure(e);
 		}
 	};
 	return (
@@ -468,11 +458,7 @@ export function Dashboards() {
 				) : null
 			}
 		>
-			{failure ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{failure}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 			<PinnedTiles />
 			{slug ? (
 				<DashboardView key={slug} slug={slug} />
@@ -521,11 +507,11 @@ export function DashboardEdit() {
 	const { slug } = useParams({ strict: false }) as { slug: string };
 	last = slug;
 	const active = useActiveProject().data;
-	const { view, error, save } = useDashboard(slug);
+	const { view, failure: readFailure, save } = useDashboard(slug);
 	const { openDetail } = useShell();
 	const { push } = useNotifications();
 	const kindName = k.kind as Record<string, string>;
-	const [failure, setFailure] = useState<string | null>(null);
+	const [failure, setFailure] = useState<unknown>(null);
 	const [building, setBuilding] = useState(false);
 	const [name, setName] = useState<string | null>(null);
 	const build = useTileBuild(slug);
@@ -542,11 +528,7 @@ export function DashboardEdit() {
 	if (!view)
 		return (
 			<LibraryPage title={k.title} back={back}>
-				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				<ErrorNotice error={readFailure} />
 			</LibraryPage>
 		);
 	const dash: Dashboard = view.value;
@@ -560,7 +542,7 @@ export function DashboardEdit() {
 			setFailure(t.knowledge.editor.conflict);
 			return false;
 		} catch (e) {
-			setFailure(message(e));
+			setFailure(e);
 			return false;
 		}
 	};
@@ -675,11 +657,7 @@ export function DashboardEdit() {
 					) : null}
 				</Card>
 			)}
-			{failure ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{failure}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 			<ul
 				aria-label={`${k.tiles} (${dash.tiles.length})`}
 				className="grid auto-rows-[72px] gap-4"

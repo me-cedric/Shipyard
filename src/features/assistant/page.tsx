@@ -6,6 +6,7 @@ import { Button } from "@/ui/atoms/button";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Switch } from "@/ui/atoms/switch";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { CodexTrust } from "./codex-trust";
 import { Composer } from "./composer";
@@ -153,11 +154,7 @@ export function AssistantPage() {
 							{format(t.assistant.alert, { name: a.alert })}
 						</p>
 					) : null}
-					{a.error ? (
-						<p role="alert" className="rounded-field bg-danger-soft px-4 py-2 text-danger-text">
-							{a.error}
-						</p>
-					) : null}
+					<ErrorNotice error={a.error} className="px-4 py-2" />
 					{missing.none ? (
 						<NoCli runners={missing.runners} />
 					) : (

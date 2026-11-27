@@ -37,7 +37,7 @@ export type RunScopeData = {
 	workflow: ReturnType<typeof useWorkflow>["data"];
 	diff: NonNullable<ReturnType<typeof useRunDiff>["data"]>;
 	act: ReturnType<typeof useRunActions>;
-	error: string | null;
+	failure: unknown;
 	guard: ReturnType<typeof useGuard>["run"];
 	/** Moves the focus to the first match inside what waits for the person. */
 	focusIn: (selector: string) => void;
@@ -74,7 +74,7 @@ export function RunScope({ id, children }: { id: string; children: ReactNode }) 
 	const act = useRunActions();
 	const { openRef } = useShell();
 	const router = useRouter({ warn: false });
-	const { error, run: guard } = useGuard();
+	const { failure, run: guard } = useGuard();
 	const needs = useRef<HTMLDivElement>(null);
 	if (!run) return <Scope.Provider value={null}>{children}</Scope.Provider>;
 	const value: RunScopeData = {
@@ -87,7 +87,7 @@ export function RunScope({ id, children }: { id: string; children: ReactNode }) 
 		workflow,
 		diff,
 		act,
-		error,
+		failure,
 		guard,
 		needs,
 		focusIn: (selector) => needs.current?.querySelector<HTMLElement>(selector)?.focus(),

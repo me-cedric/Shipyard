@@ -111,13 +111,13 @@ impl Inner {
             .project_of(run_id)
             .map(|p| p.git.clone())
             .ok_or_else(|| Stop::Guard("the project is not open".into()))?;
-        let input = git
-            .review_input(run_id, &base)
-            .map_err(|e| Stop::Guard(format!("review input: {e}")))?;
         let rec = &self.runs[run_id];
+        let input = git
+            .review_input(run_id, &base, &rec.key)
+            .map_err(|e| Stop::Guard(format!("review input: {e}")))?;
         let mut t = format!("\nBase: {base}\nHead: {}\n", input.head);
         t.push_str(&format!(
-            "\nCriteria. The ticket {} above, and the specs below at the base commit:\n",
+            "\nCriteria. The ticket {} above, and its specs below at the base commit:\n",
             rec.key
         ));
         if input.specs.is_empty() {
@@ -371,8 +371,12 @@ impl Inner {
                 rec.c.top_tier = rec.rounds >= cap;
                 let note = format!("Fix round {}: {notes}", rec.rounds);
                 for n in &step.needs {
+                    // A step with one agent for each task of the plan: one builder fixes the
+                    // findings in the run worktree. The tasks do not all run again.
+                    let tasks = rec.wf.step(n).is_some_and(|w| w.source().is_some());
                     if let Some(need) = rec.steps.get_mut(n) {
                         reset(need, &note);
+                        need.in_run = tasks;
                     }
                 }
                 self.transition(run_id, RunEvent::FixRound);
@@ -415,8 +419,10 @@ impl Inner {
             text.push_str(&format!("\nA person adds: {n}"));
         }
         for n in &step.needs {
+            let tasks = rec.wf.step(n).is_some_and(|w| w.source().is_some());
             if let Some(need) = rec.steps.get_mut(n) {
                 reset(need, &text);
+                need.in_run = tasks;
             }
         }
         self.transition(run_id, RunEvent::FixRound);

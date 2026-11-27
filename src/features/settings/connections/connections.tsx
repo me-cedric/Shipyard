@@ -54,7 +54,7 @@ import { CertsGroup } from "./certs-group";
 import { ADD_TYPES, type AddType, ConnectionForm, GROUPS } from "./connection-form";
 import { Fold } from "./fold";
 import { GitlabTools } from "./gitlab-tools";
-import { connectionKeys, message, useMcpServers, useProviders } from "./keys";
+import { connectionKeys, useMcpServers, useProviders } from "./keys";
 import { McpAddForm, McpGroup, McpMore } from "./mcp-group";
 import { OutsideCard } from "./mcp-outside-group";
 import { ProviderForm, ProvidersGroup } from "./providers-group";
@@ -120,12 +120,7 @@ function Repos({ id }: { id: string }) {
 		queryKey: connectionKeys.repos(id),
 		queryFn: () => unwrap(commands.connectionsRepos(id, null)),
 	});
-	if (repos.error)
-		return (
-			<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
-				{message(repos.error)}
-			</p>
-		);
+	if (repos.error) return <ErrorNotice error={repos.error} className="px-3 pb-2" />;
 	const items = repos.data?.items ?? [];
 	return (
 		<section aria-label={t.connections.repos} className="px-3 pb-2">
@@ -522,11 +517,7 @@ function Scoped({ scope }: { scope: "project" | "computer" }) {
 			)}
 			<div className={SETTINGS_PAGE}>
 				{scope === "computer" && addButton ? <div>{addButton}</div> : null}
-				{list.error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{message(list.error)}
-					</p>
-				) : null}
+				<ErrorNotice error={list.error} />
 				{empty ? (
 					<div id="connections">
 						<EmptyState title={t.empty.connections} action={add} />

@@ -222,6 +222,9 @@ impl Inner {
         for (sid, builder) in pr_chain(&wf, action) {
             if let Some(s) = self.rec(run_id).steps.get_mut(&sid) {
                 reset(s, if builder { &notes } else { "" });
+                // A step with one agent for each task: one builder answers the feedback in the
+                // run worktree.
+                s.in_run = builder && wf.step(&sid).is_some_and(|w| w.source().is_some());
             }
         }
         self.log(run_id, None, kind::NOTE, json!({"feedback": notes}));

@@ -50,9 +50,10 @@ describe("Flow / List: the Recipe and Release rows of a ticket (REQ-003, REQ-004
 		await rows();
 		await openTicket(user, "ACME-3");
 		const recipe = await screen.findByRole("combobox", { name: "Recipe" });
-		expect(recipe).toHaveTextContent("bug");
+		// The recipe shows by its name in plain words, as Crew / Recipes lists it.
+		expect(recipe).toHaveTextContent("Bug");
 		await user.click(recipe);
-		await user.click(await screen.findByRole("option", { name: "feature" }));
+		await user.click(await screen.findByRole("option", { name: "Feature" }));
 		await waitFor(() => {
 			const labels = mockState().sync.mirror.find((t) => t.key === "ACME-3")?.labels ?? [];
 			expect(labels).toContain("wf:feature");

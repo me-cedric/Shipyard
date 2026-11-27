@@ -21,6 +21,7 @@ import { Button } from "@/ui/atoms/button";
 import { AttentionCard } from "@/ui/molecules/attention-card";
 import { Card } from "@/ui/molecules/card";
 import { DiffView } from "@/ui/molecules/diff-view";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { TILE, TILE_ON } from "@/ui/molecules/tile";
@@ -34,7 +35,7 @@ function Proposal({ proposal, here }: { proposal: WorkflowProposal; here: boolea
 	const w = t.factory.wf;
 	const p = t.factory.recipePage;
 	const writes = useFactoryWrites();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [open, setOpen] = useState(false);
 	return (
 		<section aria-label={w.proposal}>
@@ -63,11 +64,7 @@ function Proposal({ proposal, here }: { proposal: WorkflowProposal; here: boolea
 						{w.apply}
 					</RightButton>
 				</div>
-				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				<ErrorNotice error={failure} />
 			</AttentionCard>
 			{open ? (
 				<ChangeDialog

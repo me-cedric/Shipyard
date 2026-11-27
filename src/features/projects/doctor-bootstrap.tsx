@@ -10,13 +10,13 @@ import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { Textarea } from "@/ui/atoms/textarea";
 import { ArrowDownTrayIcon, PlusIcon, SparklesIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { toolsKey } from "./doctor-tools";
 
 const STACKS = ["rust", "node", "python", "other"] as const;
 const AGENTS = ["claude", "codex"] as const;
 const EMPTY: BootstrapAnswers = { name: "", key: "", summary: "", stack: "rust", agent: "claude" };
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**
  * Settings / Health: set up the tools and the files of a new project in one form. The preview
@@ -28,7 +28,7 @@ export function DoctorBootstrap() {
 	const qc = useQueryClient();
 	const [a, setA] = useState<BootstrapAnswers>(EMPTY);
 	const [note, setNote] = useState<string | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	// The step in progress, "create" or a tool id: a second click waits for it.
 	const [working, setWorking] = useState<string | null>(null);
 	const ready = a.name.trim() !== "" && a.key.trim() !== "";
@@ -47,7 +47,7 @@ export function DoctorBootstrap() {
 			await qc.invalidateQueries({ queryKey: ["doctor"] });
 			await qc.invalidateQueries();
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		} finally {
 			setWorking(null);
 		}
@@ -59,7 +59,7 @@ export function DoctorBootstrap() {
 			qc.setQueryData(toolsKey, await unwrap(commands.doctorToolInstall(id, true)));
 			await qc.invalidateQueries({ queryKey: ["doctor", "bootstrap"] });
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		} finally {
 			setWorking(null);
 		}
@@ -168,11 +168,7 @@ export function DoctorBootstrap() {
 						</span>
 					) : null}
 				</div>
-				{error || (ready && plan.error) ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error ?? message(plan.error)}
-					</p>
-				) : null}
+				<ErrorNotice error={error ?? (ready ? plan.error : null)} />
 			</div>
 		</Panel>
 	);

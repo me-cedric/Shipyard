@@ -3,8 +3,8 @@ import { useForgeActions } from "@/lib/code";
 import { useI18n } from "@/lib/i18n";
 import { RightButton } from "@/lib/rights";
 import { Textarea } from "@/ui/atoms/textarea";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Dialog } from "@/ui/organisms/dialog";
-import { message } from "./project-gate";
 
 /**
  * The checks that the team runs, one command on each line. The list starts from what the project
@@ -14,11 +14,11 @@ export function QualitySetup({ onClose }: { onClose: () => void }) {
 	const { t } = useI18n();
 	const { gatesPropose, gatesSave } = useForgeActions();
 	const [text, setText] = useState("");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	useEffect(() => {
 		gatesPropose()
 			.then((list) => setText(list.join("\n")))
-			.catch((e) => setError(message(e)));
+			.catch((e) => setError(e));
 	}, [gatesPropose]);
 	const gates = text
 		.split("\n")
@@ -35,7 +35,7 @@ export function QualitySetup({ onClose }: { onClose: () => void }) {
 					right="project.settings"
 					variant="primary"
 					disabled={gates.length === 0}
-					onClick={() => gatesSave(gates).then(onClose, (e) => setError(message(e)))}
+					onClick={() => gatesSave(gates).then(onClose, (e) => setError(e))}
 				>
 					{t.forge.quality.save}
 				</RightButton>
@@ -47,11 +47,7 @@ export function QualitySetup({ onClose }: { onClose: () => void }) {
 				value={text}
 				onChange={(e) => setText(e.target.value)}
 			/>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={error} />
 		</Dialog>
 	);
 }

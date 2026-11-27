@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { CodeLine } from "@/ui/molecules/code-editor";
 import { parseDiff } from "@/ui/molecules/diff-view";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Dialog } from "@/ui/organisms/dialog";
 import { FileViewer } from "@/ui/organisms/file-viewer";
 import { OpenInEditor } from "./open-in-editor";
@@ -29,11 +30,7 @@ export function FileDialog({
 	const title = line ? `${path} · ${format(t.forge.viewer.line, { n: line })}` : path;
 	return (
 		<Dialog open onOpenChange={(o) => !o && onClose()} title={title} wide>
-			{file.error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{file.error.message}
-				</p>
-			) : null}
+			<ErrorNotice error={file.error} />
 			{file.data ? (
 				<FileViewer
 					label={format(t.forge.viewer.label, { path })}
@@ -52,11 +49,7 @@ export function FileDialog({
 					<OpenInEditor path={path} line={line} />
 				</div>
 			) : null}
-			{blame.error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{String(blame.error)}
-				</p>
-			) : null}
+			<ErrorNotice error={blame.error} />
 			{blaming && blame.data ? (
 				<ol aria-label={t.forge.viewer.blame} className="max-h-48 overflow-auto font-mono text-12">
 					{blame.data.map((b) => (

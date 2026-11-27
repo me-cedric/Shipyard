@@ -96,10 +96,10 @@ export function useProposals(plan: PlanView | undefined) {
 	const day = usePlainDay();
 	const members = useTeam().data?.team.members ?? [];
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	if (!plan) {
 		const none = (_: Proposal) => "";
-		return { list: [] as Proposal[], rest: none, text: none, apply: () => undefined, error };
+		return { list: [] as Proposal[], rest: none, text: none, apply: () => undefined, failure };
 	}
 	const off = new Set([...plan.calendar.holidays, ...plan.publicHolidays]);
 	const list = proposals(
@@ -118,5 +118,5 @@ export function useProposals(plan: PlanView | undefined) {
 					to: firstName(memberName(members, x.to)),
 				})
 			: format(p.startsOn, { day: day(x.start ?? "") });
-	return { list, rest, text: (x: Proposal) => `${x.name} ${rest(x)}`, apply, error };
+	return { list, rest, text: (x: Proposal) => `${x.name} ${rest(x)}`, apply, failure };
 }

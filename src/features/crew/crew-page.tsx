@@ -20,6 +20,7 @@ import { buttonVariants } from "@/ui/atoms/button";
 import { Segmented } from "@/ui/atoms/segmented";
 import { PlusIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader, PageSwitchContext } from "@/ui/molecules/page-header";
 import { atWork, byRun, LiveRows, useAgentRows } from "./live";
@@ -192,11 +193,7 @@ export function CrewPage() {
 				) : (
 					<>
 						<h2 className={H2}>{c.people}</h2>
-						{team.data?.error ? (
-							<p role="alert" className="text-ui text-danger-text">
-								{team.data.error}
-							</p>
-						) : null}
+						<ErrorNotice error={team.data?.error} />
 						{members.length === 0 ? (
 							<EmptyState
 								title={t.empty.team}

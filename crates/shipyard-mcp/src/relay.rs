@@ -11,8 +11,8 @@
 //! On Windows the channel is a named pipe. Its name comes from the socket path, so one data folder
 //! has one pipe. Only the owner of the pipe can open it, and remote clients are refused.
 //!
-//! shortcut: on Windows a relay waits for the answer with no time limit, and a client that stays
-//! silent holds one thread of the app. Add timeouts if a hung server shows.
+//! shortcut: on Windows a client that stays silent holds one thread of the app. Add a timeout on
+//! the app side if a hung relay shows.
 
 use crate::proxy::Proxy;
 use serde_json::{Value, json};
@@ -98,8 +98,22 @@ pub fn run(server: &str) -> io::Result<()> {
 }
 
 /// How long a relay waits for the app. Longer than a server start.
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 const WAIT: std::time::Duration = std::time::Duration::from_secs(120);
+
+/// The answer of `work`, or `None` after `wait`. For a channel that has no read timeout, such as
+/// a Windows pipe: the thread of `work` stays until its read ends.
+#[cfg(any(windows, test))]
+fn within<T: Send + 'static>(
+    wait: std::time::Duration,
+    work: impl FnOnce() -> Option<T> + Send + 'static,
+) -> Option<T> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(work());
+    });
+    rx.recv_timeout(wait).ok().flatten()
+}
 
 /// How long the app waits for a relay to send its line, and to take the answer. A relay that
 /// connects and stays silent must not hold a thread for ever.
@@ -247,13 +261,14 @@ fn ask(socket: &Path, server: &str, method: &str, params: &Value) -> Result<Opti
         .write(true)
         .open(pipe_name(socket))
         .map_err(|_| ())?;
-    let request = json!({ "server": server, "method": method, "params": params });
-    let reply = (|| -> Option<Value> {
+    let request = json!({ "server": server, "method": method, "params": params }).to_string();
+    // A pipe has no read timeout: a thread reads, and this side waits for it `WAIT` at most.
+    let reply = within(WAIT, move || {
         writeln!(&pipe, "{request}").ok()?;
         let mut line = String::new();
         io::BufReader::new(&pipe).read_line(&mut line).ok()?;
         serde_json::from_str::<Value>(&line).ok()
-    })();
+    });
     Ok(reply
         .map(|r| r["response"].clone())
         .filter(|r| !r.is_null()))
@@ -437,4 +452,21 @@ pub fn serve(
         output.flush()?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::within;
+    use std::time::Duration;
+
+    #[test]
+    fn within_gives_the_answer_or_stops_the_wait() {
+        assert_eq!(within(Duration::from_secs(5), || Some(7)), Some(7));
+        assert_eq!(within(Duration::from_secs(5), || None::<u8>), None);
+        // A read that never ends: the wait ends, and the thread ends when the sender goes.
+        let (keep, never) = std::sync::mpsc::channel::<u8>();
+        let silent = within(Duration::from_millis(30), move || never.recv().ok());
+        assert_eq!(silent, None);
+        drop(keep);
+    }
 }

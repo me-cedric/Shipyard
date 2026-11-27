@@ -61,7 +61,7 @@ The shell is a rail and a page area. The rail shows the project switch, the six 
 - [ ] The palette shortcut moves the focus to the Ask bar, and an action runs from it.
 - [ ] A role opens on its first page, and the menu order is the same for every role.
 - [ ] The first run and "No project is open" show without the rail and the top row.
-- [ ] The inventory test finds each control of the old top bar and of the old status bar. Test: `src/features/shell/inventory.test.tsx`.
+- [x] The inventory test finds each control of the old top bar and of the old status bar. Test: `src/features/shell/inventory.test.tsx`.
 
 ### Existing References
 

@@ -19,6 +19,7 @@ import { BackLink } from "@/ui/molecules/back-link";
 import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader, PageSwitchContext } from "@/ui/molecules/page-header";
 import { Row } from "@/ui/molecules/row";
@@ -99,7 +100,7 @@ export function CrewSessions() {
 	const sessions = useSessions();
 	const { rows } = useAgentRows();
 	const writes = useFactoryWrites();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const act = useRunActions();
 	const runs = useRuns().data;
 	const { gate } = useRights();
@@ -203,11 +204,7 @@ export function CrewSessions() {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 			<PageHeader title={t.ui.place.crew} />
-			{error ? (
-				<p role="alert" className="px-4 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-4 pb-2" />
 			<div className="flex flex-wrap items-stretch gap-6 px-4 pb-4">
 				<div className="flex min-w-0 flex-[2_1_21rem] flex-col gap-4 self-start">
 					{none ? (

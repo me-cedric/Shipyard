@@ -28,6 +28,7 @@ import { Switch } from "@/ui/atoms/switch";
 import { ChevronRightIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 
 /** The panel is 360 wide and at least 280 high: the window fits the content. */
 const WIDTH = 360;
@@ -55,7 +56,7 @@ export function TrayView() {
 		(r) => r.lane === "working" || r.lane === "needs_you",
 	);
 	const { cancel } = useRunActions();
-	const { error, busy, run } = useGuard();
+	const { failure, busy, run } = useGuard();
 	const kill = useKillSwitch().data;
 	const writes = useFactoryWrites();
 	const syncNow = useSyncNow();
@@ -349,11 +350,7 @@ export function TrayView() {
 							</Button>
 						</Card>
 					) : null}
-					{error ? (
-						<span role="alert" className="text-danger-text">
-							{error}
-						</span>
-					) : null}
+					<ErrorNotice error={failure} />
 				</div>
 			</div>
 			<div ref={foot} className="flex shrink-0 gap-2.5 bg-surface-0 px-4 pt-2 pb-4">

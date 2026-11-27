@@ -8,6 +8,7 @@ import { Button } from "@/ui/atoms/button";
 import { Checkbox } from "@/ui/atoms/checkbox";
 import { LinkButton } from "@/ui/atoms/link-button";
 import { approvalSentence } from "@/ui/molecules/approval-bar";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { AgentAsk } from "./agent-ask";
 
@@ -36,7 +37,7 @@ export function DecisionCard({
 	const x = t.flow.look.page;
 	const act = useInboxActions();
 	const { gate } = useRights();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [steps, setSteps] = useState<boolean | null>(null);
 	const [recipe, setRecipe] = useState(false);
 	const first = approvals[0];
@@ -135,11 +136,7 @@ export function DecisionCard({
 						</div>
 					))
 				: null}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</AgentAsk>
 	);
 }

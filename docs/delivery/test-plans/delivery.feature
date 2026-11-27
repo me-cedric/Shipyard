@@ -45,6 +45,19 @@ Feature: delivery
     Then one builder brief holds the three findings
 
   @spec:delivery#REQ-004
+  Scenario: Fix rounds: One builder after tasks
+    Given a build step that ran one agent for each task of the plan
+    When a review finds a blocking defect
+    Then one builder fixes it in the run worktree
+    And the tasks of the plan do not run again
+
+  @spec:delivery#REQ-002
+  Scenario: Review criteria: Specs of the ticket
+    Given two spec changes, and one of them cites the ticket of the run
+    When the review starts
+    Then the reviewer gets the files of that change only
+
+  @spec:delivery#REQ-004
   Scenario: Fix rounds: Rounds spent
     Given four fix rounds are spent and a P0 or P1 finding remains
     When the fourth re-review ends

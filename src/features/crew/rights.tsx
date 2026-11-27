@@ -7,6 +7,7 @@ import { TEAM_ROLES } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { useRights } from "@/lib/rights";
 import { useTeam } from "@/lib/work";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { RoleCard } from "./role-card";
@@ -45,11 +46,7 @@ export function Rights() {
 				]}
 			/>
 			<div className="flex flex-col gap-4 px-4 pb-4">
-				{team.data?.error || roles.error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{team.data?.error ?? roles.error}
-					</p>
-				) : null}
+				<ErrorNotice error={team.data?.error ?? roles.failure} />
 				<div className="flex flex-wrap items-start gap-5">
 					<PeopleCard roles={roles} />
 					<RoleCard

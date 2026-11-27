@@ -8,6 +8,7 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { ATTENTION_FRAME } from "./capacity";
 
@@ -41,7 +42,7 @@ export function ExcelImport({
 	const e = t.work.estimates;
 	const x = t.costing.excel;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [typed, setTyped] = useState<string | null>(null);
 	const preview = file?.preview;
 	const name = typed ?? preview?.sheet.name ?? "";
@@ -170,11 +171,7 @@ export function ExcelImport({
 						</div>
 					) : null}
 					<Button onClick={onCancel}>{t.sync.backlog.cancel}</Button>
-					{error ? (
-						<p role="alert" className="text-ui text-danger-text">
-							{error}
-						</p>
-					) : null}
+					<ErrorNotice error={failure} />
 				</Card>
 			</div>
 		</div>

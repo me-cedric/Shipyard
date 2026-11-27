@@ -116,13 +116,14 @@ describe("atoms, look pass 1", () => {
 				<Switch label="Flip" />
 			</>,
 		);
+		// The border of a field reaches 3:1 against its ground (WCAG 1.4.11): it is not the card line `n-7`.
 		for (const el of [
 			screen.getByRole("textbox", { name: "Name" }),
 			screen.getByRole("textbox", { name: "Note" }),
 			screen.getByRole("combobox", { name: "Lang" }),
 			screen.getByRole("checkbox", { name: "Pick" }),
 		])
-			expect(el).toHaveClass("border-n-7", "bg-surface-1");
+			expect(el).toHaveClass("border-field-line", "bg-surface-1");
 		expect(screen.getByRole("combobox", { name: "Lang" })).toHaveClass("min-h-control");
 		expect(screen.getByRole("switch", { name: "Flip" })).toHaveClass("h-7.5", "w-13", "bg-n-9");
 	});

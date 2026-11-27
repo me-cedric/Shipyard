@@ -16,7 +16,7 @@ use shipyard_core::work_item::{Capabilities, TrackerKind};
 use shipyard_forges::{Forge, ForgeConfig, ForgeKind, Repository};
 use shipyard_git::{Auth, auth::https_host};
 use shipyard_http::{Client, Error, Http, Request, Response, TestOutcome};
-use shipyard_secrets::{Keychain, Secret, SecretStore, conn_account};
+use shipyard_secrets::{Secret, SecretStore, conn_account};
 use shipyard_store::project::write_atomic;
 use shipyard_trackers::work::TrackerWrite;
 use shipyard_trackers::{Tracker, TrackerConfig};
@@ -308,6 +308,16 @@ fn forge_config(r: &Record) -> Res<ForgeConfig> {
     })
 }
 
+/// The secret store of the app: the OS keychain. A unit test of this crate gets a store in memory.
+/// A test must never read the keychain of the person: a test connection can have the id of a real
+/// one, and macOS then asks the person to let the test binary read that secret.
+pub(crate) fn system_store() -> Arc<dyn SecretStore> {
+    #[cfg(test)]
+    return Arc::new(shipyard_secrets::MemoryStore::default());
+    #[cfg(not(test))]
+    Arc::new(shipyard_secrets::Keychain)
+}
+
 impl Connections {
     /// The HTTP client of the app, for a request that holds no connection secret.
     pub(crate) fn http(&self) -> Arc<dyn Http> {
@@ -341,7 +351,7 @@ impl Connections {
 
     /// The OS keychain and the real HTTP client.
     pub fn system(dir: &Path) -> Self {
-        Self::new(dir, Arc::new(Keychain), Arc::new(Client))
+        Self::new(dir, system_store(), Arc::new(Client))
     }
 
     fn guard(&self) -> MutexGuard<'_, ()> {

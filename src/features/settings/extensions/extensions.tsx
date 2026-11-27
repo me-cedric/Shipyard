@@ -38,6 +38,7 @@ import {
 	TrashIcon,
 } from "@/ui/icons";
 import { EntryRow } from "@/ui/molecules/entry-row";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { GroupSection } from "@/ui/molecules/group-section";
 import { WriteReportView } from "@/ui/molecules/write-report";
 import { CompassSetup } from "./compass-setup";
@@ -82,7 +83,7 @@ const CHANGE: Record<PluginChange, Status> = {
 function ComponentDetail({ id }: { id: string }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const files = useQuery({
 		queryKey: ["catalog-preview", id],
 		queryFn: () => unwrap(commands.catalogPreview(id)),
@@ -95,11 +96,7 @@ function ComponentDetail({ id }: { id: string }) {
 	}).data?.find((c) => c.id === id)?.state;
 	return (
 		<>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 			{files.data ? <WriteReportView report={files.data} /> : null}
 			<RightButton
 				right="project.settings"
@@ -158,7 +155,7 @@ function ChildDetail({ id }: { id: string }) {
 	const { t } = useI18n();
 	const x = t.extensions;
 	const qc = useQueryClient();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const children = useQuery({
 		queryKey: ["children"],
 		queryFn: () => unwrap(commands.childList()),
@@ -168,11 +165,7 @@ function ChildDetail({ id }: { id: string }) {
 	const refresh = () => qc.invalidateQueries({ queryKey: ["children"] });
 	return (
 		<>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 			{c ? (
 				<div className="flex flex-wrap items-center gap-2">
 					<Badge variant={c.cloned && c.held === c.total ? "success" : "neutral"}>
@@ -242,7 +235,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 	const { gate } = useRights();
 	const x = t.extensions;
 	const qc = useQueryClient();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const catalog = useQuery({ queryKey: ["catalog"], queryFn: () => unwrap(commands.catalogGet()) });
 	const children = useQuery({
 		queryKey: ["children"],
@@ -343,11 +336,7 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 		setPath(dir);
 		await look(dir);
 	};
-	const errorLine = error ? (
-		<p role="alert" className="px-1 text-ui text-danger-text">
-			{error}
-		</p>
-	) : null;
+	const errorLine = <ErrorNotice error={failure} className="px-1" />;
 
 	/** The review of a plugin and what came of its apply: it shows where the plugin was chosen. */
 	const reviewBody = (
@@ -511,12 +500,17 @@ export function Extensions({ view = "main" }: { view?: "main" | "plugins" }) {
 
 	const sent = results.map((r) => (
 		<div key={r.id} className="border-b">
-			<p role={r.error ? "alert" : "status"} className="px-6 pt-2 text-ui">
-				{r.id}
-				{r.error
-					? `: ${r.error}`
-					: ` ${format(x.children.branch, { branch: r.branch ?? "" })} ${format(x.children.commit, { commit: (r.commit ?? "").slice(0, 7) })}`}
-			</p>
+			{r.error ? (
+				<div className="flex flex-wrap items-center gap-2 px-6 pt-2 text-ui">
+					<span>{r.id}</span>
+					<ErrorNotice error={r.error} className="min-w-0 flex-1" />
+				</div>
+			) : (
+				<p role="status" className="px-6 pt-2 text-ui">
+					{r.id} {format(x.children.branch, { branch: r.branch ?? "" })}{" "}
+					{format(x.children.commit, { commit: (r.commit ?? "").slice(0, 7) })}
+				</p>
+			)}
 			<WriteReportView report={r.report} />
 		</div>
 	));

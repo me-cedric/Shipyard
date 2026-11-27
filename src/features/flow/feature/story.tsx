@@ -9,6 +9,7 @@ import { Button } from "@/ui/atoms/button";
 import { LinkButton } from "@/ui/atoms/link-button";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { RunGraph } from "@/ui/organisms/run-graph";
@@ -130,7 +131,7 @@ export function Story({
 	const { t, lang } = useI18n();
 	const f = t.factory;
 	const x = t.flow.feature;
-	const { run, events, log, waits, active, loading, error, needs } = scope;
+	const { run, events, log, waits, active, loading, failure, needs } = scope;
 	const [showLog, setLog] = useState(false);
 	const important = events.filter(isImportant);
 	const base = important.length ? important : events;
@@ -169,11 +170,7 @@ export function Story({
 	);
 	return (
 		<div className="flex flex-col gap-4">
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 			<div ref={needs} className="contents">
 				<RunNeeds run={run} events={events} waits={waits} ticket={ticket} onFiles={onFiles} />
 			</div>

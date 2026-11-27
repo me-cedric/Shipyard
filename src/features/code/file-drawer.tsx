@@ -24,6 +24,7 @@ import {
 	XMarkIcon,
 } from "@/ui/icons";
 import { ContextMenu } from "@/ui/molecules/context-menu";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { indent } from "@/ui/molecules/file-row";
 import { Splitter } from "@/ui/molecules/splitter";
 import { type FileAction, FileActionDialog } from "./file-actions";
@@ -326,11 +327,7 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 					}}
 				/>
 			</form>
-			{files.error ? (
-				<p role="alert" className="px-3 py-2 text-ui text-danger-text">
-					{String(files.error)}
-				</p>
-			) : null}
+			<ErrorNotice error={files.error} className="px-3 py-2" />
 			<ul
 				ref={listRef}
 				aria-label={f.title}

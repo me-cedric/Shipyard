@@ -235,7 +235,7 @@ const TITLE = "text-30 font-semibold text-n-12";
 /** The save of the roles table and of the roles of the members: one command, then a new read (REQ-019). */
 export function useRolesSave() {
 	const qc = useQueryClient();
-	const { error, run } = useGuard();
+	const { error, failure, run } = useGuard();
 	const view = useRights().view;
 	const table: RoleAccess[] = (view?.roles ?? []).map(({ role, access }) => ({ role, access }));
 	const save = (next: RoleAccess[], members: MemberRoles[] = []) =>
@@ -248,6 +248,7 @@ export function useRolesSave() {
 		});
 	return {
 		error,
+		failure,
 		table,
 		setAccess: (role: TeamRole, access: Access) =>
 			save(table.map((x) => (x.role === role ? { ...x, access } : x))),
@@ -687,7 +688,7 @@ export function TeamFileCard() {
 	const active = useActiveProject().data;
 	const team = useTeam().data?.team.members ?? [];
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	if (!active) return null;
 	const o = active.overrides;
 	const p = proposal(o, team);
@@ -716,11 +717,7 @@ export function TeamFileCard() {
 				{p.dropped.length ? (
 					<p className="text-n-11">{format(r.dropped, { list: p.dropped.join(", ") })}</p>
 				) : null}
-				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				<ErrorNotice error={failure} />
 				<div className="flex flex-wrap gap-2.5">
 					<Button
 						onClick={() =>

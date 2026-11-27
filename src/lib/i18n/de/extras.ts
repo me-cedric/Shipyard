@@ -13,7 +13,6 @@ export const extrasDe: typeof extrasEn = {
 		dateFormat: "Datumsformat",
 		dateFollow: "Wie die Sprache",
 		closePush: "Gespeicherte Änderungen beim Schließen des Fensters senden",
-		narrowBar: "Schmale obere Leiste",
 		tray: "Menüleisten-Symbol",
 		motion: "Bewegung",
 		motionSystem: "Wie das System",

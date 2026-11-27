@@ -9,12 +9,12 @@ import { Chip } from "@/ui/atoms/chip";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { ClipboardIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Row } from "@/ui/molecules/row";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { ValueSelect } from "../me/value-select";
 import { SetupCard, SetupRow, StatePill, Toggle } from "../parts";
 import { Fold } from "./fold";
-import { message } from "./keys";
 import { McpWiring, outsideKey, wiringKey } from "./mcp-wiring";
 
 const GROUPS = [
@@ -93,7 +93,7 @@ export function McpOutsideGroup() {
 	const [draft, setDraft] = useState<Gates | null>(null);
 	const [port, setPort] = useState<string | null>(null);
 	const [note, setNote] = useState<string | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const [pick, setPick] = useState<string | null>(null);
 	const s = status.data;
 	if (!s) return null;
@@ -104,7 +104,7 @@ export function McpOutsideGroup() {
 		try {
 			setNote(await job());
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		}
 	};
 	const toggleTool = (tool: string, on: boolean) =>
@@ -179,11 +179,7 @@ export function McpOutsideGroup() {
 								{note}
 							</p>
 						) : null}
-						{s.error || error ? (
-							<p role="alert" className="pt-2 text-ui text-danger-text">
-								{error ?? s.error}
-							</p>
-						) : null}
+						<ErrorNotice error={error ?? s.error} className="pt-2" />
 					</SetupCard>
 				</div>
 				<div className="flex min-w-0 flex-[2_1_320px] flex-col gap-4">
